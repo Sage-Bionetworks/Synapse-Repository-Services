@@ -103,15 +103,18 @@ public class EntityController extends BaseController{
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(
-			value = {UrlHelpers.ENTITY_MD5 + "{md5}"},
+			value = {UrlHelpers.ENTITY_MD5},
 			method = RequestMethod.GET)
-	public @ResponseBody EntityHeader getEntityByMd5(
+	public @ResponseBody BatchResults<EntityHeader> getEntityHeaderByMd5(
 			@PathVariable String md5,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
-		EntityHeader entityHeader = serviceProvider.getEntityService().getEntityByMd5(userId, md5, request);
-		return entityHeader;
+		List<EntityHeader> entityHeaders = serviceProvider.getEntityService().getEntityHeaderByMd5(userId, md5, request);
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+        results.setResults(entityHeaders);
+        results.setTotalNumberOfResults(entityHeaders.size());
+        return results;
 	}
 
 	/**

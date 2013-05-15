@@ -82,6 +82,7 @@ public class EntityControllerTest {
 		handleOne.setKey("EntityControllerTest.mainFileKey");
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
+		handleOne.setContentMd5("handleOneContentMd5");
 		handleOne = fileMetadataDao.createFile(handleOne);
 		// Create a preview
 		previewOne = new PreviewFileHandle();
@@ -455,9 +456,35 @@ public class EntityControllerTest {
 		toDelete.add(file.getId());
 	}
 
+	@Test(expected=NotFoundException.class)
+	public void testGetEntityHeaderByMd5NotFoundException() throws Exception {
+		entityServletHelper.getEntityHeaderByMd5(userName, "548c050497fb361742b85e0712b0cc96");
+	}
+
 	@Test
-	public void testGetEntityByMd5() throws Exception {
-		EntityHeader entityHeader = entityServletHelper.getEntityByMd5(userName, "548c050497fb361742b85e0712b0cc96");
-		assertNotNull(entityHeader);
+	public void testGetEntityHeaderByMd5() throws Exception {
+
+		Project parent = new Project();
+		parent.setName("testGetEntityHeaderByMd5");
+		parent.setEntityType(Project.class.getName());
+		parent = (Project) entityServletHelper.createEntity(parent, userName, null);
+		assertNotNull(parent);
+		String parentId = parent.getId();
+		toDelete.add(parentId);
+
+		FileEntity file = new FileEntity();
+		file.setName("testGetEntityHeaderByMd5 file");
+		file.setEntityType(FileEntity.class.getName());
+		file.setParentId(parentId);
+		file.setDataFileHandleId(handleOne.getId());
+		file = (FileEntity) entityServletHelper.createEntity(file, userName, null);
+		assertNotNull(file);
+		assertNotNull(file.getId());
+		toDelete.add(file.getId());
+
+		BatchResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(userName, handleOne.getContentMd5());
+		assertNotNull(results);
+		assertEquals(1, results.getTotalNumberOfResults());
+		assertEquals(file.getId(), results.getResults().get(0).getId());
 	}
 }

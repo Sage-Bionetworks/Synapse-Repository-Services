@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
   
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -585,9 +586,27 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getNodeHeaderByMd5(UserInfo userInfo, String entityId)
+	public List<EntityHeader> getNodeHeaderByMd5(UserInfo userInfo, String md5)
 			throws NotFoundException, DatastoreException {
-		return new EntityHeader();
+
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+		if (md5 == null) {
+			throw new IllegalArgumentException("MD5 cannot be null.");
+		}
+
+		List<EntityHeader> entityHeaderList = nodeDao.getEntityHeaderByMd5(md5);
+		List<EntityHeader> results = new ArrayList<EntityHeader>(entityHeaderList.size());
+		for (EntityHeader entityHeader: entityHeaderList) {
+			if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ACCESS_TYPE.READ)) {
+				results.add(entityHeader);
+			}
+		}
+		if (results.size() == 0) {
+			throw new NotFoundException("MD5 " + md5 + " has no matching entities that the user can access.");
+		}
+		return results;
 	}
 
 	@Override

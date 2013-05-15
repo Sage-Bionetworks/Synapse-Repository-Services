@@ -194,7 +194,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public EntityHeader getEntityByMd5(UserInfo userInfo, String md5)
+	public List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
 			throws NotFoundException, DatastoreException {
 		return nodeManager.getNodeHeaderByMd5(userInfo, md5);
 	}

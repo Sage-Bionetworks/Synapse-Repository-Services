@@ -114,9 +114,9 @@ public interface EntityService {
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
 	 */
-	public EntityHeader getEntityByMd5(String userId, String md5, HttpServletRequest request)
+	public List<EntityHeader> getEntityHeaderByMd5(String userId, String md5, HttpServletRequest request)
 			throws NotFoundException, DatastoreException;
 
 	/**

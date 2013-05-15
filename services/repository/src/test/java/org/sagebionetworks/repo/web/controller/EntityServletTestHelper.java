@@ -1660,8 +1660,7 @@ public class EntityServletTestHelper {
 		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
 
-	public EntityHeader getEntityByMd5(String userName, String md5) throws Exception {
-
+	public BatchResults<EntityHeader> getEntityHeaderByMd5(String userName, String md5) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
@@ -1675,9 +1674,8 @@ public class EntityServletTestHelper {
 		}
 		String jsonStr = response.getContentAsString();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		EntityHeader entityHeader = new EntityHeader();
-		entityHeader.initializeFromJSONObject(adapter);
-		return entityHeader;
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		results.initializeFromJSONObject(adapter);
+		return results;
 	}
-	
 }

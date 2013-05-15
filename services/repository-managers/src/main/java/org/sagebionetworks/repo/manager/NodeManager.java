@@ -215,10 +215,9 @@ public interface NodeManager {
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Get the node header via the file's MD5 if the version of the node has
-	 * a file whose MD5 is the same as the specified MD5 string.
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
 	 */
-	public EntityHeader getNodeHeaderByMd5(UserInfo userInfo, String entityId)
+	public List<EntityHeader> getNodeHeaderByMd5(UserInfo userInfo, String md5)
 			throws NotFoundException, DatastoreException;
 
 	/**

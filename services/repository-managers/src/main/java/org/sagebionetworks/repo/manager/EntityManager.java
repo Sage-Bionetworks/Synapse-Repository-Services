@@ -239,7 +239,7 @@ public interface EntityManager {
 	/**
 	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
 	 */
-	public EntityHeader getEntityByMd5(UserInfo userInfo, String md5)
+	public List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
 			throws NotFoundException, DatastoreException;
 
 	/**
