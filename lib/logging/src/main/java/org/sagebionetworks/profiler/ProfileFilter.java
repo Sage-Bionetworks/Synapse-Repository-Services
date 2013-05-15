@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks;
+package org.sagebionetworks.profiler;
 
 import java.io.IOException;
 

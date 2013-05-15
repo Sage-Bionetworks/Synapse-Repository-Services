@@ -16,12 +16,12 @@
 	<import resource="classpath:aws-spb.xml" />
 
 	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects --> 
-	<bean id="controllerProfiler" class="profiler.org.sagebionetworks.cloudwatch.ControllerProfiler">
+	<bean id="controllerProfiler" class="org.sagebionetworks.cloudwatch.ControllerProfiler">
 		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff"/>
 	</bean>
 	
 	<!-- A consumer that logs performance data for all bean method calls to Amazon CloudWatch. -->  
-	<bean id="consumer" class="profiler.org.sagebionetworks.cloudwatch.Consumer" scope="singleton"/>
+	<bean id="consumer" class="org.sagebionetworks.cloudwatch.Consumer" scope="singleton"/>
 	
 	<!--  bean saying we want to invoke the sendEm method in Consumer class -->
 	<bean id="methodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">

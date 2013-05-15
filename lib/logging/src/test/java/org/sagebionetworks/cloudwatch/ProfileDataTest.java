@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks.cloudwatch;
+package org.sagebionetworks.cloudwatch;
 
 import static org.junit.Assert.assertEquals;
 

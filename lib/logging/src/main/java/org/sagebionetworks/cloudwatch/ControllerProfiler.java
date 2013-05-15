@@ -1,9 +1,7 @@
-package profiler.org.sagebionetworks.cloudwatch;
+package org.sagebionetworks.cloudwatch;
 
 import java.util.Date;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
@@ -18,9 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ControllerProfiler {
 	//constant for nanosecond conversion to milliseconds
 	private static final long NANOSECOND_PER_MILLISECOND = 1000000L;
-	
-	static private Log log = LogFactory.getLog(ControllerProfiler.class);
-	
+
 	//a singleton consumer from the Spring settings file 
 	@Autowired
 	Consumer consumer;

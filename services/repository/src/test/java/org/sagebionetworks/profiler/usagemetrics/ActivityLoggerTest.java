@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks.usagemetrics;
+package org.sagebionetworks.profiler.usagemetrics;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.logging.SynapseEvent;
 import org.sagebionetworks.logging.SynapseLoggingUtils;
+import org.sagebionetworks.profiler.usagemetrics.ActivityLogger;
 import org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;

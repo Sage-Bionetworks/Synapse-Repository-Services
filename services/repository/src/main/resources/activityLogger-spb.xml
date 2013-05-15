@@ -15,7 +15,7 @@
 	<!-- A logger that logs profiling and call data for all web services.
 	       The goal is to have a record of all user interactions with the
 	       services that we can mine for statistics. --> 
-	<bean id="activityLogger" class="profiler.org.sagebionetworks.usagemetrics.ActivityLogger">
+	<bean id="activityLogger" class="org.sagebionetworks.profiler.usagemetrics.ActivityLogger">
 		<property name="shouldProfile" ref="stackConfiguration.controllerLoggingEnabled"/>
 	</bean>
 
