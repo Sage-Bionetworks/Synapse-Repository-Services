@@ -64,7 +64,7 @@ public class BackupDriverImpl implements BackupDriver {
 		FileOutputStream fos = new FileOutputStream(destination);
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
 		try {
-			progress.appendLog(idsToBackup.toString());
+//			progress.appendLog(idsToBackup.toString());
 			progress.setMessage("Backup id count: "+idsToBackup.size());
 			ZipEntry entry = new ZipEntry(type.name() + ZIP_ENTRY_SUFFIX);
 			zos.putNextEntry(entry);
@@ -109,6 +109,7 @@ public class BackupDriverImpl implements BackupDriver {
 			ZipInputStream zin = new ZipInputStream(
 					new BufferedInputStream(fis));
 			progress.setMessage("Reading: " + source.getAbsolutePath());
+			progress.setCurrentIndex(0);
 			progress.setTotalCount(source.length());
 
 			ZipEntry entry;
@@ -121,7 +122,7 @@ public class BackupDriverImpl implements BackupDriver {
 				// This is a backup file.
 				int[] results = migrationManager.createOrUpdateBatch(user, type, zin);
 				// Append this id to the log.
-				progress.appendLog(Arrays.toString(results));
+//				progress.appendLog(Arrays.toString(results));
 
 				progress.incrementProgressBy(entry.getCompressedSize());
 				if (log.isTraceEnabled()) {

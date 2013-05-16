@@ -7,14 +7,11 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.SynapseAdministrationInt;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
-import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
@@ -60,6 +57,8 @@ public class CreateUpdateWorker implements Callable<Long> {
 		this.count = count;
 		this.iterator = iterator;
 		this.progress = progress;
+		this.progress.setCurrent(0);
+		this.progress.setTotal(count);
 		this.destClient = destClient;
 		this.sourceClient = sourceClient;
 		this.batchSize = batchSize;
@@ -73,6 +72,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 		// This utility will guarantee that all parents are in buckets that proceed their children
 		// so as long as we create the buckets in order, all parents and their children can be created
 		// without foreign key constraint violations.
+		progress.setMessage("Bucketing by tree level...");
 		MigrationUtils.bucketByTreeLevel(this.iterator, provider);
 		List<List<Long>> listOfBuckets = provider.getListOfBuckets();
 		// Send each bucket batched.
@@ -95,11 +95,8 @@ public class CreateUpdateWorker implements Callable<Long> {
 		Long id = null;
 		List<Long> batch = new LinkedList<Long>();
 		long updateCount = 0;
-		long current = 0;
 		while(bucketIt.hasNext()){
 			id = bucketIt.next();
-			current++;
-			this.progress.setCurrent(current);
 			if(id != null){
 				batch.add(id);
 				if(batch.size() >= batchSize){
@@ -123,6 +120,8 @@ public class CreateUpdateWorker implements Callable<Long> {
 	}
 	
 	private void backupBatch(IdList request) throws Exception {
+		int listSize = request.getList().size();
+		progress.setMessage("Starting backup daemon for "+listSize+" objects");
 		// Start a backup.
 		BackupRestoreStatus status = this.sourceClient.startBackup(type, request);
 		// Wait for the backup to complete
@@ -134,6 +133,9 @@ public class CreateUpdateWorker implements Callable<Long> {
 		status = this.destClient.startRestore(type, restoreSub);
 		// Wait for the backup to complete
 		status = waitForDaemon(status.getId(), this.destClient);
+		// Update the progress
+		progress.setMessage("Finished restore for "+listSize+" objects");
+		progress.setCurrent(progress.getCurrent()+listSize);
 	}
 	
 	/**
@@ -156,8 +158,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 				throw new InterruptedException("Timed out waiting for the daemon to complete");
 			}
 			BackupRestoreStatus status = client.getStatus(daemonId);
-			// Update the status
-			updateProgress(status, this.progress);
+			progress.setMessage(String.format("\t Waiting for daemon: %1$s id: %2$s", status.getType().name(), status.getId()));
 			// Check to see if we failed.
 			if(DaemonStatus.FAILED == status.getStatus()){
 				throw new InterruptedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
@@ -184,35 +185,6 @@ public class CreateUpdateWorker implements Callable<Long> {
 			String statString = DaemonStatusUtil.printStatus(status);
 			log.trace(String.format(format, Thread.currentThread().getId(),	statString));
 		}
-	}
-
-
-	/**
-	 * Update the progress
-	 * @param status
-	 */
-	public static void updateProgress(BackupRestoreStatus status, BasicProgress progress) {
-		// Calculate the progress
-		float current = status.getProgresssCurrent();
-		float total = status.getProgresssTotal();
-		// we can only update the status if there are status numbers
-		if(current < 1.0f ||  total < 1.0){
-			return;
-		}
-		float fraction = current/total;
-		float progressCurrent = progress.getTotal()*fraction;
-		long adjustedProgress = 0;
-		if(DaemonType.RESTORE == status.getType()){
-			// Restores happen after backup is at 100%
-			long backupProgress = (long) (progress.getTotal()*BAKUP_FRACTION);
-			// the restores are slower, so progress made is more significant.
-			// Add the completed backup progress
-			adjustedProgress = (long)(progressCurrent*RESTORE_FRACTION)+backupProgress;
-		}else{
-			// the backups are faster, so progress made is not as significant.
-			adjustedProgress = (long)(progressCurrent*BAKUP_FRACTION);
-		}
-		progress.setCurrent(adjustedProgress);
 	}
 	
 	/**

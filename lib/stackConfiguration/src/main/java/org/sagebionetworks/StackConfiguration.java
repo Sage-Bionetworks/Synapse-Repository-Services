@@ -797,4 +797,12 @@ public class StackConfiguration {
 	public Long getMigrationBackupBatchMax(){
 		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.migration.backup.batch.max"));
 	}
+	
+	/**
+	 * This should match the Database max_allowed_packet value. See PLFM-1900
+	 * @return
+	 */
+	public Integer getMigrationMaxAllowedPacketBytes(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.repo.model.dbo.migration.max.allowed.packet.byte"));
+	}
 }
