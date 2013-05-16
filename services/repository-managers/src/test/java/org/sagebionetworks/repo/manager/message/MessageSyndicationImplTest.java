@@ -7,6 +7,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
 import org.mockito.Mockito;
@@ -48,26 +50,47 @@ public class MessageSyndicationImplTest {
 	}
 	
 	@Test
-	public void testReFireChangeMessagesSingleBatch() {
+	public void testReFireChangeMessagesSingleBatchWhole() {
 		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
-		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 100)).thenReturn(expectedChanges);
+		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 10)).thenReturn(expectedChanges);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
 		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 10L);
 		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
-		nextChgNum--; // To get around assertEquals ambiguous
-		assertEquals((expectedChanges.get(9).getChangeNumber()), nextChgNum);
+		assertTrue(-1L == nextChgNum);
 	}
 	
 	@Test
-	public void testRefireChangeMessagesTwoBatches() {
+	public void testReFireChangeMessagesSingleBatchSmaller() {
+		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
+		List<ChangeMessage> expectedB = getBatchFromChanges(expectedChanges, 7, 0);
+		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 7)).thenReturn(expectedB);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
+		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 7L);
+		verify(mockMsgPublisher, times(7)).fireChangeMessage(any(ChangeMessage.class));
+		assertTrue(130L == nextChgNum);
+	}
+	
+	@Test
+	public void testReFireChangeMessagesSingleBatchBigger() {
+		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
+		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 11)).thenReturn(expectedChanges);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
+		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 11L);
+		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
+		assertTrue(-1L == nextChgNum);
+	}
+	
+	@Test
+	public void testRefireChangeMessagesTwoBatchesWhole() {
 		List<ChangeMessage> expectedChanges = generateChanges(137, 100L);
 		List<ChangeMessage> expectedB1 = getBatchFromChanges(expectedChanges, 100, 0);
 		List<ChangeMessage> expectedB2 = getBatchFromChanges(expectedChanges, 100, 1);
 		when(mockChgDAO.listChanges(100L, ObjectType.ENTITY, 100)).thenReturn(expectedB1);
-		when(mockChgDAO.listChanges(200L, ObjectType.ENTITY, 100)).thenReturn(expectedB2);
+		when(mockChgDAO.listChanges(200L, ObjectType.ENTITY, 37)).thenReturn(expectedB2);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(236L);
 		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(100L, 137L);
 		verify(mockMsgPublisher, times(137)).fireChangeMessage(any(ChangeMessage.class));
-		nextChgNum--; // To get around assertEquals ambiguous
-		assertEquals((expectedChanges.get(expectedChanges.size()-1).getChangeNumber()), nextChgNum);
+		assertTrue(-1L == nextChgNum);
 	}
 	
 	/**
