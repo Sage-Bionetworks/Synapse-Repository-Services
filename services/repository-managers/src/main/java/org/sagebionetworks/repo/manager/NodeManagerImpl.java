@@ -603,9 +603,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				results.add(entityHeader);
 			}
 		}
-		if (results.size() == 0) {
-			throw new NotFoundException("MD5 " + md5 + " has no matching entities that the user can access.");
-		}
 		return results;
 	}
 
