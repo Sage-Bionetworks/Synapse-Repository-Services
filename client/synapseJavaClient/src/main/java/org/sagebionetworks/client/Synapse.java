@@ -1717,10 +1717,10 @@ public class Synapse {
 			post = createPost(url, requestBody);
 			HttpResponse response = clientProvider.execute(post);
 			int code = response.getStatusLine().getStatusCode();
+			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			if(code < 200 || code > 299){
 				throw new SynapseException("Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
 			}
-			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			return EntityFactory.createEntityFromJSONString(responseBody, returnClass);
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseException(e);
