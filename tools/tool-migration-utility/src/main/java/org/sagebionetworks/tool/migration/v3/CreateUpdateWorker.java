@@ -21,9 +21,9 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
-public class CreateUpdateWorker implements Callable<Long> {
+public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	
-	static private Log log = LogFactory.getLog(MetadataIterator.class);
+	static private Log log = LogFactory.getLog(CreateUpdateWorker.class);
 
 	// Restore takes takes up 75% of the time
 	private static final float RESTORE_FRACTION = 75.0f/100.0f;
@@ -37,21 +37,26 @@ public class CreateUpdateWorker implements Callable<Long> {
 	SynapseAdministrationInt destClient;
 	SynapseAdministrationInt sourceClient;
 	long batchSize;
-	long timeout;
+	long timeoutMS;
+	int retryDenominator;
 	
 	/**
-	 * Create/update worker.
-	 * @param type
-	 * @param count
-	 * @param iterator
-	 * @param progress
-	 * @param destClient
-	 * @param sourceClient
-	 * @param batchSize
+	 * 
+	 * @param type - The type to be migrated.
+	 * @param count - The number of items in the iterator to be migrated.
+	 * @param iterator - Abstraction for iterating over the objects to be migrated.
+	 * @param progress - The worker will update the progress objects so its progress can be monitored externally.
+	 * @param destClient - A handle to the destination SynapseAdministration client. Data will be pushed to the destination.
+	 * @param sourceClient - A handle to the source SynapseAdministration client. Data will be pulled from the source.
+	 * @param batchSize - Data is migrated in batches.  This controls the size of the batches.
+	 * @param timeout - How long should the worker wait for Daemon job to finish its task before timing out in milliseconds.
+	 * @param retryDenominator - If a daemon fails to backup or restore a single batch, the worker will divide the batch into sub-batches
+	 * using this number as the denominator. An attempt will then be made to retry the migration of each sub-batch in an attempt to isolate the problem.
+	 * If this is set to less than 2, then no re-try will be attempted.
 	 */
 	public CreateUpdateWorker(MigrationType type, long count, Iterator<RowMetadata> iterator, BasicProgress progress,
 			SynapseAdministrationInt destClient,
-			SynapseAdministrationInt sourceClient, long batchSize, long timeout) {
+			SynapseAdministrationInt sourceClient, long batchSize, long timeoutMS, int retryDenominator) {
 		super();
 		this.type = type;
 		this.count = count;
@@ -62,7 +67,8 @@ public class CreateUpdateWorker implements Callable<Long> {
 		this.destClient = destClient;
 		this.sourceClient = sourceClient;
 		this.batchSize = batchSize;
-		this.timeout = timeout;
+		this.timeoutMS = timeoutMS;
+		this.retryDenominator = retryDenominator;
 	}
 
 	@Override
@@ -100,9 +106,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 			if(id != null){
 				batch.add(id);
 				if(batch.size() >= batchSize){
-					IdList request = new IdList();
-					request.setList(batch);
-					backupBatch(request);
+					migrateBatch(batch);
 					updateCount += batch.size();
 					batch.clear();
 				}
@@ -110,19 +114,37 @@ public class CreateUpdateWorker implements Callable<Long> {
 		}
 		// If there is any data left in the batch send it
 		if(batch.size() > 0){
-			IdList request = new IdList();
-			request.setList(batch);
-			backupBatch(request);
+			migrateBatch(batch);
 			updateCount += batch.size();
 			batch.clear();
 		}
 		return updateCount;
 	}
 	
-	private void backupBatch(IdList request) throws Exception {
-		int listSize = request.getList().size();
+	/**
+	 * Migrate the batches
+	 * @param ids
+	 * @throws Exception
+	 */
+	protected void migrateBatch(List<Long> ids) throws Exception {
+		// This utility will first attempt to execute the batch.
+		// If there are failures it will break the batch into sub-batches and attempt to execute eatch sub-batch.
+		BatchUtility.attemptBatchWithRetry(this.retryDenominator, this, ids);
+	}
+
+	/**
+	 * Attempt to migrate a single batch.
+	 * @param ids
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	public boolean attemptBatch(List<Long> ids) throws JSONObjectAdapterException, SynapseException, InterruptedException {
+		int listSize = ids.size();
 		progress.setMessage("Starting backup daemon for "+listSize+" objects");
 		// Start a backup.
+		IdList request = new IdList();
+		request.setList(ids);
 		BackupRestoreStatus status = this.sourceClient.startBackup(type, request);
 		// Wait for the backup to complete
 		status = waitForDaemon(status.getId(), this.sourceClient);
@@ -136,6 +158,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 		// Update the progress
 		progress.setMessage("Finished restore for "+listSize+" objects");
 		progress.setCurrent(progress.getCurrent()+listSize);
+		return true;
 	}
 	
 	/**
@@ -154,14 +177,14 @@ public class CreateUpdateWorker implements Callable<Long> {
 		long start = System.currentTimeMillis();
 		while (true) {
 			long now = System.currentTimeMillis();
-			if(now-start > timeout){
+			if(now-start > timeoutMS){
 				throw new InterruptedException("Timed out waiting for the daemon to complete");
 			}
 			BackupRestoreStatus status = client.getStatus(daemonId);
 			progress.setMessage(String.format("\t Waiting for daemon: %1$s id: %2$s", status.getType().name(), status.getId()));
 			// Check to see if we failed.
 			if(DaemonStatus.FAILED == status.getStatus()){
-				throw new InterruptedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
+				throw new DaemonFailedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
 			}
 			// Are we done?
 			if (DaemonStatus.COMPLETED == status.getStatus()) {
