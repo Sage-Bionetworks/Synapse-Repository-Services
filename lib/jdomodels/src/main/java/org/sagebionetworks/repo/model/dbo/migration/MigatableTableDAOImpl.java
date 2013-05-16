@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -39,6 +40,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 */
 	private List<MigratableDatabaseObject> databaseObjectRegister;
 	
+	int maxAllowedPacketBytes = -1;
 	
 	/**
 	 * Injected via Spring
@@ -47,6 +49,15 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
+	
+	/**
+	 * Injected via Spring
+	 * @param maxAllowedPacketBytes
+	 */
+	public void setMaxAllowedPacketBytes(int maxAllowedPacketBytes) {
+		this.maxAllowedPacketBytes = maxAllowedPacketBytes;
+	}
+
 	// SQL
 	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();

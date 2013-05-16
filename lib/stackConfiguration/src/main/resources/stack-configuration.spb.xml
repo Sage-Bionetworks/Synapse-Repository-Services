@@ -53,7 +53,8 @@
 	<bean id="stackConfiguration.fileTransferBufferSizeBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	
+	<!-- Migration -->
 	<bean id="stackConfiguration.migrationBackupBatchMax" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.migrationMaxAllowedPacketBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 </beans>

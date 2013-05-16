@@ -34,6 +34,7 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.databaseConnectionPoolMaxNumberConnections",
 			// Migration
 			"stackConfiguration.migrationBackupBatchMax",
+			"stackConfiguration.migrationMaxAllowedPacketBytes",
 	};
 	
 	@Before

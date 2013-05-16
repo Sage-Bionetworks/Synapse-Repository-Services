@@ -1660,4 +1660,22 @@ public class EntityServletTestHelper {
 		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
 
+	public BatchResults<EntityHeader> getEntityHeaderByMd5(String userName, String md5) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/entity/md5/" + md5);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		String jsonStr = response.getContentAsString();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		results.initializeFromJSONObject(adapter);
+		return results;
+	}
 }

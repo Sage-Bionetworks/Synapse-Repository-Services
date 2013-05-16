@@ -207,7 +207,11 @@ public class MigrationClient {
 			Future<Long> future = this.threadPool.submit(worker);
 			while(!future.isDone()){
 				// Log the progress
-				log.info("Creating/updating data for type: "+type.name()+" Progress: "+progress.getCurrentStatus());
+				String message = progress.getMessage();
+				if(message == null){
+					message = "";
+				}
+				log.info("Creating/updating data for type: "+type.name()+" Progress: "+progress.getCurrentStatus()+" "+message);
 				Thread.sleep(2000);
 			}
 			Long counts = future.get();

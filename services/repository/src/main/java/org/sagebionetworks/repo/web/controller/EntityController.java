@@ -93,7 +93,30 @@ public class EntityController extends BaseController{
 		Entity entity =  serviceProvider.getEntityService().getEntity(userId, id, request);
 		return entity;
 	}
-	
+
+	/**
+	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
+	 *
+	 * @param md5 The MD5 to look up for
+	 * @param userId The user making the request
+	 * @throws NotFoundException If no such entity can be found
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(
+			value = {UrlHelpers.ENTITY_MD5},
+			method = RequestMethod.GET)
+	public @ResponseBody BatchResults<EntityHeader> getEntityHeaderByMd5(
+			@PathVariable String md5,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+		List<EntityHeader> entityHeaders = serviceProvider.getEntityService().getEntityHeaderByMd5(userId, md5, request);
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+        results.setResults(entityHeaders);
+        results.setTotalNumberOfResults(entityHeaders.size());
+        return results;
+	}
+
 	/**
 	 * Get the annotations for an entity.
 	 * @param id - The id of the entity to update.

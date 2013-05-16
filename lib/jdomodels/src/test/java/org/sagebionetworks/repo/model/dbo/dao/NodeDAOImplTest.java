@@ -2167,6 +2167,78 @@ public class NodeDAOImplTest {
 		assertTrue(refs.contains(refN2));
 	}
 
+	@Test
+	public void testGetEntityHeaderByMd5() throws Exception {
+
+		// Nothing yet
+		try {
+			nodeDao.getEntityHeaderByMd5("md5");
+		} catch (NotFoundException e) {
+			// Expected
+		}
+
+		// Add a node with a file handle
+		Node node1 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 1", creatorUserGroupId);
+		node1.setFileHandleId(fileHandle.getId());
+		final String node1Label1 = "Node 1 version label 1";
+		node1.setVersionLabel(node1Label1);
+		final String id1 = nodeDao.createNew(node1);
+		assertNotNull(id1);
+		toDelete.add(id1);
+		node1.setId(id1);
+
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(Long.valueOf(1L), results.get(0).getVersionNumber());
+		assertEquals(node1Label1, results.get(0).getVersionLabel());
+
+		// Create a new version of the node of the same file
+		final String node1Label2 = "Node 1 version label 2";
+		node1.setVersionLabel(node1Label2);
+		nodeDao.createNewVersion(node1);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(id1, results.get(1).getId());
+		assertFalse(results.get(0).getVersionNumber().equals(results.get(1).getVersionNumber()));
+
+		// Add a new node with no file handle
+		Node node2 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 2", creatorUserGroupId);
+		final String node2Label1 = "Node 2 version label 1";
+		node1.setVersionLabel(node2Label1);
+		final String id2 = nodeDao.createNew(node2);
+		assertNotNull(id2);
+		toDelete.add(id2);
+		node2.setId(id2);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(id1, results.get(1).getId());
+
+		// Create a new version of node 2 with file handle
+		final String node2Label2 = "Node 2 version label 2";
+		node2.setVersionLabel(node2Label2);
+		node2.setFileHandleId(fileHandle2.getId());
+		nodeDao.createNewVersion(node2);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(id1, results.get(1).getId());
+		results = nodeDao.getEntityHeaderByMd5(fileHandle2.getContentMd5());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(id2, results.get(0).getId());
+		assertEquals(Long.valueOf(2L), results.get(0).getVersionNumber());
+	}
+
 	/*
 	 * Private Methods
 	 */
@@ -2194,6 +2266,7 @@ public class NodeDAOImplTest {
 		fileHandle.setKey("key");
 		fileHandle.setCreatedBy(createdById);
 		fileHandle.setFileName(fileName);
+		fileHandle.setContentMd5(fileName);
 		fileHandle = fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;
