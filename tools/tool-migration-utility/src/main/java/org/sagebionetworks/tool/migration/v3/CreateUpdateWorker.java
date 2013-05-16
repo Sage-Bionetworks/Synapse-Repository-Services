@@ -158,9 +158,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 				throw new InterruptedException("Timed out waiting for the daemon to complete");
 			}
 			BackupRestoreStatus status = client.getStatus(daemonId);
-			float complete = getPercentComplet(status);
-			progress.setMessage(String.format("Waiting for daemon: %1$s id: %2$s Progress: %3$6.2f %3$2%", status.getType().name(), status.getId(), (complete*100f)));
-//			System.out.println(progress.getMessage());
+			progress.setMessage(String.format("\t Waiting for daemon: %1$s id: %2$s", status.getType().name(), status.getId()));
 			// Check to see if we failed.
 			if(DaemonStatus.FAILED == status.getStatus()){
 				throw new InterruptedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
@@ -187,22 +185,6 @@ public class CreateUpdateWorker implements Callable<Long> {
 			String statString = DaemonStatusUtil.printStatus(status);
 			log.trace(String.format(format, Thread.currentThread().getId(),	statString));
 		}
-	}
-	
-	/**
-	 * Update the progress
-	 * @param status
-	 */
-	public static float getPercentComplet(BackupRestoreStatus status) {
-		// Calculate the progress
-		long current = status.getProgresssCurrent();
-		long total = status.getProgresssTotal();
-		if(total <= 0) return 0;
-		if(current > total){
-			return 1f;
-		}
-		float fraction = ((float)current)/((float)total);
-		return fraction;
 	}
 	
 	/**
