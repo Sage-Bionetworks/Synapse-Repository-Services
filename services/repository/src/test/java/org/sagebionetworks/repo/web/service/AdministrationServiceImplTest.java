@@ -84,4 +84,14 @@ public class AdministrationServiceImplTest {
 		adminService.reFireChangeMessages(adminUserId, 0L, Long.MAX_VALUE);
 	}
 	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetCurrentChangeNumberUnauthorized() throws DatastoreException, NotFoundException{
+		adminService.getCurrentChangeNumber(nonAdminUserId);
+	}
+
+	@Test 
+	public void testGetCurrentChangeNumberAuthorized() throws DatastoreException, NotFoundException{
+		adminService.getCurrentChangeNumber(adminUserId);
+	}
+	
 }

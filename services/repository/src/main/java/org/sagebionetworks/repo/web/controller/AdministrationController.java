@@ -321,7 +321,19 @@ public class AdministrationController extends BaseController {
 		// Pass it along
 		return serviceProvider.getAdministrationService().reFireChangeMessages(userId, startChangeNumber, limit);
 	}
-
+	
+	/**
+	 * Get current change message number
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.CURRENT_NUMBER }, method = RequestMethod.GET)
+	public @ResponseBody
+	FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return serviceProvider.getAdministrationService().getCurrentChangeNumber(userId);
+	}
+	
 	
 	/**
 	 * Clears the Synapse DOI table.

@@ -93,6 +93,16 @@ public class MessageSyndicationImplTest {
 		assertTrue(-1L == nextChgNum);
 	}
 	
+	@Test
+	public void testGetLastChangeNumber() {
+		long startNum = 2345;
+		int numMsgs = 34;
+		List<ChangeMessage> expectedChanges = generateChanges(numMsgs, startNum);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(new Long(startNum + expectedChanges.size() - 1));
+		long currentChangeMsgNum = msgSyndicationImpl.getCurrentChangeNumber();
+		assertEquals((startNum + numMsgs - 1l), currentChangeMsgNum);
+	}
+	
 	/**
 	 * Generates a list of numChanges change messages starting at startChangeNumber
 	 * @param numChanges

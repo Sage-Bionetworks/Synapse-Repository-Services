@@ -200,6 +200,11 @@ public interface AdministrationService {
 	 * @throws DatastoreException 
 	 */
 	FireMessagesResult reFireChangeMessages(String userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
+	
+	/**
+	 *	Return the last change message number
+	 */
+	FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Clears the Synapse DOI table.

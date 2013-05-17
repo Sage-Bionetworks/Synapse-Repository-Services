@@ -504,6 +504,7 @@ public class UrlHelpers {
 	 */
 	public static final String REBROADCAST_MESSAGES 		= CHANGE_MESSAGES+"/rebroadcast";
 	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
+	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes

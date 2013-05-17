@@ -36,6 +36,11 @@ public interface MessageSyndication {
 	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit);
 	
 	/**
+	 * Return the last change message number
+	 */
+	public long getCurrentChangeNumber();
+	
+	/**
 	 * Rebroadcast change messages to a queue starting from a given change number (inclusive).
 	 * @param queueName - The name of the target queue.
 	 * @param type - Only messages of this ObjectType will be rebroadcast.
@@ -43,6 +48,7 @@ public interface MessageSyndication {
 	 * @return - The total number of messages sent
 	 */
 	PublishResults rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit);
+	
 	
 	/**
 	 * List changes messages.

@@ -99,6 +99,12 @@ public class MessageSyndicationImpl implements MessageSyndication {
 		}
 		return lastNumber;		// number for next batch
 	}
+	
+	@Override
+	public long getCurrentChangeNumber() {
+		long lastChangeNumber = changeDAO.getCurrentChangeNumber();
+		return lastChangeNumber;
+	}
 
 	/**
 	 * This can be called to run against a give stack by passing all the stack information.

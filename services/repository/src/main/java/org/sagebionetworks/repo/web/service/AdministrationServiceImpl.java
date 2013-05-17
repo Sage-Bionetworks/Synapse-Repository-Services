@@ -259,4 +259,13 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException {
 		doiAdminManager.clear(userId);
 	}
+	@Override
+	public FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
+		long lastChgNum = messageSyndication.getCurrentChangeNumber();
+		FireMessagesResult res = new FireMessagesResult();
+		res.setNextChangeNumber(lastChgNum);
+		return res;
+	}
 }
