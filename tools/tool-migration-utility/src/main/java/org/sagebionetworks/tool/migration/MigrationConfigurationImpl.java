@@ -143,5 +143,10 @@ public class MigrationConfigurationImpl implements Configuration {
 		return Long.parseLong(System.getProperty("org.sagebionetworks.worker.thread.timout.ms"));
 	}
 
+	@Override
+	public int getRetryDenominator() {
+		return Integer.parseInt(System.getProperty("org.sagebionetworks.worker.retry.denominator"));
+	}
+
 	
 }

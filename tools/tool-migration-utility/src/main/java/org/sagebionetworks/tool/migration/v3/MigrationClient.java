@@ -45,24 +45,6 @@ public class MigrationClient {
 		this.factory = factory;
 		threadPool = Executors.newFixedThreadPool(1);
 	}
-	
-	/**
-	 * Migrate all data from the source repository to the destination.
-	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
-	 */
-	public void migrateFromSourceToDestination() throws Exception {
-		migrate(false);
-	}
-	
-	/**
-	 * Re-synchronize all data from source to destination. 
-	 * @throws JSONObjectAdapterException 
-	 * @throws SynapseException 
-	 */
-	public void resynchFromSourceToDestination() throws Exception {
-		migrate(true);
-	}
 
 	/**
 	 * Migrate all data from the source to destination.
@@ -72,7 +54,7 @@ public class MigrationClient {
 	 * If finalSynchronize is set to false, the source repository will remain in READ_WRITE mode during the migration process.
 	 * @throws Exception 
 	 */
-	public void migrate(boolean finalSynchronize) throws Exception {
+	public void migrate(boolean finalSynchronize, long batchSize, long timeoutMS, int retryDenominator) throws Exception {
 		// First set the destination stack status to down
 		setDestinationStatus(StatusEnum.DOWN, "Staging is down for data migration");
 		if(finalSynchronize){
@@ -80,8 +62,7 @@ public class MigrationClient {
 			setSourceStatus(StatusEnum.READ_ONLY, "Synapse is in read-only mode for maintenance");
 		}
 		try{
-			
-
+			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
 			// After migration is complete, re-enable staging
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
 		}catch (Exception e){
@@ -134,11 +115,13 @@ public class MigrationClient {
 	}
 	
 	/**
-	 * Migrate all types
-	 * @param batchSize
+	 * Migrate all types.
+	 * @param batchSize - Max batch size
+	 * @param timeoutMS - max time to wait for a deamon job.
+	 * @param retryDenominator - how to divide a batch into sub-batches when errors occur.
 	 * @throws Exception
 	 */
-	public void migrateAllTypes(long batchSize, long timeout) throws Exception {
+	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator) throws Exception {
 		setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
 		SynapseAdministrationInt source = factory.createNewSourceClient();
 		SynapseAdministrationInt destination = factory.createNewDestinationClient();
@@ -171,7 +154,7 @@ public class MigrationClient {
 			DeltaData dd = deltaList.get(i);
 			long count = dd.getCounts().getCreate();
 			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeout);
+				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator);
 			}
 		}
 		// Now do all updates in the original order
@@ -179,7 +162,7 @@ public class MigrationClient {
 			DeltaData dd = deltaList.get(i);
 			long count = dd.getCounts().getUpdate();
 			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeout);
+				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator);
 			}
 		}
 		// Print the final counts
@@ -199,11 +182,11 @@ public class MigrationClient {
 	 * @param batchSize
 	 * @throws Exception
 	 */
-	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout) throws Exception {
+	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, int retryDenominator) throws Exception {
 		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(createUpdateTemp));
 		try{
 			BasicProgress progress = new BasicProgress();
-			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout);
+			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout, retryDenominator);
 			Future<Long> future = this.threadPool.submit(worker);
 			while(!future.isDone()){
 				// Log the progress
