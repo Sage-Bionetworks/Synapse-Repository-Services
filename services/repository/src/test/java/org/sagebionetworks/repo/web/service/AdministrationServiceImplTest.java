@@ -73,4 +73,25 @@ public class AdministrationServiceImplTest {
 	public void testRebroadcastChangeMessagesToQueueAuthorized() throws DatastoreException, NotFoundException{
 		adminService.rebroadcastChangeMessagesToQueue(adminUserId, "queuename", 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
 	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testReFireChangeMessagesToQueueUnauthorized() throws DatastoreException, NotFoundException{
+		adminService.reFireChangeMessages(nonAdminUserId, 0L, Long.MAX_VALUE);
+	}
+
+	@Test 
+	public void testReFireChangeMessagesToQueueAuthorized() throws DatastoreException, NotFoundException{
+		adminService.reFireChangeMessages(adminUserId, 0L, Long.MAX_VALUE);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetCurrentChangeNumberUnauthorized() throws DatastoreException, NotFoundException{
+		adminService.getCurrentChangeNumber(nonAdminUserId);
+	}
+
+	@Test 
+	public void testGetCurrentChangeNumberAuthorized() throws DatastoreException, NotFoundException{
+		adminService.getCurrentChangeNumber(adminUserId);
+	}
+	
 }

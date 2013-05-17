@@ -3992,4 +3992,25 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
+
+	/**
+	 * Gets the header information of entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException {
+
+		if (md5 == null || md5.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a nonempty MD5 string.");
+		}
+
+		try {
+			String url = ENTITY + "/md5/" + md5;
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+			results.initializeFromJSONObject(adapter);
+			return results.getResults();
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 }

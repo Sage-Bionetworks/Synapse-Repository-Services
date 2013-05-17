@@ -2171,11 +2171,9 @@ public class NodeDAOImplTest {
 	public void testGetEntityHeaderByMd5() throws Exception {
 
 		// Nothing yet
-		try {
-			nodeDao.getEntityHeaderByMd5("md5");
-		} catch (NotFoundException e) {
-			// Expected
-		}
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5("md5");
+		assertNotNull(results);
+		assertEquals(0, results.size());
 
 		// Add a node with a file handle
 		Node node1 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 1", creatorUserGroupId);
@@ -2187,7 +2185,7 @@ public class NodeDAOImplTest {
 		toDelete.add(id1);
 		node1.setId(id1);
 
-		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(id1, results.get(0).getId());

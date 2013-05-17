@@ -456,13 +456,14 @@ public class EntityControllerTest {
 		toDelete.add(file.getId());
 	}
 
-	@Test(expected=NotFoundException.class)
-	public void testGetEntityHeaderByMd5NotFoundException() throws Exception {
-		entityServletHelper.getEntityHeaderByMd5(userName, "548c050497fb361742b85e0712b0cc96");
-	}
-
 	@Test
 	public void testGetEntityHeaderByMd5() throws Exception {
+
+		BatchResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(
+				userName, "548c050497fb361742b85e0712b0cc96");
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults());
+		assertEquals(0, results.getResults().size());
 
 		Project parent = new Project();
 		parent.setName("testGetEntityHeaderByMd5");
@@ -482,7 +483,7 @@ public class EntityControllerTest {
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
 
-		BatchResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(userName, handleOne.getContentMd5());
+		results = entityServletHelper.getEntityHeaderByMd5(userName, handleOne.getContentMd5());
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
 		assertEquals(file.getId(), results.getResults().get(0).getId());
