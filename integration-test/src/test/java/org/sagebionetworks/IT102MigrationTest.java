@@ -162,10 +162,7 @@ public class IT102MigrationTest {
 		
 		// Fire change messages
 		FireMessagesResult fmRes = conn.fireChangeMessages(0L, 10L);
-		while (fmRes.getNextChangeNumber() != -1) {
-			System.out.println("IT102-msg" + fmRes.getNextChangeNumber());
-			fmRes = conn.fireChangeMessages(fmRes.getNextChangeNumber(), 10L);
-		}
+		assertTrue(fmRes.getNextChangeNumber() > 0);
 	}
 	
 }
