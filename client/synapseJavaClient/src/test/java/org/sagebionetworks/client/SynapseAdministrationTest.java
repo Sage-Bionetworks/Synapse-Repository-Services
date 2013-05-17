@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -76,6 +77,18 @@ public class SynapseAdministrationTest {
 		PaginatedResults<MigratableObjectCount> oc = synapse.getMigratableObjectCounts();
 		assertNotNull(oc);
 		assertEquals(p, oc);
+	}
+	
+	@Test
+	public void testGetCurrentChangeNumber() throws Exception {
+		FireMessagesResult expectedRes = new FireMessagesResult();
+		expectedRes.setNextChangeNumber(-1L);
+		String expectedJSONResult = EntityFactory.createJSONStringForEntity(expectedRes);
+		StringEntity responseEntity = new StringEntity(expectedJSONResult);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		FireMessagesResult res = synapse.getCurrentChangeNumber();
+		assertNotNull(res);
+		assertEquals(expectedRes, res);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

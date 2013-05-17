@@ -46,24 +46,64 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
+	public MessageSyndicationImpl() {
+		super();
+	}
+
+	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, AmazonSQSClient awsSQSClient, DBOChangeDAO changeDAO) {
+		super();
+		this.messagePublisher = messagePublisher;
+		this.awsSQSClient = awsSQSClient;
+		this.changeDAO = changeDAO;
+	}
+
 	@Override
 	public void rebroadcastAllChangeMessages() {
-		// List all change messages
+		this.rebroadcastChangeMessages(0L, Long.MAX_VALUE);
+	}
+	
+	@Override
+	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit) {
+		final int BATCH_SIZE = 100;
+		if (startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
+		
 		List<ChangeMessage> list = null;
-		long lastNumber = 0;
-		do{
-			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, 100);
+		long lastNumber = startChangeNumber;
+		
+		long remaining = limit;
+		
+		do {
+			long localLimit = Math.min(BATCH_SIZE, remaining);
+
+			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, localLimit);
 			log.info("Sending "+list.size()+" change messages to the topic");
+			
 			if(list.size() > 0){
 				log.info("First change number on the list: "+list.get(0).getChangeNumber());
+				for(ChangeMessage change: list){
+					messagePublisher.fireChangeMessage(change);
+					lastNumber = change.getChangeNumber()+1;
+				}
 			}
-			// Add each message
-			for(ChangeMessage change: list){
-				messagePublisher.fireChangeMessage(change);
-				lastNumber = change.getChangeNumber()+1;
-			}
-		}while(list.size() > 0);
+			
+			remaining -= list.size();
+		} while (list.size() > 0 && remaining > 0);
 		
+		// Return -1 if all msgs done
+		long lastChangeNumber = changeDAO.getCurrentChangeNumber();
+		if (lastNumber > lastChangeNumber) {
+			lastNumber = -1L;
+		}
+		return lastNumber;		// number for next batch
+	}
+	
+	@Override
+	public long getCurrentChangeNumber() {
+		long lastChangeNumber = changeDAO.getCurrentChangeNumber();
+		return lastChangeNumber;
 	}
 
 	/**
