@@ -314,6 +314,7 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 	 * @throws JSONObjectAdapterException 
 	 * 
 	 */
+	@Override
 	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException {
 		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
 		String uri = ADMIN_FIRE_MESSAGES + "?startChangeNumber=" + startChangeNumber;
@@ -330,6 +331,7 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 	/**
 	 * Return current change message number
 	 */
+	@Override
 	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException {
 		String uri = ADMIN_GET_CURRENT_CHANGE_NUM;
 		JSONObject jsonObj =  signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);

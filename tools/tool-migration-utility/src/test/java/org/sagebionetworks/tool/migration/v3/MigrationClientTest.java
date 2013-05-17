@@ -3,9 +3,11 @@ package org.sagebionetworks.tool.migration.v3;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -75,6 +77,11 @@ public class MigrationClientTest {
 		list = createList(new Long[]{}, new String[]{}, new Long[]{});
 		metadata.put(MigrationType.values()[1], list);
 		destSynapse.setMetadata(metadata);
+		Stack<Long> changeNumberStack = new Stack<Long>();
+		changeNumberStack.push(11l);
+		changeNumberStack.push(0l);
+		destSynapse.setCurrentChangeNumberStack(changeNumberStack);
+		destSynapse.setMaxChangeNumber(11l);
 		
 		// setup the source
 		metadata = new LinkedHashMap<MigrationType, List<RowMetadata>>();
@@ -97,6 +104,11 @@ public class MigrationClientTest {
 		// Check the state of the source
 		assertEquals(expected0, sourceSynapse.getMetadata().get(MigrationType.values()[0]));
 		assertEquals(expected1, sourceSynapse.getMetadata().get(MigrationType.values()[1]));
+		// Validate that the expected change messages are fired
+		List<Long> expectedFireChangeMessges = Arrays.asList(0l,2l,4l,6l,8l,10l,12l);
+		assertEquals(expectedFireChangeMessges, destSynapse.getReplayChangeNumbersHistory());
+		// No messages should have been played on the source
+		assertEquals(0, sourceSynapse.getReplayChangeNumbersHistory().size());
 	}
 	
 	
