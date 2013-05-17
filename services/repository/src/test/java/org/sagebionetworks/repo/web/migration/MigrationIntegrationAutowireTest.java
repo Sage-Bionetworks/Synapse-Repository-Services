@@ -170,10 +170,10 @@ public class MigrationIntegrationAutowireTest {
 		createActivity();
 		createEntities();
 		createFavorite();
+		createEvaluation();
 		createAccessRequirement();
 		createAccessApproval();
 		creatWikiPages();
-		createEvaluation();
 		createDoi();
 	}
 
