@@ -876,10 +876,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
 		List<Map<String, Object>> rowList = simpleJdbcTemplate.queryForList(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap);
 
-		if (rowList == null || rowList.size() == 0) {
-			throw new NotFoundException("MD5 " + md5 + " does not map to any entity.");
-		}
-
 		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
 			throw new DatastoreException("MD5 " + md5 + " maps to more than "
 					+ NODE_VERSION_LIMIT_BY_FILE_MD5 + " entity versions.");
