@@ -33,8 +33,8 @@ public class ReplayWorker implements Callable<Long>{
 		this.startChangeNumber = startChangeNumber;
 		this.batchSize = batchSize;
 		this.progress = progress;
-		this.progress.setCurrent(startChangeNumber);
-		this.progress.setTotal(currentChangeNumber);
+		this.progress.setCurrent(0);
+		this.progress.setTotal(currentChangeNumber-startChangeNumber);
 	}
 
 
@@ -46,10 +46,12 @@ public class ReplayWorker implements Callable<Long>{
 			// Fire a single batch of change messages.
 			long startNumber = lastChangeNumber;
 			FireMessagesResult result = destination.fireChangeMessages(lastChangeNumber, this.batchSize);
-			lastChangeNumber = result.getNextChangeNumber();
-			progress.setCurrent(lastChangeNumber);
+			lastChangeNumber = result.getNextChangeNumber();	
 			if(lastChangeNumber>0){
 				count += lastChangeNumber-startNumber;
+				if(count < progress.getTotal()){
+					progress.setCurrent(count);
+				}
 			}
 		}while(lastChangeNumber > 0);
 		// Done
