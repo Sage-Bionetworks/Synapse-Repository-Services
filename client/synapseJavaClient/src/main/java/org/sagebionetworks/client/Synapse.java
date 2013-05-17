@@ -1067,8 +1067,21 @@ public class Synapse implements SynapseInt {
 		
 	}
 
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(String entityId) throws SynapseException {
 		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT_UNFULFILLED;
+		JSONObject jsonAccessRequirements = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
+		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(String evaluationId) throws SynapseException {
+		String uri = EVALUATION_URI_PATH+"/"+evaluationId+ACCESS_REQUIREMENT_UNFULFILLED;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();

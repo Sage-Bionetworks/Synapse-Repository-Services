@@ -231,10 +231,16 @@ public class MigrationIntegrationAutowireTest {
 		// Add an access requirement to this entity
 		accessRequirement = newAccessRequirement();
 		String entityId = project.getId();
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
+		RestrictableObjectDescriptor entitySubjectId = new RestrictableObjectDescriptor();
+		entitySubjectId.setId(entityId);
+		entitySubjectId.setType(RestrictableObjectType.ENTITY);
+		RestrictableObjectDescriptor evaluationSubjectId = new RestrictableObjectDescriptor();
+		assertNotNull(evaluation);
+		assertNotNull(evaluation.getId());
+		evaluationSubjectId.setId(evaluation.getId());
+		evaluationSubjectId.setType(RestrictableObjectType.EVALUATION);
+		
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId, evaluationSubjectId})); 
 		accessRequirement = ServletTestHelper.createAccessRequirement(DispatchServletSingleton.getInstance(), accessRequirement, userName, new HashMap<String, String>());
 	}
 	

@@ -14,17 +14,17 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class AccessRequirementUtilsTest {
 	
 	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id) {
+		return createRestrictableObjectDescriptor(id, RestrictableObjectType.ENTITY);
+	}
+	
+	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id, RestrictableObjectType type) {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(id);
-		rod.setType(RestrictableObjectType.ENTITY);
+		rod.setType(type);
 		return rod;
 	}
 
@@ -60,8 +60,6 @@ public class AccessRequirementUtilsTest {
 		AccessRequirement dto = createDTO();
 		dto.setId(null);
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		String jsonString = (String) AccessRequirement.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
 		List<RestrictableObjectDescriptor> nodeIds = new ArrayList<RestrictableObjectDescriptor>();
 		for (RestrictableObjectDescriptor s : dto.getSubjectIds()) nodeIds.add(s);

@@ -33,7 +33,7 @@ public class DBOEvaluationAccessRequirement implements MigratableDatabaseObject<
 			@Override
 			public DBOEvaluationAccessRequirement mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOEvaluationAccessRequirement nar = new DBOEvaluationAccessRequirement();
-				nar.setNodeId(rs.getLong(COL_EVALUATION_ACCESS_REQUIREMENT_EVALUATION_ID));
+				nar.setEvaluationId(rs.getLong(COL_EVALUATION_ACCESS_REQUIREMENT_EVALUATION_ID));
 				nar.setAccessRequirementId(rs.getLong(COL_EVALUATION_ACCESS_REQUIREMENT_REQUIREMENT_ID));
 				return nar;
 			}
@@ -59,11 +59,11 @@ public class DBOEvaluationAccessRequirement implements MigratableDatabaseObject<
 			}};
 	}
 
-	public Long getNodeId() {
+	public Long getEvaluationId() {
 		return evaluationId;
 	}
 
-	public void setNodeId(Long evaluationId) {
+	public void setEvaluationId(Long evaluationId) {
 		this.evaluationId = evaluationId;
 	}
 

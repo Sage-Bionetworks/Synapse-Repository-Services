@@ -17,6 +17,7 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -1785,7 +1786,7 @@ public class ServletTestHelper {
 	}
 
 
-	public static PaginatedResults<AccessRequirement> getAccessRequirements(
+	public static PaginatedResults<AccessRequirement> getEntityAccessRequirements(
 			HttpServlet dispatchServlet, String id,
 			String userId) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1803,7 +1804,25 @@ public class ServletTestHelper {
 		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
 	}
 
-	public static PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+	public static PaginatedResults<AccessRequirement> getEvaluationAccessRequirements(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/evaluation/"+id+UrlHelpers.ACCESS_REQUIREMENT);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+	public static PaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(
 			HttpServlet dispatchServlet, String id,
 			String userId) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1811,6 +1830,24 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI("/entity/"+id+"/accessRequirementUnfulfilled");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+	public static PaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/evaluation/"+id+"/accessRequirementUnfulfilled");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1871,7 +1908,7 @@ public class ServletTestHelper {
 		return returnedEntity;
 	}
 	
-	public static PaginatedResults<AccessApproval> getAccessApprovals(
+	public static PaginatedResults<AccessApproval> getEntityAccessApprovals(
 			HttpServlet dispatchServlet, String id,
 			String userId) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1879,6 +1916,24 @@ public class ServletTestHelper {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_APPROVAL);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createAccessApprovalPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+	public static PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/evaluation/"+id+UrlHelpers.ACCESS_APPROVAL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -2203,6 +2258,62 @@ public class ServletTestHelper {
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				EntityHeader.class);
+	}
+	
+	public static Evaluation createEvaluation(
+			HttpServlet dispatchServlet, Evaluation evaluation, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.EVALUATION);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, evaluation);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		log.debug("About to send: " + body);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		@SuppressWarnings("unchecked")
+		Evaluation returnedEvaluation = (Evaluation) objectMapper.readValue(
+				response.getContentAsString(), evaluation.getClass());
+		return returnedEvaluation;
+	}
+	
+	public static void deleteEvaluation(
+			HttpServlet dispatchServlet, String evaluationId,
+			String userId, Map<String, String> extraParams)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evaluationId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+			throw new ServletTestHelperException(response);
+		}
 	}
 
 }

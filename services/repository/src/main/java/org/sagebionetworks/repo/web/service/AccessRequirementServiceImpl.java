@@ -65,19 +65,19 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 			String userId, RestrictableObjectDescriptor subjectId, HttpServletRequest request) 
 			throws DatastoreException, UnauthorizedException, 
 			NotFoundException, ForbiddenException {
-	UserInfo userInfo = userManager.getUserInfo(userId);
-
-	QueryResults<AccessRequirement> results = 
-		accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 	
-	return new PaginatedResults<AccessRequirement>(
-			request.getServletPath()+UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
-			results.getResults(),
-			(int)results.getTotalNumberOfResults(), 
-			1, 
-			(int)results.getTotalNumberOfResults(),
-			"", 
-			false);
+		QueryResults<AccessRequirement> results = 
+			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId);
+		
+		return new PaginatedResults<AccessRequirement>(
+				request.getServletPath()+UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
+				results.getResults(),
+				(int)results.getTotalNumberOfResults(), 
+				1, 
+				(int)results.getTotalNumberOfResults(),
+				"", 
+				false);
 	}
 
 	@Override

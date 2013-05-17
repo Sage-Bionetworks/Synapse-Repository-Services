@@ -354,7 +354,7 @@ public class IT500SynapseJavaClient {
 		// should not be able to download
 		assertFalse(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
-		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetEntityAccessRequirements(aNewDataset.getId());
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
@@ -365,7 +365,7 @@ public class IT500SynapseJavaClient {
 		
 		otherUser.createAccessApproval(aa);
 		
-		vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		vcpr = otherUser.getUnmetEntityAccessRequirements(aNewDataset.getId());
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
@@ -839,7 +839,7 @@ public class IT500SynapseJavaClient {
 		
 		
 		// get unmet access requirements
-		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
+		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetEntityAccessRequirements(layer.getId());
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -854,7 +854,7 @@ public class IT500SynapseJavaClient {
 		otherUser.createAccessApproval(approval);
 		
 		// get unmet requirements -- should be empty
-		ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
+		ars = otherUser.getUnmetEntityAccessRequirements(layer.getId());
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		

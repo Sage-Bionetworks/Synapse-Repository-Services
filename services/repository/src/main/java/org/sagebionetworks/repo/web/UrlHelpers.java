@@ -528,7 +528,8 @@ public class UrlHelpers {
 	
 	// Evaluation URLs
 	public static final String EVALUATION = "/evaluation";
-	public static final String EVALUATION_ID_PATH_VAR = "{evalId}";
+	public static final String EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS = "evalId";
+	public static final String EVALUATION_ID_PATH_VAR = "{"+EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS+"}";
 	public static final String EVALUATION_WITH_ID = EVALUATION + "/" + EVALUATION_ID_PATH_VAR;
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";

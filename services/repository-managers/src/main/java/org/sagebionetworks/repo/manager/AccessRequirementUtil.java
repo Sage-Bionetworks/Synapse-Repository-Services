@@ -23,11 +23,12 @@ public class AccessRequirementUtil {
 	public static List<Long> unmetAccessRequirementIds(
 			UserInfo userInfo, 
 			RestrictableObjectDescriptor subjectId,
-			ACCESS_TYPE accessType,
 			NodeDAO nodeDAO,
 			EvaluationDAO evaluationDAO,
 			AccessRequirementDAO accessRequirementDAO) throws NotFoundException {
+		ACCESS_TYPE accessType = null;
 		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
+			accessType = ACCESS_TYPE.DOWNLOAD;
 			// if the user is the owner of the object, then she automatically 
 			// has access to the object and therefore has no unmet access requirements
 			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
@@ -35,11 +36,12 @@ public class AccessRequirementUtil {
 			if (node.getCreatedByPrincipalId().equals(principalId)) {
 				return EMPTY_LIST;
 			}
-		} else if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
+		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
+			accessType = ACCESS_TYPE.PARTICIPATE;
 			// if the user is an administrator of the evaluation, then she automatically 
 			// has access to the object and therefore has no unmet access requirements
 			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (EvaluationUtil.canAdminister(evaluation, userInfo)) {
+			if (EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
 				return EMPTY_LIST;
 			}
 		} else {

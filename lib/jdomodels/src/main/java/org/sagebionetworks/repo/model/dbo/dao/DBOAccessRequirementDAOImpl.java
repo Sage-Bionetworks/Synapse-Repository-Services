@@ -118,6 +118,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		"delete from "+TABLE_NODE_ACCESS_REQUIREMENT+" where "+
 		COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 	
+	private static final String DELETE_EVALUATION_ACCESS_REQUIREMENT_SQL = 
+		"delete from "+TABLE_EVALUATION_ACCESS_REQUIREMENT+" where "+
+		COL_EVALUATION_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_EVALUATION_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+	
 	private static final String UNMET_REQUIREMENTS_AR_COL_ID = "ar_id";
 	private static final String UNMET_REQUIREMENTS_AA_COL_ID = "aa_id";
 	
@@ -207,14 +211,14 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
 		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
-		populateNodeAccessRequirement(dbo.getId(), dto.getSubjectIds());
+		populateNodeAndEntityAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
 		return result;
 	}
 
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void populateNodeAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
+	public void populateNodeAndEntityAccessRequirement(Long accessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		if (subjectIds==null || subjectIds.isEmpty()) return;
 		Map<RestrictableObjectType, Collection<String>> sorted = RestricableODUtil.sortByType(subjectIds);
 		// take care of the Node/Entity IDs
@@ -241,7 +245,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					DBOEvaluationAccessRequirement ear = new DBOEvaluationAccessRequirement();
 					ear.setAccessRequirementId(accessRequirementId);
 					Long evaluationId = Long.parseLong(id);
-					ear.setNodeId(evaluationId);
+					ear.setEvaluationId(evaluationId);
 					batch.add(ear);
 				}
 			}
@@ -289,7 +293,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			for (DBOEvaluationAccessRequirement nar: nars) {
 				RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 				rod.setType(RestrictableObjectType.EVALUATION);
-				rod.setId(KeyFactory.keyToString(nar.getNodeId()));
+				rod.setId(Long.toString(nar.getEvaluationId()));
 				ans.add(rod);
 			}
 		}
@@ -441,20 +445,28 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		boolean success = basicDao.update(dbo);
 
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Requirement in database.");
-		updateNodeAccessRequirement(dbo.getId(), dto.getSubjectIds());
+		updateNodeAndEntityAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		T updatedAR = (T)AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
 
 		return updatedAR;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 	
 	// to update the node ids for the Access Requirement, we just delete the existing ones and repopulate
-	private void updateNodeAccessRequirement(Long acessRequirementId, List<RestrictableObjectDescriptor> entityIds) throws DatastoreException {
-		// delete the existing node-access-requirement records...
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, acessRequirementId);
-		simpleJdbcTemplate.update(DELETE_NODE_ACCESS_REQUIREMENT_SQL, param);
+	private void updateNodeAndEntityAccessRequirement(Long acessRequirementId, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
+		{
+			// delete the existing node-access-requirement records...
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, acessRequirementId);
+			simpleJdbcTemplate.update(DELETE_NODE_ACCESS_REQUIREMENT_SQL, param);
+		}
+		{
+			// ... delete the existing evaluation-access-requirement records...
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(COL_EVALUATION_ACCESS_REQUIREMENT_REQUIREMENT_ID, acessRequirementId);
+			simpleJdbcTemplate.update(DELETE_EVALUATION_ACCESS_REQUIREMENT_SQL, param);
+		}
 		// ... now populate with the updated values
-		populateNodeAccessRequirement(acessRequirementId, entityIds);
+		populateNodeAndEntityAccessRequirement(acessRequirementId, subjectIds);
 	}
 	
 	public MigratableObjectType getMigratableObjectType() {

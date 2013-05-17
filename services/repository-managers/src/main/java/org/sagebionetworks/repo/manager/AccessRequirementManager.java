@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -27,8 +28,7 @@ public interface AccessRequirementManager {
 	
 	/**
 	 *  get all the unmet access requirements
-	 *  This API wraps 'getUnmetAccessRequirementIntern', 
-	 *  and includes an authorization check to see if
+	 *  This API includes an authorization check to see if
 	 *  the user is allowed to READ the entity
 	 *  
 	 * @throws ForbiddenException 

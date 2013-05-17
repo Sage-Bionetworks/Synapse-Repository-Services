@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR;
+import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import javax.servlet.http.HttpServletRequest;
@@ -77,7 +77,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEvaluationAccessRequirement(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value = EVALUATION_ID_PATH_VAR) String evaluationId,
+			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 
@@ -90,7 +90,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getEvaluationAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-				@PathVariable(value = EVALUATION_ID_PATH_VAR) String evaluationId,
+				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		return serviceProvider.getAccessRequirementService().getEvaluationAccessRequirements(userId, evaluationId, request);

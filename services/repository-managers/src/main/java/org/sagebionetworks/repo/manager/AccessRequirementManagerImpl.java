@@ -3,31 +3,23 @@ package org.sagebionetworks.repo.manager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -40,8 +32,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;		
-	@Autowired
-	private AccessApprovalDAO accessApprovalDAO;	
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
@@ -103,7 +94,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (userInfo.isAdmin()) return;
 		for (String id : evaluationIds) {
 			Evaluation evaluation = evaluationDAO.get(id);
-			if (!EvaluationUtil.canAdminister(evaluation, userInfo)) {
+			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
 				throw new ForbiddenException("You lack administrative access to Evaluation: "+evaluation.getName());
 			}
 		}
@@ -121,7 +112,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<Long> unmetIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, subjectId, ACCESS_TYPE.DOWNLOAD, nodeDAO, evaluationDAO, accessRequirementDAO); // TODO make access type a param
+				userInfo, subjectId, nodeDAO, evaluationDAO, accessRequirementDAO);
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)

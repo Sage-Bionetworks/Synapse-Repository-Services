@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
-import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR;
+import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import java.io.IOException;
@@ -63,7 +62,7 @@ public class AccessApprovalController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= EVALUATION_ID_PATH_VAR) String evaluationId,
+			@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		return serviceProvider.getAccessApprovalService().getEvaluationAccessApprovals(userId, evaluationId, request);

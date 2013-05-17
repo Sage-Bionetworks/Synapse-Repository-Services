@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -41,6 +42,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	NodeDAO nodeDAO;
 	@Autowired
+	EvaluationDAO evaluationDAO;
+	@Autowired
 	private UserManager userManager;
 	@Autowired
 	EvaluationManager evaluationManager;
@@ -56,7 +59,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			AccessControlListDAO accessControlListDAO,
 			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
 			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, 
-			EvaluationManager competitionManager, FileHandleDao fileHandleDao) {
+			EvaluationManager competitionManager, FileHandleDao fileHandleDao, 
+			EvaluationDAO evaluationDAO) {
 		super();
 		this.nodeInheritanceDAO = nodeInheritanceDAO;
 		this.accessControlListDAO = accessControlListDAO;
@@ -67,6 +71,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		this.userManager = userManager;
 		this.evaluationManager = competitionManager;
 		this.fileHandleDao = fileHandleDao;
+		this.evaluationDAO = evaluationDAO;
 	}
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
@@ -81,12 +86,24 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) return true;
 		if (!agreesToTermsOfUse(userInfo)) return false;
 		
-		// if there are any unmet access requirements for Download, return false;
+		// if there are any unmet access requirements return false
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(nodeId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		List<Long> accessRequirementIds = 
-			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, ACCESS_TYPE.DOWNLOAD, nodeDAO, null, accessRequirementDAO);
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, evaluationDAO, accessRequirementDAO);
+		return accessRequirementIds.isEmpty();
+	}
+	
+	private boolean canParticipate(UserInfo userInfo, final String evaluationId) throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return true;
+		
+		// if there are any unmet access requirements return false
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(evaluationId);
+		rod.setType(RestrictableObjectType.EVALUATION);
+		List<Long> accessRequirementIds = 
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, evaluationDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 	
@@ -229,7 +246,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			// Anyone can read from a competition.
 			if(ACCESS_TYPE.READ == accessType){
 				return true;
-			}else{
+			} else if (ACCESS_TYPE.PARTICIPATE == accessType) {
+				// look up unfulfilled access requirements
+				return canParticipate(userInfo, objectId);
+			} else {
 				// All other actions require admin access
 				return evaluationManager.isEvalAdmin(userInfo, objectId);
 			}

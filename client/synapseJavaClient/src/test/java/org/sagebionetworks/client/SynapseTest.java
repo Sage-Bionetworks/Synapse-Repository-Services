@@ -43,11 +43,13 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -365,6 +367,19 @@ public class SynapseTest {
 	}	
 	
 	@Test
+	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
+		VariableContentPaginatedResults<AccessRequirement> result = 
+			new VariableContentPaginatedResults<AccessRequirement>();
+		StringEntity responseEntity = createVCPRStringEntity(result);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		VariableContentPaginatedResults<AccessRequirement> clone = 
+			synapse.getUnmetEvaluationAccessRequirements("12345");
+		assertNotNull(clone);
+		assertEquals(result, clone);
+	}	
+	
+	@Test
 	public void testPutActivity() throws Exception {
 		Activity act = new Activity();
 		String id = "123";
@@ -481,6 +496,14 @@ public class SynapseTest {
 		return responseEntity;
 	}
 	
+	private <T extends JSONEntity> StringEntity createVCPRStringEntity(VariableContentPaginatedResults<T> vcpr)
+				throws JSONObjectAdapterException, UnsupportedEncodingException {
+		// Setup return
+		JSONObjectAdapter adapter = vcpr.writeToJSONObject(new JSONObjectAdapterImpl());
+		String jsonString = adapter.toJSONString();
+		StringEntity responseEntity = new StringEntity(jsonString);
+		return responseEntity;
+	}
 	
 	
 }
