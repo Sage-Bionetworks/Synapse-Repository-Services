@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -188,6 +189,22 @@ public interface AdministrationService {
 	 * @throws DatastoreException 
 	 */
 	PublishResults rebroadcastChangeMessagesToQueue(String userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Rebroadcast messages
+	 * @param userId
+	 * @param startChangeNumber
+	 * @param limit
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	FireMessagesResult reFireChangeMessages(String userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
+	
+	/**
+	 *	Return the last change message number
+	 */
+	FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Clears the Synapse DOI table.
