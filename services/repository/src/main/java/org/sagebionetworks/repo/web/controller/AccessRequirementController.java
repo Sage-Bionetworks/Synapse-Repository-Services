@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,7 +19,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -47,28 +47,53 @@ public class AccessRequirementController extends BaseController {
 
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
-	 getUnfulfilledAccessRequirement(
+	 getUnfulfilledEntityAccessRequirement(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledEntityAccessRequirements(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
-	 getAccessRequirements(
+	 getEntityAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request);
+		return serviceProvider.getAccessRequirementService().getEntityAccessRequirements(userId, entityId, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getUnfulfilledEvaluationAccessRequirement(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+
+		return serviceProvider.getAccessRequirementService().getUnfulfilledEvaluationAccessRequirements(userId, evaluationId, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_EVALUATION_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getEvaluationAccessRequirements(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+		return serviceProvider.getAccessRequirementService().getEvaluationAccessRequirements(userId, evaluationId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)

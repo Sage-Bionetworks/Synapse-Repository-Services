@@ -3,17 +3,22 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -25,6 +30,7 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -45,10 +51,15 @@ public class AuthorizationManagerImplUnitTest {
 	NodeDAO mockNodeDAO;
 	UserManager mockUserManager;
 	FileHandleDao mockFileHandleDao;
+	EvaluationDAO mockEvaluationDAO;
+	
+	private static String COMP_ID = "123";
 	
 	AuthorizationManager authorizationManager = null;
 	UserInfo userInfo = null;
 	UserInfo adminUser = null;
+	
+	Evaluation evaluation = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -61,17 +72,20 @@ public class AuthorizationManagerImplUnitTest {
 		mockUserManager = mock(UserManager.class);
 		mockEvaluationManager = mock(EvaluationManager.class);
 		mockFileHandleDao = mock(FileHandleDao.class);
+		mockEvaluationDAO = mock(EvaluationDAO.class);
 		
 		authorizationManager = new AuthorizationManagerImpl(
 				mockNodeInheritanceDAO, mockAccessControlListDAO,
 				mockAccessRequirementDAO, mockActivityDAO, mockNodeQueryDao,
-				mockNodeDAO, mockUserManager, mockEvaluationManager, mockFileHandleDao);
+				mockNodeDAO, mockUserManager, mockEvaluationManager, mockFileHandleDao,
+				mockEvaluationDAO);
 		
 		userInfo = new UserInfo(false);
 		UserGroup userInfoGroup = new UserGroup();
 		userInfoGroup.setId("123");
 		userInfo.setIndividualGroup(userInfoGroup);
 		userInfo.setUser(new User());
+		userInfo.setGroups(new ArrayList<UserGroup>());
 		adminUser = new UserInfo(true);
 		UserGroup adminInfoGroup = new UserGroup();
 		adminInfoGroup.setId("456");
@@ -80,6 +94,15 @@ public class AuthorizationManagerImplUnitTest {
 		Node mockNode = mock(Node.class);
 		when(mockNode.getCreatedByPrincipalId()).thenReturn(-1l);
 		when(mockNodeDAO.getNode(any(String.class))).thenReturn(mockNode);
+		
+		evaluation = new Evaluation();
+		evaluation.setId(COMP_ID);
+		evaluation.setOwnerId("987");
+		when(mockEvaluationDAO.get(COMP_ID)).thenReturn(evaluation);
+
+		when(mockAccessRequirementDAO.unmetAccessRequirements(
+				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.PARTICIPATE))).
+				thenReturn(new ArrayList<Long>());
 	}
 
 	@Test
@@ -153,21 +176,21 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanAccessWithObjecTypeAdmin() throws DatastoreException, NotFoundException{
+	public void testCanAccessWithObjectTypeAdmin() throws DatastoreException, NotFoundException{
 		// Admin can always access
 		assertTrue("An admin can access any entity",authorizationManager.canAccess(adminUser, "syn123", ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 		assertTrue("An admin can access any competition",authorizationManager.canAccess(adminUser, "334", ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 	}
 	
 	@Test
-	public void testCanAccessWithObjecTypeEntityAllow() throws DatastoreException, NotFoundException{
+	public void testCanAccessWithObjectTypeEntityAllow() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
 		// Setup to allow.
 		when(mockAccessControlListDAO.canAccess(any(Collection.class), any(String.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		assertTrue("User should have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 	}
 	@Test
-	public void testCanAccessWithObjecTypeEntityDeny() throws DatastoreException, NotFoundException{
+	public void testCanAccessWithObjectTypeEntityDeny() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
 		// Setup to deny.
 		when(mockAccessControlListDAO.canAccess(any(Collection.class), any(String.class), any(ACCESS_TYPE.class))).thenReturn(false);
@@ -184,12 +207,29 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanAccessWithObjecTypeCompetitionCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
-		String compId = "123";
+	public void testCanAccessWithObjectTypeCompetitionCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
 		// This user is not an admin but the should be able to read.
 		when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(true);
-		assertTrue("A competition admin should have read access", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.READ));
-		assertTrue("A competition admin should have delete access", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
+		assertTrue("A competition admin should have read access", authorizationManager.canAccess(userInfo, COMP_ID, ObjectType.EVALUATION, ACCESS_TYPE.READ));
+		assertTrue("A competition admin should have delete access", authorizationManager.canAccess(userInfo, COMP_ID, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
+		assertTrue("An admin should have PARTICIPATE access to a competition", authorizationManager.canAccess(userInfo, COMP_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
+		when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(false);
+		assertTrue("A user should have PARTICIPATE access to a competition", authorizationManager.canAccess(userInfo, COMP_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
+	}
+	
+	@Test
+	public void testCanAccessWithObjectTypeCompetitionUnmetAccessRequirement() throws Exception {
+		when(mockAccessRequirementDAO.unmetAccessRequirements(
+				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.PARTICIPATE))).
+				thenReturn(Arrays.asList(new Long[]{101L}));
+		when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(true);
+		// takes a little more to mock admin access to evaluation
+		String origEvaluationOwner = evaluation.getOwnerId();
+		evaluation.setOwnerId(userInfo.getIndividualGroup().getId());
+		assertTrue("comp admin should always have PARTICIPATE access", authorizationManager.canAccess(userInfo, COMP_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
+		when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(false);
+		evaluation.setOwnerId(origEvaluationOwner);
+		assertFalse("non-admin shouldn't have PARTICIPATE access if there are unmet requirements", authorizationManager.canAccess(userInfo, COMP_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
 	}
 	
 

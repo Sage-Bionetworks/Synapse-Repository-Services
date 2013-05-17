@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -22,7 +23,7 @@ public interface AccessApprovalManager {
 	 *  get all the access approvals for an entity
 	 * @throws ForbiddenException 
 	 */
-	public QueryResults<AccessApproval> getAccessApprovalsForEntity(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException;
+	public QueryResults<AccessApproval> getAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, ForbiddenException;
 	
 	/**
 	 *  update an access approval

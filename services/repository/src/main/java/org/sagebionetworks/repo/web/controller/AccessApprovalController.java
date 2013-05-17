@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import java.io.IOException;
@@ -48,12 +49,23 @@ public class AccessApprovalController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<AccessApproval> getAccessApprovals(
+	PaginatedResults<AccessApproval> getEntityAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, entityId, request);
+		return serviceProvider.getAccessApprovalService().getEntityAccessApprovals(userId, entityId, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_EVALUATION_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+		return serviceProvider.getAccessApprovalService().getEvaluationAccessApprovals(userId, evaluationId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)

@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -26,8 +27,10 @@ import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManagerImpl;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
@@ -38,6 +41,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -61,6 +65,7 @@ public class SubmissionManagerTest {
 	private static ParticipantManager mockParticipantManager;
 	private static EntityManager mockEntityManager;
 	private static NodeManager mockNodeManager;
+	private static AuthorizationManager mockAuthorizationManager;
 	private static Node mockNode;
 	private static Folder folder;
 	private static EntityBundle bundle;
@@ -168,7 +173,8 @@ public class SubmissionManagerTest {
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
-    	
+      	mockAuthorizationManager = mock(AuthorizationManager.class);
+      	     	
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
@@ -183,11 +189,12 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
-    	
+    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+   	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
     			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockCompetitionManager, 
-    			mockParticipantManager, mockEntityManager, mockNodeManager);
+    			mockParticipantManager, mockEntityManager, mockNodeManager, mockAuthorizationManager);
     }
 	
 	@Test
@@ -204,6 +211,16 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));		
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testCAsUser_NotAuthorized() throws Exception {
+		assertNull(sub.getId());
+		assertNotNull(subWithId.getId());
+    	when(mockAuthorizationManager.canAccess(
+    			eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE)))
+    			.thenReturn(false);
+		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	
 	@Test

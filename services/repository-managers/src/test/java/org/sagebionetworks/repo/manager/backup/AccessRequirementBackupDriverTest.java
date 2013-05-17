@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -132,7 +133,7 @@ public class AccessRequirementBackupDriverTest {
 	private AccessRequirement createAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		ar.setEntityIds(new ArrayList<String>()); // note, this doesn't point to any entity
+		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>()); // note, this doesn't point to any entity
 		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		return ar;

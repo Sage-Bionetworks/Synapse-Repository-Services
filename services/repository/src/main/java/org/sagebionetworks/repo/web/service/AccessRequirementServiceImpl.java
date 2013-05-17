@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -38,17 +40,38 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 	@Override
-	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-				String userId, String entityId,	HttpServletRequest request) 
-				throws DatastoreException, UnauthorizedException, 
-				NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
+	public PaginatedResults<AccessRequirement> getUnfulfilledEntityAccessRequirements(
+			String userId, String entityId, HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, 
+			NotFoundException, ForbiddenException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return getUnfulfilledAccessRequirements(userId, subjectId, request);
+	}
 
+	@Override
+	public PaginatedResults<AccessRequirement> getUnfulfilledEvaluationAccessRequirements(
+			String userId, String evaluationId, HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, 
+			NotFoundException, ForbiddenException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(evaluationId);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		return getUnfulfilledAccessRequirements(userId, subjectId, request);
+	}
+
+	private PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
+			String userId, RestrictableObjectDescriptor subjectId, HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, 
+			NotFoundException, ForbiddenException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+	
 		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirements(userInfo, entityId);
+			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessRequirement>(
-				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
+				request.getServletPath()+UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
 				results.getResults(),
 				(int)results.getTotalNumberOfResults(), 
 				1, 
@@ -58,14 +81,35 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 
 	@Override
-	public PaginatedResults<AccessRequirement> getAccessRequirements(
+	public PaginatedResults<AccessRequirement> getEntityAccessRequirements(
 			String userId, String entityId,	HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, NotFoundException, 
+			ForbiddenException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return getAccessRequirements(userId, subjectId, request);
+	}
+	
+	@Override
+	public PaginatedResults<AccessRequirement> getEvaluationAccessRequirements(
+			String userId, String evaluationId,	HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, NotFoundException, 
+			ForbiddenException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(evaluationId);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		return getAccessRequirements(userId, subjectId, request);
+	}
+	
+	private PaginatedResults<AccessRequirement> getAccessRequirements(
+			String userId, RestrictableObjectDescriptor subjectId,	HttpServletRequest request) 
 			throws DatastoreException, UnauthorizedException, NotFoundException, 
 			ForbiddenException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getAccessRequirementsForEntity(userInfo, entityId);
+			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessRequirement>(
 				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT, 

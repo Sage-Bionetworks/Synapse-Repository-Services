@@ -7,6 +7,7 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.EvaluationUtil;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -122,22 +123,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		EvaluationUtils.ensureNotNull(userInfo, "UserInfo");
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		Evaluation comp = getEvaluation(evalId);
-		return isEvalAdmin(userInfo, comp);
+		return EvaluationUtil.isEvalAdmin(userInfo, comp);
 	}
 	
-	private boolean isEvalAdmin(UserInfo userInfo, Evaluation eval) {
-		// check if user is a Synapse admin
-		if (userInfo.isAdmin()) return true;
-		
-		// check if user is the owner of the Evaluation
-		String userId = userInfo.getIndividualGroup().getId();
-		return userId.equals(eval.getOwnerId());
-		
-		// TODO: check if user is an authorized admin of the Evaluation
-	}
 	
 	private void validateAdminAccess(UserInfo userInfo, Evaluation comp) {
-		if (!isEvalAdmin(userInfo, comp))
+		if (!EvaluationUtil.isEvalAdmin(userInfo, comp))
 			throw new UnauthorizedException("User ID " + userInfo.getIndividualGroup().getId() +
 					" is not authorized to modify Evaluation ID " + comp.getId() +
 					" (" + comp.getName() + ")");

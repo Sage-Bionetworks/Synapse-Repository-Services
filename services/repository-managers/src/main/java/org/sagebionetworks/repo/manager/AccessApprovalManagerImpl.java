@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -14,10 +16,11 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -34,6 +37,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private AccessApprovalDAO accessApprovalDAO;	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	@Autowired
+	private EvaluationDAO evaluationDAO;
 	
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
@@ -88,11 +93,20 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	}
 
 	@Override
-	public QueryResults<AccessApproval> getAccessApprovalsForEntity(
-			UserInfo userInfo, String entityId) throws DatastoreException,
+	public QueryResults<AccessApproval> getAccessApprovalsForSubject(
+			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, ForbiddenException {
-		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
-		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
+		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
+			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
+			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
+			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
+				throw new ForbiddenException("You are not an administrator of the specified Evaluation.");
+			}
+		} else {
+			throw new NotFoundException("Unexpected object type: "+subjectId.getType());
+		}
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));

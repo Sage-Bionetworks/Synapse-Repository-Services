@@ -18,6 +18,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.evaluation.manager.EvaluationManager;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ActivityDAO;
@@ -29,6 +33,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -50,6 +55,8 @@ public class AuthorizationManagerImplTest {
 	NodeDAO nodeDao;
 	@Autowired
 	ActivityManager activityManager;
+	@Autowired
+	EvaluationManager evaluationManager;
 	
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
@@ -584,5 +591,36 @@ public class AuthorizationManagerImplTest {
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
 		assertFalse(canAccess);
 	}	
+		
+//	public static Evaluation createNewEvaluation(String name, String ownerId) {
+//		Evaluation evaluation = new Evaluation();
+//		evaluation.setContentSource("");
+//		evaluation.setOwnerId(ownerId);
+//		evaluation.setStatus(EvaluationStatus.OPEN);
+//		evaluation.setName(name);
+//		evaluation.setCreatedOn(new Date());
+//		return evaluation;
+//	}
+//	
+//	@Test
+//	public void testCanAccessEvaluation() throws Exception {
+//		// create an Evaluation		
+//		Evaluation evaluation = createNewEvaluation("testCanAccessEvaluation", adminUser.getIndividualGroup().getId());
+//		evaluation = evaluationManager.createEvaluation(adminUser, evaluation);
+//		assertNotNull(evaluation.getId());
+//		//evaluationsToDelete.add(evaluation.getId());
+//		
+//		// test access
+//		boolean canAccess = authorizationManager.canAccess(userInfo, evaluation.getId(), ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE);	
+//		assertTrue(canAccess);
+//		
+//		// now add a requirement
+//		assertFalse(canAccess);
+//		
+//		// now add an approval
+//		assertTrue(canAccess);
+//		
+//		
+//	}	
 		
 }

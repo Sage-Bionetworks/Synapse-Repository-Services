@@ -1,0 +1,8 @@
+{
+    "description":"JSON enum for the types of objects which can be restricted by an AccessRequirement.",
+    "type":"string",
+    "enum":[
+        "ENTITY",
+        "EVALUATION"
+    ]
+}
