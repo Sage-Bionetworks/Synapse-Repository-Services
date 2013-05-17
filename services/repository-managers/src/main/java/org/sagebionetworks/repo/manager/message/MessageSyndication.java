@@ -28,6 +28,17 @@ public interface MessageSyndication {
 	 * Rebroadcast all change messages.
 	 */
 	public void rebroadcastAllChangeMessages();
+
+	/**
+	 * Rebroadcast limit change messages from given change number (inclusive).
+	 * @return next startChangeNumber or -1 if last batch
+	 */
+	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit);
+	
+	/**
+	 * Return the last change message number
+	 */
+	public long getCurrentChangeNumber();
 	
 	/**
 	 * Rebroadcast change messages to a queue starting from a given change number (inclusive).
@@ -37,6 +48,7 @@ public interface MessageSyndication {
 	 * @return - The total number of messages sent
 	 */
 	PublishResults rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit);
+	
 	
 	/**
 	 * List changes messages.
