@@ -53,6 +53,12 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test
+	public void testGetCurrentChangeNumberEmpty() {
+		long ccn = changeDAO.getCurrentChangeNumber();
+		assertEquals(0l, ccn);
+	}
+	
+	@Test
 	public void testReplace(){
 		ChangeMessage change = new ChangeMessage();
 		change.setObjectId("syn123");
