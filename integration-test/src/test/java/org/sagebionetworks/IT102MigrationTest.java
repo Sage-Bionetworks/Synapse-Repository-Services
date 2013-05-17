@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -158,6 +159,13 @@ public class IT102MigrationTest {
 		assertNotNull(rp);
 		assertEquals(project.getId(), rp.getId());
 		assertEquals(project.getName(), rp.getName());
+		
+		// Fire change messages
+		FireMessagesResult fmRes = conn.fireChangeMessages(0L, 10L);
+		while (fmRes.getNextChangeNumber() != -1) {
+			System.out.println("IT102-msg" + fmRes.getNextChangeNumber());
+			fmRes = conn.fireChangeMessages(fmRes.getNextChangeNumber(), 10L);
+		}
 	}
 	
 }

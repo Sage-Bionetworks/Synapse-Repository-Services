@@ -66,30 +66,33 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit) {
 		final int BATCH_SIZE = 100;
 		if (startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
-		if (limit == null) throw new IllegalArgumentException("limit cannot be null");
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
 		
 		List<ChangeMessage> list = null;
 		long lastNumber = startChangeNumber;
 		
-		while (limit > 0) {
-			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, (limit < BATCH_SIZE ? limit : BATCH_SIZE));
-			
+		long remaining = limit;
+		
+		do {
+			long localLimit = Math.min(BATCH_SIZE, remaining);
+
+			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, localLimit);
 			log.info("Sending "+list.size()+" change messages to the topic");
+			
 			if(list.size() > 0){
 				log.info("First change number on the list: "+list.get(0).getChangeNumber());
+				for(ChangeMessage change: list){
+					messagePublisher.fireChangeMessage(change);
+					lastNumber = change.getChangeNumber()+1;
+				}
 			}
 			
-			for(ChangeMessage change: list){
-				messagePublisher.fireChangeMessage(change);
-				lastNumber = change.getChangeNumber()+1;
-			}
-			
-			if (list.size() < BATCH_SIZE) { // last batch
-				break;
-			}
-
-			limit -= BATCH_SIZE;
-		}
+			remaining -= list.size();
+		} while (list.size() > 0 && remaining > 0);
+		
+		// Return -1 if all msgs done
 		long lastChangeNumber = changeDAO.getCurrentChangeNumber();
 		if (lastNumber > lastChangeNumber) {
 			lastNumber = -1L;

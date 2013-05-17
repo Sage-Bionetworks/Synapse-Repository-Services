@@ -251,7 +251,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 		long lastMsgNum = messageSyndication.rebroadcastChangeMessages(startChangeNumber, limit);
 		FireMessagesResult res = new FireMessagesResult();
-		res.setLastChangeNumber(lastMsgNum);
+		res.setNextChangeNumber(lastMsgNum);
 		return res;
 	}
 

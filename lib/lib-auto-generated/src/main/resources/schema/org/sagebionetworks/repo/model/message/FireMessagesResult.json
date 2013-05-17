@@ -2,9 +2,9 @@
 	"title": "FireMessagesResult",
 	"description": "JSON schema for a change message",
 	"properties": {
-		"lastChangeNumber": {
+		"nextChangeNumber": {
 			"type": "integer",
-			"description":"The last change number fired."
+			"description":"The next change number to fire."
 		}
 	}
 }

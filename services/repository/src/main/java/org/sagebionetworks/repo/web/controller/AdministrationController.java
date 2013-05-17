@@ -312,7 +312,7 @@ public class AdministrationController extends BaseController {
 	 * Refires all the change messages
 	 **/
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.POST)
+	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.GET)
 	public @ResponseBody
 	FireMessagesResult refireChangeMessagesToQueue(String userId,
 			@RequestParam Long startChangeNumber,
