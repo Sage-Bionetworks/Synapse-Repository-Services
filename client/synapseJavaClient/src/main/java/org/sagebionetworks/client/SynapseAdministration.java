@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.IdList;
@@ -49,6 +50,8 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
 	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
+	private static final String ADMIN_FIRE_MESSAGES = ADMIN + "/messages/refire";
+	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES+"/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
 	
@@ -304,6 +307,38 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 		MigrationTypeCount mtc = new MigrationTypeCount();
 		mtc.initializeFromJSONObject(adapter);
 		return mtc;
+	}
+
+	/**
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 * 
+	 */
+	@Override
+	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException {
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		String uri = ADMIN_FIRE_MESSAGES + "?startChangeNumber=" + startChangeNumber;
+		if (limit != null){
+			uri = uri + "&limit=" + limit;
+		}
+		JSONObject jsonObj =  signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		FireMessagesResult res = new FireMessagesResult();
+		res.initializeFromJSONObject(adapter);
+		return res;
+	}
+	
+	/**
+	 * Return current change message number
+	 */
+	@Override
+	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException {
+		String uri = ADMIN_GET_CURRENT_CHANGE_NUM;
+		JSONObject jsonObj =  signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		FireMessagesResult res = new FireMessagesResult();
+		res.initializeFromJSONObject(adapter);
+		return res;
 	}
 
 	/**

@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -307,6 +308,33 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAdministrationService().rebroadcastChangeMessagesToQueue(userId, queueName, startChangeNumber, typeEnum, limit);
 	}
 
+	/**
+	 * Refires all the change messages
+	 **/
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.GET)
+	public @ResponseBody
+	FireMessagesResult refireChangeMessagesToQueue(String userId,
+			@RequestParam Long startChangeNumber,
+			@RequestParam Long limit) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return serviceProvider.getAdministrationService().reFireChangeMessages(userId, startChangeNumber, limit);
+	}
+	
+	/**
+	 * Get current change message number
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.CURRENT_NUMBER }, method = RequestMethod.GET)
+	public @ResponseBody
+	FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return serviceProvider.getAdministrationService().getCurrentChangeNumber(userId);
+	}
+	
+	
 	/**
 	 * Clears the Synapse DOI table.
 	 */

@@ -1,8 +1,10 @@
 package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -10,6 +12,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
@@ -98,4 +101,22 @@ public interface SynapseAdministrationInt extends SynapseInt {
 	 */
 	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException;
 	
+
+	/**
+	 * Re-fires all changes messages with a change number greater than or equal to the given change number.
+	 * @param startChangeNumber 
+	 * @param limit - Limit the number of change messages fired.
+	 * @return The last change number fired.
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException;
+
+	/**
+	 * Get the current change number.
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException;
 }

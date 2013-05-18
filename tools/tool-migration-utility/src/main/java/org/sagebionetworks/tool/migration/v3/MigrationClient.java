@@ -115,6 +115,16 @@ public class MigrationClient {
 	}
 	
 	/**
+	 * Get the current change number of the destination.
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	private long getDestinationCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException{
+		return this.factory.createNewDestinationClient().getCurrentChangeNumber().getNextChangeNumber();
+	}
+	
+	/**
 	 * Migrate all types.
 	 * @param batchSize - Max batch size
 	 * @param timeoutMS - max time to wait for a deamon job.
@@ -134,8 +144,39 @@ public class MigrationClient {
 		printCount(startDestCounts.getList());
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
-		
-		// first we need to calculate the deltas
+		// Before we start get the change number in the destination.
+		long startChangeNumber = getDestinationCurrentChangeNumber();
+		log.info("The start change number of the destination: "+startChangeNumber);
+		try{
+			// first we need to calculate the deltas
+			migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes);
+		}finally{
+			// After migrating data we need to play changes messages.
+			// This is how all asynchronous workers find out about the changes.
+			long currentChangeNumber = getDestinationCurrentChangeNumber();
+			if(currentChangeNumber > startChangeNumber){
+				replayChangeMessages(startChangeNumber, currentChangeNumber, batchSize);
+			}
+		}
+		// Print the final counts
+		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
+		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
+		log.info("Source end counts:");
+		printCount(endSourceCounts.getList());
+		log.info("Destination end counts:");
+		printCount(endDestCounts.getList());
+	}
+
+	/**
+	 * Does the actaul migration work.
+	 * @param batchSize
+	 * @param timeoutMS
+	 * @param retryDenominator
+	 * @param primaryTypes
+	 * @throws Exception
+	 */
+	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes)
+			throws Exception {
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
 		for(MigrationType type: primaryTypes){
 			DeltaData dd = calculateDeltaForType(type, batchSize);
@@ -165,13 +206,25 @@ public class MigrationClient {
 				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator);
 			}
 		}
-		// Print the final counts
-		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
-		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
-		log.info("Source end counts:");
-		printCount(endSourceCounts.getList());
-		log.info("Destination end counts:");
-		printCount(endDestCounts.getList());
+	}
+	
+	/**
+	 * Replay all change messages.
+	 * @param startChangeNumber
+	 * @param batchSize
+	 * @throws Exception
+	 */
+	private void replayChangeMessages(long startChangeNumber, long currentChangeNumber, long batchSize) throws Exception {
+		BasicProgress progress = new BasicProgress();
+		ReplayWorker worker = new ReplayWorker(factory.createNewDestinationClient(), startChangeNumber, currentChangeNumber, batchSize, progress);
+		Future<Long> future = this.threadPool.submit(worker);
+		while(!future.isDone()){
+			// Log the progress
+			log.info("Replaying change messages. Progress: "+progress.getCurrentStatus());
+			Thread.sleep(2000);
+		}
+		Long counts = future.get();
+		log.info("Finished replaying: "+counts+" change messages");
 	}
 	
 	/**
