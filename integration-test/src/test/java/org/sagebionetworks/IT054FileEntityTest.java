@@ -21,6 +21,7 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -153,6 +154,27 @@ public class IT054FileEntityTest {
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
 		System.out.println(tempUrl);
+	}
+
+	@Test
+	public void testGetEntityHeaderByMd5() throws Exception {
+
+		String md5 = "548c050497fb361742b85e0835c0cc96";
+		List<EntityHeader> results = synapse.getEntityHeaderByMd5(md5);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+
+		FileEntity file = new FileEntity();
+		file.setName("IT054FileEntityTest.testGetEntityHeaderByMd5");
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle.getId());
+		file = synapse.createEntity(file);
+		assertNotNull(file);
+
+		md5 = fileHandle.getContentMd5();
+		results = synapse.getEntityHeaderByMd5(md5);
+		assertNotNull(results);
+		assertEquals(1, results.size());
 	}
 
 	/**
