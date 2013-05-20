@@ -1,6 +1,7 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.manager.dynamo;
 
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
