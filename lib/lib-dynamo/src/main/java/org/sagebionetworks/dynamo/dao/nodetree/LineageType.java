@@ -2,8 +2,6 @@ package org.sagebionetworks.dynamo.dao.nodetree;
 
 /**
  * Ancestor or descendant.
- *
- * @author ewu
  */
 enum LineageType {
 
