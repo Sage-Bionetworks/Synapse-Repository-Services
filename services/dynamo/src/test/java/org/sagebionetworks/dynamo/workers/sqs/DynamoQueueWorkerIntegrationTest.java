@@ -9,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
+import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -28,6 +30,7 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@Autowired private EntityManager entityManager;
 	@Autowired private UserProvider userProvider;
+	@Autowired private DynamoAdminDao dynamoAdminDao;
 	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
 	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
 	@Autowired private MessageReceiver dynamoQueueMessageRetriever;
@@ -83,6 +86,8 @@ public class DynamoQueueWorkerIntegrationTest {
 		if (root != null) {
 			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
 
 	@Test

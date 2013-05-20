@@ -8,9 +8,9 @@ import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
 // 1. Define a JSON schema for DynamoDB tables
 // 2. List the DynamoDB tables in a JSON file
 // 3. Initialize the config from JSON
-final class DynamoTableConfig {
+public final class DynamoTableConfig {
 
-	final static class DynamoKey {
+	public final static class DynamoKey {
 
 		DynamoKey(String keyName, ScalarAttributeType keyType) {
 			if (keyName == null) {
@@ -23,11 +23,11 @@ final class DynamoTableConfig {
 			this.keyType = keyType;
 		}
 
-		String getKeyName() {
+		public String getKeyName() {
 			return keyName;
 		}
 
-		ScalarAttributeType getKeyType() {
+		public ScalarAttributeType getKeyType() {
 			return keyType;
 		}
 
@@ -35,7 +35,7 @@ final class DynamoTableConfig {
 		private final ScalarAttributeType keyType;
 	}
 
-	final static class DynamoKeySchema {
+	public final static class DynamoKeySchema {
 
 		DynamoKeySchema(DynamoKey hashKey, DynamoKey rangeKey) {
 			if (hashKey == null) {
@@ -48,11 +48,11 @@ final class DynamoTableConfig {
 			this.rangeKey = rangeKey;
 		}
 
-		DynamoKey getHashKey() {
+		public DynamoKey getHashKey() {
 			return hashKey;
 		}
 
-		DynamoKey getRangeKey() {
+		public DynamoKey getRangeKey() {
 			return rangeKey;
 		}
 
