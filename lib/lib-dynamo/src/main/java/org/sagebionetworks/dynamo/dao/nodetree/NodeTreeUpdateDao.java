@@ -4,8 +4,6 @@ import java.util.Date;
 
 /**
  * Update operations over a tree of nodes.
- *
- * @author Eric Wu
  */
 public interface NodeTreeUpdateDao {
 

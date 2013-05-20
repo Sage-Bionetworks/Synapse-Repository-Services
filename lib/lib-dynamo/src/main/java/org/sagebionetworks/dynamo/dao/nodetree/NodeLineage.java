@@ -7,8 +7,6 @@ import org.sagebionetworks.dynamo.KeyValueSplitter;
 /**
  * Defines lineage between two nodes, where one is the ancestor and the other is the descendant.
  * This mirrors {@link DboNodeLineage} but holds the discrete parts of the composite keys.
- *
- * @author Eric Wu
  */
 class NodeLineage {
 
