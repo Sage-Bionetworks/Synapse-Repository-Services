@@ -78,6 +78,8 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -1050,7 +1052,7 @@ public class Synapse implements SynapseInt {
 	}
 	
 	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
-	
+		
 		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
 		ar.setEntityType(ar.getClass().getName());
 		// Get the json for this entity
@@ -1067,8 +1069,19 @@ public class Synapse implements SynapseInt {
 		
 	}
 
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(String entityId) throws SynapseException {
-		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT_UNFULFILLED;
+	public void deleteAccessRequirement(Long arId) throws SynapseException {
+		deleteUri(ACCESS_REQUIREMENT+"/"+arId);
+	}
+
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
+		String uri = null;
+		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
+			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
+		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
+			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
+		} else {
+			throw new SynapseException("Unsupported type "+subjectId.getType());
+		}
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
@@ -1080,21 +1093,15 @@ public class Synapse implements SynapseInt {
 		}
 	}
 
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(String evaluationId) throws SynapseException {
-		String uri = EVALUATION_URI_PATH+"/"+evaluationId+ACCESS_REQUIREMENT_UNFULFILLED;
-		JSONObject jsonAccessRequirements = getEntity(uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
-		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
+		String uri = null;
+		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
+			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
+		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
+			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
+		} else {
+			throw new SynapseException("Unsupported type "+subjectId.getType());
 		}
-	}
-
-	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(String entityId) throws SynapseException {
-		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();

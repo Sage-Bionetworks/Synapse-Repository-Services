@@ -590,37 +590,5 @@ public class AuthorizationManagerImplTest {
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
 		assertFalse(canAccess);
-	}	
-		
-//	public static Evaluation createNewEvaluation(String name, String ownerId) {
-//		Evaluation evaluation = new Evaluation();
-//		evaluation.setContentSource("");
-//		evaluation.setOwnerId(ownerId);
-//		evaluation.setStatus(EvaluationStatus.OPEN);
-//		evaluation.setName(name);
-//		evaluation.setCreatedOn(new Date());
-//		return evaluation;
-//	}
-//	
-//	@Test
-//	public void testCanAccessEvaluation() throws Exception {
-//		// create an Evaluation		
-//		Evaluation evaluation = createNewEvaluation("testCanAccessEvaluation", adminUser.getIndividualGroup().getId());
-//		evaluation = evaluationManager.createEvaluation(adminUser, evaluation);
-//		assertNotNull(evaluation.getId());
-//		//evaluationsToDelete.add(evaluation.getId());
-//		
-//		// test access
-//		boolean canAccess = authorizationManager.canAccess(userInfo, evaluation.getId(), ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE);	
-//		assertTrue(canAccess);
-//		
-//		// now add a requirement
-//		assertFalse(canAccess);
-//		
-//		// now add an approval
-//		assertTrue(canAccess);
-//		
-//		
-//	}	
-		
+	}
 }

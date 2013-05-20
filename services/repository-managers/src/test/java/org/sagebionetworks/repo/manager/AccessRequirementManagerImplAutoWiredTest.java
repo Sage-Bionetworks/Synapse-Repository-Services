@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -200,22 +201,13 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
 	
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testEntityCreateAccessRequirementForbidden() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(testUserProvider.getTestUserInfo(), ar);
 	}
 	
-//	private UserInfo createDummyUserInfo() {
-//		UserInfo dummyUser = testUserProvider.getTestUserInfo();
-//		UserGroup dummyIndividualGroup = new UserGroup();
-//		dummyIndividualGroup.setIsIndividual(true);
-//		dummyIndividualGroup.setId("62684563467");
-//		dummyUser.setIndividualGroup(dummyIndividualGroup);
-//		return dummyUser;
-//	}
-	
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testEvaluationCreateAccessRequirementForbidden() throws Exception {
 		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
 		// this user will not have permission to add a restriction to the evaluation
@@ -314,7 +306,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertEquals(0, ars.getResults().size());
 	}
 	
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testDeleteEvaluationAccessRequirementForbidden() throws Exception {
 		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);

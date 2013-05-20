@@ -18,7 +18,7 @@ public class DaemonFailedException extends RuntimeException {
 
 	public DaemonFailedException(String message, Throwable cause,
 			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
+		super(message, cause);
 	}
 
 	public DaemonFailedException(String message, Throwable cause) {

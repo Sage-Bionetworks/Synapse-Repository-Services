@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -54,9 +56,11 @@ public class AccessRequirementController extends BaseController {
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-
-		return serviceProvider.getAccessRequirementService().getUnfulfilledEntityAccessRequirements(userId, entityId, request);
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -67,8 +71,11 @@ public class AccessRequirementController extends BaseController {
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.getAccessRequirementService().getEntityAccessRequirements(userId, entityId, request);
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -79,9 +86,11 @@ public class AccessRequirementController extends BaseController {
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-
-		return serviceProvider.getAccessRequirementService().getUnfulfilledEvaluationAccessRequirements(userId, evaluationId, request);
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(evaluationId);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -92,8 +101,11 @@ public class AccessRequirementController extends BaseController {
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.getAccessRequirementService().getEvaluationAccessRequirements(userId, evaluationId, request);
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(evaluationId);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -101,7 +113,7 @@ public class AccessRequirementController extends BaseController {
 	public void deleteAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String requirementId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
 	}
 }

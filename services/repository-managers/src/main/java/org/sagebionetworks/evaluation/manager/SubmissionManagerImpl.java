@@ -111,7 +111,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		try {
 			participantManager.getParticipant(principalId, evalId);
 		} catch (NotFoundException e) {
-			throw new ForbiddenException("User Princpal ID: " + principalId + 
+			throw new UnauthorizedException("User Princpal ID: " + principalId + 
 					" has not joined Evaluation ID: " + evalId);
 		}
 		

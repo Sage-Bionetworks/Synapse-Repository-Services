@@ -180,7 +180,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 	
 	// since the user is not an admin they can't delete
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testCreateAccessApprovalForbidden() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), null);
 		aa = accessApprovalManager.createAccessApproval(testUserProvider.getTestUserInfo(), aa);
@@ -255,7 +255,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 	
 	// it's not ok for a non-admin to give ACT approval (in this case for themselves)
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testGiveACTApprovalForbidden() throws Exception {
 		actAr = newACTAccessRequirement(entityId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);

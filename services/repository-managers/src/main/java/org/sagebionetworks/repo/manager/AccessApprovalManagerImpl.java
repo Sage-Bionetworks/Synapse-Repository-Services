@@ -75,7 +75,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException,ForbiddenException {
+			InvalidModelException, UnauthorizedException, NotFoundException {
 		
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
@@ -95,13 +95,13 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@Override
 	public QueryResults<AccessApproval> getAccessApprovalsForSubject(
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
-			NotFoundException, ForbiddenException {
+			NotFoundException, UnauthorizedException {
 		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
 			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
 			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
 			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
-				throw new ForbiddenException("You are not an administrator of the specified Evaluation.");
+				throw new UnauthorizedException("You are not an administrator of the specified Evaluation.");
 			}
 		} else {
 			throw new NotFoundException("Unexpected object type: "+subjectId.getType());
@@ -119,7 +119,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@Override
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
-			ConflictingUpdateException, InvalidModelException, ForbiddenException {
+			ConflictingUpdateException, InvalidModelException {
 		
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
@@ -135,7 +135,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
-			throws NotFoundException, DatastoreException, UnauthorizedException, ForbiddenException {
+			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
 		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		accessApprovalDAO.delete(accessApproval.getId().toString());

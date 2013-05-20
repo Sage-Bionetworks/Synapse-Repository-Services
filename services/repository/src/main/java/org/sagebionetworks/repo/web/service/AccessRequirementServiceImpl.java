@@ -40,31 +40,10 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	}
 	
 	@Override
-	public PaginatedResults<AccessRequirement> getUnfulfilledEntityAccessRequirements(
-			String userId, String entityId, HttpServletRequest request) 
-			throws DatastoreException, UnauthorizedException, 
-			NotFoundException, ForbiddenException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		return getUnfulfilledAccessRequirements(userId, subjectId, request);
-	}
-
-	@Override
-	public PaginatedResults<AccessRequirement> getUnfulfilledEvaluationAccessRequirements(
-			String userId, String evaluationId, HttpServletRequest request) 
-			throws DatastoreException, UnauthorizedException, 
-			NotFoundException, ForbiddenException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluationId);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return getUnfulfilledAccessRequirements(userId, subjectId, request);
-	}
-
-	private PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
+	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
 			String userId, RestrictableObjectDescriptor subjectId, HttpServletRequest request) 
 			throws DatastoreException, UnauthorizedException, 
-			NotFoundException, ForbiddenException {
+			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 	
 		QueryResults<AccessRequirement> results = 
@@ -80,32 +59,11 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 				false);
 	}
 
-	@Override
-	public PaginatedResults<AccessRequirement> getEntityAccessRequirements(
-			String userId, String entityId,	HttpServletRequest request) 
-			throws DatastoreException, UnauthorizedException, NotFoundException, 
-			ForbiddenException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
-		return getAccessRequirements(userId, subjectId, request);
-	}
-	
-	@Override
-	public PaginatedResults<AccessRequirement> getEvaluationAccessRequirements(
-			String userId, String evaluationId,	HttpServletRequest request) 
-			throws DatastoreException, UnauthorizedException, NotFoundException, 
-			ForbiddenException {
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(evaluationId);
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return getAccessRequirements(userId, subjectId, request);
-	}
-	
-	private PaginatedResults<AccessRequirement> getAccessRequirements(
+	@Override	
+	public PaginatedResults<AccessRequirement> getAccessRequirements(
 			String userId, RestrictableObjectDescriptor subjectId,	HttpServletRequest request) 
-			throws DatastoreException, UnauthorizedException, NotFoundException, 
-			ForbiddenException {
+			throws DatastoreException, UnauthorizedException, NotFoundException
+			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<AccessRequirement> results = 
@@ -124,8 +82,8 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAccessRequirements(String userId, String requirementId) 
-			throws DatastoreException, UnauthorizedException, NotFoundException, 
-			ForbiddenException {
+			throws DatastoreException, UnauthorizedException, NotFoundException
+			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
 	}

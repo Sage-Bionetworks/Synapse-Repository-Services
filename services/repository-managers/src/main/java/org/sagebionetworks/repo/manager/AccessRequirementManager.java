@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -16,35 +15,32 @@ public interface AccessRequirementManager {
 	
 	/**
 	 *  create access requirement
-	 * @throws ForbiddenException 
 	 */
-	public <T extends AccessRequirement> T  createAccessRequirement(UserInfo userInfo, T AccessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException;
+	public <T extends AccessRequirement> T  createAccessRequirement(UserInfo userInfo, T AccessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 *  get all the access requirements for an entity
-	 * @throws ForbiddenException 
 	 */
-	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, ForbiddenException;
+	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 *  get all the unmet access requirements
 	 *  This API includes an authorization check to see if
 	 *  the user is allowed to READ the entity
 	 *  
-	 * @throws ForbiddenException 
 	 */
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 *  update an access requirement
-	 * @throws ForbiddenException 
+	 *
 	 */
-	public <T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, ForbiddenException, DatastoreException;
+	public <T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException;
 	
 	/*
 	 *  delete an access requirement
 	 */
-	public void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException, ForbiddenException;
+	public void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	
 }
