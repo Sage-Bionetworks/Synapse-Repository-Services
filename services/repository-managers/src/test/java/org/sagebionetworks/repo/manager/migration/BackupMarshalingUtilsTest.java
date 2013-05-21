@@ -38,7 +38,7 @@ public class BackupMarshalingUtilsTest {
 		System.out.println(xml);
 		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
 		// Now make back
-		List<FileHandleBackup> clone = BackupMarshalingUtils.readBacckupFromStream(FileHandleBackup.class, alias, in);
+		List<FileHandleBackup> clone = BackupMarshalingUtils.readBackupFromStream(FileHandleBackup.class, alias, in);
 		assertNotNull(clone);
 		assertEquals(list.size(), clone.size());
 		assertEquals(list, clone);
@@ -49,7 +49,7 @@ public class BackupMarshalingUtilsTest {
 		ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
 		// Now make back
 		String alias = "files";
-		List<FileHandleBackup> clone = BackupMarshalingUtils.readBacckupFromStream(FileHandleBackup.class, alias, in);
+		List<FileHandleBackup> clone = BackupMarshalingUtils.readBackupFromStream(FileHandleBackup.class, alias, in);
 		assertEquals(null, clone);
 	}
 }
