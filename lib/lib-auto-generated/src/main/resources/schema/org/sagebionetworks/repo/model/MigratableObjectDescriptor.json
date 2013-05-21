@@ -1,8 +1,7 @@
 {
  	"properties":{
         "id":{
-            "type":"string",
-            "transient":true
+            "type":"string"
         },
         "type":{
 			"$ref":"org.sagebionetworks.repo.model.MigratableObjectType"

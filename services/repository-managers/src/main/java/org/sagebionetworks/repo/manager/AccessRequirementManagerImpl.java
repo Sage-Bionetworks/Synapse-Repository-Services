@@ -71,7 +71,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException {
+	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
 		 Map<RestrictableObjectType, Collection<String>> sortedIds = 
 			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
@@ -90,19 +90,19 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static void verifyCanAdministerEvaluation(
 			UserInfo userInfo, 
 			Collection<String> evaluationIds, 
-			EvaluationDAO evaluationDAO) throws NotFoundException, ForbiddenException {
+			EvaluationDAO evaluationDAO) throws NotFoundException, UnauthorizedException {
 		if (userInfo.isAdmin()) return;
 		for (String id : evaluationIds) {
 			Evaluation evaluation = evaluationDAO.get(id);
 			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
-				throw new ForbiddenException("You lack administrative access to Evaluation: "+evaluation.getName());
+				throw new UnauthorizedException("You lack administrative access to Evaluation: "+evaluation.getName());
 			}
 		}
 		
 	}
 	
 	@Override
-	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException, ForbiddenException {
+	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
 		return result;
@@ -150,7 +150,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, ForbiddenException, DatastoreException {
+	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
 		verifyCanAdmin(userInfo, accessRequirement);
 		populateModifiedFields(userInfo, accessRequirement);
@@ -161,7 +161,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public void deleteAccessRequirement(UserInfo userInfo,
 			String accessRequirementId) throws NotFoundException,
-			DatastoreException, UnauthorizedException, ForbiddenException {
+			DatastoreException, UnauthorizedException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
 		verifyCanAdmin(userInfo, accessRequirement);
 		accessRequirementDAO.delete(accessRequirement.getId().toString());

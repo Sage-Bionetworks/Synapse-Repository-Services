@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -372,9 +373,11 @@ public class SynapseTest {
 			new VariableContentPaginatedResults<AccessRequirement>();
 		StringEntity responseEntity = createVCPRStringEntity(result);
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		subjectId.setId("12345");
 		VariableContentPaginatedResults<AccessRequirement> clone = 
-			synapse.getUnmetEvaluationAccessRequirements("12345");
+			synapse.getUnmetAccessRequirements(subjectId);
 		assertNotNull(clone);
 		assertEquals(result, clone);
 	}	

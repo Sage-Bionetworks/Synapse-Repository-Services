@@ -189,12 +189,12 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.WIKI_OWNERS);
 		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
 		expectedPrimaryTypes.add(MigrationType.NODE);
-		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
-		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION);
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
+		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
+		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);

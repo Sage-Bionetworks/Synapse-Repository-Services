@@ -85,18 +85,21 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
-	// The NODE_ACCESS_REQUIREMENT table (a join table linking the JDONODE and ACCESS_REQUIREMENT tables
+	// The SUBJECT_ACCESS_REQUIREMENT table (a join table linking the ENTITY or EVALUTION and ACCESS_REQUIREMENT tables
+	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT		= "SUBJECT_ACCESS_REQUIREMENT";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID			= "SUBJECT_ID";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE			= "SUBJECT_TYPE";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String DDL_FILE_SUBJECT_ACCESS_REQUIREMENT			= "schema/SubjectAccessRequirement-ddl.sql";
+
+	
+	// the following are defined temporarily, for a 'bridge' migration table
 	public static final String TABLE_NODE_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
 	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_ID			= "NODE_ID";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
-
-	// The EVALUATION_ACCESS_REQUIREMENT table (a join table linking the JDOEVALUATION and ACCESS_REQUIREMENT tables
-	public static final String TABLE_EVALUATION_ACCESS_REQUIREMENT		= "EVALUATION_ACCESS_REQUIREMENT";
-	public static final String COL_EVALUATION_ACCESS_REQUIREMENT_EVALUATION_ID			= "EVALUATION_ID";
-	public static final String COL_EVALUATION_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
-	public static final String DDL_FILE_EVALUATION_ACCESS_REQUIREMENT			= "schema/evaluation/EvaluationAccessRequirement-ddl.sql";
-
+	
 	// The ACCESS_APPROVAL table
 	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
 	public static final String COL_ACCESS_APPROVAL_ID				= "ID";

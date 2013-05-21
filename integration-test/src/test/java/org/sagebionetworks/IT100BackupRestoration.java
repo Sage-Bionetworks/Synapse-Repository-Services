@@ -420,7 +420,10 @@ public class IT100BackupRestoration {
 		synapse.deleteObject(mod);
 		
 		// verify that it's deleted
-		VariableContentPaginatedResults<AccessRequirement>  vcprs = synapse.getAccessRequirements(project.getId());
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(project.getId());
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		VariableContentPaginatedResults<AccessRequirement>  vcprs = synapse.getAccessRequirements(subjectId);
 		assertEquals(0L, vcprs.getTotalNumberOfResults());
 		
 		// Now restore the access requirements from this backup file
@@ -433,7 +436,7 @@ public class IT100BackupRestoration {
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 		
 		// verify that it's restored
-		vcprs = synapse.getAccessRequirements(project.getId());
+		vcprs = synapse.getAccessRequirements(subjectId);
 		assertEquals(1L, vcprs.getTotalNumberOfResults());
 		
 		// now clean up the access requirement (cascading to the access approval)

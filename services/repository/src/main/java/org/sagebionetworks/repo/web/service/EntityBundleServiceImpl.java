@@ -95,11 +95,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				eb.setAccessControlList(null);
 			}
 		}		
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
 		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getEntityAccessRequirements(userId, entityId, request).getResults());
+			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request).getResults());
 		}		
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledEntityAccessRequirements(userId, entityId, request).getResults());
+			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request).getResults());
 		}
 		if((mask & EntityBundle.FILE_HANDLES) > 0 ){
 			try{

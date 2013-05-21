@@ -7,7 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -39,9 +39,9 @@ public class BaseController {
 		return handleException(ex, request);
 	}
 
-	@ExceptionHandler(ForbiddenException.class)
+	@ExceptionHandler(UnauthorizedException.class)
 	public @ResponseBody
-	ErrorResponse handleForbiddenException(ForbiddenException ex,
+	ErrorResponse handleForbiddenException(UnauthorizedException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		response.setStatus(HttpStatus.FORBIDDEN.value());
