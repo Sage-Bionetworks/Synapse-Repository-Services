@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -120,7 +122,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	private static TermsOfUseAccessRequirement newToUAccessRequirement(String entityId) {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		ar.setEntityIds(Arrays.asList(new String[]{entityId}));
+		
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse(TERMS_OF_USE);
@@ -137,7 +144,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	private static ACTAccessRequirement newACTAccessRequirement(String entityId) {
 		ACTAccessRequirement ar = new ACTAccessRequirement();
-		ar.setEntityIds(Arrays.asList(new String[]{entityId}));
+		
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setActContactInfo("send a message in a bottle");
@@ -168,7 +180,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 	
 	// since the user is not an admin they can't delete
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testCreateAccessApprovalForbidden() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), null);
 		aa = accessApprovalManager.createAccessApproval(testUserProvider.getTestUserInfo(), aa);
@@ -243,7 +255,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	}
 	
 	// it's not ok for a non-admin to give ACT approval (in this case for themselves)
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testGiveACTApprovalForbidden() throws Exception {
 		actAr = newACTAccessRequirement(entityId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
@@ -254,12 +266,16 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@Test
 	public void testApprovalRetrieval() throws Exception {
-		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForEntity(adminUserInfo, entityId);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+
+		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
 		assertEquals(0L, aas.getTotalNumberOfResults());
 		assertEquals(0, aas.getResults().size());
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-		aas = accessApprovalManager.getAccessApprovalsForEntity(adminUserInfo, entityId);
+		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
 		assertEquals(1L, aas.getTotalNumberOfResults());
 		assertEquals(1, aas.getResults().size());
 	}
@@ -281,7 +297,10 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		accessApprovalManager.deleteAccessApproval(adminUserInfo, aa.getId().toString());
-		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForEntity(adminUserInfo, entityId);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
 		assertEquals(0L, aas.getTotalNumberOfResults());
 		assertEquals(0, aas.getResults().size());
 	}

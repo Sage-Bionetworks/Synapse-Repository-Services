@@ -8,6 +8,7 @@
         "UPDATE",
         "DELETE",
         "CHANGE_PERMISSIONS",
-	 	"DOWNLOAD"
+	 	"DOWNLOAD",
+	 	"PARTICIPATE"
     ]
 }

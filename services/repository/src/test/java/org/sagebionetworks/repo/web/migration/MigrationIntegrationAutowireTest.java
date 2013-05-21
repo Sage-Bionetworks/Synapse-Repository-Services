@@ -39,6 +39,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -168,10 +170,10 @@ public class MigrationIntegrationAutowireTest {
 		createActivity();
 		createEntities();
 		createFavorite();
+		createEvaluation();
 		createAccessRequirement();
 		createAccessApproval();
 		creatWikiPages();
-		createEvaluation();
 		createDoi();
 	}
 
@@ -243,7 +245,18 @@ public class MigrationIntegrationAutowireTest {
 		// Add an access requirement to this entity
 		accessRequirement = newAccessRequirement();
 		String entityId = project.getId();
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{entityId})); 
+		RestrictableObjectDescriptor entitySubjectId = new RestrictableObjectDescriptor();
+		entitySubjectId.setId(entityId);
+		entitySubjectId.setType(RestrictableObjectType.ENTITY);
+		RestrictableObjectDescriptor evaluationSubjectId = new RestrictableObjectDescriptor();
+		assertNotNull(evaluation);
+		assertNotNull(evaluation.getId());
+		evaluationSubjectId.setId(evaluation.getId());
+		evaluationSubjectId.setType(RestrictableObjectType.EVALUATION);
+		
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId}));
+		// TODO once migration from NodeAccessRequirement to SubjectAccessRequirement is complete, restore the following (and remove the preceding line)
+		//accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId, evaluationSubjectId})); 
 		accessRequirement = ServletTestHelper.createAccessRequirement(DispatchServletSingleton.getInstance(), accessRequirement, userName, new HashMap<String, String>());
 	}
 	

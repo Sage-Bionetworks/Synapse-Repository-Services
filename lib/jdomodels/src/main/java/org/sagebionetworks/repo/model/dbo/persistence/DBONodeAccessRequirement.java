@@ -7,15 +7,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_A
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
-import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBONodeAccessRequirement implements MigratableDatabaseObject<DBONodeAccessRequirement, DBONodeAccessRequirement> {
+/**
+ * This is maintained in the code base as a 'bridge' class, used for one-time migration
+ * 
+ *
+ */
+public class DBONodeAccessRequirement implements DatabaseObject<DBONodeAccessRequirement> {
 
 	private Long nodeId;
 	private Long accessRequirementId;
@@ -114,44 +116,5 @@ public class DBONodeAccessRequirement implements MigratableDatabaseObject<DBONod
 		return "DBONodeAccessRequirement [nodeId=" + nodeId
 				+ ", accessRequirementId=" + accessRequirementId + "]";
 	}
-
-	@Override
-	public MigrationType getMigratableTableType() {
-		return MigrationType.NODE_ACCESS_REQUIRMENT;
-	}
-
-	@Override
-	public MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement> getTranslator() {
-		// TODO Auto-generated method stub
-		return new MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement>(){
-
-			@Override
-			public DBONodeAccessRequirement createDatabaseObjectFromBackup(
-					DBONodeAccessRequirement backup) {
-				return backup;
-			}
-
-			@Override
-			public DBONodeAccessRequirement createBackupFromDatabaseObject(
-					DBONodeAccessRequirement dbo) {
-				return dbo;
-			}};
-	}
-
-	@Override
-	public Class<? extends DBONodeAccessRequirement> getBackupClass() {
-		return DBONodeAccessRequirement.class;
-	}
-
-	@Override
-	public Class<? extends DBONodeAccessRequirement> getDatabaseObjectClass() {
-		return DBONodeAccessRequirement.class;
-	}
-
-	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
-	}
-
 
 }

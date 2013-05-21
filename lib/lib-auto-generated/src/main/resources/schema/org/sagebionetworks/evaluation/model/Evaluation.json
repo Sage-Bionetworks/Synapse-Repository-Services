@@ -35,7 +35,7 @@
 		},
 		"contentSource": {
 			"type": "string",
-			"description": "The content source upon which this Evaluation is run.",
+			"description": "The content source upon which this Evaluation is run, e.g. a reference to a Synapse project.",
 			"title": "Content Source",
 			"transient": true
 		},

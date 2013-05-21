@@ -311,7 +311,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
-		list.add(new DBONodeAccessRequirement());
+		list.add(new DBOSubjectAccessRequirement());
 		return list;
 	}
 }

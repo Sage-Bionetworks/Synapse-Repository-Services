@@ -142,7 +142,9 @@ public class EntityBundleTest {
 		List<AccessRequirement> accessRequirements = new ArrayList<AccessRequirement>();
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		ar.setEntityIds(Arrays.asList(new String[]{"101", "102"}));
+		RestrictableObjectDescriptor rod1 = new RestrictableObjectDescriptor(); rod1.setId("101"); rod1.setType(RestrictableObjectType.EVALUATION);
+		RestrictableObjectDescriptor rod2 = new RestrictableObjectDescriptor(); rod1.setId("102"); rod1.setType(RestrictableObjectType.EVALUATION);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
 		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		accessRequirements.add(ar);
