@@ -18,6 +18,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.evaluation.manager.EvaluationManager;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ActivityDAO;
@@ -29,6 +33,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -50,6 +55,8 @@ public class AuthorizationManagerImplTest {
 	NodeDAO nodeDao;
 	@Autowired
 	ActivityManager activityManager;
+	@Autowired
+	EvaluationManager evaluationManager;
 	
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
@@ -583,6 +590,5 @@ public class AuthorizationManagerImplTest {
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
 		assertFalse(canAccess);
-	}	
-		
+	}
 }

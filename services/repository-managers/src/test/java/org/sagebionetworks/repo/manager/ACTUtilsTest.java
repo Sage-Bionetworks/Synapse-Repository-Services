@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_AND_COMPLIANCE_TEAM_NAME;
 
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -52,7 +54,7 @@ public class ACTUtilsTest {
 		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 	}
 
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testVerifyACTTeamMembershipOrIsAdmin_NONE() {
 		UserInfo userInfo = new UserInfo(false);
 		Set<UserGroup> ugs = new HashSet<UserGroup>();
@@ -79,7 +81,7 @@ public class ACTUtilsTest {
 		ACTUtils.verifyACTTeamMembershipOrCanCreateOrEdit(userInfo, ids, userGroupDAO, authorizationManager);
 	}
 
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_multiple() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		Set<UserGroup> ugs = new HashSet<UserGroup>();
@@ -97,7 +99,7 @@ public class ACTUtilsTest {
 		ACTUtils.verifyACTTeamMembershipOrCanCreateOrEdit(userInfo, ids, userGroupDAO, authorizationManager);
 	}
 
-	@Test(expected=ForbiddenException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_none() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		Set<UserGroup> ugs = new HashSet<UserGroup>();

@@ -37,6 +37,8 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -103,7 +105,10 @@ public class NodeSerializerUtilTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setEtag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{"103"}));
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("103");
+		rod.setType(RestrictableObjectType.ENTITY);
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setId(104L);
 

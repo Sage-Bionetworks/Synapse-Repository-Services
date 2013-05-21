@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -380,7 +382,10 @@ public class IT100BackupRestoration {
 		// now create the access requirement
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		ar.setEntityIds(Arrays.asList(new String[]{project.getId()}));
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(project.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		ar = synapse.createAccessRequirement(ar);
@@ -415,7 +420,10 @@ public class IT100BackupRestoration {
 		synapse.deleteObject(mod);
 		
 		// verify that it's deleted
-		VariableContentPaginatedResults<AccessRequirement>  vcprs = synapse.getAccessRequirements(project.getId());
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(project.getId());
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		VariableContentPaginatedResults<AccessRequirement>  vcprs = synapse.getAccessRequirements(subjectId);
 		assertEquals(0L, vcprs.getTotalNumberOfResults());
 		
 		// Now restore the access requirements from this backup file
@@ -428,7 +436,7 @@ public class IT100BackupRestoration {
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 		
 		// verify that it's restored
-		vcprs = synapse.getAccessRequirements(project.getId());
+		vcprs = synapse.getAccessRequirements(subjectId);
 		assertEquals(1L, vcprs.getTotalNumberOfResults());
 		
 		// now clean up the access requirement (cascading to the access approval)

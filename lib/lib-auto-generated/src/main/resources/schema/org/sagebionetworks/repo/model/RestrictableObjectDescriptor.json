@@ -4,7 +4,7 @@
             "type":"string"
         },
         "type":{
-			"$ref":"org.sagebionetworks.repo.model.MigratableObjectType"
+			"$ref":"org.sagebionetworks.repo.model.RestrictableObjectType"
 		}
 	}
 }
