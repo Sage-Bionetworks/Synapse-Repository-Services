@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
+import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -27,6 +28,7 @@ import com.amazonaws.services.dynamodb.model.AttributeValue;
 public class NodeTreeDaoWriteAutowireTest {
 
 	@Autowired private AmazonDynamoDB dynamoClient;
+	@Autowired private DynamoAdminDao dynamoAdminDao;
 	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
 	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
 
@@ -71,6 +73,8 @@ public class NodeTreeDaoWriteAutowireTest {
 		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
 		List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		this.dynamoMapper.batchDelete(dboList);
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
 
 	@Test

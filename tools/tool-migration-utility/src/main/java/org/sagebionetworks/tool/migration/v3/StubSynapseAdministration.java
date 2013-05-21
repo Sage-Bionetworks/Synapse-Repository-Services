@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -53,6 +55,10 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 	LinkedHashMap<MigrationType, List<RowMetadata>> metadata;
 	BackupRestoreStatus status;
 	long statusSequence = 0;
+	
+	Stack<Long> currentChangeNumberStack = new Stack<Long>();
+	Long maxChangeNumber = 100l;
+	List<Long> replayChangeNumbersHistory = new LinkedList<Long>();
 
 	/**
 	 * Create a new stub
@@ -67,6 +73,7 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		this.endpoint = endpoint;
 	}
 
+	
 	/*
 	 * Methods that are not part of the interface.
 	 */
@@ -88,6 +95,31 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		return (T) EntityFactory.createEntityFromJSONString(json,
 				toClone.getClass());
 	}
+
+	public Stack<Long> getCurrentChangeNumberStack() {
+		return currentChangeNumberStack;
+	}
+
+
+	public void setCurrentChangeNumberStack(Stack<Long> currentChangeNumberStack) {
+		this.currentChangeNumberStack = currentChangeNumberStack;
+	}
+
+
+	public Long getMaxChangeNumber() {
+		return maxChangeNumber;
+	}
+
+
+	public void setMaxChangeNumber(Long maxChangeNumber) {
+		this.maxChangeNumber = maxChangeNumber;
+	}
+
+
+	public List<Long> getReplayChangeNumbersHistory() {
+		return replayChangeNumbersHistory;
+	}
+
 
 	/**
 	 * Get the full history of status changes made to this stack.
@@ -356,6 +388,30 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	public FireMessagesResult fireChangeMessages(Long startChangeNumber, Long limit) throws SynapseException, JSONObjectAdapterException {
+		// Add this call to the history
+		replayChangeNumbersHistory.add(startChangeNumber);
+		FireMessagesResult result = new FireMessagesResult();
+		long nextChangeNumber = -1;
+		if(startChangeNumber + limit > maxChangeNumber){
+			nextChangeNumber = -1;
+		}else{
+			nextChangeNumber = startChangeNumber + limit + 1;
+		}
+		result.setNextChangeNumber(nextChangeNumber);
+		return result;
+	}
+
+	@Override
+	public FireMessagesResult getCurrentChangeNumber() throws SynapseException,
+			JSONObjectAdapterException {
+		FireMessagesResult result = new FireMessagesResult();
+		// Pop a number off of the stack
+		result.setNextChangeNumber(currentChangeNumberStack.pop());
+		return result;
 	}
 
 }
