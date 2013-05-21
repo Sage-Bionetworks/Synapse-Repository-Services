@@ -14,10 +14,11 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBOSubjectAccessRequirement, DBONodeAccessRequirement> {
+public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> {
 
 	private Long subjectId;
 	private String subjectType;
@@ -122,7 +123,10 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 				return false;
 		} else if (!subjectId.equals(other.subjectId))
 			return false;
-		if (subjectType != other.subjectType)
+		if (subjectType == null) {
+			if (other.subjectType != null)
+				return false;
+		} else if (!subjectType.equals(other.subjectType))
 			return false;
 		return true;
 	}
@@ -140,39 +144,39 @@ public class DBOSubjectAccessRequirement implements MigratableDatabaseObject<DBO
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOSubjectAccessRequirement, DBONodeAccessRequirement> getTranslator() {
+	public MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> getTranslator() {
 
-		return new MigratableTableTranslation<DBOSubjectAccessRequirement, DBONodeAccessRequirement>(){
+		return new MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup>(){
 
 			@Override
 			public DBOSubjectAccessRequirement createDatabaseObjectFromBackup(
-					DBONodeAccessRequirement backup) {
+					DBOSubjectAccessRequirementBackup backup) {
 				DBOSubjectAccessRequirement dbo = new DBOSubjectAccessRequirement();
 				dbo.setAccessRequirementId(backup.getAccessRequirementId());
-				dbo.setSubjectId(backup.getNodeId());
-				dbo.setSubjectType(RestrictableObjectType.ENTITY.toString());
+				if (null==backup.getSubjectType()) {
+					dbo.setSubjectId(backup.getNodeId());
+					dbo.setSubjectType(RestrictableObjectType.ENTITY.toString());
+				} else {
+					dbo.setSubjectId(backup.getSubjectId());
+					dbo.setSubjectType(backup.getSubjectType());
+				}
 				return dbo;
 			}
 
 			@Override
-			public DBONodeAccessRequirement createBackupFromDatabaseObject(
+			public DBOSubjectAccessRequirementBackup createBackupFromDatabaseObject(
 					DBOSubjectAccessRequirement dbo) {
-				DBONodeAccessRequirement backup = new DBONodeAccessRequirement();
-				RestrictableObjectType subjectType = RestrictableObjectType.valueOf(dbo.getSubjectType());
-				if (subjectType!=RestrictableObjectType.ENTITY) {
-					throw new IllegalStateException("Cannot create a DBONodeAccessRequirement from a "+
-							"DBOSubjectAccessRequirement where subjectType is other than "+"" +
-									"ENTITY.  (In this case it's "+subjectType+".)");
-				}
+				DBOSubjectAccessRequirementBackup backup = new DBOSubjectAccessRequirementBackup();
 				backup.setAccessRequirementId(dbo.getAccessRequirementId());
-				backup.setNodeId(dbo.getSubjectId());
+				backup.setSubjectId(dbo.getSubjectId());
+				backup.setSubjectType(dbo.getSubjectType());
 				return backup;
 			}};
 	}
 
 	@Override
-	public Class<? extends DBONodeAccessRequirement> getBackupClass() {
-		return DBONodeAccessRequirement.class;
+	public Class<? extends DBOSubjectAccessRequirementBackup> getBackupClass() {
+		return DBOSubjectAccessRequirementBackup.class;
 	}
 
 	@Override
