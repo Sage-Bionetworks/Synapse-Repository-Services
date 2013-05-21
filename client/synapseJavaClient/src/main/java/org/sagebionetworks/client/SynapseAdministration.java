@@ -1,7 +1,8 @@
 package org.sagebionetworks.client;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -65,7 +66,7 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 	public static final String MIGRATION_STATUS = MIGRATION+"/status";
 	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
 
-
+	public static final String ADMIN_DYNAMO_CLEAR = ADMIN + "/dynamo/clear";
 
 	public SynapseAdministration() {
 		super();
@@ -409,5 +410,31 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 	 */
 	public void clearDoi() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, ADMIN_DOI_CLEAR, "DELETE", null, defaultGETDELETEHeaders);
+	}
+
+	/**
+	 * Clears the specified dynamo table.
+	 */
+	public void clearDynamoTable(String tableName, String hashKeyName, String rangeKeyName)
+			throws SynapseException {
+
+		if (tableName == null || tableName.isEmpty()) {
+			throw new IllegalArgumentException("Table name cannot be null or empty.");
+		}
+		if (hashKeyName == null || hashKeyName.isEmpty()) {
+			throw new IllegalArgumentException("Hash key name cannot be null or empty.");
+		}
+		if (rangeKeyName == null || rangeKeyName.isEmpty()) {
+			throw new IllegalArgumentException("Range key name cannot be null or empty.");
+		}
+
+		try {
+			String uri = ADMIN_DYNAMO_CLEAR + "/" + URLEncoder.encode(tableName, "UTF-8");
+			uri += "?hashKeyName=" + URLEncoder.encode(hashKeyName, "UTF-8");
+			uri += "&rangeKeyName=" + URLEncoder.encode(rangeKeyName, "UTF-8");
+			signAndDispatchSynapseRequest(repoEndpoint, uri, "DELETE", null, defaultGETDELETEHeaders);
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseException(e);
+		}
 	}
 }

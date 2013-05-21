@@ -23,8 +23,6 @@ import com.amazonaws.services.dynamodb.model.QueryResult;
 
 /**
  * Implements using the node lineage model.
- *
- * @author Eric Wu
  */
 public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQueryDao {
 

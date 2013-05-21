@@ -2,8 +2,6 @@ package org.sagebionetworks.dynamo.config;
 
 /**
  * The DynamoDB table already exists and cannot be replaced.
- *
- * @author Eric Wu
  */
 public class DynamoTableExistsException extends RuntimeException {
 

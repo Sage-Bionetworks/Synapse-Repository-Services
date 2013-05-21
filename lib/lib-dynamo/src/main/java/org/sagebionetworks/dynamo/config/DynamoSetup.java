@@ -4,8 +4,6 @@ import org.sagebionetworks.dynamo.DynamoTimeoutException;
 
 /**
  * Sets up DynamoDB.
- *
- * @author Eric Wu
  */
 public interface DynamoSetup {
 

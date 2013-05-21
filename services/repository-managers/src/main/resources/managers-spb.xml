@@ -269,6 +269,12 @@
 	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
+	<bean id="dynamoAdminManager" class="org.sagebionetworks.repo.manager.dynamo.DynamoAdminManagerImpl" 
+		scope="singleton" />
+
+	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl"
+		scope="singleton" />
+
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
 		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
@@ -363,7 +369,5 @@
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
-
-	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.NodeTreeQueryManagerImpl" scope="singleton" />
 
 </beans>
