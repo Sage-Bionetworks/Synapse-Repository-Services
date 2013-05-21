@@ -149,6 +149,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	/**
 	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
 	 */
+	@Override
 	public void timerFired(){
 		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
 		// processed the next time the timer fires.
@@ -183,6 +184,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * Quartz will fire this method on a one minute timer. This timer is used to find messages that have been created but not sent.
 	 * 
 	 */
+	@Override
 	public void timerFiredFindUnsentMessages(){
 		// Add all messages to the queue.
 		List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
