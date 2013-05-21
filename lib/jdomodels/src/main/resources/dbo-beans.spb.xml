@@ -57,6 +57,8 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO" />
+				<!-- misc -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 			</list>
 		</property>
 	</bean>
