@@ -127,6 +127,12 @@ public class SqlConstants {
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
 	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
 	
+	// Sent messages
+	public static final String TABLE_SENT_MESSAGES					= "SENT_MESSAGES";
+	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
+	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
+	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
+	
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
