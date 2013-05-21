@@ -37,6 +37,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	
 	private boolean shouldMessagesBePublishedToTopic;
 	
+	private int listUnsentMessagePageSize;
+	
 	/**
 	 * This is injected from spring.
 	 * 
@@ -45,6 +47,14 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void setShouldMessagesBePublishedToTopic(
 			boolean shouldMessagesBePublishedToTopic) {
 		this.shouldMessagesBePublishedToTopic = shouldMessagesBePublishedToTopic;
+	}
+
+	/**
+	 * This is injected from spring.
+	 * @param listUnsentMessagePageSize
+	 */
+	public void setListUnsentMessagePageSize(int listUnsentMessagePageSize) {
+		this.listUnsentMessagePageSize = listUnsentMessagePageSize;
 	}
 
 	/**
@@ -139,6 +149,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	/**
 	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
 	 */
+	@Override
 	public void timerFired(){
 		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
 		// processed the next time the timer fires.
@@ -158,12 +169,27 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 					log.info("Publishing a message: "+json);
 				}
 				awsSNSClient.publish(new PublishRequest(this.topicArn, json));
+				// Register the message was sent
+				this.transactionalMessanger.registerMessageSent(message.getChangeNumber());
 			} catch (JSONObjectAdapterException e) {
 				// This should not occur.
 				// If it does we want to log it but continue to send messages
 				// as this is called from a timer and not a web-services.
 				log.error("Failed to parse ChangeMessage:", e);
 			}
+		}
+	}
+	
+	/**
+	 * Quartz will fire this method on a one minute timer. This timer is used to find messages that have been created but not sent.
+	 * 
+	 */
+	@Override
+	public void timerFiredFindUnsentMessages(){
+		// Add all messages to the queue.
+		List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
+		for(ChangeMessage message: unSentMessages){
+			fireChangeMessage(message);
 		}
 	}
 }
