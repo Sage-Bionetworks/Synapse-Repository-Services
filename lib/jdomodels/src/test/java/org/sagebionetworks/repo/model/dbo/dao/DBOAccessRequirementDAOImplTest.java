@@ -226,9 +226,6 @@ public class DBOAccessRequirementDAOImplTest {
 	
 		
 	private void testAccessRequirementCRUDIntern(AccessRequirement accessRequirement, RestrictableObjectDescriptor subjectId) throws Exception {
-		// PLFM-1477, we have to check that retrieval works when there is another access requirement
-		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
-		
 		long initialCount = accessRequirementDAO.getCount();
 		
 		// Create it
@@ -239,6 +236,7 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		// Fetch it
 		// PLFM-1477, we have to check that retrieval works when there is another access requirement
+		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);		
 		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
 		assertNotNull(clone);
