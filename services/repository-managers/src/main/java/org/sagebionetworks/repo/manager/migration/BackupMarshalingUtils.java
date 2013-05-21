@@ -38,7 +38,7 @@ public class BackupMarshalingUtils {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static <B> List<B> readBacckupFromStream(Class<B> clazz, String alias, InputStream in){
+	public static <B> List<B> readBackupFromStream(Class<B> clazz, String alias, InputStream in){
 		XStream xstream = new XStream();
 		xstream.alias(alias, clazz);
 		try{

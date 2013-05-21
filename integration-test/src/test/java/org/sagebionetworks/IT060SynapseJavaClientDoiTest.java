@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
-@Ignore
 public class IT060SynapseJavaClientDoiTest {
 
 	/** Max wait time for the DOI status to turn green */

@@ -86,7 +86,9 @@ public class SqlConstants {
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
 	// The SUBJECT_ACCESS_REQUIREMENT table (a join table linking the ENTITY or EVALUTION and ACCESS_REQUIREMENT tables
-	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT		= "SUBJECT_ACCESS_REQUIREMENT";
+	// !!! Note: The table name should be SUBJECT_ACCESS_REQUIREMENT, but migration issues prevent
+	// !!!       us from doing that as this time.
+	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID			= "SUBJECT_ID";
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE			= "SUBJECT_TYPE";
 	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";

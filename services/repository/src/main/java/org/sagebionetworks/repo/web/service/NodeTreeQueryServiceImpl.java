@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import org.sagebionetworks.repo.manager.NodeTreeQueryManager;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;

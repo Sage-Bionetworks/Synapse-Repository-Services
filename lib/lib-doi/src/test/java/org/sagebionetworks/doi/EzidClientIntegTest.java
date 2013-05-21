@@ -8,13 +8,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.Calendar;
 import java.util.Random;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.doi.Doi;
 
 public class EzidClientIntegTest {
 
-	@Ignore
 	@Test
 	public void testCreateGet() throws Exception {
 		final EzidDoi doiCreate = new EzidDoi();
@@ -52,7 +50,6 @@ public class EzidClientIntegTest {
 		assertNotNull(doiGet.getMetadata().getOriginalMetadata());
 	}
 
-	@Ignore
 	@Test
 	public void testCreateUpdate() throws Exception {
 		final EzidDoi doiCreate = new EzidDoi();

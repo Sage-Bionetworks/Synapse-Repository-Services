@@ -7,8 +7,6 @@ import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
 /**
  * Puts a pair of node lineage.
- *
- * @author Eric Wu
  */
 class LineagePairPut extends LineagePairWriteOperation {
 

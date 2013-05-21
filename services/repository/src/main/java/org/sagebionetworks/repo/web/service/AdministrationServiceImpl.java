@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
+import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -56,6 +57,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	MessageSyndication messageSyndication;
 	@Autowired
 	private DoiAdminManager doiAdminManager;
+	@Autowired
+	private DynamoAdminManager dynamoAdminManager;
 
 	/**
 	 * Spring will use this constructor
@@ -259,6 +262,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException {
 		doiAdminManager.clear(userId);
 	}
+
 	@Override
 	public FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -267,5 +271,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		FireMessagesResult res = new FireMessagesResult();
 		res.setNextChangeNumber(lastChgNum);
 		return res;
+	}
+
+	@Override
+	public void clearDynamoTable(String userId, String tableName,
+			String hashKeyName, String rangeKeyName) throws NotFoundException,
+			UnauthorizedException, DatastoreException {
+		dynamoAdminManager.clear(userId, tableName, hashKeyName, rangeKeyName);
 	}
 }

@@ -10,8 +10,6 @@ import org.sagebionetworks.dynamo.DynamoWriteOperation;
 
 /**
  * Executes a list of write operations on the {@link DboNodeLineage} table.
- *
- * @author Eric Wu
  */
 class NodeLineageWriteExecutor implements DynamoWriteExecutor {
 
