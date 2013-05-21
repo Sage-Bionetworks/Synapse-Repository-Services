@@ -279,6 +279,11 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-dynamo</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseJavaClient</artifactId>
 		</dependency>
 

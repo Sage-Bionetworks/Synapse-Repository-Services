@@ -6,7 +6,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.Project;
@@ -16,6 +18,7 @@ public class IT050SynapseJavaClientDynamo {
 
 	public static final long MAX_WAIT_TIME_MS = 5 * 60 * 1000; // 5 min
 
+	private static SynapseAdministration synapseAdmin = null;
 	private static Synapse synapse = null;
 
 	private static Entity parent;
@@ -24,6 +27,14 @@ public class IT050SynapseJavaClientDynamo {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 
+		synapseAdmin = new SynapseAdministration();
+		synapseAdmin.setAuthEndpoint(StackConfiguration
+				.getAuthenticationServicePrivateEndpoint());
+		synapseAdmin.setRepositoryEndpoint(StackConfiguration
+				.getRepositoryServiceEndpoint());
+		synapseAdmin.login(StackConfiguration.getIntegrationTestUserAdminName(),
+				StackConfiguration.getIntegrationTestUserAdminPassword());
+
 		synapse = new Synapse();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
@@ -31,6 +42,13 @@ public class IT050SynapseJavaClientDynamo {
 				.getRepositoryServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
+
+		String tableName = DboNodeLineage.TABLE_NAME;
+//		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
+//		tableName = stackPrefix + tableName;
+		String hashKeyName = DboNodeLineage.HASH_KEY_NAME;
+		String rangeKeyName = DboNodeLineage.RANGE_KEY_NAME;
+		synapseAdmin.clearDynamoTable(tableName, hashKeyName, rangeKeyName);
 
 		// Setup all of the objects for this test.
 		parent = new Project();
