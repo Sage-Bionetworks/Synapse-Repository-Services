@@ -210,4 +210,9 @@ public interface AdministrationService {
 	 * Clears the Synapse DOI table.
 	 */
 	void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException;
+
+	/**
+	 * Clears the specified dynamo table.
+	 */
+	void clearDynamoTable(String userId, String tableName, String hashKeyName, String rangeKeyName) throws NotFoundException, UnauthorizedException, DatastoreException;
 }

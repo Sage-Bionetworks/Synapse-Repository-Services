@@ -580,7 +580,17 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
-	
+
+	/**
+	 * APIs for DynamoDB related operations.
+	 */
+	public static final String DYNAMO = "/dynamo";
+
+	/**
+	 * API for clearing the specified dynamo table.
+	 */
+	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
+
 	/**
 	 * This is a memoized cache for our URL regular expressions
 	 */

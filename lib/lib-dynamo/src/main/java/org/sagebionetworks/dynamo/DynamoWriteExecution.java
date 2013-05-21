@@ -6,8 +6,6 @@ import java.util.List;
 
 /**
  * A write execution wraps around a list of write operations.
- *
- * @author Eric Wu
  */
 public class DynamoWriteExecution {
 	
