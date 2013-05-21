@@ -44,8 +44,6 @@ public class IT050SynapseJavaClientDynamo {
 				StackConfiguration.getIntegrationTestUserOnePassword());
 
 		String tableName = DboNodeLineage.TABLE_NAME;
-//		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
-//		tableName = stackPrefix + tableName;
 		String hashKeyName = DboNodeLineage.HASH_KEY_NAME;
 		String rangeKeyName = DboNodeLineage.RANGE_KEY_NAME;
 		synapseAdmin.clearDynamoTable(tableName, hashKeyName, rangeKeyName);
