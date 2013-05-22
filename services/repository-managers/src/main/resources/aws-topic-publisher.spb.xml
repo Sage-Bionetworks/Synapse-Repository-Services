@@ -67,7 +67,7 @@
 							<property name="targetMethod" value="timerFiredFindUnsentMessages" />
 						</bean>
 					</property>
-					<property name="startDelay" value="0" />
+					<property name="startDelay" value="10000" />
 					<property name="repeatInterval" value="10000" />
 				</bean>
 			</list>
