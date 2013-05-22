@@ -338,6 +338,8 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(batch, unSent);
 		// Now register one
 		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		// Need to be able to set the same message twice
+		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
