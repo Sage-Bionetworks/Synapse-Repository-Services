@@ -54,6 +54,21 @@ public class EzidClient implements DoiClient {
 	}
 
 	@Override
+	public boolean isStatusOk() {
+		URI uri = URI.create(EzidConstants.EZID_URL + "status");
+		HttpGet get = new HttpGet(uri);
+		HttpResponse response = readClient.executeWithRetry(get);
+		try {
+			// Must consume the response to close the connection
+			EntityUtils.toString(response.getEntity());
+			final int status = response.getStatusLine().getStatusCode();
+			return status == HttpStatus.SC_OK;
+		} catch (IOException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	@Override
 	public EzidDoi get(final EzidDoi ezidDoi) {
 
 		if (ezidDoi == null) {

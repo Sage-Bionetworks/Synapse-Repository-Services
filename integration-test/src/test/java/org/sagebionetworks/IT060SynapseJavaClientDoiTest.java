@@ -13,6 +13,8 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.doi.DoiClient;
+import org.sagebionetworks.doi.EzidClient;
 import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -83,6 +85,12 @@ public class IT060SynapseJavaClientDoiTest {
 	@Test
 	public void testCreateGet() throws SynapseException {
 
+		// Skip the test in case the EZID server is down
+		DoiClient doiClient = new EzidClient();
+		if (!doiClient.isStatusOk()) {
+			return;
+		}
+
 		synapse.createEntityDoi(entity.getId());
 
 		Doi doi = synapse.getEntityDoi(entity.getId());
@@ -114,6 +122,12 @@ public class IT060SynapseJavaClientDoiTest {
 	@Test
 	public void testCreateGetWithVersion() throws SynapseException {
 
+		// Skip the test in case the EZID server is down
+		DoiClient doiClient = new EzidClient();
+		if (!doiClient.isStatusOk()) {
+			return;
+		}
+
 		synapse.createEntityDoi(entity.getId(), 1L);
 
 		Doi doi = synapse.getEntityDoi(entity.getId(), 1L);
@@ -144,6 +158,11 @@ public class IT060SynapseJavaClientDoiTest {
 
 	@Test(expected=SynapseNotFoundException.class)
 	public void testGetNotFoundException() throws SynapseException {
+		// Skip the test in case the EZID server is down
+		DoiClient doiClient = new EzidClient();
+		if (!doiClient.isStatusOk()) {
+			return;
+		}
 		synapse.getEntityDoi("syn372861388593");
 	}
 }
