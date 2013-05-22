@@ -6,6 +6,11 @@ package org.sagebionetworks.doi;
 public interface DoiClient {
 
 	/**
+	 * Probes the EZID server status.
+	 */
+	boolean isStatusOk();
+
+	/**
 	 * Gets the DOI metadata given the DOI string.
 	 */
 	EzidDoi get(EzidDoi ezidDoi);
