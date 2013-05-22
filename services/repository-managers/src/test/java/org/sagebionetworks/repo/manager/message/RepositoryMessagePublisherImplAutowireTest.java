@@ -55,6 +55,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	@Before
 	public void before(){
 		assertNotNull(messagePublisher);
+		this.changeDao.deleteAllChanges();
+		assertEquals("Failed to delete all change messages", 0, changeDao.getCurrentChangeNumber());
 		// We do not want to actually send messages as part of this test so we mock the client
 		mockSNSClient = Mockito.mock(AmazonSNSClient.class);
 		messagePublisher.setAwsSNSClient(mockSNSClient);
