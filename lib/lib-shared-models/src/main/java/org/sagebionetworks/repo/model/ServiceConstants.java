@@ -226,4 +226,7 @@ public class ServiceConstants {
 	
 	// default EntityBundle mask for serialization in Submission objects.
 	public static final int DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS + EntityBundle.FILE_HANDLES;
+
+	public static final String DYNAMO_HASH_KEY_NAME_PARAM = "hashKeyName";
+	public static final String DYNAMO_RANGE_KEY_NAME_PARAM = "rangeKeyName";
 }

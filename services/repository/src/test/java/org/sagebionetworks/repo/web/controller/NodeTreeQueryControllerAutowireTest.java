@@ -12,6 +12,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
+import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -39,6 +41,7 @@ public class NodeTreeQueryControllerAutowireTest {
 
 	@Autowired private EntityService entityService;
 
+	@Autowired private DynamoAdminDao dynamoAdminDao;
 	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
 	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
 
@@ -104,6 +107,8 @@ public class NodeTreeQueryControllerAutowireTest {
 		if (root != null) {
 			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
 
 	@Test

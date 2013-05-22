@@ -6,8 +6,6 @@ import java.util.Date;
  * Wraps a pair of lineage pointers between two nodes. One is the downward pointer
  * from ancestor to descendant, the other is the upward pointer from descendant
  * to ancestor.
- *
- * @author Eric Wu
  */
 class NodeLineagePair {
 	

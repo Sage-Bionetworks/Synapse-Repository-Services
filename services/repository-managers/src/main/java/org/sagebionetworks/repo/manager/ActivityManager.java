@@ -57,7 +57,7 @@ public interface ActivityManager {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
-	 * @throws ForbiddenException
+	 * @throws UnauthorizedException
 	 */
 	public Activity getActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException, UnauthorizedException;
 	

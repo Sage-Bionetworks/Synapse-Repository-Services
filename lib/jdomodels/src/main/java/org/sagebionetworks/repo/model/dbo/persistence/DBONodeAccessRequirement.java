@@ -117,12 +117,11 @@ public class DBONodeAccessRequirement implements MigratableDatabaseObject<DBONod
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.NODE_ACCESS_REQUIRMENT;
+		return MigrationType.NODE_ACCESS_REQUIREMENT;
 	}
 
 	@Override
 	public MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement> getTranslator() {
-		// TODO Auto-generated method stub
 		return new MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement>(){
 
 			@Override

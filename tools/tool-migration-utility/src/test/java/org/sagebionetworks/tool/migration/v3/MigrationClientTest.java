@@ -104,9 +104,8 @@ public class MigrationClientTest {
 		// Check the state of the source
 		assertEquals(expected0, sourceSynapse.getMetadata().get(MigrationType.values()[0]));
 		assertEquals(expected1, sourceSynapse.getMetadata().get(MigrationType.values()[1]));
-		// Validate that the expected change messages are fired
-		List<Long> expectedFireChangeMessges = Arrays.asList(0l,2l,4l,6l,8l,10l,12l);
-		assertEquals(expectedFireChangeMessges, destSynapse.getReplayChangeNumbersHistory());
+		// no messages should have been played on the destination.
+		assertEquals(0, destSynapse.getReplayChangeNumbersHistory().size());
 		// No messages should have been played on the source
 		assertEquals(0, sourceSynapse.getReplayChangeNumbersHistory().size());
 	}

@@ -7,8 +7,6 @@ import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
 /**
  * Deletes a pair of node lineage.
- *
- * @author Eric Wu
  */
 class LineagePairDelete extends LineagePairWriteOperation {
 

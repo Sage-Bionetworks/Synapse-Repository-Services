@@ -22,6 +22,7 @@ import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -108,7 +109,7 @@ public class AuthenticationController extends BaseController {
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
 				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
-					throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+					throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
@@ -137,7 +138,7 @@ public class AuthenticationController extends BaseController {
 	public void revalidate(@RequestBody Session session) throws Exception {
 		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
 		if (!CrowdAuthUtil.acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
-			throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 		}
 	}
 

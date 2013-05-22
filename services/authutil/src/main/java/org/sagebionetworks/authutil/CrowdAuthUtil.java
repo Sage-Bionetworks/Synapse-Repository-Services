@@ -5,9 +5,6 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERM
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,9 +31,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -516,7 +511,6 @@ public class CrowdAuthUtil {
 	 * @param acceptsTermsOfUse -- says whether the request explicitly accepts the terms (false=acceptance is omitted in request, may have been given previously)
 	 * @throws NotFoundException
 	 * @throws IOException
-	 * @throws ForbiddenException thrown if user doesn't accept terms in this request or previously
 	 */
 	public static boolean acceptsTermsOfUse(String userId, Boolean acceptsTermsOfUse) throws NotFoundException, IOException {
 		if (CrowdAuthUtil.isAdmin(userId)) return true; // administrator need not sign terms of use

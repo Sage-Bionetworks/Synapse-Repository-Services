@@ -6,8 +6,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -38,14 +39,18 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -267,7 +272,7 @@ public class SynapseTest {
 	public void testCreateAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setEntityType(ar.getClass().getName());
-		ar.setEntityIds(new ArrayList<String>());
+		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -360,6 +365,21 @@ public class SynapseTest {
 		Activity clone = synapse.getActivity(id);
 		assertNotNull(clone);
 		assertEquals(act, clone);
+	}	
+	
+	@Test
+	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
+		VariableContentPaginatedResults<AccessRequirement> result = 
+			new VariableContentPaginatedResults<AccessRequirement>();
+		StringEntity responseEntity = createVCPRStringEntity(result);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		subjectId.setId("12345");
+		VariableContentPaginatedResults<AccessRequirement> clone = 
+			synapse.getUnmetAccessRequirements(subjectId);
+		assertNotNull(clone);
+		assertEquals(result, clone);
 	}	
 	
 	@Test
@@ -479,6 +499,14 @@ public class SynapseTest {
 		return responseEntity;
 	}
 	
+	private <T extends JSONEntity> StringEntity createVCPRStringEntity(VariableContentPaginatedResults<T> vcpr)
+				throws JSONObjectAdapterException, UnsupportedEncodingException {
+		// Setup return
+		JSONObjectAdapter adapter = vcpr.writeToJSONObject(new JSONObjectAdapterImpl());
+		String jsonString = adapter.toJSONString();
+		StringEntity responseEntity = new StringEntity(jsonString);
+		return responseEntity;
+	}
 	
 	
 }

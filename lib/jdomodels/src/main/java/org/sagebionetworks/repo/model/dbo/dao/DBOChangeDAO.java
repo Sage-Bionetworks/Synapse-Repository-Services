@@ -54,5 +54,23 @@ public interface DBOChangeDAO {
 	 * @return
 	 */
 	List<ChangeMessage> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit);
+	
+	/**
+	 * Register that a message has been sent.  Any message that has been created but not registered as sent
+	 * will be returned by {@link #listUnsentMessages(long)}.  This is used to detect messages that need to be sent
+	 * either for the first time or re-sent on a new stacks.
+	 * 
+	 * @param changeNumber
+	 */
+	public void registerMessageSent(long changeNumber);
+	
+	/**
+	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).
+	 * This is used to detect messages that need to be sent either for the first time or re-sent on a new stacks.
+	 * 
+	 * @param limit
+	 * @return
+	 */
+	public List<ChangeMessage> listUnsentMessages(long limit);
 
 }

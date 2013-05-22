@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,9 +12,15 @@ import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
+
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
 import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONodeAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 
 /**
  * The Unit test for MigrationManagerImpl;
@@ -50,6 +58,112 @@ public class MigrationManagerImplTest {
 		// The result should match the expected
 		assertEquals(expected, resutls);
 	}
+	
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testSubjectAccessRequirementRoundTrip() throws Exception {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		DBOSubjectAccessRequirement sar1 = new DBOSubjectAccessRequirement();
+		sar1.setAccessRequirementId(101L);
+		sar1.setSubjectId(987L);
+		sar1.setSubjectType("ENTITY");
+		{
+			List<DBOSubjectAccessRequirement> databaseList = Arrays.asList(new DBOSubjectAccessRequirement[]{sar1});
+			// Translate to the backup objects
+			MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> translator = 
+				sar1.getTranslator();
+			List<DBOSubjectAccessRequirementBackup> backupList = new LinkedList<DBOSubjectAccessRequirementBackup>();
+			for(DBOSubjectAccessRequirement dbo: databaseList){
+				backupList.add(translator.createBackupFromDatabaseObject(dbo));
+			}
+			// Now write the backup list to the stream
+			// we use the table name as the Alias
+			String alias = sar1.getTableMapping().getTableName();
+			// Now write the backup to the stream
+			BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
+			out.close();
+		}
+		
+		System.out.println(out.toString());
+		
+		// now read back in
+		{
+			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+			DBOSubjectAccessRequirement sar2 = new DBOSubjectAccessRequirement();
+			String alias = sar2.getTableMapping().getTableName();
+			List<DBOSubjectAccessRequirementBackup> backupList = 
+				(List<DBOSubjectAccessRequirementBackup>) BackupMarshalingUtils.readBackupFromStream(sar2.getBackupClass(), alias, in);
+			assertTrue(backupList!=null);
+			assertTrue(!backupList.isEmpty());
+			// Now translate from the backup objects to the database objects.
+			MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> translator = sar2.getTranslator();
+			List<DBOSubjectAccessRequirement> databaseList = new LinkedList<DBOSubjectAccessRequirement>();
+			for(DBOSubjectAccessRequirementBackup backup: backupList){
+				databaseList.add(translator.createDatabaseObjectFromBackup(backup));
+			}
+			// check content
+			assertEquals(1, databaseList.size());
+			assertEquals(sar1, databaseList.iterator().next());
+		}
+		
+	}
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testNodeAccessRequirementDeserialization() throws Exception {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		DBONodeAccessRequirement nar = new DBONodeAccessRequirement();
+		nar.setAccessRequirementId(101L);
+		nar.setNodeId(987L);
+		{
+			List<DBONodeAccessRequirement> databaseList = Arrays.asList(new DBONodeAccessRequirement[]{nar});
+			// Translate to the backup objects
+			MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement> translator = 
+				nar.getTranslator();
+			List<DBONodeAccessRequirement> backupList = new LinkedList<DBONodeAccessRequirement>();
+			for(DBONodeAccessRequirement dbo: databaseList){
+				backupList.add(translator.createBackupFromDatabaseObject(dbo));
+			}
+			// Now write the backup list to the stream
+			// we use the table name as the Alias
+			String alias = nar.getTableMapping().getTableName();
+			// Now write the backup to the stream
+			BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
+			out.close();
+		}
+		
+		System.out.println(out.toString());
+		
+		// now read back in
+		{
+			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+			DBOSubjectAccessRequirement sar = new DBOSubjectAccessRequirement();
+			String alias = sar.getTableMapping().getTableName();
+			List<DBOSubjectAccessRequirementBackup> backupList = 
+				(List<DBOSubjectAccessRequirementBackup>) BackupMarshalingUtils.readBackupFromStream(sar.getBackupClass(), alias, in);
+			assertTrue(backupList!=null);
+			assertTrue(!backupList.isEmpty());
+			// Now translate from the backup objects to the database objects.
+			MigratableTableTranslation<DBOSubjectAccessRequirement, DBOSubjectAccessRequirementBackup> translator = sar.getTranslator();
+			List<DBOSubjectAccessRequirement> databaseList = new LinkedList<DBOSubjectAccessRequirement>();
+			for(DBOSubjectAccessRequirementBackup backup: backupList){
+				databaseList.add(translator.createDatabaseObjectFromBackup(backup));
+			}
+			// check content
+			assertEquals(1, databaseList.size());
+			DBOSubjectAccessRequirement sarOut = databaseList.get(0);
+			assertEquals(nar.getNodeId(), sarOut.getSubjectId());
+			assertEquals(nar.getAccessRequirementId(), sarOut.getAccessRequirementId());
+			assertEquals(RestrictableObjectType.ENTITY.toString(), sarOut.getSubjectType());
+		}
+		
+	}
+
 	
 	/**
 	 * Build a list of objects from a list of IDs

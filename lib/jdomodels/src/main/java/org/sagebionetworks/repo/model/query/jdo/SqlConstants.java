@@ -85,12 +85,23 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
-	// The NODE_ACCESS_REQUIREMENT table (a join table linking the JDONODE and ACCESS_REQUIREMENT tables
+	// The SUBJECT_ACCESS_REQUIREMENT table (a join table linking the ENTITY or EVALUTION and ACCESS_REQUIREMENT tables
+	// !!! Note: The table name should be SUBJECT_ACCESS_REQUIREMENT, but migration issues prevent
+	// !!!       us from doing that as this time.
+	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID			= "SUBJECT_ID";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE			= "SUBJECT_TYPE";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String DDL_FILE_SUBJECT_ACCESS_REQUIREMENT			= "schema/SubjectAccessRequirement-ddl.sql";
+
+	
+	// the following are defined temporarily, for a 'bridge' migration table
 	public static final String TABLE_NODE_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
 	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_ID			= "NODE_ID";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
-
+	
 	// The ACCESS_APPROVAL table
 	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
 	public static final String COL_ACCESS_APPROVAL_ID				= "ID";
@@ -115,6 +126,12 @@ public class SqlConstants {
 	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
 	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
+	
+	// Sent messages
+	public static final String TABLE_SENT_MESSAGES					= "SENT_MESSAGES";
+	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
+	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
+	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
 	
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";

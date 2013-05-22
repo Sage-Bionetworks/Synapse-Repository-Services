@@ -203,7 +203,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		String alias = mdo.getTableMapping().getTableName();
 		// Read the list from the stream
 		@SuppressWarnings("unchecked")
-		List<B> backupList = (List<B>) BackupMarshalingUtils.readBacckupFromStream(mdo.getBackupClass(), alias, in);
+		List<B> backupList = (List<B>) BackupMarshalingUtils.readBackupFromStream(mdo.getBackupClass(), alias, in);
 		if(backupList != null && !backupList.isEmpty()){
 			// Now translate from the backup objects to the database objects.
 			MigratableTableTranslation<D, B> translator = mdo.getTranslator();

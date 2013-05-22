@@ -2,8 +2,6 @@ package org.sagebionetworks.dynamo.dao.nodetree;
 
 /**
  * When the path to the root is incomplete.
- *
- * @author Eric Wu
  */
 public class IncompletePathException extends RuntimeException {
 

@@ -14,8 +14,10 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Node;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -50,6 +53,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	EntityManager entityManager;
 	@Autowired
 	NodeManager nodeManager;
+	@Autowired
+	AuthorizationManager authorizationManager;
 	
 	public SubmissionManagerImpl() {};
 	
@@ -57,7 +62,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, SubmissionFileHandleDAO submissionFileHandleDAO,
 			EvaluationManager evaluationManager, ParticipantManager participantManager,
-			EntityManager entityManager, NodeManager nodeManager) {
+			EntityManager entityManager, NodeManager nodeManager, AuthorizationManager authorizationManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
@@ -66,6 +71,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		this.participantManager = participantManager;
 		this.entityManager = entityManager;
 		this.nodeManager = nodeManager;
+		this.authorizationManager = authorizationManager;
 	}
 
 	@Override
@@ -95,6 +101,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
+		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		
@@ -104,8 +111,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		try {
 			participantManager.getParticipant(principalId, evalId);
 		} catch (NotFoundException e) {
-			throw new ForbiddenException("User Princpal ID: " + principalId + 
+			throw new UnauthorizedException("User Princpal ID: " + principalId + 
 					" has not joined Evaluation ID: " + evalId);
+		}
+		
+		// 'canParticipate' is checked before someone is allowed to join,
+		// but just in-case authorization changes between the time she joins
+		// and the time she submits, we check authorization again:
+		boolean canParticipate = authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE);
+		if (!canParticipate) {
+			throw new UnauthorizedException("Not allowed to participate in "+eval.getName());
 		}
 		
 		// validate eTag
@@ -123,7 +138,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		
 		// ensure evaluation is open
-		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		
 		// insert EntityBundle JSON
