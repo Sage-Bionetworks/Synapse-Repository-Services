@@ -38,6 +38,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	static private Log log = LogFactory.getLog(DBOChangeDAOImpl.class);
 	
+	private static final String SQL_INSERT_SENT_ON_DUPLICATE_UPDATE = "INSERT INTO "+TABLE_SENT_MESSAGES+" ( "+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_TIME_STAMP+") VALUES ( ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?";
+	
 	private static final String SQL_SELECT_CHANGES_NOT_SENT = "SELECT C.* FROM "+TABLE_CHANGES+" C LEFT OUTER JOIN "+TABLE_SENT_MESSAGES+" S ON (C."+COL_CHANGES_CHANGE_NUM+" = S."+COL_SENT_MESSAGES_CHANGE_NUM+") WHERE S."+COL_SENT_MESSAGES_CHANGE_NUM+" IS NULL LIMIT ?";
 	
 	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = "SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?";
@@ -148,7 +150,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public void registerMessageSent(long changeNumber) {
-		simpleJdbcTemplate.update("INSERT INTO "+TABLE_SENT_MESSAGES+" ( "+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_TIME_STAMP+") VALUES ( ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?", changeNumber, null, null);
+		simpleJdbcTemplate.update(SQL_INSERT_SENT_ON_DUPLICATE_UPDATE, changeNumber, null, null);
 	}
 
 
