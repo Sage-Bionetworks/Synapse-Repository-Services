@@ -160,6 +160,10 @@ public class FileHandleManagerImplAutowireTest {
 			// Test the Pre-Signed URL
 			URL presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
 			assertNotNull(presigned);
+			String urlString = presigned.toString();
+			// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
+			// both file upload and download.
+			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
 		}
 	}
 	
@@ -215,6 +219,10 @@ public class FileHandleManagerImplAutowireTest {
 		cpr.setChunkNumber(1l);
 		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
 		assertNotNull(preSigned);
+		String urlString = preSigned.toString();
+		// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
+		// both file upload and download.
+		assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
 		// Now upload the file to the URL
 		// Use the URL to upload a part.
 		HttpPut httppost = new HttpPut(preSigned.toString());
@@ -224,6 +232,7 @@ public class FileHandleManagerImplAutowireTest {
 		httppost.setEntity(entity);
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
 		String text = EntityUtils.toString(response.getEntity());
+		assertEquals(200, response.getStatusLine().getStatusCode());
 		System.out.println(text);
 	
 		// Make sure we can get the pre-signed url again if we need to.
