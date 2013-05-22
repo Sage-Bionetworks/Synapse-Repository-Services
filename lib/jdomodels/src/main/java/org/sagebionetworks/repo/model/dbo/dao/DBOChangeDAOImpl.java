@@ -148,9 +148,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public void registerMessageSent(long changeNumber) {
-		DBOSentMessage sm = new DBOSentMessage();
-		sm.setChangeNumber(changeNumber);
-		basicDao.createNew(sm);
+		simpleJdbcTemplate.update("INSERT INTO "+TABLE_SENT_MESSAGES+" ( "+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_TIME_STAMP+") VALUES ( ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?", changeNumber, null, null);
 	}
 
 
