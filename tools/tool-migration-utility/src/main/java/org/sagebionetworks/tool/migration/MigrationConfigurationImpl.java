@@ -73,7 +73,7 @@ public class MigrationConfigurationImpl implements Configuration {
 			String key = keyIt.next();
 			Object value = props.getProperty(key);
 			if(value == null){
-				throw new IllegalArgumentException("Cannot find property: "+props.getProperty(key));
+				throw new IllegalArgumentException("Cannot find property for key: " + key);
 			}
 			if(key.indexOf("password")> 1){
 				// Do not print passwords
