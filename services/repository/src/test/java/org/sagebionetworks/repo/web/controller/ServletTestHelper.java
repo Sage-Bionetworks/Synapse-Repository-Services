@@ -2260,60 +2260,60 @@ public class ServletTestHelper {
 				EntityHeader.class);
 	}
 	
-	public static Evaluation createEvaluation(
-			HttpServlet dispatchServlet, Evaluation evaluation, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.EVALUATION);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, evaluation);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		log.debug("About to send: " + body);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		@SuppressWarnings("unchecked")
-		Evaluation returnedEvaluation = (Evaluation) objectMapper.readValue(
-				response.getContentAsString(), evaluation.getClass());
-		return returnedEvaluation;
-	}
-	
-	public static void deleteEvaluation(
-			HttpServlet dispatchServlet, String evaluationId,
-			String userId, Map<String, String> extraParams)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evaluationId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
-	}
+//	public static Evaluation createEvaluation(
+//			HttpServlet dispatchServlet, Evaluation evaluation, String userId,
+//			Map<String, String> extraParams) throws ServletException,
+//			IOException {
+//		if (dispatchServlet == null)
+//			throw new IllegalArgumentException("Servlet cannot be null");
+//		MockHttpServletRequest request = new MockHttpServletRequest();
+//		MockHttpServletResponse response = new MockHttpServletResponse();
+//		request.setMethod("POST");
+//		request.addHeader("Accept", "application/json");
+//		request.setRequestURI(UrlHelpers.EVALUATION);
+//		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+//		if (null != extraParams) {
+//			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+//				request.setParameter(param.getKey(), param.getValue());
+//			}
+//		}
+//		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+//		StringWriter out = new StringWriter();
+//		objectMapper.writeValue(out, evaluation);
+//		String body = out.toString();
+//		request.setContent(body.getBytes("UTF-8"));
+//		log.debug("About to send: " + body);
+//		dispatchServlet.service(request, response);
+//		log.debug("Results: " + response.getContentAsString());
+//		if (response.getStatus() != HttpStatus.CREATED.value()) {
+//			throw new ServletTestHelperException(response);
+//		}
+//		@SuppressWarnings("unchecked")
+//		Evaluation returnedEvaluation = (Evaluation) objectMapper.readValue(
+//				response.getContentAsString(), evaluation.getClass());
+//		return returnedEvaluation;
+//	}
+//	
+//	public static void deleteEvaluation(
+//			HttpServlet dispatchServlet, String evaluationId,
+//			String userId, Map<String, String> extraParams)
+//			throws ServletException, IOException {
+//		MockHttpServletRequest request = new MockHttpServletRequest();
+//		MockHttpServletResponse response = new MockHttpServletResponse();
+//		request.setMethod("DELETE");
+//		request.addHeader("Accept", "application/json");
+//		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evaluationId);
+//		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+//		if (null != extraParams) {
+//			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+//				request.setParameter(param.getKey(), param.getValue());
+//			}
+//		}
+//		dispatchServlet.service(request, response);
+//		log.debug("Results: " + response.getContentAsString());
+//		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+//			throw new ServletTestHelperException(response);
+//		}
+//	}
 
 }

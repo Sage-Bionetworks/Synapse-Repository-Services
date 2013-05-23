@@ -1,11 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
+import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessApproval;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -16,9 +22,13 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -42,11 +52,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	NodeDAO nodeDAO;
 	@Autowired
+	UserGroupDAO userGroupDAO;
+	@Autowired
 	EvaluationDAO evaluationDAO;
 	@Autowired
 	private UserManager userManager;
-	@Autowired
-	EvaluationManager evaluationManager;
 	@Autowired
 	FileHandleDao fileHandleDao;
 
@@ -59,7 +69,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			AccessControlListDAO accessControlListDAO,
 			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
 			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, 
-			EvaluationManager competitionManager, FileHandleDao fileHandleDao, 
+			FileHandleDao fileHandleDao, 
 			EvaluationDAO evaluationDAO) {
 		super();
 		this.nodeInheritanceDAO = nodeInheritanceDAO;
@@ -69,7 +79,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		this.nodeQueryDao = nodeQueryDao;
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
-		this.evaluationManager = competitionManager;
 		this.fileHandleDao = fileHandleDao;
 		this.evaluationDAO = evaluationDAO;
 	}
@@ -242,7 +251,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// If the object is an entity then we use existing methods
 		if(ObjectType.ENTITY == objectType){
 			return canAccess(userInfo, objectId, accessType);
-		}else if(ObjectType.EVALUATION == objectType){
+		}else if (ObjectType.EVALUATION == objectType){
 			// Anyone can read from a competition.
 			if(ACCESS_TYPE.READ == accessType){
 				return true;
@@ -251,9 +260,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return canParticipate(userInfo, objectId);
 			} else {
 				// All other actions require admin access
-				return evaluationManager.isEvalAdmin(userInfo, objectId);
+				Evaluation evaluation = evaluationDAO.get(objectId);
+				return EvaluationUtil.isEvalAdmin(userInfo, evaluation);
 			}
-		}else{
+		} else if (ObjectType.ACCESS_REQUIREMENT==objectType) {
+			// TODO
+		} else if (ObjectType.ACCESS_APPROVAL==objectType) {
+			return ACTUtils.isACTTeamMembershipOrAdmin(userInfo, userGroupDAO); // TODO is this right?
+		} else {
 			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}
 	}
@@ -267,4 +281,68 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// Call the other methods
 		return canAccessRawFileHandleByCreator(userInfo, creator);
 	}
+
+	@Override
+	public boolean canCreateAccessRequirement(UserInfo userInfo,
+			AccessRequirement accessRequirement) {
+		 Map<RestrictableObjectType, Collection<String>> sortedIds = 
+			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
+		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
+		if (entityIds!=null && entityIds.size()>0) {
+			ACTUtils.verifyACTTeamMembershipOrCanCreateOrEdit(userInfo,  entityIds, userGroupDAO, authorizationManager);
+		}
+		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
+		if (evaluationIds!=null && evaluationIds.size()>0) {
+			verifyCanAdministerEvaluation(userInfo, evaluationIds, evaluationDAO);
+		}
+
+	}
+	
+	/**
+	 * For Entities, check that user is an administrator or ACT member. 
+	 * For Evaluations, check that user is an administrator or is the creator of the Evaluation
+	 * @param userInfo
+	 * @param accessRequirement
+	 * @throws NotFoundException
+	 */
+	private void verifyCanAdmin(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
+		Map<RestrictableObjectType, Collection<String>> sortedIds = 
+			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
+		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
+		if (entityIds!=null && !entityIds.isEmpty()) {
+			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		}
+		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
+		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
+			verifyCanAdministerEvaluation(userInfo, evaluationIds, evaluationDAO);
+		}		
+	}
+
+	public static void verifyCanAdministerEvaluation(
+			UserInfo userInfo, 
+			Collection<String> evaluationIds, 
+			EvaluationDAO evaluationDAO) throws NotFoundException, UnauthorizedException {
+		if (userInfo.isAdmin()) return;
+		for (String id : evaluationIds) {
+			Evaluation evaluation = evaluationDAO.get(id);
+			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
+				throw new UnauthorizedException("You lack administrative access to Evaluation: "+evaluation.getName());
+			}
+		}
+		
+	}
+
+	@Override
+	public boolean canCreateAccessApproval(UserInfo userInfo,
+			AccessApproval accessApproval) {
+		if ((accessApproval instanceof ACTAccessApproval)) {
+			return ACTUtils.isACTTeamMembershipOrAdmin(userInfo, userGroupDAO);
+		} else if (accessApproval instanceof TermsOfUseAccessApproval) {
+			return true;
+		} else {
+			throw new IllegalArgumentException("Unrecognized type: "+accessApproval.getEntityType());
+		}
+	}
+	
+	
 }

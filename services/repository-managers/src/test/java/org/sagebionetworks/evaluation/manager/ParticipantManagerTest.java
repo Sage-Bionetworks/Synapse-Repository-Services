@@ -32,7 +32,7 @@ public class ParticipantManagerTest {
 	
 	private static ParticipantDAO mockParticipantDAO;
 	private static UserManager mockUserManager;
-	private static EvaluationManager mockCompetitionManager;
+	private static EvaluationManager mockEvaluationManager;
 	private static AuthorizationManager mockAuthorizationManager;
 	
 	private static final String EVAL_ID = "123";
@@ -72,17 +72,17 @@ public class ParticipantManagerTest {
     	// Mocks
     	mockParticipantDAO = mock(ParticipantDAO.class);
     	mockUserManager = mock(UserManager.class);
-    	mockCompetitionManager = mock(EvaluationManager.class);
+    	mockEvaluationManager = mock(EvaluationManager.class);
     	when(mockParticipantDAO.get(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
-    	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
-    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
+    	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
+    	//when(mockEvaluationManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
     	
     	mockAuthorizationManager = mock(AuthorizationManager.class);
     	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
         
         // Participant Manager
-    	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockCompetitionManager, mockAuthorizationManager);
+    	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockEvaluationManager, mockAuthorizationManager);
     }
 	
     @Test

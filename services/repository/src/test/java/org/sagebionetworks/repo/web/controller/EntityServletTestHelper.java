@@ -94,7 +94,7 @@ public class EntityServletTestHelper {
 	 */
 	public EntityServletTestHelper() throws Exception {
 		dispatcherServlet = DispatchServletSingleton.getInstance();
-}
+	}
 	/**
 	 * Create an entity without an entity type.
 	 * 

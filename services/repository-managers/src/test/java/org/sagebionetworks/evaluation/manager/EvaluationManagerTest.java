@@ -147,13 +147,5 @@ public class EvaluationManagerTest {
 		}
 		verify(mockEvaluationDAO, times(0)).update(eq(eval));
 	}
-	
-	@Test
-	public void testIsAdmin() throws DatastoreException, UnauthorizedException, NotFoundException {
-		assertTrue("Owner should be an admin of their own Evaluation", 
-				evaluationManager.isEvalAdmin(ownerInfo, EVALUATION_ID));
-		assertFalse("Non-owner user should NOT be an admin of this Evaluation", 
-				evaluationManager.isEvalAdmin(userInfo, EVALUATION_ID));
-	}
 
 }

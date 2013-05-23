@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -16,13 +13,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -73,32 +68,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
-		 Map<RestrictableObjectType, Collection<String>> sortedIds = 
-			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
-		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
-		if (entityIds!=null && entityIds.size()>0) {
-			ACTUtils.verifyACTTeamMembershipOrCanCreateOrEdit(userInfo,  entityIds, userGroupDAO, authorizationManager);
-		}
-		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
-		if (evaluationIds!=null && evaluationIds.size()>0) {
-			verifyCanAdministerEvaluation(userInfo, evaluationIds, evaluationDAO);
+		if (!authorizationManager.canCreateAccessRequirement(userInfo, accessRequirement)) {
+			throw new UnauthorizedException();
 		}
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirementDAO.create(accessRequirement);
-	}
-	
-	public static void verifyCanAdministerEvaluation(
-			UserInfo userInfo, 
-			Collection<String> evaluationIds, 
-			EvaluationDAO evaluationDAO) throws NotFoundException, UnauthorizedException {
-		if (userInfo.isAdmin()) return;
-		for (String id : evaluationIds) {
-			Evaluation evaluation = evaluationDAO.get(id);
-			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
-				throw new UnauthorizedException("You lack administrative access to Evaluation: "+evaluation.getName());
-			}
-		}
-		
 	}
 	
 	@Override
@@ -128,31 +102,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return result;
 	}	
 	
-	/**
-	 * For Entities, check that user is an administrator or ACT member. 
-	 * For Evaluations, check that user is an administrator or is the creator of the Evaluation
-	 * @param userInfo
-	 * @param accessRequirement
-	 * @throws NotFoundException
-	 */
-	private void verifyCanAdmin(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
-		Map<RestrictableObjectType, Collection<String>> sortedIds = 
-			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
-		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
-		if (entityIds!=null && !entityIds.isEmpty()) {
-			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
-		}
-		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
-		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
-			verifyCanAdministerEvaluation(userInfo, evaluationIds, evaluationDAO);
-		}		
-	}
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
-		verifyCanAdmin(userInfo, accessRequirement);
+		verifyCanAccess(userInfo, accessRequirement.getId().toString(), ACCESS_TYPE.UPDATE);
 		populateModifiedFields(userInfo, accessRequirement);
 		return accessRequirementDAO.update(accessRequirement);
 	}
@@ -162,8 +116,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public void deleteAccessRequirement(UserInfo userInfo,
 			String accessRequirementId) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
-		verifyCanAdmin(userInfo, accessRequirement);
-		accessRequirementDAO.delete(accessRequirement.getId().toString());
+		verifyCanAccess(userInfo, accessRequirementId, ACCESS_TYPE.DELETE);
+		accessRequirementDAO.delete(accessRequirementId);
+	}
+	
+	private void verifyCanAccess(UserInfo userInfo, String accessRequirementId, ACCESS_TYPE accessType) throws UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, accessRequirementId, ObjectType.ACCESS_REQUIREMENT, accessType)) {
+			throw new UnauthorizedException("Unauthorized for "+accessType+" access to AccessRequirement"+accessRequirementId);
+		}
 	}
 }

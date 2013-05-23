@@ -39,6 +39,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
+	@Autowired
+	private AuthorizationManager authorizationManager;
 	
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
@@ -84,8 +86,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		validateAccessApproval(userInfo, accessApproval);
 
-		if ((accessApproval instanceof ACTAccessApproval)) {
-			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		if (!authorizationManager.canCreateAccessApproval(userInfo, accessApproval)) {
+			throw new UnauthorizedException("You are not allowed to create this approval.");
 		}
 		
 		populateCreationFields(userInfo, accessApproval);
@@ -96,6 +98,11 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public QueryResults<AccessApproval> getAccessApprovalsForSubject(
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
+		
+		if (!authorizationManager.canAccess(userInfo, accessApproval)) {
+			throw new UnauthorizedException("You are not allowed to create this approval.");
+		}
+
 		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
 			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
@@ -127,7 +134,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
-		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		!!!! ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		populateModifiedFields(userInfo, accessApproval);
 		return accessApprovalDAO.update(accessApproval);
 	}
@@ -137,7 +144,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		!!!! ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 

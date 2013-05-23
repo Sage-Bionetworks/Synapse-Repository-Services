@@ -55,15 +55,6 @@ public interface EvaluationManager {
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
-	 * Check whether a given user is an adminsitrator of a given Evaluation.
-	 * 
-	 * @param userInfo
-	 * @param evalId
-	 * @return
-	 */
-	public boolean isEvalAdmin(UserInfo userInfo, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
 	 * Update the eTag of a Evaluation. For use when modifying objects
 	 * associated with a Evaluation for migration purposes.
 	 * 

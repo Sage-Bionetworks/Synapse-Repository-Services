@@ -14,33 +14,24 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class ACTUtils {
-	public static void verifyACTTeamMembershipOrIsAdmin(UserInfo userInfo, UserGroupDAO userGroupDAO) throws DatastoreException, UnauthorizedException {
-		if (userInfo.isAdmin()) return;
+	public static boolean isACTTeamMembershipOrAdmin(UserInfo userInfo, UserGroupDAO userGroupDAO) throws DatastoreException, UnauthorizedException {
+		if (userInfo.isAdmin()) return true;
 		UserGroup actTeam = userGroupDAO.findGroup(ACCESS_AND_COMPLIANCE_TEAM_NAME, false);
-		if (!userInfo.getGroups().contains(actTeam)) {
-			throw new UnauthorizedException("You are not a member of the Synapse Access and Compliance Team.");
-		}
+		return userInfo.getGroups().contains(actTeam);
 	}
 
-	public static void verifyACTTeamMembershipOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds,
+	public static boolean isACTTeamMemberOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds,
 			UserGroupDAO userGroupDAO,
 			AuthorizationManager authorizationManager) 
 	throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException {
-		UserGroup actTeam = userGroupDAO.findGroup(ACCESS_AND_COMPLIANCE_TEAM_NAME, false);
-		if (userInfo.isAdmin() || userInfo.getGroups().contains(actTeam)) {
-			return;
+		if (isACTTeamMembershipOrAdmin(userInfo, userGroupDAO)) {
+			return true;
 		}
-		if (entityIds.size()==0) throw new InvalidModelException("Entity Id required");
-		if (entityIds.size()>1) throw new UnauthorizedException(
-				"You are not a member of the Synapse Access and Compliance Team and cannot set access requirements on multiple entities.");
+		if (entityIds.size()==0) return false;
+		if (entityIds.size()>1) return false;
 		String entityId = entityIds.iterator().next();
 		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.CREATE) &&
-				!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(
-					"You are not a member of the Synapse Access and Compliance Team "+
-					"and you lack access to "+entityId+".");
-		}
+				!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE)) return false;
+		return true;
 	}
-
-
 }
