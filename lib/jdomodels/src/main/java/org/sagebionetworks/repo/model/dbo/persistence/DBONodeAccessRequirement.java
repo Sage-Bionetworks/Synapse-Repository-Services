@@ -117,7 +117,7 @@ public class DBONodeAccessRequirement implements MigratableDatabaseObject<DBONod
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.NODE_ACCESS_REQUIREMENT;
+		return MigrationType.NODE_ACCESS_REQUIRMENT;
 	}
 
 	@Override
