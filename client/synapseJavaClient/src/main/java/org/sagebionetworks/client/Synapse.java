@@ -179,6 +179,7 @@ public class Synapse implements SynapseInt {
 	protected static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
 	
 	protected static final String EVALUATION_URI_PATH = "/evaluation";
+	protected static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	protected static final String COUNT = "count";
 	protected static final String NAME = "name";
 	protected static final String ALL = "/all";
@@ -3485,6 +3486,25 @@ public class Synapse implements SynapseInt {
 	
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
+		String url = null;
+		if (null==status) {
+			url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		} else {
+			url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit +"&status=" + status;			
+		}
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
