@@ -163,7 +163,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	public Long getTotalSizeForUser(String userId) throws DatastoreException {
 
 		if (userId == null || userId.isEmpty()) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
@@ -184,7 +184,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	public Long getTotalCountForUser(String userId) throws DatastoreException {
 
 		if (userId == null || userId.isEmpty()) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
@@ -198,7 +198,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	public Long getTotalCountForNode(String nodeId) throws DatastoreException {
 
 		if (nodeId == null || nodeId.isEmpty()) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
@@ -214,7 +214,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throws DatastoreException, InvalidModelException {
 
 		if (dimensionList == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Dimension list cannot be null.");
 		}
 
 		StorageUsageSummaryList summaryList = getAggregatedResults(dimensionList,
@@ -229,10 +229,10 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throws DatastoreException, InvalidModelException {
 
 		if (userId == null || userId.isEmpty()) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 		if (dimensionList == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Dimension list cannot be null.");
 		}
 
 		StorageUsageSummaryList summaryList = getAggregatedResultsForUser(userId, dimensionList,
@@ -246,7 +246,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throws DatastoreException {
 
 		if (userId == null || userId.isEmpty()) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
 		if (beginIncl >= endExcl) {
@@ -289,7 +289,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throws DatastoreException {
 
 		if (nodeId == null || nodeId.isEmpty()) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		if (beginIncl >= endExcl) {
