@@ -99,7 +99,7 @@ public class EvaluationBackupDriverTest {
 				if (method.equals(ParticipantDAO.class.getMethod("create", Participant.class))) {
 					Participant p = (Participant)args[0];
 					parts.put(p.getUserId(), p);
-					return null;
+					return Long.parseLong(p.getUserId());
 				} else if (method.equals(ParticipantDAO.class.getMethod("getAllByEvaluation", String.class, long.class, long.class))) {
 					String compId = (String)args[0];
 					List<Participant> result = new ArrayList<Participant>();
