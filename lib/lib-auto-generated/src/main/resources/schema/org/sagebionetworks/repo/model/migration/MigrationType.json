@@ -18,7 +18,7 @@
         "ACCESS_REQUIREMENT",
         "ACCESS_APPROVAL",
         "EVALUATION",
-        "NODE_ACCESS_REQUIREMENT",
+        "NODE_ACCESS_REQUIRMENT",
         "PARTICIPANT",
         "SUBMISSION",
         "SUBMISSION_FILE",
