@@ -195,42 +195,35 @@ public class EvaluationDAOImplTest {
 		
 		// search for it
 		// I can find my own evaluation...
-		List<Long> pids = Arrays.asList(new Long[]{EVALUATION_OWNER_ID, 102L,103L});
-		List<Evaluation> evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
-		// ...but others who have not joined cannot
+		List<Long> pids;
+		List<Evaluation> evalList;
+
+		// those who have not joined do not get this result
+		long participantId = 0L;
+		pids = Arrays.asList(new Long[]{participantId,104L});
+		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
+		// check that an empty principal list works too
 		pids = Arrays.asList(new Long[]{});
 		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
 		assertTrue(evalList.isEmpty());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
-		long otherPrincipalId = 273954L;
-		pids = Arrays.asList(new Long[]{otherPrincipalId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
-		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
-		
-		// join the Evaluation
+
+		// Now join the Evaluation
 		participant = new Participant();
 		participant.setCreatedOn(new Date());
-		participant.setUserId(""+otherPrincipalId);
+		participant.setUserId(""+participantId);
 		participant.setEvaluationId(eval.getId());
 		participantDAO.create(participant);
 		
-		// ... now participants can find:
-		pids = Arrays.asList(new Long[]{otherPrincipalId,104L});
+		// As a participant, I can find:
+		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
 		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
-		// owner can still find
-		pids = Arrays.asList(new Long[]{EVALUATION_OWNER_ID, 102L,103L});
-		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
-		// non-participants who aren't the owner cannot find
+		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
 		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
 		assertTrue(evalList.isEmpty());
@@ -253,24 +246,16 @@ public class EvaluationDAOImplTest {
 		
 		// search for it
 		// I can find my own PLANNED evaluation...
-		List<Long> pids = Arrays.asList(new Long[]{EVALUATION_OWNER_ID, 102L,103L});
-		List<Evaluation> evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
-		// but not if I give some other status
-		pids = Arrays.asList(new Long[]{EVALUATION_OWNER_ID, 102L,103L});
-		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.OPEN, 10, 0);
-		assertEquals(0, evalList.size());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.OPEN));
+		List<Long> pids;
+		List<Evaluation> evalList;
 		
-		// ... others who have not joined cannot find it available
+		// those who have not joined cannot find it available
 		pids = Arrays.asList(new Long[]{});
 		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
 		assertTrue(evalList.isEmpty());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
-		long otherPrincipalId = 273954L;
-		pids = Arrays.asList(new Long[]{otherPrincipalId,104L});
+		long participantId = 0L;
+		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
 		assertTrue(evalList.isEmpty());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
@@ -278,12 +263,12 @@ public class EvaluationDAOImplTest {
 		// join the Evaluation
 		participant = new Participant();
 		participant.setCreatedOn(new Date());
-		participant.setUserId(""+otherPrincipalId);
+		participant.setUserId(""+participantId);
 		participant.setEvaluationId(eval.getId());
 		participantDAO.create(participant);
 		
 		// ... now participants can find it available:
-		pids = Arrays.asList(new Long[]{otherPrincipalId,104L});
+		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
@@ -292,13 +277,8 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.OPEN, 10, 0);
 		assertEquals(0, evalList.size());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.OPEN));
-		// owner can still find
-		pids = Arrays.asList(new Long[]{EVALUATION_OWNER_ID, 102L,103L});
-		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
-		assertEquals(1, evalList.size());
-		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
-		// non-participants who aren't the owner cannot find
+
+		// non-participants cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
 		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
 		assertTrue(evalList.isEmpty());

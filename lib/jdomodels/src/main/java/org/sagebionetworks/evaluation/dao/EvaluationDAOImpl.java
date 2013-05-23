@@ -380,35 +380,32 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		return MigratableObjectType.EVALUATION;
 	}
 	
+	private static final String SELECT_BY_USER_CORE = 
+		TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p WHERE "+
+		" e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
+		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID+" ) ";
+	
 	private static final String SELECT_BY_USER_SQL =
-		"SELECT e.* FROM "+ TABLE_EVALUATION +" e LEFT OUTER JOIN "+TABLE_PARTICIPANT + " p ON"+
-		" (e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + ") WHERE " +
-		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
-		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+")" +
-		 " LIMIT :"+ LIMIT_PARAM_NAME +
-		 " OFFSET :" + OFFSET_PARAM_NAME;
+		"SELECT e.* FROM "+ SELECT_BY_USER_CORE + 
+		" LIMIT :"+ LIMIT_PARAM_NAME +
+		" OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SELECT_BY_USER_SQL_COUNT = 
-		"SELECT count(*) FROM "+ TABLE_EVALUATION +" e LEFT OUTER JOIN "+TABLE_PARTICIPANT + " p ON"+
-		" (e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + ") WHERE " +
-		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
-		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+")";
+		"SELECT count(*) FROM "+ SELECT_BY_USER_CORE;
 		
-	private static final String SELECT_BY_USER_AND_STATUS_SQL =
-		"SELECT e.* FROM "+ TABLE_EVALUATION +" e LEFT OUTER JOIN "+TABLE_PARTICIPANT + " p ON"+
-		" (e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + ") WHERE " +
+	private static final String SELECT_BY_USER_AND_STATUS_CORE = 
+		TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p WHERE "+
 		" e." + COL_EVALUATION_STATUS + "=:"+STATUS + " AND " +
-		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
-		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))" +
+		" e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
+		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID+" ) ";
+
+	private static final String SELECT_BY_USER_AND_STATUS_SQL =
+		"SELECT e.* FROM "+ SELECT_BY_USER_AND_STATUS_CORE + 
 		 " LIMIT :"+ LIMIT_PARAM_NAME +
 		 " OFFSET :" + OFFSET_PARAM_NAME;
 		
 	private static final String SELECT_BY_USER_AND_STATUS_SQL_COUNT =
-		"SELECT count(*) FROM "+ TABLE_EVALUATION +" e LEFT OUTER JOIN "+TABLE_PARTICIPANT + " p ON"+
-		" (e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + ") WHERE " +
-		" e." + COL_EVALUATION_STATUS + "=:"+STATUS + " AND " +
-		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
-		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))";
+		"SELECT count(*) FROM "+ SELECT_BY_USER_AND_STATUS_CORE;
 
 	/**
 	 * return the evaluations in which the user (given as a list of principal Ids)
