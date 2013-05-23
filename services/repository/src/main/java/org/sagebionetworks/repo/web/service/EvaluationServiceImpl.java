@@ -96,18 +96,18 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
 			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
-				UserInfo userInfo = userManager.getUserInfo(userId);
-				QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, status, limit, offset);
-				return new PaginatedResults<Evaluation>(
-						request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
-						res.getResults(),
-						res.getTotalNumberOfResults(),
-						offset,
-						limit,
-						"",
-						false				
-					);
-			}
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, status, limit, offset);
+		return new PaginatedResults<Evaluation>(
+				request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false				
+			);
+	}
 
 
 	@Override

@@ -190,6 +190,14 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(fetched, updated);		
 		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount());
 		
+		// query, just checking basic wiring
+		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(ownerName, null);
+		assertEquals(1L, pr.getTotalNumberOfResults());
+		assertEquals(fetched, pr.getResults().iterator().next());
+		// make sure 'status' parameter is wired up
+		assertEquals(1, entityServletHelper.getAvailableEvaluations(ownerName, "PLANNED").getTotalNumberOfResults());
+		assertEquals(0, entityServletHelper.getAvailableEvaluations(ownerName, "OPEN").getTotalNumberOfResults());
+		
 		// Delete
 		entityServletHelper.deleteEvaluation(eval1.getId(), ownerName);
 		try {

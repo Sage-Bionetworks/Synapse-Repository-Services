@@ -251,6 +251,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		fetched = synapseOne.findEvaluation(eval1.getName());
 		assertEquals(eval1, fetched);
 		
+		// query
+		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(null, 100, 0);
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(fetched, evals.getResults().iterator().next());
+		
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
 		Evaluation updated = synapseOne.updateEvaluation(fetched);
