@@ -3,10 +3,11 @@
     "type":"string",
     "name":"LocationTypeNames",
     "enum":[
-        "awss3",
-        "awsebs",
-        "sage",
-        "external",
-		"github"
+    	"awsebs",
+		"awss3",
+		"external",
+		"github",
+		"sage",
+		"preview"	
     ]    
 }

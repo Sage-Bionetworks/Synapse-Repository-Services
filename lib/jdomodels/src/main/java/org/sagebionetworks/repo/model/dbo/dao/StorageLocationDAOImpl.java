@@ -33,22 +33,13 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.ParameterizedSingleColumnRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 
 public final class StorageLocationDAOImpl implements StorageLocationDAO {
-
-	private static final String SELECT_ID_FOR_NODE =
-			"SELECT " + COL_STORAGE_LOCATION_ID +
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_NODE_ID + " = :" + COL_STORAGE_LOCATION_NODE_ID;
-
-	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
 
 	private static final String SELECT_SUM_SIZE =
 			"SELECT SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ")" +
@@ -118,39 +109,11 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	@Override
 	public void replaceLocationData(StorageLocations locations)
 			throws DatastoreException {
-
-		if (locations == null) {
-			return;
-		}
-
-		// First DELETE
-		Long nodeId = locations.getNodeId();
-		deleteLocationDataByOwnerId(nodeId);
-
-		// Then CREATE
-		try {
-			List<DBOStorageLocation> batch = StorageLocationUtils.createBatch(
-					locations, amazonS3Client);
-			if (batch.size() > 0) {
-				basicDao.createBatch(batch);
-			}
-		} catch (AmazonClientException e) {
-			throw new DatastoreException(e);
-		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteLocationDataByOwnerId(Long ownerId) {
-		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, ownerId);
-		List<Long> idList = simpleJdbcTemplate.query(SELECT_ID_FOR_NODE, idRowMapper, paramMap);
-		for (Long id : idList) {
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue(COL_STORAGE_LOCATION_ID.toLowerCase(), id);
-			basicDao.deleteObjectByPrimaryKey(DBOStorageLocation.class, params);
-		}
 	}
 
 	@Override
@@ -272,7 +235,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			su.setId(dbo.getId().toString());
 			su.setNodeId(KeyFactory.keyToString(dbo.getNodeId()));
 			su.setUserId(dbo.getUserId().toString());
-			su.setIsAttachment(dbo.getIsAttachment());
 			su.setLocation(dbo.getLocation());
 			su.setStorageProvider(LocationTypeNames.valueOf(dbo.getStorageProvider()));
 			su.setContentType(dbo.getContentType());
@@ -315,7 +277,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			su.setId(dbo.getId().toString());
 			su.setNodeId(KeyFactory.keyToString(dbo.getNodeId()));
 			su.setUserId(dbo.getUserId().toString());
-			su.setIsAttachment(dbo.getIsAttachment());
 			su.setLocation(dbo.getLocation());
 			su.setStorageProvider(LocationTypeNames.valueOf(dbo.getStorageProvider()));
 			su.setContentType(dbo.getContentType());

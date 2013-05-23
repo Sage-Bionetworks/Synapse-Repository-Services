@@ -6,9 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,16 +18,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.StorageLocations;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
-import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -313,70 +303,5 @@ public class JDOSecondaryPropertyUtils {
 	public static NamedAnnotations createFromJDO(DBORevision rev) throws IOException{
 		if(rev == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
 		return decompressedAnnotations(rev.getAnnotations());
-	}
-
-	/**
-	 * Extracts storage locations from annotations.
-	 *
-	 * @throws UnsupportedEncodingException When the blob is not encoded by UTF-8
-	 * @throws JSONObjectAdapterException When the blob is not a JSON array
-	 *
-	 * @return Storage locations or null if the annotations do not contain any storage locations
-	 */
-	public static StorageLocations getStorageLocations(NamedAnnotations namedAnnos,
-			Long node, Long user) throws UnsupportedEncodingException, JSONObjectAdapterException {
-
-		if (node == null) {
-			throw new NullPointerException();
-		}
-		if (user == null) {
-			throw new NullPointerException();
-		}
-		if (namedAnnos == null) {
-			throw new NullPointerException();
-		}
-
-		final Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
-		final Map<String, List<byte[]>> blobs = primaryAnnos.getBlobAnnotations();
-
-		// Read attachment data from annotation blobs
-		List<AttachmentData> attachmentList = new ArrayList<AttachmentData>();
-		List<byte[]> attachments = blobs.get("attachments");
-		if (attachments != null) {
-			for (byte[] byteArray : attachments) {
-				// Packed at NodeTranslationUtils.objectToBytes(). Now unpack it.
-				String jsonStr = new String(byteArray, "UTF-8");
-				JSONArrayAdapter jsonArray = new JSONArrayAdapterImpl(jsonStr);
-				for (int i = 0; i < jsonArray.length(); i++) {
-					JSONObjectAdapter jsonObj = jsonArray.getJSONObject(i);
-					AttachmentData attachment = new AttachmentData();
-					attachment.initializeFromJSONObject(jsonObj);
-					attachmentList.add(attachment);
-				}
-			}
-		}
-
-		// Read location data from annotation blobs
-		List<LocationData> locationList = new ArrayList<LocationData>();
-		List<byte[]> locations = blobs.get("locations");
-		if (locations != null) {
-			for (byte[] byteArray : locations) {
-				// Packed at NodeTranslationUtils.objectToBytes(). Now unpack it.
-				String jsonStr = new String(byteArray, "UTF-8");
-				JSONArrayAdapter jsonArray = new JSONArrayAdapterImpl(jsonStr);
-				for (int i = 0; i < jsonArray.length(); i++) {
-					JSONObjectAdapter jsonObj = jsonArray.getJSONObject(i);
-					LocationData location = new LocationData();
-					location.initializeFromJSONObject(jsonObj);
-					locationList.add(location);
-				}
-			}
-		}
-
-		Map<String, List<String>> strAnnotations = primaryAnnos.getStringAnnotations();
-		StorageLocations sl = new StorageLocations(node, user,
-				Collections.unmodifiableList(attachmentList),
-				Collections.unmodifiableList(locationList), strAnnotations);
-		return sl;
 	}
 }

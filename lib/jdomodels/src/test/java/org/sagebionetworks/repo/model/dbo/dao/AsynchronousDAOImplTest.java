@@ -1,4 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
@@ -8,7 +12,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -16,14 +19,12 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.springframework.beans.factory.annotation.Autowired;
 /**
  * A unit test for AsynchronousDAOImpl.
  * @author John
@@ -42,7 +43,6 @@ public class AsynchronousDAOImplTest {
 	WikiPageDao mockWikiPageDao;
 	AsynchronousDAOImpl testDao;
 	NamedAnnotations annos;
-	StorageLocations sl;
 	Annotations forDb;
 	Map<String, Set<Reference>> references;
 
@@ -70,7 +70,6 @@ public class AsynchronousDAOImplTest {
 		annos.setEtag("456");
 		annos.setCreatedBy(999l);
 		annos.setCreationDate(new Date(123));
-		sl = JDOSecondaryPropertyUtils.getStorageLocations(annos, nodeId, annos.getCreatedBy());
 		forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(annos, nodeIdString);
 		// Only save distinct values in the DB.
 		forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
@@ -93,7 +92,6 @@ public class AsynchronousDAOImplTest {
 		testDao.replaceAll(nodeIdString);
 		// verify
 		verify(mockReferenceDao, times(1)).replaceReferences(nodeId, references);
-		verify(mockStorageLocationDao, times(1)).replaceLocationData(sl);
 		verify(mockAnnotationsDao, times(1)).replaceAnnotations(forDb);
 	}
 

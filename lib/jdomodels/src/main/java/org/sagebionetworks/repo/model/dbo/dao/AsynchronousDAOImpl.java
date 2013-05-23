@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,14 +10,11 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -30,7 +26,6 @@ import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -131,23 +126,15 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		if(references != null){
 			dboReferenceDao.replaceReferences(nodeId, references);
 		}
-		try {
-			// Storage locations
-			NamedAnnotations namedAnnos = nodeDao.getAnnotations(id);
-			StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, nodeId, namedAnnos.getCreatedBy());
-			storageLocationDao.replaceLocationData(sl);
-			// Annotations
-			Annotations forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(namedAnnos, id);
-			// Only save distinct values in the DB.
-			forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
-			dboAnnotationsDao.replaceAnnotations(forDb);
-			// Mirror attachments and descriptions as wiki pages
-			mirrorAttachmentsAndDescription(id);
-		} catch (UnsupportedEncodingException e) {
-			throw new DatastoreException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new DatastoreException(e);
-		}
+		// Storage locations
+		NamedAnnotations namedAnnos = nodeDao.getAnnotations(id);
+		// Annotations
+		Annotations forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(namedAnnos, id);
+		// Only save distinct values in the DB.
+		forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
+		dboAnnotationsDao.replaceAnnotations(forDb);
+		// Mirror attachments and descriptions as wiki pages
+		mirrorAttachmentsAndDescription(id);
 	}
 	
 	/**
