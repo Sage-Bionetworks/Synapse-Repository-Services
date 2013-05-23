@@ -397,7 +397,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String SELECT_BY_USER_AND_STATUS_SQL =
 		"SELECT e.* FROM "+ TABLE_EVALUATION +" e LEFT OUTER JOIN "+TABLE_PARTICIPANT + " p ON"+
 		" (e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + ") WHERE " +
-		" e." + COL_EVALUATION_STATUS + "=:"+COL_EVALUATION_STATUS + "AND " +
+		" e." + COL_EVALUATION_STATUS + "=:"+STATUS + " AND " +
 		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
 		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))" +
 		 " LIMIT :"+ LIMIT_PARAM_NAME +
@@ -406,7 +406,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String SELECT_BY_USER_AND_STATUS_SQL_COUNT =
 		"SELECT count(*) FROM "+ TABLE_EVALUATION +" e LEFT OUTER JOIN "+TABLE_PARTICIPANT + " p ON"+
 		" (e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + ") WHERE " +
-		" e." + COL_EVALUATION_STATUS + "=:"+COL_EVALUATION_STATUS + "AND " +
+		" e." + COL_EVALUATION_STATUS + "=:"+STATUS + " AND " +
 		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
 		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))";
 
