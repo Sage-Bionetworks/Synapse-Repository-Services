@@ -36,7 +36,12 @@
 			<ref bean="stackConfiguration.repositoryChangeTopicName" />
 		</constructor-arg>
 		<property name="shouldMessagesBePublishedToTopic" ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
-		<property name="listUnsentMessagePageSize" value="500"></property>
+		<property name="listUnsentMessagePageSize" value="25000"/>
+		<!-- This will determine how long the worker can hold the semaphore lock while processing un-sent messages
+			 We want to give the worker plenty of time to do its job before attempting a forced lock release
+			 so this is currently set to 30 Minutes (1000*60*30).
+		 -->
+		<property name="lockTimeoutMS" value="1800000"/>
 	</bean>
 	
 	<!-- This is how messages get rebroadcast -->

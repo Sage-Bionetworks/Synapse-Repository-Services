@@ -208,5 +208,9 @@
 		class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
 	<bean id="submissionFileHandleDAO"
 		class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
+	
+	<!-- Misc beans -->
+	<bean id="semaphoreDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
 
 </beans>
