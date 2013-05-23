@@ -338,6 +338,14 @@ public class SqlConstants {
 	public static final String COL_DOI_UPDATED_ON       = "UPDATED_ON";
 	public static final String DDL_FILE_DOI = "schema/Doi-ddl.sql";
 
+	
+	// SEMAPHORE
+	public static final String TABLE_SEMAPHORE 			= "SEMAPHORE";
+	public static final String COL_SEMAPHORE_ID			= "ID";
+	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
+	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
+	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
