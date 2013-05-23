@@ -1,6 +1,8 @@
 package org.sagebionetworks.evaluation.manager;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationList;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -28,6 +30,12 @@ public interface EvaluationManager {
 	 */
 	public QueryResults<Evaluation> getInRange(long limit, long offset) 
 			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get a collection of Evaluations which the user may participate in, within a given range
+	 */
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) 
+			throws DatastoreException;
 
 	/**
 	 * Get the total number of Evaluations in the system

@@ -537,6 +537,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_WITH_ID = EVALUATION + "/" + EVALUATION_ID_PATH_VAR;
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";
+	public static final String EVALUATION_AVAILABLE = EVALUATION+"/available";
 	
 	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";

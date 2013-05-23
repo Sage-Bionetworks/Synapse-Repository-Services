@@ -380,4 +380,76 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		return MigratableObjectType.EVALUATION;
 	}
 	
+	private static final String SELECT_BY_USER_SQL =
+		"SELECT e.* FROM "+ TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p "+
+		" WHERE e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
+		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
+		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))" +
+		 " LIMIT :"+ LIMIT_PARAM_NAME +
+		 " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SELECT_BY_USER_SQL_COUNT =
+		"SELECT count(*) FROM "+ TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p "+
+		" WHERE e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
+		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
+		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))";
+
+	private static final String SELECT_BY_USER_AND_STATUS_SQL =
+		"SELECT e.* FROM "+ TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p "+
+		" WHERE e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
+		" e." + COL_EVALUATION_STATUS + "=:"+COL_EVALUATION_STATUS + "AND " +
+		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
+		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))" +
+		 " LIMIT :"+ LIMIT_PARAM_NAME +
+		 " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SELECT_BY_USER_AND_STATUS_SQL_COUNT =
+		"SELECT count(*) FROM "+ TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p "+
+		" WHERE e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
+		" e." + COL_EVALUATION_STATUS + "=:"+COL_EVALUATION_STATUS + "AND " +
+		"(p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID + ") OR " +
+		 "e."+COL_EVALUATION_OWNER_ID+" IN (:"+COL_PARTICIPANT_USER_ID+"))";
+
+	/**
+	 * return the evaluations in which the user (given as a list of principal Ids)
+	 * is either the owner or is a participant
+	 */
+	@Override
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, EvaluationStatus status, long limit, long offset) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_PARTICIPANT_USER_ID, principalIds);	
+		param.addValue(OFFSET_PARAM_NAME, offset);
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		String sql = null;
+		if (null==status) {
+			sql = SELECT_BY_USER_SQL;
+		} else {
+			param.addValue(STATUS, status.ordinal());
+			sql = SELECT_BY_USER_AND_STATUS_SQL;
+		}
+		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql, rowMapper, param);
+		List<Evaluation> dtos = new ArrayList<Evaluation>();
+		for (EvaluationDBO dbo : dbos) {
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+
+	@Override
+	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_PARTICIPANT_USER_ID, principalIds);		
+		String sql = null;
+		if (null==status) {
+			sql = SELECT_BY_USER_SQL_COUNT;
+		} else {
+			param.addValue(STATUS, status.ordinal());
+			sql = SELECT_BY_USER_AND_STATUS_SQL_COUNT;
+		}
+		return simpleJdbcTemplate.queryForLong(sql, param);
+	}
+
+	
 }

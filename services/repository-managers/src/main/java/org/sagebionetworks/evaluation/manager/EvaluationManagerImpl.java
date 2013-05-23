@@ -1,10 +1,13 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationList;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EvaluationUtil;
@@ -13,6 +16,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -62,9 +66,19 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	
 	@Override
 	public QueryResults<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
-		List<Evaluation> Evaluations = evaluationDAO.getInRange(limit, offset);
+		List<Evaluation> evaluations = evaluationDAO.getInRange(limit, offset);
 		long totalNumberOfResults = evaluationDAO.getCount();
-		QueryResults<Evaluation> res = new QueryResults<Evaluation>(Evaluations, totalNumberOfResults);
+		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
+		return res;
+	}
+	
+	@Override
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) throws DatastoreException{
+		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
+		for (UserGroup g : userInfo.getGroups()) principalIds.add(Long.parseLong(g.getId()));
+		List<Evaluation> evaluations = evaluationDAO.getAvailableInRange(principalIds, status, limit, offset);
+		long totalNumberOfResults = evaluationDAO.getAvailableCount(principalIds, status);
+		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 		return res;
 	}
 	

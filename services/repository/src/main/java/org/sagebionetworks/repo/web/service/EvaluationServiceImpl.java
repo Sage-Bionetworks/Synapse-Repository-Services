@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.web.service;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationList;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -79,6 +81,34 @@ public class EvaluationServiceImpl implements EvaluationService {
 				false				
 			);
 	}
+	
+	/**
+	 * Get a collection of Evaluations in which the user may participate, within a given range
+	 *
+	 * @param userId the userId (email address) of the user making the request
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
+			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) 
+			throws DatastoreException, NotFoundException {
+				UserInfo userInfo = userManager.getUserInfo(userId);
+				QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, status, limit, offset);
+				return new PaginatedResults<Evaluation>(
+						request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
+						res.getResults(),
+						res.getTotalNumberOfResults(),
+						offset,
+						limit,
+						"",
+						false				
+					);
+			}
+
 
 	@Override
 	public long getEvaluationCount() throws DatastoreException, NotFoundException {
