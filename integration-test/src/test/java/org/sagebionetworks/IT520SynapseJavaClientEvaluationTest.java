@@ -292,6 +292,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		evals = synapseOne.getAvailableEvaluationsPaginated(null, 0, 100);
 		assertEquals(1, evals.getTotalNumberOfResults());
 		assertEquals(1, evals.getResults().size());
+		eval1=synapseOne.getEvaluation(eval1.getId());
 		assertEquals(eval1, evals.getResults().iterator().next());
 		
 		// read
