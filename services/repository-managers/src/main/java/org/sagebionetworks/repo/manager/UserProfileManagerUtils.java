@@ -6,6 +6,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.schema.LinkDescription;
 import org.sagebionetworks.schema.LinkDescription.LinkRel;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -44,23 +45,35 @@ public class UserProfileManagerUtils {
 	 * Note the input parameter is treated as MUTABLE
 	 * @param up
 	 */
-	public static void clearPrivateFields(UserProfile up) {
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		Map<String, ObjectSchema> schemaProperties = schema.getProperties();	
-		for (String propertyName : schemaProperties.keySet()) {
-			if (!isPublic(propertyName)) {
-				try {
-					Field field = UserProfile.class.getDeclaredField(propertyName);
-					field.setAccessible(true);
-					field.set(up, null);
-				} catch (NoSuchFieldException e) {
-					throw new RuntimeException(e);
-				} catch (IllegalAccessException e) {
-					throw new RuntimeException(e);
+	public static void clearPrivateFields(UserInfo userInfo, UserProfile userProfile) {		
+		if (userProfile != null) {
+			boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
+			if (!canSeePrivate) {				
+				String obfuscatedEmail = "";
+				if (userProfile.getEmail() != null && userProfile.getEmail().length() > 0)
+					obfuscatedEmail = StringUtil.obfuscateEmailAddress(userProfile.getEmail());
+				
+				ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+				Map<String, ObjectSchema> schemaProperties = schema.getProperties();	
+				for (String propertyName : schemaProperties.keySet()) {
+					if (!isPublic(propertyName)) {
+						try {
+							Field field = UserProfile.class.getDeclaredField(propertyName);
+							field.setAccessible(true);
+							field.set(userProfile, null);
+						} catch (NoSuchFieldException e) {
+							throw new RuntimeException(e);
+						} catch (IllegalAccessException e) {
+							throw new RuntimeException(e);
+						}
+					}
 				}
+				
+				userProfile.setEmail(obfuscatedEmail);				
 			}
 		}
 	}
-	
+		
+
 }
  
