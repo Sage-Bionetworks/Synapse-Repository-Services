@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -323,6 +324,7 @@ public class UserProfileServiceTest {
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertFalse(email.equals(someOtherUserProfile.getEmail()));
+		assertNull(someOtherUserProfile.getEtag());
 	}
 
 	@Test
@@ -342,6 +344,7 @@ public class UserProfileServiceTest {
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
 		assertEquals(email, someOtherUserProfile.getEmail());
+		assertNull(someOtherUserProfile.getEtag());
 	}
 
 
