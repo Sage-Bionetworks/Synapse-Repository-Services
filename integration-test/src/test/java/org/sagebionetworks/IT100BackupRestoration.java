@@ -70,16 +70,9 @@ public class IT100BackupRestoration {
 
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
-	public static final String BACKUP_FILE_NAME = "Backup-staging-A-66004-4066545524488105200.zip";
-	public static final String PRINCIPALS_BACKUP_FILE_NAME = "Backup-principals.zip";
-	private static final String S3_DOMAIN = "https://s3.amazonaws.com/";
-	private static String S3_WORKFLOW_BUCKET = StackConfiguration.getS3WorkflowBucket();
-	private static final String S3_WORKFLOW_URL_PREFIX = S3_DOMAIN + S3_WORKFLOW_BUCKET + "/";
-			
 	
 	private static SynapseAdministration synapse;
-	private static AmazonS3Client s3Client;
-	private static String bucket;
+//	private static String bucket;
 	
 	private List<Entity> toDelete = null;
 
@@ -101,11 +94,7 @@ public class IT100BackupRestoration {
 			throw new IllegalArgumentException("IAM id cannot be null");
 		if (iamKey == null)
 			throw new IllegalArgumentException("IAM key cannot be null");
-		bucket = StackConfiguration.getSharedS3BackupBucket();
-		if (bucket == null)
-			throw new IllegalArgumentException("Bucket cannot be null null");
-		AWSCredentials creds = new BasicAWSCredentials(iamId, iamKey);
-		s3Client = new AmazonS3Client(creds);
+
 	}
 	
 	@After
@@ -122,124 +111,6 @@ public class IT100BackupRestoration {
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
 		toDelete = new ArrayList<Entity>();
-	}
-
-	// This was used to create the backup used for the restoration step.
-	@Ignore
-	@Test
-	public void createSnapshot() throws Exception {
-		// Start the daemon
-		BackupSubmission submission = new BackupSubmission();
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
-		assertNotNull(status);
-		assertNotNull(status.getStatus());
-		assertFalse(DaemonStatus.FAILED == status.getStatus());
-		assertEquals(DaemonType.BACKUP, status.getType());
-		String backupId = status.getId();
-		assertNotNull(backupId);
-		String backupUri = "/daemon/" + backupId;
-		long start = System.currentTimeMillis();
-		// Wait for the backup to finish.
-		while (true) {
-			long now = System.currentTimeMillis();
-			assertTrue("Timed out waiting for a backup to complete", now
-					- start < TEST_TIME_OUT);
-			status = synapse.getDaemonStatus(backupId);
-			assertNotNull(status);
-			assertNotNull(status.getStatus());
-			// We are done if it failed.
-			assertFalse(DaemonStatus.FAILED == status.getStatus());
-			// Are we done?
-			if (DaemonStatus.COMPLETED == status.getStatus()) {
-				System.out.println("Backup Complete. Message: "
-						+ status.getProgresssMessage());
-				System.out.println("Backup File: "
-						+ status.getBackupUrl());
-				break;
-			} else {
-				long current = status.getProgresssCurrent();
-				long total = status.getProgresssTotal();
-				if (total <= 0) {
-					total = 1000000;
-				}
-				String message = status.getProgresssMessage();
-				double percent = ((double) current / (double) total) * 100.0;
-				System.out.println("Backup progresss: " + percent
-						+ " % Message: " + message);
-			}
-			// Wait.
-			Thread.sleep(1000);
-		}
-	}
-	
-
-	@Test
-	public void restoreFromBackup() throws Exception {
-
-		// restore principals
-		{
-			// move the file to S3
-			URL principalsFileUrl = IT100BackupRestoration.class.getClassLoader()
-					.getResource(PRINCIPALS_BACKUP_FILE_NAME);
-			File principalBackupFile = new File(principalsFileUrl.getFile().replaceAll("%20", " "));
-			assertTrue(principalBackupFile.getAbsolutePath()+" does not exist.", principalBackupFile.exists());
-			// Now upload the file to s3
-			PutObjectResult putResults = s3Client.putObject(bucket,	PRINCIPALS_BACKUP_FILE_NAME, principalBackupFile);
-			System.out.println(putResults);
-			
-			
-			// Start the daemon
-			RestoreSubmission submission = new RestoreSubmission();
-			submission.setFileName(PRINCIPALS_BACKUP_FILE_NAME);
-			BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.PRINCIPAL);
-
-			assertNotNull(status);
-			assertNotNull(status.getStatus());
-			assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
-			assertTrue(DaemonType.RESTORE == status.getType());
-			String restoreId = status.getId();
-			assertNotNull(restoreId);
-			
-			// Wait for it to finish
-			waitForDaemon(status.getId());
-
-		}
-		
-		// now restore the Entities
-		
-		// Step one is to upload the file to s3.
-		URL fileUrl = IT100BackupRestoration.class.getClassLoader()
-				.getResource(BACKUP_FILE_NAME);
-		File backupFile = new File(fileUrl.getFile().replaceAll("%20", " "));
-		// Make sure the file exists
-		assertTrue(backupFile.getAbsolutePath()+" does not exist.", backupFile.exists());
-		// Now upload the file to s3
-		PutObjectResult putResults = s3Client.putObject(bucket,	BACKUP_FILE_NAME, backupFile);
-		System.out.println(putResults);
-
-		// Start the daemon
-		RestoreSubmission submission = new RestoreSubmission();
-		submission.setFileName(BACKUP_FILE_NAME);
-		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.ENTITY);
-
-		assertNotNull(status);
-		assertNotNull(status.getStatus());
-		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
-		assertTrue(DaemonType.RESTORE == status.getType());
-		String restoreId = status.getId();
-		assertNotNull(restoreId);
-		
-		// Wait for it to finish
-		waitForDaemon(status.getId());
-		
-		// Login as the test user one.
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		// Now make sure we can find one of the datasetst
-		JSONObject datasetQueryResults = synapse
-				.query("select * from dataset where name == \"MSKCC Prostate Cancer\"");
-		assertEquals(1, datasetQueryResults.getJSONArray("results").length());
-		System.out.println("Found the 'MSKCC Prostate Cancer' using devUser1@sagebase.org");
 	}
 	
 	/**
