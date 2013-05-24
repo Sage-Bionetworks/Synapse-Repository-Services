@@ -18,42 +18,42 @@ public class NodeTreeDaoNodeLineageImplPreconditionTest {
 		this.nodeTreeDao = new NodeTreeDaoNodeLineageImpl(client);
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateNullPointerException1() {
 		nodeTreeDao.create(null, "parent", new Date());
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateNullPointerException2() {
 		nodeTreeDao.create("child", null, new Date());
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testCreateNullPointerException3() {
 		nodeTreeDao.create("child", "parent", null);
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNullPointerException1() {
 		nodeTreeDao.update(null, "parent", new Date());
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNullPointerException2() {
 		nodeTreeDao.update("child", null, new Date());
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testUpdateNullPointerException3() {
 		nodeTreeDao.update("child", "parent", null);
 	}
 	
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testDeleteNullPointerException1() {
 		nodeTreeDao.delete(null, new Date());
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testDeleteNullPointerException2() {
 		nodeTreeDao.delete("child", null);
 	}
