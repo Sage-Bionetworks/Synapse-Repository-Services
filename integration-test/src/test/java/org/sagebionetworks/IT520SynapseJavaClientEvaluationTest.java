@@ -278,7 +278,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		Long initialCount = synapseOne.getParticipantCount(eval1.getId());
 		
 		// query before joining
-		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(null, 100, 0);
+		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(null, 0, 100);
 		assertEquals(0, evals.getTotalNumberOfResults());
 		
 		// create
@@ -289,7 +289,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(newCount, synapseOne.getParticipantCount(eval1.getId()));
 		
 		// query after joining
-		evals = synapseOne.getAvailableEvaluationsPaginated(null, 100, 0);
+		evals = synapseOne.getAvailableEvaluationsPaginated(null, 0, 100);
 		assertEquals(1, evals.getTotalNumberOfResults());
 		assertEquals(1, evals.getResults().size());
 		assertEquals(eval1, evals.getResults().iterator().next());
