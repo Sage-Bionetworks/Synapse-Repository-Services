@@ -101,7 +101,6 @@ public class AsynchronousDAOImplTest {
 		testDao.deleteEntity(nodeIdString);
 		// verify
 		verify(mockReferenceDao, times(1)).deleteReferencesByOwnderId(nodeId);
-		verify(mockStorageLocationDao, times(1)).deleteLocationDataByOwnerId(nodeId);
 		verify(mockAnnotationsDao, times(1)).deleteAnnotationsByOwnerId(nodeId);
 	}
 }

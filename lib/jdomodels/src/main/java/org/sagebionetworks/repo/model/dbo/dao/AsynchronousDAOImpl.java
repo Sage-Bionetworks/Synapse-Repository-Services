@@ -108,7 +108,6 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		Long nodeId = KeyFactory.stringToKey(id);
 		dboReferenceDao.deleteReferencesByOwnderId(nodeId);
 		dboAnnotationsDao.deleteAnnotationsByOwnerId(nodeId);
-		storageLocationDao.deleteLocationDataByOwnerId(nodeId);
 		return true;
 	}
 

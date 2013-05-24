@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
-import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
@@ -34,8 +33,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3;
 
@@ -104,17 +101,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 	@Autowired
 	private AmazonS3 amazonS3Client;
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void replaceLocationData(StorageLocations locations)
-			throws DatastoreException {
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void deleteLocationDataByOwnerId(Long ownerId) {
-	}
 
 	@Override
 	public Long getTotalSize() throws DatastoreException {

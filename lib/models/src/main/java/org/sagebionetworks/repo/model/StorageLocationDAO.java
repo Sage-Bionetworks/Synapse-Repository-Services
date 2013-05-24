@@ -12,17 +12,6 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 public interface StorageLocationDAO {
 
 	/**
-	 * Replaces the storage locations for a given node. Storage locations are
-	 * extracted from the annotations blobs.
-	 */
-	void replaceLocationData(StorageLocations locations) throws DatastoreException;
-
-	/**
-	 * Deletes the storage locations associated with a given node.
-	 */
-	void deleteLocationDataByOwnerId(Long ownerId);
-
-	/**
 	 * Gets the total usage in bytes.
 	 */
 	Long getTotalSize() throws DatastoreException;
