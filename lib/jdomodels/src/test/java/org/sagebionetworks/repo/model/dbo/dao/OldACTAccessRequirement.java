@@ -34,7 +34,7 @@ public class OldACTAccessRequirement {
      */
     private String createdBy;
     private String etag;
-    private List<Long> entityIds;
+    private List<String> entityIds;
     /**
      * Modified By
      * 
@@ -181,12 +181,12 @@ public class OldACTAccessRequirement {
     }
 
  
-    public List<Long> getEntityIds() {
+    public List<String> getEntityIds() {
 		return entityIds;
 	}
 
 
-	public void setEntityIds(List<Long> entityIds) {
+	public void setEntityIds(List<String> entityIds) {
 		this.entityIds = entityIds;
 	}
 

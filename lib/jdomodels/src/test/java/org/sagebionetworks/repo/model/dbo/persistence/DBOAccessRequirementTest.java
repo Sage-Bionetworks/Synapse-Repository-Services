@@ -8,6 +8,9 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
 import org.junit.After;
@@ -21,6 +24,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -156,8 +161,19 @@ public class DBOAccessRequirementTest {
 		backup.setModifiedBy(9876L);
 		backup.setModifiedOn(modifiedOn);
 		OldACTAccessRequirement old = new OldACTAccessRequirement();
-		old.setId(101L);
-		old.setEntityIds(Arrays.asList(new Long[]{1l, 2l, 3l, 4l}));
+		old.setId(backup.getId());
+		List<String> entityIds = Arrays.asList(new String[]{"1", "2", "3", "4"});
+		old.setEntityIds(entityIds);
+		old.setAccessType(ACCESS_TYPE.valueOf(backup.getAccessType()));
+		old.setActContactInfo("act@sagebase.org");
+		old.setCreatedBy(backup.getCreatedBy().toString());
+		old.setCreatedOn(new Date(backup.getCreatedOn()));
+		old.setEntityType(backup.getEntityType());
+		old.setEtag(backup.geteTag());
+		old.setModifiedBy(backup.getModifiedBy().toString());
+		old.setModifiedOn(new Date(backup.getModifiedOn()));
+		old.setUri("/foo");
+		
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
@@ -177,8 +193,33 @@ public class DBOAccessRequirementTest {
 		DBOAccessRequirement dbo = translator.createDatabaseObjectFromBackup(backup);
 		
 		// now check that it's right
+		assertEquals(backup.getAccessType(), dbo.getAccessType());
+		assertEquals(backup.getCreatedBy(), dbo.getCreatedBy());
+		assertEquals(backup.getCreatedOn(), dbo.getCreatedOn());
+		assertEquals(backup.getEntityType(), dbo.getEntityType());
+		assertEquals(backup.geteTag(), dbo.geteTag());
+		assertEquals(backup.getId(), dbo.getId());
+		assertEquals(backup.getModifiedBy(), dbo.getModifiedBy());
+		assertEquals(backup.getModifiedOn(), dbo.getModifiedOn());
 		AccessRequirement deser = (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
-
+		assertTrue(deser instanceof ACTAccessRequirement);
+		ACTAccessRequirement act = (ACTAccessRequirement)deser;
+		assertEquals(backup.getId(), act.getId());
+		Set<String> actIds = new HashSet<String>();
+		for (RestrictableObjectDescriptor subjectId : act.getSubjectIds()) {
+			assertEquals(RestrictableObjectType.ENTITY, subjectId.getType());
+			actIds.add(subjectId.getId());
+		}
+		assertEquals(new HashSet<String>(entityIds), actIds);
+		assertEquals(old.getAccessType(), act.getAccessType());
+		assertEquals(old.getActContactInfo(), act.getActContactInfo());
+		assertEquals(old.getCreatedBy(), act.getCreatedBy());
+		assertEquals(old.getCreatedOn(), act.getCreatedOn());
+		assertEquals(old.getEntityType(), act.getEntityType());
+		assertEquals(old.getEtag(), act.getEtag());
+		assertEquals(old.getModifiedBy(), act.getModifiedBy());
+		assertEquals(old.getModifiedOn(), act.getModifiedOn());
+		assertEquals(old.getUri(), act.getUri());
 	}
 
 }

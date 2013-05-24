@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +32,8 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -310,6 +313,17 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return null;
 	}
 	
+	public static void copyEntityIdsToAccessRequirement(List<String> entityIds, AccessRequirement ar) {
+		if (entityIds==null) return;
+		if (ar.getSubjectIds()==null) ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
+		for (String entityId : entityIds) {
+			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+			subjectId.setId(entityId);
+			subjectId.setType(RestrictableObjectType.ENTITY);
+			ar.getSubjectIds().add(subjectId);
+		}	
+	}
+	
 	public static AccessRequirement copyTransAccessRequirementToAccessRequirement(AccessRequirement tar) {
 		AccessRequirement ans = null;
 		if (tar instanceof TransTermsOfUseAccessRequirement) {
@@ -330,10 +344,14 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		ans.setSubjectIds(tar.getSubjectIds());
 		ans.setUri(tar.getUri());
 		if (tar instanceof TransTermsOfUseAccessRequirement) {
-			((TermsOfUseAccessRequirement)ans).setLocationData(((TransTermsOfUseAccessRequirement)tar).getLocationData());
-			((TermsOfUseAccessRequirement)ans).setTermsOfUse(((TransTermsOfUseAccessRequirement)tar).getTermsOfUse());
+			TransTermsOfUseAccessRequirement toutar = (TransTermsOfUseAccessRequirement)tar;
+			((TermsOfUseAccessRequirement)ans).setLocationData((toutar).getLocationData());
+			((TermsOfUseAccessRequirement)ans).setTermsOfUse((toutar).getTermsOfUse());
+			copyEntityIdsToAccessRequirement(toutar.getEntityIds(), ans);
 		} else if (tar instanceof TransACTAccessRequirement) {
-			((ACTAccessRequirement)ans).setActContactInfo(((TransACTAccessRequirement)tar).getActContactInfo());
+			TransACTAccessRequirement acttar = (TransACTAccessRequirement)tar;
+			((ACTAccessRequirement)ans).setActContactInfo((acttar).getActContactInfo());
+			copyEntityIdsToAccessRequirement(acttar.getEntityIds(), ans);
 		}
 		return ans;
 	}
