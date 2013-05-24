@@ -64,10 +64,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param userProfileDAO
 	 * @param s3TokenManager
 	 */
-	public UserProfileManagerImpl(UserProfileDAO userProfileDAO,
+	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO,
 			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO) {
 		super();
 		this.userProfileDAO = userProfileDAO;
+		this.userGroupDAO = userGroupDAO;
 		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
 	}
@@ -75,12 +76,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public UserProfile getUserProfile(UserInfo userInfo, String ownerId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		//if the user is set, and it's the anonymous user, then return an anonymous profile
-		if (userInfo != null && userInfo.getUser() != null && userInfo.getUser().getUserId() != null && 
-				AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())){
-			return getAnonymousUserProfile(userInfo.getIndividualGroup().getId());
-		}
-
+		if(userInfo == null) throw new IllegalArgumentException("userInfo can not be null");
+		if(ownerId == null) throw new IllegalArgumentException("ownerId can not be null");
+		
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		UserGroup userGroup = userGroupDAO.get(ownerId);
