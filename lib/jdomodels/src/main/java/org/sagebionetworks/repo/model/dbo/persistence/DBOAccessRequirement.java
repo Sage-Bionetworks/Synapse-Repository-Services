@@ -15,18 +15,33 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.TaggableEntity;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.OldACTAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+
+import com.thoughtworks.xstream.XStream;
 
 /**
  * @author brucehoff
@@ -275,17 +290,79 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ACCESS_REQUIREMENT;
 	}
-
+	
+	public static AccessRequirement deserializeToTransAccessRequirement(byte[] zippedBytes) throws IOException {
+		if(zippedBytes != null) {
+			ByteArrayInputStream in = new ByteArrayInputStream(zippedBytes);
+			GZIPInputStream unZipper = null;
+			unZipper = new GZIPInputStream(in);
+			try{
+				XStream xstream = new XStream();
+				xstream.alias(ACTAccessRequirement.class.getName(), TransACTAccessRequirement.class);
+				xstream.alias(TermsOfUseAccessRequirement.class.getName(), TransTermsOfUseAccessRequirement.class);
+				if(zippedBytes != null){
+					return (AccessRequirement)xstream.fromXML(unZipper);
+				}
+			}finally{
+				unZipper.close();
+			}			
+		}
+		return null;
+	}
+	
+	public static AccessRequirement copyTransAccessRequirementToAccessRequirement(AccessRequirement tar) {
+		AccessRequirement ans = null;
+		if (tar instanceof TransTermsOfUseAccessRequirement) {
+			ans =  new TermsOfUseAccessRequirement();
+		} else if (tar instanceof TransACTAccessRequirement) {
+			ans = new ACTAccessRequirement();
+		} else {
+			throw new IllegalArgumentException("Unexpected type "+tar.getClass());
+		}
+		ans.setAccessType(tar.getAccessType());
+		ans.setCreatedBy(tar.getCreatedBy());
+		ans.setCreatedOn(tar.getCreatedOn());
+		ans.setEntityType(tar.getEntityType());
+		ans.setEtag(tar.getEtag());
+		ans.setId(tar.getId());
+		ans.setModifiedBy(tar.getModifiedBy());
+		ans.setModifiedOn(tar.getModifiedOn());
+		ans.setSubjectIds(tar.getSubjectIds());
+		ans.setUri(tar.getUri());
+		if (tar instanceof TransTermsOfUseAccessRequirement) {
+			((TermsOfUseAccessRequirement)ans).setLocationData(((TransTermsOfUseAccessRequirement)tar).getLocationData());
+			((TermsOfUseAccessRequirement)ans).setTermsOfUse(((TransTermsOfUseAccessRequirement)tar).getTermsOfUse());
+		} else if (tar instanceof TransACTAccessRequirement) {
+			((ACTAccessRequirement)ans).setActContactInfo(((TransACTAccessRequirement)tar).getActContactInfo());
+		}
+		return ans;
+	}
 
 	@Override
 	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		// TODO Auto-generated method stub
 		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
 
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
-				return backup;
+				DBOAccessRequirement dbo = new DBOAccessRequirement();
+				dbo.setAccessType(backup.getAccessType());
+				dbo.setCreatedBy(backup.getCreatedBy());
+				dbo.setCreatedOn(backup.getCreatedOn());
+				dbo.setEntityType(backup.getEntityType());
+				dbo.seteTag(backup.geteTag());
+				dbo.setId(backup.getId());
+				dbo.setModifiedBy(backup.getModifiedBy());
+				dbo.setModifiedOn(backup.getModifiedOn());
+				byte[] ser = backup.getSerializedEntity();
+				try {
+					AccessRequirement transAR = deserializeToTransAccessRequirement(ser);
+					AccessRequirement ar = copyTransAccessRequirementToAccessRequirement(transAR);
+					dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(ar));
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+				return dbo;
 			}
 
 			@Override
