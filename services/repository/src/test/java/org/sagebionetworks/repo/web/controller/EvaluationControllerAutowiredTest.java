@@ -190,14 +190,6 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(fetched, updated);		
 		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount());
 		
-		// query, just checking basic wiring
-		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(ownerName, null);
-		assertEquals(1L, pr.getTotalNumberOfResults());
-		assertEquals(fetched, pr.getResults().iterator().next());
-		// make sure 'status' parameter is wired up
-		assertEquals(1, entityServletHelper.getAvailableEvaluations(ownerName, "PLANNED").getTotalNumberOfResults());
-		assertEquals(0, entityServletHelper.getAvailableEvaluations(ownerName, "OPEN").getTotalNumberOfResults());
-		
 		// Delete
 		entityServletHelper.deleteEvaluation(eval1.getId(), ownerName);
 		try {
@@ -222,6 +214,16 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
 		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(eval1.getId()));
+		
+		// query, just checking basic wiring
+		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName, null);
+		assertEquals(1L, pr.getTotalNumberOfResults());
+		// get the new etag (changed when participant was added?)
+		eval1 = entityServletHelper.getEvaluation(eval1.getId());
+		assertEquals(eval1, pr.getResults().iterator().next());
+		// make sure 'status' parameter is wired up
+		assertEquals(0, entityServletHelper.getAvailableEvaluations(userName, "PLANNED").getTotalNumberOfResults());
+		assertEquals(1, entityServletHelper.getAvailableEvaluations(userName, "OPEN").getTotalNumberOfResults());
 		
 		// read
 		Participant clone = entityServletHelper.getParticipant(userId, eval1.getId());
