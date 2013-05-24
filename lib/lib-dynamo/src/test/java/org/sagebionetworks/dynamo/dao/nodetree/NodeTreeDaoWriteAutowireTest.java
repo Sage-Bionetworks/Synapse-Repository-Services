@@ -107,15 +107,9 @@ public class NodeTreeDaoWriteAutowireTest {
 		// We can "recreate" the same root
 		this.nodeTreeUpdateDao.create(root, root, new Date());
 
-		// If we try to create anther root "b", we should get an exception
-		try {
-			String r = this.idMap.get("b");
-			this.nodeTreeUpdateDao.create(r, r, new Date());
-		} catch (RuntimeException e) {
-			Assert.assertNotNull(e.getMessage());
-		} catch (Throwable t) {
-			Assert.fail();
-		}
+		// Create a different root "b"
+		String r = this.idMap.get("b");
+		this.nodeTreeUpdateDao.create(r, r, new Date());
 	}
 
 	@Test
@@ -295,15 +289,9 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(timestamp, lineage.getTimestamp());
 		Assert.assertEquals(1L, lineage.getVersion().longValue());
 
-		// If we try to update with a different root, we should get an exception
-		try {
-			String b = this.idMap.get("b");
-			this.nodeTreeUpdateDao.update(b, b, new Date());
- 		} catch (RuntimeException e) {
-			Assert.assertNotNull(e.getMessage());
-		} catch (Throwable t) {
-			Assert.fail();
-		}
+		// Update with a different root - Ok
+		String b = this.idMap.get("b");
+		this.nodeTreeUpdateDao.update(b, b, new Date());
 	}
 
 	@Test

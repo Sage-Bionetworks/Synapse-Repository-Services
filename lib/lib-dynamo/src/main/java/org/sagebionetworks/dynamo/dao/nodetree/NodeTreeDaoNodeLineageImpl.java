@@ -52,14 +52,14 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	public boolean create(final String child, final String parent, final Date timestamp)
 			throws IncompletePathException {
 
-		if (child == null) {
-			throw new NullPointerException();
+		if (child == null || child.isEmpty()) {
+			throw new IllegalArgumentException("Child node cannot be null or empty.");
 		}
-		if (parent == null) {
-			throw new NullPointerException();
+		if (parent == null || parent.isEmpty()) {
+			throw new IllegalArgumentException("Parent node cannot be null or empty.");
 		}
 		if (timestamp == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Timestamp cannot be null.");
 		}
 
 		// The root node
@@ -70,10 +70,12 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 				if (child.equals(root)) {
 					return true;
 				}
-				String msg = "The root already exists";
-				msg = msg + " but on a different node. The root is ";
-				msg = msg + root + ". The change node is " + child;
-				throw new RuntimeException(msg);
+				this.delete(root, timestamp);
+				String msg = "The root already exists but on a different node.";
+				msg = msg + " The root currently is " + root + ".";
+				msg = msg + " The changing node's root is " + child + ".";
+				msg = msg + " The current root, " + root + ", has been removed.";
+				this.logger.info(msg);
 			}
 			this.logger.info("Creating root at node " + child + ".");
 			NodeLineagePair pair = new NodeLineagePair(DboNodeLineage.ROOT, child, 0, 1, timestamp);
@@ -133,14 +135,14 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	@Override
 	public boolean update(final String child, final String parent, final Date timestamp) {
 
-		if (child == null) {
-			throw new NullPointerException();
+		if (child == null || child.isEmpty()) {
+			throw new IllegalArgumentException("Child node cannot be null or empty.");
 		}
-		if (parent == null) {
-			throw new NullPointerException();
+		if (parent == null || parent.isEmpty()) {
+			throw new IllegalArgumentException("Parent node cannot be null or empty.");
 		}
 		if (timestamp == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Timestamp cannot be null.");
 		}
 
 		// The root node
@@ -151,13 +153,14 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 				if (child.equals(root)) {
 					return true;
 				}
-				String msg = "The root already exists";
-				msg = msg + " but on a different node. The root is ";
-				msg = msg + root + ". The change node is " + child;
-				throw new RuntimeException(msg);
-			} else {
-				return this.create(child, parent, timestamp);
+				this.delete(root, timestamp);
+				String msg = "The root already exists but on a different node.";
+				msg = msg + " The root currently is " + root + ".";
+				msg = msg + " The changing node's root is " + child + ".";
+				msg = msg + " The current root, " + root + ", has been removed.";
+				this.logger.info(msg);
 			}
+			return this.create(child, parent, timestamp);
 		}
 
 		// If the child is currently pointing to a parent
@@ -260,11 +263,11 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	@Override
 	public boolean delete(String nodeId, Date timestamp) {
 
-		if (nodeId == null) {
-			throw new NullPointerException();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 		if (timestamp == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("Timestamp cannot be null.");
 		}
 
 		// Create a new list that holds this node and its descendants
