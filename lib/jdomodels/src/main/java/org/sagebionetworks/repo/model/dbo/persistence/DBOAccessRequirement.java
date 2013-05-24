@@ -320,7 +320,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 			subjectId.setId(entityId);
 			subjectId.setType(RestrictableObjectType.ENTITY);
-			ar.getSubjectIds().add(subjectId);
+			if (!ar.getSubjectIds().contains(subjectId)) ar.getSubjectIds().add(subjectId);
 		}	
 	}
 	
