@@ -64,25 +64,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 		// The root node
 		if (child.equals(parent)) {
-			NodeLineage rootLineage = this.getRootLineage(this.writeMapper);
-			if (rootLineage != null) {
-				String root = rootLineage.getAncestorOrDescendantId();
-				if (child.equals(root)) {
-					return true;
-				}
-				this.delete(root, timestamp);
-				String msg = "The root already exists but on a different node.";
-				msg = msg + " The root currently is " + root + ".";
-				msg = msg + " The changing node's root is " + child + ".";
-				msg = msg + " The current root, " + root + ", has been removed.";
-				this.logger.info(msg);
-			}
-			this.logger.info("Creating root at node " + child + ".");
-			NodeLineagePair pair = new NodeLineagePair(DboNodeLineage.ROOT, child, 0, 1, timestamp);
-			LineagePairPut put = new LineagePairPut(pair, this.writeMapper);
-			String execId = this.createExecutionId(child, parent, timestamp, "create");
-			DynamoWriteExecution exec = new DynamoWriteExecution(execId, put);
-			return this.writeExecutor.execute(exec);
+			return processRoot(child, timestamp);
 		}
 
 		// Check if this child already exists
@@ -147,20 +129,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 		// The root node
 		if (child.equals(parent)) {
-			NodeLineage rootLineage = this.getRootLineage(this.writeMapper);
-			if (rootLineage != null) {
-				String root = rootLineage.getAncestorOrDescendantId();
-				if (child.equals(root)) {
-					return true;
-				}
-				this.delete(root, timestamp);
-				String msg = "The root already exists but on a different node.";
-				msg = msg + " The root currently is " + root + ".";
-				msg = msg + " The changing node's root is " + child + ".";
-				msg = msg + " The current root, " + root + ", has been removed.";
-				this.logger.info(msg);
-			}
-			return this.create(child, parent, timestamp);
+			return processRoot(child, timestamp);
 		}
 
 		// If the child is currently pointing to a parent
@@ -386,6 +355,42 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 	/////////////////////////////////////////////////////////////////////////////////////
 
+	private boolean processRoot(String newRoot, Date timestamp) {
+
+		// Existing roots
+		List<NodeLineage> existingRoots = this.getRootLineage(this.writeMapper);
+
+		// We should only have one root
+		List<String> rootsToRemove = new ArrayList<String>();
+		for (NodeLineage rootLineage : existingRoots) {
+			String root = rootLineage.getAncestorOrDescendantId();
+			if (!newRoot.equals(root)) {
+				rootsToRemove.add(root);
+			}
+		}
+		for (String rootToRemove : rootsToRemove) {
+			this.delete(rootToRemove, timestamp);
+			String msg = "The existing root " + rootToRemove
+					+ " has been removed and will be replaced by the new root "
+					+ newRoot + ".";
+			this.logger.info(msg);
+		}
+
+		// If there is already one root is the same as the new root
+		int numRemainingRoot = existingRoots.size() - rootsToRemove.size();
+		if (numRemainingRoot == 1) {
+			return true;
+		}
+
+		// Create a new root
+		this.logger.info("Creating root at node " + newRoot + ".");
+		NodeLineagePair pair = new NodeLineagePair(DboNodeLineage.ROOT, newRoot, 0, 1, timestamp);
+		LineagePairPut put = new LineagePairPut(pair, this.writeMapper);
+		String execId = this.createExecutionId(newRoot, newRoot, timestamp, "create");
+		DynamoWriteExecution exec = new DynamoWriteExecution(execId, put);
+		return this.writeExecutor.execute(exec);
+	}
+
 	/**
 	 * Creates an execution ID (name) from the (child, parent) tuple.
 	 */
@@ -399,23 +404,18 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	 * Gets the lineage to the root node. Null if the root does not exist yet.
 	 * This is essentially the pointer from the dummy ROOT to the actual root.
 	 */
-	private NodeLineage getRootLineage(DynamoDBMapper mapper) {
+	private List<NodeLineage> getRootLineage(DynamoDBMapper mapper) {
 
 		assert mapper != null;
 
 		// Use the dummy ROOT to locate the actual root
 		// The actual root is directly below the dummy ROOT
 		List<DboNodeLineage> results = this.query(DboNodeLineage.ROOT, LineageType.DESCENDANT, 1, mapper);
-
-		if (results == null || results.isEmpty()) {
-			return null;
+		List<NodeLineage> roots = new ArrayList<NodeLineage>();
+		for (DboNodeLineage dbo : results) {
+			roots.add(new NodeLineage(dbo));
 		}
-		if (results.size() > 1) {
-			throw new RuntimeException("Dummy ROOT fetches back more than 1 actual root.");
-		}
-
-		NodeLineage lineage = new NodeLineage(results.get(0));
-		return lineage;
+		return roots;
 	}
 
 	/**
@@ -471,7 +471,11 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 		}
 
 		// Start checking from the root
-		final NodeLineage rootLineage = this.getRootLineage(mapper);
+		List<NodeLineage> rootList = this.getRootLineage(mapper);
+		if (rootList.size() > 1) {
+			throw new MultipleRootException("More than 1 root exits.");
+		}
+		final NodeLineage rootLineage = rootList.get(0);
 		if (rootLineage == null) {
 			// The root must exist
 			throw new IncompletePathException("The root does not exist yet in DynamodB.");
