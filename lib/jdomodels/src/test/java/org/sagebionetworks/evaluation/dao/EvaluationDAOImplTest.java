@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -21,6 +22,7 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAOImpl;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,24 +38,33 @@ public class EvaluationDAOImplTest {
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	
+	@Autowired
+	private ParticipantDAO participantDAO;
+	
 	private Evaluation eval;	
+	private Participant participant;
 	List<String> toDelete;
 	
 	private static final String EVALUATION_NAME = "test-evaluation";
 	private static final String EVALUATION_NAME_2 = "test-evaluation-2";
     private static final Long EVALUATION_OWNER_ID = 0L;
     private static final String EVALUATION_CONTENT_SOURCE = "Baz";
+    
+    private static Evaluation newEvaluation(String id, String name, String contentSource, EvaluationStatus status) {
+    	Evaluation evaluation = new Evaluation();
+    	evaluation.setCreatedOn(new Date());
+    	evaluation.setId(id);
+    	evaluation.setName(name);
+        evaluation.setContentSource(contentSource);
+    	evaluation.setStatus(status);
+    	return evaluation;
+    }
 
 	@Before
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
 		// Initialize Evaluation
-		eval = new Evaluation();
-		eval.setCreatedOn(new Date());
-		eval.setId("123");
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
+		eval = newEvaluation("123", EVALUATION_NAME, EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
 	}
 
 	@After
@@ -66,6 +77,10 @@ public class EvaluationDAOImplTest {
 					// Already deleted; carry on
 				}	
 			}
+		}
+		if (participant!=null && participantDAO!=null) {
+			participantDAO.delete(participant.getUserId(), participant.getEvaluationId());
+			participant = null;
 		}
 	}
 	
@@ -162,6 +177,112 @@ public class EvaluationDAOImplTest {
 		List<Evaluation> evalList = evaluationDAO.getInRange(10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));		
+    }
+    
+    @Test
+    public void testGetAvailableNoFilter() throws DatastoreException, NotFoundException {        
+        // Create it
+		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
+		assertNotNull(evalId);
+		toDelete.add(evalId);
+		eval = evaluationDAO.get(evalId);
+		
+		// create another evaluation.  Make sure it doesn't appear in query results
+		Evaluation e2 = newEvaluation("456", "rogue", "na", EvaluationStatus.PLANNED);
+		String evalId2 = evaluationDAO.create(e2, 1L);
+		assertNotNull(evalId2);
+		toDelete.add(evalId2);
+		
+		// search for it
+		// I can find my own evaluation...
+		List<Long> pids;
+		List<Evaluation> evalList;
+
+		// those who have not joined do not get this result
+		long participantId = 0L;
+		pids = Arrays.asList(new Long[]{participantId,104L});
+		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
+		// check that an empty principal list works too
+		pids = Arrays.asList(new Long[]{});
+		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
+
+		// Now join the Evaluation
+		participant = new Participant();
+		participant.setCreatedOn(new Date());
+		participant.setUserId(""+participantId);
+		participant.setEvaluationId(eval.getId());
+		participantDAO.create(participant);
+		
+		// As a participant, I can find:
+		pids = Arrays.asList(new Long[]{participantId,104L});
+		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
+		// non-participants  cannot find
+		pids = Arrays.asList(new Long[]{110L,111L});
+		evalList = evaluationDAO.getAvailableInRange(pids, null, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
+    }
+    
+    @Test
+    public void testGetAvailableStatusFilter() throws DatastoreException, NotFoundException {        
+        // Create it
+		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
+		assertNotNull(evalId);
+		toDelete.add(evalId);
+		eval = evaluationDAO.get(evalId);
+		
+		// create another evaluation.  Make sure it doesn't appear in query results
+		Evaluation e2 = newEvaluation("456", "rogue", "na", EvaluationStatus.PLANNED);
+		String evalId2 = evaluationDAO.create(e2, 1L);
+		assertNotNull(evalId2);
+		toDelete.add(evalId2);
+		
+		// search for it
+		// I can find my own PLANNED evaluation...
+		List<Long> pids;
+		List<Evaluation> evalList;
+		
+		// those who have not joined cannot find it available
+		pids = Arrays.asList(new Long[]{});
+		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
+		long participantId = 0L;
+		pids = Arrays.asList(new Long[]{participantId,104L});
+		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
+		
+		// join the Evaluation
+		participant = new Participant();
+		participant.setCreatedOn(new Date());
+		participant.setUserId(""+participantId);
+		participant.setEvaluationId(eval.getId());
+		participantDAO.create(participant);
+		
+		// ... now participants can find it available:
+		pids = Arrays.asList(new Long[]{participantId,104L});
+		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
+		// but not if they give some other status
+		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.OPEN, 10, 0);
+		assertEquals(0, evalList.size());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.OPEN));
+
+		// non-participants cannot find
+		pids = Arrays.asList(new Long[]{110L,111L});
+		evalList = evaluationDAO.getAvailableInRange(pids, EvaluationStatus.PLANNED, 10, 0);
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, EvaluationStatus.PLANNED));
     }
     
     @Test

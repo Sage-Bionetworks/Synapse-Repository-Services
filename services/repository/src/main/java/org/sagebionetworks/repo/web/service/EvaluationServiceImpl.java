@@ -2,32 +2,32 @@ package org.sagebionetworks.repo.web.service;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.Participant;
-import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
-import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -79,6 +79,34 @@ public class EvaluationServiceImpl implements EvaluationService {
 				false				
 			);
 	}
+	
+	/**
+	 * Get a collection of Evaluations in which the user may participate, within a given range
+	 *
+	 * @param userId the userId (email address) of the user making the request
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
+			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) 
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, status, limit, offset);
+		return new PaginatedResults<Evaluation>(
+				request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false				
+			);
+	}
+
 
 	@Override
 	public long getEvaluationCount() throws DatastoreException, NotFoundException {

@@ -29,8 +29,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Retrieves storage usage data.
- *
- * @author ewu
  */
 @Controller
 public class StorageUsageController extends BaseController {

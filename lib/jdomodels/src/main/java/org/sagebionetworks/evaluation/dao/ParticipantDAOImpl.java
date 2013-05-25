@@ -56,7 +56,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void create(Participant dto) throws DatastoreException {		
+	public long create(Participant dto) throws DatastoreException {		
 		// Convert to DBO
 		ParticipantDBO dbo = new ParticipantDBO();
 		copyDtoToDbo(dto, dbo);
@@ -71,6 +71,8 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		} catch (Exception e) {
 			throw new DatastoreException(e.getMessage() + " [userId="+dbo.getUserId()+" evaluationId="+dto.getEvaluationId() + "]", e);
 		}
+		
+		return dbo.getId();
 	}
 
 	@Override
