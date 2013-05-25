@@ -56,7 +56,7 @@ public interface MigrationManager {
 	 * Create or update a batch.
 	 * @param batch - batch of objects to create or update.
 	 */
-	public <T> int[] createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in);
+	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in);
 	
 	/**
 	 * Delete objects by their IDs

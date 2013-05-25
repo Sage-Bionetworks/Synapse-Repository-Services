@@ -156,21 +156,17 @@ public class MigatableTableDAOImplAutowireTest {
 		assertEquals(2, count);
 		assertEquals(startCount, migatableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		// Now restore the data
-		int[] result = migatableTableDAO.createOrUpdateBatch(backupList1);
-		assertNotNull(result);
-		assertEquals(2, result.length);
-		assertEquals(1, result[0]);
-		assertEquals(1, result[1]);
-		result = migatableTableDAO.createOrUpdateBatch(backupList2);
-		assertNotNull(result);
-		assertEquals(2, result.length);
-		assertEquals(1, result[0]);
-		assertEquals(1, result[1]);
+		List<Long> results = migatableTableDAO.createOrUpdateBatch(backupList1);
+		assertNotNull(results);
+		assertEquals(idsToBackup1, results);
+		results = migatableTableDAO.createOrUpdateBatch(backupList2);
+		assertNotNull(results);
+		assertEquals(idsToBackup2, results);
 		// Now make sure if we update again it works
 		backupList1.get(0).setBucketName("updateBucketName");
-		result = migatableTableDAO.createOrUpdateBatch(backupList1);
-		assertNotNull(result);
-		assertEquals(2, result.length);
+		results = migatableTableDAO.createOrUpdateBatch(backupList1);
+		assertNotNull(results);
+		assertEquals(idsToBackup1, results);
 	}
 	
 	/**
