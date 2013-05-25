@@ -33,6 +33,10 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		if(prefix != null && prefix.indexOf(UrlHelpers.ADMIN) > -1){
 			return true;
 		}
+		// We want all migration to go through not matter what.
+		if(prefix != null && prefix.indexOf(UrlHelpers.MIGRATION) > -1){
+			return true;
+		}
 		
 		// Get the current stack status
 		StatusEnum status = stackStatusDao.getCurrentStatus();
