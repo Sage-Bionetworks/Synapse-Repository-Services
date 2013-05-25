@@ -46,15 +46,13 @@ public class MigrationClientMain {
 	 * @throws IOException
 	 */
 	public static void loadConfigUsingArgs(MigrationConfigurationImpl configuration, String[] args) throws IOException {
-		// Load the location of the configuration property file
-		if (args == null) {
-			throw new IllegalArgumentException(	"The first argument must be the configuration property file path.");
+		if (args != null && args.length == 1) {
+			// Load and validate from file
+			String path = args[0];
+			configuration.loadConfigurationFile(path);
+		} else {
+			// Validate System properties
+			configuration.validateConfigurationProperties();
 		}
-		if (args.length != 1) {
-			throw new IllegalArgumentException(	"The first argument must be the configuration property file path. args.length: "+args.length);
-		}
-		String path = args[0];
-		// Load all of the configuration information.
-		configuration.loadConfigurationFile(path);
 	}
 }
