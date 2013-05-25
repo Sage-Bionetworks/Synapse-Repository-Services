@@ -25,11 +25,6 @@
 			"type": "string",
 			"required": true
 		},
-		"isAttachment": {
-			"description": "Is this an attachment.",
-			"type": "boolean",
-			"required": true
-		},
 		"storageProvider": {
 			"description": "Who provides the storage. Example: AWS S3, local storage.",
 			"$ref": "org.sagebionetworks.repo.model.LocationTypeNames",
