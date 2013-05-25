@@ -12,9 +12,10 @@ public interface ParticipantDAO {
 	 * Create a new Participant
 	 * 
 	 * @param dto
+	 * @ return the ID
 	 * @throws DatastoreException
 	 */
-	public void create(Participant dto) throws DatastoreException;
+	public long create(Participant dto) throws DatastoreException;
 
 	/**
 	 * Get a Participant by UserID and EvaluationId

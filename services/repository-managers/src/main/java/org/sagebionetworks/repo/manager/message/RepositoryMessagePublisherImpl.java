@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao.LockType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -35,9 +37,13 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@Autowired
 	AmazonSNSClient awsSNSClient;
 	
+	@Autowired
+	SemaphoreDao semaphoreDao;
+	
 	private boolean shouldMessagesBePublishedToTopic;
 	
 	private int listUnsentMessagePageSize;
+	private long lockTimeoutMS;
 	
 	/**
 	 * This is injected from spring.
@@ -55,6 +61,14 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 */
 	public void setListUnsentMessagePageSize(int listUnsentMessagePageSize) {
 		this.listUnsentMessagePageSize = listUnsentMessagePageSize;
+	}
+
+	/**
+	 * Injected by spring
+	 * @param lockTimeoutMS
+	 */
+	public void setLockTimeoutMS(long lockTimeoutMS) {
+		this.lockTimeoutMS = lockTimeoutMS;
 	}
 
 	/**
@@ -163,33 +177,57 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		// Publish each message to the topic
 		for(ChangeMessage message: currentQueue){
-			try {
-				String json = EntityFactory.createJSONStringForEntity(message);
-				if(log.isTraceEnabled()){
-					log.info("Publishing a message: "+json);
-				}
-				awsSNSClient.publish(new PublishRequest(this.topicArn, json));
-				// Register the message was sent
-				this.transactionalMessanger.registerMessageSent(message.getChangeNumber());
-			} catch (JSONObjectAdapterException e) {
-				// This should not occur.
-				// If it does we want to log it but continue to send messages
-				// as this is called from a timer and not a web-services.
-				log.error("Failed to parse ChangeMessage:", e);
+			publishMessage(message);
+		}
+	}
+
+	/**
+	 * Publish the message and recored it as sent.
+	 * 
+	 * @param message
+	 */
+	private void publishMessage(ChangeMessage message) {
+		try {
+			String json = EntityFactory.createJSONStringForEntity(message);
+			if(log.isTraceEnabled()){
+				log.info("Publishing a message: "+json);
 			}
+			awsSNSClient.publish(new PublishRequest(this.topicArn, json));
+			// Register the message was sent
+			this.transactionalMessanger.registerMessageSent(message.getChangeNumber());
+		} catch (JSONObjectAdapterException e) {
+			// This should not occur.
+			// If it does we want to log it but continue to send messages
+			// as this is called from a timer and not a web-services.
+			log.error("Failed to parse ChangeMessage:", e);
 		}
 	}
 	
 	/**
-	 * Quartz will fire this method on a one minute timer. This timer is used to find messages that have been created but not sent.
-	 * 
+	 * Quartz will fire this method on a 10 second timer. This timer is used to find messages that have been created but not sent.
+	 *  We use a semaphore to ensure only one worker per stack does this task at a time.
 	 */
 	@Override
 	public void timerFiredFindUnsentMessages(){
-		// Add all messages to the queue.
-		List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
-		for(ChangeMessage message: unSentMessages){
-			fireChangeMessage(message);
+		// We use a semaphore to ensure only one worker per stack does this task at a time.
+		String lockToken = semaphoreDao.attemptToAcquireLock(LockType.UNSENT_MESSAGE_WORKER, lockTimeoutMS);
+		if(lockToken != null){
+			log.debug("Acquire the lock with token: "+lockToken);
+			try{
+				// Add all messages to the queue.
+				List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
+				for(ChangeMessage message: unSentMessages){
+					publishMessage(message);
+				}
+			}finally{
+				// Release the lock
+				boolean released = semaphoreDao.releaseLock(LockType.UNSENT_MESSAGE_WORKER, lockToken);
+				if(!released){
+					log.warn("Failed to release the lock with token: "+lockToken);
+				}
+			}
+		}else{
+			log.debug("Did not acquire the lock.");
 		}
 	}
 }

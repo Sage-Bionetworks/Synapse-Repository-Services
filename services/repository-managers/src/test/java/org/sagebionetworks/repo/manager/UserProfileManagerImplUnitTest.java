@@ -11,9 +11,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -24,6 +27,7 @@ public class UserProfileManagerImplUnitTest {
 
 	UserProfileManager userProfileManager;
 	UserProfileDAO mockProfileDAO;
+	UserGroupDAO mockUserGroupDAO;
 	S3TokenManager mockS3TokenManager;
 	UserInfo userInfo;
 	UserGroup user;
@@ -37,10 +41,11 @@ public class UserProfileManagerImplUnitTest {
 	public void before() {
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
 		mockProfileDAO = Mockito.mock(UserProfileDAO.class);
+		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockS3TokenManager = Mockito.mock(S3TokenManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockFavoriteDAO = mock(FavoriteDAO.class);
-		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockS3TokenManager, mockFavoriteDAO);
+		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockS3TokenManager, mockFavoriteDAO);
 		userInfo = new UserInfo(false);
 		adminUserInfo = new UserInfo(true);
 		user = new UserGroup();
@@ -124,4 +129,5 @@ public class UserProfileManagerImplUnitTest {
 		fav.setEntityId(entityId);
 		verify(mockFavoriteDAO).add(fav);
 	}
+
 }

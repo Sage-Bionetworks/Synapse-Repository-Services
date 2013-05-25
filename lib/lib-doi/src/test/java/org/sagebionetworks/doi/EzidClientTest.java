@@ -1,7 +1,9 @@
 package org.sagebionetworks.doi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,6 +47,34 @@ public class EzidClientTest {
 		assertNotNull(httpClient);
 		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
 		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
+	}
+
+	@Test
+	public void testIsStatusOk() throws Exception {
+
+		// Mock status OK
+		HttpResponse mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
+		StatusLine mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		RetryableHttpClient mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		EzidClient client = new EzidClient();
+		ReflectionTestUtils.setField(client, "readClient", mockWriteClient);
+		assertTrue(client.isStatusOk());
+
+		// Mock ISE
+		mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
+		mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		client = new EzidClient();
+		ReflectionTestUtils.setField(client, "readClient", mockWriteClient);
+		assertFalse(client.isStatusOk());
 	}
 
 	@Test

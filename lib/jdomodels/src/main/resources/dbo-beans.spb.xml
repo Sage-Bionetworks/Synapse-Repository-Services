@@ -59,6 +59,7 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
 			</list>
 		</property>
 	</bean>

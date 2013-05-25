@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
@@ -55,6 +55,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	@Before
 	public void before(){
 		assertNotNull(messagePublisher);
+		this.changeDao.deleteAllChanges();
+		assertEquals("Failed to delete all change messages", 0, changeDao.getCurrentChangeNumber());
 		// We do not want to actually send messages as part of this test so we mock the client
 		mockSNSClient = Mockito.mock(AmazonSNSClient.class);
 		messagePublisher.setAwsSNSClient(mockSNSClient);

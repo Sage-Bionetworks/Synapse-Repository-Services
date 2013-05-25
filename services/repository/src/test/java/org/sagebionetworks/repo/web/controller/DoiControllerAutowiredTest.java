@@ -11,6 +11,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.doi.DoiClient;
+import org.sagebionetworks.doi.EzidClient;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DoiAdminDao;
@@ -55,6 +57,12 @@ public class DoiControllerAutowiredTest {
 
 	@Test
 	public void testPutGet() throws Exception {
+
+		// Skip the test if the EZID server is down
+		DoiClient doiClient = new EzidClient();
+		if (!doiClient.isStatusOk()) {
+			return;
+		}
 
 		// Put without version
 		String uri = UrlHelpers.ENTITY + "/" + entity.getId() + UrlHelpers.DOI;
@@ -145,6 +153,12 @@ public class DoiControllerAutowiredTest {
 
 	@Test
 	public void testPutGetWithNonExistingNode() throws Exception {
+
+		// Skip the test if the EZID server is down
+		DoiClient doiClient = new EzidClient();
+		if (!doiClient.isStatusOk()) {
+			return;
+		}
 
 		String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.DOI;
 		MockHttpServletRequest request = new MockHttpServletRequest();
