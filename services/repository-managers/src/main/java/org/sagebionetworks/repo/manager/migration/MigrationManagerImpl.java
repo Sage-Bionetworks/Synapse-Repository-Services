@@ -87,6 +87,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		return result;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@SuppressWarnings("unchecked")
 	@Override
 	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, OutputStream out) {
@@ -100,7 +101,7 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <B> int[] createOrUpdateBatch(UserInfo user,	MigrationType type, InputStream in) {
+	public List<Long> createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Get the database object from the dao
@@ -108,6 +109,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		return createOrUpdateBatch(mdo, type, in);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) {
 		validateUser(user);
@@ -198,7 +200,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param batch
 	 * @param in
 	 */
-	private <D extends DatabaseObject<D>, B> int[] createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, InputStream in){
+	private <D extends DatabaseObject<D>, B> List<Long> createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, InputStream in){
 		// we use the table name as the Alias
 		String alias = mdo.getTableMapping().getTableName();
 		// Read the list from the stream
@@ -214,7 +216,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			// Now write the batch to the database
 			return migratableTableDao.createOrUpdateBatch(databaseList);
 		}else{
-			return new int[]{0};
+			return new LinkedList<Long>();
 		}
 
 	}

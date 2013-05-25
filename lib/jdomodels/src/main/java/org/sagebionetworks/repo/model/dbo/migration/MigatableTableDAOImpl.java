@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -35,6 +35,26 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
+	
+	/**
+	 * For unit testing.
+	 * @param simpleJdbcTemplate
+	 * @param databaseObjectRegister
+	 * @param maxAllowedPacketBytes
+	 */
+	public MigatableTableDAOImpl(SimpleJdbcTemplate simpleJdbcTemplate,
+			List<MigratableDatabaseObject> databaseObjectRegister,
+			int maxAllowedPacketBytes) {
+		super();
+		this.simpleJdbcTemplate = simpleJdbcTemplate;
+		this.databaseObjectRegister = databaseObjectRegister;
+		this.maxAllowedPacketBytes = maxAllowedPacketBytes;
+	}
+
+	/**
+	 * Default used by Spring
+	 */
+	public MigatableTableDAOImpl(){}
 	/**
 	 * Injected via Spring
 	 */
@@ -98,6 +118,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param dbo
 	 */
 	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
+		if(dbo instanceof AutoIncrementDatabaseObject<?>) throw new IllegalArgumentException("AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "+dbo.getClass().getName());
 		TableMapping mapping = dbo.getTableMapping();
 		DMLUtils.validateMigratableTableMapping(mapping);
 		MigrationType type = dbo.getMigratableTableType();
@@ -199,17 +220,26 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <D extends DatabaseObject<D>> int[] createOrUpdateBatch(List<D> batch) {
+	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch) {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
+		List<Long> createOrUpdateIds = new LinkedList<Long>();
 		// nothing to do with an empty batch
-		if(batch.size() < 1) return new int[0]; 
+		if(batch.size() < 1) return createOrUpdateIds;
+
 		MigrationType type = getTypeForClass(batch.get(0).getClass());
+		FieldColumn backukpIdColumn = this.backupIdColumns.get(type);
 		String sql = getInsertOrUpdateSql(type);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 		for(int i=0; i<batch.size(); i++){
 			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
+			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
+			Long id = (Long) obj;
+			createOrUpdateIds.add(id);
 		}
-		return  simpleJdbcTemplate.batchUpdate(sql, namedParameters);
+		// execute the batch
+		simpleJdbcTemplate.batchUpdate(sql, namedParameters);
+		return createOrUpdateIds;
 	}
 	
 	/**

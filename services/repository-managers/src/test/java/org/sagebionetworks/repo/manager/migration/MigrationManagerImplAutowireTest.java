@@ -135,7 +135,8 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(startCount, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Now restore them from the xml
 		ByteArrayInputStream in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		List<Long> ids = migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		assertEquals(ids1, ids);
 		in = new ByteArrayInputStream(xml2.getBytes("UTF-8"));
 		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
 		// The count should be backup
