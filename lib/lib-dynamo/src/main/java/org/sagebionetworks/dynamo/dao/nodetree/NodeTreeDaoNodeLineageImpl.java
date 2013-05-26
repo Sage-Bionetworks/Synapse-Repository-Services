@@ -357,10 +357,12 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 	private boolean processRoot(String newRoot, Date timestamp) {
 
+		this.logger.info("Processing " + newRoot + " as the root.");
+
 		// Existing roots
 		List<NodeLineage> existingRoots = this.getRootLineage(this.writeMapper);
 
-		// We should only have one root
+		// We should have only one root
 		List<String> rootsToRemove = new ArrayList<String>();
 		for (NodeLineage rootLineage : existingRoots) {
 			String root = rootLineage.getAncestorOrDescendantId();
@@ -383,12 +385,18 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 		}
 
 		// Create a new root
-		this.logger.info("Creating root at node " + newRoot + ".");
+		this.logger.info("Creating root at " + newRoot + ".");
 		NodeLineagePair pair = new NodeLineagePair(DboNodeLineage.ROOT, newRoot, 0, 1, timestamp);
 		LineagePairPut put = new LineagePairPut(pair, this.writeMapper);
 		String execId = this.createExecutionId(newRoot, newRoot, timestamp, "create");
 		DynamoWriteExecution exec = new DynamoWriteExecution(execId, put);
-		return this.writeExecutor.execute(exec);
+		boolean success = this.writeExecutor.execute(exec);
+		if (success) {
+			this.logger.info("Root created at " + newRoot + ".");
+		} else {
+			this.logger.error("Creating root at " + newRoot + " failed.");
+		}
+		return success;
 	}
 
 	/**
