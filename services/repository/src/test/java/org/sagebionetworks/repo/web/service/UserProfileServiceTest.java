@@ -47,8 +47,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class UserProfileServiceTest {
 	
 	private static final String EXTRA_USER_ID = "foo";
+	private static final String USER = "user";
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
+	private static UserInfo ui;
 	
 	private UserProfileService userProfileService = new UserProfileServiceImpl();
 	
@@ -96,12 +98,14 @@ public class UserProfileServiceTest {
 		userInfo = new UserInfo(false);
 		userInfo.setIndividualGroup(new UserGroup());
 		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
+		ui = new UserInfo(false);
 		
 		when(mockPermissionsManager.getGroups()).thenReturn(groups);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(USER)).thenReturn(ui);
 
 		userProfileService.setPermissionsManager(mockPermissionsManager);
 		userProfileService.setUserProfileManager(mockUserProfileManager);
@@ -116,7 +120,7 @@ public class UserProfileServiceTest {
 		ids.add("g1");
 		ids.add("g2");
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(USER, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -134,7 +138,7 @@ public class UserProfileServiceTest {
 		ids.add("g2");
 		ids.add(EXTRA_USER_ID); // should require fetch from repo
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(USER, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -155,7 +159,8 @@ public class UserProfileServiceTest {
 		ids.add("g2");
 		ids.add("g10"); // should not exist
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		String userId = "userId";
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(USER, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
