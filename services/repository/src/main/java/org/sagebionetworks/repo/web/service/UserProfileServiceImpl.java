@@ -146,16 +146,17 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) 
-			throws DatastoreException, NotFoundException {		
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(String userId, List<String> ids) 
+			throws DatastoreException, NotFoundException {
 		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
 			refreshCache();
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
 			UserGroupHeader header = userGroupHeadersIdCache.get(id);
 			if (header == null) {
 				// Header not found in cache; attempt to fetch one from repo
-				header = fetchNewHeader(id);
+				header = fetchNewHeader(userInfo, id);
 				if (header == null)
 					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
 			}
@@ -302,8 +303,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
 	 * check for a UserGroup with the specified ID.
 	 */
-	private UserGroupHeader fetchNewHeader(String id) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserProfile profile = userProfileManager.getUserProfile(null, id);
+	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserProfile profile = userProfileManager.getUserProfile(userInfo, id);
 		UserProfileManagerUtils.clearPrivateFields(null, profile);
 		return profile != null ? convertUserProfileToHeader(profile) : null;
 	}
