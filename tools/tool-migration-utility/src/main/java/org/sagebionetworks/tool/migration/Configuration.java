@@ -42,5 +42,10 @@ public interface Configuration {
 	 * @return
 	 */
 	public int getRetryDenominator();
+	
+	/**
+	 *	FinalSync: indicates that source and destination need to be put in read-only mode for final synchronization 
+	 **/
+	public boolean getFinalSync();
 
 }

@@ -148,5 +148,8 @@ public class MigrationConfigurationImpl implements Configuration {
 		return Integer.parseInt(System.getProperty("org.sagebionetworks.worker.retry.denominator"));
 	}
 
-	
+	@Override
+	public boolean getFinalSync() {
+		return Boolean.parseBoolean(System.getProperty("org.sagebionetworks.finalsync"));
+	}
 }

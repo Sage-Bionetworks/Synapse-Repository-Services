@@ -31,7 +31,7 @@ public class MigrationClientMain {
 		SynapseClientFactory factory = new SynapseClientFactoryImpl(configuration);
 		MigrationClient client = new MigrationClient(factory);
 		try{
-			client.migrateAllTypes(configuration.getMaximumBatchSize(), configuration.getWorkerTimeoutMs(), configuration.getRetryDenominator());
+			client.migrate(configuration.getFinalSync(), configuration.getMaximumBatchSize(), configuration.getWorkerTimeoutMs(), configuration.getRetryDenominator());
 		}catch (Throwable e){
 			log.error("Failed: "+e.getMessage(), e);
 			System.exit(-1);
