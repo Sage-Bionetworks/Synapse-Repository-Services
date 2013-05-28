@@ -189,11 +189,12 @@ public class UserProfileController extends BaseController {
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
 			@RequestHeader HttpHeaders header,
 			@RequestParam(value = UrlHelpers.IDS_PATH_VARIABLE, required = true) String ids,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
 		String[] idsArray = ids.split(",");
 		List<String> idsList = new ArrayList<String>(Arrays.asList(idsArray));
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(idsList);
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, idsList);
 	}
 
 	/**
