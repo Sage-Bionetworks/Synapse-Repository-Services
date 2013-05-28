@@ -44,16 +44,37 @@ public class UserProfileManagerUtilsTest {
 	
 	@Test
 	public void testClearPrivateFields() {
+		String email = "test@example.com";
+		UserInfo userInfo = new UserInfo(false);
 		UserProfile up = new UserProfile();
+		up.setEmail(email);
 		up.setDisplayName("me");
 		AttachmentData pic = new AttachmentData();
 		pic.setPreviewId("a preview ID");
 		up.setPic(pic);
 		up.setRStudioUrl("http://rstudio");
-		UserProfileManagerUtils.clearPrivateFields(up);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
+		assertFalse(email.equals(up.getEmail()));
+		assertTrue(up.getEmail().contains("..."));
 		assertEquals("me", up.getDisplayName());
 		assertEquals(pic, up.getPic());
 		assertNull(up.getRStudioUrl());
+	}
+
+	@Test
+	public void testClearPrivateFieldsAsAdmin() {
+		String email = "test@example.com";
+		UserInfo userInfo = new UserInfo(true);
+		UserProfile up = new UserProfile();
+		up.setEmail(email);
+		up.setDisplayName("me");
+		AttachmentData pic = new AttachmentData();
+		pic.setPreviewId("a preview ID");
+		up.setPic(pic);
+		up.setRStudioUrl("http://rstudio");
+		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
+		assertEquals(email, up.getEmail());
+		assertEquals("me", up.getDisplayName());
 	}
 
 }

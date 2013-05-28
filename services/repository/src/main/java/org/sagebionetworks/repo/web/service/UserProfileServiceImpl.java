@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -92,23 +93,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile userProfile = userProfileManager.getUserProfile(userInfo, profileId);
-		clearPrivateFields(userInfo, userProfile);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, userProfile);
 		return userProfile;
 	}
 	
-	private void clearPrivateFields(UserInfo userInfo, UserProfile userProfile){
-		if (userProfile != null) {
-			boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
-			if (!canSeePrivate) {
-				String obfuscatedEmail = "";
-				if (userProfile.getEmail() != null && userProfile.getEmail().length() > 0)
-					obfuscatedEmail = StringUtil.obfuscateEmailAddress(userProfile.getEmail());
-
-				UserProfileManagerUtils.clearPrivateFields(userProfile);
-				userProfile.setEmail(obfuscatedEmail);
-			}
-		}
-	}
 	
 	@Override
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
@@ -116,10 +104,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
+		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl, true);
 		List<UserProfile> profileResults = results.getResults();
 		for (UserProfile profile : profileResults) {
-			clearPrivateFields(userInfo, profile);
+			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		}
 		return new PaginatedResults<UserProfile>(
 				request.getServletPath()+UrlHelpers.USER, 
@@ -159,16 +147,23 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(String userId, List<String> ids) 
 			throws DatastoreException, NotFoundException {		
 		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
 			refreshCache();
+		UserInfo userInfo;
+		if(userId != null) {
+			userInfo = userManager.getUserInfo(userId);
+		} else {
+			// request is anonymous			
+			userInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		}
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
 			UserGroupHeader header = userGroupHeadersIdCache.get(id);
 			if (header == null) {
 				// Header not found in cache; attempt to fetch one from repo
-				header = fetchNewHeader(id);
+				header = fetchNewHeader(userInfo, id);
 				if (header == null)
 					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
 			}
@@ -224,7 +219,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		for (UserProfile profile : userProfiles) {
 			String email = profile.getEmail();
 			if (profile.getDisplayName() != null) {
-				clearPrivateFields(null, profile);
+				UserProfileManagerUtils.clearPrivateFields(null, profile);
 				header = convertUserProfileToHeader(profile);
 				addToPrefixCache(tempPrefixCache,email, header);
 				addToIdCache(tempIdCache, header);
@@ -315,9 +310,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
 	 * check for a UserGroup with the specified ID.
 	 */
-	private UserGroupHeader fetchNewHeader(String id) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserProfile profile = userProfileManager.getUserProfile(null, id);
-		clearPrivateFields(null, profile);
+	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserProfile profile = userProfileManager.getUserProfile(userInfo, id);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		return profile != null ? convertUserProfileToHeader(profile) : null;
 	}
 

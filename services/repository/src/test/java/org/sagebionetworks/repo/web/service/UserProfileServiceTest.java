@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -114,7 +116,7 @@ public class UserProfileServiceTest {
 		ids.add("g1");
 		ids.add("g2");
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -132,7 +134,7 @@ public class UserProfileServiceTest {
 		ids.add("g2");
 		ids.add(EXTRA_USER_ID); // should require fetch from repo
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -153,7 +155,7 @@ public class UserProfileServiceTest {
 		ids.add("g2");
 		ids.add("g10"); // should not exist
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -308,5 +310,42 @@ public class UserProfileServiceTest {
 		userProfileService.addFavorite(EXTRA_USER_ID, entityId);		
 		fail();
 	}
+	
+	@Test
+	public void testPrivateFieldCleaning() throws Exception {
+		String profileId = "someOtherProfileid";
+		String ownerId = "ownerId";
+		String email = "test@example.com";
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(ownerId);
+		userProfile.setEmail(email);
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		
+		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
+		assertFalse(email.equals(someOtherUserProfile.getEmail()));
+		assertNull(someOtherUserProfile.getEtag());
+	}
+
+	@Test
+	public void testPrivateFieldCleaningAdmin() throws Exception {
+		String profileId = "someOtherProfileid";
+		String ownerId = "ownerId";
+		String email = "test@example.com";
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(ownerId);
+		userProfile.setEmail(email);
+
+		userInfo = new UserInfo(true);
+		userInfo.setIndividualGroup(new UserGroup());
+		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
+		
+		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
+		assertEquals(email, someOtherUserProfile.getEmail());
+		assertNull(someOtherUserProfile.getEtag());
+	}
+
 
 }

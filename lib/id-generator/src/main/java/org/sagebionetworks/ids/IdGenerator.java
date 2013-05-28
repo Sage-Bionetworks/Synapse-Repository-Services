@@ -13,7 +13,8 @@ public interface IdGenerator {
 		WIKI_ID,
 		CHANGE_ID,
 		PARTICIPANT_ID,
-		FAVORITE_ID
+		FAVORITE_ID,
+		ACL_RES_ACC_ID
 	}
 	
 
