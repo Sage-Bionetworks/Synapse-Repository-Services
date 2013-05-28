@@ -8,11 +8,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 public interface NodeTreeQueryService {
 
 	/**
-	 * Gets the root entity. Returns null if the root cannot be found.
-	 */
-	EntityId getRoot(String currUserName) throws UnauthorizedException, DatastoreException;
-
-	/**
 	 * Gets all the ancestors for the specified node. The returned ancestors are
 	 * ordered in that the first the ancestor is the root and the last
 	 * ancestor is the parent. The root will get an empty list of ancestors.

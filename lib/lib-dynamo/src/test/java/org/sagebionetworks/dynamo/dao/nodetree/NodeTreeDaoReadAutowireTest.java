@@ -43,10 +43,8 @@ public class NodeTreeDaoReadAutowireTest {
 	public void before() throws Exception {
 
 		// Clear dynamo
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
@@ -102,10 +100,9 @@ public class NodeTreeDaoReadAutowireTest {
 	@Test
 	public void test() {
 
-		// testGetRoot()
+		// testIsRoot()
 		{
-			String root = this.nodeTreeQueryDao.getRoot();
-			Assert.assertEquals(this.idMap.get("a"), root);
+			Assert.assertTrue(this.nodeTreeQueryDao.isRoot(this.idMap.get("a")));
 		}
 
 		// testGetAncestors()

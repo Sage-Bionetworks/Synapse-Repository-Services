@@ -25,17 +25,6 @@ public class NodeTreeQueryController extends BaseController {
 	private ServiceProvider serviceProvider;
 
 	/**
-	 * Gets the root entity of the entire system.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ROOT, method = RequestMethod.GET)
-	public @ResponseBody EntityId getRoot(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
-			throws DatastoreException, UnauthorizedException {
-		return this.serviceProvider.getNodeTreeQueryService().getRoot(userId);
-	}
-
-	/**
 	 * Gets all the ancestors for the specified node. The returned ancestors are
 	 * ordered in that the first the ancestor is the root and the last
 	 * ancestor is the parent. The root will get an empty list of ancestors.

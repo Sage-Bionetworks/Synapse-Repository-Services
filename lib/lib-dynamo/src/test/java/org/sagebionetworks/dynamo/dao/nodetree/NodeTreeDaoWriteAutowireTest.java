@@ -41,10 +41,8 @@ public class NodeTreeDaoWriteAutowireTest {
 	public void before() {
 
 		// Clear dynamo
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());

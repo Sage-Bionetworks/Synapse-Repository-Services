@@ -13,17 +13,6 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 	private NodeTreeQueryManager nodeTreeQueryManager;
 
 	@Override
-	public EntityId getRoot(String currUserName) throws UnauthorizedException,
-			DatastoreException {
-
-		if (currUserName == null) {
-			throw new IllegalArgumentException("Current user cannot be null.");
-		}
-
-		return this.nodeTreeQueryManager.getRoot(currUserName);
-	}
-
-	@Override
 	public EntityIdList getAncestors(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException {
 

@@ -19,72 +19,72 @@ public class NodeTreeDaoNodeLineageImplPreconditionTest {
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testCreateNullPointerException1() {
+	public void testCreateIllegalArgumentException1() {
 		nodeTreeDao.create(null, "parent", new Date());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testCreateNullPointerException2() {
+	public void testCreateIllegalArgumentException2() {
 		nodeTreeDao.create("child", null, new Date());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testCreateNullPointerException3() {
+	public void testCreateIllegalArgumentException3() {
 		nodeTreeDao.create("child", "parent", null);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testUpdateNullPointerException1() {
+	public void testUpdateIllegalArgumentException1() {
 		nodeTreeDao.update(null, "parent", new Date());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testUpdateNullPointerException2() {
+	public void testUpdateIllegalArgumentException2() {
 		nodeTreeDao.update("child", null, new Date());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testUpdateNullPointerException3() {
+	public void testUpdateIllegalArgumentException3() {
 		nodeTreeDao.update("child", "parent", null);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void testDeleteNullPointerException1() {
+	public void testDeleteIllegalArgumentException1() {
 		nodeTreeDao.delete(null, new Date());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testDeleteNullPointerException2() {
+	public void testDeleteIllegalArgumentException2() {
 		nodeTreeDao.delete("child", null);
 	}
 
-	@Test(expected=NullPointerException.class)
-	public void testGetAncestorsNullPointerException() {
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetAncestorsIllegalArgumentException() {
 		nodeTreeDao.getAncestors(null);
 	}
 
-	@Test(expected=NullPointerException.class)
-	public void testGetParentNullPointerException() {
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetParentIllegalArgumentException() {
 		nodeTreeDao.getParent(null);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetDescendantsNullPointerException1() {
-		nodeTreeDao.getDescendants(null, 3, null);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetDescendantsNullPointerException2() {
-		nodeTreeDao.getDescendants(null, 1, 3, null);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetDescendantsIllegalArgumentException1() {
-		nodeTreeDao.getDescendants("child", 0, null);
+		nodeTreeDao.getDescendants(null, 3, null);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetDescendantsIllegalArgumentException2() {
+		nodeTreeDao.getDescendants(null, 1, 3, null);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetDescendantsIllegalArgumentException3() {
+		nodeTreeDao.getDescendants("child", 0, null);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetDescendantsIllegalArgumentException4() {
 		nodeTreeDao.getDescendants("child", 0, 3, null);
 	}
 }

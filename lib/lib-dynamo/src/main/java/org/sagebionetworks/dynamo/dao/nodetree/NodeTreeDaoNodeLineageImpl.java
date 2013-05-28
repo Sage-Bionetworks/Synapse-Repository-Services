@@ -38,7 +38,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 	public NodeTreeDaoNodeLineageImpl(AmazonDynamoDB dynamoClient) {
 		if (dynamoClient == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("DynamoDB client cannot be null.");
 		}
 		this.dynamoClient = dynamoClient;
 		this.writeMapper = new DynamoDBMapper(this.dynamoClient,
@@ -269,19 +269,27 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	}
 
 	@Override
-	public String getRoot() {
-		List<NodeLineage> descList = this.getDescendants(DboNodeLineage.ROOT, readMapper);
-		if (descList == null || descList.isEmpty()) {
-			return null;
+	public boolean isRoot(String nodeId) {
+
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
-		return descList.get(0).getAncestorOrDescendantId();
+
+		List<NodeLineage> rootList = this.getRootLineage(this.readMapper);
+		for (NodeLineage rootLineage : rootList) {
+			String root = rootLineage.getAncestorOrDescendantId();
+			if (root.equals(nodeId)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override
 	public List<String> getAncestors(String nodeId) throws IncompletePathException {
 
-		if (nodeId == null) {
-			throw new NullPointerException();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		try {
@@ -299,8 +307,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	@Override
 	public String getParent(String nodeId) {
 
-		if (nodeId == null) {
-			throw new NullPointerException();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		NodeLineage parentLineage = this.getParentLineage(nodeId, this.readMapper);
@@ -313,8 +321,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	@Override
 	public List<String> getDescendants(String nodeId, int pageSize, String lastDescIdExcl) {
 
-		if (nodeId == null) {
-			throw new NullPointerException();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 		if (pageSize <= 0) {
 			throw new IllegalArgumentException("Page size must be greater than 0.");
@@ -333,8 +341,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 	@Override
 	public List<String> getDescendants(String nodeId, int generation, int pageSize, String lastDescIdExcl) {
 
-		if (nodeId == null) {
-			throw new NullPointerException();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 		if (generation < 1) {
 			throw new IllegalArgumentException("Must be at least 1 generation away.");
@@ -357,31 +365,20 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 	private boolean processRoot(String newRoot, Date timestamp) {
 
+		assert newRoot != null;
+		assert !newRoot.isEmpty();
+		assert timestamp != null;
+
 		this.logger.info("Processing " + newRoot + " as the root.");
 
-		// Existing roots
+		// If the root already exists
 		List<NodeLineage> existingRoots = this.getRootLineage(this.writeMapper);
-
-		// We should have only one root
-		List<String> rootsToRemove = new ArrayList<String>();
 		for (NodeLineage rootLineage : existingRoots) {
 			String root = rootLineage.getAncestorOrDescendantId();
-			if (!newRoot.equals(root)) {
-				rootsToRemove.add(root);
+			if (root.equals(newRoot.equals(root))) {
+				// The root already exists
+				return true;
 			}
-		}
-		for (String rootToRemove : rootsToRemove) {
-			this.delete(rootToRemove, timestamp);
-			String msg = "The existing root " + rootToRemove
-					+ " has been removed and will be replaced by the new root "
-					+ newRoot + ".";
-			this.logger.info(msg);
-		}
-
-		// If there is already one root is the same as the new root
-		int numRemainingRoot = existingRoots.size() - rootsToRemove.size();
-		if (numRemainingRoot == 1) {
-			return true;
 		}
 
 		// Create a new root
@@ -410,7 +407,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 
 	/**
 	 * Gets the lineage to the root node. Null if the root does not exist yet.
-	 * This is essentially the pointer from the dummy ROOT to the actual root.
+	 * These are essentially the pointers from the dummy ROOT to the actual roots.
 	 */
 	private List<NodeLineage> getRootLineage(DynamoDBMapper mapper) {
 
@@ -478,32 +475,27 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQu
 			throw new NoAncestorException("Empty list of ancestors returned from DynamoDB for node " + node);
 		}
 
-		// Start checking from the root
-		List<NodeLineage> rootList = this.getRootLineage(mapper);
-		if (rootList.size() > 1) {
-			throw new MultipleRootException("More than 1 root exits.");
-		}
-		final NodeLineage rootLineage = rootList.get(0);
-		if (rootLineage == null) {
-			// The root must exist
-			throw new IncompletePathException("The root does not exist yet in DynamodB.");
-		}
-
-		// Check if the last is the root. The last is the either the dummy root or the actual root.
+		// Start from checking the root
+		final List<NodeLineage> rootList = this.getRootLineage(mapper);
 		final NodeLineage lastLineage = new NodeLineage(dboList.get(dboListSize - 1));
 		final String lastNode = lastLineage.getAncestorOrDescendantId();
-		final String root = rootLineage.getAncestorOrDescendantId();
-		if (!DboNodeLineage.ROOT.equals(lastNode) && !root.equals(lastNode)) {
-			throw new IncompletePathException("The list of ancestors for node " + node + " is missing the root.");
-		}
-
-		// If the last node is the dummy node, this node must be the actual root.
-		// No other node points to the dummy node except the actual root.
-		if (DboNodeLineage.ROOT.equals(lastNode)) {
-			if (!root.equals(node)) {
-				throw new IncompletePathException("Node " + node + " is not the root but points to the dummy root.");
+		boolean lastIsRoot = false;
+		for (NodeLineage rootLineage : rootList) {
+			final String root = rootLineage.getAncestorOrDescendantId();
+			if (DboNodeLineage.ROOT.equals(lastNode)) {
+				// If the last node is the dummy node, this node must be the actual root.
+				// No other node points to the dummy node except the actual root.
+				if (root.equals(node)) {
+					lastIsRoot = true;
+					return new ArrayList<NodeLineage>(0);
+				}
+			} else if (root.equals(lastNode)) {
+				lastIsRoot = true;
+				break;
 			}
-			return new ArrayList<NodeLineage>(0);
+		}
+		if (!lastIsRoot) {
+			throw new IncompletePathException("The list of ancestors for node " + node + " is missing the root.");
 		}
 
 		// Check the rest one by one and make sure we get all the nodes on the path
