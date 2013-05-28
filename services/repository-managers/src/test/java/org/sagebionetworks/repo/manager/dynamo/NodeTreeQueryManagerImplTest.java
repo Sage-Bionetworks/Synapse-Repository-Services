@@ -62,7 +62,7 @@ public class NodeTreeQueryManagerImplTest {
 		when(auMan.canAccess(userInfo, nodeCannotAccess, ACCESS_TYPE.READ)).thenReturn(false);
 
 		NodeTreeQueryDao ntDao = mock(NodeTreeQueryDao.class);
-		when(ntDao.getRoot()).thenReturn(KeyFactory.stringToKey(nodeRoot).toString());
+		when(ntDao.isRoot(KeyFactory.stringToKey(nodeRoot).toString())).thenReturn(true);
 		List<String> list = new ArrayList<String>();
 		list.add("1");
 		list.add("2");
@@ -92,12 +92,12 @@ public class NodeTreeQueryManagerImplTest {
 
 	@Test
 	public void testGetRoot() {
-		Assert.assertEquals("syn4489", this.manager.getRoot(this.adminUserId).getId());
+		Assert.assertTrue(this.manager.isRoot(this.adminUserId, "syn4489"));
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetRootUnauthorizedException() {
-		this.manager.getRoot(this.userId);
+		this.manager.isRoot(this.userId, "syn4489");
 	}
 
 	@Test
