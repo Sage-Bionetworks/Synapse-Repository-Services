@@ -209,6 +209,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 */
 	@Override
 	public void timerFiredFindUnsentMessages(){
+		// Do nothing if the messages should not be published.
+		if(!shouldMessagesBePublishedToTopic) return;
 		// We use a semaphore to ensure only one worker per stack does this task at a time.
 		String lockToken = semaphoreDao.attemptToAcquireLock(LockType.UNSENT_MESSAGE_WORKER, lockTimeoutMS);
 		if(lockToken != null){
