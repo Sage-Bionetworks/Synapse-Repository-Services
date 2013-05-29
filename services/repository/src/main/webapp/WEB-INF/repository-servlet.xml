@@ -11,10 +11,9 @@
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
 	<!-- Discover all our controllers -->
-	<context:component-scan base-package="org.sagebionetworks.repo.web.controller, " />
+	<context:component-scan base-package="org.sagebionetworks.repo.web.controller" />
 
 	<!-- Import the manager beans -->
-	<import resource="classpath:file-services-spb.xml" />
 	<import resource="classpath:controller-spb.xml" />
 
 	<!--This bean will intercept all HTTP calls and check the status -->
