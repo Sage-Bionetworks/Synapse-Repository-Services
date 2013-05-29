@@ -157,22 +157,12 @@
 					<deployables>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-authentication</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
 							<artifactId>services-repository</artifactId>
 							<type>war</type>
 						</deployable>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
 							<artifactId>services-workers</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-file</artifactId>
 							<type>war</type>
 						</deployable>
 					</deployables>
@@ -209,12 +199,6 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-authentication</artifactId>
-			<type>war</type>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
 
@@ -223,19 +207,11 @@
 			<artifactId>com.springsource.javax.servlet</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-file</artifactId>
-			<type>war</type>
-		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>
 			<type>war</type>
 		</dependency>
-		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-workers</artifactId>
