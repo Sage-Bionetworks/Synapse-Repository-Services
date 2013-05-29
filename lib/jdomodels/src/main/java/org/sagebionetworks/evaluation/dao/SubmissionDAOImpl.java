@@ -247,6 +247,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid User ID: " + dto.getUserId());
 		}
+		dbo.setSubmitterAlias(dto.getSubmitterAlias());
 		try {
 			dbo.setEvalId(dto.getEvaluationId() == null ? null : Long.parseLong(dto.getEvaluationId()));
 		} catch (NumberFormatException e) {
@@ -268,6 +269,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	protected static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
+		dto.setSubmitterAlias(dbo.getSubmitterAlias());
 		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
 		dto.setVersionNumber(dbo.getVersionNumber());

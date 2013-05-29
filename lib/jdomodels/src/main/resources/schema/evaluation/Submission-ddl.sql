@@ -3,6 +3,7 @@ CREATE TABLE JDOSUBMISSION (
     NAME varchar(256) CHARACTER SET latin1 COLLATE latin1_bin,
     EVALUATION_ID bigint(20) NOT NULL,
     USER_ID bigint(20) NOT NULL,
+    SUBMITTER_ALIAS varchar(256) CHARACTER SET latin1 COLLATE latin1_bin,
     ENTITY_ID bigint(20) NOT NULL,
     ENTITY_BUNDLE mediumblob,
     VERSION bigint(20) NOT NULL,
