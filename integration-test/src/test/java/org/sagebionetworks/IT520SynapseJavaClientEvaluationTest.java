@@ -131,9 +131,11 @@ public class IT520SynapseJavaClientEvaluationTest {
         sub1 = new Submission();
         sub1.setName("submission1");
         sub1.setVersionNumber(1L);
+        sub1.setSubmitterAlias("Team Awesome!");
         sub2 = new Submission();
         sub2.setName("submission2");
         sub2.setVersionNumber(1L);
+        sub2.setSubmitterAlias("Team Even Better!");
 	}
 	
 	@After
