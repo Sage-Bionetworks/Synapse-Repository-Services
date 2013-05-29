@@ -167,17 +167,7 @@
 						</deployable>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-search</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-dynamo</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-rds</artifactId>
+							<artifactId>services-workers</artifactId>
 							<type>war</type>
 						</deployable>
 						<deployable>
@@ -248,17 +238,7 @@
 		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-search</artifactId>
-			<type>war</type>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-rds</artifactId>
-			<type>war</type>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-dynamo</artifactId>
+			<artifactId>services-workers</artifactId>
 			<type>war</type>
 		</dependency>
 
