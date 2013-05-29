@@ -116,7 +116,7 @@ public class UserProfileServiceTest {
 		ids.add("g1");
 		ids.add("g2");
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -134,7 +134,7 @@ public class UserProfileServiceTest {
 		ids.add("g2");
 		ids.add(EXTRA_USER_ID); // should require fetch from repo
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -155,7 +155,7 @@ public class UserProfileServiceTest {
 		ids.add("g2");
 		ids.add("g10"); // should not exist
 		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
