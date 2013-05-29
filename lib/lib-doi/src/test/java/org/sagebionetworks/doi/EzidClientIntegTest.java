@@ -38,16 +38,18 @@ public class EzidClientIntegTest {
 		metadata.setPublicationYear(year);
 		doiCreate.setMetadata(metadata);
 		DoiClient client = new EzidClient();
-		client.create(doiCreate);
-		EzidDoi doiGet = client.get(doiCreate);
-		assertNotNull(doiGet);
-		assertEquals(doi, doiGet.getDoi());
-		assertEquals(target, doiGet.getMetadata().getTarget());
-		assertEquals(creator, doiGet.getMetadata().getCreator());
-		assertEquals(title, doiGet.getMetadata().getTitle());
-		assertEquals(publisher, doiGet.getMetadata().getPublisher());
-		assertEquals(year, doiGet.getMetadata().getPublicationYear());
-		assertNotNull(doiGet.getMetadata().getOriginalMetadata());
+		if (client.isStatusOk()) {
+			client.create(doiCreate);
+			EzidDoi doiGet = client.get(doiCreate);
+			assertNotNull(doiGet);
+			assertEquals(doi, doiGet.getDoi());
+			assertEquals(target, doiGet.getMetadata().getTarget());
+			assertEquals(creator, doiGet.getMetadata().getCreator());
+			assertEquals(title, doiGet.getMetadata().getTitle());
+			assertEquals(publisher, doiGet.getMetadata().getPublisher());
+			assertEquals(year, doiGet.getMetadata().getPublicationYear());
+			assertNotNull(doiGet.getMetadata().getOriginalMetadata());
+		}
 	}
 
 	@Test
@@ -71,20 +73,22 @@ public class EzidClientIntegTest {
 		metadata.setPublicationYear(year);
 		doiCreate.setMetadata(metadata);
 		DoiClient client = new EzidClient();
-		client.create(doiCreate);
-		// Now change the target and update
-		final String newTarget = target + "#!Home";
-		metadata.setTarget(newTarget);
-		client.update(doiCreate);
-		EzidDoi doiGet = client.get(doiCreate);
-		assertNotNull(doiGet);
-		assertEquals(doi, doiGet.getDoi());
-		assertEquals(newTarget, doiGet.getMetadata().getTarget());
-		assertEquals(creator, doiGet.getMetadata().getCreator());
-		assertEquals(title, doiGet.getMetadata().getTitle());
-		assertEquals(publisher, doiGet.getMetadata().getPublisher());
-		assertEquals(year, doiGet.getMetadata().getPublicationYear());
-		assertNotNull(doiGet.getMetadata().getOriginalMetadata());
+		if (client.isStatusOk()) {
+			client.create(doiCreate);
+			// Now change the target and update
+			final String newTarget = target + "#!Home";
+			metadata.setTarget(newTarget);
+			client.update(doiCreate);
+			EzidDoi doiGet = client.get(doiCreate);
+			assertNotNull(doiGet);
+			assertEquals(doi, doiGet.getDoi());
+			assertEquals(newTarget, doiGet.getMetadata().getTarget());
+			assertEquals(creator, doiGet.getMetadata().getCreator());
+			assertEquals(title, doiGet.getMetadata().getTitle());
+			assertEquals(publisher, doiGet.getMetadata().getPublisher());
+			assertEquals(year, doiGet.getMetadata().getPublicationYear());
+			assertNotNull(doiGet.getMetadata().getOriginalMetadata());
+		}
 	}
 
 	@Test(expected=RuntimeException.class)
@@ -109,7 +113,9 @@ public class EzidClientIntegTest {
 		metadata.setPublicationYear(year);
 		ezidDoi.setMetadata(metadata);
 		DoiClient client = new EzidClient();
-		client.create(ezidDoi);
+		if (client.isStatusOk()) {
+			client.create(ezidDoi);
+		}
 	}
 
 	@Test
@@ -132,7 +138,9 @@ public class EzidClientIntegTest {
 		metadata.setPublicationYear(year);
 		ezidDoi.setMetadata(metadata);
 		DoiClient client = new EzidClient();
-		client.create(ezidDoi);
+		if (client.isStatusOk()) {
+			client.create(ezidDoi);
+		}
 	}
 
 	// If the doi does not exist, EZID does not return
@@ -145,7 +153,9 @@ public class EzidClientIntegTest {
 		ezidDoi.setDto(new Doi());
 		ezidDoi.setMetadata(new EzidMetadata());
 		DoiClient client = new EzidClient();
-		client.get(ezidDoi);
+		if (client.isStatusOk()) {
+			client.get(ezidDoi);
+		}
 	}
 
 	private final Random random = new Random();

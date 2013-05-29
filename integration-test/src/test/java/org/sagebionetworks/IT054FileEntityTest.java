@@ -136,7 +136,7 @@ public class IT054FileEntityTest {
 		assertEquals(fileHandle.getId(), fhr.getList().get(0).getId());
 		assertEquals(previewFileHandle.getId(), fhr.getList().get(1).getId());
 		// Make sure we can get the URLs for this file
-		String expectedKey = fileHandle.getKey();
+		String expectedKey = URLEncoder.encode(fileHandle.getKey(), "UTF-8"); 
 		URL tempUrl = synapse.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedKey) > 0);
@@ -145,7 +145,7 @@ public class IT054FileEntityTest {
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedKey) > 0);
 		// Now get the preview URLs
-		String expectedPreviewKey = previewFileHandle.getKey();
+		String expectedPreviewKey = URLEncoder.encode(previewFileHandle.getKey(), "UTF-8"); 
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForCurrentVersion(file.getId());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);

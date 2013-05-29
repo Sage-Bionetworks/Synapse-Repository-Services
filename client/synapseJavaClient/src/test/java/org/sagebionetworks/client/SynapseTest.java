@@ -463,7 +463,6 @@ public class SynapseTest {
 		usage.setId("4");
 		usage.setLocation("invalidLocation");
 		usage.setUserId("invalidUserId");
-		usage.setIsAttachment(false);
 		
 		List<StorageUsage> usageList = new ArrayList<StorageUsage>();
 		usageList.add(usage);		

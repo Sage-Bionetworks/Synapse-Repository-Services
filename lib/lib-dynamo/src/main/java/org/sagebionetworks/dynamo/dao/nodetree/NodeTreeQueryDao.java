@@ -4,8 +4,6 @@ import java.util.List;
 
 /**
  * Query operations over a tree of nodes.
- *
- * @author Eric Wu
  */
 public interface NodeTreeQueryDao {
 

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -50,49 +51,38 @@ public class MessageSyndicationImplTest {
 	}
 	
 	@Test
-	public void testReFireChangeMessagesSingleBatchWhole() {
+	public void testPastLastNumber(){
+		// Return an empty list when past the last change.
+		when(mockChgDAO.listChanges(100l, null, 100)).thenReturn(new LinkedList<ChangeMessage>());
+		Long next = msgSyndicationImpl.rebroadcastChangeMessages(100l, 100l);
+		Long expecedNext = -1l;
+		assertEquals(expecedNext, next);
+		verify(mockMsgPublisher, never()).fireChangeMessage(any(ChangeMessage.class));
+	}
+	
+	@Test
+	public void testUnderLimit(){
 		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
-		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 10)).thenReturn(expectedChanges);
-		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
-		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 10L);
+		when(mockChgDAO.listChanges(123l, null, 10)).thenReturn(expectedChanges);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(133L);
+		Long next = msgSyndicationImpl.rebroadcastChangeMessages(123l, 10l);
+		Long expecedNext = 133l;
+		assertEquals(expecedNext, next);
 		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
-		assertTrue(-1L == nextChgNum);
 	}
 	
 	@Test
-	public void testReFireChangeMessagesSingleBatchSmaller() {
+	public void testOverLimit(){
 		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
-		List<ChangeMessage> expectedB = getBatchFromChanges(expectedChanges, 7, 0);
-		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 7)).thenReturn(expectedB);
+		when(mockChgDAO.listChanges(123l, null, 10)).thenReturn(expectedChanges);
 		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
-		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 7L);
-		verify(mockMsgPublisher, times(7)).fireChangeMessage(any(ChangeMessage.class));
-		assertTrue(130L == nextChgNum);
-	}
-	
-	@Test
-	public void testReFireChangeMessagesSingleBatchBigger() {
-		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
-		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 11)).thenReturn(expectedChanges);
-		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
-		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 11L);
+		Long next = msgSyndicationImpl.rebroadcastChangeMessages(123l, 10l);
+		Long expecedNext = -1l;
+		assertEquals(expecedNext, next);
 		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
-		assertTrue(-1L == nextChgNum);
 	}
 	
-	@Test
-	public void testRefireChangeMessagesTwoBatchesWhole() {
-		List<ChangeMessage> expectedChanges = generateChanges(137, 100L);
-		List<ChangeMessage> expectedB1 = getBatchFromChanges(expectedChanges, 100, 0);
-		List<ChangeMessage> expectedB2 = getBatchFromChanges(expectedChanges, 100, 1);
-		when(mockChgDAO.listChanges(100L, ObjectType.ENTITY, 100)).thenReturn(expectedB1);
-		when(mockChgDAO.listChanges(200L, ObjectType.ENTITY, 37)).thenReturn(expectedB2);
-		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(236L);
-		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(100L, 137L);
-		verify(mockMsgPublisher, times(137)).fireChangeMessage(any(ChangeMessage.class));
-		assertTrue(-1L == nextChgNum);
-	}
-	
+
 	@Test
 	public void testGetLastChangeNumber() {
 		long startNum = 2345;

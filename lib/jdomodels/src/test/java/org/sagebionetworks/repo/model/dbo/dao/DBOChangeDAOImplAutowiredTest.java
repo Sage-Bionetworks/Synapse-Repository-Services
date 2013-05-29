@@ -327,6 +327,30 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(expectedFiltered, list);
 	}
 	
+	@Test
+	public void testRegisterSentAndListUnsent(){
+		// Create a few messages.
+		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Both should be listed as unsent.
+		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
+		assertEquals(batch, unSent);
+		// Now register one
+		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		// Need to be able to set the same message twice
+		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		unSent = changeDAO.listUnsentMessages(3);
+		assertNotNull(unSent);
+		assertEquals(1, unSent.size());
+		assertEquals(batch.get(0).getChangeNumber(), unSent.get(0).getChangeNumber());
+		// Register the second
+		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		unSent = changeDAO.listUnsentMessages(3);
+		assertNotNull(unSent);
+		assertEquals(0, unSent.size());
+	}
+	
 	/**
 	 * Will add a row to start the a test.
 	 * @return

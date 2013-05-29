@@ -5,8 +5,6 @@ import org.sagebionetworks.dynamo.DynamoWriteOperation;
 /**
  * Sorts write operations to make sure a list write operation are always
  * carried out in deterministic order.
- *
- * @author Eric Wu
  */
 abstract class LineagePairWriteOperation implements DynamoWriteOperation {
 

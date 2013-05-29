@@ -15,8 +15,6 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
 
 /**
  * Maps directly to the DynamoDB table named NodeLineage.
- *
- * @author Eric Wu
  */
 @DynamoDBTable(tableName=DboNodeLineage.TABLE_NAME)
 public class DboNodeLineage implements DynamoTable {

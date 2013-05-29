@@ -4,8 +4,6 @@ import java.util.regex.Pattern;
 
 /**
  * Splits parts of a hash key or rang key so that we can build composite keys.
- *
- * @author Eric Wu
  */
 public class KeyValueSplitter {
 

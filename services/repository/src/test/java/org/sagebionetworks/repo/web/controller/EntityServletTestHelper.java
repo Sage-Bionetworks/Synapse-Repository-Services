@@ -667,6 +667,30 @@ public class EntityServletTestHelper {
 		return new Evaluation(joa);
 	}
 	
+	public PaginatedResults<Evaluation> getAvailableEvaluations(String userId, String status) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.EVALUATION_AVAILABLE);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("limit", "100");
+		request.setParameter("offset", "0");
+		if (status!=null) request.setParameter("status", status);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		PaginatedResults<Evaluation> res = new PaginatedResults<Evaluation>(Evaluation.class);
+		res.initializeFromJSONObject(joa);
+		return res;
+	}
+	
 	public Evaluation updateEvaluation(Evaluation eval, String userId) 
 			throws JSONObjectAdapterException, IOException, NotFoundException,
 			DatastoreException, ServletException

@@ -1,26 +1,32 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.mockito.Mockito.*;
-
-import java.util.Date;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
-import org.sagebionetworks.evaluation.manager.EvaluationManagerImpl;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
@@ -31,6 +37,7 @@ public class EvaluationManagerTest {
 	private static EvaluationManager evaluationManager;
 	private static Evaluation eval;
 	private static Evaluation evalWithId;
+	private static List<Evaluation> evaluations;
 	
 	private static IdGenerator mockIdGenerator;
 	private static EvaluationDAO mockEvaluationDAO;
@@ -87,6 +94,9 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(eval);
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
+    	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
+    	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), (EvaluationStatus)any(), anyLong(), anyLong())).thenReturn(evaluations);
+    	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
     }
 	
 	@Test
@@ -128,6 +138,13 @@ public class EvaluationManagerTest {
 		Evaluation eval2 = evaluationManager.findEvaluation(EVALUATION_NAME);
 		assertEquals(eval, eval2);
 		verify(mockEvaluationDAO).lookupByName(eq(EVALUATION_NAME));
+	}
+	
+	@Test
+	public void testGetAvailableInRange() throws Exception {
+		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, null, 10L, 0L);
+		assertEquals(evaluations, qr.getResults());
+		assertEquals(1L, qr.getTotalNumberOfResults());
 	}
 	
 	@Test(expected=NotFoundException.class)

@@ -32,8 +32,8 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	public StorageUsageSummaryList getUsage(String currUserName,
 			List<StorageUsageDimension> dimensionList) throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException();
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
@@ -52,11 +52,11 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			List<StorageUsageDimension> dimensionList)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException();
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
-		if (userName == null) {
-			throw new NullPointerException();
+		if (userName == null || userName.isEmpty()) {
+			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
@@ -72,8 +72,8 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	public StorageUsageSummaryList getUsageByUserInRange(String currUserName,
 			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException();
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
@@ -89,8 +89,8 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	public StorageUsageSummaryList getUsageByNodeInRange(String currUserName,
 			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException();
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
@@ -107,11 +107,11 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			Integer offset, Integer limit, String urlPath)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException();
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
-		if (userName == null) {
-			throw new NullPointerException();
+		if (userName == null || userName.isEmpty()) {
+			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
@@ -130,11 +130,11 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			String currUserName, String nodeId, Integer offset, Integer limit,
 			String urlPath) throws NotFoundException, UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException();
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
-		if (nodeId == null) {
-			throw new NullPointerException();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		checkAuthorization(currUserName, nodeId);

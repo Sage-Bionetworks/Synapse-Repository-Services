@@ -127,6 +127,12 @@ public class SqlConstants {
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
 	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
 	
+	// Sent messages
+	public static final String TABLE_SENT_MESSAGES					= "SENT_MESSAGES";
+	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
+	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
+	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
+	
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
@@ -332,6 +338,14 @@ public class SqlConstants {
 	public static final String COL_DOI_UPDATED_ON       = "UPDATED_ON";
 	public static final String DDL_FILE_DOI = "schema/Doi-ddl.sql";
 
+	
+	// SEMAPHORE
+	public static final String TABLE_SEMAPHORE 			= "SEMAPHORE";
+	public static final String COL_SEMAPHORE_ID			= "ID";
+	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
+	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
+	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

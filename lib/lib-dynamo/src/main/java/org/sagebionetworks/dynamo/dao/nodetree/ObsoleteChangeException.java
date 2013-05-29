@@ -2,8 +2,6 @@ package org.sagebionetworks.dynamo.dao.nodetree;
 
 /**
  * When the hierarchical change is out-of-date.
- *
- * @author Eric Wu
  */
 public class ObsoleteChangeException extends RuntimeException {
 

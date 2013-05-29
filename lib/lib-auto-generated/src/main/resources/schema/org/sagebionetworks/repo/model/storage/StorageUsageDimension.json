@@ -2,7 +2,6 @@
 	"description": "JSON schema for aggregating dimensions for storage usage.",
 	"type": "string",
 	"enum": [
-		"IS_ATTACHMENT",
 		"STORAGE_PROVIDER",
 		"CONTENT_TYPE",
 		"USER_ID",

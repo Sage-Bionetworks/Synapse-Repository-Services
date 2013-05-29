@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The Migration driver updates the progress and read/writes migration data to zip files.
@@ -46,6 +48,7 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @throws IOException
 	 * @throws InterruptedException 
 	 */
+	@Override
 	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<Long> idsToBackup) throws IOException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
@@ -93,6 +96,8 @@ public class BackupDriverImpl implements BackupDriver {
 		return true;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException {
 		if (source == null)
 			throw new IllegalArgumentException("Source file cannot be null");
@@ -120,10 +125,15 @@ public class BackupDriverImpl implements BackupDriver {
 
 				MigrationType type = getTypeFromFileName(entry.getName());
 				// This is a backup file.
-				int[] results = migrationManager.createOrUpdateBatch(user, type, zin);
-				// Append this id to the log.
-//				progress.appendLog(Arrays.toString(results));
-
+				List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
+				// If this is a primary type then we must clear all data for secondary types
+				// that have these backup ids.
+				List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
+				if(secondaryTypes != null){
+					for(MigrationType secondary: secondaryTypes){
+						migrationManager.deleteObjectsById(user, secondary, primaryIds);
+					}
+				}
 				progress.incrementProgressBy(entry.getCompressedSize());
 				if (log.isTraceEnabled()) {
 					log.trace(progress.toString());

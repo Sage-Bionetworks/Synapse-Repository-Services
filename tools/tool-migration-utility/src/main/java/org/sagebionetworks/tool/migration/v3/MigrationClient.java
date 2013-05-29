@@ -144,20 +144,8 @@ public class MigrationClient {
 		printCount(startDestCounts.getList());
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
-		// Before we start get the change number in the destination.
-		long startChangeNumber = getDestinationCurrentChangeNumber();
-		log.info("The start change number of the destination: "+startChangeNumber);
-		try{
-			// first we need to calculate the deltas
-			migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes);
-		}finally{
-			// After migrating data we need to play changes messages.
-			// This is how all asynchronous workers find out about the changes.
-			long currentChangeNumber = getDestinationCurrentChangeNumber();
-			if(currentChangeNumber > startChangeNumber){
-				replayChangeMessages(startChangeNumber, currentChangeNumber, batchSize);
-			}
-		}
+		// Do the actual migration.
+		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -206,25 +194,6 @@ public class MigrationClient {
 				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator);
 			}
 		}
-	}
-	
-	/**
-	 * Replay all change messages.
-	 * @param startChangeNumber
-	 * @param batchSize
-	 * @throws Exception
-	 */
-	private void replayChangeMessages(long startChangeNumber, long currentChangeNumber, long batchSize) throws Exception {
-		BasicProgress progress = new BasicProgress();
-		ReplayWorker worker = new ReplayWorker(factory.createNewDestinationClient(), startChangeNumber, currentChangeNumber, batchSize, progress);
-		Future<Long> future = this.threadPool.submit(worker);
-		while(!future.isDone()){
-			// Log the progress
-			log.info("Replaying change messages. Progress: "+progress.getCurrentStatus());
-			Thread.sleep(2000);
-		}
-		Long counts = future.get();
-		log.info("Finished replaying: "+counts+" change messages");
 	}
 	
 	/**
