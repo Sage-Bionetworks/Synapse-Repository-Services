@@ -91,7 +91,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		Evaluation eval = evaluationManager.getEvaluation(evalId);
 
 		// add other user (requires admin rights)
-		if (!evaluationManager.isEvalAdmin(userInfo, evalId)) {
+		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE)) {
 			EvaluationUtils.ensureEvaluationIsOpen(eval);
 			throw new UnauthorizedException("User Principal ID: " + principalId + " is not authorized to add other users to Evaluation ID: " + evalId);
 		}
@@ -119,7 +119,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		String principalId = userInfo.getIndividualGroup().getId();
 		
 		// verify permissions
-		if (!evaluationManager.isEvalAdmin(userInfo, evalId)) {
+		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE)) {
 			// user is not an admin; only authorized to cancel their own participation
 			EvaluationUtils.ensureEvaluationIsOpen(evaluationManager.getEvaluation(evalId));
 			if (!principalId.equals(idToRemove))

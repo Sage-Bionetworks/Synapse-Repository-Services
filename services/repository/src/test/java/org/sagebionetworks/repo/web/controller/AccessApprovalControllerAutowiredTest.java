@@ -74,6 +74,8 @@ public class AccessApprovalControllerAutowiredTest {
 	
 	private AccessRequirement entityAccessRequirement = null;
 	private AccessRequirement evaluationAccessRequirement = null;
+	
+	private EntityServletTestHelper entityServletTestHelper = null;
 
 	private static AccessRequirement newAccessRequirement() {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
@@ -87,6 +89,9 @@ public class AccessApprovalControllerAutowiredTest {
 	public void before() throws Exception {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
+		
+		entityServletTestHelper = new EntityServletTestHelper();
+		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
 		testUser = userManager.getUserInfo(userName);
@@ -113,7 +118,7 @@ public class AccessApprovalControllerAutowiredTest {
 		evaluation.setContentSource("content source");
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = ServletTestHelper.createEvaluation(dispatchServlet, evaluation, userName, extraParams);
+		evaluation = entityServletTestHelper.createEvaluation(evaluation, userName);
 		
 		evaluationAccessRequirement = newAccessRequirement();
 		subjectId = new RestrictableObjectDescriptor();
@@ -140,7 +145,7 @@ public class AccessApprovalControllerAutowiredTest {
 			}
 		}
 		ServletTestHelper.deleteAccessRequirements(dispatchServlet, evaluationAccessRequirement.getId().toString(), userName);
-		ServletTestHelper.deleteEvaluation(dispatchServlet, evaluation.getId(), userName, null);
+		entityServletTestHelper.deleteEvaluation(evaluation.getId(), userName);
 	}
 
 	@BeforeClass
