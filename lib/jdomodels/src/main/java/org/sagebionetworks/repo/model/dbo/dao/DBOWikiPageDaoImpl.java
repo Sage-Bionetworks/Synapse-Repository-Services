@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_FILE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ID;
@@ -16,7 +17,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_P
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,10 +24,6 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
@@ -390,49 +386,6 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	@Override
 	public long getCount() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_WIKIPAGES);
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(
-			long offset, long limit, final boolean includeDependencies)
-			throws DatastoreException {
-		List<MigratableObjectData> page = simpleJdbcTemplate.query(SQL_MIGRATEABLE_WIKIPAGE, new RowMapper<MigratableObjectData>() {
-			@Override
-			public MigratableObjectData mapRow(ResultSet rs, int rowNum)throws SQLException {
-				MigratableObjectData mod = new MigratableObjectData();
-				MigratableObjectDescriptor des = new MigratableObjectDescriptor();
-				String ownerId = rs.getString(COL_WIKI_ONWERS_OWNER_ID);
-				ObjectType ownerType = ObjectType.valueOf(rs.getString(COL_WIKI_ONWERS_OBJECT_TYPE));
-				Long wikiPageId = rs.getLong(COL_WIKI_ID);
-				WikiPageKey key = new WikiPageKey(ownerId, ownerType, wikiPageId.toString());
-				des.setId(key.getKeyString());
-				des.setType(MigratableObjectType.WIKIPAGE);
-				mod.setId(des);
-				if(includeDependencies){
-					Long parentId = rs.getLong(COL_WIKI_PARENT_ID);
-					if(rs.wasNull()){
-						parentId = null;
-					}
-					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(1));
-					if(parentId != null){
-						// Add the parent as a dependency.
-						MigratableObjectDescriptor parentMod = new MigratableObjectDescriptor();
-						WikiPageKey parentKey = new WikiPageKey(ownerId, ownerType, parentId.toString());
-						parentMod.setId(parentKey.getKeyString());
-						parentMod.setType(MigratableObjectType.WIKIPAGE);
-						mod.getDependencies().add(parentMod);
-					}
-				}
-				mod.setEtag(rs.getString(COL_WIKI_ETAG));
-				return mod;
-			}
-		}, limit, offset);
-		return new QueryResults<MigratableObjectData>(page, getCount());
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.WIKIPAGE;
 	}
 
 	@Override

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -17,7 +16,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author jmhill
  *
  */
-public interface WikiPageDao extends MigratableDAO {
+public interface WikiPageDao {
 
 	/**
 	 * Create a new WikiPage.
@@ -122,5 +121,7 @@ public interface WikiPageDao extends MigratableDAO {
 	 * @return
 	 */
 	public WikiPageKey lookupWikiKey(String wikiId) throws NotFoundException;
+
+	long getCount() throws DatastoreException;
 
 }

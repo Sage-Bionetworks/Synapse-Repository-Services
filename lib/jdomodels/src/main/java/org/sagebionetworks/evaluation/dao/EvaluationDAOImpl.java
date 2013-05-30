@@ -1,10 +1,17 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ETAG;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_EVAL_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_USER_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_PARTICIPANT;
 
 import java.io.UnsupportedEncodingException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,10 +24,6 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -333,51 +336,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private void lockAndSendTagMessage(EvaluationDBO dbo, ChangeType changeType) {
 		lockForUpdate(dbo.getIdString());
 		tagMessenger.sendMessage(dbo, changeType);		
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData (
-			long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		// get one 'page' of Evaluations (just IDs and eTags)
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);
-			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_SQL_PAGINATED, new RowMapper<MigratableObjectData>() {
-
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					String id = rs.getString(COL_EVALUATION_ID);
-					String etag = rs.getString(COL_EVALUATION_ETAG);
-					MigratableObjectData objectData = new MigratableObjectData();
-					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
-					od.setId(id);
-					od.setType(MigratableObjectType.EVALUATION);
-					objectData.setId(od);
-					objectData.setEtag(etag);
-					
-					// note that the principal specified by ownerId is a required dependency
-					// this dependency does not need to be specified per PLFM-1537
-					
-					return objectData;
-				}
-			
-			}, param);
-		}
-		
-		// return the 'page' of objects, along with the total result count
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int) getCount());
-		return queryResults;
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.EVALUATION;
 	}
 	
 	private static final String SELECT_BY_USER_CORE = 
