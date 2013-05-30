@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
+import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -47,16 +49,10 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public UserProvider testUserProvider;
 	
 	@Autowired
-	public UserGroupDAO userGroupDAO;
-	
-	@Autowired
 	public AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
-	public EvaluationDAO evaluationDAO;
-	
-	@Autowired
-	IdGenerator idGenerator;
+	EvaluationManager evaluationManager;
 	
 	private UserInfo adminUserInfo;
 	
@@ -72,7 +68,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	TermsOfUseAccessRequirement ar;
 
 	@Before
-	public void before() throws Exception{
+	public void before() throws Exception {
 		adminUserInfo = testUserProvider.getTestAdminUserInfo();
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
@@ -92,17 +88,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		adminEvaluation = newEvaluation("admin-name", testUserProvider.getTestAdminUserInfo());
 	}
 	
-	private Evaluation newEvaluation(String name, UserInfo userInfo) {
+	private Evaluation newEvaluation(String name, UserInfo userInfo) throws NotFoundException {
 		Evaluation evaluation = new Evaluation();
 		evaluation.setName(name);
 		evaluation.setCreatedOn(new Date());
 		evaluation.setContentSource("content source");
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation.setId(idGenerator.generateNewId().toString());
-		Long principalId=Long.parseLong(userInfo.getIndividualGroup().getId());
-		String evaluationId = evaluationDAO.create(evaluation, principalId);
-		evaluation.setId(evaluationId);
+		evaluation = evaluationManager.createEvaluation(userInfo, evaluation);
 		return evaluation;
 	}
 	
@@ -123,11 +116,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		}
 		
 		if (evaluation!=null) {
-			evaluationDAO.delete(evaluation.getId());
+			evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
 			evaluation=null;
 		}
 		if (adminEvaluation!=null) {
-			evaluationDAO.delete(adminEvaluation.getId());
+			evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), adminEvaluation.getId());
 			adminEvaluation=null;
 		}
 	}

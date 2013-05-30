@@ -254,9 +254,7 @@ public class MigrationIntegrationAutowireTest {
 		evaluationSubjectId.setId(evaluation.getId());
 		evaluationSubjectId.setType(RestrictableObjectType.EVALUATION);
 		
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId}));
-		// TODO once migration from NodeAccessRequirement to SubjectAccessRequirement is complete, restore the following (and remove the preceding line)
-		//accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId, evaluationSubjectId})); 
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId, evaluationSubjectId})); 
 		accessRequirement = ServletTestHelper.createAccessRequirement(DispatchServletSingleton.getInstance(), accessRequirement, userName, new HashMap<String, String>());
 	}
 	
