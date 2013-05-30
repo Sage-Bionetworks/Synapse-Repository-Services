@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
-public interface FavoriteDAO extends MigratableDAO {
+public interface FavoriteDAO {
 
 	/**
 	 * Adds an entity id to the ownerId's favorites list
@@ -48,5 +48,7 @@ public interface FavoriteDAO extends MigratableDAO {
 	 * @return
 	 */
 	public Favorite getIndividualFavorite(String principalId, String entityId) throws DatastoreException, InvalidModelException, NotFoundException;
+
+	long getCount() throws DatastoreException;
 
 }

@@ -24,12 +24,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -272,36 +268,6 @@ public class DBOAccessRequirementDAOImplTest {
 		catch(ConflictingUpdateException e) {
 			fail("Update from backup should not generate exception even if the e-tag is different.");
 		}
-
-		QueryResults<MigratableObjectData> migrationData = accessRequirementDAO.getMigrationObjectData(0, 10000, true);
-		
-		List<MigratableObjectData> results = migrationData.getResults();
-		assertEquals(1+1+initialCount, results.size()); // "+1" for extra AR added to test PLFM-1477
-		assertEquals(migrationData.getTotalNumberOfResults(), results.size());
-		
-		boolean foundAr = false;
-		for (MigratableObjectData od : results) {
-			MigratableObjectDescriptor obj = od.getId();
-			assertNotNull(obj.getId());
-			assertNotNull(od.getEtag());
-			assertEquals(MigratableObjectType.ACCESSREQUIREMENT, obj.getType());
-			assertNotNull(od.getDependencies());
-			if (obj.getId().equals(clone.getId().toString())) {
-				foundAr=true;
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertTrue(deps.size()>0); // is dependent on 'node'
-				boolean foundNode = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (d.getId().equals(node.getId())) {
-						foundNode = true;
-					}
-					assertEquals(MigratableObjectType.ENTITY, d.getType());
-				}
-				assertTrue("dependencies: "+deps, foundNode);
-			}
-		}
-		assertTrue(foundAr);
-
 		// Delete it
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());

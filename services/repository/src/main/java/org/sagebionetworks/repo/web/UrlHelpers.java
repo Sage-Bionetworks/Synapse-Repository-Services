@@ -406,11 +406,7 @@ public class UrlHelpers {
 	 * These are the new more RESTful backup/restore URLS.
 	 */
 	public static final String DAEMON 						= ADMIN+"/daemon";
-	public static final String BACKUP						= "/backup";
-	public static final String RESTORE						= "/restore";
 	public static final String DAEMON_ID					= "/{daemonId}";
-	public static final String ENTITY_BACKUP_DAMEON			= DAEMON+BACKUP;
-	public static final String ENTITY_RESTORE_DAMEON		= DAEMON+RESTORE;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
 	public static final String CONCEPT	= "/concept";
@@ -511,8 +507,6 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCE_ID = "resourceId";
 	
-	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
-	public static final String GET_ALL_BACKUP_OBJECTS_COUNTS = "/backupObjectsCounts";
 	
 	public static final String MIGRATION = "/migration";
 	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";

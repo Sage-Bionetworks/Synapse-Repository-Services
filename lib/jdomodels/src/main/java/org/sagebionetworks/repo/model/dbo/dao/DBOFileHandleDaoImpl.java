@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -16,10 +17,6 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -229,42 +226,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public long getCount() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_FILES);
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(final long offset, final long limit, final boolean includeDependencies)
-			throws DatastoreException {
-		List<MigratableObjectData> page = simpleJdbcTemplate.query(SQL_GET_MIGRATION_OBJECT_DATA_PAGE, new RowMapper<MigratableObjectData>() {
-			@Override
-			public MigratableObjectData mapRow(ResultSet rs, int rowNum)throws SQLException {
-				MigratableObjectData mod = new MigratableObjectData();
-				MigratableObjectDescriptor des = new MigratableObjectDescriptor();
-				des.setId(""+rs.getLong(COL_FILES_ID));
-				des.setType(MigratableObjectType.FILEHANDLE);
-				mod.setId(des);
-				if(includeDependencies){
-					Long previewId = rs.getLong(COL_FILES_PREVIEW_ID);
-					if(rs.wasNull()){
-						previewId = null;
-					}
-					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(1));
-					if(previewId != null){
-						MigratableObjectDescriptor previewMod = new MigratableObjectDescriptor();
-						previewMod.setId(""+previewId);
-						previewMod.setType(MigratableObjectType.FILEHANDLE);
-						mod.getDependencies().add(previewMod);
-					}
-				}
-				mod.setEtag(rs.getString(COL_FILES_ETAG));
-				return mod;
-			}
-		}, limit, offset);
-		return new QueryResults<MigratableObjectData>(page, getCount());
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.FILEHANDLE;
 	}
 
 	@Override

@@ -54,9 +54,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -77,7 +74,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1247,68 +1243,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
 	}
 	
-	private QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
-			long limit) throws DatastoreException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OFFSET_PARAM_NAME, offset);
-		params.addValue(LIMIT_PARAM_NAME, limit);
-		
-		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED, new RowMapper<MigratableObjectData>() {
-			@Override
-			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-				MigratableObjectData data = new MigratableObjectData();
-				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(rs.getLong(COL_NODE_ID)));
-				data.setEtag(rs.getString(COL_NODE_ETAG));
-				data.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
-				return  data;
-			}
-		}, params);
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
-	
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset,
-			long limit, boolean includeDependencies) throws DatastoreException {
-		
-		// if we don't want dependencies then use an alternate, faster query
-		if (!includeDependencies) return getMigrationObjectDataWithoutDependencies(offset, limit);
-		
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OFFSET_PARAM_NAME, offset);
-		params.addValue(LIMIT_PARAM_NAME, limit);
-		// Note: our goal here is not to list every dependency, but rather just the entity dependencies.
-		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED_DEPENDENCIES, new RowMapper<MigratableObjectData>() {
-			@Override
-			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-				MigratableObjectData data = new MigratableObjectData();
-				long nodeId = rs.getLong(COL_NODE_ID);
-				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
-				data.setEtag(rs.getString(COL_NODE_ETAG));
-				// add the parent and benefactor as a dependency
-				Set<MigratableObjectDescriptor> dependependencies = new HashSet<MigratableObjectDescriptor>(2);
-				// this is null for the root node
-				Long parentId = rs.getLong(COL_NODE_PARENT_ID);
-				if(!rs.wasNull()){
-					// We had a parent id so add it as a dependency.
-					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
-				}
-				// Add the benefactor if it is not this node.
-				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID);
-				if(nodeId != benefactorId){
-					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
-				}
-				data.setDependencies(dependependencies);
-				return  data;
-			}
-		}, params);
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
 
 	@Override
 	public boolean doesNodeHaveChildren(String nodeId) {
@@ -1322,12 +1256,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			return false;
 		}
 	}
-	
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.ENTITY;
-	}
-
 	/*
 	 * Private Methods
 	 */

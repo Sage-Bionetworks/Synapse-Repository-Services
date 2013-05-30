@@ -5,18 +5,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.HashSet;
 import java.util.List;
 
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
@@ -106,46 +98,5 @@ public class DBOTrashCanBackupDaoImpl implements DBOTrashCanBackupDao {
 	@Override
 	public long getCount() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SELECT_COUNT);
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(
-			long offset, long limit, boolean includeDependencies) throws DatastoreException {
-
-		if (limit < 0) {
-			throw new IllegalArgumentException("limit must be greater than 0");
-		}
-		if (offset < 0) {
-			throw new IllegalArgumentException("offset must be greater than 0");
-		}
-
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(OFFSET_PARAM_NAME, offset);
-		param.addValue(LIMIT_PARAM_NAME, limit);
-		List<MigratableObjectData> list = simpleJdbcTemplate.query(SELECT_TRASH_IN_RANGE,
-				new RowMapper<MigratableObjectData>() {
-					@Override
-					public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-						String id = rs.getString(COL_TRASH_CAN_NODE_ID);
-						MigratableObjectData objectData = new MigratableObjectData();
-						MigratableObjectDescriptor od = new MigratableObjectDescriptor();
-						od.setId(id);
-						od.setType(MigratableObjectType.TRASHED_ENTITY);
-						objectData.setId(od);
-						objectData.setEtag(UuidETagGenerator.ZERO_E_TAG);
-						objectData.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
-						return objectData;
-					}
-				}, param);
-
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(list);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.TRASHED_ENTITY;
 	}
 }

@@ -7,9 +7,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -23,75 +20,6 @@ import org.springframework.http.HttpHeaders;
 
 public interface AdministrationService {
 
-	public PaginatedResults<MigratableObjectData> getAllBackupObjects(
-			String userId, Integer offset, Integer limit,
-			Boolean includeDependencies) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
-
-	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(String userId)
-			throws DatastoreException,
-			UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Start a backup daemon.  Monitor the status of the daemon with the getStatus method.
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public BackupRestoreStatus startBackup(String userId, String type,
-			HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException,
-			ConflictingUpdateException;
-
-	/**
-	 * Start a system restore daemon using the passed file name.  The file must be in the 
-	 * the bucket belonging to this stack.
-	 * 
-	 * @param fileName
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public BackupRestoreStatus startRestore(RestoreSubmission file,
-			String userId, String type, HttpHeaders header,
-			HttpServletRequest request) throws DatastoreException,
-			InvalidModelException, UnauthorizedException, NotFoundException,
-			IOException, ConflictingUpdateException;
-
-	/**
-	 * Delete a migratable object
-	 * 
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public void deleteMigratableObject(String userId, String objectId,
-			String type, HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException,
-			ConflictingUpdateException;
 
 	/**
 	 * Get the status of a running daemon (either a backup or restore)

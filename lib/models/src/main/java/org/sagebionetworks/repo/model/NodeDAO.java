@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author jmhill
  *
  */
-public interface NodeDAO extends MigratableDAO {
+public interface NodeDAO {
 
 	/**
 	 * the value to pass into the node to remove the generatedBy link between node and activity
@@ -403,6 +403,8 @@ public interface NodeDAO extends MigratableDAO {
 	 * @return
 	 */
 	public String lockNode(Long longId);
+
+	long getCount();
 
 
 }

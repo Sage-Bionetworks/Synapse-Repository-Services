@@ -31,9 +31,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -50,8 +47,6 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -1165,42 +1160,6 @@ public class ServletTestHelper {
 	}
 
 	/**
-	 * Start the a system backup.
-	 * 
-	 * @param dispatchServlet
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public static BackupRestoreStatus startBackup(HttpServlet dispatchServlet,
-			String userId, BackupSubmission submission)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY_BACKUP_DAMEON);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.setParameter(UrlHelpers.MIGRATION_TYPE_PARAM, MigratableObjectType.ENTITY.name());
-		// Add a body if we were provided a list of entities.
-		if (submission != null) {
-			request.addHeader("Content-Type", "application/json; charset=UTF-8");
-			StringWriter out = new StringWriter();
-			objectMapper.writeValue(out, submission);
-			String body = out.toString();
-			request.setContent(body.getBytes("UTF-8"));
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (BackupRestoreStatus) objectMapper.readValue(
-				response.getContentAsString(), BackupRestoreStatus.class);
-	}
-
-	/**
 	 * Get the status of a backup/restore daemon
 	 * 
 	 * @param dispatchServlet
@@ -1286,40 +1245,6 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		return (StackStatus) objectMapper.readValue(response.getContentAsString(), StackStatus.class);
-	}
-
-	/**
-	 * Start a system restore daemon
-	 * 
-	 * @param dispatchServlet
-	 * @param uesrId
-	 * @param fileName
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public static BackupRestoreStatus startRestore(HttpServlet dispatchServlet,
-			String uesrId, RestoreSubmission file) throws ServletException,
-			IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY_RESTORE_DAMEON);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, uesrId);
-		request.setParameter(UrlHelpers.MIGRATION_TYPE_PARAM, MigratableObjectType.ENTITY.name());
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, file);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (BackupRestoreStatus) objectMapper.readValue(
-				response.getContentAsString(), BackupRestoreStatus.class);
 	}
 
 	public static void terminateDaemon(HttpServlet dispatchServlet,
@@ -1958,7 +1883,6 @@ public class ServletTestHelper {
 
 	}
 
-
 	public static void deleteAccessApprovals(
 			HttpServlet dispatchServlet, String id,
 			String userId) throws Exception {
@@ -1973,52 +1897,6 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-	}
-	public static PaginatedResults<MigratableObjectData> getAllMigrationObjects(
-			HttpServlet dispatchServlet, long offset, long limit,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-
-		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				MigratableObjectData.class);
-	}
-
-	public static PaginatedResults<MigratableObjectCount> getMigratableObjectsCounts(
-			HttpServlet dispatchServlet,
-			long offset,
-			long limit,
-			String userId) throws Exception {
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-
-		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				MigratableObjectCount.class);
 	}
 
 	public SynapseVersionInfo getVersionInfo() throws ServletException, IOException {

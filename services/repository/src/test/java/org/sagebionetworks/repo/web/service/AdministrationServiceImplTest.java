@@ -7,7 +7,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
-import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -29,7 +28,6 @@ public class AdministrationServiceImplTest {
 	ObjectTypeSerializer mockObjectTypeSerializer;	
 	UserManager mockUserManager;
 	StackStatusManager mockStackStatusManager;	
-	DependencyManager mockDependencyManager;
 	MessageSyndication mockMessageSyndication;
 	AdministrationServiceImpl adminService;
 	
@@ -44,9 +42,8 @@ public class AdministrationServiceImplTest {
 		mockObjectTypeSerializer = Mockito.mock(ObjectTypeSerializer.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockStackStatusManager = Mockito.mock(StackStatusManager.class);
-		mockDependencyManager = Mockito.mock(DependencyManager.class);
 		mockMessageSyndication = Mockito.mock(MessageSyndication.class);
-		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockDependencyManager, mockMessageSyndication);
+		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockMessageSyndication);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);

@@ -7,16 +7,9 @@ import java.util.Map;
 
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
@@ -76,53 +69,6 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 		super(clientProvider, dataUploader);
 	}
 	
-	public PaginatedResults<MigratableObjectData> getAllMigratableObjectsPaginated(long offset, long limit, boolean includeDependencies)  throws JSONObjectAdapterException, SynapseException  {
-		String uri = GET_ALL_BACKUP_OBJECTS + "?" + 
-			ServiceConstants.PAGINATION_OFFSET_PARAM+"="+offset+"&"+
-			ServiceConstants.PAGINATION_LIMIT_PARAM+"="+limit+"&"+
-			INCLUDE_DEPENDENCIES_PARAM+"="+includeDependencies;
-		JSONObject jsonUsers = getEntity(uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonUsers);
-		PaginatedResults<MigratableObjectData> results = new PaginatedResults<MigratableObjectData>(MigratableObjectData.class);
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	public PaginatedResults<MigratableObjectCount> getMigratableObjectCounts() throws SynapseException {
-		String uri = GET_ALL_BACKUP_COUNTS;
-		JSONObject o = getEntity(uri);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
-		PaginatedResults<MigratableObjectCount> rs = new PaginatedResults<MigratableObjectCount>(MigratableObjectCount.class);
-		try {
-			rs.initializeFromJSONObject(adapter);
-			return rs;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	public void deleteObject(MigratableObjectDescriptor mod)  throws SynapseNotFoundException, SynapseException {
-		deleteUri(DAEMON_RESTORE+"?migrationType="+mod.getType()+"&id="+mod.getId());
-	}
-
-	/**
-	 * @param submission
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission, MigratableObjectType migrationType)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
-		json = createJSONObject(DAEMON_BACKUP+"?migrationType="+migrationType, json);
-		return EntityFactory.createEntityFromJSONObject(json,
-				BackupRestoreStatus.class);
-	}
-	
 	/**
 	 * @param updated
 	 * @return status
@@ -139,22 +85,6 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 				jsonObject.toString(), requestHeaders);
 		return EntityFactory.createEntityFromJSONObject(jsonObject,
 				StackStatus.class);
-	}
-
-	/**
-	 * @param submission
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission, MigratableObjectType migrationType)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject jsonObject = EntityFactory
-				.createJSONObjectForEntity(submission);
-		// Create the entity
-		jsonObject = createJSONObject(DAEMON_RESTORE+"?migrationType="+migrationType, jsonObject);
-		return EntityFactory.createEntityFromJSONObject(jsonObject,
-				BackupRestoreStatus.class);
 	}
 
 	/**
