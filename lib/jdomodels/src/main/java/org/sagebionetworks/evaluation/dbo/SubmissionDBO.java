@@ -7,6 +7,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_E
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_NAME;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
@@ -15,6 +16,7 @@ import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSI
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_EVAL_ID;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_USER_ID;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBMISSION;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBMISSION;
@@ -47,7 +49,8 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_BUNDLE, COL_SUBMISSION_ENTITY_BUNDLE),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
-			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON)
+			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON),
+			new FieldColumn(PARAM_SUBMISSION_SUBMITTER_ALIAS, COL_SUBMISSION_SUBMITTER_ALIAS)
 			};
 
 	public TableMapping<SubmissionDBO> getTableMapping() {
@@ -57,6 +60,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				SubmissionDBO sub = new SubmissionDBO();
 				sub.setId(rs.getLong(COL_SUBMISSION_ID));
 				sub.setUserId(rs.getLong(COL_SUBMISSION_USER_ID));
+				sub.setSubmitterAlias(rs.getString(COL_SUBMISSION_SUBMITTER_ALIAS));
 				sub.setEvalId(rs.getLong(COL_SUBMISSION_EVAL_ID));
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
@@ -89,6 +93,7 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	
 	private Long id;
 	private Long userId;
+	private String submitterAlias;
 	private Long evalId;
 	private Long entityId;
 	private byte[] entityBundle;
@@ -109,6 +114,12 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 		this.userId = userId;
 	}
 
+	public String getSubmitterAlias() {
+		return submitterAlias;
+	}
+	public void setSubmitterAlias(String submitterAlias) {
+		this.submitterAlias = submitterAlias;
+	}
 	public Long getEvalId() {
 		return evalId;
 	}
@@ -154,12 +165,14 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 		int result = 1;
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + Arrays.hashCode(entityBundle);
 		result = prime * result
 				+ ((entityId == null) ? 0 : entityId.hashCode());
-		result = prime * result + Arrays.hashCode(entityBundle);
 		result = prime * result + ((evalId == null) ? 0 : evalId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result
+				+ ((submitterAlias == null) ? 0 : submitterAlias.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		result = prime * result
 				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
@@ -179,12 +192,12 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
+		if (!Arrays.equals(entityBundle, other.entityBundle))
+			return false;
 		if (entityId == null) {
 			if (other.entityId != null)
 				return false;
 		} else if (!entityId.equals(other.entityId))
-			return false;
-		if (!Arrays.equals(entityBundle, other.entityBundle))
 			return false;
 		if (evalId == null) {
 			if (other.evalId != null)
@@ -201,6 +214,11 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (submitterAlias == null) {
+			if (other.submitterAlias != null)
+				return false;
+		} else if (!submitterAlias.equals(other.submitterAlias))
+			return false;
 		if (userId == null) {
 			if (other.userId != null)
 				return false;
@@ -215,11 +233,12 @@ public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, Su
 	}
 	@Override
 	public String toString() {
-		return "SubmissionDBO [id=" + id + ", userId=" + userId + ", evalId="
-				+ evalId + ", entityId=" + entityId
-				+ ", entityWithAnnotations="
+		return "SubmissionDBO [id=" + id + ", userId=" + userId
+				+ ", submitterAlias=" + submitterAlias + ", evalId=" + evalId
+				+ ", entityId=" + entityId + ", entityBundle="
 				+ Arrays.toString(entityBundle) + ", versionNumber="
-				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name + "]";
+				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name
+				+ "]";
 	}
 	@Override
 	public MigrationType getMigratableTableType() {
