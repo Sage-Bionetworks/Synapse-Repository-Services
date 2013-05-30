@@ -109,6 +109,7 @@ public class SubmissionDAOImplTest {
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
+        submission.setSubmitterAlias("Team Awesome");
         submission.setEntityBundleJSON("some bundle");
     }
     
@@ -258,6 +259,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setId("789");
     	subDTO.setName("name");
     	subDTO.setUserId("42");
+    	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
     	subDTO.setEntityBundleJSON("foo");
     	    	
@@ -282,6 +284,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setId("789");
     	subDTO.setName("name");
     	subDTO.setUserId("42");
+    	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
     	// null EntityBundle
     	    	

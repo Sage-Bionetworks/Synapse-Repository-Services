@@ -28,6 +28,10 @@ public class StackConfiguration {
 	private static InetAddress address = null; 
 
 	static {
+		init();
+	}
+
+	public static void init() {
 		configuration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME,
 				TEMPLATE_PROPERTIES);
 		// Load the stack configuration the first time this class is referenced

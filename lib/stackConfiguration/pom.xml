@@ -71,12 +71,10 @@
 
 	<properties>
 		<!-- Build time-determined default property values -->
-		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
-		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
+		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-repository-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
+		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-repository-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
-		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-file-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
-		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/services-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
-		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}</org.sagebionetworks.portal.endpoint>
+		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-repository-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
 	</properties>
 
 	<build>

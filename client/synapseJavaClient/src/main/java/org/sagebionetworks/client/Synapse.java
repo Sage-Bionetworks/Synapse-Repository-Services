@@ -136,8 +136,8 @@ public class Synapse implements SynapseInt {
 
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
-	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.prod.sagebase.org/auth/v1";
-	protected static final String DEFAULT_FILE_ENDPOINT = "https://file-prod.prod.sagebase.org/file/v1";
+	protected static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
+	protected static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
@@ -467,6 +467,31 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 		return userData;
+	}
+	
+	/**
+	 * 
+	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitely accept terms of use
+	 * 
+	 * @param userName
+	 * @param password
+	 * @throws SynapseException 
+	 */
+	public void loginWithNoProfile(String userName, String password) throws SynapseException {
+		JSONObject loginRequest = new JSONObject();
+		JSONObject credentials = null;
+		try {
+			loginRequest.put("email", userName);
+			loginRequest.put(PASSWORD_FIELD, password);
+			
+			credentials = createAuthEntity("/session", loginRequest);
+			String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
+			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+
+		} catch (JSONException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	public UserSessionData getUserSessionData() throws SynapseException {

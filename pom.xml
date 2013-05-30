@@ -311,22 +311,9 @@
 				<artifactId>repository-managers</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-authentication</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-repository</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-file</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
 			</dependency>

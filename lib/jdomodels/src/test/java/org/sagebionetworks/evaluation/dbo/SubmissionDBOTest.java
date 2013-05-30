@@ -120,6 +120,7 @@ public class SubmissionDBOTest {
         submission.setEntityId(Long.parseLong(nodeId));
         submission.setVersionNumber(1L);
         submission.setUserId(userId);
+        submission.setSubmitterAlias("Team Awesome");
         submission.setEvalId(evalId);
         submission.setCreatedOn(System.currentTimeMillis());
         submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));

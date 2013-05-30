@@ -123,6 +123,7 @@ public class SubmissionManagerTest {
         sub.setEntityId(ENTITY_ID);
         sub.setName("subName");
         sub.setUserId(USER_ID);
+        sub.setSubmitterAlias("Team Awesome!");
         sub.setVersionNumber(0L);
         
         sub2 = new Submission();
@@ -131,6 +132,7 @@ public class SubmissionManagerTest {
         sub2.setEntityId(ENTITY2_ID);
         sub2.setName("subName");
         sub2.setUserId(OWNER_ID);
+        sub2.setSubmitterAlias("Team Even More Awesome!");
         sub2.setVersionNumber(0L);
         
         subWithId = new Submission();
@@ -140,6 +142,7 @@ public class SubmissionManagerTest {
         subWithId.setEntityId(ENTITY_ID);
         subWithId.setName("subName");
         subWithId.setUserId(USER_ID);
+        subWithId.setSubmitterAlias("Team Awesome!");
         subWithId.setVersionNumber(0L);
         
         sub2WithId = new Submission();
@@ -149,6 +152,7 @@ public class SubmissionManagerTest {
         sub2WithId.setEntityId(ENTITY2_ID);
         sub2WithId.setName("subName");
         sub2WithId.setUserId(OWNER_ID);
+        sub2WithId.setSubmitterAlias("Team Even More Awesome!");
         sub2WithId.setVersionNumber(0L);
         
         subStatus = new SubmissionStatus();
