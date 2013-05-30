@@ -1,6 +1,5 @@
 package org.sagebionetworks.dynamo.dao.nodetree;
 
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -39,13 +38,8 @@ public class NodeTreeDaoWriteAutowireTest {
 
 	@Before
 	public void before() {
-
-		// Clear dynamo
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
-
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
 		this.idMap = DynamoTestUtil.createRandomIdMap(26);
@@ -53,26 +47,6 @@ public class NodeTreeDaoWriteAutowireTest {
 
 	@After
 	public void after() {
-		if (this.idMap != null) {
-			Collection<String> ids = this.idMap.values();
-			for (String id : ids) {
-				String hashKey = DboNodeLineage.createHashKey(id, LineageType.ANCESTOR);
-				AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-				DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-				List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-				this.dynamoMapper.batchDelete(dboList);
-				hashKey = DboNodeLineage.createHashKey(id, LineageType.DESCENDANT);
-				hashKeyAttr = new AttributeValue().withS(hashKey);
-				queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-				dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-				this.dynamoMapper.batchDelete(dboList);
-			}
-		}
-		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		this.dynamoMapper.batchDelete(dboList);
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
 				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
@@ -80,48 +54,27 @@ public class NodeTreeDaoWriteAutowireTest {
 	@Test
 	public void testCreateRoot() {
 
-		String root = this.idMap.get("a");
-		Date timestamp = new Date();
-		this.nodeTreeUpdateDao.create(root, root, timestamp);
-		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
-		String rangeKey = DboNodeLineage.createRangeKey(1, root);
-		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
-		NodeLineage lineage = new NodeLineage(dbo);
-		Assert.assertEquals(DboNodeLineage.ROOT, lineage.getNodeId());
-		Assert.assertEquals(root, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		Assert.assertEquals(LineageType.DESCENDANT, lineage.getLineageType());
-		Assert.assertEquals(timestamp, lineage.getTimestamp());
-		Assert.assertEquals(1L, lineage.getVersion().longValue());
-		hashKey = DboNodeLineage.createHashKey(root, LineageType.ANCESTOR);
-		rangeKey = DboNodeLineage.createRangeKey(1, DboNodeLineage.ROOT);
-		dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
-		lineage = new NodeLineage(dbo);
-		Assert.assertEquals(root, lineage.getNodeId());
-		Assert.assertEquals(DboNodeLineage.ROOT, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		Assert.assertEquals(LineageType.ANCESTOR, lineage.getLineageType());
-		Assert.assertEquals(timestamp, lineage.getTimestamp());
-		Assert.assertEquals(1L, lineage.getVersion().longValue());
+		final String a = this.idMap.get("a");
+		final Date timestampA = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(a, a, timestampA));
+		this.verifyRoot(a, timestampA);
 
-		// We can "recreate" the same root
-		this.nodeTreeUpdateDao.create(root, root, new Date());
+		// We can "recreate" the same root though nothing should change
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(a, a, new Date()));
+		this.verifyRoot(a, timestampA);
 
-		// If we try to create anther root "b", we should get an exception
-		try {
-			String r = this.idMap.get("b");
-			this.nodeTreeUpdateDao.create(r, r, new Date());
-		} catch (RuntimeException e) {
-			Assert.assertNotNull(e.getMessage());
-		} catch (Throwable t) {
-			Assert.fail();
-		}
+		// We can create a different root at "b"
+		final String b = this.idMap.get("b");
+		final Date timestampB = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(b, b, timestampB));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
 	}
 
 	@Test
-	public void testCreate() {
+	public void testCreatePair() {
 
-		// Will create this tree here
+		// Create a tree like the below
 		//
 		//     a
 		//     |
@@ -129,13 +82,13 @@ public class NodeTreeDaoWriteAutowireTest {
 		//    / \
 		//   c   d
 		//
-		String a = this.idMap.get("a");
-		String b = this.idMap.get("b");
-		String c = this.idMap.get("c");
-		String d = this.idMap.get("d");
+		final String a = this.idMap.get("a");
+		final String b = this.idMap.get("b");
+		final String c = this.idMap.get("c");
+		final String d = this.idMap.get("d");
 
 		// The root does not exist yet
-		// If we try to add a child, we will get back an IncompletePathException
+		// If we try to add a child, we will get back an NoAncestorException
 		try {
 			this.nodeTreeUpdateDao.create(b, a, new Date());
 		} catch (NoAncestorException e) {
@@ -145,97 +98,33 @@ public class NodeTreeDaoWriteAutowireTest {
 		}
 
 		// Now create the root
-		Date timestamp = new Date();
-		this.nodeTreeUpdateDao.create(a, a, timestamp);
+		final Date timestampA = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(a, a, timestampA));
 
 		// We should be able to add a new child under a
-		this.nodeTreeUpdateDao.create(b, a, timestamp);
-		String hashKey = DboNodeLineage.createHashKey(b, LineageType.ANCESTOR);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(1, dboList.size());
-		NodeLineage lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(a, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(a, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(1, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
+		final Date timestampB = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(b, a, timestampB));
+		this.verifyRoot(a, timestampA);
+		this.verifyPair(b, a, timestampB);
 
 		// Now add c under b
-		this.nodeTreeUpdateDao.create(c, b, timestamp);
-		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(2, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		lineage = new NodeLineage(dboList.get(1));
-		Assert.assertEquals(a, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(2, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(a, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(2, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		lineage = new NodeLineage(dboList.get(1));
-		Assert.assertEquals(c, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(2, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(1, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(c, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		
+		final Date timestampC = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, b, timestampC));
+		this.verifyRoot(a, timestampA);
+		this.verifyPair(b, a, timestampB);
+		this.verifyPair(c, b, timestampC);
+		this.verifyPair(c, a, timestampC, 2);
+
 		// Repeat adding c should have no effect
-		this.nodeTreeUpdateDao.create(c, b, timestamp);
-		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(2, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		lineage = new NodeLineage(dboList.get(1));
-		Assert.assertEquals(a, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(2, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(a, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(2, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		lineage = new NodeLineage(dboList.get(1));
-		Assert.assertEquals(c, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(2, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(1, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(c, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, b, new Date()));
+		this.verifyRoot(a, timestampA);
+		this.verifyPair(b, a, timestampB);
+		this.verifyPair(c, b, timestampC);
+		this.verifyPair(c, a, timestampC, 2);
 
 		// Before adding d under b, we manually remove b->a pointer
 		// Which should cause IncompletePathException
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.ANCESTOR);
+		String hashKey = DboNodeLineage.createHashKey(b, LineageType.ANCESTOR);
 		String rangeKey = DboNodeLineage.createRangeKey(1, a);
 		DboNodeLineage d2aDbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
 		this.dynamoMapper.delete(d2aDbo);
@@ -250,64 +139,98 @@ public class NodeTreeDaoWriteAutowireTest {
 		// Add back b->a and we should be able to add d->b
 		d2aDbo.setVersion(null);
 		this.dynamoMapper.save(d2aDbo);
-		this.nodeTreeUpdateDao.create(d, b, new Date());
-		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(2, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		lineage = new NodeLineage(dboList.get(1));
-		Assert.assertEquals(a, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(2, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(a, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(3, dboList.size());
-		lineage = new NodeLineage(dboList.get(0));
-		Assert.assertEquals(b, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		hashKey = DboNodeLineage.createHashKey(b, LineageType.DESCENDANT);
-		hashKeyAttr = new AttributeValue().withS(hashKey);
-		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		Assert.assertEquals(2, dboList.size());
+		final Date timestampD = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(d, b, timestampD));
+		this.verifyRoot(a, timestampA);
+		this.verifyPair(b, a, timestampB);
+		this.verifyPair(c, b, timestampC);
+		this.verifyPair(c, a, timestampC, 2);
+		this.verifyPair(d, b, timestampD);
+		this.verifyPair(d, a, timestampD, 2);
 	}
 
 	@Test
 	public void testUpdateRoot() {
 
 		// When the root does not exist, this should call create() to create the root
-		String root = this.idMap.get("a");
-		Date timestamp = new Date();
-		this.nodeTreeUpdateDao.update(root, root, timestamp);
-		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
-		String rangeKey = DboNodeLineage.createRangeKey(1, root);
-		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
-		NodeLineage lineage = new NodeLineage(dbo);
-		Assert.assertEquals(DboNodeLineage.ROOT, lineage.getNodeId());
-		Assert.assertEquals(root, lineage.getAncestorOrDescendantId());
-		Assert.assertEquals(1, lineage.getDistance());
-		Assert.assertEquals(LineageType.DESCENDANT, lineage.getLineageType());
-		Assert.assertEquals(timestamp, lineage.getTimestamp());
-		Assert.assertEquals(1L, lineage.getVersion().longValue());
+		final String a = this.idMap.get("a");
+		final Date timestampA = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(a, a, timestampA));
+		this.verifyRoot(a, timestampA);
 
-		// If we try to update with a different root, we should get an exception
-		try {
-			String b = this.idMap.get("b");
-			this.nodeTreeUpdateDao.update(b, b, new Date());
- 		} catch (RuntimeException e) {
-			Assert.assertNotNull(e.getMessage());
-		} catch (Throwable t) {
-			Assert.fail();
-		}
+		// Update by adding a different root - should be Ok
+		final String b = this.idMap.get("b");
+		final Date timestampB = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(b, b, timestampB));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
+
+		// Add c, d to a, will have two trees like this
+		//
+		//     a    b
+		//     |
+		//     c
+		//     |
+		//     d
+		//
+		final String c = this.idMap.get("c");
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, a, new Date()));
+		final String d = this.idMap.get("d");
+		final Date timestampD = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(d, c, timestampD));
+
+		// Now promote c to be a new root
+		// We should have three trees after the update
+		//
+		//     a    b    c
+		//               |
+		//               d
+		//
+		final Date timestampC = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(c, c, timestampC));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
+		this.verifyRoot(c, timestampC);
+		this.verifyPair(d, c, timestampD);
+
+		// this has no further effect
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(c, c, new Date()));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
+		this.verifyRoot(c, timestampC);
+		this.verifyPair(d, c, timestampD);
+
+		// this also has no further effect
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, c, new Date()));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
+		this.verifyRoot(c, timestampC);
+		this.verifyPair(d, c, timestampD);
+
+		// Now move c to b
+		// We should have three trees after the update
+		//
+		//     a    b
+		//          |
+		//          c
+		//          |
+		//          d
+		//
+		final Date timestampC2 = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(c, b, timestampC2));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
+		this.verifyPair(c, b, timestampC2);
+		this.verifyPair(d, b, timestampC2, 2);
+
+		// Add e to d to make sure c and d are in a valid state
+		final String e = this.idMap.get("e");
+		final Date timestampE = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(e, d, timestampE));
 	}
 
 	@Test
-	public void testUpdate() {
+	public void testUpdatePair() {
 
 		// Will create this tree here
 		//
@@ -613,5 +536,82 @@ public class NodeTreeDaoWriteAutowireTest {
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
 		dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
 		Assert.assertEquals(0, dboList.size());
+	}
+
+	private void verifyRoot(final String root, final Date timestamp) {
+		// Verify the descendant pointer
+		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
+		String rangeKey = DboNodeLineage.createRangeKey(1, root);
+		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		NodeLineage lineage = new NodeLineage(dbo);
+		Assert.assertEquals(DboNodeLineage.ROOT, lineage.getNodeId());
+		Assert.assertEquals(root, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(1, lineage.getDistance());
+		Assert.assertEquals(LineageType.DESCENDANT, lineage.getLineageType());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(1L, lineage.getVersion().longValue());
+		// Verify the ancestor pointer
+		hashKey = DboNodeLineage.createHashKey(root, LineageType.ANCESTOR);
+		rangeKey = DboNodeLineage.createRangeKey(1, DboNodeLineage.ROOT);
+		dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		lineage = new NodeLineage(dbo);
+		Assert.assertEquals(root, lineage.getNodeId());
+		Assert.assertEquals(DboNodeLineage.ROOT, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(1, lineage.getDistance());
+		Assert.assertEquals(LineageType.ANCESTOR, lineage.getLineageType());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(1L, lineage.getVersion().longValue());
+	}
+
+	private void verifyPair(final String child, final String parent, final Date timestamp) {
+		// Verify the ancestor pointer
+		String hashKey = DboNodeLineage.createHashKey(child, LineageType.ANCESTOR);
+		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
+		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
+		Assert.assertTrue(dboList.size() > 0);
+		NodeLineage lineage = new NodeLineage(dboList.get(0));
+		Assert.assertEquals(child, lineage.getNodeId());
+		Assert.assertEquals(parent, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(1, lineage.getDistance());
+		Assert.assertEquals(LineageType.ANCESTOR, lineage.getLineageType());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(1L, lineage.getVersion().longValue());
+		// Verify the descendant pointer
+		hashKey = DboNodeLineage.createHashKey(parent, LineageType.DESCENDANT);
+		String rangeKey = DboNodeLineage.createRangeKey(1, child);
+		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		lineage = new NodeLineage(dbo);
+		Assert.assertEquals(parent, lineage.getNodeId());
+		Assert.assertEquals(child, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(1, lineage.getDistance());
+		Assert.assertEquals(LineageType.DESCENDANT, lineage.getLineageType());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(1L, lineage.getVersion().longValue());
+	}
+
+	private void verifyPair(final String child, final String parent, final Date timestamp, final int distance) {
+		// Verify the ancestor pointer
+		String hashKey = DboNodeLineage.createHashKey(child, LineageType.ANCESTOR);
+		String rangeKey = DboNodeLineage.createRangeKey(distance, parent);
+		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		NodeLineage lineage = new NodeLineage(dbo);
+		Assert.assertEquals(child, lineage.getNodeId());
+		Assert.assertEquals(parent, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(distance, lineage.getDistance());
+		Assert.assertEquals(LineageType.ANCESTOR, lineage.getLineageType());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(1L, lineage.getVersion().longValue());
+		// Verify the descendant pointer
+		hashKey = DboNodeLineage.createHashKey(parent, LineageType.DESCENDANT);
+		rangeKey = DboNodeLineage.createRangeKey(distance, child);
+		dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		lineage = new NodeLineage(dbo);
+		Assert.assertEquals(parent, lineage.getNodeId());
+		Assert.assertEquals(child, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(distance, lineage.getDistance());
+		Assert.assertEquals(LineageType.DESCENDANT, lineage.getLineageType());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(1L, lineage.getVersion().longValue());
 	}
 }

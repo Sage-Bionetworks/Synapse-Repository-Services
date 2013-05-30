@@ -83,11 +83,10 @@ public class DynamoRdsSynchronizer {
 
 			if (parentInRds == null) {
 				// Check against the root
-				String rootKeyInDynamo = this.nodeTreeQueryDao.getRoot();
-				if (!childKeyInRds.equals(rootKeyInDynamo)) {
-					this.logger.info("Dynamo has the incorrect root. Dynamo's root node is "
-							+ rootKeyInDynamo + ". RDS's root node is " + childKeyInRds);
+				if (!this.nodeTreeQueryDao.isRoot(childKeyInRds)) {
+					this.logger.info("RDS's root node " + childKeyInRds + " is missing in Dynamo.");
 				}
+				this.nodeTreeUpdateManager.create(childKeyInRds, childKeyInRds, date);
 				return;
 			}
 
