@@ -240,7 +240,6 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessWithObjectTypeCompetitionNonCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
 		// This user is not an admin but the should be able to read.
-		//when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(false);
 		assertTrue("User should have read access to any competition.", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.READ));
 		assertFalse("User should not have delete access to this competition.", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 		assertTrue("A user should have PARTICIPATE access to an evaluation", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
@@ -260,12 +259,10 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockAccessRequirementDAO.unmetAccessRequirements(
 				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.PARTICIPATE))).
 				thenReturn(Arrays.asList(new Long[]{101L}));
-		//when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(true);
 		// takes a little more to mock admin access to evaluation
 		String origEvaluationOwner = evaluation.getOwnerId();
 		evaluation.setOwnerId(userInfo.getIndividualGroup().getId());
 		assertTrue("comp admin should always have PARTICIPATE access", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
-		//when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(false);
 		evaluation.setOwnerId(origEvaluationOwner);
 		assertFalse("non-admin shouldn't have PARTICIPATE access if there are unmet requirements", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
 	}
