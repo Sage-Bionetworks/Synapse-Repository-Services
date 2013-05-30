@@ -139,14 +139,14 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 	private boolean updatePair(final String child, final String parent, final Date timestamp) {
 
 		// To update, make sure we are working with a newer change
-		NodeLineage parentLineage = NodeTreeDaoUtils.getParentLineage(child, writeMapper);
+		final NodeLineage parentLineage = NodeTreeDaoUtils.getParentLineage(child, writeMapper);
 		if (timestamp.before(parentLineage.getTimestamp())) {
 			throw new ObsoleteChangeException("Updating pair (child, parent) " + "(" + child + ", " + parent + ") is obsolete.");
 		}
 
 		// If the child is already pointing to the same parent, no update needed
-		String parentId = parentLineage.getAncestorOrDescendantId();
-		if (parent.equals(parentId)) {
+		final String existingParent = parentLineage.getAncestorOrDescendantId();
+		if (parent.equals(existingParent)) {
 			return true;
 		}
 
@@ -221,15 +221,24 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 				putOpList.add(put);
 			}
 		}
-		// In the case of promoting the child to be a root, we need to add a pair of pointers
-		// between the child and dummy ROOT to make the child a root
+
+		// Handle root changes
 		if (asRoot) {
-			int distance = 1;
-			int depth = 0;
+			// In the case of promoting the child to be a root, we need to
+			// add a pair of pointers between the child and dummy ROOT to make it a root
+			final int distance = 1;
+			final int depth = 0;
 			NodeLineagePair rootPair = new NodeLineagePair(DboNodeLineage.ROOT, child,
 					depth, distance, timestamp);
 			LineagePairPut rootPut = new LineagePairPut(rootPair, writeMapper);
 			putOpList.add(rootPut);
+		} else if (DboNodeLineage.ROOT.equals(existingParent)) {
+			// In the case the child already exists as a root, we need to
+			// remove the pair of pointers between the child and dummy ROOT.
+			final int depth = 0;
+			NodeLineagePair rootPair = new NodeLineagePair(parentLineage, depth);
+			LineagePairDelete rootDelete = new LineagePairDelete(rootPair, writeMapper);
+			putOpList.add(rootDelete);
 		}
 
 		logger.info(msg + " -- Removing old pointers.");

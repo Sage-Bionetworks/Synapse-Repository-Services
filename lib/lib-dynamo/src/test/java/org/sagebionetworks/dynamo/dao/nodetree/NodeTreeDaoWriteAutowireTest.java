@@ -103,20 +103,20 @@ public class NodeTreeDaoWriteAutowireTest {
 
 		// We should be able to add a new child under a
 		final Date timestampB = new Date();
-		this.nodeTreeUpdateDao.create(b, a, timestampB);
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(b, a, timestampB));
 		this.verifyRoot(a, timestampA);
 		this.verifyPair(b, a, timestampB);
 
 		// Now add c under b
 		final Date timestampC = new Date();
-		this.nodeTreeUpdateDao.create(c, b, timestampC);
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, b, timestampC));
 		this.verifyRoot(a, timestampA);
 		this.verifyPair(b, a, timestampB);
 		this.verifyPair(c, b, timestampC);
 		this.verifyPair(c, a, timestampC, 2);
 
 		// Repeat adding c should have no effect
-		this.nodeTreeUpdateDao.create(c, b, new Date());
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, b, new Date()));
 		this.verifyRoot(a, timestampA);
 		this.verifyPair(b, a, timestampB);
 		this.verifyPair(c, b, timestampC);
@@ -140,7 +140,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		d2aDbo.setVersion(null);
 		this.dynamoMapper.save(d2aDbo);
 		final Date timestampD = new Date();
-		this.nodeTreeUpdateDao.create(d, b, timestampD);
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(d, b, timestampD));
 		this.verifyRoot(a, timestampA);
 		this.verifyPair(b, a, timestampB);
 		this.verifyPair(c, b, timestampC);
@@ -155,13 +155,13 @@ public class NodeTreeDaoWriteAutowireTest {
 		// When the root does not exist, this should call create() to create the root
 		final String a = this.idMap.get("a");
 		final Date timestampA = new Date();
-		this.nodeTreeUpdateDao.update(a, a, timestampA);
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(a, a, timestampA));
 		this.verifyRoot(a, timestampA);
 
 		// Update by adding a different root - should be Ok
 		final String b = this.idMap.get("b");
 		final Date timestampB = new Date();
-		this.nodeTreeUpdateDao.update(b, b, timestampB);
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(b, b, timestampB));
 		this.verifyRoot(a, timestampA);
 		this.verifyRoot(b, timestampB);
 
@@ -174,10 +174,10 @@ public class NodeTreeDaoWriteAutowireTest {
 		//     d
 		//
 		final String c = this.idMap.get("c");
-		this.nodeTreeUpdateDao.create(c, a, new Date());
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, a, new Date()));
 		final String d = this.idMap.get("d");
 		final Date timestampD = new Date();
-		this.nodeTreeUpdateDao.create(d, c, timestampD);
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(d, c, timestampD));
 
 		// Now promote c to be a new root
 		// We should have three trees after the update
@@ -187,25 +187,46 @@ public class NodeTreeDaoWriteAutowireTest {
 		//               d
 		//
 		final Date timestampC = new Date();
-		this.nodeTreeUpdateDao.update(c, c, timestampC);
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(c, c, timestampC));
 		this.verifyRoot(a, timestampA);
 		this.verifyRoot(b, timestampB);
 		this.verifyRoot(c, timestampC);
 		this.verifyPair(d, c, timestampD);
 
 		// this has no further effect
-		this.nodeTreeUpdateDao.update(c, c, new Date());
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(c, c, new Date()));
 		this.verifyRoot(a, timestampA);
 		this.verifyRoot(b, timestampB);
 		this.verifyRoot(c, timestampC);
 		this.verifyPair(d, c, timestampD);
 
 		// this also has no further effect
-		this.nodeTreeUpdateDao.create(c, c, new Date());
+		Assert.assertTrue(this.nodeTreeUpdateDao.create(c, c, new Date()));
 		this.verifyRoot(a, timestampA);
 		this.verifyRoot(b, timestampB);
 		this.verifyRoot(c, timestampC);
 		this.verifyPair(d, c, timestampD);
+
+		// Now move c to b
+		// We should have three trees after the update
+		//
+		//     a    b
+		//          |
+		//          c
+		//          |
+		//          d
+		//
+		final Date timestampC2 = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(c, b, timestampC2));
+		this.verifyRoot(a, timestampA);
+		this.verifyRoot(b, timestampB);
+		this.verifyPair(c, b, timestampC2);
+		this.verifyPair(d, b, timestampC2, 2);
+
+		// Add e to d to make sure c and d are in a valid state
+		final String e = this.idMap.get("e");
+		final Date timestampE = new Date();
+		Assert.assertTrue(this.nodeTreeUpdateDao.update(e, d, timestampE));
 	}
 
 	@Test
