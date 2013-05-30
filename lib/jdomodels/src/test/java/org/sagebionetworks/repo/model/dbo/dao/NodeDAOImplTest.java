@@ -35,9 +35,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -217,42 +214,6 @@ public class NodeDAOImplTest {
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
 		assertEquals(id, benefactorId);
-		
-		checkMigrationDependenciesNoParentDistinctModifier(id);
-	}
-	
-	public void checkMigrationDependenciesNoParentDistinctModifier(String id) throws Exception {
-		// first check what happens if dependencies are NOT requested
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		boolean foundId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-			
-		}
-		assertTrue(foundId);
-		
-		// now query for objects WITH dependencies
-		results = nodeDao.getMigrationObjectData(0, 10000, true);
-		ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		foundId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-				// since there's no parent or ACL, the only dependency size is zero.
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-		}
-		assertTrue(foundId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -366,9 +327,6 @@ public class NodeDAOImplTest {
 		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
 		assertEquals(parentId, childBenefactorId);
 		
-		
-		checkMigrationDependenciesWithParent(childId, parentId);
-		
 		// now add a grandchild
 		Node grandkid = privateCreateNew("grandchild");
 		grandkid.setParentId(childId);
@@ -378,9 +336,6 @@ public class NodeDAOImplTest {
 		// This grandchild should be inheriting from its grandparent by default
 		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactor(grandkidId);
 		assertEquals(parentId, grandChildBenefactorId);
-		
-		checkMigrationDependenciesWithGrandParent(grandkidId, childId, parentId);
-	
 		
 		// Now delete the parent and confirm the child,grandkid are gone too
 		nodeDao.delete(parentId);
@@ -402,113 +357,7 @@ public class NodeDAOImplTest {
 			System.out.println(e);
 		}
 	}
-	
-	public void checkMigrationDependenciesWithParent(String id, String parentId) throws Exception {
-		// first check what happens if dependencies are NOT requested
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		boolean foundId = false;
-		boolean foundParentId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-			}
-			if (od.getId().getId().equals(parentId)) {
-				foundParentId=true;
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-			
-		}
-		assertTrue(foundId);
-		assertTrue(foundParentId);
-		
-		// now query for objects WITH dependencies
-		results = nodeDao.getMigrationObjectData(0, 10000, true);
-		ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		foundId = false;
-		foundParentId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-				// dependencies are the creator/modifier and the parent/benefactor
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
-				boolean foundParent = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (parentId.equals(d.getId())) {
-						foundParent=true;
-						assertEquals(MigratableObjectType.ENTITY, d.getType());
-					}
-				}
-				assertTrue(foundParent);
-			}
-			if (od.getId().getId().equals(parentId)) {
-				foundParentId = true;
-				// dependencies are the creator/modifier and the parent/benefactor
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
-			}
-		}
-		assertTrue(foundId);
-		assertTrue(foundParentId);
-	}
-	
-	/**
-	 * This is a check for PLFM-1537
-	 * @param id
-	 * @throws Exception
-	 */
-	public void checkMigrationDependenciesWithMultipleRevisions(String id) throws Exception {
-		// first check what happens if dependencies are NOT requested
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		int count = 0;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				count++;
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-			
-		}
-		assertEquals("An entity with multiple revsions should be listed once and only onces in the migration data.",1, count);
-	}
-	
-	public void checkMigrationDependenciesWithGrandParent(String id, String parentId, String grandParentId) throws Exception {
-		// query for objects WITH dependencies
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, true);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		boolean foundId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-				// dependencies are the parent and the grandparent/benefactor
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundParent = false;
-				boolean foundBenefactor = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (parentId.equals(d.getId())) {
-						foundParent=true;
-						assertEquals(MigratableObjectType.ENTITY, d.getType());
-					} else if (grandParentId.equals(d.getId())) {
-						foundBenefactor=true;
-						assertEquals(MigratableObjectType.ENTITY, d.getType());
-					}
-				}
-				assertTrue(foundParent);
-				assertTrue(foundBenefactor);
-			}
-		}
-		assertTrue(foundId);
-	}
+
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateUniqueChildNames() throws Exception {
@@ -817,10 +666,6 @@ public class NodeDAOImplTest {
 		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
 		assertEquals(newRev.getModifiedByPrincipalId(), loaded.getModifiedByPrincipalId());
 		assertEquals(null, loaded.getActivityId());
-		
-		// Validate that a node with multiple revisions is only listed once.
-		// This was added for PLFM-1537
-		checkMigrationDependenciesWithMultipleRevisions(id);
 	}
 	
 	@Test

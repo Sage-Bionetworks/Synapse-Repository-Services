@@ -304,65 +304,6 @@
 	<bean id="backupDaemonLauncher"
 		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
 		scope="singleton" >
-		<!--  the keys in this map  match the enum MigratableObjectType.  The order of this map is not imporant. -->
-		<property name="backupDriverMap">
-			<map>
-				<entry key="PRINCIPAL">
-					<ref bean="principalBackupDriver" />
-				</entry>
-				<entry key="FILEHANDLE">
-					<ref bean="fileHandleBackupDriver" />
-				</entry>
-				<entry key="WIKIPAGE">
-					<ref bean="wikiPageBackupDriver" />
-				</entry>				
-				<entry key="ENTITY">
-					<ref bean="entityBackupDriver" />
-				</entry>
-				<entry key="ACCESSREQUIREMENT">
-					<ref bean="accessRequirementBackupDriver" />
-				</entry>
-				<entry key="ACTIVITY">
-					<ref bean="activityBackupDriver" />
-				</entry>
-				<entry key="EVALUATION">
-					<ref bean="evaluationBackupDriver" />
-				</entry>
-				<entry key="SUBMISSION">
-					<ref bean="submissionBackupDriver" />
-				</entry>
-				<entry key="TRASHED_ENTITY">
-					<ref bean="trashCanBackupDriver" />
-				</entry>
-				<entry key="FAVORITE">
-					<ref bean="favoriteBackupDriver" />
-				</entry>
-				<entry key="DOI">
-					<ref bean="doiBackupDriver" />
-				</entry>
-			</map>
-		</property>
-	</bean>
-
-	<!-- A manager that returns all system objects and their dependencies. -->
-	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl" init-method="init">
-		<property name="migratableDaos">
-		<!-- Note: The order of this list determines the order of data migration. 
-		     The order must also match the order of the types in the MigratableObjectType enum.  -->
-			<list>
-				<ref bean="userGroupDAO"/>
-				<ref bean="fileHandleDao"/>
-				<ref bean="wikiPageDAO"/>
-				<ref bean="activityDao"/>
-				<ref bean="nodeDao"/>
-				<ref bean="accessRequirementDAO"/>
-				<ref bean="evaluationDAO"/>
-				<ref bean="submissionStatusDAO"/>
-				<ref bean="trashCanBackupDao"/>
-				<ref bean="favoriteDao"/>
-				<ref bean="doiMigratableDao"/>
-			</list>
-		</property>
 	</bean>
 	
 		<!-- Used to read document from repo -->

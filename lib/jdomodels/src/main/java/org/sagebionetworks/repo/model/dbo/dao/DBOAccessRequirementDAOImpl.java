@@ -11,44 +11,36 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -259,60 +251,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return basicDao.getCount(DBOAccessRequirement.class);
 	}
 
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
-		// (1) get one 'page' of AccessRequirements (just their IDs and Etags)
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);
-			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_FOR_RANGE_SQL, new RowMapper<MigratableObjectData>() {
-
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					String id = rs.getString(COL_ACCESS_REQUIREMENT_ID);
-					String etag = rs.getString(COL_ACCESS_REQUIREMENT_ETAG);
-					MigratableObjectData objectData = new MigratableObjectData();
-					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
-					od.setId(id);
-					od.setType(MigratableObjectType.ACCESSREQUIREMENT);
-					objectData.setId(od);
-					objectData.setEtag(etag);
-					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
-					return objectData;
-				}
-			
-			}, param);
-		}
-		
-		// (2) find the dependencies
-		if (includeDependencies && !ods.isEmpty()) {
-			Map<String, MigratableObjectData> arMap = new HashMap<String, MigratableObjectData>();	
-			for (MigratableObjectData od: ods) arMap.put(od.getId().getId(), od);
-			
-			List<DBOSubjectAccessRequirement> nars = null;
-			{
-				MapSqlParameterSource param = new MapSqlParameterSource();
-				param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID, arMap.keySet());
-				nars = simpleJdbcTemplate.query(SELECT_FOR_MULTIPLE_SAR_SQL, subjectAccessRequirementRowMapper, param);
-			}
-
-			// (3) add the dependencies to the objects
-			for (DBOSubjectAccessRequirement nar : nars) {
-				MigratableObjectDescriptor od = ObjectDescriptorUtils.createEntityObjectDescriptor(nar.getSubjectId());
-				MigratableObjectData objectData = arMap.get(nar.getAccessRequirementId().toString());
-				objectData.getDependencies().add(od);
-			}
-		}
-		// (4) return the 'page' of objects, along with the total result count
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
-
 	@Transactional(readOnly = true)
 	@Override
 	public List<AccessRequirement> getForSubject(RestrictableObjectDescriptor subject)  throws DatastoreException {
@@ -405,10 +343,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 		// ... now populate with the updated values
 		populateSubjectAccessRequirement(acessRequirementId, subjectIds);
-	}
-	
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.ACCESSREQUIREMENT;
 	}
 	
 }

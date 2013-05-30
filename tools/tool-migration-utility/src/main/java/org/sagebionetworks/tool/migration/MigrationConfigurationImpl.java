@@ -57,7 +57,7 @@ public class MigrationConfigurationImpl implements Configuration {
 	 */
 	public void validateConfigurationProperties() throws IOException{
 		// Load the template from the classpath
-		InputStream in = RepositoryMigrationDriver.class.getClassLoader().getResourceAsStream(CONFIGUATION_TEMPLATE_PROPERTIES);
+		InputStream in = MigrationConfigurationImpl.class.getClassLoader().getResourceAsStream(CONFIGUATION_TEMPLATE_PROPERTIES);
 		if(in == null) throw new IllegalArgumentException("Cannot find: "+CONFIGUATION_TEMPLATE_PROPERTIES+" on the classpath");
 		Properties template = new Properties();
 		try{

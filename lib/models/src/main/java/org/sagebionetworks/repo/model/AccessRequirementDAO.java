@@ -2,11 +2,10 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface AccessRequirementDAO extends MigratableDAO {
+public interface AccessRequirementDAO {
 
 	/**
 	 * @param dto
@@ -80,4 +79,6 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	 */
 	List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds,
 			ACCESS_TYPE accessType) throws DatastoreException;
+
+	long getCount() throws DatastoreException;
 }

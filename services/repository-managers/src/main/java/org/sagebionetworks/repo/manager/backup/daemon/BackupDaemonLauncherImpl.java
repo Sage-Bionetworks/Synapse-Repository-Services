@@ -6,11 +6,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.backup.GenericBackupDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -36,9 +33,6 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	BackupRestoreStatusDAO backupRestoreStatusDao;
 	
 	@Autowired
-	Map<String, GenericBackupDriver> backupDriverMap;
-	
-	@Autowired
 	ExecutorService backupDaemonThreadPool;
 	
 	@Autowired
@@ -46,51 +40,6 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
 	@Autowired
 	BackupDriver backupDriver;
-	
-	// for use by Spring
-	public void setBackupDriverMap(Map<String,GenericBackupDriver> map) {
-		this.backupDriverMap = map;
-	}
-
-	@Override
-	@Deprecated
-	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigratableObjectType migrationType) throws UnauthorizedException, DatastoreException {
-		UserInfo.validateUserInfo(username);
-		// Only an admin can start a backup Daemon
-		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a backup daemon");
-		
-		AmazonS3Client client = createNewAWSClient();
-		
-		GenericBackupDriver typeSpecificBackupDriver = backupDriverMap.get(migrationType.name());
-		if (typeSpecificBackupDriver==null) {
-			throw new IllegalArgumentException("No backupDriver for "+migrationType.toString());
-		}
-		
-		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
-		// Start that bad boy up!
-		return daemon.startBackup(username.getIndividualGroup().getId());
-	}
-
-	
-	@Override
-	@Deprecated
-	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigratableObjectType migrationType)	throws UnauthorizedException, DatastoreException {
-		UserInfo.validateUserInfo(username);
-		// Only an admin can start a backup Daemon
-		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a restoration daemon");
-		
-		AmazonS3Client client = createNewAWSClient();
-		
-		GenericBackupDriver typeSpecificBackupDriver = backupDriverMap.get(migrationType.name());
-		if (typeSpecificBackupDriver==null) {
-			throw new IllegalArgumentException("No backupDriver for "+migrationType.toString());
-		}
-		
-		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
-		return daemon.startRestore(username.getIndividualGroup().getId(), fileName);
-	}
 
 	/**
 	 * Create a new AWS client using the configuration credentials.
@@ -126,22 +75,6 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		return backupRestoreStatusDao.get(id);
 	}
 
-	@Override
-	@Deprecated
-	public void delete(UserInfo user, MigratableObjectDescriptor mod)
-			throws UnauthorizedException, DatastoreException, NotFoundException {
-		UserInfo.validateUserInfo(user);
-		// Only an admin can stop deamon;
-		if(!user.isAdmin()) throw new UnauthorizedException("Must be an administrator to invoke the backup/restore daemon");
-		
-		MigratableObjectType migrationType = mod.getType();
-		GenericBackupDriver typeSpecificBackupDriver = backupDriverMap.get(migrationType.name());
-		if (typeSpecificBackupDriver==null) {
-			throw new IllegalArgumentException("No backupDriver for "+migrationType.toString());
-		}
-		typeSpecificBackupDriver.delete(mod.getId());
-	
-	}
 
 	@Override
 	public BackupRestoreStatus startBackup(UserInfo user, MigrationType type, List<Long> idsToBackup) {
