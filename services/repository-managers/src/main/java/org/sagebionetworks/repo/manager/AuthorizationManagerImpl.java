@@ -263,7 +263,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// Admins can do anything
 		if(userInfo.isAdmin()) return true;
 		// If the object is an entity then we use existing methods
-		if (accessType==ACCESS_TYPE.CREATE) throw new IllegalArgumentException("Cannot create an object already having an id.");
 		if(ObjectType.ENTITY == objectType){
 			return canAccess(userInfo, objectId, accessType);
 		}else if (ObjectType.EVALUATION == objectType){
