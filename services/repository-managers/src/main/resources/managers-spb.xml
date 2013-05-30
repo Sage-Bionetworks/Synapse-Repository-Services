@@ -165,64 +165,6 @@
 		class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl"
 		scope="singleton" />
 
-	<bean id="entityBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl"
-		scope="singleton" />
-
-	<bean id="principalBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.PrincipalBackupDriver"
-		scope="singleton" />
-
-	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
-	<bean id="accessRequirementBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
-		scope="singleton" />
-		
-	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
-	<bean id="activityBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.ActivityBackupDriver"
-		scope="singleton" />
-
-	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
-	<bean id="evaluationBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.EvaluationBackupDriver"
-		scope="singleton" />
-	
-	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
-	<bean id="submissionBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.SubmissionBackupDriver"
-		scope="singleton" />
-
-	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
-	<bean id="trashCanBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.TrashCanBackupDriver"
-		scope="singleton" />
-	
-	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
-	<bean id="favoriteBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.FavoriteBackupDriver"
-		scope="singleton" />
-		
-	<bean id="fileHandleBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.GenericBackupDriverImpl">
-		<constructor-arg>
-			<bean id="fileHandleMigratableManager" class="org.sagebionetworks.repo.manager.backup.FileHandleMigratableManager" />
-		</constructor-arg>
-	</bean>
-
-	<bean id="wikiPageBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.GenericBackupDriverImpl">
-		<constructor-arg>
-			<bean id="wikiPageMigratableManager" class="org.sagebionetworks.repo.manager.backup.WikiPageMigratableManager" />
-		</constructor-arg>
-	</bean>
-
-	<bean id="doiBackupDriver"
-		class="org.sagebionetworks.repo.manager.backup.GenericBackupDriverImpl">
-		<constructor-arg>
-			<bean id="doiMigratableManager" class="org.sagebionetworks.repo.manager.backup.DoiMigratableManager" />
-		</constructor-arg>
-	</bean>
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
