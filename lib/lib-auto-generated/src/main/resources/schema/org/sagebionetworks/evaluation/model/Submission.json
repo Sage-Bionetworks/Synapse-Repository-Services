@@ -12,6 +12,10 @@
 			"description": "The Synapse ID of the creator of this Submission.",
 			"transient": true
 		},
+		"submitterAlias":{
+			"type": "string",
+			"description": "The alias for the user or team creating the submission."
+		},
 		"evaluationId": {
 			"type": "string",
 			"description": "The Synapse ID of the Evaluation this Submission is for.",
