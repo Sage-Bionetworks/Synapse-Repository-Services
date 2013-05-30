@@ -40,7 +40,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public EvaluationManagerImpl() {}
 	
 	// Used for testing purposes
-	protected EvaluationManagerImpl(EvaluationDAO evaluationDAO, IdGenerator idGenerator) {
+	protected EvaluationManagerImpl(AuthorizationManager authorizationManager, EvaluationDAO evaluationDAO, IdGenerator idGenerator) {
+		this.authorizationManager = authorizationManager;
 		this.evaluationDAO = evaluationDAO;
 		this.idGenerator = idGenerator;
 	}

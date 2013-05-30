@@ -80,6 +80,7 @@ public class ParticipantManagerTest {
     	
     	mockAuthorizationManager = mock(AuthorizationManager.class);
     	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
         
         // Participant Manager
     	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockEvaluationManager, mockAuthorizationManager);

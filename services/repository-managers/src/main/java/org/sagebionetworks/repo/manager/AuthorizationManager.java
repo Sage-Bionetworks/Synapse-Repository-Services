@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -55,8 +56,9 @@ public interface AuthorizationManager {
 	 * @param userInfo
 	 * @param accessRequirement
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public boolean canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement);
+	public boolean canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
 
 	/**
 	 * Checks whether the given user can create the given access approval
@@ -109,5 +111,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+
+	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
 }

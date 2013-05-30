@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,20 +101,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		
-		if (!authorizationManager.canAccess(userInfo, accessApproval)) {
-			throw new UnauthorizedException("You are not allowed to create this approval.");
+		if (!authorizationManager.canAccessAccessApprovalsForSubject(userInfo, subjectId, ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
 		}
 
-		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
-			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
-		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
-			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
-				throw new UnauthorizedException("You are not an administrator of the specified Evaluation.");
-			}
-		} else {
-			throw new NotFoundException("Unexpected object type: "+subjectId.getType());
-		}
 		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
@@ -134,7 +126,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
-		!!!! ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		if (!authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE)) {
+			throw new UnauthorizedException("You are unauthorized to update this Access Approval");
+		}
 		populateModifiedFields(userInfo, accessApproval);
 		return accessApprovalDAO.update(accessApproval);
 	}
@@ -144,7 +138,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		!!!! ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		if (!authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE)) {
+			throw new UnauthorizedException("You are unauthorized to update this Access Approval");
+		}
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 
