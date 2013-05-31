@@ -12,18 +12,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimensionValue;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummary;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,13 +46,15 @@ public class StorageLocationDAOImplTest {
 
 	@Before
 	public void before(){
+
 		assertNotNull(storageLocationDAO);
 		assertNotNull(fileHandleDao);
 		assertNotNull(userGroupDAO);
-		toDelete = new ArrayList<String>();
-		userId = userGroupDAO.findGroup(
-				AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+
+		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		assertNotNull(userId);
+
+		toDelete = new ArrayList<String>();
 	}
 
 	@After
@@ -64,7 +65,7 @@ public class StorageLocationDAOImplTest {
 	}
 
 	@Test
-	public void testSizeAndCount() throws DatastoreException, NotFoundException{
+	public void testGetSizeAndGetCount() throws Exception {
 
 		// Get baselines
 		final int totalSize = storageLocationDAO.getTotalSize().intValue();
@@ -106,9 +107,9 @@ public class StorageLocationDAOImplTest {
 	}
 
 	@Test
-	public void testAggregatedResults() throws DatastoreException, NotFoundException{
+	public void testAggregatedResults() throws Exception {
 
-		// Create the files -- only S3 files count here
+		// Create the files
 		final int size1 = 10;
 		final String contentType1 = "content type 1";
 		S3FileHandle s3File1 = TestUtils.createS3FileHandle(userId, size1, contentType1);
@@ -215,5 +216,76 @@ public class StorageLocationDAOImplTest {
 			assertEquals(1, aggregate.getAggregatedCount().intValue());
 			assertTrue(aggregate.getAggregatedSize().intValue() >= 0);
 		}
+
+		// Get aggregated usage user -- paginated
+		results = storageLocationDAO.getAggregatedUsageByUserInRange(0, 1);
+		assertEquals(4, results.getTotalCount().intValue());
+		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
+		aggregates = results.getSummaryList();
+		assertEquals(1, aggregates.size());
+		StorageUsageSummary aggregate = aggregates.get(0);
+		List<StorageUsageDimensionValue> list = aggregate.getDimensionList();
+		assertEquals(1, list.size());
+		assertEquals(StorageUsageDimension.USER_ID, list.get(0).getDimension());
+		assertEquals(4, aggregate.getAggregatedCount().intValue());
+		assertEquals(size1 + size2 + size3, aggregate.getAggregatedSize().intValue());
+		results = storageLocationDAO.getAggregatedUsageByUserInRange(1, 100);
+		assertEquals(4, results.getTotalCount().intValue());
+		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
+		aggregates = results.getSummaryList();
+		assertEquals(0, aggregates.size()); // Out-of-range; we only have one user
+	}
+	
+	@Test
+	public void testGetItemizedStorageForUser() {
+
+		// Set up the files
+		final int size1 = 10;
+		final String contentType1 = "content type 1";
+		S3FileHandle s3File1 = TestUtils.createS3FileHandle(userId, size1, contentType1);
+		s3File1 = fileHandleDao.createFile(s3File1);
+		assertNotNull(s3File1);
+		final String s3Id1 = s3File1.getId();
+		assertNotNull(s3Id1);
+		toDelete.add(s3Id1);
+
+		final int size2 = 30;
+		final String contentType2 = "content type 2";
+		S3FileHandle s3File2 = TestUtils.createS3FileHandle(userId, size2, contentType2);
+		s3File2 = fileHandleDao.createFile(s3File2);
+		assertNotNull(s3File2);
+		final String s3Id2 = s3File2.getId();
+		assertNotNull(s3Id2);
+		toDelete.add(s3Id2);
+
+		final int size3 = 50;
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userId, size3, contentType1);
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		final String previewId = preview.getId();
+		assertNotNull(previewId);
+		toDelete.add(previewId);
+
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(userId, contentType2);
+		external = fileHandleDao.createFile(external);
+		assertNotNull(external);
+		final String extId = external.getId();
+		assertNotNull(extId);
+		toDelete.add(extId);
+
+		// Test
+		List<StorageUsage> results = storageLocationDAO.getUsageInRangeForUser(userId, 0, 100);
+		assertNotNull(results);
+		assertEquals(4, results.size());
+		StorageUsage su = results.get(0);
+		assertNotNull(su.getId());
+		assertNotNull(su.getName());
+		assertNotNull(su.getStorageProvider());
+		assertNotNull(su.getLocation());
+		assertNotNull(su.getUserId());
+		assertNotNull(su.getCreatedOn());
+		assertNotNull(su.getContentMd5());
+		assertNotNull(su.getContentSize());
+		assertNotNull(su.getContentType());
 	}
 }

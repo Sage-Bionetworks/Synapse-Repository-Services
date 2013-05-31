@@ -175,6 +175,23 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	}
 
 	@Override
+	public StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl) {
+
+		if (beginIncl >= endExcl) {
+			String msg = "begin must be greater than end (begin = " + beginIncl;
+			msg += "; end = ";
+			msg += endExcl;
+			msg += ")";
+			throw new IllegalArgumentException(msg);
+		}
+
+		StorageUsageSummaryList summaryList = getAggregatedResults(COL_FILES_CREATED_BY,
+				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_PART_2, beginIncl, endExcl);
+
+		return summaryList;
+	}
+
+	@Override
 	public List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
 			throws DatastoreException {
 
@@ -215,23 +232,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		usageList = Collections.unmodifiableList(usageList);
 		return usageList;
-	}
-
-	@Override
-	public StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl) {
-
-		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end (begin = " + beginIncl;
-			msg += "; end = ";
-			msg += endExcl;
-			msg += ")";
-			throw new IllegalArgumentException(msg);
-		}
-
-		StorageUsageSummaryList summaryList = getAggregatedResults(COL_FILES_CREATED_BY,
-				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_PART_2, beginIncl, endExcl);
-
-		return summaryList;
 	}
 
 	// Private Methods ////////////////////////////////////////////////////////////////////////////
