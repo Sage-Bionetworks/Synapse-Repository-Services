@@ -56,7 +56,6 @@ public class StorageUsageServiceImplTest {
 		Mockito.when(suMan.getUsage(dList)).thenReturn(susList);
 		Mockito.when(suMan.getUsageForUser(userId, dList)).thenReturn(susList);
 		Mockito.when(suMan.getUsageForUser(adminUserId, dList)).thenReturn(susList);
-		Mockito.when(suMan.getUsageByNodeInRange(offset, limit)).thenReturn(susList);
 		Mockito.when(suMan.getUsageByUserInRange(offset, limit)).thenReturn(susList);
 
 		StorageUsageService srv = suService;
@@ -98,18 +97,6 @@ public class StorageUsageServiceImplTest {
 		Assert.fail();
 	}
 
-	@Test
-	public void testGetAggregationInRange() throws Exception {
-		Assert.assertNotNull(suService.getUsageByNodeInRange(adminUserId, offset, limit));
-		Assert.assertNotNull(suService.getUsageByUserInRange(adminUserId, offset, limit));
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetUsageByNodeInRangeNonAdmin() throws Exception {
-		suService.getUsageByNodeInRange(userId, offset, limit);
-		Assert.fail();
-	}
-
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageByUserInRangeNonAdmin() throws Exception {
 		suService.getUsageByUserInRange(userId, offset, limit);
@@ -124,20 +111,8 @@ public class StorageUsageServiceImplTest {
 		suService.getUsageForUser(adminUserId, userId, dList);
 	}
 
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetUsage() {
-		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		dList.add(StorageUsageDimension.NODE_ID);
-		suService.getUsage(adminUserId, dList);
-	}
-
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageInRangeForUser() throws Exception {
 		suService.getUsageInRangeForUser(userId, adminUserId, 0, 10, "");
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetUsageInRangeForNode() throws Exception {
-		suService.getUsageInRangeForNode(userId, nodeId, 0, 10, "");
 	}
 }
