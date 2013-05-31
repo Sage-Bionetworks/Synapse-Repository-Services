@@ -85,23 +85,6 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	}
 
 	@Override
-	public StorageUsageSummaryList getUsageByNodeInRange(String currUserName,
-			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user name cannot be null or empty.");
-		}
-
-		boolean isAdmin = isAdmin(currUserName);
-		if (!isAdmin) {
-			throw new UnauthorizedException("Only administrators are allowed.");
-		}
-
-		StorageUsageSummaryList results = storageUsageManager.getUsageByNodeInRange(offset, limit);
-		return results;
-	}
-
-	@Override
 	public PaginatedResults<StorageUsage> getUsageInRangeForUser(String currUserName, String userName,
 			Integer offset, Integer limit, String urlPath)
 			throws UnauthorizedException, NotFoundException, DatastoreException {

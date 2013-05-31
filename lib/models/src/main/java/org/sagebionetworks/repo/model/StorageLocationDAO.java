@@ -62,9 +62,4 @@ public interface StorageLocationDAO {
 	 * Size in bytes aggregated by user ID.
 	 */
 	StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl);
-
-	/**
-	 * Size in bytes aggregated by node ID.
-	 */
-	StorageUsageSummaryList getAggregatedUsageByNodeInRange(long beginIncl, long endExcl);
 }

@@ -172,18 +172,6 @@ public class StorageUsageController extends BaseController {
 		return service.getUsageByUserInRange(currUserId, offset, limit);
 	}
 
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY_PER_ENTITY, method = RequestMethod.GET)
-	public @ResponseBody StorageUsageSummaryList getUsageByNodeForAdmin(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
-			HttpServletRequest request)
-			throws UnauthorizedException, NotFoundException, DatastoreException {
-		StorageUsageService service = serviceProvider.getStorageUsageService();
-		return service.getUsageByNodeInRange(currUserId, offset, limit);
-	}
-
 	/**
 	 * @throws IllegalArgumentException If the dimension is not a valid dimension
 	 */

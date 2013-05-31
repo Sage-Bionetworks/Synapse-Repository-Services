@@ -38,9 +38,4 @@ public class StorageUsageManagerImpl implements StorageUsageManager {
 	public StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit) {
 		return storageUsageDao.getAggregatedUsageByUserInRange(offset, offset + limit);
 	}
-
-	@Override
-	public StorageUsageSummaryList getUsageByNodeInRange(Integer offset, Integer limit) {
-		return storageUsageDao.getAggregatedUsageByNodeInRange(offset, offset + limit);
-	}
 }

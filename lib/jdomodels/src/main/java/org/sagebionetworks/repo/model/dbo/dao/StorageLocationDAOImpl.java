@@ -5,14 +5,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -25,10 +20,9 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
@@ -61,12 +55,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			"SELECT COUNT(" + COL_FILES_ID + ")" +
 			" FROM " + TABLE_FILES +
 			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY;
-
-	private static final String SELECT_COUNT_FOR_NODE =
-			"SELECT COUNT(" + COL_FILES_ID + ")" +
-			" FROM " + TABLE_FILES + " F, " + TABLE_REVISION + " R " +
-			" WHERE " + "F." + COL_FILES_ID + " = R." + COL_REVISION_FILE_HANDLE_ID +
-			" AND " + "R." + COL_REVISION_OWNER_NODE + " = :" + COL_REVISION_OWNER_NODE;
 
 	/**
 	 * Provides mapping from StorageUsageDimension to Files table columns.
@@ -110,17 +98,13 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			" ORDER BY " + COL_SUM_SIZE + " DESC, " + COL_COUNT_ID + " DESC " +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
-
-
-
-
-	private static final String SELECT_STORAGE_LOCATION_FOR_USER_PAGINATED =
+	private static final String SELECT_STORAGE_USAGE_FOR_USER_PAGINATED =
 			"SELECT *" +
 			" FROM " + TABLE_FILES +
 			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
-	private static final RowMapper<DBOStorageLocation> rowMapper = (new DBOStorageLocation()).getTableMapping();
+	private static final RowMapper<DBOFileHandle> rowMapper = (new DBOFileHandle()).getTableMapping();
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -190,9 +174,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		return summaryList;
 	}
 
-
-
-
 	@Override
 	public List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
 			throws DatastoreException {
@@ -213,32 +194,28 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		paramMap.addValue(OFFSET_PARAM_NAME, beginIncl);
 		paramMap.addValue(LIMIT_PARAM_NAME, endExcl - beginIncl);
 		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
-		List<DBOStorageLocation> dboList = simpleJdbcTemplate.query(
-				SELECT_STORAGE_LOCATION_FOR_USER_PAGINATED, rowMapper, paramMap);
+		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		List<DBOFileHandle> dboList = simpleJdbcTemplate.query(
+				SELECT_STORAGE_USAGE_FOR_USER_PAGINATED, rowMapper, paramMap);
 
 		List<StorageUsage> usageList = new ArrayList<StorageUsage>();
-		for (DBOStorageLocation dbo : dboList) {
+		for (DBOFileHandle dbo : dboList) {
 			StorageUsage su = new StorageUsage();
 			usageList.add(su);
 			su.setId(dbo.getId().toString());
-			su.setNodeId(KeyFactory.keyToString(dbo.getNodeId()));
-			su.setUserId(dbo.getUserId().toString());
-			su.setLocation(dbo.getLocation());
-			su.setStorageProvider(LocationTypeNames.valueOf(dbo.getStorageProvider()));
+			su.setName(dbo.getName());
+			su.setStorageProvider(dbo.getMetadataType());
+			su.setLocation(dbo.getKey());
+			su.setUserId(dbo.getCreatedBy().toString());
+			su.setCreatedOn(dbo.getCreatedOn());
 			su.setContentType(dbo.getContentType());
 			su.setContentSize(dbo.getContentSize());
-			su.setContentMd5(dbo.getContentMd5());
+			su.setContentMd5(dbo.getContentMD5());
 		}
 
 		usageList = Collections.unmodifiableList(usageList);
 		return usageList;
 	}
-
-
-
-
-
 
 	@Override
 	public StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl) {
@@ -252,26 +229,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		}
 
 		StorageUsageSummaryList summaryList = getAggregatedResults(COL_FILES_CREATED_BY,
-				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_PART_2, beginIncl, endExcl);
-
-		return summaryList;
-	}
-
-	
-	
-	
-	@Override
-	public StorageUsageSummaryList getAggregatedUsageByNodeInRange(long beginIncl, long endExcl) {
-
-		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end (begin = " + beginIncl;
-			msg += "; end = ";
-			msg += endExcl;
-			msg += ")";
-			throw new IllegalArgumentException(msg);
-		}
-
-		StorageUsageSummaryList summaryList = getAggregatedResults(COL_STORAGE_LOCATION_NODE_ID,
 				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_PART_2, beginIncl, endExcl);
 
 		return summaryList;

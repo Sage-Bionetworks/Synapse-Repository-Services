@@ -53,13 +53,4 @@ public interface StorageUsageService {
 	 */
 	StorageUsageSummaryList getUsageByUserInRange(String currUserName, Integer offset, Integer limit)
 			throws UnauthorizedException, DatastoreException;
-
-	/**
-	 * Retrieves size in bytes aggregated by node ID.
-	 *
-	 * @throws UnauthorizedException
-	 *			When the current user is not an administrator.
-	 */
-	StorageUsageSummaryList getUsageByNodeInRange(String currUserName, Integer offset, Integer limit)
-			throws UnauthorizedException, DatastoreException;
 }
