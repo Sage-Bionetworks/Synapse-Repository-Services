@@ -160,35 +160,6 @@ public class StorageUsageController extends BaseController {
 		return results;
 	}
 
-	/**
-	 * Retrieves detailed, itemized usage for the specified node. The current user must have
-	 * the READ privilege (e.g. being administrator) to view the node's storage usage.
-	 *
-	 * @param entityId
-	 *			The entity whose storage usage is being queried.
-	 * @param currUserId
-	 *			The current user, the user who is querying the storage usage.
-	 * @throws UnauthorizedException
-	 *			When the current user is not authorized to view the specified user's storage usage.
-	 * @throws NotFoundException
-	 *			When the specified user does not exist.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS_ENTITY_ID, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsageForNode(
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
-			HttpServletRequest request)
-			throws UnauthorizedException, NotFoundException, DatastoreException {
-
-		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS_ENTITY_ID;
-		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getUsageInRangeForNode(currUserId, entityId, offset, limit, url);
-		return results;
-	}
-
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY_PER_USER, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageByUserForAdmin(
@@ -199,18 +170,6 @@ public class StorageUsageController extends BaseController {
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 		StorageUsageService service = serviceProvider.getStorageUsageService();
 		return service.getUsageByUserInRange(currUserId, offset, limit);
-	}
-
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY_PER_ENTITY, method = RequestMethod.GET)
-	public @ResponseBody StorageUsageSummaryList getUsageByNodeForAdmin(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
-			HttpServletRequest request)
-			throws UnauthorizedException, NotFoundException, DatastoreException {
-		StorageUsageService service = serviceProvider.getStorageUsageService();
-		return service.getUsageByNodeInRange(currUserId, offset, limit);
 	}
 
 	/**

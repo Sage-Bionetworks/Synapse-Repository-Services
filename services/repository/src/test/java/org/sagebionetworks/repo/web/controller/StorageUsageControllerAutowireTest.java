@@ -132,28 +132,4 @@ public class StorageUsageControllerAutowireTest {
 		results.initializeFromJSONObject(adapter);
 		Assert.assertNotNull(results);
 	}
-
-	@Test
-	public void testItemizedUsageForNode() throws Exception {
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.STORAGE_DETAILS + UrlHelpers.ENTITY + "/" + testEntity.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-
-		MockHttpServletResponse response = new MockHttpServletResponse();
-
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-
-		Assert.assertEquals(200, response.getStatus());
-
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>();
-		results.initializeFromJSONObject(adapter);
-		Assert.assertNotNull(results);
-	}
 }
