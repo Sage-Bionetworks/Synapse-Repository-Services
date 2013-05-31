@@ -32,11 +32,6 @@ public interface StorageLocationDAO {
 	Long getTotalCountForUser(String userId) throws DatastoreException;
 
 	/**
-	 * Gets the count of storage items for the specified node.
-	 */
-	Long getTotalCountForNode(String nodeId) throws DatastoreException;
-
-	/**
 	 * Gets the aggregated usage in bytes. Numbers are aggregated by the supplied
 	 * dimension list. If the list of dimensions is empty, this will return the grand total.
 	 *
@@ -61,13 +56,6 @@ public interface StorageLocationDAO {
 	 * specified by the begin (inclusive) and the end (exclusive) indices.
 	 */
 	List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
-			throws DatastoreException;
-
-	/**
-	 * Gets detailed, itemized storage usage for the specified node. Results are paged as
-	 * specified by the begin (inclusive) and the end (exclusive) indices.
-	 */
-	List<StorageUsage> getUsageInRangeForNode(String nodeId, long beginIncl, long endExcl)
 			throws DatastoreException;
 
 	/**

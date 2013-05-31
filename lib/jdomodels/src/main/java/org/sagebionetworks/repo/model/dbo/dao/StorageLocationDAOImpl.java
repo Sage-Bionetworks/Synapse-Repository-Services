@@ -120,12 +120,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
-	private static final String SELECT_STORAGE_LOCATION_FOR_NODE_PAGINATED =
-			"SELECT *" +
-			" FROM " + TABLE_FILES +
-			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
-			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
-
 	private static final RowMapper<DBOStorageLocation> rowMapper = (new DBOStorageLocation()).getTableMapping();
 
 	@Autowired
@@ -162,16 +156,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		}
 
 		return getTotalCountForUser(userId, true);
-	}
-
-	@Override
-	public Long getTotalCountForNode(String nodeId) throws DatastoreException {
-
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		return getTotalCountForNode(nodeId, true);
 	}
 
 	@Override
@@ -251,47 +235,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		return usageList;
 	}
 
-	@Override
-	public List<StorageUsage> getUsageInRangeForNode(String nodeId, long beginIncl, long endExcl)
-			throws DatastoreException {
-
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end [begin=" + beginIncl;
-			msg += ", end=";
-			msg += endExcl;
-			msg += "]";
-			throw new IllegalArgumentException(msg);
-		}
-
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(OFFSET_PARAM_NAME, beginIncl);
-		paramMap.addValue(LIMIT_PARAM_NAME, endExcl - beginIncl);
-		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, nodeIdLong);
-		List<DBOStorageLocation> dboList = simpleJdbcTemplate.query(
-				SELECT_STORAGE_LOCATION_FOR_NODE_PAGINATED, rowMapper, paramMap);
-
-		List<StorageUsage> usageList = new ArrayList<StorageUsage>();
-		for (DBOStorageLocation dbo : dboList) {
-			StorageUsage su = new StorageUsage();
-			usageList.add(su);
-			su.setId(dbo.getId().toString());
-			su.setNodeId(KeyFactory.keyToString(dbo.getNodeId()));
-			su.setUserId(dbo.getUserId().toString());
-			su.setLocation(dbo.getLocation());
-			su.setStorageProvider(LocationTypeNames.valueOf(dbo.getStorageProvider()));
-			su.setContentType(dbo.getContentType());
-			su.setContentSize(dbo.getContentSize());
-			su.setContentMd5(dbo.getContentMd5());
-		}
-
-		usageList = Collections.unmodifiableList(usageList);
-		return usageList;
-	}
 
 
 
@@ -375,20 +318,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long userIdLong = KeyFactory.stringToKey(userId);
 		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
-		Long count = simpleJdbcTemplate.queryForLong(sql, paramMap);
-		return count;
-	}
-
-	private Long getTotalCountForNode(String nodeId, boolean s3Only) throws DatastoreException {
-
-		String sql = SELECT_COUNT_FOR_NODE;
-		if (s3Only) {
-			sql = sql + " AND " + S3_FILTER;
-		}
-
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		paramMap.addValue(COL_REVISION_OWNER_NODE, nodeIdLong);
 		Long count = simpleJdbcTemplate.queryForLong(sql, paramMap);
 		return count;
 	}

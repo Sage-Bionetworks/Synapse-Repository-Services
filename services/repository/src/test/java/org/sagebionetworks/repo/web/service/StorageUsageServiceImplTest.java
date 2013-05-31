@@ -128,9 +128,4 @@ public class StorageUsageServiceImplTest {
 	public void testGetUsageInRangeForUser() throws Exception {
 		suService.getUsageInRangeForUser(userId, adminUserId, 0, 10, "");
 	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetUsageInRangeForNode() throws Exception {
-		suService.getUsageInRangeForNode(userId, nodeId, 0, 10, "");
-	}
 }

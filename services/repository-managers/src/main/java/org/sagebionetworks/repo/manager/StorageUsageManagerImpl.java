@@ -35,14 +35,6 @@ public class StorageUsageManagerImpl implements StorageUsageManager {
 	}
 
 	@Override
-	public QueryResults<StorageUsage> getUsageInRangeForNode(String nodeId, Integer offset, Integer limit) {
-		List<StorageUsage> storageUsageList = storageUsageDao.getUsageInRangeForNode(nodeId, offset, offset + limit);
-		long totalCount = storageUsageDao.getTotalCountForNode(nodeId).longValue();
-		QueryResults<StorageUsage> queryResults = new QueryResults<StorageUsage>(storageUsageList, totalCount);
-		return queryResults;
-	}
-
-	@Override
 	public StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit) {
 		return storageUsageDao.getAggregatedUsageByUserInRange(offset, offset + limit);
 	}

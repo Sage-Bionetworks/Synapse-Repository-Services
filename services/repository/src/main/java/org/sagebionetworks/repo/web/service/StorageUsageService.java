@@ -46,18 +46,6 @@ public interface StorageUsageService {
 			throws UnauthorizedException, NotFoundException, DatastoreException;
 
 	/**
-	 * Retrieves detailed, itemized usage for the specified node.
-	 *
-	 * @throws UnauthorizedException
-	 *			When the current user is not authorized to read the node's storage usage.
-	 * @throws NotFoundException
-	 *			When the user does not exist.
-	 */
-	PaginatedResults<StorageUsage> getUsageInRangeForNode(String currUserName, String nodeId,
-			Integer offset, Integer limit, String urlPath)
-			throws UnauthorizedException, NotFoundException, DatastoreException;
-
-	/**
 	 * Retrieves size in bytes aggregated by user ID.
 	 *
 	 * @throws UnauthorizedException

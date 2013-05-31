@@ -103,21 +103,10 @@ public class StorageLocationDAOImplTest {
 		assertEquals(totalSizeForUser + size, storageLocationDAO.getTotalSizeForUser(userId).intValue());
 		assertEquals(totalCount + 1, storageLocationDAO.getTotalCount().intValue());
 		assertEquals(totalCountForUser + 1, storageLocationDAO.getTotalCountForUser(userId).intValue());
-		assertEquals(0, storageLocationDAO.getTotalCountForNode("syn123").intValue());
 	}
 
 	@Test
 	public void testAggregatedResults() throws DatastoreException, NotFoundException{
-
-		// Get baselines
-		final int totalSize = storageLocationDAO.getTotalSize().intValue();
-		assertTrue(totalSize >=0 );
-		final int totalSizeForUser = storageLocationDAO.getTotalSizeForUser(userId).intValue();
-		assertTrue(totalSizeForUser >= 0);
-		final int totalCount = storageLocationDAO.getTotalCount().intValue();
-		assertTrue(totalCount >= 0);
-		final int totalCountForUser = storageLocationDAO.getTotalCountForUser(userId).intValue();
-		assertTrue(totalCountForUser >= 0);
 
 		// Create the files -- only S3 files count here
 		final int size1 = 10;
@@ -192,7 +181,7 @@ public class StorageLocationDAOImplTest {
 			assertTrue(aggregate.getAggregatedSize().intValue() >= 0);
 		}
 
-		// One dimension only
+		// One dimension only to verify the aggregated numbers
 		dimList = new ArrayList<StorageUsageDimension>();
 		dimList.add(StorageUsageDimension.USER_ID);
 		results = storageLocationDAO.getAggregatedUsage(dimList);
@@ -206,6 +195,25 @@ public class StorageLocationDAOImplTest {
 			assertNotNull(list.get(0).getValue());
 			assertEquals(4, aggregate.getAggregatedCount().intValue());
 			assertEquals(size1 + size2 + size3, aggregate.getAggregatedSize().intValue());
+		}
+
+		// Get aggregated results for user
+		dimList = new ArrayList<StorageUsageDimension>();
+		dimList.add(StorageUsageDimension.STORAGE_PROVIDER);
+		dimList.add(StorageUsageDimension.CONTENT_TYPE);
+		results = storageLocationDAO.getAggregatedUsageForUser(userId, dimList);
+		assertEquals(4, results.getTotalCount().intValue());
+		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
+		aggregates = results.getSummaryList();
+		for (StorageUsageSummary aggregate : aggregates) {
+			List<StorageUsageDimensionValue> list = aggregate.getDimensionList();
+			assertEquals(2, list.size());
+			assertEquals(StorageUsageDimension.STORAGE_PROVIDER, list.get(0).getDimension());
+			assertNotNull(list.get(0).getValue());
+			assertEquals(StorageUsageDimension.CONTENT_TYPE, list.get(1).getDimension());
+			assertNotNull(list.get(1).getValue());
+			assertEquals(1, aggregate.getAggregatedCount().intValue());
+			assertTrue(aggregate.getAggregatedSize().intValue() >= 0);
 		}
 	}
 }

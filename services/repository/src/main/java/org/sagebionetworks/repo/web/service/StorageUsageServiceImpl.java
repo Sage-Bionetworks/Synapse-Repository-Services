@@ -5,7 +5,6 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -125,28 +124,6 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		return results;
 	}
 
-	@Override
-	public PaginatedResults<StorageUsage> getUsageInRangeForNode(
-			String currUserName, String nodeId, Integer offset, Integer limit,
-			String urlPath) throws NotFoundException, UnauthorizedException, DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user name cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		checkAuthorization(currUserName, nodeId);
-
-		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForNode(nodeId, offset, limit);
-		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
-				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
-				offset, limit, null, true);
-
-		return results;
-	}
-
 	/**
 	 * Whether the current user is an administrator.
 	 */
@@ -174,26 +151,6 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			if (!isAdmin) {
 				throw new UnauthorizedException(
 						"Only administrator is allowed to view other user's storage usage.");
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @throws UnauthorizedException When the current user is not authorized to view the node
-	 */
-	private void checkAuthorization(String currUserName, String nodeId)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-
-		UserInfo currUserInfo = this.userManager.getUserInfo(currUserName);
-		if (currUserInfo == null) {
-			throw new UnauthorizedException("User " + currUserName + " does not exist.");
-		}
-		if (!currUserInfo.isAdmin()) {
-			if (!this.authorizationManager.canAccess(
-					currUserInfo, nodeId, ACCESS_TYPE.READ)) {
-				throw new UnauthorizedException(
-						currUserName+" does not have read access to the requested entity.");
 			}
 		}
 	}
