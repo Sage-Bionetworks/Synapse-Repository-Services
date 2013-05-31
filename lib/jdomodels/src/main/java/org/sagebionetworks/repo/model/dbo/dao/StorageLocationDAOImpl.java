@@ -1,27 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CONTENT_SIZE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_LOCATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +28,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
@@ -47,68 +42,88 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
-	// We care only S3 storage
-	private static final String FILTER = COL_FILES_METADATA_TYPE + " = 'S3'";
+	private static final String S3_FILTER = COL_FILES_METADATA_TYPE + " = 'S3'";
 
 	private static final String SELECT_SUM_SIZE =
 			"SELECT SUM(" + COL_FILES_CONTENT_SIZE + ")" +
-			" FROM " + TABLE_FILES +
-			" WHERE " + FILTER;
+			" FROM " + TABLE_FILES;
 
 	private static final String SELECT_SUM_SIZE_FOR_USER =
 			"SELECT SUM(" + COL_FILES_CONTENT_SIZE + ")" +
 			" FROM " + TABLE_FILES +
-			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
-			" AND " + FILTER;
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY;
 
 	private static final String SELECT_COUNT =
 			"SELECT COUNT(" + COL_FILES_ID + ")" +
-			" FROM " + TABLE_FILES + 
-			" WHERE " + FILTER;
+			" FROM " + TABLE_FILES;
 
 	private static final String SELECT_COUNT_FOR_USER =
 			"SELECT COUNT(" + COL_FILES_ID + ")" +
 			" FROM " + TABLE_FILES +
-			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
-			" AND " + FILTER;
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY;
 
 	private static final String SELECT_COUNT_FOR_NODE =
-			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
+			"SELECT COUNT(" + COL_FILES_ID + ")" +
 			" FROM " + TABLE_FILES + " F, " + TABLE_REVISION + " R " +
 			" WHERE " + "F." + COL_FILES_ID + " = R." + COL_REVISION_FILE_HANDLE_ID +
-			" AND " + "R." + COL_REVISION_OWNER_NODE + " = :" + COL_REVISION_OWNER_NODE +
-			" AND " + FILTER;
+			" AND " + "R." + COL_REVISION_OWNER_NODE + " = :" + COL_REVISION_OWNER_NODE;
 
+	/**
+	 * Provides mapping from StorageUsageDimension to Files table columns.
+	 */
+	private static final Map<String, String> DIM_COL_MAP;
+	static {
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(StorageUsageDimension.CONTENT_TYPE.name(), COL_FILES_CONTENT_TYPE);
+		map.put(StorageUsageDimension.STORAGE_PROVIDER.name(), COL_FILES_METADATA_TYPE);
+		map.put(StorageUsageDimension.USER_ID.name(), COL_FILES_CREATED_BY);
+		DIM_COL_MAP = Collections.unmodifiableMap(map);
+	}
 
+	/**
+	 * Provides mapping from Files table columns to StorageUsageDimension.
+	 */
+	private static final Map<String, String> COL_DIM_MAP;
+	static {
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(COL_FILES_CONTENT_TYPE, StorageUsageDimension.CONTENT_TYPE.name());
+		map.put(COL_FILES_METADATA_TYPE, StorageUsageDimension.STORAGE_PROVIDER.name());
+		map.put(COL_FILES_CREATED_BY, StorageUsageDimension.USER_ID.name());
+		COL_DIM_MAP = Collections.unmodifiableMap(map);
+	}
 
 	private static final String COL_SUM_SIZE = "SUM_SIZE";
 	private static final String COL_COUNT_ID = "COUNT_ID";
 	private static final String SELECT_AGGREGATED_USAGE_PART_1 =
 			"SELECT" +
-			" SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ") AS " + COL_SUM_SIZE + ", " +
-			" COUNT(" + COL_STORAGE_LOCATION_ID + ") AS " + COL_COUNT_ID;
+			" SUM(" + COL_FILES_CONTENT_SIZE + ") AS " + COL_SUM_SIZE + ", " +
+			" COUNT(" + COL_FILES_ID + ") AS " + COL_COUNT_ID;
 	private static final String SELECT_AGGREGATED_USAGE_PART_2 =
-			" FROM " + TABLE_STORAGE_LOCATION +
+			" FROM " + TABLE_FILES +
 			" GROUP BY ";
 	private static final String SELECT_AGGREGATED_USAGE_FOR_USER_PART_2 =
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID +
+			" FROM " + TABLE_FILES +
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
 			" GROUP BY ";
 
 	private static final String ORDER_BY_DESC_LIMIT =
 			" ORDER BY " + COL_SUM_SIZE + " DESC, " + COL_COUNT_ID + " DESC " +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
+
+
+
+
 	private static final String SELECT_STORAGE_LOCATION_FOR_USER_PAGINATED =
 			"SELECT *" +
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID +
+			" FROM " + TABLE_FILES +
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SELECT_STORAGE_LOCATION_FOR_NODE_PAGINATED =
 			"SELECT *" +
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_NODE_ID + " = :" + COL_STORAGE_LOCATION_NODE_ID +
+			" FROM " + TABLE_FILES +
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final RowMapper<DBOStorageLocation> rowMapper = (new DBOStorageLocation()).getTableMapping();
@@ -121,8 +136,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 	@Override
 	public Long getTotalSize() throws DatastoreException {
-		long total = simpleJdbcTemplate.queryForLong(SELECT_SUM_SIZE);
-		return total;
+		return getTotalSize(true);
 	}
 
 	@Override
@@ -132,18 +146,12 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
-		long total = simpleJdbcTemplate.queryForLong(SELECT_SUM_SIZE_FOR_USER, paramMap);
-
-		return total;
+		return getTotalSizeForUser(userId, true);
 	}
 
 	@Override
 	public Long getTotalCount() throws DatastoreException {
-		long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT);
-		return count;
+		return getTotalCount(true);
 	}
 
 	@Override
@@ -153,11 +161,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
-		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_USER, paramMap);
-		return count;
+		return getTotalCountForUser(userId, true);
 	}
 
 	@Override
@@ -167,16 +171,11 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		paramMap.addValue(COL_REVISION_OWNER_NODE, nodeIdLong);
-		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_NODE, paramMap);
-		return count;
+		return getTotalCountForNode(nodeId, true);
 	}
 
 	@Override
-	public StorageUsageSummaryList getAggregatedUsage(
-			List<StorageUsageDimension> dimensionList)
+	public StorageUsageSummaryList getAggregatedUsage(List<StorageUsageDimension> dimensionList)
 			throws DatastoreException, InvalidModelException {
 
 		if (dimensionList == null) {
@@ -206,6 +205,9 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		return summaryList;
 	}
+
+
+
 
 	@Override
 	public List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
@@ -291,6 +293,10 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		return usageList;
 	}
 
+
+
+
+
 	@Override
 	public StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl) {
 
@@ -302,12 +308,15 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			throw new IllegalArgumentException(msg);
 		}
 
-		StorageUsageSummaryList summaryList = getAggregatedResults(COL_STORAGE_LOCATION_USER_ID,
+		StorageUsageSummaryList summaryList = getAggregatedResults(COL_FILES_CREATED_BY,
 				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_PART_2, beginIncl, endExcl);
 
 		return summaryList;
 	}
 
+	
+	
+	
 	@Override
 	public StorageUsageSummaryList getAggregatedUsageByNodeInRange(long beginIncl, long endExcl) {
 
@@ -323,6 +332,65 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_PART_2, beginIncl, endExcl);
 
 		return summaryList;
+	}
+
+	// Private Methods ////////////////////////////////////////////////////////////////////////////
+
+	private Long getTotalSize(boolean s3Only) throws DatastoreException {
+		String sql = SELECT_SUM_SIZE;
+		if (s3Only) {
+			sql = sql + " WHERE " + S3_FILTER;
+		}
+		long total = simpleJdbcTemplate.queryForLong(sql);
+		return total;
+	}
+
+	private Long getTotalSizeForUser(String userId, boolean s3Only) throws DatastoreException {
+
+		String sql = SELECT_SUM_SIZE_FOR_USER;
+		if (s3Only) {
+			sql = sql + " AND " + S3_FILTER;
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		Long userIdLong = KeyFactory.stringToKey(userId);
+		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		long total = simpleJdbcTemplate.queryForLong(sql, paramMap);
+		return total;
+	}
+
+	private Long getTotalCount(boolean s3Only) throws DatastoreException {
+		String sql = s3Only ? SELECT_COUNT + " WHERE " + S3_FILTER : SELECT_COUNT;
+		long count = simpleJdbcTemplate.queryForLong(sql);
+		return count;
+	}
+
+	private Long getTotalCountForUser(String userId, boolean s3Only) throws DatastoreException {
+
+		String sql = SELECT_COUNT_FOR_USER;
+		if (s3Only) {
+			sql = sql + " AND " + S3_FILTER;
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		Long userIdLong = KeyFactory.stringToKey(userId);
+		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		Long count = simpleJdbcTemplate.queryForLong(sql, paramMap);
+		return count;
+	}
+
+	private Long getTotalCountForNode(String nodeId, boolean s3Only) throws DatastoreException {
+
+		String sql = SELECT_COUNT_FOR_NODE;
+		if (s3Only) {
+			sql = sql + " AND " + S3_FILTER;
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		paramMap.addValue(COL_REVISION_OWNER_NODE, nodeIdLong);
+		Long count = simpleJdbcTemplate.queryForLong(sql, paramMap);
+		return count;
 	}
 
 	/**
@@ -407,7 +475,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		String sql = getAggregateSql(sqlPart1, sqlPart2, columnList);
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
 		List<Map<String, Object>> rows = simpleJdbcTemplate.queryForList(sql, paramMap);
 		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
 		fillSummaryList(columnList, summaries, rows);
@@ -420,14 +488,14 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		StorageUsageSummaryList summaryList = new StorageUsageSummaryList();
 
 		if (userId != null) {
-			Long usage = getTotalSizeForUser(userId);
+			Long usage = getTotalSizeForUser(userId, false);
 			summaryList.setTotalSize(usage);
-			Long count = getTotalCountForUser(userId);
+			Long count = getTotalCountForUser(userId, false);
 			summaryList.setTotalCount(count);
 		} else {
-			Long usage = getTotalSize();
+			Long usage = getTotalSize(false);
 			summaryList.setTotalSize(usage);
-			Long count = getTotalCount();
+			Long count = getTotalCount(false);
 			summaryList.setTotalCount(count);
 		}
 
@@ -445,33 +513,21 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		assert dimensionList != null;
 		assert dimensionList.size() > 0;
 
+		// The list is needed to preserve the aggregation order
 		List<String> colNameList = new ArrayList<String>();
-		// The set below is used to remove duplicate dimensions.
+		// The set is needed to remove duplicate dimensions
 		Set<String> colNameSet = new HashSet<String>();
-		FieldColumn[] columns = (new DBOStorageLocation()).getTableMapping().getFieldColumns();
-		// Both lists should be small thus we can afford a N^2 lookup.
 		for (StorageUsageDimension d : dimensionList) {
-			String dimName = d.name().toUpperCase();
-			if (!colNameSet.contains(dimName)) {
-				// Not already in the list
-				boolean found = false;
-				for (FieldColumn col : columns) {
-					String colName = col.getColumnName().toUpperCase();
-					if (colName.equals(dimName) ) {
-						found = true;
-						colNameList.add(colName);
-						colNameSet.add(colName);
-						break;
-					}
-				}
-				if (!found) {
-					throw new InvalidModelException("The aggregating dimension " + dimName +
-							" is not a valid dimension.");
-				}
+			String colName = DIM_COL_MAP.get(d.name().toUpperCase());
+			if (colName == null) {
+				throw new InvalidModelException("The aggregating dimension " + d.name() +
+						" is not a valid dimension.");
+			}
+			if (!colNameSet.contains(colName)) {
+				colNameSet.add(colName);
+				colNameList.add(colName);
 			}
 		}
-
-		assert colNameList.size() <= dimensionList.size();
 
 		return Collections.unmodifiableList(colNameList);
 	}
@@ -540,7 +596,8 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 				Object valObj = row.get(column);
 				String value = (valObj == null ? "UNKNOWN" : valObj.toString());
 				StorageUsageDimensionValue val = new StorageUsageDimensionValue();
-				val.setDimension(StorageUsageDimension.valueOf(column));
+				StorageUsageDimension dim = StorageUsageDimension.valueOf(COL_DIM_MAP.get(column));
+				val.setDimension(dim);
 				val.setValue(value);
 				dValList.add(val);
 			}

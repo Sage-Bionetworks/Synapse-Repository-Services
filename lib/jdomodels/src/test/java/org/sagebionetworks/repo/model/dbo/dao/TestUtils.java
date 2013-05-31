@@ -27,10 +27,19 @@ public class TestUtils {
 	 * @return
 	 */
 	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes) {
+		return createS3FileHandle(createdById, sizeInBytes, "content type");
+	}
+
+	/**
+	 * Helper to create a S3FileHandle
+	 * 
+	 * @return
+	 */
+	public static S3FileHandle createS3FileHandle(String createdById, int sizeInBytes, String contentType) {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
-		meta.setContentType("content type");
+		meta.setContentType(contentType);
 		meta.setContentSize((long)sizeInBytes);
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(createdById);
@@ -43,11 +52,27 @@ public class TestUtils {
 	 * @return
 	 */
 	public static PreviewFileHandle createPreviewFileHandle(String createdById) {
+		return createPreviewFileHandle(createdById, 123);
+	}
+
+	/**
+	 * Helper to create a PreviewFileHandle
+	 * @return
+	 */
+	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes) {
+		return createPreviewFileHandle(createdById, 123, "content type");
+	}
+
+	/**
+	 * Helper to create a PreviewFileHandle
+	 * @return
+	 */
+	public static PreviewFileHandle createPreviewFileHandle(String createdById, int sizeInBytes, String contentType) {
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
+		meta.setContentType(contentType);
+		meta.setContentSize((long)sizeInBytes);
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(createdById);
 		meta.setFileName("preview.jpg");
@@ -59,9 +84,17 @@ public class TestUtils {
 	 * @return
 	 */
 	public static ExternalFileHandle createExternalFileHandle(String createdById) {
+		return createExternalFileHandle(createdById, "content type");
+	}
+
+	/**
+	 * Helper to create a PreviewFileHandle
+	 * @return
+	 */
+	public static ExternalFileHandle createExternalFileHandle(String createdById, String contentType) {
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setExternalURL("http://www.example.com/");
-		meta.setContentType("content type");
+		meta.setContentType(contentType);
 		meta.setCreatedBy(createdById);
 		meta.setFileName("External");
 		return meta;
