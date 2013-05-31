@@ -91,9 +91,7 @@ public class AccessRequirementControllerAutowiredTest {
 		evaluation.setContentSource("content source");
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = ServletTestHelper.createEvaluation(dispatchServlet, evaluation, userName, null);
-		
-	
+		evaluation = (new EntityServletTestHelper()).createEvaluation(evaluation, userName);
 	}
 
 	@After
@@ -111,7 +109,7 @@ public class AccessRequirementControllerAutowiredTest {
 		}
 		
 		if (evaluation!=null) {
-			ServletTestHelper.deleteEvaluation(dispatchServlet, evaluation.getId(), userName, null);
+			(new EntityServletTestHelper()).deleteEvaluation(evaluation.getId(), userName);
 		}
 	}
 

@@ -127,8 +127,8 @@
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
-	<bean id="storageLocationDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl"
+	<bean id="storageUsageQueryDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"
 		scope="singleton">
 	</bean>
 

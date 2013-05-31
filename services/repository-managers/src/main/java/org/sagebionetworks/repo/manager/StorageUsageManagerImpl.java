@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class StorageUsageManagerImpl implements StorageUsageManager {
 
 	@Autowired
-	private StorageLocationDAO storageUsageDao;
+	private StorageUsageQueryDao storageUsageDao;
 
 	@Override
 	public StorageUsageSummaryList getUsage(
@@ -35,20 +35,7 @@ public class StorageUsageManagerImpl implements StorageUsageManager {
 	}
 
 	@Override
-	public QueryResults<StorageUsage> getUsageInRangeForNode(String nodeId, Integer offset, Integer limit) {
-		List<StorageUsage> storageUsageList = storageUsageDao.getUsageInRangeForNode(nodeId, offset, offset + limit);
-		long totalCount = storageUsageDao.getTotalCountForNode(nodeId).longValue();
-		QueryResults<StorageUsage> queryResults = new QueryResults<StorageUsage>(storageUsageList, totalCount);
-		return queryResults;
-	}
-
-	@Override
 	public StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit) {
 		return storageUsageDao.getAggregatedUsageByUserInRange(offset, offset + limit);
-	}
-
-	@Override
-	public StorageUsageSummaryList getUsageByNodeInRange(Integer offset, Integer limit) {
-		return storageUsageDao.getAggregatedUsageByNodeInRange(offset, offset + limit);
 	}
 }

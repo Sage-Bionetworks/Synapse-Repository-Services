@@ -56,4 +56,6 @@ public interface BaseDAO<T> {
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
+	long getCount() throws DatastoreException;
+
 }

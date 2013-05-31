@@ -7,10 +7,9 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface EvaluationDAO extends MigratableDAO {	
+public interface EvaluationDAO {	
 	
 	/**
 	 * Lookup a Evaluation ID by name. Returns null if the name is not in use.

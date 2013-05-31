@@ -73,10 +73,8 @@ public class NodeTreeQueryControllerAutowireTest {
 		rootToChild = this.entityService.getEntityPath(testUser, child.getId());
 
 		// Clear dynamo first
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 
 		// Create the entities in dynamo
 		this.nodeTreeUpdateDao.create(
@@ -103,10 +101,6 @@ public class NodeTreeQueryControllerAutowireTest {
 			entityService.deleteEntity(testUser, parent.getId());
 		}
 		// Clear dynamo
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
 				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
@@ -114,11 +108,11 @@ public class NodeTreeQueryControllerAutowireTest {
 	@Test
 	public void test() throws Exception {
 
-		// getRoot()
+		// getAncestors()
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY_ROOT);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId() + "/ancestors");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
@@ -127,28 +121,12 @@ public class NodeTreeQueryControllerAutowireTest {
 		Assert.assertEquals(200, response.getStatus());
 		String jsonStr = response.getContentAsString();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		EntityId id = new EntityId();
-		id.initializeFromJSONObject(adapter);
-		String root = this.rootToChild.get(0).getId();
-		Assert.assertEquals(root, id.getId());
-
-		// getAncestors()
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId() + "/ancestors");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet.service(request, response);
-
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
 		EntityIdList idList = new EntityIdList();
 		idList.initializeFromJSONObject(adapter);
 		Iterator<EntityId> idIterator = idList.getIdList().iterator();
-		id = idIterator.next();
-		Assert.assertEquals(root, id.getId());
+		EntityId id = idIterator.next();
+		Assert.assertNotNull(id);
+		final String root = id.getId();
 		id = idIterator.next();
 		Assert.assertEquals(parent.getId(), id.getId());
 		Assert.assertFalse(idIterator.hasNext());

@@ -1,12 +1,14 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBSTATUS;
 
 import java.io.IOException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Date;
-import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
@@ -16,17 +18,12 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -189,47 +186,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(SubmissionStatusDBO.class);
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(
-			long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		// get one 'page' of Submissions (just IDs and eTags)
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);
-			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_PAGINATED, new RowMapper<MigratableObjectData>() {
-
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					String id = rs.getString(COL_SUBSTATUS_SUBMISSION_ID);
-					String etag = rs.getString(COL_SUBSTATUS_ETAG);
-					MigratableObjectData objectData = new MigratableObjectData();
-					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
-					od.setId(id);
-					od.setType(MigratableObjectType.SUBMISSION);
-					objectData.setId(od);
-					objectData.setEtag(etag);
-					return objectData;
-				}
-			
-			}, param);
-		}
-		
-		// return the 'page' of objects, along with the total result count
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int) getCount());
-		return queryResults;
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.SUBMISSION;
 	}
 
 	/**

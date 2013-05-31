@@ -17,8 +17,6 @@
     <module>repository-managers</module>
     <module>authutil</module>
     <module>repository</module>
-    <module>auth</module>
-    <module>file</module>
     <module>competition-services</module>
     <module>workers</module>
   </modules>

@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -26,20 +23,6 @@ public class StubWikiPageDao implements WikiPageDao {
 	public long getCount() throws DatastoreException {
 		// TODO Auto-generated method stub
 		return 0;
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(
-			long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override

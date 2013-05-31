@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -33,6 +36,7 @@ public interface AuthorizationManager {
 	 * @throws DatastoreException 
 	 */
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+
 	/**
     *
 	 * @param nodeId
@@ -46,6 +50,25 @@ public interface AuthorizationManager {
 	 */
 	public boolean canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
 	
+	/**
+	 * Checks whether the given user can create the given access requirement
+	 * 
+	 * @param userInfo
+	 * @param accessRequirement
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public boolean canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
+
+	/**
+	 * Checks whether the given user can create the given access approval
+	 * 
+	 * @param userInfo
+	 * @param accessRequirement
+	 * @return
+	 */
+	public boolean canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
+
 	/**
 	 * @param n the number of items in the group-id list
 	 * 
@@ -88,5 +111,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+
+	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
 }

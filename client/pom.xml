@@ -16,7 +16,6 @@
   <modules>
 
     <module>synapseJavaClient</module>
-    <module>synapsePythonClient</module>
     <module>commandLineInterface</module>
   </modules>
 

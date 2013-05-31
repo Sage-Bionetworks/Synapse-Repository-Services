@@ -13,7 +13,6 @@ import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.ScanRequest;
 import com.amazonaws.services.dynamodb.model.ScanResult;
 
-@SuppressWarnings("deprecation")
 public class DynamoAdminDaoImpl implements DynamoAdminDao {
 
 	@Autowired

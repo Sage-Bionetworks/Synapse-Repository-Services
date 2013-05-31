@@ -241,48 +241,7 @@ public class StackStatusInterceptorTest {
 		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
 		sampleProject = null;
 	}
-	
-	@Test
-	public void testBackupAndRestoreWhileDown() throws Exception {
-		// Make sure we can create a back while down
-		setStackStatus(StatusEnum.DOWN);
-		// Make sure the status is what we expect
-		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
-		doBackupRestoreRoundTrip();
-	}
-
-
-	/**
-	 * Helper method do do a backup and restore of samle project.
-	 * @throws ServletException
-	 * @throws IOException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws InterruptedException
-	 * @throws UnauthorizedException
-	 */
-	public void doBackupRestoreRoundTrip() throws ServletException,
-			IOException, DatastoreException, NotFoundException,
-			InterruptedException, UnauthorizedException {
-		BackupSubmission submission = new BackupSubmission();
-		submission.setEntityIdsToBackup(new HashSet<String>());
-		submission.getEntityIdsToBackup().add(sampleProject.getId());
-		BackupRestoreStatus status = ServletTestHelper.startBackup(dispatchServlet, userName, submission);
-		// Wait for the backup to complete
-		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
-		// Now make sure we can restore.
-		assertNotNull(status.getBackupUrl());
-		String fullUrl = status.getBackupUrl();
-		int index = fullUrl.lastIndexOf("/");
-		String fileName = status.getBackupUrl().substring(index+1, fullUrl.length());
-		// Now restore the nodes from the backup
-		RestoreSubmission file = new RestoreSubmission();
-		file.setFileName(fileName);
-		status = ServletTestHelper.startRestore(dispatchServlet, userName, file);
-		// Wait for the backup to complete
-		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
-	}
-	
+		
 	/**
 	 * Helper to set the status.
 	 * @param toSet
