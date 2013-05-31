@@ -8,7 +8,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
@@ -31,7 +31,7 @@ public class StorageUsageManagerImplTest {
 		StorageUsage s2 = Mockito.mock(StorageUsage.class);
 		storageList.add(s2);
 
-		StorageLocationDAO mockDao = Mockito.mock(StorageLocationDAO.class);
+		StorageUsageQueryDao mockDao = Mockito.mock(StorageUsageQueryDao.class);
 		Mockito.when(mockDao.getUsageInRangeForUser(userId, offset, offset + limit)).thenReturn(storageList);
 		Mockito.when(mockDao.getTotalCountForUser(userId)).thenReturn(total);
 

@@ -20,7 +20,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -34,7 +34,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
-public final class StorageLocationDAOImpl implements StorageLocationDAO {
+public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 
 	private static final String S3_FILTER = COL_FILES_METADATA_TYPE + " = 'S3'";
 

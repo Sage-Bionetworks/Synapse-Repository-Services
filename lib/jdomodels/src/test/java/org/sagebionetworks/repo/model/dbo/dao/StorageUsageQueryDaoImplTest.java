@@ -12,7 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -29,10 +29,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class StorageLocationDAOImplTest {
+public class StorageUsageQueryDaoImplTest {
 
 	@Autowired
-	private StorageLocationDAO storageLocationDAO;
+	private StorageUsageQueryDao storageUsageQueryDao;
 
 	@Autowired
 	private FileHandleDao fileHandleDao;
@@ -47,7 +47,7 @@ public class StorageLocationDAOImplTest {
 	@Before
 	public void before(){
 
-		assertNotNull(storageLocationDAO);
+		assertNotNull(storageUsageQueryDao);
 		assertNotNull(fileHandleDao);
 		assertNotNull(userGroupDAO);
 
@@ -68,13 +68,13 @@ public class StorageLocationDAOImplTest {
 	public void testGetSizeAndGetCount() throws Exception {
 
 		// Get baselines
-		final int totalSize = storageLocationDAO.getTotalSize().intValue();
+		final int totalSize = storageUsageQueryDao.getTotalSize().intValue();
 		assertTrue(totalSize >=0 );
-		final int totalSizeForUser = storageLocationDAO.getTotalSizeForUser(userId).intValue();
+		final int totalSizeForUser = storageUsageQueryDao.getTotalSizeForUser(userId).intValue();
 		assertTrue(totalSizeForUser >= 0);
-		final int totalCount = storageLocationDAO.getTotalCount().intValue();
+		final int totalCount = storageUsageQueryDao.getTotalCount().intValue();
 		assertTrue(totalCount >= 0);
-		final int totalCountForUser = storageLocationDAO.getTotalCountForUser(userId).intValue();
+		final int totalCountForUser = storageUsageQueryDao.getTotalCountForUser(userId).intValue();
 		assertTrue(totalCountForUser >= 0);
 
 		// Create the files -- only S3 files count here
@@ -100,10 +100,10 @@ public class StorageLocationDAOImplTest {
 		assertNotNull(extId);
 		toDelete.add(extId);
 
-		assertEquals(totalSize + size, storageLocationDAO.getTotalSize().intValue());
-		assertEquals(totalSizeForUser + size, storageLocationDAO.getTotalSizeForUser(userId).intValue());
-		assertEquals(totalCount + 1, storageLocationDAO.getTotalCount().intValue());
-		assertEquals(totalCountForUser + 1, storageLocationDAO.getTotalCountForUser(userId).intValue());
+		assertEquals(totalSize + size, storageUsageQueryDao.getTotalSize().intValue());
+		assertEquals(totalSizeForUser + size, storageUsageQueryDao.getTotalSizeForUser(userId).intValue());
+		assertEquals(totalCount + 1, storageUsageQueryDao.getTotalCount().intValue());
+		assertEquals(totalCountForUser + 1, storageUsageQueryDao.getTotalCountForUser(userId).intValue());
 	}
 
 	@Test
@@ -147,7 +147,7 @@ public class StorageLocationDAOImplTest {
 		List<StorageUsageDimension> dimList = new ArrayList<StorageUsageDimension>();
 		dimList.add(StorageUsageDimension.CONTENT_TYPE);
 		dimList.add(StorageUsageDimension.STORAGE_PROVIDER);
-		StorageUsageSummaryList results = storageLocationDAO.getAggregatedUsage(dimList);
+		StorageUsageSummaryList results = storageUsageQueryDao.getAggregatedUsage(dimList);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		List<StorageUsageSummary> aggregates = results.getSummaryList();
@@ -167,7 +167,7 @@ public class StorageLocationDAOImplTest {
 		dimList.add(StorageUsageDimension.STORAGE_PROVIDER);
 		dimList.add(StorageUsageDimension.CONTENT_TYPE);
 		dimList.add(StorageUsageDimension.STORAGE_PROVIDER);
-		results = storageLocationDAO.getAggregatedUsage(dimList);
+		results = storageUsageQueryDao.getAggregatedUsage(dimList);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		aggregates = results.getSummaryList();
@@ -185,7 +185,7 @@ public class StorageLocationDAOImplTest {
 		// One dimension only to verify the aggregated numbers
 		dimList = new ArrayList<StorageUsageDimension>();
 		dimList.add(StorageUsageDimension.USER_ID);
-		results = storageLocationDAO.getAggregatedUsage(dimList);
+		results = storageUsageQueryDao.getAggregatedUsage(dimList);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		aggregates = results.getSummaryList();
@@ -202,7 +202,7 @@ public class StorageLocationDAOImplTest {
 		dimList = new ArrayList<StorageUsageDimension>();
 		dimList.add(StorageUsageDimension.STORAGE_PROVIDER);
 		dimList.add(StorageUsageDimension.CONTENT_TYPE);
-		results = storageLocationDAO.getAggregatedUsageForUser(userId, dimList);
+		results = storageUsageQueryDao.getAggregatedUsageForUser(userId, dimList);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		aggregates = results.getSummaryList();
@@ -218,7 +218,7 @@ public class StorageLocationDAOImplTest {
 		}
 
 		// Get aggregated usage user -- paginated
-		results = storageLocationDAO.getAggregatedUsageByUserInRange(0, 1);
+		results = storageUsageQueryDao.getAggregatedUsageByUserInRange(0, 1);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		aggregates = results.getSummaryList();
@@ -229,7 +229,7 @@ public class StorageLocationDAOImplTest {
 		assertEquals(StorageUsageDimension.USER_ID, list.get(0).getDimension());
 		assertEquals(4, aggregate.getAggregatedCount().intValue());
 		assertEquals(size1 + size2 + size3, aggregate.getAggregatedSize().intValue());
-		results = storageLocationDAO.getAggregatedUsageByUserInRange(1, 100);
+		results = storageUsageQueryDao.getAggregatedUsageByUserInRange(1, 100);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		aggregates = results.getSummaryList();
@@ -274,7 +274,7 @@ public class StorageLocationDAOImplTest {
 		toDelete.add(extId);
 
 		// Test
-		List<StorageUsage> results = storageLocationDAO.getUsageInRangeForUser(userId, 0, 100);
+		List<StorageUsage> results = storageUsageQueryDao.getUsageInRangeForUser(userId, 0, 100);
 		assertNotNull(results);
 		assertEquals(4, results.size());
 		StorageUsage su = results.get(0);

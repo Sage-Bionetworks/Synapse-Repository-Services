@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 /**
  * Accesses database for storage locations.
  */
-public interface StorageLocationDAO {
+public interface StorageUsageQueryDao {
 
 	/**
 	 * Gets the total usage in bytes.
