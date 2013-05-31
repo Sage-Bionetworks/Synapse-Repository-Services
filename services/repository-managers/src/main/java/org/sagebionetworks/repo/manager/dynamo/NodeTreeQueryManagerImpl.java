@@ -32,27 +32,29 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Override
-	public EntityId getRoot(String currUserName) throws UnauthorizedException,
+	public boolean isRoot(String currUserName, String nodeId) throws UnauthorizedException,
 			DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
+		}
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
-		EntityId root = this.toEntityId(this.nodeTreeQueryDao.getRoot());
-		this.checkAuthorization(currUserName, root.getId()); // throws UnauthorizedException
-		return root;
+		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		return this.nodeTreeQueryDao.isRoot(this.stringToKey(nodeId));
 	}
 
 	@Override
 	public EntityIdList getAncestors(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
 		}
-		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
@@ -72,11 +74,11 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	public EntityId getParent(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
 		}
-		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
@@ -95,11 +97,11 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 			int pageSize, String lastDescIdExcl) throws UnauthorizedException,
 			DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
 		}
-		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
@@ -121,11 +123,11 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 			int generation, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
 		}
-		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
@@ -147,11 +149,11 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 			int pageSize, String lastDescIdExcl) throws UnauthorizedException,
 			DatastoreException {
 
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+		if (currUserName == null || currUserName.isEmpty()) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
 		}
-		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
