@@ -1,11 +1,13 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.UnsupportedEncodingException;
 
 import org.junit.Test;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class EvaluationTranslationUtilTest {
 	
@@ -24,19 +26,19 @@ public class EvaluationTranslationUtilTest {
 	@Test
 	public void testGetContentSourceNull(){
 		Long result = EvaluationTranslationUtil.getContentSource(null);
-		assertEquals(EvaluationTranslationUtil.ROOT_ID, result);
+		assertEquals(KeyFactory.ROOT_ID, result);
 	}
 	
 	@Test
 	public void testGetContentSourceNotANumber(){
 		Long result = EvaluationTranslationUtil.getContentSource("foo");
-		assertEquals(EvaluationTranslationUtil.ROOT_ID, result);
+		assertEquals(KeyFactory.ROOT_ID, result);
 	}
 	
 	@Test
 	public void testGetContentSourceBadSYN(){
 		Long result = EvaluationTranslationUtil.getContentSource("synBar");
-		assertEquals(EvaluationTranslationUtil.ROOT_ID, result);
+		assertEquals(KeyFactory.ROOT_ID, result);
 	}
 	
 	@Test

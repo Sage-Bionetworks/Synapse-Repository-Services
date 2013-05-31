@@ -1,8 +1,10 @@
 package org.sagebionetworks.evaluation.dbo;
 
+import static org.sagebionetworks.repo.model.jdo.KeyFactory.ROOT_ID;
+import static org.sagebionetworks.repo.model.jdo.KeyFactory.SYNAPSE_ID_PREFIX;
+
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.KeyFactoryTest;
 
 /**
  * Evaluation Translation Utility
@@ -10,8 +12,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactoryTest;
  *
  */
 public class EvaluationTranslationUtil {
-	
-	public static final Long ROOT_ID = new Long(4489);
+
 
 	public static EvaluationDBO createDatabaseObjectFromBackup(EvaluationBackup backup) {
 		EvaluationDBO dbo = new EvaluationDBO();
@@ -51,7 +52,7 @@ public class EvaluationTranslationUtil {
 			return ROOT_ID;
 		}
 		try{
-			if(contentSource.toLowerCase().startsWith("syn")){
+			if(contentSource.toLowerCase().startsWith(SYNAPSE_ID_PREFIX)){
 				return Long.parseLong(contentSource.substring(3));
 			}else{
 				return Long.parseLong(contentSource);
