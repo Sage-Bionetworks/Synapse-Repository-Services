@@ -99,5 +99,6 @@ public class StorageLocationDAOImplTest {
 		assertEquals(totalSizeForUser + size, storageLocationDAO.getTotalSizeForUser(userId).intValue());
 		assertEquals(totalCount + 1, storageLocationDAO.getTotalCount().intValue());
 		assertEquals(totalCountForUser + 1, storageLocationDAO.getTotalCountForUser(userId).intValue());
+		assertEquals(0, storageLocationDAO.getTotalCountForNode("syn123").intValue());
 	}
 }
