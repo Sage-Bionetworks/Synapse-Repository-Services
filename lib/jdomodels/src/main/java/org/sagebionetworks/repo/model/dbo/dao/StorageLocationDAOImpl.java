@@ -1,5 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
+
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_NODE_ID;
@@ -34,32 +45,41 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
-import com.amazonaws.services.s3.AmazonS3;
-
 public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
+	// We care only S3 storage
+	private static final String FILTER = COL_FILES_METADATA_TYPE + " = 'S3'";
+
 	private static final String SELECT_SUM_SIZE =
-			"SELECT SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ")" +
-			" FROM " + TABLE_STORAGE_LOCATION;
+			"SELECT SUM(" + COL_FILES_CONTENT_SIZE + ")" +
+			" FROM " + TABLE_FILES +
+			" WHERE " + FILTER;
 
 	private static final String SELECT_SUM_SIZE_FOR_USER =
-			"SELECT SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ")" +
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID;
+			"SELECT SUM(" + COL_FILES_CONTENT_SIZE + ")" +
+			" FROM " + TABLE_FILES +
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
+			" AND " + FILTER;
 
 	private static final String SELECT_COUNT =
-			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
-			" FROM " + TABLE_STORAGE_LOCATION;
+			"SELECT COUNT(" + COL_FILES_ID + ")" +
+			" FROM " + TABLE_FILES + 
+			" WHERE " + FILTER;
 
 	private static final String SELECT_COUNT_FOR_USER =
-			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID;
+			"SELECT COUNT(" + COL_FILES_ID + ")" +
+			" FROM " + TABLE_FILES +
+			" WHERE " + COL_FILES_CREATED_BY + " = :" + COL_FILES_CREATED_BY +
+			" AND " + FILTER;
 
 	private static final String SELECT_COUNT_FOR_NODE =
 			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_NODE_ID + " = :" + COL_STORAGE_LOCATION_NODE_ID;
+			" FROM " + TABLE_FILES + " F, " + TABLE_REVISION + " R " +
+			" WHERE " + "F." + COL_FILES_ID + " = R." + COL_REVISION_FILE_HANDLE_ID +
+			" AND " + "R." + COL_REVISION_OWNER_NODE + " = :" + COL_REVISION_OWNER_NODE +
+			" AND " + FILTER;
+
+
 
 	private static final String COL_SUM_SIZE = "SUM_SIZE";
 	private static final String COL_COUNT_ID = "COUNT_ID";
@@ -99,9 +119,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Autowired
-	private AmazonS3 amazonS3Client;
-
 	@Override
 	public Long getTotalSize() throws DatastoreException {
 		long total = simpleJdbcTemplate.queryForLong(SELECT_SUM_SIZE);
@@ -117,7 +134,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
 		long total = simpleJdbcTemplate.queryForLong(SELECT_SUM_SIZE_FOR_USER, paramMap);
 
 		return total;
@@ -138,7 +155,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
 		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_USER, paramMap);
 		return count;
 	}
@@ -152,7 +169,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
-		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, nodeIdLong);
+		paramMap.addValue(COL_REVISION_OWNER_NODE, nodeIdLong);
 		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_NODE, paramMap);
 		return count;
 	}
