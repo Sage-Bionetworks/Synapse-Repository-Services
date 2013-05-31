@@ -73,13 +73,19 @@ class NodeTreeDaoUtils {
 			int dist = lineage.getDistance();
 			// The list is sorted by distance. The first ancestor at index 0 is the parent
 			// whose distance is 1. If we have a complete path, the distance of any ancestor
-			// in the list should be exactly i+1
-			if (dist > (i + 1)) {
+			// in the list should be exactly i+1.
+			if (dist < (i + 1)) {
 				throw new IncompletePathException("Missing ancestor at distance " + (i + 1)
 						+ " in the ancestor path for node " + node);
-			} else if (dist < (i + 1)) {
-				throw new MultipleInheritanceException("Node " + node
-						+ " has more than 1 ancestor of a particular generation.");
+			} else if (dist > (i + 1)) {
+				String msg = "Node " + node + " has more than 1 ancestor at distance " + dist;
+				List<NodeLineage> ancestors = new ArrayList<NodeLineage>();
+				ancestors.add(lineage);
+				// And also the previous one
+				if ((i + 1) < dboListSize) {
+					ancestors.add(new NodeLineage(dboList.get(i + 1)));
+				}
+				throw new MultipleInheritanceException(msg, dist, ancestors);
 			}
 			path.add(lineage);
 		}
@@ -135,7 +141,13 @@ class NodeTreeDaoUtils {
 			return null;
 		}
 		if (dboList.size() > 1) {
-			throw new MultipleInheritanceException(child + " fetches back more than 1 parent.");
+			String msg = child + " fetches back more than 1 parent.";
+			int distance = 1;
+			List<NodeLineage> parents = new ArrayList<NodeLineage>(dboList.size());
+			for (DboNodeLineage dbo : dboList) {
+				parents.add(new NodeLineage(dbo));
+			}
+			throw new MultipleInheritanceException(msg, distance, parents);
 		}
 		NodeLineage parent = new NodeLineage(dboList.get(0));
 		return parent;
