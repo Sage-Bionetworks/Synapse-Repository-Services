@@ -124,13 +124,6 @@ public class StorageUsageServiceImplTest {
 		suService.getUsageForUser(adminUserId, userId, dList);
 	}
 
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetUsage() {
-		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		dList.add(StorageUsageDimension.NODE_ID);
-		suService.getUsage(adminUserId, dList);
-	}
-
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageInRangeForUser() throws Exception {
 		suService.getUsageInRangeForUser(userId, adminUserId, 0, 10, "");

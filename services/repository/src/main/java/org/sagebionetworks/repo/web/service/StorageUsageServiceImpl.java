@@ -208,9 +208,6 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			if (StorageUsageDimension.USER_ID.equals(d)) {
 				throw new IllegalArgumentException(StorageUsageDimension.USER_ID + " is for paginated views only.");
 			}
-			if (StorageUsageDimension.NODE_ID.equals(d)) {
-				throw new IllegalArgumentException(StorageUsageDimension.NODE_ID + " is for paginated views only.");
-			}
 		}
 	}
 
