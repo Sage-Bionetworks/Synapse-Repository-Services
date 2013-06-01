@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -87,19 +84,6 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public long getCount() throws DatastoreException {
 		// TODO Auto-generated method stub
 		return 0;
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(
-			long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.FILEHANDLE;
 	}
 
 	@Override

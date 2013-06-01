@@ -4,10 +4,9 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface SubmissionStatusDAO extends MigratableDAO {
+public interface SubmissionStatusDAO {
 
 	/**
 	 * Create a new SubmissionStatus object
@@ -74,5 +73,7 @@ public interface SubmissionStatusDAO extends MigratableDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+
+	long getCount() throws DatastoreException;
 
 }

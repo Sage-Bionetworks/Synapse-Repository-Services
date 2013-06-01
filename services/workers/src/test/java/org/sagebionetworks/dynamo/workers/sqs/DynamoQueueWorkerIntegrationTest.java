@@ -1,6 +1,5 @@
 package org.sagebionetworks.dynamo.workers.sqs;
 
-import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
@@ -14,6 +13,7 @@ import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -54,10 +54,8 @@ public class DynamoQueueWorkerIntegrationTest {
 		}
 
 		// Clear dynamo by removing the root
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 
 		// Create a project
 		UserInfo userInfo = this.userProvider.getTestUserInfo();
@@ -82,29 +80,24 @@ public class DynamoQueueWorkerIntegrationTest {
 			count = this.dynamoQueueMessageRemover.triggerFired();
 		}
 		// Clear Dynamo
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
 				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < 10; i++) {
 			// Pause 1 second for eventual consistency
-			// Wait at most 9 seconds
-			Thread.sleep(1500);
+			// Wait at most 12 seconds
+			Thread.sleep(1200);
 			List<String> results = this.nodeTreeQueryDao.getAncestors(
 					KeyFactory.stringToKey(this.project.getId()).toString());
 			Assert.assertNotNull(results);
 			if (results.size() > 0) {
-				// At least the root as the ancestor
-				String root = this.nodeTreeQueryDao.getRoot();
-				Assert.assertNotNull(root);
-				Assert.assertEquals(root, results.get(0));
-				break;
+				UserInfo userInfo = this.userProvider.getTestUserInfo();
+				List<EntityHeader> path = this.entityManager.getEntityPath(userInfo, this.project.getId());
+				EntityHeader expectedRoot = path.get(0);
+				Assert.assertEquals(KeyFactory.stringToKey(expectedRoot.getId()).toString(), results.get(0));
 			}
 		}
 	}

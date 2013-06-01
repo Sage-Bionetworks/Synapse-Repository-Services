@@ -8,9 +8,9 @@ import java.util.List;
 public interface NodeTreeQueryDao {
 
 	/**
-	 * Gets the root node. Returns null if the root does not exist yet.
+	 * If the given node is a root.
 	 */
-	String getRoot();
+	boolean isRoot(String nodeId);
 
 	/**
 	 * Gets all the ancestors for the specified node. The returned ancestors are

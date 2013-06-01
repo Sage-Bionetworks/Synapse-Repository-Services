@@ -8,9 +8,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 public interface NodeTreeQueryManager {
 
 	/**
-	 * Gets the root entity. Returns null if the root cannot be found.
+	 * If the given node is a root.
 	 */
-	EntityId getRoot(String currUserName) throws UnauthorizedException, DatastoreException;
+	boolean isRoot(String currUserName, String nodeId) throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets all the ancestors for the specified node. The returned ancestors are

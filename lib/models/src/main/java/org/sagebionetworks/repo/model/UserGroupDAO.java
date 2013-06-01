@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public interface UserGroupDAO extends BaseDAO<UserGroup>, MigratableDAO {
+public interface UserGroupDAO extends BaseDAO<UserGroup>{
 	
 	/**
 	 * @return the group matching the given name, and the given 'individual' property

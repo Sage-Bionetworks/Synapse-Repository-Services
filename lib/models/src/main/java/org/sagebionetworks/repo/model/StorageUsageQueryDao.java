@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 /**
  * Accesses database for storage locations.
  */
-public interface StorageLocationDAO {
+public interface StorageUsageQueryDao {
 
 	/**
 	 * Gets the total usage in bytes.
@@ -30,11 +30,6 @@ public interface StorageLocationDAO {
 	 * Gets the count of storage items for the specified user.
 	 */
 	Long getTotalCountForUser(String userId) throws DatastoreException;
-
-	/**
-	 * Gets the count of storage items for the specified node.
-	 */
-	Long getTotalCountForNode(String nodeId) throws DatastoreException;
 
 	/**
 	 * Gets the aggregated usage in bytes. Numbers are aggregated by the supplied
@@ -64,19 +59,7 @@ public interface StorageLocationDAO {
 			throws DatastoreException;
 
 	/**
-	 * Gets detailed, itemized storage usage for the specified node. Results are paged as
-	 * specified by the begin (inclusive) and the end (exclusive) indices.
-	 */
-	List<StorageUsage> getUsageInRangeForNode(String nodeId, long beginIncl, long endExcl)
-			throws DatastoreException;
-
-	/**
 	 * Size in bytes aggregated by user ID.
 	 */
 	StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl);
-
-	/**
-	 * Size in bytes aggregated by node ID.
-	 */
-	StorageUsageSummaryList getAggregatedUsageByNodeInRange(long beginIncl, long endExcl);
 }

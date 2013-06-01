@@ -21,11 +21,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -301,39 +299,7 @@ public class DBOActivityDAOImplAutowiredTest {
 		// assure that activity id was set to null with deletion of activity
 		Node alteredNode = nodeDao.getNode(nodeId);
 		assertNull(alteredNode.getActivityId());
-	}
-	
-	@Test
-	public void testGetMigrationObjectData() throws Exception {
-		long offset;
-		long limit;
-		int expectedSize;
-		int numActs = 11;
-		generateActivities(numActs);
-		
-		// try simple paging
-		offset = 0;
-		limit = 10;
-		expectedSize = 10;
-		verifyResultSize(offset, limit, expectedSize, numActs);
-		offset += limit;
-		expectedSize = 1;
-		verifyResultSize(offset, limit, expectedSize, numActs);
-
-		// get none
-		offset = 0;
-		limit = 0;
-		expectedSize = 0;
-		verifyResultSize(offset, limit, expectedSize, numActs);
-
-		// get all in one
-		offset = 0;
-		limit = numActs;
-		expectedSize = numActs;
-		verifyResultSize(offset, limit, expectedSize, numActs);
-	}
-
-	
+	}	
 	
 	@Test
 	public void testCreateFromBackup() throws Exception {
@@ -388,12 +354,5 @@ public class DBOActivityDAOImplAutowiredTest {
 			toDelete.add(act.getId());			
 		}
 	}
-
-	private void verifyResultSize(long offset, long limit, int expectedSize, int totalResults) {
-		QueryResults<MigratableObjectData> results = activityDao.getMigrationObjectData(offset, limit, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(expectedSize, ods.size());
-		assertEquals(totalResults, results.getTotalNumberOfResults());
-	}	
 
 }

@@ -112,7 +112,6 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -3390,30 +3389,6 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 		
-	}
-	
-	/**
-	 * 
-	 * @param entityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public PaginatedResults<StorageUsage> getItemizedStorageUsageForNode(String entityId, int offset, int limit) throws SynapseException {
-		if (entityId == null) {
-			throw new IllegalArgumentException("EntityId cannot be null");
-		}
-		String url = createEntityUri(STORAGE_DETAILS_PATH, entityId +
-				"?" + OFFSET + "=" + offset + "&limit=" + limit);
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(StorageUsage.class);
-
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
 	}
 	
 	/**

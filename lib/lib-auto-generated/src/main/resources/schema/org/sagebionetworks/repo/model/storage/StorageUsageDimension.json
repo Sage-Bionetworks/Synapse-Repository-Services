@@ -4,7 +4,6 @@
 	"enum": [
 		"STORAGE_PROVIDER",
 		"CONTENT_TYPE",
-		"USER_ID",
-		"NODE_ID"
+		"USER_ID"
 	]
 }

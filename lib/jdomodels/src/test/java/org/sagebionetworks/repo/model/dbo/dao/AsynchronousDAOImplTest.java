@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -38,7 +38,7 @@ public class AsynchronousDAOImplTest {
 	NodeDAO mockNodeDao;
 	DBOReferenceDao mockReferenceDao;
 	DBOAnnotationsDao mockAnnotationsDao;
-	StorageLocationDAO mockStorageLocationDao;
+	StorageUsageQueryDao mockStorageLocationDao;
 	FileHandleDao mockFileMetadataDao;
 	WikiPageDao mockWikiPageDao;
 	AsynchronousDAOImpl testDao;
@@ -52,7 +52,7 @@ public class AsynchronousDAOImplTest {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockReferenceDao = Mockito.mock(DBOReferenceDao.class);
 		mockAnnotationsDao = Mockito.mock(DBOAnnotationsDao.class);
-		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
+		mockStorageLocationDao = Mockito.mock(StorageUsageQueryDao.class);
 		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
 		mockWikiPageDao = Mockito.mock(WikiPageDao.class);
 		

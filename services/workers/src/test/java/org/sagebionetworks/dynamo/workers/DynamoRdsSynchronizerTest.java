@@ -127,7 +127,7 @@ public class DynamoRdsSynchronizerTest {
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
-		when(nodeTreeDao.getRoot()).thenReturn("1");
+		when(nodeTreeDao.isRoot("1")).thenReturn(true);
 
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
 		
@@ -135,7 +135,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		sync.triggerFired();
 
-		verify(nodeTreeDao, times(1)).getRoot();
+		verify(nodeTreeDao, times(1)).isRoot("1");
 	}
 	
 	@Test
@@ -154,7 +154,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		sync.triggerFired();
 
-		verify(nodeTreeDao, times(0)).getRoot();
+		verify(nodeTreeDao, times(0)).isRoot(anyString());
 		verify(nodeTreeUpdateManager, times(0)).create(anyString(), anyString(), any(Date.class));
 		verify(nodeTreeUpdateManager, times(0)).update(anyString(), anyString(), any(Date.class));
 	}

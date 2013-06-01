@@ -2,21 +2,17 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACTIVITY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -24,11 +20,7 @@ import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -186,47 +178,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(DBOActivity.class);
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
-		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
-		// get one 'page' of Activities (just their IDs and Etags)
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);
-			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_FOR_RANGE_SQL, new RowMapper<MigratableObjectData>() {
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-					String id = rs.getString(COL_ACTIVITY_ID);
-					String etag = rs.getString(COL_ACTIVITY_ETAG);
-					MigratableObjectData objectData = new MigratableObjectData();
-					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
-					od.setId(id);
-					od.setType(MigratableObjectType.ACTIVITY);
-					objectData.setId(od);
-					objectData.setEtag(etag);
-					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
-					return objectData;
-				}
-			
-			}, param);
-		}
-		
-		// Activity has no dependencies
-		
-		// return the 'page' of objects, along with the total result count		
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
-
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.ACTIVITY;
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)

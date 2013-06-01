@@ -8,12 +8,6 @@ public class NodeTreeQueryServiceImplTest {
 	private NodeTreeQueryService service = new NodeTreeQueryServiceImpl();
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testGetRootWithException() {
-		this.service.getRoot(null);
-		Assert.fail();
-	}
-
-	@Test(expected=IllegalArgumentException.class)
 	public void testGetAncestorsWithException1() {
 		this.service.getAncestors(null, "node");
 		Assert.fail();

@@ -61,7 +61,7 @@ public class SubmissionManagerTest {
 	private static SubmissionDAO mockSubmissionDAO;
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
 	private static SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
-	private static EvaluationManager mockCompetitionManager;
+	private static EvaluationManager mockEvaluationManager;
 	private static ParticipantManager mockParticipantManager;
 	private static EntityManager mockEntityManager;
 	private static NodeManager mockNodeManager;
@@ -172,7 +172,7 @@ public class SubmissionManagerTest {
     	mockSubmissionDAO = mock(SubmissionDAO.class);
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
-    	mockCompetitionManager = mock(EvaluationManager.class);
+    	mockEvaluationManager = mock(EvaluationManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
@@ -181,10 +181,10 @@ public class SubmissionManagerTest {
       	     	
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
-    	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
+    	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
-    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
+    	//when(mockEvaluationManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0].toString());
     	when(mockNode.getETag()).thenReturn(ETAG);
@@ -194,10 +194,11 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
     	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
    	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockCompetitionManager, 
+    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockEvaluationManager, 
     			mockParticipantManager, mockEntityManager, mockNodeManager, mockAuthorizationManager);
     }
 	

@@ -120,5 +120,10 @@ public class CrowdUserDAO implements UserDAO {
 		}
 	}
 
+	@Override
+	public long getCount() throws DatastoreException {
+		throw new UnsupportedOperationException();
+	}
+
 	
 }

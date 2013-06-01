@@ -15,9 +15,5 @@ public interface StorageUsageManager {
 
 	QueryResults<StorageUsage> getUsageInRangeForUser(String userId, Integer offset, Integer limit);
 
-	QueryResults<StorageUsage> getUsageInRangeForNode(String nodeId, Integer offset, Integer limit);
-
 	StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit);
-
-	StorageUsageSummaryList getUsageByNodeInRange(Integer offset, Integer limit);
 }

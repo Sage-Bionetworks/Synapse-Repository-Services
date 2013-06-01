@@ -8,12 +8,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -23,10 +20,6 @@ import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
@@ -169,46 +162,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			dtos.add(dto);
 		}
 		return dtos;
-	}
-
-
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		// get a page of user groups
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);		
-			param.addValue(LIMIT_PARAM_NAME, limit);		
-			ods = simpleJdbcTemplate.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<MigratableObjectData>() {
-
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					// NOTE this is an outer join, so we have to handle the case in which there
-					// is no etag for the given user group
-					String ugId = rs.getString(COL_USER_GROUP_ID);
-					String etag = rs.getString(COL_USER_PROFILE_ETAG);
-					if (etag==null) etag = DEFAULT_ETAG;
-					MigratableObjectData od = new MigratableObjectData();
-					MigratableObjectDescriptor id = new MigratableObjectDescriptor();
-					id.setId(ugId);
-					id.setType(MigratableObjectType.PRINCIPAL);
-					od.setId(id);
-					od.setEtag(etag);
-					od.setDependencies(new HashSet<MigratableObjectDescriptor>(0)); // UserGroups have no dependencies
-					return od;
-				}
-			
-			}, param);
-		}
-		
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
 	}
 	
 	@Override
@@ -406,10 +359,4 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			}
 		}
 	}
-
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.PRINCIPAL;
-	}
-
-
 }
