@@ -262,7 +262,7 @@ public class AuthorizationManagerImplUnitTest {
 		// takes a little more to mock admin access to evaluation
 		String origEvaluationOwner = evaluation.getOwnerId();
 		evaluation.setOwnerId(userInfo.getIndividualGroup().getId());
-		assertTrue("comp admin should always have PARTICIPATE access", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
+		assertFalse("admin shouldn't have PARTICIPATE access if there are unmet requirements", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
 		evaluation.setOwnerId(origEvaluationOwner);
 		assertFalse("non-admin shouldn't have PARTICIPATE access if there are unmet requirements", authorizationManager.canAccess(userInfo, EVAL_ID, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE));
 	}
