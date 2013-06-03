@@ -115,7 +115,7 @@ public class AccessApprovalControllerAutowiredTest {
 		
 		evaluation = new Evaluation();
 		evaluation.setName("name");
-		evaluation.setContentSource("content source");
+		evaluation.setContentSource(project.getId());
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = entityServletTestHelper.createEvaluation(evaluation, userName);
@@ -145,7 +145,10 @@ public class AccessApprovalControllerAutowiredTest {
 			}
 		}
 		ServletTestHelper.deleteAccessRequirements(dispatchServlet, evaluationAccessRequirement.getId().toString(), userName);
-		entityServletTestHelper.deleteEvaluation(evaluation.getId(), userName);
+		try {
+			entityServletTestHelper.deleteEvaluation(evaluation.getId(), userName);
+		} catch (Exception e) {
+		}
 	}
 
 	@BeforeClass

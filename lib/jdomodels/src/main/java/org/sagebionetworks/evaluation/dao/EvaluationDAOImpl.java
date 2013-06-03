@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -258,7 +259,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			throw new NumberFormatException("Invalid Owner ID: " + dto.getOwnerId());
 		}
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
-		dbo.setContentSource(dto.getContentSource());
+		dbo.setContentSource(KeyFactory.stringToKey(dto.getContentSource()));
 		dbo.setStatusEnum(dto.getStatus());
 	}
 	
@@ -284,7 +285,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		dto.setOwnerId(dbo.getOwnerId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setContentSource(dbo.getContentSource());
+		dto.setContentSource(KeyFactory.keyToString(dbo.getContentSource()));
 		dto.setStatus(dbo.getStatusEnum());
 	}
 

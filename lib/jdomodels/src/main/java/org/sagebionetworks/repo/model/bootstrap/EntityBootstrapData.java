@@ -14,10 +14,19 @@ import org.sagebionetworks.repo.model.EntityType;
 public class EntityBootstrapData {
 	
 	private String entityPath;
+	private Long entityId;
 	private String entityDescription;
 	private EntityType entityType;
 	private List<AccessBootstrapData> accessList;
 	private ACL_SCHEME defaultChildAclScheme;
+	
+	public Long getEntityId() {
+		return entityId;
+	}
+	
+	public void setEntityId(Long entityId) {
+		this.entityId = entityId;
+	}
 	
 	/**
 	 * The description that will be applied to the resulting entity.
@@ -116,6 +125,8 @@ public class EntityBootstrapData {
 				+ ((entityDescription == null) ? 0 : entityDescription
 						.hashCode());
 		result = prime * result
+				+ ((entityId == null) ? 0 : entityId.hashCode());
+		result = prime * result
 				+ ((entityPath == null) ? 0 : entityPath.hashCode());
 		result = prime * result
 				+ ((entityType == null) ? 0 : entityType.hashCode());
@@ -142,12 +153,20 @@ public class EntityBootstrapData {
 				return false;
 		} else if (!entityDescription.equals(other.entityDescription))
 			return false;
+		if (entityId == null) {
+			if (other.entityId != null)
+				return false;
+		} else if (!entityId.equals(other.entityId))
+			return false;
 		if (entityPath == null) {
 			if (other.entityPath != null)
 				return false;
 		} else if (!entityPath.equals(other.entityPath))
 			return false;
-		if (entityType != other.entityType)
+		if (entityType == null) {
+			if (other.entityType != null)
+				return false;
+		} else if (!entityType.equals(other.entityType))
 			return false;
 		return true;
 	}

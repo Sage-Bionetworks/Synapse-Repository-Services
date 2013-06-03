@@ -89,15 +89,15 @@ public class DBOAccessRequirementDAOImplTest {
 			node2.setId( nodeDAO.createNew(node2) );
 		};
 		if (evaluation==null) {
-			evaluation = createNewEvaluation("foo", individualGroup.getId(), idGenerator);
+			evaluation = createNewEvaluation("foo", individualGroup.getId(), idGenerator, node.getId());
 			evaluation.setId( evaluationDAO.create(evaluation, Long.parseLong(individualGroup.getId())) );
 		};
 	}
 	
-	public static Evaluation createNewEvaluation(String name, String ownerId, IdGenerator idGenerator) {
+	public static Evaluation createNewEvaluation(String name, String ownerId, IdGenerator idGenerator, String contentSource) {
 		Evaluation evaluation = new Evaluation();
 		evaluation.setId(idGenerator.generateNewId().toString());
-		evaluation.setContentSource("");
+		evaluation.setContentSource(contentSource);
 		evaluation.setOwnerId(ownerId);
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation.setName(name);

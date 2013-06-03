@@ -13,6 +13,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,7 +40,7 @@ public class ParticipantDBOTest {
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
         evaluation.setCreatedOn(System.currentTimeMillis());
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(KeyFactory.ROOT_ID);
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         dboBasicDao.createNew(evaluation);
     }

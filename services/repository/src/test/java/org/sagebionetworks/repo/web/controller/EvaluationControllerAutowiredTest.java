@@ -95,12 +95,12 @@ public class EvaluationControllerAutowiredTest {
 		eval1 = new Evaluation();
 		eval1.setName("name");
 		eval1.setDescription("description");
-        eval1.setContentSource("contentSource");
+        eval1.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval1.setStatus(EvaluationStatus.PLANNED);
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
-        eval2.setContentSource("contentSource");
+        eval2.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval2.setStatus(EvaluationStatus.PLANNED);
         
         // initialize Participants

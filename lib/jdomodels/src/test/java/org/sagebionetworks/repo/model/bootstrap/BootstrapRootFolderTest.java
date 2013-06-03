@@ -21,8 +21,6 @@ public class BootstrapRootFolderTest {
 	@Autowired
 	EntityBootstrapData rootFolderBootstrapData;
 	@Autowired
-	EntityBootstrapData agreementFolderBootstrapData;
-	@Autowired
 	EntityBootstrapData trashFolderBootstrapData;
 	@Autowired
 	UserGroupDAO userGroupDAO;
@@ -43,44 +41,7 @@ public class BootstrapRootFolderTest {
 		assertEquals(1, access.getAccessTypeList().size());
 		assertEquals(ACCESS_TYPE.CREATE, access.getAccessTypeList().get(0));
 	}
-	
-	@Test
-	public void testAgreementBootstrapDataLoad() throws Exception {
-		assertNotNull(agreementFolderBootstrapData);
-		// Check the values
-		assertEquals("/root/agreements", agreementFolderBootstrapData.getEntityPath());
-		assertEquals(EntityType.folder, agreementFolderBootstrapData.getEntityType());
-		assertNotNull(agreementFolderBootstrapData);
-		assertNotNull(agreementFolderBootstrapData.getAccessList());
-		assertEquals(2, agreementFolderBootstrapData.getAccessList().size());
-		AccessBootstrapData access = agreementFolderBootstrapData.getAccessList().get(0);
-		assertNotNull(access);
-		access.setGroupId(Long.parseLong(userGroupDAO.findGroup(access.getGroup().name(), false).getId()));
 
-		UserGroup authenticatedUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
-		assertNotNull(authenticatedUsers);
-		assertNotNull(authenticatedUsers.getId());
-		assertEquals(authenticatedUsers.getId(), access.getGroupId().toString());
-
-		
-		assertNotNull(access.getAccessTypeList());
-		assertEquals(2, access.getAccessTypeList().size());
-		assertEquals(ACCESS_TYPE.CREATE, access.getAccessTypeList().get(0));
-		assertEquals(ACCESS_TYPE.READ, access.getAccessTypeList().get(1));
-		
-		access = agreementFolderBootstrapData.getAccessList().get(1);
-		assertNotNull(access);
-		access.setGroupId(Long.parseLong(userGroupDAO.findGroup(access.getGroup().name(), false).getId()));
-
-		UserGroup publicUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.PUBLIC.name(), false);
-		assertNotNull(publicUsers);
-		assertEquals(publicUsers.getId(), access.getGroupId().toString());
-
-		
-		assertNotNull(access.getAccessTypeList());
-		assertEquals(1, access.getAccessTypeList().size());
-		assertEquals(ACCESS_TYPE.READ, access.getAccessTypeList().get(0));
-	}
 
 	@Test
 	public void testTrashBootstrapDataLoad() throws Exception {

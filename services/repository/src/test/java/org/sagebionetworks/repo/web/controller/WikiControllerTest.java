@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -90,7 +91,9 @@ public class WikiControllerTest {
 			entityServletHelper.deleteEntity(entity.getId(), userName);
 		}
 		if(evaluation != null){
-			entityServletHelper.deleteEvaluation(evaluation.getId(), userName);
+			try {
+				entityServletHelper.deleteEvaluation(evaluation.getId(), userName);
+			} catch (Exception e) {}
 		}
 		for(WikiPageKey key: toDelete){
 			entityServletHelper.deleteWikiPage(key, userName);
@@ -118,7 +121,7 @@ public class WikiControllerTest {
 		// create an entity
 		evaluation = new Evaluation();
 		evaluation.setName("testCompetitionWikiCRUD");
-		evaluation.setContentSource("not sure what this is");
+		evaluation.setContentSource(KeyFactory.SYN_ROOT_ID);
 		evaluation.setDescription("a test descrption");
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = entityServletHelper.createEvaluation(evaluation, userName);
