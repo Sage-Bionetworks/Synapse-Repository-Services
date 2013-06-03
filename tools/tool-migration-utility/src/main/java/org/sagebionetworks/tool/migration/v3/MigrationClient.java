@@ -5,8 +5,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,6 +38,9 @@ public class MigrationClient {
 
 	SynapseClientFactory factory;
 	ExecutorService threadPool;
+	List<Exception> deferredExceptions;
+	final int MAX_DEFERRED_EXCEPTIONS = 10;
+	
 	/**
 	 * New migration client.
 	 * @param factory
@@ -44,6 +49,7 @@ public class MigrationClient {
 		if(factory == null) throw new IllegalArgumentException("Factory cannot be null");
 		this.factory = factory;
 		threadPool = Executors.newFixedThreadPool(1);
+		deferredExceptions = new ArrayList<Exception>();
 	}
 
 	/**
@@ -153,6 +159,12 @@ public class MigrationClient {
 		printCount(endSourceCounts.getList());
 		log.info("Destination end counts:");
 		printCount(endDestCounts.getList());
+
+		if (this.deferredExceptions.size() > 0) {
+			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
+			this.dumpDeferredExceptions();
+			throw new RuntimeException();
+		}
 	}
 
 	/**
@@ -219,8 +231,19 @@ public class MigrationClient {
 				log.info("Creating/updating data for type: "+type.name()+" Progress: "+progress.getCurrentStatus()+" "+message);
 				Thread.sleep(2000);
 			}
-			Long counts = future.get();
-			log.info("Creating/updating the following counts for type: "+type.name()+" Counts: "+counts);
+			try {
+				Long counts = future.get();
+				log.info("Creating/updating the following counts for type: "+type.name()+" Counts: "+counts);
+			} catch (ExecutionException e) {
+				if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS) {
+					log.debug("Deferring execution exception in MigrationClient.createUpdateInDestination()");
+					deferredExceptions.add(e);
+				} else {
+					log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS + " execution exceptions in the worker threads. Dumping deferred first");
+					this.dumpDeferredExceptions();
+					throw e;
+				}
+			}
 		}finally{
 			reader.close();
 		}
@@ -320,11 +343,29 @@ public class MigrationClient {
 				log.info("Deleting data for type: "+type.name()+" Progress: "+progress.getCurrentStatus());
 				Thread.sleep(2000);
 			}
-			Long counts = future.get();
-			log.info("Deleted the following counts for type: "+type.name()+" Counts: "+counts);
+			try {
+				Long counts = future.get();
+				log.info("Deleted the following counts for type: "+type.name()+" Counts: "+counts);
+			} catch (ExecutionException e) {
+				if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS) {
+					log.debug("Deferring execution exception in MigrationClient.createUpdateInDestination()");
+					deferredExceptions.add(e);
+				} else {
+					log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS + " execution exceptions in the worker threads. Dumping deferred first");
+					this.dumpDeferredExceptions();
+					throw e;
+				}
+			}
 		}finally{
 			reader.close();
 		}
 
+	}
+	
+	private void dumpDeferredExceptions() {
+		for (Exception e: this.deferredExceptions) {
+			log.error(e.getMessage());
+			log.error(e.getStackTrace());
+		}
 	}
 }
