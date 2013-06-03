@@ -136,7 +136,7 @@ public class StorageUsageQueryDaoImplTest {
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 
-		ExternalFileHandle external = TestUtils.createExternalFileHandle(userId, contentType2);
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(userId, "content type");
 		external = fileHandleDao.createFile(external);
 		assertNotNull(external);
 		final String extId = external.getId();
@@ -151,16 +151,35 @@ public class StorageUsageQueryDaoImplTest {
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
 		List<StorageUsageSummary> aggregates = results.getSummaryList();
+		int contentType1Count = 0;
+		int contentType1Size = 0;
+		int contentType2Count = 0;
+		int contentType2Size = 0;
 		for (StorageUsageSummary aggregate : aggregates) {
 			List<StorageUsageDimensionValue> list = aggregate.getDimensionList();
 			assertEquals(2, list.size());
-			assertEquals(StorageUsageDimension.CONTENT_TYPE, list.get(0).getDimension());
-			assertNotNull(list.get(0).getValue());
-			assertEquals(StorageUsageDimension.STORAGE_PROVIDER, list.get(1).getDimension());
-			assertNotNull(list.get(1).getValue());
-			assertEquals(1, aggregate.getAggregatedCount().intValue());
-			assertTrue(aggregate.getAggregatedSize().intValue() >= 0);
+			StorageUsageDimensionValue dim = list.get(0);
+			assertEquals(StorageUsageDimension.CONTENT_TYPE, dim.getDimension());
+			String contentType = dim.getValue();
+			if (contentType1.equals(contentType)) {
+				contentType1Count = contentType1Count + aggregate.getAggregatedCount().intValue();
+				contentType1Size = contentType1Size + aggregate.getAggregatedSize().intValue();
+			} else if (contentType2.equals(contentType)) {
+				contentType2Count = contentType2Count + aggregate.getAggregatedCount().intValue();
+				contentType2Size = contentType2Size + aggregate.getAggregatedSize().intValue();
+			}
+			dim = list.get(1);
+			assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dim.getDimension());
+			String provider = dim.getValue();
+			if (contentType1.equals(contentType) && "S3".equals(provider)) {
+				assertEquals(1, aggregate.getAggregatedCount().intValue());
+				assertEquals(10, aggregate.getAggregatedSize().intValue());
+			}
 		}
+		assertEquals(2, contentType1Count);
+		assertEquals(60, contentType1Size);
+		assertEquals(1, contentType2Count);
+		assertEquals(30, contentType2Size);
 
 		// Reverse the order of aggregating dimensions plus dupes
 		dimList = new ArrayList<StorageUsageDimension>();
@@ -170,6 +189,10 @@ public class StorageUsageQueryDaoImplTest {
 		results = storageUsageQueryDao.getAggregatedUsage(dimList);
 		assertEquals(4, results.getTotalCount().intValue());
 		assertEquals(size1 + size2 + size3, results.getTotalSize().intValue());
+		contentType1Count = 0;
+		contentType1Size = 0;
+		contentType2Count = 0;
+		contentType2Size = 0;
 		aggregates = results.getSummaryList();
 		for (StorageUsageSummary aggregate : aggregates) {
 			List<StorageUsageDimensionValue> list = aggregate.getDimensionList();
@@ -178,9 +201,21 @@ public class StorageUsageQueryDaoImplTest {
 			assertNotNull(list.get(0).getValue());
 			assertEquals(StorageUsageDimension.CONTENT_TYPE, list.get(1).getDimension());
 			assertNotNull(list.get(1).getValue());
+			String contentType = list.get(1).getValue();
+			if (contentType1.equals(contentType)) {
+				contentType1Count = contentType1Count + aggregate.getAggregatedCount().intValue();
+				contentType1Size = contentType1Size + aggregate.getAggregatedSize().intValue();
+			} else if (contentType2.equals(contentType)) {
+				contentType2Count = contentType2Count + aggregate.getAggregatedCount().intValue();
+				contentType2Size = contentType2Size + aggregate.getAggregatedSize().intValue();
+			}
 			assertEquals(1, aggregate.getAggregatedCount().intValue());
 			assertTrue(aggregate.getAggregatedSize().intValue() >= 0);
 		}
+		assertEquals(2, contentType1Count);
+		assertEquals(60, contentType1Size);
+		assertEquals(1, contentType2Count);
+		assertEquals(30, contentType2Size);
 
 		// One dimension only to verify the aggregated numbers
 		dimList = new ArrayList<StorageUsageDimension>();
