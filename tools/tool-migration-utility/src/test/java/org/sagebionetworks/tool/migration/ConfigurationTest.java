@@ -2,6 +2,7 @@ package org.sagebionetworks.tool.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 
@@ -53,5 +54,15 @@ public class ConfigurationTest {
 	@Test
 	public void testWorkerTimeout(){
 		assertEquals(30*1000, configuration.getWorkerTimeoutMs());
+	}
+	
+	@Test
+	public void testFinalSync() {
+		assertFalse(configuration.getFinalSync());
+	}
+	
+	@Test
+	public void testRetryDenominator() {
+		assertEquals(100, configuration.getRetryDenominator());
 	}
 }

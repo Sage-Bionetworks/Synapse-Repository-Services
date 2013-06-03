@@ -68,7 +68,6 @@ public class MigrationClient {
 		}catch (Exception e){
 			// If an error occurs the source server must be returned to read-write
 			if(finalSynchronize){
-				// This is the final synchronize so place the source into read-only mode.
 				log.error("Migration failed on a final synchronize, so the source stack will be set back to read/write");
 				setSourceStatus(StatusEnum.READ_WRITE, "Synapse returned to read/write.");
 			}
