@@ -89,7 +89,7 @@ public class SubmissionDAOImplTest {
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
         evaluation.setCreatedOn(new Date());
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         

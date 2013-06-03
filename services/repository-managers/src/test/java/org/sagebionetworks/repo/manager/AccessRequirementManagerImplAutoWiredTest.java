@@ -84,15 +84,15 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
 		
-		evaluation = newEvaluation("test-name", testUserProvider.getTestUserInfo());
-		adminEvaluation = newEvaluation("admin-name", testUserProvider.getTestAdminUserInfo());
+		evaluation = newEvaluation("test-name", testUserProvider.getTestUserInfo(), rootId);
+		adminEvaluation = newEvaluation("admin-name", testUserProvider.getTestAdminUserInfo(), rootId);
 	}
 	
-	private Evaluation newEvaluation(String name, UserInfo userInfo) throws NotFoundException {
+	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {
 		Evaluation evaluation = new Evaluation();
 		evaluation.setName(name);
 		evaluation.setCreatedOn(new Date());
-		evaluation.setContentSource("content source");
+		evaluation.setContentSource(contentSource);
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = evaluationManager.createEvaluation(userInfo, evaluation);
@@ -116,12 +116,16 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		}
 		
 		if (evaluation!=null) {
-			evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
-			evaluation=null;
+			try {
+				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
+				evaluation=null;
+			} catch (Exception e) {}
 		}
 		if (adminEvaluation!=null) {
-			evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), adminEvaluation.getId());
-			adminEvaluation=null;
+			try {
+				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), adminEvaluation.getId());
+				adminEvaluation=null;
+			} catch (Exception e) {}
 		}
 	}
 	

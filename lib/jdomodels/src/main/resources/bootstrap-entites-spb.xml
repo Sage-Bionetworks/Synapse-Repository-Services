@@ -13,6 +13,7 @@
 	<bean id="rootFolderBootstrapData"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData">
 		<property name="entityPath" value="/root" />
+		<property name="entityId" value="4489" />
 		<property name="entityDescription"
 			value="The root Synapse folder containing all other entities." />
 		<property name="entityType" value="folder" />
@@ -31,69 +32,10 @@
 		</property>
 	</bean>
 
-	<bean id="agreementFolderBootstrapData"
-		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData">
-		<property name="entityPath" value="/root/agreements" />
-		<property name="entityDescription"
-			value="The folder containing all Synapse license agreements." />
-		<property name="entityType" value="folder" />
-		<property name="defaultChildAclScheme" value="INHERIT_FROM_PARENT" />
-		<property name="accessList">
-			<list>
-				<bean class="org.sagebionetworks.repo.model.bootstrap.AccessBootstrapData">
-					<property name="group" value="AUTHENTICATED_USERS" />
-					<property name="accessTypeList">
-						<list>
-							<value>CREATE</value>
-							<value>READ</value>
-						</list>
-					</property>
-				</bean>
-				<bean class="org.sagebionetworks.repo.model.bootstrap.AccessBootstrapData">
-					<property name="group" value="PUBLIC" />
-					<property name="accessTypeList">
-						<list>
-							<value>READ</value>
-						</list>
-					</property>
-				</bean>
-			</list>
-		</property>
-	</bean>
-
-	<bean id="eulaFolderBootstrapData"
-		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData">
-		<property name="entityPath" value="/root/eulas" />
-		<property name="entityDescription"
-			value="The folder containing all Synapse End User License Agreements." />
-		<property name="entityType" value="folder" />
-		<property name="defaultChildAclScheme" value="INHERIT_FROM_PARENT" />
-		<property name="accessList">
-			<list>
-				<bean class="org.sagebionetworks.repo.model.bootstrap.AccessBootstrapData">
-					<property name="group" value="AUTHENTICATED_USERS" />
-					<property name="accessTypeList">
-						<list>
-							<value>CREATE</value>
-							<value>READ</value>
-						</list>
-					</property>
-				</bean>
-				<bean class="org.sagebionetworks.repo.model.bootstrap.AccessBootstrapData">
-					<property name="group" value="PUBLIC" />
-					<property name="accessTypeList">
-						<list>
-							<value>READ</value>
-						</list>
-					</property>
-				</bean>
-			</list>
-		</property>
-	</bean>
-
 	<bean id="trashFolderBootstrapData"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData">
 		<property name="entityPath" value="/root/trash" />
+		<property name="entityId" value="1681355" />
 		<property name="entityDescription"
 			value="The trash can folder." />
 		<property name="entityType" value="folder" />

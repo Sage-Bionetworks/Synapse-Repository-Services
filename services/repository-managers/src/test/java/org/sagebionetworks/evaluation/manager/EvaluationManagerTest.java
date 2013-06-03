@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,7 +54,7 @@ public class EvaluationManagerTest {
 	
 	private static final String EVALUATION_NAME = "test-evaluation";
     private static final String EVALUATION_ID = "1234";
-    private static final String EVALUATION_CONTENT_SOURCE = "Baz";
+    private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
     private static final String EVALUATION_ETAG = "etag";
     
     @Before

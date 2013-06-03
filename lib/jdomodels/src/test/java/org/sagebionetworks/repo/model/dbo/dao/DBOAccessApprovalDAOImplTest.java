@@ -103,7 +103,7 @@ public class DBOAccessApprovalDAOImplTest {
 		assertNotNull(id);
 		
 		if (evaluation==null) {
-			evaluation = DBOAccessRequirementDAOImplTest.createNewEvaluation("foo", individualGroup.getId(), idGenerator);
+			evaluation = DBOAccessRequirementDAOImplTest.createNewEvaluation("foo", individualGroup.getId(), idGenerator, node.getId());
 			evaluation.setId( evaluationDAO.create(evaluation, Long.parseLong(individualGroup.getId())) );
 		};
 		accessRequirement2 = DBOAccessRequirementDAOImplTest.newMixedAccessRequirement(individualGroup, node2, evaluation, "bar");
