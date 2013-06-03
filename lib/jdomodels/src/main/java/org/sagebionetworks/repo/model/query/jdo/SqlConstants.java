@@ -167,19 +167,6 @@ public class SqlConstants {
 	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
 	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
 
-	// The table of storage locations
-    public static final String DDL_FILE_STORAGE_LOCATION             = "schema/StorageLocation-ddl.sql";
-    public static final String TABLE_STORAGE_LOCATION                = "STORAGE_LOCATION";
-    public static final String COL_STORAGE_LOCATION_ID               = "ID";
-    public static final String COL_STORAGE_LOCATION_NODE_ID          = "NODE_ID";
-    public static final String COL_STORAGE_LOCATION_USER_ID          = "USER_ID";
-    public static final String COL_STORAGE_LOCATION_LOCATION         = "LOCATION";
-    public static final String COL_STORAGE_LOCATION_IS_ATTACHMENT    = "IS_ATTACHMENT";
-    public static final String COL_STORAGE_LOCATION_STORAGE_PROVIDER = "STORAGE_PROVIDER";
-    public static final String COL_STORAGE_LOCATION_CONTENT_TYPE     = "CONTENT_TYPE";
-    public static final String COL_STORAGE_LOCATION_CONTENT_SIZE     = "CONTENT_SIZE";
-    public static final String COL_STORAGE_LOCATION_CONTENT_MD5      = "CONTENT_MD5";
-
 	// The name of the node type table.
 	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
 	public static final String COL_NODE_TYPE_NAME 			= "NAME";
