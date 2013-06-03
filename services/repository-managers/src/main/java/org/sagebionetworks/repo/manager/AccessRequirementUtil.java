@@ -38,12 +38,6 @@ public class AccessRequirementUtil {
 			}
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
 			accessType = ACCESS_TYPE.PARTICIPATE;
-			// if the user is an administrator of the evaluation, then she automatically 
-			// has access to the object and therefore has no unmet access requirements
-			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
-				return EMPTY_LIST;
-			}
 		} else {
 			throw new IllegalArgumentException("Unexpected type: "+subjectId.getType());
 		}

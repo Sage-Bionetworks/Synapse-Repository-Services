@@ -276,7 +276,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertEquals(0, ars.getResults().size());
 	}
 	
-	// evaluation owner never has unmet access requirements
+	// evaluation owner gets no special treatment
 	@Test
 	public void testGetUnmetEvaluationAccessRequirementsOwner() throws Exception {
 		ar = newEvaluationAccessRequirement(evaluation.getId());
@@ -285,8 +285,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(evaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
 		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserProvider.getTestUserInfo(), rod);
-		assertEquals(0L, ars.getTotalNumberOfResults());
-		assertEquals(0, ars.getResults().size());
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
 	}
 	
 	@Test
