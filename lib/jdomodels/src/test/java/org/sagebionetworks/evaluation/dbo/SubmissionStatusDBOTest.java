@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ public class SubmissionStatusDBOTest {
         evaluation.seteTag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(KeyFactory.ROOT_ID);
         evaluation.setCreatedOn(System.currentTimeMillis());
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();

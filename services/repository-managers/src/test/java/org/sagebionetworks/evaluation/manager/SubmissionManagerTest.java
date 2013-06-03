@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -107,7 +108,7 @@ public class SubmissionManagerTest {
 		eval.setName("compName");
 		eval.setId(EVAL_ID);
 		eval.setOwnerId(OWNER_ID);
-        eval.setContentSource("contentSource");
+        eval.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval.setStatus(EvaluationStatus.OPEN);
         eval.setCreatedOn(new Date());
         eval.setEtag("compEtag");

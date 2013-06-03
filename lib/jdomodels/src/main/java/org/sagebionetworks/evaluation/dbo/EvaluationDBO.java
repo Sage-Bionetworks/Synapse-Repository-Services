@@ -39,7 +39,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationDBO>, TaggableEntity, ObservableEntity {
+public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, TaggableEntity, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_EVALUATION_ID, COL_EVALUATION_ID, true).withIsBackupId(true),
@@ -66,7 +66,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				}
 				comp.setOwnerId(rs.getLong(COL_EVALUATION_OWNER_ID));
 				comp.setCreatedOn(rs.getLong(COL_EVALUATION_CREATED_ON));
-				comp.setContentSource(rs.getString(COL_EVALUATION_CONTENT_SOURCE));
+				comp.setContentSource(rs.getLong(COL_EVALUATION_CONTENT_SOURCE));
 				comp.setStatus(rs.getInt(COL_EVALUATION_STATUS));
 				return comp;
 			}
@@ -95,7 +95,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private byte[] description;
 	private Long ownerId;
 	private Long createdOn;
-	private String contentSource;
+	private Long contentSource;
 	private int status;
 	
 	public Long getId() {
@@ -140,10 +140,10 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		this.createdOn = createdOn;
 	}
 
-	public String getContentSource() {
+	public Long getContentSource() {
 		return contentSource;
 	}
-	public void setContentSource(String contentSource) {
+	public void setContentSource(Long contentSource) {
 		this.contentSource = contentSource;
 	}
 
@@ -247,25 +247,10 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public MigrationType getMigratableTableType() {
 		return MigrationType.EVALUATION;
 	}
-	@Override
-	public MigratableTableTranslation<EvaluationDBO, EvaluationDBO> getTranslator() {
-		return new MigratableTableTranslation<EvaluationDBO, EvaluationDBO>(){
 
-			@Override
-			public EvaluationDBO createDatabaseObjectFromBackup(
-					EvaluationDBO backup) {
-				return backup;
-			}
-
-			@Override
-			public EvaluationDBO createBackupFromDatabaseObject(
-					EvaluationDBO dbo) {
-				return dbo;
-			}};
-	}
 	@Override
-	public Class<? extends EvaluationDBO> getBackupClass() {
-		return EvaluationDBO.class;
+	public Class<? extends EvaluationBackup> getBackupClass() {
+		return EvaluationBackup.class;
 	}
 	@Override
 	public Class<? extends EvaluationDBO> getDatabaseObjectClass() {
@@ -274,6 +259,22 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;
+	}
+	@Override
+	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {
+		// TODO Auto-generated method stub
+		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
+
+			@Override
+			public EvaluationDBO createDatabaseObjectFromBackup(
+					EvaluationBackup backup) {
+				return EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
+			}
+
+			@Override
+			public EvaluationBackup createBackupFromDatabaseObject(EvaluationDBO dbo) {
+				return EvaluationTranslationUtil.createBackupFromDatabaseObject(dbo);
+			}};
 	}
 
 }
