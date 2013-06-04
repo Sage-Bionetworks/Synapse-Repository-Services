@@ -23,7 +23,8 @@
 		<property name="triggers">
 			<list>
 				<ref bean="dynamoQueueMessageRetrieverTrigger" />
-				<ref bean="dynamoRdsSynchronizerTrigger" />
+<!-- We removed this worker because it is non-essential and we believe it was pushing the Database CPU to 100% -->				
+<!-- 				<ref bean="dynamoRdsSynchronizerTrigger" /> -->
 				<ref bean="rdsQueueMessageReveiverTrigger" />
 				<ref bean="searchQueueMessageReveiverTrigger" />
 				<ref bean="fileQueueMessageReveiverTrigger" />
