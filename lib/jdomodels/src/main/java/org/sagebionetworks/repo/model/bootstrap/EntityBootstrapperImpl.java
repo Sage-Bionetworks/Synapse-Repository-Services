@@ -93,6 +93,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setModifiedByPrincipalId(Long.parseLong(bootstrapPrincipal.getId()));
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
+			toCreate.setId(""+entityBoot.getEntityId());
 			String nodeId = nodeDao.createNew(toCreate);
 			
 			for (AccessBootstrapData abd: entityBoot.getAccessList()) {

@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -48,7 +49,7 @@ public class EvaluationDAOImplTest {
 	private static final String EVALUATION_NAME = "test-evaluation";
 	private static final String EVALUATION_NAME_2 = "test-evaluation-2";
     private static final Long EVALUATION_OWNER_ID = 0L;
-    private static final String EVALUATION_CONTENT_SOURCE = "Baz";
+    private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.keyToString(KeyFactory.ROOT_ID);
     
     private static Evaluation newEvaluation(String id, String name, String contentSource, EvaluationStatus status) {
     	Evaluation evaluation = new Evaluation();
@@ -188,7 +189,7 @@ public class EvaluationDAOImplTest {
 		eval = evaluationDAO.get(evalId);
 		
 		// create another evaluation.  Make sure it doesn't appear in query results
-		Evaluation e2 = newEvaluation("456", "rogue", "na", EvaluationStatus.PLANNED);
+		Evaluation e2 = newEvaluation("456", "rogue", EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
 		String evalId2 = evaluationDAO.create(e2, 1L);
 		assertNotNull(evalId2);
 		toDelete.add(evalId2);
@@ -239,7 +240,7 @@ public class EvaluationDAOImplTest {
 		eval = evaluationDAO.get(evalId);
 		
 		// create another evaluation.  Make sure it doesn't appear in query results
-		Evaluation e2 = newEvaluation("456", "rogue", "na", EvaluationStatus.PLANNED);
+		Evaluation e2 = newEvaluation("456", "rogue", EVALUATION_CONTENT_SOURCE, EvaluationStatus.PLANNED);
 		String evalId2 = evaluationDAO.create(e2, 1L);
 		assertNotNull(evalId2);
 		toDelete.add(evalId2);
@@ -324,7 +325,7 @@ public class EvaluationDAOImplTest {
     	EvaluationDBO evalDBO = new EvaluationDBO();
     	EvaluationDBO evalDBOclone = new EvaluationDBO();
     	
-    	evalDTO.setContentSource("contentSource");
+    	evalDTO.setContentSource("syn123");
     	evalDTO.setCreatedOn(new Date());
     	evalDTO.setDescription("description");
     	evalDTO.setEtag("eTag");

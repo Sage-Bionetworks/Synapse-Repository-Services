@@ -210,12 +210,12 @@ public class MigrationIntegrationAutowireTest {
 		evaluation = new Evaluation();
 		evaluation.setName("name");
 		evaluation.setDescription("description");
-		evaluation.setContentSource("contentSource");
+		evaluation.setContentSource(project.getId());
 		evaluation.setStatus(EvaluationStatus.PLANNED);
 		evaluation = new Evaluation();
 		evaluation.setName("name2");
 		evaluation.setDescription("description");
-		evaluation.setContentSource("contentSource");
+		evaluation.setContentSource(project.getId());
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluation = serviceProvider.getEvaluationService().createEvaluation(userName, evaluation);		
         

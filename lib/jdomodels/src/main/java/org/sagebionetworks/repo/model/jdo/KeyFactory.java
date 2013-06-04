@@ -14,6 +14,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
  * 
  */
 public class KeyFactory {
+	
+	public static final Long ROOT_ID = new Long(4489);
+	public static final String SYN_ROOT_ID = KeyFactory.keyToString(ROOT_ID);
 
 	/**
 	 * Synapse keys sent to the repo svc may be optionally prefixed with this
