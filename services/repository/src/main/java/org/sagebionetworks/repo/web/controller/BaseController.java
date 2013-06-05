@@ -94,21 +94,8 @@ public abstract class BaseController {
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavaiable, please try again later.";
 	private static final Logger log;
 
-	// this is one way to get stack traces from the server process when running
-	// 'forked off' from the main process
-	// to enable, uncomment the lines below
 	static {
 		log = Logger.getLogger(BaseController.class.getName());
-		// try {
-		// Date d = new Date();
-		// DateFormat df = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
-		// FileHandler handler = new
-		// FileHandler(BaseController.class.getName()+df.format(d)+".txt");
-		// log.addHandler(handler);
-		// } catch (IOException e) {
-		// throw new RuntimeException(e);
-		// }
-
 	}
 
 	/**
@@ -510,7 +497,9 @@ public abstract class BaseController {
 		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
 				+ UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
 		response.sendError(HttpStatus.NOT_FOUND.value(), message);
-		return new ErrorResponse(message);
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(message);
+		return er;
 	}
 
 	/**
@@ -535,7 +524,9 @@ public abstract class BaseController {
 				: trace.length();
 		String message = "Send a Jira bug report to the platform team with this message: "
 				+ trace.substring(0, endIndex);
-		return new ErrorResponse(message);
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(message);
+		return er;
 	}
 
 	/**
@@ -574,7 +565,9 @@ public abstract class BaseController {
 	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
 			HttpServletRequest request) {
 		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
-		return new ErrorResponse(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
+		return er;
 	}
 
 	/**
@@ -600,8 +593,9 @@ public abstract class BaseController {
 		if (0 <= normalizedMessage.indexOf("cloudsearch")) {
 			message = "search failed, try again";
 		}
-		return new ErrorResponse(message);
-		// return new ErrorResponse(stackTraceToString(ex));
+		ErrorResponse er = new ErrorResponse();
+		er.setReason(message);
+		return er;
 	}
 
 	/**
