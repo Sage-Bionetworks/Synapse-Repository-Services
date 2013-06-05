@@ -217,6 +217,9 @@
 	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl"
 		scope="singleton" />
 
+	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
+		scope="singleton" />
+
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
 		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">

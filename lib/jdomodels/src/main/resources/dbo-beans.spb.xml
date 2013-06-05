@@ -50,6 +50,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<!-- Competition beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
@@ -85,6 +86,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 			</list>
 		</property>
 	</bean>

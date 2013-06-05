@@ -332,7 +332,14 @@ public class SqlConstants {
 	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
 	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
 	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
-	
+
+	// Storage Quota
+	public static final String TABLE_STORAGE_QUOTA            = "STORAGE_QUOTA";
+	public static final String COL_STORAGE_QUOTA_OWNER_ID     = "OWNER_ID";
+	public static final String COL_STORAGE_QUOTA_ETAG         = "ETAG";
+	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
+	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	
