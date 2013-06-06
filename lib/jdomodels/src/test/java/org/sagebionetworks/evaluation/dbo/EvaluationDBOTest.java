@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,7 +26,7 @@ public class EvaluationDBOTest {
     private String name = "Foo";
     private String eTag = "Bar";
     private long ownerId = 0;
-    private String contentSource = "Baz";
+    private Long contentSource = KeyFactory.ROOT_ID;
  
     @After
     public void after() throws DatastoreException {

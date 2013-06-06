@@ -13,17 +13,17 @@ public class EzidAsyncClientTest {
 	@Test
 	public void testCreateSuccess() throws Exception {
 
-		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
-		DoiClient asyncClient = new EzidAsyncClient(callback);
-
+		DoiAsyncClient asyncClient = new EzidAsyncClient();
 		EzidClient ezidClient = mock(EzidClient.class);
 		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
 		EzidDoi doi = mock(EzidDoi.class);
-		asyncClient.create(doi);
-		// Wait 1s before verifying the call
+		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
+		asyncClient.create(doi, callback);
+
+		// Wait 100 ms before verifying the call
 		// the execution is on a separate thread
-		Thread.sleep(1000L);
+		Thread.sleep(100L);
 		verify(ezidClient, times(1)).create(doi);
 		verify(callback, times(1)).onSuccess(doi);
 	}
@@ -31,19 +31,19 @@ public class EzidAsyncClientTest {
 	@Test
 	public void testCreateError() throws Exception {
 
-		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
-		DoiClient asyncClient = new EzidAsyncClient(callback);
-
 		EzidClient ezidClient = mock(EzidClient.class);
 		EzidDoi doiWithError = mock(EzidDoi.class);
 		Exception e = new RuntimeException("Mocked exception");
 		doThrow(e).when(ezidClient).create(doiWithError);
+		DoiAsyncClient asyncClient = new EzidAsyncClient();
 		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
-		asyncClient.create(doiWithError);
-		// Wait 1s before verifying the call
+		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
+		asyncClient.create(doiWithError, callback);
+
+		// Wait 100 ms before verifying the call
 		// the execution is on a separate thread
-		Thread.sleep(1000L);
+		Thread.sleep(100L);
 		verify(ezidClient, times(1)).create(doiWithError);
 		verify(callback, times(1)).onError(doiWithError, e);
 	}
@@ -51,17 +51,17 @@ public class EzidAsyncClientTest {
 	@Test
 	public void testUpdateSuccess() throws Exception {
 
-		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
-		DoiClient asyncClient = new EzidAsyncClient(callback);
-
+		DoiAsyncClient asyncClient = new EzidAsyncClient();
 		EzidClient ezidClient = mock(EzidClient.class);
 		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
 		EzidDoi doi = mock(EzidDoi.class);
-		asyncClient.update(doi);
-		// Wait 1s before verifying the call
+		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
+		asyncClient.update(doi, callback);
+
+		// Wait 100 ms before verifying the call
 		// the execution is on a separate thread
-		Thread.sleep(1000L);
+		Thread.sleep(100L);
 		verify(ezidClient, times(1)).update(doi);
 		verify(callback, times(1)).onSuccess(doi);
 	}
@@ -69,19 +69,19 @@ public class EzidAsyncClientTest {
 	@Test
 	public void testUpdateError() throws Exception {
 
-		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
-		DoiClient asyncClient = new EzidAsyncClient(callback);
-
 		EzidClient ezidClient = mock(EzidClient.class);
 		EzidDoi doiWithError = mock(EzidDoi.class);
 		Exception e = new RuntimeException("Mocked exception");
 		doThrow(e).when(ezidClient).update(doiWithError);
+		DoiAsyncClient asyncClient = new EzidAsyncClient();
 		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
-		asyncClient.update(doiWithError);
-		// Wait 1s before verifying the call
+		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
+		asyncClient.update(doiWithError, callback);
+
+		// Wait 100 ms before verifying the call
 		// the execution is on a separate thread
-		Thread.sleep(1000L);
+		Thread.sleep(100L);
 		verify(ezidClient, times(1)).update(doiWithError);
 		verify(callback, times(1)).onError(doiWithError, e);
 	}

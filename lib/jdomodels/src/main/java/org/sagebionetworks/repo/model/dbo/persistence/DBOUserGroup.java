@@ -14,16 +14,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
+public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOUserGroup> {
 	private Long id;
 	private String name;
 	private Date creationDate;
@@ -31,8 +34,10 @@ public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_USER_GROUP_ID, true),
-		new FieldColumn("name", COL_USER_GROUP_NAME),
+		new FieldColumn("id", COL_USER_GROUP_ID, true).withIsBackupId(true),
+		// we treat the user name like an etag, so if the name assigned to an
+		// ID across stacks does not match, the destination stack user will be replaced with the source user.
+		new FieldColumn("name", COL_USER_GROUP_NAME).withIsEtag(true),
 		new FieldColumn("creationDate", COL_USER_GROUP_CREATION_DATE),
 		new FieldColumn("isIndividual", COL_USER_GROUP_IS_INDIVIDUAL)
 		};
@@ -136,6 +141,48 @@ public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 	 */
 	public void setIsIndividual(Boolean isIndividual) {
 		this.isIndividual = isIndividual;
+	}
+
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.PRINCIPAL;
+	}
+
+
+	@Override
+	public MigratableTableTranslation<DBOUserGroup, DBOUserGroup> getTranslator() {
+		// We do not currently have a backup for this object.
+		return new MigratableTableTranslation<DBOUserGroup, DBOUserGroup>(){
+
+			@Override
+			public DBOUserGroup createDatabaseObjectFromBackup(
+					DBOUserGroup backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOUserGroup createBackupFromDatabaseObject(DBOUserGroup dbo) {
+				return dbo;
+			}};
+	}
+
+
+	@Override
+	public Class<? extends DBOUserGroup> getBackupClass() {
+		return DBOUserGroup.class;
+	}
+
+
+	@Override
+	public Class<? extends DBOUserGroup> getDatabaseObjectClass() {
+		return DBOUserGroup.class;
+	}
+
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 

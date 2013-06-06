@@ -17,17 +17,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -80,54 +75,6 @@ public class DBOUserGroupDAOImplTest {
 		assertEquals(GROUP_NAME, clone.getName());
 		assertEquals(group.getIsIndividual(), clone.getIsIndividual());
 		assertEquals(1+initialCount, userGroupDAO.getCount());
-	}
-	
-	@Test
-	public void testGetMigrationObjectData() throws Exception {
-		boolean foundPublic = false;
-		UserGroup ug = userGroupDAO.findGroup("PUBLIC", false);
-		assertNotNull(ug);
-		
-		boolean foundUser = false;
-		UserGroup oner = new UserGroup();
-		oner.setName("oner");
-		oner.setIsIndividual(true);
-		String onerId = userGroupDAO.create(oner);
-		groupsToDelete.add(onerId);
-		
-		UserProfile up = new UserProfile();
-		up.setOwnerId(onerId);
-		up.setEtag("some tag");
-		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-		String upId = userProfileDAO.create(up, schema); // this will be deleted via cascade when the user-group is deleted
-		
-		QueryResults<MigratableObjectData> migrationData = userGroupDAO.getMigrationObjectData(0, 10000, true);
-		assert(migrationData.getTotalNumberOfResults()>1);
-		assertEquals(migrationData.getTotalNumberOfResults(), migrationData.getResults().size());
-		
-		for (MigratableObjectData od : migrationData.getResults()) {
-			MigratableObjectDescriptor obj = od.getId();
-			assertNotNull(obj.getId());
-			assertEquals(MigratableObjectType.PRINCIPAL, obj.getType());
-			assertNotNull(od.getEtag());
-			assertTrue(od.getDependencies().isEmpty()); // Groups are not dependent on any other migratable object
-			if (obj.getId().equals(ug.getId())) {
-				foundPublic = true;
-				assertEquals(DBOUserGroupDAOImpl.DEFAULT_ETAG, od.getEtag()); // multiuser groups have no real etags
-			}
-			
-			if (obj.getId().equals(onerId)) {
-				foundUser=true;
-			}
-		}
-		
-		assertTrue(foundPublic);
-		assertTrue(foundUser);
-		
-		// make sure pagination works
-		migrationData = userGroupDAO.getMigrationObjectData(0, 1, true);
-		assertEquals(1, migrationData.getResults().size());
 	}
 	
 	
@@ -194,6 +141,19 @@ public class DBOUserGroupDAOImplTest {
 		omit.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
 		List<UserGroup> groupsButOne = userGroupDAO.getInRangeExcept(0, startingCount+100, false, omit);
 		assertEquals(groups.size(), groupsButOne.size()+1);
+	}
+	
+	@Test
+	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
+		List<UserGroupInt> boots = this.userGroupDAO.getBootstrapUsers();
+		assertNotNull(boots);
+		assertTrue(boots.size() >0);
+		// Each should exist
+		for(UserGroupInt bootUg: boots){
+			UserGroup ug = userGroupDAO.get(bootUg.getId());
+			assertEquals(bootUg.getId(), ug.getId());
+			assertEquals(bootUg.getName(), ug.getName());
+		}
 	}
 
 }

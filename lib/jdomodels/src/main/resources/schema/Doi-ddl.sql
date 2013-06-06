@@ -1,7 +1,7 @@
 CREATE TABLE `DOI` (
 	`ID`              bigint(20)                           NOT NULL,
 	`ETAG`            char(36)                             NOT NULL,
-	`DOI_STATUS`      ENUM('IN_PROCESS', 'READY', 'ERROR') NOT NULL,
+	`DOI_STATUS`      ENUM('IN_PROCESS', 'CREATED', 'READY', 'ERROR') NOT NULL,
 	`OBJECT_ID`       bigint(20)                           NOT NULL,
 	`OBJECT_TYPE`     ENUM('ENTITY', 'EVALUATION')         NOT NULL,
 	`OBJECT_VERSION`  bigint(20)                           DEFAULT NULL,

@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -26,8 +27,10 @@ import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManagerImpl;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
@@ -38,6 +41,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -57,10 +62,11 @@ public class SubmissionManagerTest {
 	private static SubmissionDAO mockSubmissionDAO;
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
 	private static SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
-	private static EvaluationManager mockCompetitionManager;
+	private static EvaluationManager mockEvaluationManager;
 	private static ParticipantManager mockParticipantManager;
 	private static EntityManager mockEntityManager;
 	private static NodeManager mockNodeManager;
+	private static AuthorizationManager mockAuthorizationManager;
 	private static Node mockNode;
 	private static Folder folder;
 	private static EntityBundle bundle;
@@ -102,7 +108,7 @@ public class SubmissionManagerTest {
 		eval.setName("compName");
 		eval.setId(EVAL_ID);
 		eval.setOwnerId(OWNER_ID);
-        eval.setContentSource("contentSource");
+        eval.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval.setStatus(EvaluationStatus.OPEN);
         eval.setCreatedOn(new Date());
         eval.setEtag("compEtag");
@@ -118,6 +124,7 @@ public class SubmissionManagerTest {
         sub.setEntityId(ENTITY_ID);
         sub.setName("subName");
         sub.setUserId(USER_ID);
+        sub.setSubmitterAlias("Team Awesome!");
         sub.setVersionNumber(0L);
         
         sub2 = new Submission();
@@ -126,6 +133,7 @@ public class SubmissionManagerTest {
         sub2.setEntityId(ENTITY2_ID);
         sub2.setName("subName");
         sub2.setUserId(OWNER_ID);
+        sub2.setSubmitterAlias("Team Even More Awesome!");
         sub2.setVersionNumber(0L);
         
         subWithId = new Submission();
@@ -135,6 +143,7 @@ public class SubmissionManagerTest {
         subWithId.setEntityId(ENTITY_ID);
         subWithId.setName("subName");
         subWithId.setUserId(USER_ID);
+        subWithId.setSubmitterAlias("Team Awesome!");
         subWithId.setVersionNumber(0L);
         
         sub2WithId = new Submission();
@@ -144,6 +153,7 @@ public class SubmissionManagerTest {
         sub2WithId.setEntityId(ENTITY2_ID);
         sub2WithId.setName("subName");
         sub2WithId.setUserId(OWNER_ID);
+        sub2WithId.setSubmitterAlias("Team Even More Awesome!");
         sub2WithId.setVersionNumber(0L);
         
         subStatus = new SubmissionStatus();
@@ -163,18 +173,19 @@ public class SubmissionManagerTest {
     	mockSubmissionDAO = mock(SubmissionDAO.class);
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
-    	mockCompetitionManager = mock(EvaluationManager.class);
+    	mockEvaluationManager = mock(EvaluationManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
-    	
+      	mockAuthorizationManager = mock(AuthorizationManager.class);
+      	     	
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
-    	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
+    	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
-    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
+    	//when(mockEvaluationManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0].toString());
     	when(mockNode.getETag()).thenReturn(ETAG);
@@ -183,11 +194,13 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
-    	
+    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+   	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockCompetitionManager, 
-    			mockParticipantManager, mockEntityManager, mockNodeManager);
+    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockEvaluationManager, 
+    			mockParticipantManager, mockEntityManager, mockNodeManager, mockAuthorizationManager);
     }
 	
 	@Test
@@ -204,6 +217,16 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));		
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testCAsUser_NotAuthorized() throws Exception {
+		assertNull(sub.getId());
+		assertNotNull(subWithId.getId());
+    	when(mockAuthorizationManager.canAccess(
+    			eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE)))
+    			.thenReturn(false);
+		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	
 	@Test

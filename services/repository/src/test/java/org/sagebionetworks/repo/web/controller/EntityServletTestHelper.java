@@ -21,6 +21,7 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
@@ -33,12 +34,19 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -86,7 +94,7 @@ public class EntityServletTestHelper {
 	 */
 	public EntityServletTestHelper() throws Exception {
 		dispatcherServlet = DispatchServletSingleton.getInstance();
-}
+	}
 	/**
 	 * Create an entity without an entity type.
 	 * 
@@ -548,24 +556,6 @@ public class EntityServletTestHelper {
 		
 	}
 
-	public VersionInfo promoteVersion(String username, String entityId, Long versionNumber)  throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.PROMOTE_VERSION+"/"+versionNumber);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
-		dispatcherServlet.service(request, response);
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		JSONObjectAdapterImpl joa = new JSONObjectAdapterImpl(response.getContentAsString());
-		VersionInfo info = new VersionInfo();
-		info.initializeFromJSONObject(joa);
-		return info;
-	}
-
 	public Versionable createNewVersion(String username, Versionable entity) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -636,6 +626,28 @@ public class EntityServletTestHelper {
 		return new Evaluation(joa);
 	}
 	
+	public Boolean canAccess(String userId, String evalId, ACCESS_TYPE accessType) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.EVALUATION+"/"+evalId+"/access");
+		request.addParameter("accessType", accessType.toString());
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return (Boolean)joa.get("result");
+	}
+
+	
 	public Evaluation findEvaluation(String name) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -653,6 +665,30 @@ public class EntityServletTestHelper {
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
 		return new Evaluation(joa);
+	}
+	
+	public PaginatedResults<Evaluation> getAvailableEvaluations(String userId, String status) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.EVALUATION_AVAILABLE);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("limit", "100");
+		request.setParameter("offset", "0");
+		if (status!=null) request.setParameter("status", status);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		PaginatedResults<Evaluation> res = new PaginatedResults<Evaluation>(Evaluation.class);
+		res.initializeFromJSONObject(joa);
+		return res;
 	}
 	
 	public Evaluation updateEvaluation(Evaluation eval, String userId) 
@@ -981,6 +1017,253 @@ public class EntityServletTestHelper {
 		}
 		// Read in the value.
 		return Long.parseLong(response.getContentAsString());
+	}
+	
+	/**
+	 * Get the migration counts
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeCounts getMigrationTypeCounts(String userId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/counts";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeCounts.class);
+	}
+	
+	/**
+	 * Get the RowMetadata for a given Migration type.
+	 * This is used to get all metadata from a source stack during migation.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public RowMetadataResult getRowMetadata(String userId, MigrationType type, long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/rows";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("type", type.name());
+		request.setParameter("limit", ""+limit);
+		request.setParameter("offset", ""+offset);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, RowMetadataResult.class);
+	}
+	
+	/**
+	 * Get the RowMetadata for a given Migration type.
+	 * This is used to get all metadata from a source stack during migation.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public RowMetadataResult getRowMetadataDelta(String userId, MigrationType type, IdList list) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/delta";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("type", type.name());
+		String body = EntityFactory.createJSONStringForEntity(list);
+		request.setContent(body.getBytes("UTF-8"));
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, RowMetadataResult.class);
+	}
+	
+	/**
+	 * Get the RowMetadata for a given Migration type.
+	 * This is used to get all metadata from a source stack during migation.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeList getPrimaryMigrationTypes(String userId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/primarytypes";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeList.class);
+	}
+	
+	/**
+	 * Start the backup of a list of objects.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public BackupRestoreStatus startBackup(String userId, MigrationType type, IdList list) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/backup";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("type", type.name());
+		String body = EntityFactory.createJSONStringForEntity(list);
+		request.setContent(body.getBytes("UTF-8"));
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, BackupRestoreStatus.class);
+	}
+	
+	/**
+	 * Start the backup of a list of objects.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public BackupRestoreStatus startRestore(String userId, MigrationType type, RestoreSubmission sub) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/restore";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("type", type.name());
+		String body = EntityFactory.createJSONStringForEntity(sub);
+		request.setContent(body.getBytes("UTF-8"));
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, BackupRestoreStatus.class);
+	}
+	
+	/**
+	 * Start the backup of a list of objects.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public BackupRestoreStatus getBackupRestoreStatus(String userId, String daemonId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/status";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("daemonId", daemonId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, BackupRestoreStatus.class);
+	}
+	
+	/**
+	 * Start the backup of a list of objects.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeCount deleteMigrationType(String userId, MigrationType type, IdList list) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/delete";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter("type", type.name());
+		String body = EntityFactory.createJSONStringForEntity(list);
+		request.setContent(body.getBytes("UTF-8"));
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeCount.class);
 	}
 	
 	/**
@@ -1401,4 +1684,22 @@ public class EntityServletTestHelper {
 		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
 
+	public BatchResults<EntityHeader> getEntityHeaderByMd5(String userName, String md5) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/entity/md5/" + md5);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		String jsonStr = response.getContentAsString();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		results.initializeFromJSONObject(adapter);
+		return results;
+	}
 }

@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -224,14 +223,6 @@ public class EntityServiceImplAutowiredTest {
 		ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
 		assertEquals(1, ehs.getTotalNumberOfResults());
 		assertEquals(step.getId(), ehs.getResults().iterator().next().getId());
-	}
-
-	@Test
-	public void testPromoteVersion() throws Exception {
-		String id = toDelete.get(0);
-		VersionInfo promotedEntityVersion = entityController.promoteEntityVersion(userName, id, 1L);
-		assertNotNull(promotedEntityVersion);
-		assertEquals(new Long(1), promotedEntityVersion.getVersionNumber());
 	}
 
 	/**

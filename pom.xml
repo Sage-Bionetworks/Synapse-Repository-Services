@@ -316,14 +316,6 @@
 				<artifactId>repository-managers</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-authentication</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-repository</artifactId>
@@ -332,25 +324,7 @@
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-search</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-dynamo</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-rds</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>services-file</artifactId>
+				<artifactId>services-workers</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
 			</dependency>
@@ -359,7 +333,6 @@
 				<artifactId>lib-auto-generated</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-shared-models</artifactId>

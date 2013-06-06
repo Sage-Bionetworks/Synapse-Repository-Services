@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -113,6 +112,12 @@ public interface EntityService {
 	 */
 	public Entity getEntity(String userId, String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(String userId, String md5, HttpServletRequest request)
+			throws NotFoundException, DatastoreException;
 
 	/**
 	 * Same as above but takes a UserInfo instead of a username.
@@ -277,27 +282,6 @@ public interface EntityService {
 			boolean newVersion, String activityId, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
-
-	/**
-	 * Update multiple children of a single entity within a single transaction.
-	 * 
-	 * @param <T>
-	 * @param userId
-	 * @param parentId
-	 * @param update
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> Collection<T> aggregateEntityUpdate(
-			String userId, String parentId, Collection<T> update,
-			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException;
 
 	/**
 	 * Delete a specific entity
@@ -707,10 +691,6 @@ public interface EntityService {
 	 */
 	public void deleteActivityForEntity(String userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
-			NotFoundException, UnauthorizedException;
-
-	public VersionInfo promoteEntityVersion(String userId, String id,
-			Long versionNumber) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
 	/**

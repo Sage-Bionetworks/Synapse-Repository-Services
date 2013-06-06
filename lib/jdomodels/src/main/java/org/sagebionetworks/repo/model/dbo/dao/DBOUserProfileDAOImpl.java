@@ -9,9 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.ids.ETagGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -41,11 +45,21 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
+	private List<UserGroupInt> bootstrapUsers;
+	
 	private static final String SELECT_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_PROFILE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
+
+	/**
+	 * Injected by spring
+	 * @param bootstrapUsers
+	 */
+	public void setBootstrapUsers(List<UserGroupInt> bootstrapUsers) {
+		this.bootstrapUsers = bootstrapUsers;
+	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
@@ -167,4 +181,38 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			"=:"+DBOUserProfile.OWNER_ID_FIELD_NAME+" for update";
 
 	private static final TableMapping<DBOUserProfile> TABLE_MAPPING = (new DBOUserProfile()).getTableMapping();
+	
+	/**
+	 * This is called by Spring after all properties are set.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void bootstrapProfiles(){
+		// Boot strap all users and groups
+		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
+		// For each one determine if it exists, if not create it
+		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+		for(UserGroupInt ug: this.bootstrapUsers){
+			if(ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if(ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
+			if(ug.getIsIndividual()){
+				Long id = Long.parseLong(ug.getId());
+				UserProfile userProfile = null;
+				try {
+					userProfile = this.get(ug.getId(), schema);
+				} catch (NotFoundException nfe) {
+					userProfile = new UserProfile();
+					userProfile.setOwnerId(ug.getId());
+					userProfile.setFirstName(ug.getName());
+					userProfile.setLastName(ug.getName());
+					userProfile.setDisplayName(ug.getName());
+					this.create(userProfile, schema);
+				}
+			}
+		}
+	}
+
+	@Override
+	public List<UserGroupInt> getBootstrapUsers() {
+		return this.bootstrapUsers;
+	}
 }

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,8 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
+	private UserProfileDAO userProfileDAO;
+	@Autowired
 	private AccessControlListDAO accessControlListDAO;
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
@@ -49,11 +52,13 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void afterPropertiesSet() throws Exception {
+	public void bootstrapAll() throws Exception {
+		// Make sure users and profiles have been boostraped
+		userGroupDAO.bootstrapUsers();
+		userProfileDAO.bootstrapProfiles();
 		// First make sure the nodeDao has been boostraped
 		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
-		
 		UserGroup bootstrapPrincipal = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
 		// Map the default users to their ids
 		// Now create a node for each type in the list
@@ -88,6 +93,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setModifiedByPrincipalId(Long.parseLong(bootstrapPrincipal.getId()));
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
+			toCreate.setId(""+entityBoot.getEntityId());
 			String nodeId = nodeDao.createNew(toCreate);
 			
 			for (AccessBootstrapData abd: entityBoot.getAccessList()) {

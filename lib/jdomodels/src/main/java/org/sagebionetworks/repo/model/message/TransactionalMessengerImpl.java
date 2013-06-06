@@ -193,6 +193,16 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Return a copy of the list.
 		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
+
+	@Override
+	public void registerMessageSent(long changeNumber) {
+		this.changeDAO.registerMessageSent(changeNumber);
+	}
+
+	@Override
+	public List<ChangeMessage> listUnsentMessages(long limit) {
+		return this.changeDAO.listUnsentMessages(limit);
+	}
 	
 
 }

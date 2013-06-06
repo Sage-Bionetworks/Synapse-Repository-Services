@@ -38,4 +38,9 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
 	 */
 	public void timerFired();
+
+	/**
+	 * Quartz will fire this method on a timer.
+	 */
+	public void timerFiredFindUnsentMessages();
 }

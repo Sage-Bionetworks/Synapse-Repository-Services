@@ -17,6 +17,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -46,7 +47,7 @@ public class ParticipantDAOImplTest {
         evaluation.setEtag("etag");
         evaluation.setName("name");
         evaluation.setCreatedOn(new Date());
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(KeyFactory.SYN_ROOT_ID);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId1 = evaluationDAO.create(evaluation, principalId);
         evaluation.setName("name2");

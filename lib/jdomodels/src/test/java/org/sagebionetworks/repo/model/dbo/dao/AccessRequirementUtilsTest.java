@@ -10,20 +10,29 @@ import java.util.List;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class AccessRequirementUtilsTest {
+	
+	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id) {
+		return createRestrictableObjectDescriptor(id, RestrictableObjectType.ENTITY);
+	}
+	
+	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id, RestrictableObjectType type) {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(id);
+		rod.setType(type);
+		return rod;
+	}
 
 	private static AccessRequirement createDTO() {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
 		dto.setId(101L);
 		dto.setEtag("0");
-		dto.setEntityIds(Arrays.asList(new String[]{"syn999"}));
+		dto.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{createRestrictableObjectDescriptor("syn999")}));
 		dto.setCreatedBy("555");
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("666");
@@ -40,8 +49,8 @@ public class AccessRequirementUtilsTest {
 			
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		List<Long> nodeIds = new ArrayList<Long>();
-		for (String s : dto.getEntityIds()) nodeIds.add(KeyFactory.stringToKey(s));
+		List<RestrictableObjectDescriptor> nodeIds = new ArrayList<RestrictableObjectDescriptor>();
+		for (RestrictableObjectDescriptor s : dto.getSubjectIds()) nodeIds.add(s);
 		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo, nodeIds);
 		assertEquals(dto, dto2);
 	}
@@ -51,11 +60,9 @@ public class AccessRequirementUtilsTest {
 		AccessRequirement dto = createDTO();
 		dto.setId(null);
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		String jsonString = (String) AccessRequirement.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		List<Long> nodeIds = new ArrayList<Long>();
-		for (String s : dto.getEntityIds()) nodeIds.add(KeyFactory.stringToKey(s));
+		List<RestrictableObjectDescriptor> nodeIds = new ArrayList<RestrictableObjectDescriptor>();
+		for (RestrictableObjectDescriptor s : dto.getSubjectIds()) nodeIds.add(s);
 		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo, nodeIds);
 		assertEquals(dto, dto2);
 	}

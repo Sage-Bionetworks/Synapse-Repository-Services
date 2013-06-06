@@ -247,6 +247,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid User ID: " + dto.getUserId());
 		}
+		dbo.setSubmitterAlias(dto.getSubmitterAlias());
 		try {
 			dbo.setEvalId(dto.getEvaluationId() == null ? null : Long.parseLong(dto.getEvaluationId()));
 		} catch (NumberFormatException e) {
@@ -256,7 +257,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
-		dbo.setEntityBundle(dto.getEntityBundleJSON().getBytes());
+		dbo.setEntityBundle(dto.getEntityBundleJSON() == null ? null : dto.getEntityBundleJSON().getBytes());
 	}
 	
 	/**
@@ -268,12 +269,13 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	protected static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
+		dto.setSubmitterAlias(dbo.getSubmitterAlias());
 		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setEntityBundleJSON(new String(dbo.getEntityBundle()));
+		dto.setEntityBundleJSON(dbo.getEntityBundle() == null ? null : new String(dbo.getEntityBundle()));
 	}
 
 	/**
@@ -286,7 +288,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
 		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
 		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
-		EvaluationUtils.ensureNotNull(dbo.getEntityBundle(), "Serialized EntityWithAnnotations");
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}	

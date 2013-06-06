@@ -89,7 +89,7 @@ public class SubmissionDAOImplTest {
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
         evaluation.setCreatedOn(new Date());
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
@@ -109,6 +109,7 @@ public class SubmissionDAOImplTest {
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
+        submission.setSubmitterAlias("Team Awesome");
         submission.setEntityBundleJSON("some bundle");
     }
     
@@ -258,6 +259,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setId("789");
     	subDTO.setName("name");
     	subDTO.setUserId("42");
+    	subDTO.setSubmitterAlias("Team Awesome");
     	subDTO.setVersionNumber(1L);
     	subDTO.setEntityBundleJSON("foo");
     	    	
@@ -269,9 +271,44 @@ public class SubmissionDAOImplTest {
     	assertEquals(subDBO, subDBOclone);
     }
     
+    @Test
+    public void testDtoToDboNullColumn() {
+    	Submission subDTO = new Submission();
+    	Submission subDTOclone = new Submission();
+    	SubmissionDBO subDBO = new SubmissionDBO();
+    	SubmissionDBO subDBOclone = new SubmissionDBO();
+    	
+    	subDTO.setEvaluationId("123");
+    	subDTO.setCreatedOn(new Date());
+    	subDTO.setEntityId("syn456");
+    	subDTO.setId("789");
+    	subDTO.setName("name");
+    	subDTO.setUserId("42");
+    	subDTO.setSubmitterAlias("Team Awesome");
+    	subDTO.setVersionNumber(1L);
+    	// null EntityBundle
+    	    	
+    	SubmissionDAOImpl.copyDtoToDbo(subDTO, subDBO);
+    	SubmissionDAOImpl.copyDboToDto(subDBO, subDTOclone);
+    	SubmissionDAOImpl.copyDtoToDbo(subDTOclone, subDBOclone);
+    	
+    	assertEquals(subDTO, subDTOclone);
+    	assertEquals(subDBO, subDBOclone);
+    	assertNull(subDTOclone.getEntityBundleJSON());
+    	assertNull(subDBOclone.getEntityBundle());
+    }
+    
     @Test(expected=IllegalArgumentException.class)
     public void testMissingVersionNumber() throws DatastoreException, JSONObjectAdapterException {
         submission.setVersionNumber(null);
         submissionDAO.create(submission);
+    }
+    
+    // Should be able to have null entity bundle
+    @Test
+    public void testPLFM1859() {
+    	submission.setEntityBundleJSON(null);
+    	String id = submissionDAO.create(submission);
+    	assertNotNull(id);
     }
 }

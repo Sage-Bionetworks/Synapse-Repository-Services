@@ -57,7 +57,7 @@ public class MigrationConfigurationImpl implements Configuration {
 	 */
 	public void validateConfigurationProperties() throws IOException{
 		// Load the template from the classpath
-		InputStream in = RepositoryMigrationDriver.class.getClassLoader().getResourceAsStream(CONFIGUATION_TEMPLATE_PROPERTIES);
+		InputStream in = MigrationConfigurationImpl.class.getClassLoader().getResourceAsStream(CONFIGUATION_TEMPLATE_PROPERTIES);
 		if(in == null) throw new IllegalArgumentException("Cannot find: "+CONFIGUATION_TEMPLATE_PROPERTIES+" on the classpath");
 		Properties template = new Properties();
 		try{
@@ -73,7 +73,7 @@ public class MigrationConfigurationImpl implements Configuration {
 			String key = keyIt.next();
 			Object value = props.getProperty(key);
 			if(value == null){
-				throw new IllegalArgumentException("Cannot find property: "+props.getProperty(key));
+				throw new IllegalArgumentException("Cannot find property for key: " + key);
 			}
 			if(key.indexOf("password")> 1){
 				// Do not print passwords
@@ -141,6 +141,11 @@ public class MigrationConfigurationImpl implements Configuration {
 	@Override
 	public long getWorkerTimeoutMs(){
 		return Long.parseLong(System.getProperty("org.sagebionetworks.worker.thread.timout.ms"));
+	}
+
+	@Override
+	public int getRetryDenominator() {
+		return Integer.parseInt(System.getProperty("org.sagebionetworks.worker.retry.denominator"));
 	}
 
 	

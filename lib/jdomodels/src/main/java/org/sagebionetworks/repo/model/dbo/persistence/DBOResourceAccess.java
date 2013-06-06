@@ -8,16 +8,19 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOResourceAccess implements AutoIncrementDatabaseObject<DBOResourceAccess>{
+public class DBOResourceAccess implements MigratableDatabaseObject<DBOResourceAccess, DBOResourceAccess>{
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ID, true),
-		new FieldColumn("owner", COL_RESOURCE_ACCESS_OWNER),
+		new FieldColumn("owner", COL_RESOURCE_ACCESS_OWNER).withIsBackupId(true),
 		new FieldColumn("userGroupId", COL_RESOURCE_ACCESS_GROUP_ID),
 		};
 
@@ -115,6 +118,38 @@ public class DBOResourceAccess implements AutoIncrementDatabaseObject<DBOResourc
 	public String toString() {
 		return "DBOResourceAccess [id=" + id + ", owner=" + owner
 				+ ", userGroupId=" + userGroupId + "]";
+	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.ACL_ACCESS;
+	}
+	@Override
+	public MigratableTableTranslation<DBOResourceAccess, DBOResourceAccess> getTranslator() {
+		return new MigratableTableTranslation<DBOResourceAccess, DBOResourceAccess>(){
+
+			@Override
+			public DBOResourceAccess createDatabaseObjectFromBackup(
+					DBOResourceAccess backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOResourceAccess createBackupFromDatabaseObject(
+					DBOResourceAccess dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends DBOResourceAccess> getBackupClass() {
+		return DBOResourceAccess.class;
+	}
+	@Override
+	public Class<? extends DBOResourceAccess> getDatabaseObjectClass() {
+		return DBOResourceAccess.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 	
 

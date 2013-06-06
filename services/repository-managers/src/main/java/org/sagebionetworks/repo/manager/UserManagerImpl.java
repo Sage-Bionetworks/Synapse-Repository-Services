@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -8,8 +9,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
+import javax.xml.xpath.XPathExpressionException;
+
+import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.authutil.Session;
+import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -37,7 +45,7 @@ public class UserManagerImpl implements UserManager {
 	UserGroupDAO userGroupDAO;	
 	@Autowired
 	UserProfileDAO userProfileDAO;
-
+	
 	private static Map<String, UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
@@ -218,7 +226,8 @@ public class UserManagerImpl implements UserManager {
 	/**
 	 * Clear the user cache.
 	 */
-	private void clearCache() {
+	@Override
+	public void clearCache() {
 		userInfoCache.clear();
 		lastCacheDump = new Date();
 	}
@@ -295,6 +304,15 @@ public class UserManagerImpl implements UserManager {
 			return userProfile.getDisplayName();
 		} else {
 			return userGroup.getName();
+		}
+	}
+	
+	@Override
+	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException {
+		if (userInfo != null) {
+			UserGroup userGroup = userGroupDAO.get(userInfo.getIndividualGroup().getId());
+			userGroup.setName(newEmail);
+			userGroupDAO.update(userGroup);
 		}
 	}
 

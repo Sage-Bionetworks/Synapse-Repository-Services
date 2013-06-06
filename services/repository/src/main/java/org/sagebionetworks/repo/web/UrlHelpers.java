@@ -129,8 +129,6 @@ public class UrlHelpers {
 	public static final String REST_RESOURCES = "/REST/resources";
 	
 	public static final String VERSION = "/version";
-	
-	public static final String PROMOTE_VERSION = "/promoteVersion";
 
 	public static final String REFERENCED_BY	= "/referencedby";
 	
@@ -170,7 +168,9 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
-	
+
+	public static final String ENTITY_MD5 = ENTITY + "/md5" + "/{md5}";
+
 	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
@@ -236,11 +236,6 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_PATH		= ENTITY_ID+PATH;
 
-	
-	/**
-	 * All of the base URLs for Synapse object's versions.
-	 */
-	public static final String ENTITY_PROMOTE_VERSION = ENTITY_ID+PROMOTE_VERSION+VERSION_NUMBER;
 	public static final String ENTITY_VERSION		= ENTITY_ID+VERSION;
 
 	
@@ -389,7 +384,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
 	
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
+	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 	
 	public static final String ACCESS_APPROVAL = "/accessApproval";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
@@ -411,11 +406,7 @@ public class UrlHelpers {
 	 * These are the new more RESTful backup/restore URLS.
 	 */
 	public static final String DAEMON 						= ADMIN+"/daemon";
-	public static final String BACKUP						= "/backup";
-	public static final String RESTORE						= "/restore";
 	public static final String DAEMON_ID					= "/{daemonId}";
-	public static final String ENTITY_BACKUP_DAMEON			= DAEMON+BACKUP;
-	public static final String ENTITY_RESTORE_DAMEON		= DAEMON+RESTORE;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
 	public static final String CONCEPT	= "/concept";
@@ -503,6 +494,8 @@ public class UrlHelpers {
 	 * Rebroadcast changes messages to a Queue
 	 */
 	public static final String REBROADCAST_MESSAGES 		= CHANGE_MESSAGES+"/rebroadcast";
+	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
+	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
@@ -514,8 +507,16 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCE_ID = "resourceId";
 	
-	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
-	public static final String GET_ALL_BACKUP_OBJECTS_COUNTS = "/backupObjectsCounts";
+	
+	public static final String MIGRATION = "/migration";
+	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
+	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
+	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
+	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";
+	public static final String MIGRATION_RESTORE = MIGRATION+"/restore";
+	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
+	public static final String MIGRATION_STATUS = MIGRATION+"/status";
+	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
 
 	/**
 	 * Used by AdministrationController service to say whether object dependencies should be calculated
@@ -525,10 +526,12 @@ public class UrlHelpers {
 	
 	// Evaluation URLs
 	public static final String EVALUATION = "/evaluation";
-	public static final String EVALUATION_ID_PATH_VAR = "{evalId}";
+	public static final String EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS = "evalId";
+	public static final String EVALUATION_ID_PATH_VAR = "{"+EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS+"}";
 	public static final String EVALUATION_WITH_ID = EVALUATION + "/" + EVALUATION_ID_PATH_VAR;
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";
+	public static final String EVALUATION_AVAILABLE = EVALUATION+"/available";
 	
 	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
@@ -545,6 +548,10 @@ public class UrlHelpers {
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE + ALL;
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_EVAL_ID + "/count";
 	
+	public static final String ACCESS_REQUIREMENT_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_REQUIREMENT;
+	public static final String EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = EVALUATION_WITH_ID+"/accessRequirementUnfulfilled";
+	public static final String ACCESS_APPROVAL_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_APPROVAL;
+
 	// Wiki URL
 	public static final String WIKI = "/wiki";
 	public static final String WIKI_HEADER_TREE = "/wikiheadertree";
@@ -568,7 +575,17 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
-	
+
+	/**
+	 * APIs for DynamoDB related operations.
+	 */
+	public static final String DYNAMO = "/dynamo";
+
+	/**
+	 * API for clearing the specified dynamo table.
+	 */
+	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
+
 	/**
 	 * This is a memoized cache for our URL regular expressions
 	 */

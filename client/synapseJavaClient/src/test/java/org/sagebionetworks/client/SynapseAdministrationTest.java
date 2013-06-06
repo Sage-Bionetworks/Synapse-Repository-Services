@@ -13,10 +13,7 @@ import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
@@ -39,30 +36,15 @@ public class SynapseAdministrationTest {
 	}
 	
 	@Test
-	public void testGetAllMigratableObjectsPaginated() throws Exception {
-		PaginatedResults<MigratableObjectData> p = new PaginatedResults<MigratableObjectData>();
-		// This is what we want returned.
-		String jsonString = EntityFactory.createJSONStringForEntity(p);
-
-		StringEntity responseEntity = new StringEntity(jsonString);
-		// We want the mock response to return JSON for this entity.
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		PaginatedResults<MigratableObjectData> clone = synapse.getAllMigratableObjectsPaginated(0, 100, true);
-		// For this test we want return 
-		assertNotNull(clone);
-		// The clone should equal the original ds
-		assertEquals(p, clone);
-	}
-	
-	@Test
-	public void testGetMigratableObjectCounts() throws Exception {
-		PaginatedResults<MigratableObjectCount> p = new PaginatedResults<MigratableObjectCount>();
-		String expectedJSONResult = EntityFactory.createJSONStringForEntity(p);
+	public void testGetCurrentChangeNumber() throws Exception {
+		FireMessagesResult expectedRes = new FireMessagesResult();
+		expectedRes.setNextChangeNumber(-1L);
+		String expectedJSONResult = EntityFactory.createJSONStringForEntity(expectedRes);
 		StringEntity responseEntity = new StringEntity(expectedJSONResult);
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		PaginatedResults<MigratableObjectCount> oc = synapse.getMigratableObjectCounts();
-		assertNotNull(oc);
-		assertEquals(p, oc);
+		FireMessagesResult res = synapse.getCurrentChangeNumber();
+		assertNotNull(res);
+		assertEquals(expectedRes, res);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -127,4 +109,5 @@ public class SynapseAdministrationTest {
 		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, null);
 		assertEquals(expected, url);
 	}
+	
 }

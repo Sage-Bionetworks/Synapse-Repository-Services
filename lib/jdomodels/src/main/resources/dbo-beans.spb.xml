@@ -38,12 +38,11 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeAccessRequirement" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
@@ -51,15 +50,45 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<!-- Competition beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO" />
+				<!-- misc -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
 			</list>
 		</property>
 	</bean>
 
+	<!-- register for primary migration objects.  The order of this list determines migration order.-->
+	<bean id="migatableTableDAO" class="org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAOImpl" init-method="initialize">
+		<property name="maxAllowedPacketBytes" ref="stackConfiguration.migrationMaxAllowedPacketBytes"/>
+		<property name="databaseObjectRegister">
+			<list>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
+			</list>
+		</property>
+	</bean>
 
 </beans>

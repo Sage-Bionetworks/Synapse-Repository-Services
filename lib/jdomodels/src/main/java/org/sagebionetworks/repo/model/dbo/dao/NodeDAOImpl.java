@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -24,6 +26,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
@@ -51,9 +54,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -74,7 +74,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -113,8 +112,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
-	private static final String OLD_REV_PARAM_NAME = "OLD_REVISION";
-	private static final String NEW_REV_PARAM_NAME = "NEW_REVISION";
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -149,19 +146,18 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			+ " LIMIT :" + LIMIT_PARAM_NAME
 			+ " OFFSET :" + OFFSET_PARAM_NAME;
 
-	private static final String SQL_GET_LATEST_VERSION_NUMBER = "SELECT " + COL_REVISION_NUMBER
-			+ " FROM " + TABLE_REVISION + " WHERE " + COL_REVISION_OWNER_NODE +  " = :"
-			+ OWNER_ID_PARAM_NAME + " ORDER BY " + COL_REVISION_NUMBER
-			+ " DESC LIMIT 1";
-
-	private static final String SQL_UPDATE_VERSION_NUMBER = "UPDATE " + TABLE_REVISION
-			+ " SET " + COL_REVISION_NUMBER + "=:" + NEW_REV_PARAM_NAME + " WHERE "
-			+ COL_REVISION_NUMBER + " = :" + OLD_REV_PARAM_NAME + " AND "
-			+ COL_REVISION_OWNER_NODE + " = :" + OWNER_ID_PARAM_NAME;
-
-	private static final String SQL_UPDATE_CURRENT_VERSION = "UPDATE " + TABLE_NODE
-			+ " SET " + COL_CURRENT_REV + "=:" + NEW_REV_PARAM_NAME + " WHERE "
-			+ COL_NODE_ID + " = :" + OWNER_ID_PARAM_NAME;
+	/**
+	 * The max number of entity versions a MD5 string can map to. This puts a check
+	 * to potential DDOS attacks via MD5. We retrieve at most MD5_LIMIT + 1 rows.
+	 * If the number of rows retrieved is > MD5_LIMIT, an exception is thrown.
+	 */
+	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
+	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
+			"SELECT R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
+			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F"
+			+ " WHERE R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
+			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
+			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -655,11 +651,16 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(toReplace == null) throw new IllegalArgumentException("Node to update cannot be null");
 		Long nodeId = KeyFactory.stringToKey(toReplace.getId());
 		DBONode jdoToUpdate = getNodeById(nodeId);
+		final String currentEtag = jdoToUpdate.geteTag();
 		NodeUtils.replaceFromDto(toReplace, jdoToUpdate);
+		final String newEtag = jdoToUpdate.geteTag();
 		// Delete all revisions.
 		simpleJdbcTemplate.update("DELETE FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ?", nodeId);
 		// Update the node.
 		try{
+			if (!newEtag.equals(currentEtag)) {
+				tagMessenger.sendMessage(jdoToUpdate, ChangeType.UPDATE);
+			}
 			dboBasicDao.update(jdoToUpdate);
 		}catch(IllegalArgumentException e){
 			// Check to see if this is a duplicate name exception.
@@ -859,7 +860,37 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
 		return header;
 	}
-	
+
+	@Override
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws DatastoreException, NotFoundException {
+
+		if (md5 == null) {
+			throw new IllegalArgumentException("md5 cannot be null.");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
+		List<Map<String, Object>> rowList = simpleJdbcTemplate.queryForList(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap);
+
+		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
+			throw new DatastoreException("MD5 " + md5 + " maps to more than "
+					+ NODE_VERSION_LIMIT_BY_FILE_MD5 + " entity versions.");
+		}
+
+		List<EntityHeader> entityHeaderList = new ArrayList<EntityHeader>(rowList.size());
+		for (Map<String, Object> row : rowList) {
+			Long nodeId = (Long)row.get(COL_REVISION_OWNER_NODE);
+			Long versionNumber = (Long)row.get(COL_REVISION_NUMBER);
+			String versionLabel = (String)row.get(COL_REVISION_LABEL);
+			ParentTypeName ptn = getParentTypeName(nodeId);
+			String nodeIdStr = KeyFactory.keyToString(nodeId);
+			EntityHeader header = createHeaderFromParentTypeName(nodeIdStr, ptn, versionNumber, versionLabel);
+			entityHeaderList.add(header);
+		}
+
+		return entityHeaderList;
+	}
+
 	@Override
 	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -1212,68 +1243,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
 	}
 	
-	private QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
-			long limit) throws DatastoreException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OFFSET_PARAM_NAME, offset);
-		params.addValue(LIMIT_PARAM_NAME, limit);
-		
-		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED, new RowMapper<MigratableObjectData>() {
-			@Override
-			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-				MigratableObjectData data = new MigratableObjectData();
-				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(rs.getLong(COL_NODE_ID)));
-				data.setEtag(rs.getString(COL_NODE_ETAG));
-				data.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
-				return  data;
-			}
-		}, params);
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
-	
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset,
-			long limit, boolean includeDependencies) throws DatastoreException {
-		
-		// if we don't want dependencies then use an alternate, faster query
-		if (!includeDependencies) return getMigrationObjectDataWithoutDependencies(offset, limit);
-		
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OFFSET_PARAM_NAME, offset);
-		params.addValue(LIMIT_PARAM_NAME, limit);
-		// Note: our goal here is not to list every dependency, but rather just the entity dependencies.
-		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED_DEPENDENCIES, new RowMapper<MigratableObjectData>() {
-			@Override
-			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-				MigratableObjectData data = new MigratableObjectData();
-				long nodeId = rs.getLong(COL_NODE_ID);
-				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
-				data.setEtag(rs.getString(COL_NODE_ETAG));
-				// add the parent and benefactor as a dependency
-				Set<MigratableObjectDescriptor> dependependencies = new HashSet<MigratableObjectDescriptor>(2);
-				// this is null for the root node
-				Long parentId = rs.getLong(COL_NODE_PARENT_ID);
-				if(!rs.wasNull()){
-					// We had a parent id so add it as a dependency.
-					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
-				}
-				// Add the benefactor if it is not this node.
-				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID);
-				if(nodeId != benefactorId){
-					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
-				}
-				data.setDependencies(dependependencies);
-				return  data;
-			}
-		}, params);
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
-	}
 
 	@Override
 	public boolean doesNodeHaveChildren(String nodeId) {
@@ -1287,41 +1256,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			return false;
 		}
 	}
-	
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.ENTITY;
-	}
-
 	/*
 	 * Private Methods
 	 */
 	private boolean shouldDeleteActivityId(Node dto) {
 		return DELETE_ACTIVITY_VALUE.equals(dto.getActivityId()) ? true : false;
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber)
-			throws NotFoundException, DatastoreException {
-		// Get current version number, then increment and update the given versionNumber to new
-		long latestVersionNumberPlusOne = getCurrentRevisionNumber(nodeId) + 1;
-		if (latestVersionNumberPlusOne != versionNumber + 1) {
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue(OLD_REV_PARAM_NAME, versionNumber);
-			params.addValue(NEW_REV_PARAM_NAME, latestVersionNumberPlusOne);
-			params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
-			int numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_VERSION_NUMBER, params);
-			if (numUpdated != 1) {
-				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
-			}
-			numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_CURRENT_VERSION, params);
-			if (numUpdated != 1) {
-				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
-			}
-		}
-		QueryResults<VersionInfo> versionsOfEntity = getVersionsOfEntity(nodeId, 0, 1);
-		return versionsOfEntity.getResults().get(0);
 	}
 
 	@Override

@@ -3,14 +3,16 @@ package org.sagebionetworks.repo.web.service;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -47,6 +49,19 @@ public interface EvaluationService {
 	 */
 	public PaginatedResults<Evaluation> getEvaluationsInRange(long limit, long offset,
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get a collection of Evaluations in which the user may participate, within a given range
+	 *
+	 * @param userId the userId (email address) of the user making the request
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
+			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system
@@ -349,6 +364,21 @@ public interface EvaluationService {
 			String evalId, SubmissionStatusEnum status, long limit,
 			long offset, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
+	
+	/**
+	 * determine whether a user has the given access type for a given evaluation
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Entity> boolean hasAccess(String evalId, String userName,
+			HttpServletRequest request, String accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get all SubmissionStatuses for a given Evaluation. This method is

@@ -65,5 +65,10 @@ public class UserDAOProxy implements UserDAO, InitializingBean {
 		return userDAOImpl.getUserGroupNames(userName);
 	}
 
+	@Override
+	public long getCount() throws DatastoreException {
+		return userDAOImpl.getCount();
+	}
+
 
 }

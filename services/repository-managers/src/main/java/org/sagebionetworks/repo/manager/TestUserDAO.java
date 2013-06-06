@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -18,7 +17,7 @@ public class TestUserDAO implements UserDAO {
 	public static final String TEST_GROUP_NAME = "test-group";
 	public static final String TEST_USER_NAME = "test-user@sagebase.org";
 	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
-	
+	public static final String MIGRATION_USER_NAME = "migrationAdmin@sagebase.org";
 	
 	private Map<String,User> map = new HashMap<String,User>(); // maps userId to User
 
@@ -95,12 +94,19 @@ public class TestUserDAO implements UserDAO {
 		Collection<String> ans = new HashSet<String>();
 		if (ADMIN_USER_NAME.equals(userName)) {
 			ans.add(AuthorizationConstants.ADMIN_GROUP_NAME);
-		} else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
+		} else if (MIGRATION_USER_NAME.equals(userName)) {
+			ans.add(AuthorizationConstants.ADMIN_GROUP_NAME);
+		}  else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
 			// not in any group
 		} else {
 			ans.add(TEST_GROUP_NAME);
 		}
 		return ans;
+	}
+
+	@Override
+	public long getCount() throws DatastoreException {
+		return 2;
 	}	
 
 }

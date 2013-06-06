@@ -1,29 +1,49 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CREATED_ON;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_DESCRIPTION;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ETAG;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_CREATED_ON;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_DESCRIPTION;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ETAG;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_OWNER_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_EVALUATION;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_EVALUATION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
+
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The database object for a Synapse Evaluation
  * 
  * @author bkng
  */
-public class EvaluationDBO implements DatabaseObject<EvaluationDBO>, TaggableEntity, ObservableEntity {
+public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, TaggableEntity, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn(PARAM_EVALUATION_ID, COL_EVALUATION_ID, true),
-			new FieldColumn(PARAM_EVALUATION_ETAG, COL_EVALUATION_ETAG),
+			new FieldColumn(PARAM_EVALUATION_ID, COL_EVALUATION_ID, true).withIsBackupId(true),
+			new FieldColumn(PARAM_EVALUATION_ETAG, COL_EVALUATION_ETAG).withIsEtag(true),
 			new FieldColumn(PARAM_EVALUATION_NAME, COL_EVALUATION_NAME),
 			new FieldColumn(PARAM_EVALUATION_DESCRIPTION, COL_EVALUATION_DESCRIPTION),
 			new FieldColumn(PARAM_EVALUATION_OWNER_ID, COL_EVALUATION_OWNER_ID),
@@ -46,7 +66,7 @@ public class EvaluationDBO implements DatabaseObject<EvaluationDBO>, TaggableEnt
 				}
 				comp.setOwnerId(rs.getLong(COL_EVALUATION_OWNER_ID));
 				comp.setCreatedOn(rs.getLong(COL_EVALUATION_CREATED_ON));
-				comp.setContentSource(rs.getString(COL_EVALUATION_CONTENT_SOURCE));
+				comp.setContentSource(rs.getLong(COL_EVALUATION_CONTENT_SOURCE));
 				comp.setStatus(rs.getInt(COL_EVALUATION_STATUS));
 				return comp;
 			}
@@ -75,7 +95,7 @@ public class EvaluationDBO implements DatabaseObject<EvaluationDBO>, TaggableEnt
 	private byte[] description;
 	private Long ownerId;
 	private Long createdOn;
-	private String contentSource;
+	private Long contentSource;
 	private int status;
 	
 	public Long getId() {
@@ -120,10 +140,10 @@ public class EvaluationDBO implements DatabaseObject<EvaluationDBO>, TaggableEnt
 		this.createdOn = createdOn;
 	}
 
-	public String getContentSource() {
+	public Long getContentSource() {
 		return contentSource;
 	}
-	public void setContentSource(String contentSource) {
+	public void setContentSource(Long contentSource) {
 		this.contentSource = contentSource;
 	}
 
@@ -222,6 +242,39 @@ public class EvaluationDBO implements DatabaseObject<EvaluationDBO>, TaggableEnt
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.EVALUATION;
+	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.EVALUATION;
+	}
+
+	@Override
+	public Class<? extends EvaluationBackup> getBackupClass() {
+		return EvaluationBackup.class;
+	}
+	@Override
+	public Class<? extends EvaluationDBO> getDatabaseObjectClass() {
+		return EvaluationDBO.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
+	@Override
+	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {
+		// TODO Auto-generated method stub
+		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
+
+			@Override
+			public EvaluationDBO createDatabaseObjectFromBackup(
+					EvaluationBackup backup) {
+				return EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
+			}
+
+			@Override
+			public EvaluationBackup createBackupFromDatabaseObject(EvaluationDBO dbo) {
+				return EvaluationTranslationUtil.createBackupFromDatabaseObject(dbo);
+			}};
 	}
 
 }

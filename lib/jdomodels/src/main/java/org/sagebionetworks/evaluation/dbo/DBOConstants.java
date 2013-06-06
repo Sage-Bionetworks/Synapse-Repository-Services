@@ -13,6 +13,7 @@ public class DBOConstants {
 	public static final String PARAM_EVALUATION_STATUS				= "status";
 	
 	// Participant
+	public static final String PARAM_PARTICIPANT_ID 				= "id";
 	public static final String PARAM_PARTICIPANT_USER_ID 			= "userId";
 	public static final String PARAM_PARTICIPANT_EVAL_ID 			= "evalId";
 	public static final String PARAM_PARTICIPANT_CREATED_ON 		= "createdOn";
@@ -20,6 +21,7 @@ public class DBOConstants {
 	// Submission
 	public static final String PARAM_SUBMISSION_ID 					= "id";
 	public static final String PARAM_SUBMISSION_USER_ID 			= "userId";
+	public static final String PARAM_SUBMISSION_SUBMITTER_ALIAS 	= "submitterAlias";
 	public static final String PARAM_SUBMISSION_EVAL_ID 			= "evalId";
 	public static final String PARAM_SUBMISSION_ENTITY_ID 			= "entityId";
 	public static final String PARAM_SUBMISSION_ENTITY_BUNDLE 		= "entityBundle";

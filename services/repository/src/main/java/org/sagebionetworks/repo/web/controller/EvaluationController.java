@@ -6,13 +6,15 @@ import java.net.URLDecoder;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -80,6 +82,27 @@ public class EvaluationController extends BaseController {
 	{
 		return serviceProvider.getEvaluationService().getEvaluationsInRange(limit, offset, request);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
+			HttpServletRequest request
+			) throws DatastoreException, NotFoundException
+	{
+		EvaluationStatus status = null;
+		if (statusString.length() > 0) {
+			status = EvaluationStatus.valueOf(statusString.toUpperCase().trim());
+		}
+		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, status, limit, offset, request);
+	}
+	
+
+	
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_COUNT, method = RequestMethod.GET)
@@ -364,5 +387,26 @@ public class EvaluationController extends BaseController {
 			throws DatastoreException, NotFoundException
 	{
 		return serviceProvider.getEvaluationService().getSubmissionCount(evalId);
+	}
+	
+	/**
+	 * @param id 
+	 * @param userId 
+	 * @param accessType 
+	 * @param request 
+	 * @return the access types that the given user has to the given resource
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value={UrlHelpers.EVALUATION_WITH_ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)
+	public @ResponseBody BooleanResult hasAccess(
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		// pass it along.
+		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, request, accessType));
 	}
 }

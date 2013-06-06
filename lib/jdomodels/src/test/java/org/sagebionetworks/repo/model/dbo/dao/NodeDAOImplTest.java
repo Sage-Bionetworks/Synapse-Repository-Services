@@ -15,12 +15,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
-import javax.xml.crypto.NodeSetData;
-
-import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -39,9 +35,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -221,42 +214,6 @@ public class NodeDAOImplTest {
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
 		assertEquals(id, benefactorId);
-		
-		checkMigrationDependenciesNoParentDistinctModifier(id);
-	}
-	
-	public void checkMigrationDependenciesNoParentDistinctModifier(String id) throws Exception {
-		// first check what happens if dependencies are NOT requested
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		boolean foundId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-			
-		}
-		assertTrue(foundId);
-		
-		// now query for objects WITH dependencies
-		results = nodeDao.getMigrationObjectData(0, 10000, true);
-		ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		foundId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-				// since there's no parent or ACL, the only dependency size is zero.
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-		}
-		assertTrue(foundId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -370,9 +327,6 @@ public class NodeDAOImplTest {
 		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
 		assertEquals(parentId, childBenefactorId);
 		
-		
-		checkMigrationDependenciesWithParent(childId, parentId);
-		
 		// now add a grandchild
 		Node grandkid = privateCreateNew("grandchild");
 		grandkid.setParentId(childId);
@@ -382,9 +336,6 @@ public class NodeDAOImplTest {
 		// This grandchild should be inheriting from its grandparent by default
 		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactor(grandkidId);
 		assertEquals(parentId, grandChildBenefactorId);
-		
-		checkMigrationDependenciesWithGrandParent(grandkidId, childId, parentId);
-	
 		
 		// Now delete the parent and confirm the child,grandkid are gone too
 		nodeDao.delete(parentId);
@@ -406,113 +357,7 @@ public class NodeDAOImplTest {
 			System.out.println(e);
 		}
 	}
-	
-	public void checkMigrationDependenciesWithParent(String id, String parentId) throws Exception {
-		// first check what happens if dependencies are NOT requested
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		boolean foundId = false;
-		boolean foundParentId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-			}
-			if (od.getId().getId().equals(parentId)) {
-				foundParentId=true;
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-			
-		}
-		assertTrue(foundId);
-		assertTrue(foundParentId);
-		
-		// now query for objects WITH dependencies
-		results = nodeDao.getMigrationObjectData(0, 10000, true);
-		ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		foundId = false;
-		foundParentId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-				// dependencies are the creator/modifier and the parent/benefactor
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
-				boolean foundParent = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (parentId.equals(d.getId())) {
-						foundParent=true;
-						assertEquals(MigratableObjectType.ENTITY, d.getType());
-					}
-				}
-				assertTrue(foundParent);
-			}
-			if (od.getId().getId().equals(parentId)) {
-				foundParentId = true;
-				// dependencies are the creator/modifier and the parent/benefactor
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
-			}
-		}
-		assertTrue(foundId);
-		assertTrue(foundParentId);
-	}
-	
-	/**
-	 * This is a check for PLFM-1537
-	 * @param id
-	 * @throws Exception
-	 */
-	public void checkMigrationDependenciesWithMultipleRevisions(String id) throws Exception {
-		// first check what happens if dependencies are NOT requested
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		int count = 0;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				count++;
-			}
-			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
-			
-		}
-		assertEquals("An entity with multiple revsions should be listed once and only onces in the migration data.",1, count);
-	}
-	
-	public void checkMigrationDependenciesWithGrandParent(String id, String parentId, String grandParentId) throws Exception {
-		// query for objects WITH dependencies
-		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, true);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(ods.size(), results.getTotalNumberOfResults());
-		assertTrue(ods.size()>0);
-		boolean foundId = false;
-		for (MigratableObjectData od : ods) {
-			if (od.getId().getId().equals(id)) {
-				foundId=true;
-				// dependencies are the parent and the grandparent/benefactor
-				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundParent = false;
-				boolean foundBenefactor = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (parentId.equals(d.getId())) {
-						foundParent=true;
-						assertEquals(MigratableObjectType.ENTITY, d.getType());
-					} else if (grandParentId.equals(d.getId())) {
-						foundBenefactor=true;
-						assertEquals(MigratableObjectType.ENTITY, d.getType());
-					}
-				}
-				assertTrue(foundParent);
-				assertTrue(foundBenefactor);
-			}
-		}
-		assertTrue(foundId);
-	}
+
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateUniqueChildNames() throws Exception {
@@ -821,10 +666,6 @@ public class NodeDAOImplTest {
 		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
 		assertEquals(newRev.getModifiedByPrincipalId(), loaded.getModifiedByPrincipalId());
 		assertEquals(null, loaded.getActivityId());
-		
-		// Validate that a node with multiple revisions is only listed once.
-		// This was added for PLFM-1537
-		checkMigrationDependenciesWithMultipleRevisions(id);
 	}
 	
 	@Test
@@ -2078,36 +1919,6 @@ public class NodeDAOImplTest {
 		assertNotNull(r.getETag());
 		assertNotNull(r.getTimestamp());
 	}
-
-	public void testPromoteVersion() throws Exception {
-		String entityId = createNodeWithMultipleVersions(10);
-
-		Node nodeBefore = nodeDao.getNode(entityId);
-		assertEquals(new Long(10), nodeBefore.getVersionNumber());
-
-		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(9));
-		assertEquals(new Long(11), promotedVersion.getVersionNumber());
-
-		int i = 11;
-		for (VersionInfo info : nodeDao.getVersionsOfEntity(entityId, 0, 10).getResults()) {
-			if (i == 9) i--;
-			assertEquals(new Long(i), info.getVersionNumber());
-			i--;
-		}
-
-		Node nodeAfter = nodeDao.getNode(entityId);
-		assertEquals(new Long(11), nodeAfter.getVersionNumber());
-	}
-
-	@Test
-	public void testPromoteCurrentVersion() throws Exception {
-		String entityId = createNodeWithMultipleVersions(2);
-
-		Node nodeBefore = nodeDao.getNode(entityId);
-		assertEquals(new Long(2), nodeBefore.getVersionNumber());
-		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(2));
-		assertEquals(new Long(2), promotedVersion.getVersionNumber());
-	}
 	
 	@Test
 	public void testNodeWithFileHandle() throws Exception{
@@ -2201,6 +2012,76 @@ public class NodeDAOImplTest {
 		assertTrue(refs.contains(refN2));
 	}
 
+	@Test
+	public void testGetEntityHeaderByMd5() throws Exception {
+
+		// Nothing yet
+		List<EntityHeader> results = nodeDao.getEntityHeaderByMd5("md5");
+		assertNotNull(results);
+		assertEquals(0, results.size());
+
+		// Add a node with a file handle
+		Node node1 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 1", creatorUserGroupId);
+		node1.setFileHandleId(fileHandle.getId());
+		final String node1Label1 = "Node 1 version label 1";
+		node1.setVersionLabel(node1Label1);
+		final String id1 = nodeDao.createNew(node1);
+		assertNotNull(id1);
+		toDelete.add(id1);
+		node1.setId(id1);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(Long.valueOf(1L), results.get(0).getVersionNumber());
+		assertEquals(node1Label1, results.get(0).getVersionLabel());
+
+		// Create a new version of the node of the same file
+		final String node1Label2 = "Node 1 version label 2";
+		node1.setVersionLabel(node1Label2);
+		nodeDao.createNewVersion(node1);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(id1, results.get(1).getId());
+		assertFalse(results.get(0).getVersionNumber().equals(results.get(1).getVersionNumber()));
+
+		// Add a new node with no file handle
+		Node node2 = NodeTestUtils.createNew("testGetEntityHeaderByMd5 node 2", creatorUserGroupId);
+		final String node2Label1 = "Node 2 version label 1";
+		node1.setVersionLabel(node2Label1);
+		final String id2 = nodeDao.createNew(node2);
+		assertNotNull(id2);
+		toDelete.add(id2);
+		node2.setId(id2);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(id1, results.get(1).getId());
+
+		// Create a new version of node 2 with file handle
+		final String node2Label2 = "Node 2 version label 2";
+		node2.setVersionLabel(node2Label2);
+		node2.setFileHandleId(fileHandle2.getId());
+		nodeDao.createNewVersion(node2);
+
+		results = nodeDao.getEntityHeaderByMd5(fileHandle.getContentMd5());
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(id1, results.get(0).getId());
+		assertEquals(id1, results.get(1).getId());
+		results = nodeDao.getEntityHeaderByMd5(fileHandle2.getContentMd5());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(id2, results.get(0).getId());
+		assertEquals(Long.valueOf(2L), results.get(0).getVersionNumber());
+	}
+
 	/*
 	 * Private Methods
 	 */
@@ -2228,6 +2109,7 @@ public class NodeDAOImplTest {
 		fileHandle.setKey("key");
 		fileHandle.setCreatedBy(createdById);
 		fileHandle.setFileName(fileName);
+		fileHandle.setContentMd5(fileName);
 		fileHandle = fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;

@@ -5,7 +5,7 @@ import org.sagebionetworks.repo.model.doi.Doi;
 /**
  * DAO for DOI data migration only.
  */
-public interface DoiMigratableDao extends MigratableDAO {
+public interface DoiMigratableDao {
 
 	/**
 	 * Gets the DOI backup object.
@@ -21,4 +21,6 @@ public interface DoiMigratableDao extends MigratableDAO {
 	 * Deletes by ID.
 	 */
 	void delete(String id) throws DatastoreException;
+
+	long getCount() throws DatastoreException;
 }

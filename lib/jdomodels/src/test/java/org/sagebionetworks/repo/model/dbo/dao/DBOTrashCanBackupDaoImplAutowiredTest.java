@@ -12,12 +12,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -148,37 +144,6 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		assertEquals(entityName, trashBack.getEntityName());
 		assertEquals(newParentId, trashBack.getOriginalParentId());
 		assertNotNull(trashBack.getDeletedOn());
-	}
-
-	@Test
-	public void testGetMigrationObjectData() {
-
-		assertEquals(MigratableObjectType.TRASHED_ENTITY, trashCanBackupDao.getMigratableObjectType());
-
-		QueryResults<MigratableObjectData> results =  trashCanBackupDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
-		assertNotNull(results);
-		assertEquals(0, results.getTotalNumberOfResults());
-		assertEquals(0, results.getResults().size());
-
-		final String entityId = KeyFactory.keyToString(555L);
-		final String entityName = "DBOTrashCanBackupDaoImplAutowiredTest.testGetMigrationObjectData()";
-		final String parentId = KeyFactory.keyToString(333L);
-		trashCanDao.create(userId, entityId, entityName, parentId);
-
-		results =  trashCanBackupDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
-		assertNotNull(results);
-		assertEquals(1, results.getTotalNumberOfResults());
-		assertEquals(1, results.getResults().size());
-		MigratableObjectData obj = results.getResults().get(0);
-		assertEquals(KeyFactory.stringToKey(entityId).toString(), obj.getId().getId());
-		assertEquals(MigratableObjectType.TRASHED_ENTITY, obj.getId().getType());
-		assertEquals(UuidETagGenerator.ZERO_E_TAG, obj.getEtag());
-
-		trashCanDao.create(userId, KeyFactory.keyToString(777L), entityName, KeyFactory.keyToString(333L));
-		results =  trashCanBackupDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
-		assertNotNull(results);
-		assertEquals(2, results.getTotalNumberOfResults());
-		assertEquals(2, results.getResults().size());
 	}
 
 	private void clear() throws Exception {

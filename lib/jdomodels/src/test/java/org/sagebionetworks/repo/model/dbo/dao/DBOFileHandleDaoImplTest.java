@@ -1,21 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -24,12 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -40,8 +29,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.util.BinaryUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -111,7 +98,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testS3FileCURD() throws DatastoreException, NotFoundException{
-		S3FileHandle meta = createS3FileHandle();
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -126,7 +113,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testGetCreator() throws NotFoundException{
 		// Create the metadata
-		S3FileHandle meta = createS3FileHandle();
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -171,7 +158,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testPreviewFileCRUD() throws DatastoreException, NotFoundException{
-		PreviewFileHandle meta = createPreviewFileHandle();
+		PreviewFileHandle meta = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -398,19 +385,19 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testgetAllFileHandles() throws Exception{
 		// Create one without a preview
-		S3FileHandle noPreviewHandle = createS3FileHandle();
+		S3FileHandle noPreviewHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		noPreviewHandle.setFileName("newPreview.txt");
 		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
 		assertNotNull(noPreviewHandle);
 		toDelete.add(noPreviewHandle.getId());
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -440,143 +427,15 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(withPreview, results.getList().get(1));
 		assertEquals(preview, results.getList().get(2));
 	}
-	
-	@Test
-	public void testgetMigrationObjectDatas() throws Exception{
-		long startCount = fileHandleDao.getCount();
-		// Create one without a preview
-		S3FileHandle noPreviewHandle = createS3FileHandle();
-		noPreviewHandle.setFileName("newPreview.txt");
-		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
-		assertNotNull(noPreviewHandle);
-		toDelete.add(noPreviewHandle.getId());
-		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
-		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
-		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
-		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
-		assertNotNull(preview);
-		toDelete.add(preview.getId());
-		// Assign it as a preview
-		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		// The etag should have changed
-		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		// Get the current count
-		long currentCount =  fileHandleDao.getCount();
-		assertTrue(startCount +3l == currentCount);
-		// Get all of the migration data
-		QueryResults<MigratableObjectData> results = fileHandleDao.getMigrationObjectData(startCount, Long.MAX_VALUE, true);
-		System.out.println(results);
-		assertNotNull(results);
-		assertNotNull(results.getResults());
-		assertEquals(currentCount, results.getTotalNumberOfResults());
-		assertEquals(3l, results.getResults().size());
-		// the results must be sorted by ID descending so that previews migrate before the handles that depend on them.
-		MigratableObjectData mod = results.getResults().get(0);
-		assertEquals(preview.getId(),  mod.getId().getId());
-		assertEquals(preview.getEtag(), mod.getEtag());
-		// The should have no previews
-		assertNotNull(mod.getDependencies());
-		assertEquals(0, mod.getDependencies().size());
-		// next item
-		mod = results.getResults().get(1);
-		assertEquals(withPreview.getId(),  mod.getId().getId());
-		assertEquals(withPreview.getEtag(),  mod.getEtag());
-		// This should depend on the preview
-		assertNotNull(mod.getDependencies());
-		assertEquals(1, mod.getDependencies().size());
-		MigratableObjectDescriptor depend = mod.getDependencies().iterator().next();
-		assertNotNull(depend);
-		assertEquals(preview.getId(), depend.getId());
-		assertEquals(MigratableObjectType.FILEHANDLE, depend.getType());
-		// preview
-		mod = results.getResults().get(2);
-		assertEquals(noPreviewHandle.getId(),  mod.getId().getId());
-		assertEquals(noPreviewHandle.getEtag(),  mod.getEtag());
-		// The preview should have no dependencies.
-		assertNotNull(mod.getDependencies());
-		assertEquals(0, mod.getDependencies().size());
-		
-		// test paging.
-		// Only select the second to last.
-		results = fileHandleDao.getMigrationObjectData(startCount+2, 1, true);
-		System.out.println(results);
-		assertNotNull(results);
-		assertNotNull(results.getResults());
-		assertEquals(currentCount, results.getTotalNumberOfResults());
-		assertEquals(1l, results.getResults().size());
-		assertEquals(noPreviewHandle.getId(),  results.getResults().get(0).getId().getId());
-		assertEquals(noPreviewHandle.getEtag(),  results.getResults().get(0).getEtag());
-		
-		// Check the type
-		assertEquals(MigratableObjectType.FILEHANDLE, fileHandleDao.getMigratableObjectType());
-	}
-	
-	@Test
-	public void testBackupRestore() throws Exception{
-		long startCount = fileHandleDao.getCount();
-		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
-		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
-		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
-		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
-		assertNotNull(preview);
-		toDelete.add(preview.getId());
-		// Assign it as a preview
-		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		// The etag should have changed
-		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 
-		Map<String, FileHandleBackup> backupMap = new HashMap<String, FileHandleBackup>();
-		// Get the list of items to restore.  The order is important.  Preview file handles must be listed before their dependent files handles.
-		QueryResults<MigratableObjectData> results = fileHandleDao.getMigrationObjectData(startCount, 2l, true);
-		List<MigratableObjectData> toMigrate = results.getResults();
-		// Capture backups in a map
-		for(MigratableObjectData mob: toMigrate){
-			FileHandleBackup backup = fileHandleDao.getFileHandleBackup(mob.getId().getId());
-			assertNotNull(backup);
-			backupMap.put(mob.getId().getId(), backup);
-		}
-		// Delete both
-		fileHandleDao.delete(withPreview.getId());
-		fileHandleDao.delete(preview.getId());
-		// Now migrate them in order of the list
-		for(MigratableObjectData mob: toMigrate){
-			FileHandleBackup backup = backupMap.get(mob.getId().getId());
-			assertNotNull(backup);
-			// Do a create
-			assertTrue("For a create, true should have been returned",fileHandleDao.createOrUpdateFromBackup(backup));
-			// Do an update
-			assertFalse("For an update, false should have been returned",fileHandleDao.createOrUpdateFromBackup(backup));
-		}
-
-		// No data should have been lost in the process
-		S3FileHandle withPrevieClone = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		assertEquals(withPreview, withPrevieClone);
-		// Now the preview
-		PreviewFileHandle previewClone = (PreviewFileHandle) fileHandleDao.get(preview.getId());
-		assertEquals(preview, previewClone);
-		
-	}
-	
 	
 	@Test
 	public void testFindFileHandleWithKeyAndMD5(){
-		S3FileHandle handle = createS3FileHandle();
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Use a random UUID for the key
 		handle.setKey(UUID.randomUUID().toString());
 		// Calculate an MD5 from the key.
-		String md5 = calculateMD5(handle.getKey());
+		String md5 = TestUtils.calculateMD5(handle.getKey());
 		handle.setContentMd5(md5);
 		// Create the handle
 		handle = fileHandleDao.createFile(handle);
@@ -588,54 +447,5 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(1, list.size());
 		assertEquals(handle.getId(), list.get(0));
 	}
-	/**
-	 * Helper to create a S3FileHandle
-	 * 
-	 * @return
-	 */
-	public S3FileHandle createS3FileHandle() {
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar.txt");
-		return meta;
-	}
 
-	/**
-	 * Helper to create a PreviewFileHandle
-	 * @return
-	 */
-	public PreviewFileHandle createPreviewFileHandle() {
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("preview.jpg");
-		return meta;
-	}
-	
-	/**
-	 * Calcualte the MD5 digest of a given string.
-	 * @param tocalculate
-	 * @return
-	 */
-	public String calculateMD5(String tocalculate){
-		try {
-			MessageDigest digetst = MessageDigest.getInstance("MD5");
-			byte[] bytes = digetst.digest(tocalculate.getBytes("UTF-8"));
-			return  BinaryUtils.toHex(bytes);	
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-
-	}
 }

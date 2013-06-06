@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,15 +23,23 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.UserEvaluationState;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -62,6 +71,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static List<Participant> participantsToDelete;
 	private static List<String> submissionsToDelete;
 	private static List<String> entitiesToDelete;
+	private static List<Long> accessRequirementsToDelete;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -89,6 +99,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		participantsToDelete = new ArrayList<Participant>();
 		submissionsToDelete = new ArrayList<String>();
 		entitiesToDelete = new ArrayList<String>();
+		accessRequirementsToDelete = new ArrayList<Long>();
 		
 		// create Entities
 		project = synapseOne.createEntity(new Project());
@@ -105,21 +116,23 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1 = new Evaluation();
 		eval1.setName("some name");
 		eval1.setDescription("description");
-        eval1.setContentSource("contentSource");
+        eval1.setContentSource(project.getId());
         eval1.setStatus(EvaluationStatus.PLANNED);
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
-        eval2.setContentSource("contentSource");
+        eval2.setContentSource(project.getId());
         eval2.setStatus(EvaluationStatus.PLANNED);
         
         // initialize Submissions
         sub1 = new Submission();
         sub1.setName("submission1");
         sub1.setVersionNumber(1L);
+        sub1.setSubmitterAlias("Team Awesome!");
         sub2 = new Submission();
         sub2.setName("submission2");
         sub2.setVersionNumber(1L);
+        sub2.setSubmitterAlias("Team Even Better!");
 	}
 	
 	@After
@@ -138,6 +151,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 			} catch (Exception e) {}
 		}
 		
+		// clean up Access Requirements
+		for (Long id : accessRequirementsToDelete) {
+			try {
+				synapseOne.deleteAccessRequirement(id);
+			} catch (Exception e) {}
+		}
+		
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
@@ -151,6 +171,65 @@ public class IT520SynapseJavaClientEvaluationTest {
 				synapseOne.deleteEntityById(id);
 			} catch (Exception e) {}
 		}
+	}
+	
+	@Test
+	public void testEvaluationRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
+		Long initialCount = synapseOne.getEvaluationCount();
+		
+		// Create Evaluation
+		eval1 = synapseOne.createEvaluation(eval1);		
+		assertNotNull(eval1.getEtag());
+		assertNotNull(eval1.getId());
+		evaluationsToDelete.add(eval1.getId());
+		Long newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getEvaluationCount());
+
+		// Create AccessRestriction
+		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
+		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		subjectId.setId(eval1.getId());
+		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		tou = synapseOne.createAccessRequirement(tou);
+		assertNotNull(tou.getId());
+		accessRequirementsToDelete.add(tou.getId());
+		
+		// Query AccessRestriction
+		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
+		paginatedResults = synapseTwo.getAccessRequirements(subjectId);
+		checkTOUlist(paginatedResults, tou);
+		
+		// Query Unmet AccessRestriction
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
+		checkTOUlist(paginatedResults, tou);
+		
+		// Create AccessApproval
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setRequirementId(tou.getId());
+		synapseTwo.createAccessApproval(aa);
+		
+		// Query AccessRestriction
+		paginatedResults = synapseTwo.getAccessRequirements(subjectId);
+		checkTOUlist(paginatedResults, tou);
+		
+		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
+		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
+		assertTrue(paginatedResults.getResults().isEmpty());
+	}
+	
+	// check that a paginated results wrapping a ToU matches a given ToU
+	private static void checkTOUlist(VariableContentPaginatedResults<AccessRequirement> pagingatedResults, TermsOfUseAccessRequirement tou) {
+		assertEquals(1L, pagingatedResults.getTotalNumberOfResults());
+		List<AccessRequirement> ars = pagingatedResults.getResults();
+		assertEquals(1, ars.size());
+		AccessRequirement ar = ars.iterator().next();
+		assertTrue(ar instanceof TermsOfUseAccessRequirement);
+		TermsOfUseAccessRequirement tou2 = (TermsOfUseAccessRequirement)ar;
+		assertEquals(tou.getAccessType(), tou2.getAccessType());
+		assertEquals(tou.getSubjectIds(), tou2.getSubjectIds());	
 	}
 	
 	@Test
@@ -197,12 +276,23 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		Long initialCount = synapseOne.getParticipantCount(eval1.getId());
 		
+		// query before joining
+		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(null, 0, 100);
+		assertEquals(0, evals.getTotalNumberOfResults());
+		
 		// create
 		part1 = synapseOne.createParticipant(eval1.getId());
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
 		Long newCount = initialCount + 1;
 		assertEquals(newCount, synapseOne.getParticipantCount(eval1.getId()));
+		
+		// query after joining
+		evals = synapseOne.getAvailableEvaluationsPaginated(null, 0, 100);
+		assertEquals(1, evals.getTotalNumberOfResults());
+		assertEquals(1, evals.getResults().size());
+		eval1=synapseOne.getEvaluation(eval1.getId());
+		assertEquals(eval1, evals.getResults().iterator().next());
 		
 		// read
 		Participant clone = synapseOne.getParticipant(eval1.getId(), part1.getUserId());
@@ -539,5 +629,52 @@ public class IT520SynapseJavaClientEvaluationTest {
 		for (Submission s : subs.getResults())
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1));
 
+	}
+	
+	@Test
+	public void testGetUserEvaluationStateRegistered() throws Exception{
+		//base case, OPEN competition where user is a participant
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);		
+		evaluationsToDelete.add(eval1.getId());
+		// create
+		part1 = synapseOne.createParticipant(eval1.getId());
+		assertNotNull(part1.getCreatedOn());
+		participantsToDelete.add(part1);
+
+		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_OPEN_USER_REGISTERED, state);
+	}
+	
+	@Test
+	public void testGetUserEvaluationStateUnregistered() throws Exception{
+		//OPEN competition where user is not yet a participant
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);		
+		evaluationsToDelete.add(eval1.getId());
+
+		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED, state);
+	}
+	
+	@Test
+	public void testGetUserEvaluationStateNotOpen() throws Exception{
+		//evaluation is in some state, other than OPEN.  Could be CLOSED, COMPLETED, or PLANNED.
+		//in all cases, registration is unavailable
+		eval1.setStatus(EvaluationStatus.CLOSED);
+		eval1 = synapseOne.createEvaluation(eval1);		
+		evaluationsToDelete.add(eval1.getId());
+		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
+		
+		eval1.setStatus(EvaluationStatus.COMPLETED);
+		eval1 = synapseOne.updateEvaluation(eval1);		
+		state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
+
+		eval1.setStatus(EvaluationStatus.PLANNED);
+		eval1 = synapseOne.updateEvaluation(eval1);		
+		state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
 	}
 }

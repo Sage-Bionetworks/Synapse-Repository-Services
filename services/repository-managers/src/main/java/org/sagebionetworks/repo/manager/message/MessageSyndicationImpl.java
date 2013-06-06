@@ -46,24 +46,44 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
+	public MessageSyndicationImpl() {
+		super();
+	}
+
+	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, AmazonSQSClient awsSQSClient, DBOChangeDAO changeDAO) {
+		super();
+		this.messagePublisher = messagePublisher;
+		this.awsSQSClient = awsSQSClient;
+		this.changeDAO = changeDAO;
+	}
+
 	@Override
 	public void rebroadcastAllChangeMessages() {
-		// List all change messages
-		List<ChangeMessage> list = null;
-		long lastNumber = 0;
-		do{
-			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, 100);
-			log.info("Sending "+list.size()+" change messages to the topic");
-			if(list.size() > 0){
-				log.info("First change number on the list: "+list.get(0).getChangeNumber());
-			}
-			// Add each message
-			for(ChangeMessage change: list){
-				messagePublisher.fireChangeMessage(change);
-				lastNumber = change.getChangeNumber()+1;
-			}
-		}while(list.size() > 0);
-		
+		this.rebroadcastChangeMessages(0L, Long.MAX_VALUE);
+	}
+	
+	@Override
+	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit) {
+		if (startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		long nextNumber = -1;
+		// Get the batch
+		List<ChangeMessage> list = changeDAO.listChanges(startChangeNumber, null, limit);;
+		for(ChangeMessage change: list){
+			messagePublisher.fireChangeMessage(change);
+			nextNumber = change.getChangeNumber()+1;
+		}		
+		// Return -1 if all msgs done
+		long currentChangeNumber = changeDAO.getCurrentChangeNumber();
+		if(nextNumber > currentChangeNumber){
+			nextNumber = -1;
+		}
+		return nextNumber;
+	}
+	
+	@Override
+	public long getCurrentChangeNumber() {
+		long lastChangeNumber = changeDAO.getCurrentChangeNumber();
+		return lastChangeNumber;
 	}
 
 	/**

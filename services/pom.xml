@@ -17,12 +17,8 @@
     <module>repository-managers</module>
     <module>authutil</module>
     <module>repository</module>
-    <module>auth</module>
-    <module>search</module>
-    <module>dynamo</module>
-    <module>rds</module>
-    <module>file</module>
     <module>competition-services</module>
+    <module>workers</module>
   </modules>
 
 </project>

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.*;
-
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,172 +8,120 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
+
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
-import org.sagebionetworks.repo.model.message.PublishResult;
-import org.sagebionetworks.repo.model.message.PublishResults;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
-import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:aws-topic-publisher.spb.xml" })
+/**
+ * @author xschildw
+ *
+ */
 public class MessageSyndicationImplTest {
-	
-	public static final long MAX_WAIT = 10*1000; //ten seconds
-	
-	@Autowired
-	MessageSyndication messageSyndication;
-	
-	@Autowired
-	AmazonSQSClient awsSQSClient;
-	
-	@Autowired
-	DBOChangeDAO changeDAO;
-	
-	private String queueName = StackConfiguration.getStack()+"-"+StackConfiguration.getStackInstance()+"-test-syndication";
-	private String queueUrl;
+	RepositoryMessagePublisher mockMsgPublisher;
+	AmazonSQSClient mockSqsClient;
+	DBOChangeDAO mockChgDAO;
+	MessageSyndicationImpl msgSyndicationImpl;
 	
 	@Before
-	public void before(){
-		// Create the queue if it does not exist
-		CreateQueueResult cqr = awsSQSClient.createQueue(new CreateQueueRequest(queueName));
-		queueUrl = cqr.getQueueUrl();
-		System.out.println("Queue Name: "+queueName);
-		System.out.println("Queue URL: "+queueUrl);
-
+	public void before() {
+		mockMsgPublisher = Mockito.mock(RepositoryMessagePublisher.class);
+		mockSqsClient = Mockito.mock(AmazonSQSClient.class);
+		mockChgDAO = Mockito.mock(DBOChangeDAO.class);
+		msgSyndicationImpl = new MessageSyndicationImpl(mockMsgPublisher, mockSqsClient, mockChgDAO);
+	}
+	
+	@After
+	public void after() {
+		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testRefireChangeMessages() {
+		msgSyndicationImpl.rebroadcastChangeMessages(null, null);
 	}
 	
 	@Test
-	public void testRebroadcastAllChangeMessagesToQueue() throws InterruptedException{
-		// Make sure the queue starts empty.
-		emptyQueue();
-		assertEquals(0, getQueueMessageCount());
-		// Start with no change messages
-		changeDAO.deleteAllChanges();
-		// Create a bunch of messages
-		long toCreate = 15l;
-		List<ChangeMessage> created = createChangeMessages(toCreate, ObjectType.ENTITY);
-		ChangeMessages allMessages = messageSyndication.listChanges(0l,  ObjectType.ENTITY,  Long.MAX_VALUE);
-		assertNotNull(allMessages);
-		assertNotNull(allMessages.getList());
-		assertEquals(toCreate, allMessages.getList().size());
-		// Now push all of these to the queue
-		PublishResults results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l, Long.MAX_VALUE);
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(toCreate, results.getList().size());
-		waitForMessageCount(toCreate);
-		
-		// Now send a single message.
-		ChangeMessage toTest = created.get(13);
-		// Now push all of these to the queue
-		results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, toTest.getChangeNumber(), 1l);
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(1, results.getList().size());
-		// Validate that the correct message was sent
-		PublishResult pr = results.getList().get(0);
-		assertNotNull(pr);
-		assertEquals(toTest.getChangeNumber(), pr.getChangeNumber());
-		
-		// Test a page
-		ChangeMessage start = created.get(2);
-		Long limit = 11l;
-		// Now push all of these to the queue
-		results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, start.getChangeNumber(), limit);
-		
-		assertNotNull(results);
-		assertNotNull(results.getList());
-		assertEquals(limit.intValue(), results.getList().size());
-		// validate the results
-		assertEquals(start.getChangeNumber(), results.getList().get(0).getChangeNumber());
-		assertEquals(created.get(2+11-1).getChangeNumber(), results.getList().get(limit.intValue()-1).getChangeNumber());
+	public void testPastLastNumber(){
+		// Return an empty list when past the last change.
+		when(mockChgDAO.listChanges(100l, null, 100)).thenReturn(new LinkedList<ChangeMessage>());
+		Long next = msgSyndicationImpl.rebroadcastChangeMessages(100l, 100l);
+		Long expecedNext = -1l;
+		assertEquals(expecedNext, next);
+		verify(mockMsgPublisher, never()).fireChangeMessage(any(ChangeMessage.class));
 	}
 	
+	@Test
+	public void testUnderLimit(){
+		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
+		when(mockChgDAO.listChanges(123l, null, 10)).thenReturn(expectedChanges);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(133L);
+		Long next = msgSyndicationImpl.rebroadcastChangeMessages(123l, 10l);
+		Long expecedNext = 133l;
+		assertEquals(expecedNext, next);
+		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
+	}
 	
-	@After
-	public void after(){
-		if(changeDAO != null){
-			changeDAO.deleteAllChanges();
+	@Test
+	public void testOverLimit(){
+		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
+		when(mockChgDAO.listChanges(123l, null, 10)).thenReturn(expectedChanges);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(132L);
+		Long next = msgSyndicationImpl.rebroadcastChangeMessages(123l, 10l);
+		Long expecedNext = -1l;
+		assertEquals(expecedNext, next);
+		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
+	}
+	
+
+	@Test
+	public void testGetLastChangeNumber() {
+		long startNum = 2345;
+		int numMsgs = 34;
+		List<ChangeMessage> expectedChanges = generateChanges(numMsgs, startNum);
+		when(mockChgDAO.getCurrentChangeNumber()).thenReturn(new Long(startNum + expectedChanges.size() - 1));
+		long currentChangeMsgNum = msgSyndicationImpl.getCurrentChangeNumber();
+		assertEquals((startNum + numMsgs - 1l), currentChangeMsgNum);
+	}
+	
+	/**
+	 * Generates a list of numChanges change messages starting at startChangeNumber
+	 * @param numChanges
+	 * @param startChangeNumber
+	 * @return List<ChangeMessage>
+	 */
+	private List<ChangeMessage> generateChanges(int numChanges, Long startChangeNumber) {
+		List<ChangeMessage> changes = new ArrayList<ChangeMessage>();
+		for (int i = 0; i < numChanges; i++) {
+			ChangeMessage chgMsg = new ChangeMessage();
+			chgMsg.setChangeNumber(startChangeNumber + i);
+			chgMsg.setObjectType(ObjectType.ENTITY);
+			changes.add(chgMsg);
 		}
+		return changes;
 	}
 	
-	/**
-	 * Create the given number of messages.
-	 * 
-	 * @param count
-	 * @param type
-	 */
-	public List<ChangeMessage> createChangeMessages(long count, ObjectType type){
-		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
-		for(int i=0; i<count; i++){
-			ChangeMessage message = new ChangeMessage();
-			message.setObjectType(type);
-			message.setObjectId(""+i);
-			// Use all types
-			message.setChangeType(ChangeType.values()[i%ChangeType.values().length]);
-			message.setObjectEtag("etag"+i);
-			results.add(changeDAO.replaceChange(message));
-		}
-		return results;
-	}
-	
-	/**
-	 * Wait for a given message count;
-	 * @param expectedCount
-	 * @throws InterruptedException
-	 */
-	public void waitForMessageCount(long expectedCount) throws InterruptedException{
-		long start = System.currentTimeMillis();
-		long count;
-		do{
-			count = getQueueMessageCount();
-			System.out.println("Waiting for expected message count...");
-			Thread.sleep(1000);
-			assertTrue("Timed out waiting for the expected message count", System.currentTimeMillis()-start < MAX_WAIT);
-		}while(count != expectedCount);
-	}
-	
-	public long getQueueMessageCount(){
-		GetQueueAttributesResult result = awsSQSClient.getQueueAttributes(new GetQueueAttributesRequest(queueUrl).withAttributeNames("ApproximateNumberOfMessages"));
-		return Long.parseLong(result.getAttributes().get("ApproximateNumberOfMessages"));
-	}
-	
-	/**
-	 * Helper to empty the message queue
-	 */
-	public void emptyQueue(){
-		ReceiveMessageResult result = null;
-		do{
-			result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(10).withVisibilityTimeout(100));
-			List<Message> list = result.getMessages();
-			if(list.size() > 0){
-				List<DeleteMessageBatchRequestEntry> batch = new LinkedList<DeleteMessageBatchRequestEntry>();
-				for(int i=0; i< list.size(); i++){
-					Message message = list.get(i);
-					// Delete all of them.
-					batch.add(new DeleteMessageBatchRequestEntry(""+i, message.getReceiptHandle()));
-				}
-				awsSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
+	private List<ChangeMessage> getBatchFromChanges(List<ChangeMessage> msgs, int bSize, int batchNum) {
+		List<ChangeMessage> res = new ArrayList<ChangeMessage>();
+		int startIdx = batchNum * bSize;
+		for (int i = 0; i < bSize; i++) {
+			if (startIdx+i >= msgs.size()) {
+				break;
 			}
-			System.out.println("Deleted "+list.size()+" messages");
-		}while(result.getMessages().size() > 0);
+			ChangeMessage cMsg = msgs.get(startIdx+i);
+			res.add(cMsg);
+		}
+		
+		return res;
 	}
 
 }

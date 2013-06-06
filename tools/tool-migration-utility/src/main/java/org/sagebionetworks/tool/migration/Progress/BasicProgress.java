@@ -19,6 +19,7 @@ public class BasicProgress implements Progress{
 	private volatile long startNano = System.nanoTime();
 	private volatile long elapse = 0;
 	private volatile boolean done = false;
+	private volatile String message;
 	
 	public long getCurrent() {
 		return current;
@@ -36,6 +37,13 @@ public class BasicProgress implements Progress{
 		done = true;
 		current = total;
 		elapse = calulcateElapse();
+	}
+	
+	public String getMessage() {
+		return message;
+	}
+	public void setMessage(String message) {
+		this.message = message;
 	}
 	@Override
 	public long getElapseTimeMS() {

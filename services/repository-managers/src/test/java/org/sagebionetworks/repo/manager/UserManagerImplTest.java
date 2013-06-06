@@ -75,58 +75,6 @@ public class UserManagerImplTest {
 	}
 	
 	@Test
-	public void testPLFM1399() throws Exception {
-		
-		// verify that our test user belongs to the 'public' group
-		UserInfo userInfo = userManager.getUserInfo(TEST_USER);
-		UserGroup publicPrincipal = null;
-		for (UserGroup g : userInfo.getGroups()) {
-			if (g.getName().equals(DEFAULT_GROUPS.PUBLIC.name())) publicPrincipal = g;
-		}
-		assertNotNull(publicPrincipal);
-		String origPrincipalId = publicPrincipal.getId();
-		
-		// now we duplicate the action of the migrator:  delete the group and recreate (with another ID)
-		
-		// we need to delete all objects (except root), else foreign key constraints fail upon deleting the group
-		String rootId = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
-		EntityType[] entityTypes = new EntityType[]{EntityType.folder, EntityType.project};
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		for (EntityType entityType : entityTypes) {
-			BasicQuery queryForNode = new BasicQuery();
-			queryForNode.setFrom(entityType.name());
-			queryForNode.addExpression(new Expression(new CompoundId("JDONODE", "parentId"), 
-				org.sagebionetworks.repo.model.query.Comparator.EQUALS, rootId));
-			NodeQueryResults queryResults = nodeQueryDao.executeQuery(queryForNode, adminInfo);
-			List<String> resultIds = queryResults.getResultIds();
-			for (String resultId : resultIds) {
-				System.out.println(resultId);
-				nodeDao.delete(resultId);
-			}
-		}
-		
-		// *** NOTE:  To make this work we delete via the UserManager (which clears the user info cache) rather than the userGroupDAO
-		assertTrue(userManager.deletePrincipal(publicPrincipal.getName()));
-		publicPrincipal = new UserGroup();
-		publicPrincipal.setIsIndividual(false);
-		publicPrincipal.setName(DEFAULT_GROUPS.PUBLIC.name());
-		String newId = userGroupDAO.create(publicPrincipal);
-		assertFalse(newId.equals(origPrincipalId));
-		
-		// now get the user info again
-		userInfo = userManager.getUserInfo(TEST_USER);
-		publicPrincipal = null;
-		for (UserGroup g : userInfo.getGroups()) {
-			if (g.getName().equals(DEFAULT_GROUPS.PUBLIC.name())) publicPrincipal = g;
-		}
-		assertNotNull(publicPrincipal);
-		
-		// if the info is cached, then the ID of the retrieved group will be the old one (different from the new one)
-		// and the following will fail
-		assertEquals(newId, publicPrincipal.getId());
-	}
-	
-	@Test
 	public void testFilterInvalidGroupNames(){
 		ArrayList<String> list = new ArrayList<String>();
 		list.add("badGroupName@someplace.com");
@@ -198,6 +146,20 @@ public class UserManagerImplTest {
 		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 	}
+	
+	@Test
+	public void testUpdateEmail() throws Exception {
+		String oldEmail = "old-change-email-test-user@sagebase.org";
+		String newEmail = "new-change-email-test-user@sagebase.org";
+		UserInfo userInfo = userManager.getUserInfo(oldEmail);
+		userManager.updateEmail(userInfo, newEmail);
+		UserInfo newUserInfo = userManager.getUserInfo(newEmail);
+		//should be the same after updating the email
+		assertEquals(userInfo.getIndividualGroup().getId(), newUserInfo.getIndividualGroup().getId());
+		userManager.deletePrincipal(newEmail);
+		userManager.deletePrincipal(oldEmail);
+	}
+	
 	
 
 }

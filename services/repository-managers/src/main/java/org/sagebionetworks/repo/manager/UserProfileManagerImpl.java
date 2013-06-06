@@ -3,10 +3,15 @@
  */
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
+import javax.xml.xpath.XPathExpressionException;
+
+import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -22,10 +27,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +54,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Autowired 
 	private NodeDAO nodeDAO;
 	
+	private Random rand = new Random();
+	
 	public UserProfileManagerImpl() {
 	}
 
@@ -59,10 +64,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param userProfileDAO
 	 * @param s3TokenManager
 	 */
-	public UserProfileManagerImpl(UserProfileDAO userProfileDAO,
+	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO,
 			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO) {
 		super();
 		this.userProfileDAO = userProfileDAO;
+		this.userGroupDAO = userGroupDAO;
 		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
 	}
@@ -70,12 +76,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public UserProfile getUserProfile(UserInfo userInfo, String ownerId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		//if the user is set, and it's the anonymous user, then return an anonymous profile
-		if (userInfo != null && userInfo.getUser() != null && userInfo.getUser().getUserId() != null && 
-				AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())){
-			return getAnonymousUserProfile(userInfo.getIndividualGroup().getId());
-		}
-
+		if(userInfo == null) throw new IllegalArgumentException("userInfo can not be null");
+		if(ownerId == null) throw new IllegalArgumentException("ownerId can not be null");
+		
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		UserGroup userGroup = userGroupDAO.get(ownerId);
@@ -83,12 +86,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			userProfile.setUserName(userInfo.getUser().getUserId());
 			if (userGroup != null)
 				userProfile.setEmail(userGroup.getName());
-		}
-		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
-		if (!canSeePrivate) {
-			UserProfileManagerUtils.clearPrivateFields(userProfile);
-			if (userGroup != null)
-				userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
 		}
 		return userProfile;
 	}
@@ -114,11 +111,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		for (UserProfile userProfile : userProfiles) {
-			UserProfileManagerUtils.clearPrivateFields(userProfile);
 			if (includeEmail) {
 				UserGroup userGroup = userGroupDAO.get(userProfile.getOwnerId());
 				if (userGroup != null)
-					userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
+					userProfile.setEmail(userGroup.getName());
 			}
 		}
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
@@ -133,19 +129,30 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	/**
 	 * This method is only available to the object owner or an admin
+	 * @throws NotFoundException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws AuthenticationException 
+	 * @throws IOException 
+	 * @throws XPathExpressionException 
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, ConflictingUpdateException,
-			InvalidModelException {
+	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException, AuthenticationException, IOException, XPathExpressionException {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId(), schema);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
+		String oldEmail = userInfo.getIndividualGroup().getName();
 		attachmentManager.checkAttachmentsForPreviews(updated);
-		return userProfileDAO.update(updated, schema);
+		UserProfile returnProfile = userProfileDAO.update(updated, schema);
+		
+		//and update email if it is also set (and is different)
+		if (updated.getEmail() != null && !updated.getEmail().equals(oldEmail)) {
+			CrowdAuthUtil.copyUser(oldEmail, updated.getEmail(), rand);
+		}
+		
+		return returnProfile;
 	}
 
 	@Override

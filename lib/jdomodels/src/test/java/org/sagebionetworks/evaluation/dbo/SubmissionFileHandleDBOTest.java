@@ -12,6 +12,8 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -20,6 +22,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +40,9 @@ public class SubmissionFileHandleDBOTest {
 	NodeDAO nodeDAO;
 	@Autowired
 	FileHandleDao fileHandleDAO;
- 
+    @Autowired
+    IdGenerator idGenerator;
+    
     private String nodeId = null;
     private long submissionId;
     private long userId = 0;
@@ -71,7 +76,7 @@ public class SubmissionFileHandleDBOTest {
         evaluation.seteTag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(KeyFactory.ROOT_ID);
         evaluation.setCreatedOn(System.currentTimeMillis());
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
@@ -81,6 +86,7 @@ public class SubmissionFileHandleDBOTest {
         participant.setUserId(userId);
         participant.setEvalId(evalId);
         participant.setCreatedOn(System.currentTimeMillis());
+        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
         dboBasicDao.createNew(participant);
         
         // Initialize a new Submission

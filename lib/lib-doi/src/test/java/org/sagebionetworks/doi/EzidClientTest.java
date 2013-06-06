@@ -1,33 +1,24 @@
 package org.sagebionetworks.doi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.util.Calendar;
-
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.AuthPolicy;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.CoreConnectionPNames;
 import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.protocol.HTTP;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -39,7 +30,9 @@ public class EzidClientTest {
 	public void testConstructor() throws Exception {
 		DoiClient client = new EzidClient();
 		assertNotNull(client);
-		DefaultHttpClient httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(client, "writeClient");
+		RetryableHttpClient retryableClient = (RetryableHttpClient)ReflectionTestUtils.getField(client, "writeClient");
+		assertNotNull(retryableClient);
+		DefaultHttpClient httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(retryableClient, "httpClient");
 		assertNotNull(httpClient);
 		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
 		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
@@ -48,62 +41,95 @@ public class EzidClientTest {
 		assertNotNull(credentials);
 		assertEquals(StackConfiguration.getEzidUsername(), credentials.getUserPrincipal().getName());
 		assertEquals(StackConfiguration.getEzidPassword(), credentials.getPassword());
+		retryableClient = (RetryableHttpClient)ReflectionTestUtils.getField(client, "readClient");
+		assertNotNull(retryableClient);
+		httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(retryableClient, "httpClient");
+		assertNotNull(httpClient);
+		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
+		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
 	}
 
 	@Test
-	public void testCreateRetry() throws Exception {
+	public void testIsStatusOk() throws Exception {
 
-		// Create test data
-		final EzidDoi ezidDoi = new EzidDoi();
-		final Doi dto = new Doi();
-		ezidDoi.setDto(dto);
-		String id = "syn123";
-		final String doi = "doi:10.5072/" + id;
-		ezidDoi.setDoi(doi);
-		final EzidMetadata metadata = new EzidMetadata();
-		final String target = EzidConstants.TARGET_URL_PREFIX;
-		metadata.setTarget(target);
-		final String creator = "Test, Something";
-		metadata.setCreator(creator);
-		final String title = "This is a test";
-		metadata.setTitle(title);
-		final String publisher = EzidConstants.PUBLISHER;
-		metadata.setPublisher(publisher);
-		final int year = Calendar.getInstance().get(Calendar.YEAR);
-		metadata.setPublicationYear(year);
-		ezidDoi.setMetadata(metadata);
-
-		// Create request from the test data
-		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + ezidDoi.getDoi());
-		HttpPut httpPut = new HttpPut(uri);
-		StringEntity requestEntity = new StringEntity(metadata.getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
-		httpPut.setEntity(requestEntity);
-
-		// Mock 503
-		StatusLine mockStatus = mock(StatusLine.class);
-		when(mockStatus.getStatusCode()).thenReturn(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		// Mock status OK
 		HttpResponse mockResponse = mock(HttpResponse.class);
-		when(mockResponse.getStatusLine()).thenReturn(mockStatus);
-		HttpEntity httpEntity = new StringEntity("503 error");
-		when(mockResponse.getEntity()).thenReturn(httpEntity);
-		HttpClient mockClient = mock(HttpClient.class);
-		when(mockClient.execute(httpPut)).thenReturn(mockResponse);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
+		StatusLine mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		RetryableHttpClient mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		EzidClient client = new EzidClient();
+		ReflectionTestUtils.setField(client, "readClient", mockWriteClient);
+		assertTrue(client.isStatusOk());
 
-		// "Inject" the mock client
-		DoiClient doiClient = new EzidClient();
-		ReflectionTestUtils.setField(doiClient, "writeClient", mockClient);
+		// Mock ISE
+		mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
+		mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		client = new EzidClient();
+		ReflectionTestUtils.setField(client, "readClient", mockWriteClient);
+		assertFalse(client.isStatusOk());
+	}
 
-		Method method = EzidClient.class.getDeclaredMethod("executeWithRetry", HttpUriRequest.class);
-		method.setAccessible(true);
-		try {
-			method.invoke(doiClient, httpPut);
-		} catch (InvocationTargetException e) {
-			Throwable cause = e.getCause();
-			assertTrue(cause instanceof RuntimeException);
-			assertTrue(cause.getMessage().contains("503"));
-		}
+	@Test
+	public void testCreateGet() throws Exception {
 
-		// Retried 3 times -- in total, it's executed 4 times
-		verify(mockClient, times(4)).execute(httpPut);
+		// Mock success
+		HttpResponse mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("response body"));
+		StatusLine mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_CREATED);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		RetryableHttpClient mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		EzidClient client = new EzidClient();
+		ReflectionTestUtils.setField(client, "writeClient", mockWriteClient);
+		EzidDoi ezidDoi = new EzidDoi();
+		ezidDoi.setDoi("doi:1093.3/sth");
+		ezidDoi.setDto(new Doi());
+		EzidMetadata mockMetadata = mock(EzidMetadata.class);
+		when(mockMetadata.getMetadataAsString()).thenReturn("metadata");
+		ezidDoi.setMetadata(mockMetadata);
+		client.create(ezidDoi);
+
+		// Mock 400 BAD_REQUEST "identifier already exists"
+		mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("bad request -- identifier already exists"));
+		mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_BAD_REQUEST);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		client = new EzidClient();
+		ReflectionTestUtils.setField(client, "writeClient", mockWriteClient);
+		client.create(ezidDoi);
+
+		// Mock 400 BAD_REQUEST and get()
+		// Mock write client
+		mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("bad request"));
+		mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_BAD_REQUEST);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		mockWriteClient = mock(RetryableHttpClient.class);
+		when(mockWriteClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		// Mock read client
+		mockResponse = mock(HttpResponse.class);
+		when(mockResponse.getEntity()).thenReturn(new StringEntity("OK"));
+		mockStatusLine = mock(StatusLine.class);
+		when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+		when(mockResponse.getStatusLine()).thenReturn(mockStatusLine);
+		RetryableHttpClient mockReadClient = mock(RetryableHttpClient.class);
+		when(mockReadClient.executeWithRetry(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		client = new EzidClient();
+		ReflectionTestUtils.setField(client, "writeClient", mockWriteClient);
+		ReflectionTestUtils.setField(client, "readClient", mockReadClient);
+		client.create(ezidDoi);
 	}
 }

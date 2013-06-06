@@ -12,10 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URL;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,7 +43,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -58,11 +54,12 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -72,7 +69,6 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -337,7 +333,12 @@ public class IT500SynapseJavaClient {
 		
 		// now add a ToU restriction
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		ar.setEntityIds(Arrays.asList(new String[]{aNewDataset.getId()}));
+
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(aNewDataset.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
@@ -353,7 +354,10 @@ public class IT500SynapseJavaClient {
 		// should not be able to download
 		assertFalse(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
-		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		subjectId.setId(aNewDataset.getId());
+		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetAccessRequirements(subjectId);
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
@@ -364,7 +368,7 @@ public class IT500SynapseJavaClient {
 		
 		otherUser.createAccessApproval(aa);
 		
-		vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		vcpr = otherUser.getUnmetAccessRequirements(subjectId);
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
@@ -812,7 +816,13 @@ public class IT500SynapseJavaClient {
 		
 		// add an access requirement
 		TermsOfUseAccessRequirement r = new TermsOfUseAccessRequirement();
-		r.setEntityIds(Arrays.asList(new String[]{layer.getId()}));
+		
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(layer.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		r.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+
+
 		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		r.setTermsOfUse("I promise to be good.");
 		synapse.createAccessRequirement(r);
@@ -832,7 +842,10 @@ public class IT500SynapseJavaClient {
 		
 		
 		// get unmet access requirements
-		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		subjectId.setId(layer.getId());
+		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetAccessRequirements(subjectId);
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -847,7 +860,7 @@ public class IT500SynapseJavaClient {
 		otherUser.createAccessApproval(approval);
 		
 		// get unmet requirements -- should be empty
-		ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
+		ars = otherUser.getUnmetAccessRequirements(subjectId);
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
@@ -1247,57 +1260,5 @@ public class IT500SynapseJavaClient {
 		assertEquals(expected.size(), results.size());
 		assertEquals(expected,results);
 		
-	}
-
-	@Test
-	public void testPromoteEntityVersion() throws SynapseException {
-		Code e = createEntity(project.getId(), Code.class);
-		e.setMd5("abc");
-		versionEntity(e, 2);
-		VersionInfo promotedEntityVersion = synapse.promoteEntityVersion(e.getId(), 1L);
-		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
-		Code eAfter = (Code)synapse.getEntityById(e.getId());
-		assertEquals(new Long(3), eAfter.getVersionNumber());
-	}
-
-	@Ignore
-	@Test
-	public void testGetMigratableObjectCounts() throws SynapseException {
-		
-	}
-
-	// Utility methods - could be extracted to a separate helper
-	//  class to facilitate proper cleanup of all unit tests
-
-	private <T extends Entity> T createEntity(String parentId, Class<? extends T> entityClass) throws SynapseException {
-		T entity;
-		try {
-			entity = entityClass.newInstance();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		entity.setParentId(parentId);
-		entity = synapse.createEntity(entity);
-		toDelete.add(entity.getId());
-		return entity;
-	}
-
-	private <T extends Locationable> void versionEntity(T entity, int numVersions) throws SynapseException {
-		try {
-			for (int i = 0; i < numVersions; i++) {
-				entity.setMd5(md5Sum(entity.getMd5()));
-				entity = synapse.putEntity(entity);
-			}
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private String md5Sum(String value) throws NoSuchAlgorithmException {
-		if (value == null) throw new IllegalArgumentException("Value cannot be null");
-		return String.format("%032x",
-				new BigInteger(1, MessageDigest.getInstance("md5").
-									digest(value.getBytes()))).
-						substring(0, 32);
 	}
 }

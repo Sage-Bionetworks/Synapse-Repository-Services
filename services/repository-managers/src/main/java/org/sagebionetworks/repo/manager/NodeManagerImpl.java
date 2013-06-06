@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
   
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -585,6 +586,27 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
+	public List<EntityHeader> getNodeHeaderByMd5(UserInfo userInfo, String md5)
+			throws NotFoundException, DatastoreException {
+
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+		if (md5 == null) {
+			throw new IllegalArgumentException("MD5 cannot be null.");
+		}
+
+		List<EntityHeader> entityHeaderList = nodeDao.getEntityHeaderByMd5(md5);
+		List<EntityHeader> results = new ArrayList<EntityHeader>(entityHeaderList.size());
+		for (EntityHeader entityHeader: entityHeaderList) {
+			if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ACCESS_TYPE.READ)) {
+				results.add(entityHeader);
+			}
+		}
+		return results;
+	}
+
+	@Override
 	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
 			throws NotFoundException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);
@@ -659,11 +681,19 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public VersionInfo promoteEntityVersion(UserInfo userInfo, String nodeId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		if (!authorizationManager.canAccess(userInfo, nodeId, ACCESS_TYPE.UPDATE))
+		if (!authorizationManager.canAccess(userInfo, nodeId, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to " + nodeId + ".");
-		String currentETag = nodeDao.peekCurrentEtag(nodeId);
-		nodeDao.lockNodeAndIncrementEtag(nodeId, currentETag);
-		return nodeDao.promoteNodeVersion(nodeId, versionNumber);
+		}
+		Long currentVersion = nodeDao.getCurrentRevisionNumber(nodeId);
+		if (!currentVersion.equals(versionNumber)) {
+			String currentETag = nodeDao.peekCurrentEtag(nodeId);
+			nodeDao.lockNodeAndIncrementEtag(nodeId, currentETag);
+			Node nodeToPromote = nodeDao.getNodeForVersion(nodeId, versionNumber);
+			nodeToPromote.setVersionLabel(null); // To get a new version label
+			nodeDao.createNewVersion(nodeToPromote);
+		}
+		QueryResults<VersionInfo> versions = nodeDao.getVersionsOfEntity(nodeId, 0, 1);
+		return versions.getResults().get(0);
 	}
 
 	@Override

@@ -118,7 +118,7 @@
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
-						<timeout>240000</timeout>
+						<timeout>360000</timeout>
 						<containerId>tomcat7x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
@@ -157,32 +157,12 @@
 					<deployables>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-authentication</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
 							<artifactId>services-repository</artifactId>
 							<type>war</type>
 						</deployable>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-search</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-dynamo</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-rds</artifactId>
-							<type>war</type>
-						</deployable>
-						<deployable>
-							<groupId>org.sagebionetworks</groupId>
-							<artifactId>services-file</artifactId>
+							<artifactId>services-workers</artifactId>
 							<type>war</type>
 						</deployable>
 					</deployables>
@@ -219,12 +199,6 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-authentication</artifactId>
-			<type>war</type>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
 
@@ -233,32 +207,14 @@
 			<artifactId>com.springsource.javax.servlet</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-file</artifactId>
-			<type>war</type>
-		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>
 			<type>war</type>
 		</dependency>
-		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-search</artifactId>
-			<type>war</type>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-rds</artifactId>
-			<type>war</type>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>services-dynamo</artifactId>
+			<artifactId>services-workers</artifactId>
 			<type>war</type>
 		</dependency>
 
@@ -275,6 +231,16 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-id-generator</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-dynamo</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-doi</artifactId>
 		</dependency>
 
 		<dependency>

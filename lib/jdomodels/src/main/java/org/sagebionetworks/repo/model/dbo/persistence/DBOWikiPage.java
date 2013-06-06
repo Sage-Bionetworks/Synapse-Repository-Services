@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ID;
@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ROOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_TITLE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_WIKI_PAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_PAGE;
@@ -15,27 +16,31 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_P
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * Database Object for a Wiki Page.
  * @author John
  *
  */
-public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
+public class DBOWikiPage implements MigratableDatabaseObject<DBOWikiPage, DBOWikiPage> {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_WIKI_ID, true),
-		new FieldColumn("etag", COL_WIKI_ETAG),
+		new FieldColumn("id", COL_WIKI_ID, true).withIsBackupId(true),
+		new FieldColumn("etag", COL_WIKI_ETAG).withIsEtag(true),
 		new FieldColumn("title", COL_WIKI_TITLE),
 		new FieldColumn("createdBy", COL_WIKI_CREATED_BY),
 		new FieldColumn("createdOn", COL_WIKI_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_WIKI_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_WIKI_MODIFIED_ON),
-		new FieldColumn("parentId", COL_WIKI_PARENT_ID),
+		new FieldColumn("parentId", COL_WIKI_PARENT_ID).withIsSelfForeignKey(true),
 		new FieldColumn("rootId", COL_WIKI_ROOT_ID),
 		new FieldColumn("markdown", COL_WIKI_MARKDOWN),
 	};
@@ -72,6 +77,7 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 				if(blob != null){
 					wiki.setMarkdown(blob.getBytes(1, (int) blob.length()));
 				}
+				wiki.setRootId(rs.getLong(COL_WIKI_ROOT_ID));
 				return wiki;
 			}
 
@@ -266,5 +272,42 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
 				+ ", parentId=" + parentId + ", markdown="
 				+ ((markdown == null) ? "null" : new String(markdown)) + "]";
+	}
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.WIKI_PAGE;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOWikiPage, DBOWikiPage> getTranslator() {
+		return new MigratableTableTranslation<DBOWikiPage, DBOWikiPage>(){
+
+			@Override
+			public DBOWikiPage createDatabaseObjectFromBackup(DBOWikiPage backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOWikiPage createBackupFromDatabaseObject(DBOWikiPage dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBOWikiPage> getBackupClass() {
+		return DBOWikiPage.class;
+	}
+
+	@Override
+	public Class<? extends DBOWikiPage> getDatabaseObjectClass() {
+		return DBOWikiPage.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBOWikiAttachment());
+		return list;
 	}
 }

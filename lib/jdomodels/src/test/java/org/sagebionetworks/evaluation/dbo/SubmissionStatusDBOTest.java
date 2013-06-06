@@ -12,11 +12,14 @@ import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +35,9 @@ public class SubmissionStatusDBOTest {
     DBOBasicDao dboBasicDao;
 	@Autowired
 	NodeDAO nodeDAO;
- 
+    @Autowired
+    IdGenerator idGenerator;
+    
     private String nodeId = null;
     private long submissionId = 2000;
     private long userId = 0;
@@ -54,7 +59,7 @@ public class SubmissionStatusDBOTest {
         evaluation.seteTag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
-        evaluation.setContentSource("foobar");
+        evaluation.setContentSource(KeyFactory.ROOT_ID);
         evaluation.setCreatedOn(System.currentTimeMillis());
         evaluation.setStatusEnum(EvaluationStatus.PLANNED);
         evalId = dboBasicDao.createNew(evaluation).getId();
@@ -64,6 +69,7 @@ public class SubmissionStatusDBOTest {
         participant.setUserId(userId);
         participant.setEvalId(evalId);
         participant.setCreatedOn(System.currentTimeMillis());
+        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
         dboBasicDao.createNew(participant);
         
         // Initialize a new Submission

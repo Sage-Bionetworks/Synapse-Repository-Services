@@ -1,0 +1,13 @@
+{
+ 	"properties":{
+         "id":{
+        	"type":"integer"
+         },
+         "etag":{
+        	"type":"string"
+         },
+         "parentId":{
+        	"type":"integer"
+         }
+	}	
+}

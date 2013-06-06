@@ -13,9 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiMigratableDao;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
@@ -50,7 +47,7 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
 		final DoiObjectType doiObjectType = DoiObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.READY;
+		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String etag = "etag";
 		final Long id = 2L;
 		final Long objectId = 3L;
@@ -103,48 +100,5 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 
 		doiMigratableDao.delete(id2.toString());
 		assertEquals(0, doiMigratableDao.getCount());
-	}
-
-	@Test
-	public void testGetMigrationObjectData() {
-
-		assertEquals(MigratableObjectType.DOI, doiMigratableDao.getMigratableObjectType());
-
-		QueryResults<MigratableObjectData> results =  doiMigratableDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
-		assertNotNull(results);
-		assertEquals(0, results.getTotalNumberOfResults());
-		assertEquals(0, results.getResults().size());
-
-		final Long createdBy = 1L;
-		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final DoiObjectType doiObjectType = DoiObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.READY;
-		final String etag = "etag";
-		final Long id = 2L;
-		final Long objectId = 3L;
-		final Long objectVersion = 4L;
-		final Timestamp updatedOn = new Timestamp((new Date()).getTime());
-		Doi dto = new Doi();
-		dto.setCreatedBy(createdBy.toString());
-		dto.setCreatedOn(createdOn);
-		dto.setDoiObjectType(doiObjectType);
-		dto.setDoiStatus(doiStatus);
-		dto.setEtag(etag);
-		dto.setId(id.toString());
-		dto.setObjectId(objectId.toString());
-		dto.setObjectVersion(objectVersion);
-		dto.setUpdatedOn(updatedOn);
-
-		doiMigratableDao.createOrUpdate(dto);
-		assertEquals(1, doiMigratableDao.getCount());
-		results =  doiMigratableDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
-		assertNotNull(results);
-		assertEquals(1, results.getTotalNumberOfResults());
-		assertEquals(1, results.getResults().size());
-		MigratableObjectData obj = results.getResults().get(0);
-		assertNotNull(obj);
-		assertEquals(0, obj.getDependencies().size());
-		assertEquals(etag, obj.getEtag());
-		assertEquals(id.toString(), obj.getId().getId());
 	}
 }

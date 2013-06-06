@@ -52,11 +52,13 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -76,6 +78,8 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -86,7 +90,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -109,7 +112,6 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -125,8 +127,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class Synapse {
-
+public class Synapse implements SynapseInt {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
@@ -134,8 +135,8 @@ public class Synapse {
 
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
-	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.prod.sagebase.org/auth/v1";
-	protected static final String DEFAULT_FILE_ENDPOINT = "https://file-prod.prod.sagebase.org/file/v1";
+	protected static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
+	protected static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
@@ -177,6 +178,7 @@ public class Synapse {
 	protected static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
 	
 	protected static final String EVALUATION_URI_PATH = "/evaluation";
+	protected static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	protected static final String COUNT = "count";
 	protected static final String NAME = "name";
 	protected static final String ALL = "/all";
@@ -464,6 +466,31 @@ public class Synapse {
 			throw new SynapseException(e);
 		}
 		return userData;
+	}
+	
+	/**
+	 * 
+	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitely accept terms of use
+	 * 
+	 * @param userName
+	 * @param password
+	 * @throws SynapseException 
+	 */
+	public void loginWithNoProfile(String userName, String password) throws SynapseException {
+		JSONObject loginRequest = new JSONObject();
+		JSONObject credentials = null;
+		try {
+			loginRequest.put("email", userName);
+			loginRequest.put(PASSWORD_FIELD, password);
+			
+			credentials = createAuthEntity("/session", loginRequest);
+			String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
+			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+
+		} catch (JSONException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	public UserSessionData getUserSessionData() throws SynapseException {
@@ -965,9 +992,27 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public boolean canAccess(String entityId, ACCESS_TYPE accessType) throws SynapseException {
+		return canAccess(entityId, ObjectType.ENTITY, accessType);
+	}
+	
+	public boolean canAccess(String id, ObjectType type, ACCESS_TYPE accessType) throws SynapseException{
+		if(id == null) throw new IllegalArgumentException("id cannot be null");
+		if (type == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		if (accessType == null) throw new IllegalArgumentException("AccessType cannot be null");
+		
+		if (ObjectType.ENTITY.equals(type)) {
+			return canAccess(ENTITY_URI_PATH + "/" + id+ "/access?accessType="+accessType.name());
+		}
+		else if (ObjectType.EVALUATION.equals(type)) {
+			return canAccess(EVALUATION_URI_PATH + "/" + id+ "/access?accessType="+accessType.name());
+		}
+		else
+			throw new IllegalArgumentException("ObjectType not supported: " + type.toString());
+	}
+	
+	private boolean canAccess(String serviceUrl) throws SynapseException {
 		try {
-			String url = ENTITY_URI_PATH + "/" + entityId+ "/access?accessType="+accessType.name();
-			JSONObject jsonObj = getEntity(url);
+			JSONObject jsonObj = getEntity(serviceUrl);
 			String resultString = null;
 			try {
 				resultString = jsonObj.getString("result");
@@ -977,8 +1022,9 @@ public class Synapse {
 			return Boolean.parseBoolean(resultString);
 		} catch (JSONException e) {
 			throw new SynapseException(e);
-		}
+		}	
 	}
+	
 	
 	/**
 	 * Get the annotations for an entity.
@@ -1031,7 +1077,7 @@ public class Synapse {
 	}
 	
 	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
-	
+		
 		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
 		ar.setEntityType(ar.getClass().getName());
 		// Get the json for this entity
@@ -1048,8 +1094,19 @@ public class Synapse {
 		
 	}
 
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
-		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT_UNFULFILLED;
+	public void deleteAccessRequirement(Long arId) throws SynapseException {
+		deleteUri(ACCESS_REQUIREMENT+"/"+arId);
+	}
+
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
+		String uri = null;
+		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
+			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
+		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
+			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
+		} else {
+			throw new SynapseException("Unsupported type "+subjectId.getType());
+		}
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
@@ -1061,8 +1118,15 @@ public class Synapse {
 		}
 	}
 
-	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(String entityId) throws SynapseException {
-		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT;
+	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
+		String uri = null;
+		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
+			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
+		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
+			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
+		} else {
+			throw new SynapseException("Unsupported type "+subjectId.getType());
+		}
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
@@ -1205,47 +1269,6 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	/**
-	 * Create a new version of a given versionable Entity
-	 * @param <T>
-	 * @param entity
-	 * @param activityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public <T extends Versionable> T cereateNewEntityVersion(T entity) throws SynapseException {
-		return cereateNewEntityVersion(entity, null);
-	}
-	
-	/**
-	 * Create a new version of a given versionable Entity and create generatedBy connection to the given activity
-	 * @param <T>
-	 * @param entity
-	 * @param activityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends Versionable> T cereateNewEntityVersion(T entity, String activityId) throws SynapseException {
-		if (entity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
-
-		Map<String,String> headers = new HashMap<String, String>();
-		try {
-			String uri = createEntityUri(ENTITY_URI_PATH, entity.getId()) + REPO_SUFFIX_VERSION;
-			if(activityId != null) 
-				uri += "?" + PARAM_GENERATED_BY + "=" + activityId;
-			JSONObject jsonObject;
-			jsonObject = EntityFactory.createJSONObjectForEntity(entity);
-			jsonObject = putJSONObject(uri, jsonObject, headers);
-			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
-					entity.getClass());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-		
 	}
 	
 	/**
@@ -1696,10 +1719,10 @@ public class Synapse {
 			post = createPost(url, requestBody);
 			HttpResponse response = clientProvider.execute(post);
 			int code = response.getStatusLine().getStatusCode();
+			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			if(code < 200 || code > 299){
 				throw new SynapseException("Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
 			}
-			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			return EntityFactory.createEntityFromJSONString(responseBody, returnClass);
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseException(e);
@@ -3369,51 +3392,6 @@ public class Synapse {
 	}
 	
 	/**
-	 * 
-	 * @param entityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public PaginatedResults<StorageUsage> getItemizedStorageUsageForNode(String entityId, int offset, int limit) throws SynapseException {
-		if (entityId == null) {
-			throw new IllegalArgumentException("EntityId cannot be null");
-		}
-		String url = createEntityUri(STORAGE_DETAILS_PATH, entityId +
-				"?" + OFFSET + "=" + offset + "&limit=" + limit);
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(StorageUsage.class);
-
-		try {
-			results.initializeFromJSONObject(adapter);
-			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-
-	/**
-	 * Make the given versionNumber the most recent version of this entity.
-	 * @param entityId
-	 * @param versionNumber
-	 * @throws SynapseException
-	 */
-	public VersionInfo promoteEntityVersion(String entityId, Long versionNumber) throws SynapseException {
-		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
-		if (versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
-		String uri = createEntityUri(ENTITY_URI_PATH, entityId) + "/promoteVersion/" + versionNumber;
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", null, defaultPOSTPUTHeaders);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		VersionInfo info = new VersionInfo();
-		try {
-			info.initializeFromJSONObject(adapter);
-			return info;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	/**
 	 * Gets the paginated list of descendants for the specified node.
 	 *
 	 * @param lastDescIdExcl
@@ -3508,6 +3486,25 @@ public class Synapse {
 	
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
+		String url = null;
+		if (null==status) {
+			url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		} else {
+			url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit +"&status=" + status;			
+		}
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
@@ -3824,6 +3821,31 @@ public class Synapse {
 		return res.getTotalNumberOfResults();
 	}
 
+	public UserEvaluationState getUserEvaluationState(String evalId) throws SynapseException{
+		UserEvaluationState returnState = UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE;
+		//TODO: replace with single call to getAvailableEvaluations() (PLFM-1858, simply check to see if evalId is in the return set) 
+		//		instead of these three calls
+		Evaluation evaluation = getEvaluation(evalId);
+		EvaluationStatus status  = evaluation.getStatus();
+		if (EvaluationStatus.OPEN.equals(status)) {
+			//is the user registered for this?
+			UserProfile profile = getMyProfile();
+			if (profile != null && profile.getOwnerId() != null) {
+				//try to get the participant
+				returnState = UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED;
+				try {
+					Participant user = getParticipant(evalId, profile.getOwnerId());
+					if (user != null) {
+						returnState = UserEvaluationState.EVAL_OPEN_USER_REGISTERED;
+					}
+				} catch (Exception e) {e.printStackTrace();}
+			}
+			//else user principle id unavailable, returnState = EVAL_REGISTRATION_UNAVAILABLE
+		}
+		//else registration is not OPEN, returnState = EVAL_REGISTRATION_UNAVAILABLE
+		return returnState;
+	}
+	
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 *
@@ -3993,6 +4015,27 @@ public class Synapse {
 			Doi doi = new Doi();
 			doi.initializeFromJSONObject(adapter);
 			return doi;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Gets the header information of entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException {
+
+		if (md5 == null || md5.isEmpty()) {
+			throw new IllegalArgumentException("Must provide a nonempty MD5 string.");
+		}
+
+		try {
+			String url = ENTITY + "/md5/" + md5;
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+			results.initializeFromJSONObject(adapter);
+			return results.getResults();
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

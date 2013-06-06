@@ -15,6 +15,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -51,6 +53,8 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
 	@Autowired
 	DBOBasicDao dboBasicDao;
+	@Autowired
+	private IdGenerator idGenerator;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -79,6 +83,8 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		Long owner = KeyFactory.stringToKey(acl.getId());
 		for(ResourceAccess ra: set){
 			DBOResourceAccess dboRa = new DBOResourceAccess();
+			// assign an id
+			dboRa.setId(idGenerator.generateNewId(TYPE.ACL_RES_ACC_ID));
 			dboRa.setOwner(owner);
 			if (ra.getPrincipalId()==null) {
 				throw new IllegalArgumentException("ResourceAccess cannot have null principalID");
@@ -88,7 +94,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 			dboRa = dboBasicDao.createNew(dboRa);
 			// Now add all of the access
 			Set<ACCESS_TYPE> access = ra.getAccessType();
-			List<DBOResourceAccessType> batch = AccessControlListUtils.createResourceAccessTypeBatch(dboRa.getId(), access);
+			List<DBOResourceAccessType> batch = AccessControlListUtils.createResourceAccessTypeBatch(dboRa.getId(), owner, access);
 			// Add the batch
 			dboBasicDao.createBatch(batch);
 		}

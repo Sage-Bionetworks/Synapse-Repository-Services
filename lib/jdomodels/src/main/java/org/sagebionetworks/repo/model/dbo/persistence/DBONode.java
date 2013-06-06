@@ -16,14 +16,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The database object for a node.
@@ -31,15 +35,15 @@ import org.sagebionetworks.repo.model.message.ObjectType;
  * @author jmhill
  *
  */
-public class DBONode implements DatabaseObject<DBONode>, TaggableEntity, ObservableEntity {
+public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, TaggableEntity, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", COL_NODE_ID, true),
-			new FieldColumn("parentId", COL_NODE_PARENT_ID),
+			new FieldColumn("id", COL_NODE_ID, true).withIsBackupId(true),
+			new FieldColumn("parentId", COL_NODE_PARENT_ID).withIsSelfForeignKey(true),
 			new FieldColumn("name", COL_NODE_NAME),
 			new FieldColumn("currentRevNumber", COL_CURRENT_REV),
 			new FieldColumn("description", COL_NODE_DESCRIPTION),
-			new FieldColumn("eTag", COL_NODE_ETAG),
+			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
 			new FieldColumn("nodeType", COL_NODE_TYPE),
@@ -172,6 +176,45 @@ public class DBONode implements DatabaseObject<DBONode>, TaggableEntity, Observa
 	public void setBenefactorId(Long benefactorId) {
 		this.benefactorId = benefactorId;
 	}
+	
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.NODE;
+	}
+	@Override
+	public MigratableTableTranslation<DBONode, DBONode> getTranslator() {
+		// currently we do not have a backup object for nodes
+		return new MigratableTableTranslation<DBONode, DBONode>(){
+
+			@Override
+			public DBONode createDatabaseObjectFromBackup(DBONode backup) {
+				return backup;
+			}
+
+			@Override
+			public DBONode createBackupFromDatabaseObject(DBONode dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends DBONode> getBackupClass() {
+		return DBONode.class;
+	}
+	@Override
+	public Class<? extends DBONode> getDatabaseObjectClass() {
+		return DBONode.class;
+	}
+	
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBORevision());
+		list.add(new DBOAccessControlList());
+		list.add(new DBOResourceAccess());
+		list.add(new DBOResourceAccessType());
+		return list;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;

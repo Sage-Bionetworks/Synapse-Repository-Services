@@ -151,9 +151,7 @@ public class UserProfileManagerImplTest {
 		
 		String newURL = "http://"+rand.nextLong(); // just a random long number
 		upClone.setRStudioUrl(newURL);
-		
 		userProfileManager.updateUserProfile(userInfo, upClone);
-		
 		upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertEquals(newURL, upClone.getRStudioUrl());
 	}
@@ -175,7 +173,6 @@ public class UserProfileManagerImplTest {
 		// the following step will fail
 		userProfileManager.updateUserProfile(userInfo, upClone);
 	}
-	
 
 	@Test
 	public void testGetAttachmentUrl() throws Exception{
@@ -224,8 +221,4 @@ public class UserProfileManagerImplTest {
 		//next line should result in an IllegalArgumentException, since the filename does not not indicate an image file that we recognize
 		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
 	}
-
-
-	
-
 }

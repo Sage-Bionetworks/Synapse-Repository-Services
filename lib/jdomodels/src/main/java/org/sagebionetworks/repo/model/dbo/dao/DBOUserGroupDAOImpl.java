@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
@@ -10,32 +8,23 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.jdo.UserGroupDAOInitializingBean;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +34,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
+public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -53,6 +42,8 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	private IdGenerator idGenerator;	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	private List<UserGroupInt> bootstrapUsers;
 	
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
@@ -110,6 +101,20 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper = (new DBOUserGroup()).getTableMapping();
 	
+	
+	/**
+	 * This is injected by Spring
+	 * @param bootstrapUsers
+	 */
+	public void setBootstrapUsers(List<UserGroupInt> bootstrapUsers) {
+		this.bootstrapUsers = bootstrapUsers;
+	}
+
+	@Override
+	public List<UserGroupInt> getBootstrapUsers() {
+		return bootstrapUsers;
+	}
+
 	@Override
 	public UserGroup findGroup(String name, boolean isIndividual)
 			throws DatastoreException {
@@ -157,46 +162,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			dtos.add(dto);
 		}
 		return dtos;
-	}
-
-
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		// get a page of user groups
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);		
-			param.addValue(LIMIT_PARAM_NAME, limit);		
-			ods = simpleJdbcTemplate.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<MigratableObjectData>() {
-
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					// NOTE this is an outer join, so we have to handle the case in which there
-					// is no etag for the given user group
-					String ugId = rs.getString(COL_USER_GROUP_ID);
-					String etag = rs.getString(COL_USER_PROFILE_ETAG);
-					if (etag==null) etag = DEFAULT_ETAG;
-					MigratableObjectData od = new MigratableObjectData();
-					MigratableObjectDescriptor id = new MigratableObjectDescriptor();
-					id.setId(ugId);
-					id.setType(MigratableObjectType.PRINCIPAL);
-					od.setId(id);
-					od.setEtag(etag);
-					od.setDependencies(new HashSet<MigratableObjectDescriptor>(0)); // UserGroups have no dependencies
-					return od;
-				}
-			
-			}, param);
-		}
-		
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
 	}
 	
 	@Override
@@ -375,43 +340,23 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	// initialization of UserGroups
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void afterPropertiesSet() throws Exception {
-		// ensure public group is created
-		// Make sure all of the default groups exist
-		{
-			// special case:  The BOOTSTRAP_USER_GROUP must have a fixed principal ID
-			UserGroup pg = findGroup(BOOTSTRAP_USER_GROUP_NAME, false);
-			if (pg==null) {
-				pg = new UserGroup();
-				pg.setName(BOOTSTRAP_USER_GROUP_NAME);
-				pg.setIsIndividual(false);
-				pg.setId(BOOTSTRAP_USER_GROUP_ID);
-				create(pg);
+	public void bootstrapUsers() throws Exception {
+		// Boot strap all users and groups
+		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
+		// For each one determine if it exists, if not create it
+		for(UserGroupInt ug: this.bootstrapUsers){
+			if(ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if(ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
+			Long id = Long.parseLong(ug.getId());
+			if(!this.doesIdExist(id)){
+				UserGroup newUg = new UserGroup();
+				newUg.setId(ug.getId());
+				newUg.setName(ug.getName());
+				newUg.setIsIndividual(ug.getIsIndividual());
+				this.create(newUg);
+				// Make sure the ID generator has reserved this ID.
+				idGenerator.reserveId(id, TYPE.DOMAIN_IDS);
 			}
 		}
-		DEFAULT_GROUPS[] groups = DEFAULT_GROUPS.values();
-		for (DEFAULT_GROUPS group : groups) {
-			UserGroup pg = findGroup(group.name(), false);
-			if (pg == null) {
-				pg = new UserGroup();
-				pg.setName(group.name());
-				pg.setIsIndividual(false);
-				create(pg);
-			}
-		}
-
-		// ensure the anonymous principal is created
-		UserGroup anon = findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		if (anon == null) {
-			anon = new UserGroup();
-			anon.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
-			anon.setIsIndividual(true);
-			create(anon);
-		}
 	}
-
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.PRINCIPAL;
-	}
-
 }

@@ -28,6 +28,10 @@ public class StackConfiguration {
 	private static InetAddress address = null; 
 
 	static {
+		init();
+	}
+
+	public static void init() {
 		configuration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME,
 				TEMPLATE_PROPERTIES);
 		// Load the stack configuration the first time this class is referenced
@@ -788,5 +792,21 @@ public class StackConfiguration {
 	 */
 	public static String getEzidTargetUrlPrefix() {
 		return configuration.getProperty("org.sagebionetworks.ezid.doi.target.url.prefix");
+	}
+	
+	/**
+	 * The maximum size of a backup batch.
+	 * @return
+	 */
+	public Long getMigrationBackupBatchMax(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.migration.backup.batch.max"));
+	}
+	
+	/**
+	 * This should match the Database max_allowed_packet value. See PLFM-1900
+	 * @return
+	 */
+	public Integer getMigrationMaxAllowedPacketBytes(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.repo.model.dbo.migration.max.allowed.packet.byte"));
 	}
 }

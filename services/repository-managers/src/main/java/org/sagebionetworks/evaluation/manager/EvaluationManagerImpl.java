@@ -1,19 +1,26 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EvaluationUtil;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,10 +34,14 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private AuthorizationManager authorizationManager;
+	
 	public EvaluationManagerImpl() {}
 	
 	// Used for testing purposes
-	protected EvaluationManagerImpl(EvaluationDAO evaluationDAO, IdGenerator idGenerator) {
+	protected EvaluationManagerImpl(AuthorizationManager authorizationManager, EvaluationDAO evaluationDAO, IdGenerator idGenerator) {
+		this.authorizationManager = authorizationManager;
 		this.evaluationDAO = evaluationDAO;
 		this.idGenerator = idGenerator;
 	}
@@ -61,9 +72,19 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	
 	@Override
 	public QueryResults<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
-		List<Evaluation> Evaluations = evaluationDAO.getInRange(limit, offset);
+		List<Evaluation> evaluations = evaluationDAO.getInRange(limit, offset);
 		long totalNumberOfResults = evaluationDAO.getCount();
-		QueryResults<Evaluation> res = new QueryResults<Evaluation>(Evaluations, totalNumberOfResults);
+		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
+		return res;
+	}
+	
+	@Override
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) throws DatastoreException{
+		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
+		for (UserGroup g : userInfo.getGroups()) principalIds.add(Long.parseLong(g.getId()));
+		List<Evaluation> evaluations = evaluationDAO.getAvailableInRange(principalIds, status, limit, offset);
+		long totalNumberOfResults = evaluationDAO.getAvailableCount(principalIds, status);
+		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 		return res;
 	}
 	
@@ -93,7 +114,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		if (!old.getEtag().equals(eval.getEtag()))
 			throw new IllegalArgumentException("Your copy of Evaluation " + eval.getId() + " is out of date. Please fetch it again before updating.");
 
-		validateAdminAccess(userInfo, old);
+		validateAccessPermission(userInfo, old, ACCESS_TYPE.UPDATE);
 		validateEvaluation(old, eval);		
 		evaluationDAO.update(eval);
 		return getEvaluation(eval.getId());
@@ -113,34 +134,15 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		UserInfo.validateUserInfo(userInfo);
 		Evaluation comp = evaluationDAO.get(id);
 		if (comp == null) throw new NotFoundException("No Evaluation found with id " + id);
-		validateAdminAccess(userInfo, comp);
+		validateAccessPermission(userInfo, comp, ACCESS_TYPE.DELETE);
 		evaluationDAO.delete(id);
 	}
 		
-	@Override
-	public boolean isEvalAdmin(UserInfo userInfo, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		EvaluationUtils.ensureNotNull(userInfo, "UserInfo");
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
-		Evaluation comp = getEvaluation(evalId);
-		return isEvalAdmin(userInfo, comp);
-	}
-	
-	private boolean isEvalAdmin(UserInfo userInfo, Evaluation eval) {
-		// check if user is a Synapse admin
-		if (userInfo.isAdmin()) return true;
-		
-		// check if user is the owner of the Evaluation
-		String userId = userInfo.getIndividualGroup().getId();
-		return userId.equals(eval.getOwnerId());
-		
-		// TODO: check if user is an authorized admin of the Evaluation
-	}
-	
-	private void validateAdminAccess(UserInfo userInfo, Evaluation comp) {
-		if (!isEvalAdmin(userInfo, comp))
+	private void validateAccessPermission(UserInfo userInfo, Evaluation evaluation, ACCESS_TYPE accessType) throws NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, evaluation.getId(), ObjectType.EVALUATION, accessType))
 			throw new UnauthorizedException("User ID " + userInfo.getIndividualGroup().getId() +
-					" is not authorized to modify Evaluation ID " + comp.getId() +
-					" (" + comp.getName() + ")");
+					" is not authorized to access Evaluation ID " + evaluation.getId() +
+					" (" + evaluation.getName() + ")");
 	}
 	
 	private void validateEvaluation(Evaluation oldComp, Evaluation newComp) {

@@ -4,24 +4,30 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.log4j.Logger;
 import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
+import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -37,6 +43,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -85,8 +92,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public UserProfile getUserProfileByOwnerId(String userId, String profileId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, profileId);
+		UserProfile userProfile = userProfileManager.getUserProfile(userInfo, profileId);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, userProfile);
+		return userProfile;
 	}
+	
 	
 	@Override
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
@@ -94,11 +104,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
-		
+		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl, true);
+		List<UserProfile> profileResults = results.getResults();
+		for (UserProfile profile : profileResults) {
+			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
+		}
 		return new PaginatedResults<UserProfile>(
 				request.getServletPath()+UrlHelpers.USER, 
-				results.getResults(),
+				profileResults,
 				(int)results.getTotalNumberOfResults(), 
 				offset, 
 				limit,
@@ -109,7 +122,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
+			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);
@@ -134,16 +147,23 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(String userId, List<String> ids) 
 			throws DatastoreException, NotFoundException {		
 		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
 			refreshCache();
+		UserInfo userInfo;
+		if(userId != null) {
+			userInfo = userManager.getUserInfo(userId);
+		} else {
+			// request is anonymous			
+			userInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		}
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
 			UserGroupHeader header = userGroupHeadersIdCache.get(id);
 			if (header == null) {
 				// Header not found in cache; attempt to fetch one from repo
-				header = fetchNewHeader(id);
+				header = fetchNewHeader(userInfo, id);
 				if (header == null)
 					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
 			}
@@ -197,9 +217,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
 		UserGroupHeader header;
 		for (UserProfile profile : userProfiles) {
+			String email = profile.getEmail();
 			if (profile.getDisplayName() != null) {
+				UserProfileManagerUtils.clearPrivateFields(null, profile);
 				header = convertUserProfileToHeader(profile);
-				addToPrefixCache(tempPrefixCache, header);
+				addToPrefixCache(tempPrefixCache,email, header);
 				addToIdCache(tempIdCache, header);
 			}
 		}
@@ -208,7 +230,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		for (UserGroup group : userGroups) {
 			if (group.getName() != null) {
 				header = convertUserGroupToHeader(group);			
-				addToPrefixCache(tempPrefixCache, header);
+				addToPrefixCache(tempPrefixCache, null, header);
 				addToIdCache(tempIdCache, header);
 			}
 		}
@@ -288,22 +310,40 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
 	 * check for a UserGroup with the specified ID.
 	 */
-	private UserGroupHeader fetchNewHeader(String id) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserProfile profile = userProfileManager.getUserProfile(null, id);
+	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserProfile profile = userProfileManager.getUserProfile(userInfo, id);
+		UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		return profile != null ? convertUserProfileToHeader(profile) : null;
 	}
 
-	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
-		String name = header.getDisplayName().toLowerCase();
-		if (!prefixCache.containsKey(name)) {
-			// cache does not contain a user/group with that name
-			Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
-			coll.add(header);
-			prefixCache.put(name, coll);
-		} else {					
-			// cache already contains a user/group with that name; add to the collection
-			Collection<UserGroupHeader> coll = prefixCache.get(name);
-			coll.add(header);
+	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {
+		//get the collection of prefixes that we want to associate to this UserGroupHeader
+		List<String> prefixes = new ArrayList<String>();
+		String lowerCaseDisplayName = header.getDisplayName().toLowerCase();
+		String[] namePrefixes = lowerCaseDisplayName.split(" ");
+		
+		for (String namePrefix : namePrefixes) {
+			prefixes.add(namePrefix);				
+		}
+		//if it was split, also include the entire name
+		if (prefixes.size() > 1) {
+			prefixes.add(lowerCaseDisplayName);
+		}
+		
+		if (unobfuscatedEmailAddress != null && unobfuscatedEmailAddress.length() > 0)
+			prefixes.add(unobfuscatedEmailAddress.toLowerCase());
+		
+		for (String prefix : prefixes) {
+			if (!prefixCache.containsKey(prefix)) {
+				// cache does not contain a user/group with that name
+				Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
+				coll.add(header);
+				prefixCache.put(prefix, coll);
+			} else {					
+				// cache already contains a user/group with that name; add to the collection
+				Collection<UserGroupHeader> coll = prefixCache.get(prefix);
+				coll.add(header);
+			}
 		}
 	}
 
@@ -340,13 +380,24 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 */
 	private List<UserGroupHeader> flatten (
 			SortedMap<String, Collection<UserGroupHeader>> prefixMap) {
-		List<UserGroupHeader> list = new ArrayList<UserGroupHeader>();
+		//gather all unique UserGroupHeaders
+		Set<UserGroupHeader> set = new HashSet<UserGroupHeader>();
 		for (Collection<UserGroupHeader> headersOfOneName : prefixMap.values()) {
 			for (UserGroupHeader header : headersOfOneName) {
-				list.add(header);
+				set.add(header);
 			}
 		}
-		return list;
+		//put them in a list
+		List<UserGroupHeader> returnList = new ArrayList<UserGroupHeader>();
+		returnList.addAll(set);
+		//return in a logical order
+		Collections.sort(returnList, new Comparator<UserGroupHeader>() {
+			@Override
+			public int compare(UserGroupHeader o1, UserGroupHeader o2) {
+				return o1.getDisplayName().compareTo(o2.getDisplayName());
+			}
+		});
+		return returnList;
 	}
 
 }

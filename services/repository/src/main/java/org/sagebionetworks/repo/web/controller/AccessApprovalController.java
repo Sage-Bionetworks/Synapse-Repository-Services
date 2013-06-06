@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import java.io.IOException;
@@ -11,8 +12,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -41,19 +43,36 @@ public class AccessApprovalController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException, InvalidModelException, IOException {
+			) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
 		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, header, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<AccessApproval> getAccessApprovals(
+	PaginatedResults<AccessApproval> getEntityAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, entityId, request);
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_EVALUATION_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(evaluationId);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -61,7 +80,7 @@ public class AccessApprovalController extends BaseController {
 	public void deleteAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String approvalId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);
 	}
 	

@@ -28,12 +28,13 @@
 
 	<bean id="dynamoSetup" class="org.sagebionetworks.dynamo.config.DynamoSetupImpl" init-method="initialize" scope="singleton" />
 
-	<bean id="nodeTreeUpdateDao" class="org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDaoNodeLineageImpl">
+	<bean id="dynamoAdminDao" class="org.sagebionetworks.dynamo.dao.DynamoAdminDaoImpl" />
+
+	<bean id="nodeTreeUpdateDao" class="org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDaoImpl">
 		<constructor-arg ref="dynamoClient" />
 	</bean>
 
-	<bean id="nodeTreeQueryDao" class="org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDaoNodeLineageImpl">
+	<bean id="nodeTreeQueryDao" class="org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDaoImpl">
 		<constructor-arg ref="dynamoClient" />
 	</bean>
-
 </beans>

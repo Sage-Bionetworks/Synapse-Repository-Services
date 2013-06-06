@@ -1,18 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -239,6 +237,12 @@ public interface EntityManager {
 	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
+			throws NotFoundException, DatastoreException;
+
+	/**
 	 * @param userInfo
 	 * @param entityId
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
@@ -348,19 +352,6 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 */
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
-	 * Promotes the specified version to the "most recent" version
-	 * @param userInfo
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**

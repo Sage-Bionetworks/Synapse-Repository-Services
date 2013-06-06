@@ -19,20 +19,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISI
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
@@ -56,7 +53,9 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	@Autowired
 	private DBOBasicDao basicDao;	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;	
+	private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private static final String SELECT_FOR_RANGE_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID 
 														+ " FROM " + TABLE_FAVORITE 
@@ -112,11 +111,6 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		this.basicDao = basicDao;
 		this.simpleJdbcTemplate = simpleJdbcTemplate;
 	}
-	
-	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.FAVORITE;
-	}
 
 	@Override
 	public Favorite add(Favorite dto) throws DatastoreException,
@@ -125,6 +119,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		if(dto.getPrincipalId() == null) throw new IllegalArgumentException("Principal id can not be null");
 		if(dto.getEntityId() == null) throw new IllegalArgumentException("Entity Id can not be null");
 		DBOFavorite dbo = new DBOFavorite(); 
+		dbo.setId(idGenerator.generateNewId(TYPE.FAVORITE_ID));
 		dbo.setCreatedOn(new Date().getTime());
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		basicDao.createNew(dbo);
@@ -194,42 +189,6 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(DBOFavorite.class);
-	}
-
-	@Override
-	public QueryResults<MigratableObjectData> getMigrationObjectData(
-			long offset, long limit, boolean includeDependencies)
-			throws DatastoreException {
-		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
-		// get one 'page' of Activities (just their IDs and Etags)
-		List<MigratableObjectData> ods = null;
-		{
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue(OFFSET_PARAM_NAME, offset);
-			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_FOR_RANGE_SQL, new RowMapper<MigratableObjectData>() {
-				@Override
-				public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-					Long principalId = rs.getLong(COL_FAVORITE_PRINCIPAL_ID);
-					Long nodeId = rs.getLong(COL_FAVORITE_NODE_ID);
-					String id = UserProfileUtils.getFavoriteId(String.valueOf(principalId), String.valueOf(nodeId));
-					MigratableObjectData objectData = new MigratableObjectData();
-					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
-					od.setId(id);
-					od.setType(MigratableObjectType.FAVORITE);
-					objectData.setId(od);
-					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
-					return objectData;
-				}
-			
-			}, param);
-		}
-		
-		// return the 'page' of objects, along with the total result count		
-		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
-		queryResults.setResults(ods);
-		queryResults.setTotalNumberOfResults((int)getCount());
-		return queryResults;
 	}
 
 	@Override

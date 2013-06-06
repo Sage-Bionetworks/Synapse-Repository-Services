@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
-import org.sagebionetworks.repo.manager.NodeTreeQueryManager;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -11,17 +11,6 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 
 	@Autowired
 	private NodeTreeQueryManager nodeTreeQueryManager;
-
-	@Override
-	public EntityId getRoot(String currUserName) throws UnauthorizedException,
-			DatastoreException {
-
-		if (currUserName == null) {
-			throw new IllegalArgumentException("Current user cannot be null.");
-		}
-
-		return this.nodeTreeQueryManager.getRoot(currUserName);
-	}
 
 	@Override
 	public EntityIdList getAncestors(String currUserName, String nodeId)

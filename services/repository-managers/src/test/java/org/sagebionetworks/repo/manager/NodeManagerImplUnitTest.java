@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,8 +34,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -492,10 +493,18 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testPromoteVersionAuthorized() throws Exception {
 		String nodeId = "123";
+		long versionNumber = 1L;
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
-		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString());
-		verify(mockNodeDao).promoteNodeVersion(eq(nodeId), eq(1L));
+		Node mockNode = mock(Node.class);
+		when(mockNodeDao.getNodeForVersion(nodeId, versionNumber)).thenReturn(mockNode);
+		QueryResults<VersionInfo> results = new QueryResults<VersionInfo>();
+		List<VersionInfo> versionInfoList = new ArrayList<VersionInfo>();
+		versionInfoList.add(mock(VersionInfo.class));
+		results.setResults(versionInfoList);
+		when(mockNodeDao.getVersionsOfEntity(nodeId, 0, 1)).thenReturn(results);
+		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, versionNumber);
+		verify(mockNodeDao, times(1)).lockNodeAndIncrementEtag(eq(nodeId), anyString());
+		verify(mockNodeDao, times(1)).createNewVersion(mockNode);
 	}
 
 	@Test(expected=UnauthorizedException.class)
@@ -503,5 +512,41 @@ public class NodeManagerImplUnitTest {
 		String nodeId = "123";
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(false);
 		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
+	}
+
+	@Test
+	public void testGetNodeHeaderByMd5() throws Exception {
+
+		// Test empty results
+		final String nodeId = "testGetNodeHeaderByMd5";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.READ))).thenReturn(false);
+		List<EntityHeader> results = new ArrayList<EntityHeader>(1);
+		EntityHeader header = new EntityHeader();
+		header.setId(nodeId);
+		results.add(header);
+		String md5 = "md5NotFound";
+		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
+		results = nodeManager.getNodeHeaderByMd5(mockUserInfo, md5);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+
+		// Test 2 nodes and 1 node gets filtered out
+		final String nodeId1 = "canRead";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId1), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		final String nodeId2 = "cannotRead";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId2), eq(ACCESS_TYPE.READ))).thenReturn(false);
+		results = new ArrayList<EntityHeader>(1);
+		EntityHeader header1 = new EntityHeader();
+		header1.setId(nodeId1);
+		results.add(header1);
+		EntityHeader header2 = new EntityHeader();
+		header2.setId(nodeId2);
+		results.add(header2);
+		md5 = "md5";
+		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
+		List<EntityHeader> headerList = nodeManager.getNodeHeaderByMd5(mockUserInfo, md5);
+		assertNotNull(headerList);
+		assertEquals(1, headerList.size());
+		assertEquals(nodeId1, headerList.get(0).getId());
 	}
 }

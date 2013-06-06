@@ -6,13 +6,13 @@
 			"type": "string",
 			"required": true
 		},
-		"nodeId": {
-			"description": "The node that owns this location.",
+		"name": {
+			"description": "The name of this storage.",
 			"type": "string",
 			"required": true
 		},
-		"userId": {
-			"description": "The user that created or last modified this storage location.",
+		"storageProvider": {
+			"description": "Who provides the storage. Example: AWS S3, local storage.",
 			"type": "string",
 			"required": true
 		},
@@ -25,15 +25,15 @@
 			"type": "string",
 			"required": true
 		},
-		"isAttachment": {
-			"description": "Is this an attachment.",
-			"type": "boolean",
+		"userId": {
+			"description": "The user that created or last modified this storage location.",
+			"type": "string",
 			"required": true
 		},
-		"storageProvider": {
-			"description": "Who provides the storage. Example: AWS S3, local storage.",
-			"$ref": "org.sagebionetworks.repo.model.LocationTypeNames",
-			"required": true
+		"createdOn": {
+			"description": "The date when this file was uploaded.",
+			"type": "string",
+			"format":"date-time"
 		},
 		"contentType": {
 			"description": "Plain text, PDF, PNG, etc.",

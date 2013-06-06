@@ -53,6 +53,9 @@
 
 	<!-- The StorageUsage Service -->
 	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
+	
+	<!--Migration related beans  -->
+	<bean id="migrationService" class="org.sagebionetworks.repo.web.service.MigrationServiceImpl" />
 
 	<!-- The TrashService -->
 	<bean id="trashService"
@@ -168,11 +171,11 @@
 	</bean>
 
 	<!-- A profiler that logs performance data for all bean method calls. -->
-	<bean id="profiler" class="profiler.org.sagebionetworks.Profiler">
+	<bean id="profiler" class="org.sagebionetworks.profiler.Profiler">
 		<property name="handlers">
 			<list>
-				<bean name="loggingProfiler" class="profiler.org.sagebionetworks.LoggingProfiler" />
-				<bean name="perThreadProfiler" class="profiler.org.sagebionetworks.PerThreadHandler" />
+				<bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" />
+				<bean name="perThreadProfiler" class="org.sagebionetworks.profiler.PerThreadHandler" />
 			</list>
 		</property>
 	</bean>

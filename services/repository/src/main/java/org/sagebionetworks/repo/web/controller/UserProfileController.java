@@ -6,8 +6,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.xpath.XPathExpressionException;
 
 import org.json.JSONException;
+import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -113,7 +117,7 @@ public class UserProfileController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
+			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
 		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
 
@@ -185,11 +189,12 @@ public class UserProfileController extends BaseController {
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
 			@RequestHeader HttpHeaders header,
 			@RequestParam(value = UrlHelpers.IDS_PATH_VARIABLE, required = true) String ids,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
 		String[] idsArray = ids.split(",");
 		List<String> idsList = new ArrayList<String>(Arrays.asList(idsArray));
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(idsList);
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, idsList);
 	}
 
 	/**

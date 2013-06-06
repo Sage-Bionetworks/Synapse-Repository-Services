@@ -2,10 +2,12 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
 	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="
        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
-       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
@@ -13,41 +15,91 @@
 	<!-- Import the stack configuration -->
 	<import resource="dbo-beans.spb.xml" />
 	<import resource="bootstrap-entites-spb.xml" />
-	
+
 	<!-- Depends on ID-generator. -->
 	<import resource="id-generator.spb.xml" />
-	
-	<bean id="transactionSynchronizationManager" class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl"/>
+
+	<bean id="transactionSynchronizationManager"
+		class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl" />
 	<!-- Transactional Messenger -->
-	<bean id="transactionalMessenger" class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl"/>
-	
-	<bean id="tagMessenger" class="org.sagebionetworks.repo.model.dbo.dao.TagMessengerImpl"/>
-	
-	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
-	
-	<bean id="referenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
-	<bean id="dboReferenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
+	<bean id="transactionalMessenger"
+		class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl" />
+
+	<bean id="tagMessenger" class="org.sagebionetworks.repo.model.dbo.dao.TagMessengerImpl" />
+
+	<bean id="dboAnnotationsDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl" />
+
+	<bean id="referenceDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl" />
+	<bean id="dboReferenceDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl" />
 
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 
-	<alias name="nodeDao" alias="nodeBackupDao"/>
+	<alias name="nodeDao" alias="nodeBackupDao" />
 
-	<bean id="activityDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl" depends-on="idGenerator"/>
-	
-	<bean id="fileHandleDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl"/>
+	<bean id="activityDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"
+		depends-on="idGenerator" />
+
+	<bean id="fileHandleDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOFileHandleDaoImpl" />
 
 	<!-- Controls how nodes inherit their permissions -->
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 
-	<bean id="userGroupDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" />
+	<util:list id="bootstrapUsers">
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="0" />
+			<property name="name" value="BOOTSTRAP_USER_GROUP" />
+			<property name="isIndividual" value="false" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="1" />
+			<property name="name" value="migrationAdmin@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273948" />
+			<property name="name" value="AUTHENTICATED_USERS" />
+			<property name="isIndividual" value="false" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273949" />
+			<property name="name" value="PUBLIC" />
+			<property name="isIndividual" value="false" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273950" />
+			<property name="name" value="anonymous@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273954" />
+			<property name="name" value="prodUserAdmin@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
+	</util:list>
 
-	<bean id="userProfileDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl" />
+	<bean id="userGroupDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" init-method="bootstrapUsers">
+		<property name="bootstrapUsers" ref="bootstrapUsers"/>
+	</bean>
 
-	<bean id="accessRequirementDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
+	<bean id="userProfileDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
+		depends-on="userGroupDAO" init-method="bootstrapProfiles">
+		<property name="bootstrapUsers" ref="bootstrapUsers" />
+	</bean>
 
-	<bean id="accessApprovalDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl" />
+	<bean id="accessRequirementDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
+
+	<bean id="accessApprovalDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl" />
 
 	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />
@@ -55,75 +107,87 @@
 	<bean id="dboAccessControlListDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
 		scope="singleton" />
-		
+
 	<bean id="accessControlListDAO"
 		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
 		scope="singleton" />
 
-	<bean id="favoriteDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOFavoriteDAOImpl" />
+	<bean id="favoriteDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOFavoriteDAOImpl" />
 
-	<bean id="accessKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
-	<bean id="secretKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
+	<bean id="accessKey" class="org.sagebionetworks.StackConfiguration"
+		factory-method="getIAMUserId" />
+	<bean id="secretKey" class="org.sagebionetworks.StackConfiguration"
+		factory-method="getIAMUserKey" />
 	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
 		<constructor-arg index="0" ref="accessKey" />
 		<constructor-arg index="1" ref="secretKey" />
 	</bean>
-	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client" scope="singleton">
+	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
+		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
-	<bean id="storageLocationDAO"
-			class="org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl"
-			scope="singleton">
+	<bean id="storageUsageQueryDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"
+		scope="singleton">
 	</bean>
 
-	<bean id="changeDAO"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAOImpl"
-			scope="singleton">
+	<bean id="changeDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAOImpl"
+		scope="singleton">
 	</bean>
 
 	<bean id="trashCanDao"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
-			scope="singleton">
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
+		scope="singleton">
 	</bean>
 
 	<bean id="trashCanBackupDao"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanBackupDaoImpl"
-			scope="singleton">
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanBackupDaoImpl"
+		scope="singleton">
 	</bean>
 
 	<bean id="wikiPageDAO"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
-			scope="singleton">
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
+		scope="singleton">
 	</bean>
 
-	<bean id="doiDao"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBODoiDaoImpl"
-			scope="singleton">
+	<bean id="doiDao" class="org.sagebionetworks.repo.model.dbo.dao.DBODoiDaoImpl"
+		scope="singleton">
 	</bean>
 
 	<bean id="doiAdminDao"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBODoiAdminDaoImpl"
-			scope="singleton">
+		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiAdminDaoImpl"
+		scope="singleton">
 	</bean>
 
 	<bean id="doiMigratableDao"
-			class="org.sagebionetworks.repo.model.dbo.dao.DBODoiMigratableDaoImpl"
-			scope="singleton">
+		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiMigratableDaoImpl"
+		scope="singleton">
+	</bean>
+
+	<bean id="storageQuotaDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOStorageQuotaDaoImpl"
+		scope="singleton">
+	</bean>
+
+	<bean id="storageQuotaAdminDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.StorageQuotaAdminDaoImpl"
+		scope="singleton">
 	</bean>
 
 	<bean id="entityBootstrapper"
-		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">
+		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl" init-method="bootstrapAll">
 		<property name="bootstrapEntities">
 			<list>
 				<ref bean="rootFolderBootstrapData" />
 				<ref bean="trashFolderBootstrapData" />
-				<!-- ref bean="agreementFolderBootstrapData" /-->
-				<!-- ref bean="eulaFolderBootstrapData" /-->
+				<!-- ref bean="agreementFolderBootstrapData" / -->
+				<!-- ref bean="eulaFolderBootstrapData" / -->
 			</list>
 		</property>
 	</bean>
-	
-		<!-- The alias cache singleton -->
+
+	<!-- The alias cache singleton -->
 	<bean id="alaisCache"
 		class="org.sagebionetworks.repo.model.query.jdo.NodeAliasCacheImpl"
 		depends-on="entityBootstrapper" />
@@ -134,13 +198,15 @@
 		depends-on="entityBootstrapper" />
 
 	<bean id="backupRestoreStatusDao"
-		class="org.sagebionetworks.repo.model.jdo.BackupRestoreStatusDAOImpl" scope="singleton"/>
-		
-	<bean id="stackStatusDao"
-		class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl" scope="singleton"/>
-	
+		class="org.sagebionetworks.repo.model.jdo.BackupRestoreStatusDAOImpl"
+		scope="singleton" />
+
+	<bean id="stackStatusDao" class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl"
+		scope="singleton" />
+
 	<!-- DAO used by asynchronous RDS works to update RDS tables acting as indicies -->
-	<bean id="asynchronousDAO" class="org.sagebionetworks.repo.model.dbo.dao.AsynchronousDAOImpl" />
+	<bean id="asynchronousDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.AsynchronousDAOImpl" />
 
 	<!-- DAO for Competition objects -->
 	<bean id="evaluationDAO" class="org.sagebionetworks.evaluation.dao.EvaluationDAOImpl"
@@ -148,7 +214,13 @@
 	<bean id="participatnDAO" class="org.sagebionetworks.evaluation.dao.ParticipantDAOImpl" />
 	<bean id="submissionDAO" class="org.sagebionetworks.evaluation.dao.SubmissionDAOImpl"
 		depends-on="idGenerator" />
-	<bean id="submissionStatusDAO" class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
-	<bean id="submissionFileHandleDAO" class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
+	<bean id="submissionStatusDAO"
+		class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
+	<bean id="submissionFileHandleDAO"
+		class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
+	
+	<!-- Misc beans -->
+	<bean id="semaphoreDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
 
 </beans>

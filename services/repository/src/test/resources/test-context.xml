@@ -10,6 +10,7 @@
 	<context:annotation-config />
 
 	<import resource="classpath:repository-servlet.xml" />
+	<import resource="classpath:file-servlet.xml" />
 
 	<bean id="testHelper"
 		class="org.sagebionetworks.repo.web.controller.ServletTestHelper"

@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author jmhill
  *
  */
-public interface NodeDAO extends MigratableDAO {
+public interface NodeDAO {
 
 	/**
 	 * the value to pass into the node to remove the generatedBy link between node and activity
@@ -194,6 +194,11 @@ public interface NodeDAO extends MigratableDAO {
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Get the version label for a node
 	 * @param nodeId
 	 * @param versionNumber
@@ -368,16 +373,6 @@ public interface NodeDAO extends MigratableDAO {
 	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
 
 	/**
-	 * Change the version number of the given version to one greater than the "current" version.
-	 * @param nodeId
-	 * @param versionNumber
-	 * @return The VersionInfo corresponding to the "new" version
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException;
-
-	/**
 	 * Get the FileHandle ID for the current version..
 	 * 
 	 * @param id
@@ -408,6 +403,8 @@ public interface NodeDAO extends MigratableDAO {
 	 * @return
 	 */
 	public String lockNode(Long longId);
+
+	long getCount();
 
 
 }

@@ -7,10 +7,9 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface EvaluationDAO extends MigratableDAO {	
+public interface EvaluationDAO {	
 	
 	/**
 	 * Lookup a Evaluation ID by name. Returns null if the name is not in use.
@@ -69,13 +68,22 @@ public interface EvaluationDAO extends MigratableDAO {
 	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
+	 * return the Evaluations that any of the given principalIds may participate in
+	 * @param principalIds
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, EvaluationStatus status, long limit, long offset) throws DatastoreException;
+
+	/**
 	 * Get all Evaluations, in a given range, filtered by EvaluationStatus.
 	 * 
 	 * @param limit
 	 * @param offset
-	 * @param sort
-	 * @param ascending
-	 * @param schema
+	 * @param status
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -87,9 +95,10 @@ public interface EvaluationDAO extends MigratableDAO {
 	 * 
 	 * @return
 	 * @throws DatastoreException
-	 * @throws NotFoundException
 	 */
 	public long getCount() throws DatastoreException;
+	
+	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException;
 
 	/**
 	 * Updates a Evaluation. Note that this operation requires a current eTag,

@@ -1,7 +1,6 @@
 package org.sagebionetworks.dynamo.dao.nodetree;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -15,24 +14,21 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
+import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:dynamo-dao-spb.xml" })
 public class NodeTreeDaoReadAutowireTest {
 
 	@Autowired private AmazonDynamoDB dynamoClient;
+	@Autowired private DynamoAdminDao dynamoAdminDao;
 	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
 	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
-
-	private DynamoDBMapper dynamoMapper;
 
 	// Map of letters to random IDs
 	private Map<String, String> idMap;
@@ -41,15 +37,10 @@ public class NodeTreeDaoReadAutowireTest {
 	public void before() throws Exception {
 
 		// Clear dynamo
-		String root = this.nodeTreeQueryDao.getRoot();
-		if (root != null) {
-			this.nodeTreeUpdateDao.delete(root, new Date());
-		}
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 
-		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
-				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
 		this.idMap = DynamoTestUtil.createRandomIdMap(26);
-
 		this.nodeTreeUpdateDao.create(this.idMap.get("a"), this.idMap.get("a"), new Date());
 		this.nodeTreeUpdateDao.create(this.idMap.get("b"), this.idMap.get("a"), new Date());
 		this.nodeTreeUpdateDao.create(this.idMap.get("e"), this.idMap.get("b"), new Date());
@@ -73,35 +64,16 @@ public class NodeTreeDaoReadAutowireTest {
 
 	@After
 	public void after() {
-		if (this.idMap != null) {
-			Collection<String> ids = this.idMap.values();
-			for (String id : ids) {
-				String hashKey = DboNodeLineage.createHashKey(id, LineageType.ANCESTOR);
-				AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-				DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-				List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-				this.dynamoMapper.batchDelete(dboList);
-				hashKey = DboNodeLineage.createHashKey(id, LineageType.DESCENDANT);
-				hashKeyAttr = new AttributeValue().withS(hashKey);
-				queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-				dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-				this.dynamoMapper.batchDelete(dboList);
-			}
-		}
-		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		List<DboNodeLineage> dboList = this.dynamoMapper.query(DboNodeLineage.class, queryExpression);
-		this.dynamoMapper.batchDelete(dboList);
+		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
+				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}
 
 	@Test
 	public void test() {
 
-		// testGetRoot()
+		// testIsRoot()
 		{
-			String root = this.nodeTreeQueryDao.getRoot();
-			Assert.assertEquals(this.idMap.get("a"), root);
+			Assert.assertTrue(this.nodeTreeQueryDao.isRoot(this.idMap.get("a")));
 		}
 
 		// testGetAncestors()

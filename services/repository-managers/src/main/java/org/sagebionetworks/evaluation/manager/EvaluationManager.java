@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -30,6 +31,12 @@ public interface EvaluationManager {
 			throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get a collection of Evaluations which the user may participate in, within a given range
+	 */
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) 
+			throws DatastoreException;
+
+	/**
 	 * Get the total number of Evaluations in the system
 	 */
 	public long getCount() throws DatastoreException, NotFoundException;
@@ -53,15 +60,6 @@ public interface EvaluationManager {
 	 */
 	public void deleteEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
-
-	/**
-	 * Check whether a given user is an adminsitrator of a given Evaluation.
-	 * 
-	 * @param userInfo
-	 * @param evalId
-	 * @return
-	 */
-	public boolean isEvalAdmin(UserInfo userInfo, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Update the eTag of a Evaluation. For use when modifying objects

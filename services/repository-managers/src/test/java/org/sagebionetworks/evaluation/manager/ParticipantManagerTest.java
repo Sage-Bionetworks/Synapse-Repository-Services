@@ -13,11 +13,15 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManagerImpl;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -29,7 +33,8 @@ public class ParticipantManagerTest {
 	
 	private static ParticipantDAO mockParticipantDAO;
 	private static UserManager mockUserManager;
-	private static EvaluationManager mockCompetitionManager;
+	private static EvaluationManager mockEvaluationManager;
+	private static AuthorizationManager mockAuthorizationManager;
 	
 	private static final String EVAL_ID = "123";
 	private static final String OWNER_ID = "456";
@@ -39,7 +44,7 @@ public class ParticipantManagerTest {
 	private static UserInfo userInfo;
 	
 	private static final String COMPETITION_NAME = "test-competition";
-    private static final String COMPETITION_CONTENT_SOURCE = "Baz";
+    private static final String COMPETITION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
     private static final String COMPETITION_ETAG = "etag";
     
     @Before
@@ -68,14 +73,18 @@ public class ParticipantManagerTest {
     	// Mocks
     	mockParticipantDAO = mock(ParticipantDAO.class);
     	mockUserManager = mock(UserManager.class);
-    	mockCompetitionManager = mock(EvaluationManager.class);
+    	mockEvaluationManager = mock(EvaluationManager.class);
     	when(mockParticipantDAO.get(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
-    	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
-    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
+    	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
+    	//when(mockEvaluationManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
+    	
+    	mockAuthorizationManager = mock(AuthorizationManager.class);
+    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
         
         // Participant Manager
-    	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockCompetitionManager);
+    	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockEvaluationManager, mockAuthorizationManager);
     }
 	
     @Test
@@ -114,6 +123,12 @@ public class ParticipantManagerTest {
     public void testCRDAsUser_NotOpen() throws DatastoreException, NotFoundException {
     	// user should not be able to join Evaluation if it is closed
     	eval.setStatus(EvaluationStatus.CLOSED);
+    	participantManager.addParticipant(userInfo, EVAL_ID);
+    }
+    
+    @Test(expected=UnauthorizedException.class)
+    public void testCRDAsUser_NotAbleToParticipate() throws DatastoreException, NotFoundException {
+    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);    	
     	participantManager.addParticipant(userInfo, EVAL_ID);
     }
     

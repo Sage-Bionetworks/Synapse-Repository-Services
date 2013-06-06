@@ -26,6 +26,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -94,12 +95,12 @@ public class EvaluationControllerAutowiredTest {
 		eval1 = new Evaluation();
 		eval1.setName("name");
 		eval1.setDescription("description");
-        eval1.setContentSource("contentSource");
+        eval1.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval1.setStatus(EvaluationStatus.PLANNED);
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
-        eval2.setContentSource("contentSource");
+        eval2.setContentSource(KeyFactory.SYN_ROOT_ID);
         eval2.setStatus(EvaluationStatus.PLANNED);
         
         // initialize Participants
@@ -112,9 +113,11 @@ public class EvaluationControllerAutowiredTest {
         sub1 = new Submission();
         sub1.setName("submission1");
         sub1.setVersionNumber(1L);
+        sub1.setSubmitterAlias("Team Awesome!");
         sub2 = new Submission();
         sub2.setName("submission2");
         sub2.setVersionNumber(1L);
+        sub2.setSubmitterAlias("Team Even Better!");
 	}
 	
 	@After
@@ -161,11 +164,25 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		
+		//can read
+		Boolean canRead = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.READ);
+		assertTrue(canRead);
+		//test user can also read
+		canRead = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.READ);
+		assertTrue(canRead);
+		
 		// Read
 		Evaluation fetched = entityServletHelper.getEvaluation(eval1.getId());
 		assertEquals(eval1, fetched);
 		fetched = entityServletHelper.findEvaluation(eval1.getName());
 		assertEquals(eval1, fetched);
+		
+		//can update
+		Boolean canUpdate = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.UPDATE);
+		assertTrue(canUpdate);
+		//test user can't update
+		canUpdate = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.UPDATE);
+		assertFalse(canUpdate);
 		
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
@@ -199,6 +216,16 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
 		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(eval1.getId()));
+		
+		// query, just checking basic wiring
+		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName, null);
+		assertEquals(1L, pr.getTotalNumberOfResults());
+		// get the new etag (changed when participant was added?)
+		eval1 = entityServletHelper.getEvaluation(eval1.getId());
+		assertEquals(eval1, pr.getResults().iterator().next());
+		// make sure 'status' parameter is wired up
+		assertEquals(0, entityServletHelper.getAvailableEvaluations(userName, "PLANNED").getTotalNumberOfResults());
+		assertEquals(1, entityServletHelper.getAvailableEvaluations(userName, "OPEN").getTotalNumberOfResults());
 		
 		// read
 		Participant clone = entityServletHelper.getParticipant(userId, eval1.getId());

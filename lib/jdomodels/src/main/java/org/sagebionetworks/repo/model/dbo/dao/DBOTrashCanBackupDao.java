@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.model.TrashedEntity;
 
 /**
@@ -9,7 +8,7 @@ import org.sagebionetworks.repo.model.TrashedEntity;
  *
  * @author Eric Wu
  */
-public interface DBOTrashCanBackupDao extends MigratableDAO {
+public interface DBOTrashCanBackupDao {
 
 	/**
 	 * Gets the trashed entity given its ID.
@@ -26,4 +25,6 @@ public interface DBOTrashCanBackupDao extends MigratableDAO {
 	 * does not exist, it will be created.
 	 */
 	void update(TrashedEntity entity) throws DatastoreException;
+
+	long getCount() throws DatastoreException;
 }

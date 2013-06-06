@@ -85,12 +85,23 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
-	// The NODE_ACCESS_REQUIREMENT table (a join table linking the JDONODE and ACCESS_REQUIREMENT tables
+	// The SUBJECT_ACCESS_REQUIREMENT table (a join table linking the ENTITY or EVALUTION and ACCESS_REQUIREMENT tables
+	// !!! Note: The table name should be SUBJECT_ACCESS_REQUIREMENT, but migration issues prevent
+	// !!!       us from doing that as this time.
+	public static final String TABLE_SUBJECT_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID			= "SUBJECT_ID";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE			= "SUBJECT_TYPE";
+	public static final String COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String DDL_FILE_SUBJECT_ACCESS_REQUIREMENT			= "schema/SubjectAccessRequirement-ddl.sql";
+
+	
+	// the following are defined temporarily, for a 'bridge' migration table
 	public static final String TABLE_NODE_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
 	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_ID			= "NODE_ID";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
-
+	
 	// The ACCESS_APPROVAL table
 	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
 	public static final String COL_ACCESS_APPROVAL_ID				= "ID";
@@ -115,6 +126,12 @@ public class SqlConstants {
 	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
 	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
+	
+	// Sent messages
+	public static final String TABLE_SENT_MESSAGES					= "SENT_MESSAGES";
+	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
+	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
+	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
 	
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";
@@ -149,19 +166,6 @@ public class SqlConstants {
 	public static final String DDL_FILE_LONG_ANNOTATION			= "schema/LongAnnotation-ddl.sql";
 	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
 	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
-
-	// The table of storage locations
-    public static final String DDL_FILE_STORAGE_LOCATION             = "schema/StorageLocation-ddl.sql";
-    public static final String TABLE_STORAGE_LOCATION                = "STORAGE_LOCATION";
-    public static final String COL_STORAGE_LOCATION_ID               = "ID";
-    public static final String COL_STORAGE_LOCATION_NODE_ID          = "NODE_ID";
-    public static final String COL_STORAGE_LOCATION_USER_ID          = "USER_ID";
-    public static final String COL_STORAGE_LOCATION_LOCATION         = "LOCATION";
-    public static final String COL_STORAGE_LOCATION_IS_ATTACHMENT    = "IS_ATTACHMENT";
-    public static final String COL_STORAGE_LOCATION_STORAGE_PROVIDER = "STORAGE_PROVIDER";
-    public static final String COL_STORAGE_LOCATION_CONTENT_TYPE     = "CONTENT_TYPE";
-    public static final String COL_STORAGE_LOCATION_CONTENT_SIZE     = "CONTENT_SIZE";
-    public static final String COL_STORAGE_LOCATION_CONTENT_MD5      = "CONTENT_MD5";
 
 	// The name of the node type table.
 	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
@@ -202,6 +206,15 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
 	public static final String DDL_FILE_RES_ACCESS				= "schema/ResourceAccess-ddl.sql";
 	
+	// The resource access join table
+	// datanucleus doesn't seem to be respecting the join table name when creating the schema
+	// so I've modified the string to match the generated name
+	public static final String TABLE_RESOURCE_ACCESS_TYPE			= "JDORESOURCEACCESS_ACCESSTYPE"; 
+	public static final String COL_RESOURCE_ACCESS__TYPE_OWNER		= "OWNER_ID";
+	public static final String COL_RESOURCE_ACCESS_TYPE_ID			= "ID_OID";
+	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT		= "STRING_ELE";
+	public static final String DDL_FILE_RES_ACCESS_TYPE				= "schema/ResourceAccessType-ddl.sql";
+	
 	// The backup/restore status table
 	public static final String TABLE_BACKUP_STATUS 				= "DAEMON_STATUS";
 	public static final String COL_BACKUP_ID					= "ID";
@@ -225,14 +238,7 @@ public class SqlConstants {
 	public static final String COL_BACKUP_TERM_OWNER			= "BACKUP_OWNER";
 	public static final String COL_BACKUP_FORCE_TERMINATION		= "FORCE_TERMINATION";
 	public static final String DDL_DAEMON_TERMINATE				= "schema/DaemonTerminate-ddl.sql";
-		
-	// The resource access join table
-	// datanucleus doesn't seem to be respecting the join table name when creating the schema
-	// so I've modified the string to match the generated name
-	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS_ACCESSTYPE"; 
-	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
-	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
-	public static final String DDL_FILE_RES_ACCESS_TYPE			= "schema/ResourceAccessType-ddl.sql";
+	
 	
 	// Preview blobs.
 	public static final String TABLE_PREVIEW_BLOB				= "PREVIEW_BLOB";
@@ -303,6 +309,7 @@ public class SqlConstants {
 	public static final String COL_FAVORITE_PRINCIPAL_ID 		= "PRINCIPAL_ID";
 	public static final String COL_FAVORITE_NODE_ID 			= "NODE_ID";
 	public static final String COL_FAVORITE_CREATED_ON			= "CREATED_ON";
+	public static final String COL_FAVORITE_ID					= "FAVORITE_ID";
 	public static final String DDL_FILE_FAVORITE = "schema/Favorite-ddl.sql";
 
 	// The DOI table
@@ -317,6 +324,21 @@ public class SqlConstants {
 	public static final String COL_DOI_CREATED_ON       = "CREATED_ON";
 	public static final String COL_DOI_UPDATED_ON       = "UPDATED_ON";
 	public static final String DDL_FILE_DOI = "schema/Doi-ddl.sql";
+
+	
+	// SEMAPHORE
+	public static final String TABLE_SEMAPHORE 			= "SEMAPHORE";
+	public static final String COL_SEMAPHORE_ID			= "ID";
+	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
+	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
+	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
+
+	// Storage Quota
+	public static final String TABLE_STORAGE_QUOTA            = "STORAGE_QUOTA";
+	public static final String COL_STORAGE_QUOTA_OWNER_ID     = "OWNER_ID";
+	public static final String COL_STORAGE_QUOTA_ETAG         = "ETAG";
+	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
+	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

@@ -7,19 +7,22 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_A
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBONodeAccessRequirement implements DatabaseObject<DBONodeAccessRequirement> {
+public class DBONodeAccessRequirement implements MigratableDatabaseObject<DBONodeAccessRequirement, DBONodeAccessRequirement> {
 
 	private Long nodeId;
 	private Long accessRequirementId;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("nodeId", COL_NODE_ACCESS_REQUIREMENT_NODE_ID, true),
-		new FieldColumn("accessRequirementId", COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID)
+		new FieldColumn("accessRequirementId", COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID).withIsBackupId(true)
 	};
 
 	@Override
@@ -110,6 +113,43 @@ public class DBONodeAccessRequirement implements DatabaseObject<DBONodeAccessReq
 	public String toString() {
 		return "DBONodeAccessRequirement [nodeId=" + nodeId
 				+ ", accessRequirementId=" + accessRequirementId + "]";
+	}
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.NODE_ACCESS_REQUIRMENT;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement> getTranslator() {
+		return new MigratableTableTranslation<DBONodeAccessRequirement, DBONodeAccessRequirement>(){
+
+			@Override
+			public DBONodeAccessRequirement createDatabaseObjectFromBackup(
+					DBONodeAccessRequirement backup) {
+				return backup;
+			}
+
+			@Override
+			public DBONodeAccessRequirement createBackupFromDatabaseObject(
+					DBONodeAccessRequirement dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBONodeAccessRequirement> getBackupClass() {
+		return DBONodeAccessRequirement.class;
+	}
+
+	@Override
+	public Class<? extends DBONodeAccessRequirement> getDatabaseObjectClass() {
+		return DBONodeAccessRequirement.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 

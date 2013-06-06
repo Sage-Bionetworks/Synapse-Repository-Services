@@ -8,8 +8,6 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.TableNa
 
 /**
  * Provides predefined configurations on the {@link DboNodeLineage} table.
- *
- * @author Eric Wu
  */
 class NodeLineageMapperConfig {
 

@@ -1,0 +1,31 @@
+{
+    "description":"JSON enum for the types of objects which can be migrated. NOTE: The order of this enumeration determines the migration order.",
+    "type":"string",
+    "enum":[
+    	"PRINCIPAL",
+    	"USER_PROFILE",
+        "FILE_HANDLE",
+        "WIKI_PAGE",
+        "WIKI_ATTACHMENT",
+        "WIKI_OWNERS",
+        "ACTIVITY",
+        "NODE",
+        "NODE_REVISION",
+        "ACL",
+        "ACL_ACCESS",
+        "ACL_ACCESS_TYPE",
+        "FAVORITE",
+        "ACCESS_REQUIREMENT",
+        "ACCESS_APPROVAL",
+        "EVALUATION",
+        "NODE_ACCESS_REQUIRMENT",
+        "PARTICIPANT",
+        "SUBMISSION",
+        "SUBMISSION_FILE",
+        "SUBMISSION_STATUS",
+        "TRASH_CAN",
+        "DOI",
+        "CHANGE",
+        "STORAGE_QUOTA"
+    ]
+}

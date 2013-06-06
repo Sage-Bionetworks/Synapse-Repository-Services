@@ -3,8 +3,6 @@ package org.sagebionetworks.dynamo;
 
 /**
  * Executes a list of write operations, wrapped as one write execution, on a Dynamo table.
- *
- * @author Eric Wu
  */
 public interface DynamoWriteExecutor {
 

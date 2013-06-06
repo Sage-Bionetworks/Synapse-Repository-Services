@@ -7,7 +7,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
-import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -29,7 +28,6 @@ public class AdministrationServiceImplTest {
 	ObjectTypeSerializer mockObjectTypeSerializer;	
 	UserManager mockUserManager;
 	StackStatusManager mockStackStatusManager;	
-	DependencyManager mockDependencyManager;
 	MessageSyndication mockMessageSyndication;
 	AdministrationServiceImpl adminService;
 	
@@ -44,9 +42,8 @@ public class AdministrationServiceImplTest {
 		mockObjectTypeSerializer = Mockito.mock(ObjectTypeSerializer.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockStackStatusManager = Mockito.mock(StackStatusManager.class);
-		mockDependencyManager = Mockito.mock(DependencyManager.class);
 		mockMessageSyndication = Mockito.mock(MessageSyndication.class);
-		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockDependencyManager, mockMessageSyndication);
+		adminService = new AdministrationServiceImpl(mockBackupDaemonLauncher, mockObjectTypeSerializer, mockUserManager, mockStackStatusManager, mockMessageSyndication);
 		// Setup the users
 		nonAdmin = new UserInfo(false);
 		admin = new UserInfo(true);
@@ -73,4 +70,25 @@ public class AdministrationServiceImplTest {
 	public void testRebroadcastChangeMessagesToQueueAuthorized() throws DatastoreException, NotFoundException{
 		adminService.rebroadcastChangeMessagesToQueue(adminUserId, "queuename", 0l, ObjectType.ACTIVITY, Long.MAX_VALUE);
 	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testReFireChangeMessagesToQueueUnauthorized() throws DatastoreException, NotFoundException{
+		adminService.reFireChangeMessages(nonAdminUserId, 0L, Long.MAX_VALUE);
+	}
+
+	@Test 
+	public void testReFireChangeMessagesToQueueAuthorized() throws DatastoreException, NotFoundException{
+		adminService.reFireChangeMessages(adminUserId, 0L, Long.MAX_VALUE);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetCurrentChangeNumberUnauthorized() throws DatastoreException, NotFoundException{
+		adminService.getCurrentChangeNumber(nonAdminUserId);
+	}
+
+	@Test 
+	public void testGetCurrentChangeNumberAuthorized() throws DatastoreException, NotFoundException{
+		adminService.getCurrentChangeNumber(adminUserId);
+	}
+	
 }

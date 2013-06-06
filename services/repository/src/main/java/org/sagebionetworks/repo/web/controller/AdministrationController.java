@@ -8,14 +8,11 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
-import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -27,7 +24,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -47,120 +43,6 @@ public class AdministrationController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<MigratableObjectData> getAllBackupObjects(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = UrlHelpers.INCLUDE_DEPENDENCIES_PARAM, required = false, defaultValue = "true") Boolean  includeDependencies,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return serviceProvider.getAdministrationService().getAllBackupObjects(userId, offset, limit, includeDependencies);
-	}
-	
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return serviceProvider.getAdministrationService().getAllBackupObjectsCounts(userId);
-	}
-	
-	
-	/**
-	 * Start a backup daemon.  Monitor the status of the daemon with the getStatus method.
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_BACKUP_DAMEON
-			}, method = RequestMethod.POST)
-	public @ResponseBody
-	BackupRestoreStatus startBackup(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		
-		return serviceProvider.getAdministrationService().startBackup(userId, type, header, request);
-	}
-	
-	/**
-	 * Start a system restore daemon using the passed file name.  The file must be in the 
-	 * the bucket belonging to this stack.
-	 * 
-	 * @param fileName
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_RESTORE_DAMEON
-			}, method = RequestMethod.POST)
-	public @ResponseBody
-	BackupRestoreStatus startRestore(
-			@RequestBody RestoreSubmission file,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		return serviceProvider.getAdministrationService().startRestore(file, userId, type, header, request);
-	}
-	
-	/**
-	 * Delete a migratable object
-	 * 
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_RESTORE_DAMEON
-			}, method = RequestMethod.DELETE)
-	public void deleteMigratableObject(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.MIGRATION_OBJECT_ID_PARAM, required=true) String objectId,
-			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-
-		serviceProvider.getAdministrationService().deleteMigratableObject(userId, objectId, type, header, request);
-	}
-	
-
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId
@@ -308,6 +190,33 @@ public class AdministrationController extends BaseController {
 	}
 
 	/**
+	 * Refires all the change messages
+	 **/
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.GET)
+	public @ResponseBody
+	FireMessagesResult refireChangeMessagesToQueue(String userId,
+			@RequestParam Long startChangeNumber,
+			@RequestParam Long limit) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return serviceProvider.getAdministrationService().reFireChangeMessages(userId, startChangeNumber, limit);
+	}
+	
+	/**
+	 * Get current change message number
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.CURRENT_NUMBER }, method = RequestMethod.GET)
+	public @ResponseBody
+	FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		return serviceProvider.getAdministrationService().getCurrentChangeNumber(userId);
+	}
+	
+	
+	/**
 	 * Clears the Synapse DOI table.
 	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_DOI_CLEAR}, method = RequestMethod.DELETE)
@@ -316,5 +225,19 @@ public class AdministrationController extends BaseController {
 	clearDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		serviceProvider.getAdministrationService().clearDoi(userId);
+	}
+
+	/**
+	 * Clears the specified dynamo table.
+	 */
+	@RequestMapping(value = {UrlHelpers.ADMIN_DYNAMO_CLEAR_TABLE}, method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void clearDynamoTable(
+			@PathVariable String tableName,
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = ServiceConstants.DYNAMO_HASH_KEY_NAME_PARAM, required = true) String hashKeyName,
+			@RequestParam(value = ServiceConstants.DYNAMO_RANGE_KEY_NAME_PARAM, required = true) String rangeKeyName,
+			HttpServletRequest request) throws DatastoreException, NotFoundException {
+		serviceProvider.getAdministrationService().clearDynamoTable(userId, tableName, hashKeyName, rangeKeyName);
 	}
 }

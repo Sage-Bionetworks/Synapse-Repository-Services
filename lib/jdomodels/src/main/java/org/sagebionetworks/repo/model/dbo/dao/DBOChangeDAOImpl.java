@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
@@ -13,8 +13,11 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -35,6 +38,10 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	static private Log log = LogFactory.getLog(DBOChangeDAOImpl.class);
 	
+	private static final String SQL_INSERT_SENT_ON_DUPLICATE_UPDATE = "INSERT INTO "+TABLE_SENT_MESSAGES+" ( "+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_TIME_STAMP+") VALUES ( ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?";
+	
+	private static final String SQL_SELECT_CHANGES_NOT_SENT = "SELECT C.* FROM "+TABLE_CHANGES+" C LEFT OUTER JOIN "+TABLE_SENT_MESSAGES+" S ON (C."+COL_CHANGES_CHANGE_NUM+" = S."+COL_SENT_MESSAGES_CHANGE_NUM+") WHERE S."+COL_SENT_MESSAGES_CHANGE_NUM+" IS NULL LIMIT ?";
+	
 	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = "SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?";
 
 	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE = "SELECT * FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? AND "+COL_CHANGES_OBJECT_TYPE+" = ? ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC LIMIT ?";
@@ -50,6 +57,9 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -67,8 +77,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
 		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
 		long nowMs = (System.currentTimeMillis()/1000)*1000;
+		dbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
 		dbo.setTimeStamp(new Timestamp(nowMs));
-		dbo.setChangeNumber(null);
 		// Now insert the row with the current value
 		dbo = basicDao.createNew(dbo);
 		return ChangeMessageUtils.createDTO(dbo);
@@ -135,5 +145,23 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		}
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
+
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void registerMessageSent(long changeNumber) {
+		simpleJdbcTemplate.update(SQL_INSERT_SENT_ON_DUPLICATE_UPDATE, changeNumber, null, null);
+	}
+
+
+	/**
+	 * List
+	 */
+	@Override
+	public List<ChangeMessage> listUnsentMessages(long limit) {
+		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT, new DBOChange().getTableMapping(), limit);
+		return ChangeMessageUtils.createDTOList(dboList);
+	}
+	
 
 }
