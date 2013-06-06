@@ -21,12 +21,12 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 
 	private final Logger logger = Logger.getLogger(DynamoQueueWorker.class);
 
+	@Autowired
+	private Consumer consumer;
+
 	private final List<Message> messages;
 
 	private final NodeTreeUpdateManager updateManager;
-
-	@Autowired
-	private Consumer consumer;
 
 	public DynamoQueueWorker(List<Message> messageList,
 			NodeTreeUpdateManager updateManager) {
