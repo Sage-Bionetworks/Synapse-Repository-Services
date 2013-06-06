@@ -15,7 +15,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
-import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.QueryResults;

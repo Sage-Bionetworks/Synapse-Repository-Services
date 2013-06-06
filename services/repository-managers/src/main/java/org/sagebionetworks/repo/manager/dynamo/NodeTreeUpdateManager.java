@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.manager;
+package org.sagebionetworks.repo.manager.dynamo;
 
 import java.util.Date;
 

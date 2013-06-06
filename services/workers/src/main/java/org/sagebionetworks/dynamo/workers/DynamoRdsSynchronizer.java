@@ -8,7 +8,7 @@ import java.util.Random;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
-import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.QueryResults;

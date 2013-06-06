@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
-import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
