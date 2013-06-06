@@ -10,23 +10,7 @@
 		<welcome-file>index.html</welcome-file>
 	</welcome-file-list>
 
-	<error-page>
-		<error-code>404</error-code>
-		<location>/errorPages/404_error.jsp</location>
-	</error-page>
-
-	<error-page>
-		<error-code>500</error-code>
-		<location>/errorPages/500_error.jsp</location>
-	</error-page>
-
-	<error-page>
-		<exception-type>java.lang.Throwable</exception-type>
-		<location>/errorPages/generic_error.jsp</location>
-	</error-page>
-
 	<!-- The context params that read by ContextLoaderListener -->
-
 	<context-param>
 		<param-name>contextConfigLocation</param-name>
 		<param-value>/WEB-INF/shared-context.xml</param-value>

@@ -195,6 +195,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
+		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		// Get the list
 		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
 		System.out.println(primary);
