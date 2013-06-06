@@ -25,6 +25,7 @@
         "SUBMISSION_STATUS",
         "TRASH_CAN",
         "DOI",
-        "CHANGE"
+        "CHANGE",
+        "STORAGE_QUOTA"
     ]
 }
