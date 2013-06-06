@@ -31,6 +31,8 @@ public class UserProfileUtilsTest {
 		dto.setIndustry("my industry");
 		dto.setLocation("Seattle area");
 		dto.setSummary("My summary");
+		dto.setTeamName("Team A");
+		dto.setUrl("http://link.to.my.page/");
 		AttachmentData picData = new AttachmentData();
 		picData.setName("Fake name");
 		picData.setTokenId("Fake token ID");
