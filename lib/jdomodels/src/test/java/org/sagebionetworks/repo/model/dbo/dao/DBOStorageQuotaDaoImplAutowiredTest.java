@@ -9,9 +9,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -48,15 +50,66 @@ public class DBOStorageQuotaDaoImplAutowiredTest {
 	@Test
 	public void test() {
 		// Should return null when quota does not exist
-		Integer quota = storageQuotaDao.getQuota(userId);
+		StorageQuota quota = storageQuotaDao.getQuota(userId);
 		assertNull(quota);
-		// Should create the quota when it does not exist yet in the db
-		storageQuotaDao.setQuota(userId, 3);
+		// Should create the quota when it does not exist yet
+		quota = new StorageQuota();
+		quota.setOwnerId(userId);
+		quota.setQuotaInMb(3L);
+		storageQuotaDao.setQuota(quota);
 		quota = storageQuotaDao.getQuota(userId);
-		assertEquals(3, quota.intValue());
-		// Should update the quota when it already exists in the db
-		storageQuotaDao.setQuota(userId, 1);
+		assertNotNull(quota);
+		assertNotNull(quota.getEtag());
+		assertEquals(userId, quota.getOwnerId());
+		assertEquals(3, quota.getQuotaInMb().intValue());
+		// Should update the quota when it already exists
+		quota.setQuotaInMb(1L);
+		storageQuotaDao.setQuota(quota);
 		quota = storageQuotaDao.getQuota(userId);
-		assertEquals(1, quota.intValue());
+		assertNotNull(quota);
+		assertNotNull(quota.getEtag());
+		assertEquals(userId, quota.getOwnerId());
+		assertEquals(1, quota.getQuotaInMb().intValue());
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testSetQuotaIllegalArgumentException1() {
+		storageQuotaDao.setQuota(null);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testSetQuotaIllegalArgumentException2() {
+		StorageQuota quota = new StorageQuota();
+		quota.setQuotaInMb(3L);
+		storageQuotaDao.setQuota(quota);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testSetQuotaIllegalArgumentException3() {
+		StorageQuota quota = new StorageQuota();
+		quota.setQuotaInMb(-3L);
+		storageQuotaDao.setQuota(quota);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testSetQuotaIllegalArgumentException4() {
+		StorageQuota quota = new StorageQuota();
+		quota.setOwnerId(userId);
+		storageQuotaDao.setQuota(quota);
+	}
+
+	@Test(expected=ConflictingUpdateException.class)
+	public void testSetQuotaConflictingUpdateException() {
+		StorageQuota quota = new StorageQuota();
+		quota.setOwnerId(userId);
+		quota.setQuotaInMb(1L);
+		storageQuotaDao.setQuota(quota);
+		quota.setQuotaInMb(3L);
+		storageQuotaDao.setQuota(quota);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetQuotaIllegalArgumentException() {
+		storageQuotaDao.getQuota("");
 	}
 }
