@@ -57,7 +57,7 @@ public class DynamoRdsSynchronizer {
 		// This is returns a value between 0 (inclusive) and count (exclusive)
 		// The value range is consistent with the MySQL OFFSET parameter
 		int r = this.random.nextInt(this.count);
-		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(r, 6);
+		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(r, 5);
 		Date date = new Date();
 
 		// Update the count to be used at next trigger

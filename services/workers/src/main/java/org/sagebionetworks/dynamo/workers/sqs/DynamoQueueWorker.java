@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -21,15 +20,14 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 
 	private final Logger logger = Logger.getLogger(DynamoQueueWorker.class);
 
-	@Autowired
-	private Consumer consumer;
+	private final Consumer consumer;
 
 	private final List<Message> messages;
 
 	private final NodeTreeUpdateManager updateManager;
 
 	public DynamoQueueWorker(List<Message> messageList,
-			NodeTreeUpdateManager updateManager) {
+			NodeTreeUpdateManager updateManager, Consumer consumer) {
 
 		if (messageList == null) {
 			throw new IllegalArgumentException("The list of messages cannot be null.");
@@ -37,9 +35,13 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 		if (updateManager == null) {
 			throw new IllegalArgumentException("Update manager cannot be null.");
 		}
+		if (consumer == null) {
+			throw new IllegalArgumentException("Consumer manager cannot be null.");
+		}
 
 		this.messages = messageList;
 		this.updateManager = updateManager;
+		this.consumer = consumer;
 	}
 
 	@Override

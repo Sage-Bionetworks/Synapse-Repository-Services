@@ -84,7 +84,7 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="6000" />
+		<property name="repeatInterval" value="10000" />
 	</bean>
 
 </beans>
