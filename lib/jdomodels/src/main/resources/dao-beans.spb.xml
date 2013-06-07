@@ -30,6 +30,9 @@
 	<bean id="dboAnnotationsDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl" />
 
+	<bean id="uploadDaemonStatusDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOUploadDaemonStatusDaoImpl" />
+
 	<bean id="referenceDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl" />
 	<bean id="dboReferenceDao"
