@@ -11,7 +11,6 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
@@ -32,8 +31,6 @@ public class DynamoQueueWorkerIntegrationTest {
 	@Autowired private UserProvider userProvider;
 	@Autowired private DynamoAdminDao dynamoAdminDao;
 	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
-	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
-	@Autowired private MessageReceiver dynamoQueueMessageRetriever;
 	@Autowired private MessageReceiver dynamoQueueMessageRemover;
 
 	private Project project;
@@ -44,8 +41,6 @@ public class DynamoQueueWorkerIntegrationTest {
 		Assert.assertNotNull(this.entityManager);
 		Assert.assertNotNull(this.userProvider);
 		Assert.assertNotNull(this.nodeTreeQueryDao);
-		Assert.assertNotNull(this.nodeTreeUpdateDao);
-		Assert.assertNotNull(this.dynamoQueueMessageRetriever);
 
 		// Empty the dynamo queue
 		int count = this.dynamoQueueMessageRemover.triggerFired();
@@ -86,19 +81,23 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		for (int i = 0; i < 10; i++) {
+
+		List<String> results = null;
+		int i = 0;
+		do {
 			// Pause 1 second for eventual consistency
-			// Wait at most 12 seconds
-			Thread.sleep(1200);
-			List<String> results = this.nodeTreeQueryDao.getAncestors(
+			// Wait at most 30 seconds
+			Thread.sleep(3000);
+			results = this.nodeTreeQueryDao.getAncestors(
 					KeyFactory.stringToKey(this.project.getId()).toString());
-			Assert.assertNotNull(results);
-			if (results.size() > 0) {
-				UserInfo userInfo = this.userProvider.getTestUserInfo();
-				List<EntityHeader> path = this.entityManager.getEntityPath(userInfo, this.project.getId());
-				EntityHeader expectedRoot = path.get(0);
-				Assert.assertEquals(KeyFactory.stringToKey(expectedRoot.getId()).toString(), results.get(0));
-			}
-		}
+			i++;
+		} while (i < 10 && results.size() == 0);
+
+		Assert.assertNotNull(results);
+		Assert.assertTrue(results.size() > 0);
+		UserInfo userInfo = this.userProvider.getTestUserInfo();
+		List<EntityHeader> path = this.entityManager.getEntityPath(userInfo, this.project.getId());
+		EntityHeader expectedRoot = path.get(0);
+		Assert.assertEquals(KeyFactory.stringToKey(expectedRoot.getId()).toString(), results.get(0));
 	}
 }

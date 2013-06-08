@@ -13,7 +13,7 @@
 
 	<import resource="classpath:search-dao.spb.xml" />
 	<import resource="classpath:managers-spb.xml" />
-	<import resource="classpath:controllerProfiler-spb.xml" />
+	<import resource="classpath:cloudwatch-spb.xml" />
 	<import resource="classpath:activityLogger-spb.xml" />
 
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
