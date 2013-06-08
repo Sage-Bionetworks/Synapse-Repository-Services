@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
@@ -26,9 +27,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -37,6 +40,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -85,6 +89,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	AmazonS3Client s3Client;
+	
+	@Autowired
+	UploadDaemonStatusDao uploadDaemonStatusDao;
+	
+	@Autowired
+	ExecutorService uploadFileDaemonThreadPoolPrimary;
+	
+	@Autowired
+	ExecutorService uploadFileDaemonThreadPoolSecondary;
 	
 	/**
 	 * This is the first strategy we try to use.
@@ -434,7 +447,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		validateChunkedFileToken(userInfo, token);
 		// The part number cannot be less than one
 		if(partNumber < 1) throw new IllegalArgumentException("partNumber cannot be less than one");
-		String partKey = getChunkPartKey(token, partNumber);
+		String partKey = ChunkUtils.getChunkPartKey(token, partNumber);
 		// For each block we want to create a pre-signed URL file.
 		GeneratePresignedUrlRequest gpur = new GeneratePresignedUrlRequest(StackConfiguration.getS3Bucket(), partKey).withMethod(HttpMethod.PUT);
 		if(cpr.getChunkedFileToken().getContentType() != null){
@@ -443,16 +456,6 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return  s3Client.generatePresignedUrl(gpur);
 	}
 
-	/**
-	 * The chunk part key is just the key concatenated with the part number
-	 * @param token
-	 * @param partNumber
-	 * @return
-	 */
-	private String getChunkPartKey(ChunkedFileToken token, int partNumber) {
-		return token.getKey()+"/"+partNumber;
-	}
-	
 
 	@Override
 	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr) {
@@ -466,7 +469,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// The part number cannot be less than one
 		if(partNumber < 1) throw new IllegalArgumentException("partNumber cannot be less than one");
 		String bucket = StackConfiguration.getS3Bucket();
-		String partKey = getChunkPartKey(token, partNumber);
+		String partKey = ChunkUtils.getChunkPartKey(token, partNumber);
 		// copy this part to the larger file.
 		CopyPartRequest copyPartRequest = new CopyPartRequest();
 		copyPartRequest.setDestinationBucketName(bucket);
@@ -541,6 +544,36 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// The token key must start with the User's id
 		String userId =  getUserId(userInfo);
 		if(!token.getKey().startsWith(userId)) throw new UnauthorizedException("The ChunkedFileToken: "+token+" does not belong to User: "+userId);
+	}
+
+	@Override
+	public UploadDaemonStatus startUploadDeamon(UserInfo userInfo,	CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException {
+		if(cacf == null) throw new IllegalArgumentException("CompleteAllChunksRequest cannot be null");
+		validateChunkedFileToken(userInfo, cacf.getChunkedFileToken());
+		// Start the daemon
+		UploadDaemonStatus status = new UploadDaemonStatus();
+		status.setPercentComplete(0.0);
+		status.setStartedBy(getUserId(userInfo));
+		status = uploadDaemonStatusDao.create(status);
+		status = uploadDaemonStatusDao.get(status.getId());
+		// Create a worker and add it to the pool.
+		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, this, status, cacf);
+		// Add this worker the primary pool
+		uploadFileDaemonThreadPoolPrimary.submit(worker);
+		// Return the status to the caller.
+		return status;
+	}
+
+	@Override
+	public UploadDaemonStatus getUploadDaemonStatus(UserInfo userInfo, String daemonId) throws DatastoreException, NotFoundException {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(daemonId == null) throw new IllegalArgumentException("DaemonID cannot be null");
+		UploadDaemonStatus status = uploadDaemonStatusDao.get(daemonId);
+		// Only the user that started the daemon can see the status
+		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedBy())){
+			throw new UnauthorizedException("Only the user that started the daemon may access the daemon status");
+		}
+		return status;
 	}
 
 }
