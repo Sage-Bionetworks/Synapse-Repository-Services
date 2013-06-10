@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
+import org.sagebionetworks.dynamo.dao.nodetree.MultipleParentsException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -164,6 +165,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			this.logger.info("Rebuilding path for node " + childId);
 			// Get the path from the root to the parent
 			List<EntityHeader> ehList = this.nodeDao.getEntityPath(childId);
+			final Date timestamp = new Date();
 			List<String> path = new ArrayList<String>(ehList.size());
 			for (EntityHeader eh : ehList) {
 				path.add(eh.getId());
@@ -175,11 +177,17 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					// Handling the root
 					String rootId = path.get(i);
 					String rId = KeyFactory.stringToKey(rootId).toString();
-					this.nodeTreeUpdateDao.create(rId, rId, new Date());
+					this.nodeTreeUpdateDao.create(rId, rId, timestamp);
 				} else {
 					String cId = KeyFactory.stringToKey(path.get(i)).toString();
 					String pId = KeyFactory.stringToKey(path.get(i - 1)).toString();
-					this.nodeTreeUpdateDao.create(cId, pId, new Date());
+					try {
+						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+					} catch (MultipleParentsException e) {
+						// Remove the damaged child and try one more time
+						this.nodeTreeUpdateDao.delete(cId, timestamp);
+						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+					}
 				}
 			}
 		} catch (NotFoundException e) {
