@@ -46,15 +46,12 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (childId == null) {
 			throw new IllegalArgumentException("Child ID cannot be null.");
 		}
-		// Verify with RDS. This is mainly to skip fake messages created by other tests
-		if (!this.nodeExists(childId)) {
+		// Validate against RDS
+		parentId = this.getParentInRds(childId);
+		if (parentId == null) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
-		}
-		if (parentId == null) {
-			// The root
-			parentId = childId;
 		}
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
@@ -90,15 +87,12 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (childId == null) {
 			throw new IllegalArgumentException("Child ID cannot be null");
 		}
-		// Verify with RDS. This is mainly to skip fake messages created by other tests
-		if (!this.nodeExists(childId)) {
+		// Validate against RDS
+		parentId = this.getParentInRds(childId);
+		if (parentId == null) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
-		}
-		if (parentId == null) {
-			// The root
-			parentId = childId;
 		}
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
@@ -215,10 +209,19 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	/**
-	 * Whether the node exists in RDS
+	 * Gets the current parent from RDS. The same node is returned if this is the root.
+	 * Null if the node does not exist in RDS.
 	 */
-	private boolean nodeExists(String node) {
-		Long nodeId = KeyFactory.stringToKey(node);
-		return this.nodeDao.doesNodeExist(nodeId);
+	private String getParentInRds(String child) {
+		try {
+			String parent = this.nodeDao.getParentId(child);
+			if (parent == null) {
+				return child;
+			} else {
+				return parent;
+			}
+		} catch (NotFoundException e) {
+			return null;
+		}
 	}
 }
