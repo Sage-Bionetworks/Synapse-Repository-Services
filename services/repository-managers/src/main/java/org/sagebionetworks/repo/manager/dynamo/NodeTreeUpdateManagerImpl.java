@@ -5,7 +5,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
@@ -30,10 +29,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public NodeTreeUpdateManagerImpl(NodeTreeUpdateDao nodeTreeUpdateDao, NodeDAO nodeDao) {
 
 		if (nodeTreeUpdateDao == null) {
-			throw new NullPointerException("nodeTreeUpdateDao cannot be null");
+			throw new IllegalArgumentException("nodeTreeUpdateDao cannot be null");
 		}
 		if (nodeDao == null) {
-			throw new NullPointerException("nodeDao cannot be null");
+			throw new IllegalArgumentException("nodeDao cannot be null");
 		}
 
 		this.nodeTreeUpdateDao = nodeTreeUpdateDao;
@@ -44,10 +43,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void create(String childId, String parentId, Date timestamp) {
 
 		if (childId == null) {
-			throw new NullPointerException("childId cannot be null");
+			throw new IllegalArgumentException("Child ID cannot be null.");
 		}
 		// Verify with RDS. This is mainly to skip fake messages created by other tests
-		if (!isProd() && !this.nodeExists(childId)) {
+		if (!this.nodeExists(childId)) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
@@ -57,7 +56,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			parentId = childId;
 		}
 		if (timestamp == null) {
-			throw new NullPointerException("timestamp cannot be null");
+			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
 
 		try {
@@ -88,10 +87,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void update(String childId, String parentId,  Date timestamp) {
 
 		if (childId == null) {
-			throw new NullPointerException("childId cannot be null");
+			throw new IllegalArgumentException("Child ID cannot be null");
 		}
 		// Verify with RDS. This is mainly to skip fake messages created by other tests
-		if (!isProd() && !this.nodeExists(childId)) {
+		if (!this.nodeExists(childId)) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
@@ -101,7 +100,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			parentId = childId;
 		}
 		if (timestamp == null) {
-			throw new NullPointerException("timestamp cannot be null");
+			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
 
 		try {
@@ -132,10 +131,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void delete(String nodeId,  Date timestamp) {
 
 		if (nodeId == null) {
-			throw new NullPointerException("nodeId cannot be null");
+			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 		if (timestamp == null) {
-			throw new NullPointerException("timestamp cannot be null");
+			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
 
 		try {
@@ -213,16 +212,5 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	private boolean nodeExists(String node) {
 		Long nodeId = KeyFactory.stringToKey(node);
 		return this.nodeDao.doesNodeExist(nodeId);
-	}
-
-	/**
-	 * Is this production?
-	 */
-	private boolean isProd() {
-		String stack = StackConfiguration.getStack();
-		if ("prod".equalsIgnoreCase(stack)) {
-			return true;
-		}
-		return false;
 	}
 }
