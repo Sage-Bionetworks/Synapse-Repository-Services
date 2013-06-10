@@ -55,19 +55,16 @@ public class DBOStorageQuotaDaoImpl implements StorageQuotaDao {
 			throw new IllegalArgumentException("Storage quota must be >= 0.");
 		}
 
-		DBOStorageQuota dboInUpdate = new DBOStorageQuota();
+		final DBOStorageQuota dboInUpdate = new DBOStorageQuota();
 		final Long userIdLong = KeyFactory.stringToKey(userId);
 		dboInUpdate.setOwnerId(userIdLong);
-		String etag = quota.getEtag();
-		if (etag == null) {
-			etag = eTagGenerator.generateETag();
-		}
-		dboInUpdate.seteTag(etag);
+		dboInUpdate.seteTag(eTagGenerator.generateETag());
 		dboInUpdate.setQuotaInMb(quotaInMb.intValue());
 
 		DBOStorageQuota dbo = getQuotaForUser(userIdLong);
 		if (dbo != null) {
-			if (!etag.equals(dbo.geteTag())) {
+			String currEtag = dbo.geteTag();
+			if (!currEtag.equals(quota.getEtag())) {
 				throw new ConflictingUpdateException("E-tags do not match.");
 			}
 			basicDao.update(dboInUpdate);

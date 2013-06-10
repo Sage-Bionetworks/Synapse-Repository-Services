@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -60,6 +61,7 @@ public class DBOStorageQuotaDaoImplAutowiredTest {
 		quota = storageQuotaDao.getQuota(userId);
 		assertNotNull(quota);
 		assertNotNull(quota.getEtag());
+		String oldEtag = quota.getEtag();
 		assertEquals(userId, quota.getOwnerId());
 		assertEquals(3, quota.getQuotaInMb().intValue());
 		// Should update the quota when it already exists
@@ -68,6 +70,7 @@ public class DBOStorageQuotaDaoImplAutowiredTest {
 		quota = storageQuotaDao.getQuota(userId);
 		assertNotNull(quota);
 		assertNotNull(quota.getEtag());
+		assertFalse(oldEtag.endsWith(quota.getEtag()));
 		assertEquals(userId, quota.getOwnerId());
 		assertEquals(1, quota.getQuotaInMb().intValue());
 	}
@@ -104,6 +107,18 @@ public class DBOStorageQuotaDaoImplAutowiredTest {
 		quota.setOwnerId(userId);
 		quota.setQuotaInMb(1L);
 		storageQuotaDao.setQuota(quota);
+		quota.setQuotaInMb(3L);
+		storageQuotaDao.setQuota(quota);
+	}
+
+	@Test(expected=ConflictingUpdateException.class)
+	public void testSetQuotaConflictingUpdateException2() {
+		StorageQuota quota = new StorageQuota();
+		quota.setOwnerId(userId);
+		quota.setQuotaInMb(1L);
+		storageQuotaDao.setQuota(quota);
+		quota = storageQuotaDao.getQuota(userId);
+		quota.setEtag("etag");
 		quota.setQuotaInMb(3L);
 		storageQuotaDao.setQuota(quota);
 	}
