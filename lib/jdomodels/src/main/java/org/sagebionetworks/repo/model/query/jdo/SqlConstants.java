@@ -332,7 +332,19 @@ public class SqlConstants {
 	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
 	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
 	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
-
+	
+	// Upload status
+	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
+	public static final String COL_UPLOAD_STATUS_ID					= "ID";
+	public static final String COL_UPLOAD_STATUS_STATE				= "STATE";
+	public static final String COL_UPLOAD_STATUS_STARTED_BY			= "STARTED_BY";
+	public static final String COL_UPLOAD_STATUS_STARTED_ON			= "STARTED_ON";
+	public static final String COL_UPLOAD_STATUS_PERCENT_COMPLETE	= "PERCENT_COMPLETE";
+	public static final String COL_UPLOAD_STATUS_ERROR_MESSAGE		= "ERROR_MESSAGE";
+	public static final String COL_UPLOAD_STATUS_FILE_HANDLE_IDS	= "FILE_HANDLE_IDS";
+	public static final String COL_UPLOAD_STATUS_RUNTIME_MS			= "RUNTIME_MS";
+	public static final String DDL_UPLOAD_STATUS					= "schema/UploadDaemonStatus-ddl.sql";
+	
 	// Storage Quota
 	public static final String TABLE_STORAGE_QUOTA            = "STORAGE_QUOTA";
 	public static final String COL_STORAGE_QUOTA_OWNER_ID     = "OWNER_ID";
