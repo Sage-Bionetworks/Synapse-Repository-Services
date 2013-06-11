@@ -20,7 +20,7 @@ public class StubUploadDeamonStatusDao implements UploadDaemonStatusDao {
 
 	@Override
 	public UploadDaemonStatus create(UploadDaemonStatus status) {
-		status.setId(""+sequence++);
+		status.setDaemonId(""+sequence++);
 		return status;
 	}
 
@@ -36,7 +36,7 @@ public class StubUploadDeamonStatusDao implements UploadDaemonStatusDao {
 
 	@Override
 	public boolean update(UploadDaemonStatus status) {
-		this.map.put(status.getId(), status);
+		this.map.put(status.getDaemonId(), status);
 		return true;
 	}
 

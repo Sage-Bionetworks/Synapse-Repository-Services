@@ -35,8 +35,8 @@ public class UploadDaemonStatusUtils {
 		if(dto.getFileHandleId() != null){
 			dbo.setFileHandleId(Long.parseLong(dto.getFileHandleId()));
 		}
-		if(dto.getId() != null){
-			dbo.setId(Long.parseLong(dto.getId()));
+		if(dto.getDaemonId() != null){
+			dbo.setId(Long.parseLong(dto.getDaemonId()));
 		}
 		dbo.setPercentComplete(dto.getPercentComplete());
 		if(dto.getStartedBy() != null){
@@ -65,7 +65,7 @@ public class UploadDaemonStatusUtils {
 			dto.setFileHandleId(dbo.getFileHandleId().toString());
 		}
 		if(dbo.getId() != null){
-			dto.setId(dbo.getId().toString());
+			dto.setDaemonId(dbo.getId().toString());
 		}
 		dto.setPercentComplete(dbo.getPercentComplete());
 		if(dbo.getStartedBy() != null){

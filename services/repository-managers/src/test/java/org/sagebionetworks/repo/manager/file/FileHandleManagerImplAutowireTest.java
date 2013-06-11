@@ -343,7 +343,7 @@ public class FileHandleManagerImplAutowireTest {
 			System.out.println("Waiting for upload daemon to complete multi-part upload...");
 			Thread.sleep(1000);
 			assertTrue("Timed out waiting for upload to finish",System.currentTimeMillis() - start < MAX_UPLOAD_WORKER_TIME_MS);
-			daemonStatus = fileUploadManager.getUploadDaemonStatus(userInfo, daemonStatus.getId());
+			daemonStatus = fileUploadManager.getUploadDaemonStatus(userInfo, daemonStatus.getDaemonId());
 		}
 		return daemonStatus;
 	}

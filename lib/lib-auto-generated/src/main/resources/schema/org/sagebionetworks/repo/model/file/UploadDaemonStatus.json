@@ -12,7 +12,7 @@
 				"PROCESSING"
 			]
 		},
-		"id": {
+		"daemonId": {
 			"type": "string",
 			"description": "The id assigned to the daemon processes."
 		},

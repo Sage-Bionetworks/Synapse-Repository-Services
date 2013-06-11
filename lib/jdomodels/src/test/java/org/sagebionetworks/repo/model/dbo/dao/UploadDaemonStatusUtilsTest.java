@@ -18,7 +18,7 @@ public class UploadDaemonStatusUtilsTest {
 		dto.setRunTimeMS(10L);
 		dto.setErrorMessage("error");
 		dto.setFileHandleId("123");
-		dto.setId("456");
+		dto.setDaemonId("456");
 		dto.setPercentComplete(15.0);
 		dto.setStartedBy("987");
 		dto.setStartedOn(new Date());
@@ -36,7 +36,7 @@ public class UploadDaemonStatusUtilsTest {
 		dto.setRunTimeMS(null);
 		dto.setErrorMessage(null);
 		dto.setFileHandleId(null);
-		dto.setId(null);
+		dto.setDaemonId(null);
 		dto.setPercentComplete(null);
 		dto.setStartedBy(null);
 		dto.setStartedOn(null);

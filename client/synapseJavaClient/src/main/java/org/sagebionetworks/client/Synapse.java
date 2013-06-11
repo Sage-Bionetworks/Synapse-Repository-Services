@@ -1542,7 +1542,7 @@ public class Synapse implements SynapseInt {
 				}
 				log.debug("Waiting for upload daemon: "+status.toString());
 				Thread.sleep(1000);
-				status = getCompleteUploadDaemonStatus(status.getId());
+				status = getCompleteUploadDaemonStatus(status.getDaemonId());
 				if(System.currentTimeMillis() -start > MAX_UPLOAD_DAEMON_MS){
 					throw new SynapseException("Timed out waiting for upload daemon: "+status.toString());
 				}

@@ -66,7 +66,7 @@ public class CompleteUploadWorkerTest {
 		CompleteUploadWorker cuw = new CompleteUploadWorker(stubUploadDaemonStatusDao, mockThreadPool, uploadStatus, cacf, mockmulltipartManager, bucket, maxWaitMS, userId);
 		assertFalse(cuw.call());
 		// The status should be set to failed
-		UploadDaemonStatus status = stubUploadDaemonStatusDao.get(uploadStatus.getId());
+		UploadDaemonStatus status = stubUploadDaemonStatusDao.get(uploadStatus.getDaemonId());
 		assertNotNull(status);
 		assertEquals(State.FAILED, status.getState());
 		assertNotNull(status.getErrorMessage());
@@ -83,7 +83,7 @@ public class CompleteUploadWorkerTest {
 		CompleteUploadWorker cuw = new CompleteUploadWorker(stubUploadDaemonStatusDao, mockThreadPool, uploadStatus, cacf, mockmulltipartManager, bucket, maxWaitMS, userId);
 		assertFalse(cuw.call());
 		// The status should be set to failed
-		UploadDaemonStatus status = stubUploadDaemonStatusDao.get(uploadStatus.getId());
+		UploadDaemonStatus status = stubUploadDaemonStatusDao.get(uploadStatus.getDaemonId());
 		assertNotNull(status);
 		assertEquals(State.FAILED, status.getState());
 		assertNotNull(status.getErrorMessage());

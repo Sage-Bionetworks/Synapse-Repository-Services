@@ -60,14 +60,14 @@ public class DBOUploadDaemonStatusDaoImplAutowireTest {
 		status.setState(State.PROCESSING);
 		status = uploadDaemonStatusDao.create(status);
 		assertNotNull(status);
-		String id = status.getId();
+		String id = status.getDaemonId();
 		assertNotNull(id);
 		toDelete.add(id);
 		// Now get it
 		status = uploadDaemonStatusDao.get(id);
 		assertNotNull(status);
 		System.out.println(status);
-		assertEquals(id, status.getId());
+		assertEquals(id, status.getDaemonId());
 		assertEquals(null, status.getErrorMessage());
 		assertEquals(null, status.getFileHandleId());
 		assertEquals(0.0, status.getPercentComplete(), DELTA);
@@ -84,7 +84,7 @@ public class DBOUploadDaemonStatusDaoImplAutowireTest {
 		status = uploadDaemonStatusDao.get(id);
 		assertNotNull(status);
 		System.out.println(status);
-		assertEquals(id, status.getId());
+		assertEquals(id, status.getDaemonId());
 		assertEquals("Bad error!", status.getErrorMessage());
 		assertEquals(null, status.getFileHandleId());
 		assertEquals(0.0, status.getPercentComplete(), DELTA);
@@ -114,7 +114,7 @@ public class DBOUploadDaemonStatusDaoImplAutowireTest {
 		status.setErrorMessage(bigString);
 		status = uploadDaemonStatusDao.create(status);
 		assertNotNull(status);
-		String id = status.getId();
+		String id = status.getDaemonId();
 		assertNotNull(id);
 		toDelete.add(id);
 		// Now get it
