@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.manager;
+package org.sagebionetworks.repo.manager.dynamo;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -16,6 +16,8 @@ import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
+import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -34,6 +36,9 @@ public class NodeTreeUpdateManagerImplTest {
 	private String cSuccess;
 	private String pSuccess;
 	private Date tSuccess;
+
+	private String cRootSuccess;
+	private Date tRootSuccess;
 
 	private String cFailure;
 	private String pFailure;
@@ -56,6 +61,8 @@ public class NodeTreeUpdateManagerImplTest {
 		this.cSuccess = KeyFactory.keyToString(1L);
 		this.pSuccess = KeyFactory.keyToString(2L);
 		this.tSuccess = date;
+		this.cRootSuccess = KeyFactory.keyToString(21L);
+		this.tRootSuccess = date;
 		this.cFailure = KeyFactory.keyToString(3L);
 		this.pFailure = KeyFactory.keyToString(4L);
 		this.tFailure = date;
@@ -92,6 +99,15 @@ public class NodeTreeUpdateManagerImplTest {
 		when(this.nodeTreeDaoMock.delete(
 				KeyFactory.stringToKey(this.cSuccess).toString(),
 				this.tSuccess)).thenReturn(true);
+
+		when(this.nodeTreeDaoMock.create(
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				this.tRootSuccess)).thenReturn(true);
+		when(this.nodeTreeDaoMock.update(
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				this.tRootSuccess)).thenReturn(true);
 
 		when(this.nodeTreeDaoMock.create(
 				KeyFactory.stringToKey(this.cFailure).toString(),
@@ -154,14 +170,13 @@ public class NodeTreeUpdateManagerImplTest {
 		when(eh.getId()).thenReturn(this.cObsolete);
 		path.add(eh);
 		when(this.nodeDaoMock.getEntityPath(this.cObsolete)).thenReturn(path);
-
 		when(this.nodeDaoMock.getNode(this.cObsolete)).thenThrow(new NotFoundException());
-		
-		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cSuccess))).thenReturn(true);
-		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cFailure))).thenReturn(true);
-		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cIncompletePath))).thenReturn(true);
-		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cObsolete))).thenReturn(true);
-		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cNotExistInRds))).thenReturn(false);
+		when(this.nodeDaoMock.getParentId(this.cSuccess)).thenReturn(this.pSuccess);
+		when(this.nodeDaoMock.getParentId(this.cRootSuccess)).thenReturn(null);
+		when(this.nodeDaoMock.getParentId(this.cFailure)).thenReturn(this.pFailure);
+		when(this.nodeDaoMock.getParentId(this.cIncompletePath)).thenReturn(this.pIncompletePath);
+		when(this.nodeDaoMock.getParentId(this.cObsolete)).thenReturn(this.pObsolete);
+		when(this.nodeDaoMock.getParentId(this.cNotExistInRds)).thenThrow(new NotFoundException());
 	}
 	
 	@Before
@@ -329,20 +344,20 @@ public class NodeTreeUpdateManagerImplTest {
 
 	@Test
 	public void testCreateRoot() {
-		this.man.create(this.cSuccess, null, this.tSuccess);
+		this.man.create(this.cRootSuccess, null, this.tRootSuccess);
 		verify(this.nodeTreeDaoMock, times(1)).create(
-				KeyFactory.stringToKey(this.cSuccess).toString(),
-				KeyFactory.stringToKey(this.cSuccess).toString(),
-				this.tSuccess);
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				this.tRootSuccess);
 	}
 
 	@Test
 	public void testUpdateRoot() {
-		this.man.update(this.cSuccess, null, this.tSuccess);
+		this.man.update(this.cRootSuccess, null, this.tRootSuccess);
 		verify(this.nodeTreeDaoMock, times(1)).update(
-				KeyFactory.stringToKey(this.cSuccess).toString(),
-				KeyFactory.stringToKey(this.cSuccess).toString(),
-				this.tSuccess);
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				KeyFactory.stringToKey(this.cRootSuccess).toString(),
+				this.tRootSuccess);
 	}
 
 	@Test

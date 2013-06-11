@@ -5,8 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,6 +40,9 @@ public class MigrationClient {
 
 	SynapseClientFactory factory;
 	ExecutorService threadPool;
+	List<Exception> deferredExceptions;
+	final int MAX_DEFERRED_EXCEPTIONS = 10;
+	
 	/**
 	 * New migration client.
 	 * @param factory
@@ -44,6 +51,7 @@ public class MigrationClient {
 		if(factory == null) throw new IllegalArgumentException("Factory cannot be null");
 		this.factory = factory;
 		threadPool = Executors.newFixedThreadPool(1);
+		deferredExceptions = new ArrayList<Exception>();
 	}
 
 	/**
@@ -138,10 +146,8 @@ public class MigrationClient {
 		// Get the counts for all type from both the source and destination
 		MigrationTypeCounts startSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts startDestCounts = destination.getTypeCounts();
-		log.info("Source start counts:");
-		printCount(startSourceCounts.getList());
-		log.info("Destination start counts:");
-		printCount(startDestCounts.getList());
+		log.info("Start counts:");
+		printCounts(startSourceCounts.getList(), startDestCounts.getList());
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
 		// Do the actual migration.
@@ -149,10 +155,14 @@ public class MigrationClient {
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
-		log.info("Source end counts:");
-		printCount(endSourceCounts.getList());
-		log.info("Destination end counts:");
-		printCount(endDestCounts.getList());
+		log.info("End counts:");
+		printCounts(endSourceCounts.getList(), endDestCounts.getList());
+
+		if (this.deferredExceptions.size() > 0) {
+			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
+			this.dumpDeferredExceptions();
+			throw this.deferredExceptions.get(deferredExceptions.size()-1);
+		}
 	}
 
 	/**
@@ -219,16 +229,25 @@ public class MigrationClient {
 				log.info("Creating/updating data for type: "+type.name()+" Progress: "+progress.getCurrentStatus()+" "+message);
 				Thread.sleep(2000);
 			}
-			Long counts = future.get();
-			log.info("Creating/updating the following counts for type: "+type.name()+" Counts: "+counts);
+			try {
+				Long counts = future.get();
+				log.info("Creating/updating the following counts for type: "+type.name()+" Counts: "+counts);
+			} catch (ExecutionException e) {
+				deferException(e);
+			}
 		}finally{
 			reader.close();
 		}
 	}
 
-	private void printCount(List<MigrationTypeCount> counts){
-		for(MigrationTypeCount count: counts){
-			log.info("\t"+count.getType().name()+" = "+count.getCount());
+	private void printCounts(List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts) {
+		Map<MigrationType, Long> mapSrcCounts = new HashMap<MigrationType, Long>();
+		for (MigrationTypeCount sMtc: srcCounts) {
+			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
+		}
+		// All migration types of source should be at destination
+		for (MigrationTypeCount mtc: destCounts) {
+			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getCount());
 		}
 	}
 	
@@ -320,11 +339,33 @@ public class MigrationClient {
 				log.info("Deleting data for type: "+type.name()+" Progress: "+progress.getCurrentStatus());
 				Thread.sleep(2000);
 			}
-			Long counts = future.get();
-			log.info("Deleted the following counts for type: "+type.name()+" Counts: "+counts);
+			try {
+				Long counts = future.get();
+				log.info("Deleted the following counts for type: "+type.name()+" Counts: "+counts);
+			} catch (ExecutionException e) {
+				deferException(e);
+			}
 		}finally{
 			reader.close();
 		}
 
+	}
+
+	private void deferException(ExecutionException e) throws ExecutionException {
+		if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS) {
+			log.debug("Deferring execution exception in MigrationClient.createUpdateInDestination()");
+			deferredExceptions.add(e);
+		} else {
+			log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS + " execution exceptions in the worker threads. Dumping deferred first");
+			this.dumpDeferredExceptions();
+			throw e;
+		}
+	}
+	
+	private void dumpDeferredExceptions() {
+		int i = 0;
+		for (Exception e: this.deferredExceptions) {
+			log.error("Deferred exception " + i++, e);
+		}
 	}
 }

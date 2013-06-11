@@ -1,12 +1,12 @@
-package org.sagebionetworks.dynamo.manager;
+package org.sagebionetworks.repo.manager.dynamo;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
+import org.sagebionetworks.dynamo.dao.nodetree.MultipleParentsException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -30,10 +30,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public NodeTreeUpdateManagerImpl(NodeTreeUpdateDao nodeTreeUpdateDao, NodeDAO nodeDao) {
 
 		if (nodeTreeUpdateDao == null) {
-			throw new NullPointerException("nodeTreeUpdateDao cannot be null");
+			throw new IllegalArgumentException("nodeTreeUpdateDao cannot be null");
 		}
 		if (nodeDao == null) {
-			throw new NullPointerException("nodeDao cannot be null");
+			throw new IllegalArgumentException("nodeDao cannot be null");
 		}
 
 		this.nodeTreeUpdateDao = nodeTreeUpdateDao;
@@ -44,20 +44,17 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void create(String childId, String parentId, Date timestamp) {
 
 		if (childId == null) {
-			throw new NullPointerException("childId cannot be null");
+			throw new IllegalArgumentException("Child ID cannot be null.");
 		}
-		// Verify with RDS. This is mainly to skip fake messages created by other tests
-		if (!isProd() && !this.nodeExists(childId)) {
+		// Validate against RDS
+		parentId = this.getParentInRds(childId);
+		if (parentId == null) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
 		}
-		if (parentId == null) {
-			// The root
-			parentId = childId;
-		}
 		if (timestamp == null) {
-			throw new NullPointerException("timestamp cannot be null");
+			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
 
 		try {
@@ -88,20 +85,17 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void update(String childId, String parentId,  Date timestamp) {
 
 		if (childId == null) {
-			throw new NullPointerException("childId cannot be null");
+			throw new IllegalArgumentException("Child ID cannot be null");
 		}
-		// Verify with RDS. This is mainly to skip fake messages created by other tests
-		if (!isProd() && !this.nodeExists(childId)) {
+		// Validate against RDS
+		parentId = this.getParentInRds(childId);
+		if (parentId == null) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
 		}
-		if (parentId == null) {
-			// The root
-			parentId = childId;
-		}
 		if (timestamp == null) {
-			throw new NullPointerException("timestamp cannot be null");
+			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
 
 		try {
@@ -132,10 +126,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void delete(String nodeId,  Date timestamp) {
 
 		if (nodeId == null) {
-			throw new NullPointerException("nodeId cannot be null");
+			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 		if (timestamp == null) {
-			throw new NullPointerException("timestamp cannot be null");
+			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
 
 		try {
@@ -165,6 +159,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			this.logger.info("Rebuilding path for node " + childId);
 			// Get the path from the root to the parent
 			List<EntityHeader> ehList = this.nodeDao.getEntityPath(childId);
+			final Date timestamp = new Date();
 			List<String> path = new ArrayList<String>(ehList.size());
 			for (EntityHeader eh : ehList) {
 				path.add(eh.getId());
@@ -176,11 +171,17 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					// Handling the root
 					String rootId = path.get(i);
 					String rId = KeyFactory.stringToKey(rootId).toString();
-					this.nodeTreeUpdateDao.create(rId, rId, new Date());
+					this.nodeTreeUpdateDao.create(rId, rId, timestamp);
 				} else {
 					String cId = KeyFactory.stringToKey(path.get(i)).toString();
 					String pId = KeyFactory.stringToKey(path.get(i - 1)).toString();
-					this.nodeTreeUpdateDao.create(cId, pId, new Date());
+					try {
+						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+					} catch (MultipleParentsException e) {
+						// Remove the damaged child and try one more time
+						this.nodeTreeUpdateDao.delete(cId, timestamp);
+						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+					}
 				}
 			}
 		} catch (NotFoundException e) {
@@ -208,21 +209,19 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	/**
-	 * Whether the node exists in RDS
+	 * Gets the current parent from RDS. The same node is returned if this is the root.
+	 * Null if the node does not exist in RDS.
 	 */
-	private boolean nodeExists(String node) {
-		Long nodeId = KeyFactory.stringToKey(node);
-		return this.nodeDao.doesNodeExist(nodeId);
-	}
-
-	/**
-	 * Is this production?
-	 */
-	private boolean isProd() {
-		String stack = StackConfiguration.getStack();
-		if ("prod".equalsIgnoreCase(stack)) {
-			return true;
+	private String getParentInRds(String child) {
+		try {
+			String parent = this.nodeDao.getParentId(child);
+			if (parent == null) {
+				return child;
+			} else {
+				return parent;
+			}
+		} catch (NotFoundException e) {
+			return null;
 		}
-		return false;
 	}
 }

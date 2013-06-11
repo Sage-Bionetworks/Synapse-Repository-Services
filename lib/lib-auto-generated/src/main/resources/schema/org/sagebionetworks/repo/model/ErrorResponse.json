@@ -1,0 +1,9 @@
+{
+    "description":"JSON schema for an error",
+    "properties":{
+        "reason": {
+            "type":"string",
+            "description":"The reason for the error"
+        }
+    }
+}
