@@ -238,7 +238,7 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 			final int depth = 0;
 			NodeLineagePair rootPair = new NodeLineagePair(parentLineage, depth);
 			LineagePairDelete rootDelete = new LineagePairDelete(rootPair, writeMapper);
-			putOpList.add(rootDelete);
+			deleteOpList.add(rootDelete);
 		}
 
 		logger.info(msg + " -- Removing old pointers.");
