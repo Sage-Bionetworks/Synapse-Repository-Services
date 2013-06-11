@@ -8,15 +8,24 @@ import java.util.List;
  */
 public class MultipleInheritanceException extends RuntimeException {
 
-	private static final long serialVersionUID = -74309234033802731L;
+	private static final long serialVersionUID = -72309234033802731L;
 
+	private String node;
 	private final int distance;
 	private final List<NodeLineage> ancestors;
 
-	public MultipleInheritanceException(String msg, int distance, List<NodeLineage> ancestors) {
+	public MultipleInheritanceException(String msg, String node, int distance, List<NodeLineage> ancestors) {
 		super(msg);
+		this.node = node;
 		this.distance = distance;
 		this.ancestors = ancestors;
+	}
+
+	/**
+	 * The node that generates this exception.
+	 */
+	public String getNode() {
+		return node;
 	}
 
 	/**

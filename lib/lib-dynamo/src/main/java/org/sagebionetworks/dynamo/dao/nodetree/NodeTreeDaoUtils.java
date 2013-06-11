@@ -73,7 +73,7 @@ class NodeTreeDaoUtils {
 				if ((i + 1) < dboListSize) {
 					ancestors.add(new NodeLineage(dboList.get(i + 1)));
 				}
-				throw new MultipleInheritanceException(msg, dist, ancestors);
+				throw new MultipleInheritanceException(msg, node, dist, ancestors);
 			}
 			path.add(lineage);
 		}
@@ -110,12 +110,11 @@ class NodeTreeDaoUtils {
 		}
 		if (dboList.size() > 1) {
 			String msg = child + " fetches back more than 1 parent.";
-			int distance = 1;
 			List<NodeLineage> parents = new ArrayList<NodeLineage>(dboList.size());
 			for (DboNodeLineage dbo : dboList) {
 				parents.add(new NodeLineage(dbo));
 			}
-			throw new MultipleInheritanceException(msg, distance, parents);
+			throw new MultipleParentsException(msg, child, parents);
 		}
 		NodeLineage parent = new NodeLineage(dboList.get(0));
 		return parent;
