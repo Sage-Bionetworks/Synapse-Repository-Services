@@ -486,6 +486,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		status = uploadDaemonStatusDao.create(status);
 		// Create a worker and add it to the pool.
 		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, uploadFileDaemonThreadPoolSecondary, status, cacf, multipartManager, bucket, MAX_UPLOAD_WORKER_TIME_MS, userId);
+		// Get a new copy of the status so we are not returning the same instance that we passed to the worker.
+		status = uploadDaemonStatusDao.get(status.getId());
 		// Add this worker the primary pool
 		uploadFileDaemonThreadPoolPrimary.submit(worker);
 		// Return the status to the caller.

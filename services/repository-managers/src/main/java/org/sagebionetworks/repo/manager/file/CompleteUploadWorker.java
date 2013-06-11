@@ -76,10 +76,9 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 			// First, add each part to the upload
 			long start = System.currentTimeMillis();
 			List<Future<ChunkResult>> futures = new LinkedList<Future<ChunkResult>>();
-			for(String numberString: cacf.getChunkNumbers()){
-				int partNumber = Integer.parseInt(numberString);
+			for(Long partNumber: cacf.getChunkNumbers()){
 				// Submit each future
-				CopyPartWorker worker = new CopyPartWorker(multipartManager, cacf.getChunkedFileToken(), partNumber, bucket, maxWaitMS);
+				CopyPartWorker worker = new CopyPartWorker(multipartManager, cacf.getChunkedFileToken(), partNumber.intValue(), bucket, maxWaitMS);
 				Future<ChunkResult> future = uploadFileDaemonThreadPoolSecondary.submit(worker);
 				futures.add(future);
 			}

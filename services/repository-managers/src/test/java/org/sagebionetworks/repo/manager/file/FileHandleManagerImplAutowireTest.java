@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -294,8 +294,8 @@ public class FileHandleManagerImplAutowireTest {
 		// Start the asynch multi-part complete.
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 		cacr.setChunkedFileToken(token);
-		cacr.setChunkNumbers(new LinkedList<String>());
-		cacr.getChunkNumbers().add("1");
+		cacr.setChunkNumbers(new LinkedList<Long>());
+		cacr.getChunkNumbers().add(1l);
 		UploadDaemonStatus daemonStatus = fileUploadManager.startUploadDeamon(userInfo, cacr);
 		assertNotNull(daemonStatus);
 		assertEquals(State.PROCESSING, daemonStatus.getState());

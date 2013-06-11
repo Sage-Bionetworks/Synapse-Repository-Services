@@ -4,7 +4,7 @@
 		"chunkNumbers": {
 			"type": "array",
 			"items": {
-				"type": "string"
+				"type": "integer"
 			}
 		},
 		"chunkedFileToken": {
