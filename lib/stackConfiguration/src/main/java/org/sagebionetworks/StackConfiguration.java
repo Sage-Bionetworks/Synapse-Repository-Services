@@ -106,14 +106,6 @@ public class StackConfiguration {
 		return configuration.getFileServiceEndpoint();
 	}
 	
-	public static String getSearchServiceEndpoint() {
-		return configuration.getSearchServiceEndpoint();
-	}
-
-	public static String getPortalEndpoint() {
-		return configuration.getPortalEndpoint();
-	}
-
 	public static String getCrowdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
 	}
