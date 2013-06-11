@@ -38,7 +38,7 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(5L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
@@ -68,7 +68,7 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(5L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn(null);
@@ -98,7 +98,7 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(5L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("21");
@@ -128,7 +128,7 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(5L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
@@ -152,7 +152,7 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setResults(results);
 		queryResults.setTotalNumberOfResults(0L);
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(5L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
 		DynamoRdsSynchronizer sync = new DynamoRdsSynchronizer(

@@ -17,10 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Synchronizes RDS and DynamoDB on randomly selected nodes.
- *
- * @author Eric Wu
  */
 public class DynamoRdsSynchronizer {
+
+	/** How many nodes to check in one batch */
+	private static final int BATCH_SIZE = 30;
 
 	@Autowired
 	private Consumer consumer;
@@ -36,13 +37,13 @@ public class DynamoRdsSynchronizer {
 			NodeTreeUpdateManager nodeTreeUpdateManager) {
 
 		if (nodeDao == null) {
-			throw new NullPointerException("nodeDao cannot be null");
+			throw new IllegalArgumentException("nodeDao cannot be null");
 		}
 		if (nodeTreeQueryDao == null) {
-			throw new NullPointerException("nodeTreeQueryDao cannot be null");
+			throw new IllegalArgumentException("nodeTreeQueryDao cannot be null");
 		}
 		if (nodeTreeUpdateManager == null) {
-			throw new NullPointerException("nodeTreeUpdateManager cannot be null");
+			throw new IllegalArgumentException("nodeTreeUpdateManager cannot be null");
 		}
 
 		this.nodeDao = nodeDao;
@@ -56,39 +57,39 @@ public class DynamoRdsSynchronizer {
 		// Get a random node and its parent from RDS
 		// This is returns a value between 0 (inclusive) and count (exclusive)
 		// The value range is consistent with the MySQL OFFSET parameter
-		int r = this.random.nextInt(this.count);
-		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(r, 5);
-		Date date = new Date();
+		final int r = random.nextInt(count);
+		final QueryResults<NodeParentRelation> results = nodeDao.getParentRelations(r, BATCH_SIZE);
+		final Date date = new Date();
 
 		// Update the count to be used at next trigger
 		// Occasionally count may be out-of-date and out-of-range, in which
 		// case the check will be skipped
-		this.count = (int)results.getTotalNumberOfResults();
-		if (this.count == 0) {
-			this.count = 1;
+		count = (int)results.getTotalNumberOfResults();
+		if (count == 0) {
+			count = 1;
 		}
 
 		// Now cross check with DynamoDB
 		List<NodeParentRelation> list = results.getResults();
-		this.addMetric("TotalSync", list.size());
+		addMetric("TotalSync", list.size());
 		for (NodeParentRelation childParent : list) {
 
 			String childInRds = childParent.getId();
 			String parentInRds = childParent.getParentId();
 			String childKeyInRds = KeyFactory.stringToKey(childInRds).toString();
-			String parentKeyInDynamo = this.nodeTreeQueryDao.getParent(childKeyInRds);
+			String parentKeyInDynamo = nodeTreeQueryDao.getParent(childKeyInRds);
 			if (parentKeyInDynamo == null) {
 				// The child does not exist in DynamoDB yet
-				this.addMetric("MissingNode", 1);
-				this.nodeTreeUpdateManager.create(childInRds, parentInRds, date);
+				addMetric("MissingNode", 1);
+				nodeTreeUpdateManager.create(childInRds, parentInRds, date);
 				return;
 			}
 
 			if (parentInRds == null) {
 				// Check against the root
-				if (!this.nodeTreeQueryDao.isRoot(childKeyInRds)) {
-					this.addMetric("IncorrectRoot", 1);
-					this.nodeTreeUpdateManager.update(childKeyInRds, childKeyInRds, date);
+				if (!nodeTreeQueryDao.isRoot(childKeyInRds)) {
+					addMetric("IncorrectRoot", 1);
+					nodeTreeUpdateManager.update(childKeyInRds, childKeyInRds, date);
 				}
 				return;
 			}
@@ -96,8 +97,8 @@ public class DynamoRdsSynchronizer {
 			String parentKeyInRds = KeyFactory.stringToKey(parentInRds).toString();
 			if (!parentKeyInDynamo.equals(parentKeyInRds)) {
 				// Implies that the child is pointing to the wrong parent
-				this.addMetric("IncorrectParent", 1);;
-				this.nodeTreeUpdateManager.update(childInRds, parentInRds, date);
+				addMetric("IncorrectParent", 1);;
+				nodeTreeUpdateManager.update(childInRds, parentInRds, date);
 			}
 		}
 	}

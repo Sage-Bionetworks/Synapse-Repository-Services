@@ -82,6 +82,7 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 
 		// Emit a latency metric
 		final long latency = (System.nanoTime() - start) / 1000000L;
+		this.logger.info("DynamoQueueWorker.call() latency is " + latency + " ms.");
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("DynamoQueueWorker");
 		profileData.setName("call()"); // Method name
