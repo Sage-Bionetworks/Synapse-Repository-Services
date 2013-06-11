@@ -1742,8 +1742,8 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId) throws SynapseException{
-		String url = getFileEndpoint()+COMPLETE_UPLOAD_DAEMON_STATUS+"/"+daemonId;
-		JSONObject json = getEntity(STACK_STATUS);
+		String url = COMPLETE_UPLOAD_DAEMON_STATUS+"/"+daemonId;
+		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
 		try {
 			return EntityFactory.createEntityFromJSONObject(json, UploadDaemonStatus.class);
 		} catch (JSONObjectAdapterException e) {
