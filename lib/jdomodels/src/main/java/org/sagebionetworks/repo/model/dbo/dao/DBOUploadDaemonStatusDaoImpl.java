@@ -23,7 +23,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UploadDaemonStatus create(UploadDaemonStatus status) {
+	public UploadDaemonStatus create(UploadDaemonStatus status) throws DatastoreException {
 		validate(status);
 		// Convert to a DBO
 		DBOUploadDaemonStatus dbo = UploadDaemonStatusUtils.createDBOFromDTO(status);
@@ -37,7 +37,11 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 			dbo.setPercentComplete(0.0);
 		}
 		dbo = basicDao.createNew(dbo);
-		return UploadDaemonStatusUtils.createDTOFromDBO(dbo);
+		try {
+			return get(""+dbo.getId());
+		} catch (NotFoundException e) {
+			throw new DatastoreException(e);
+		}
 	}
 
 	@Override
@@ -49,6 +53,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 		return UploadDaemonStatusUtils.createDTOFromDBO(dbo);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -56,6 +61,7 @@ public class DBOUploadDaemonStatusDaoImpl implements UploadDaemonStatusDao {
 		basicDao.deleteObjectByPrimaryKey(DBOUploadDaemonStatus.class, param);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public boolean update(UploadDaemonStatus status) {
 		validate(status);

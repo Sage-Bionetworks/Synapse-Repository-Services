@@ -6,7 +6,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -22,7 +21,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
-import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -40,6 +38,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,16 +52,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
-import com.amazonaws.services.s3.model.CopyPartRequest;
-import com.amazonaws.services.s3.model.CopyPartResult;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.util.BinaryUtils;
 
 /**
  * Basic implementation of the file upload manager.
@@ -72,6 +61,10 @@ import com.amazonaws.util.BinaryUtils;
  */
 public class FileHandleManagerImpl implements FileHandleManager {
 
+	/**
+	 * This is the maximum amount of time the upload workers are allowed to take before timing out.
+	 */
+	public static final long MAX_UPLOAD_WORKER_TIME_MS = 15*1000;
 
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30*1000; // 30 secs
 	
@@ -98,6 +91,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	ExecutorService uploadFileDaemonThreadPoolSecondary;
+	
+	@Autowired
+	MultipartManager multipartManager;
 	
 	/**
 	 * This is the first strategy we try to use.
@@ -409,31 +405,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
-		if(ccftr.getFileName() == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest.fileName cannot be null");
-		String contentType = ccftr.getContentType();
-		if(contentType == null){
-			contentType = "application/octet-stream";
-		}
 		String userId =  getUserId(userInfo);
-		// Start a multi-file upload
-		String key = createNewKey(userId, ccftr.getFileName());
-		ObjectMetadata objMeta = new ObjectMetadata();
-		objMeta.setContentType(contentType);
-		objMeta.setContentDisposition(TransferUtils.getContentDispositionValue(ccftr.getFileName()));
-		if(ccftr.getContentMD5() != null){
-			// convert it from hex to base64.
-			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));
-		}
-		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(StackConfiguration.getS3Bucket(), key).withObjectMetadata(objMeta));
-		// the token will be the ke
-		ChunkedFileToken cft = new ChunkedFileToken();
-		cft.setKey(key);
-		cft.setUploadId(imur.getUploadId());
-		cft.setFileName(ccftr.getFileName());
-		cft.setContentType(contentType);
-		cft.setContentMD5(ccftr.getContentMD5());
-		return cft;
+		String bucket = StackConfiguration.getS3Bucket();
+		return this.multipartManager.createChunkedFileUploadToken(ccftr, bucket, userId);
 	}
 
 	@Override
@@ -442,18 +416,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(cpr.getChunkedFileToken() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkedFileToken cannot be null");
 		if(cpr.getChunkNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkNumber cannot be null");
 		ChunkedFileToken token = cpr.getChunkedFileToken();
-		int partNumber = cpr.getChunkNumber().intValue();
+		String bucket = StackConfiguration.getS3Bucket();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
-		// The part number cannot be less than one
-		if(partNumber < 1) throw new IllegalArgumentException("partNumber cannot be less than one");
-		String partKey = ChunkUtils.getChunkPartKey(token, partNumber);
-		// For each block we want to create a pre-signed URL file.
-		GeneratePresignedUrlRequest gpur = new GeneratePresignedUrlRequest(StackConfiguration.getS3Bucket(), partKey).withMethod(HttpMethod.PUT);
-		if(cpr.getChunkedFileToken().getContentType() != null){
-			gpur.setContentType(cpr.getChunkedFileToken().getContentType());
-		}
-		return  s3Client.generatePresignedUrl(gpur);
+		return multipartManager.createChunkedFileUploadPartURL(cpr, bucket);
 	}
 
 
@@ -466,26 +432,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		int partNumber = cpr.getChunkNumber().intValue();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
+
 		// The part number cannot be less than one
 		if(partNumber < 1) throw new IllegalArgumentException("partNumber cannot be less than one");
 		String bucket = StackConfiguration.getS3Bucket();
-		String partKey = ChunkUtils.getChunkPartKey(token, partNumber);
-		// copy this part to the larger file.
-		CopyPartRequest copyPartRequest = new CopyPartRequest();
-		copyPartRequest.setDestinationBucketName(bucket);
-		copyPartRequest.setDestinationKey(token.getKey());
-		copyPartRequest.setPartNumber(partNumber);
-		copyPartRequest.setSourceBucketName(bucket);
-		copyPartRequest.setSourceKey(partKey);
-		copyPartRequest.setUploadId(token.getUploadId());
-		// copy the part
-		CopyPartResult result = s3Client.copyPart(copyPartRequest);
+		ChunkResult result = this.multipartManager.copyPart(token, partNumber, bucket);
 		// Now delete the original file since we now have a copy
-		s3Client.deleteObject(bucket, partKey);
-		ChunkResult cp = new ChunkResult();
-		cp.setEtag(result.getETag());
-		cp.setChunkNumber((long) result.getPartNumber());
-		return cp;
+		String partkey = this.multipartManager.getChunkPartKey(token, partNumber);
+		s3Client.deleteObject(bucket, partkey);
+		return result;
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -493,42 +448,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) {
 		if(ccfr == null) throw new IllegalArgumentException("CompleteChunkedFileRequest cannot be null");
 		ChunkedFileToken token = ccfr.getChunkedFileToken();
-		List<ChunkResult> chunkParts = ccfr.getChunkResults();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
-		if(chunkParts == null) throw new IllegalArgumentException("ChunkParts cannot be null");
-		if(chunkParts.size() < 1) throw new IllegalArgumentException("ChunkParts.getList() must contain at least one ChunkPart");
 		String bucket = StackConfiguration.getS3Bucket();
 		String userId =  getUserId(userInfo);
-		// Create the list of PartEtags
-		List<PartETag> ptList = new LinkedList<PartETag>();
-		for(ChunkResult cp: chunkParts){
-			if(cp == null) 	throw new IllegalArgumentException("ChunkPart cannot be null");
-			if(cp.getEtag() == null) throw new IllegalArgumentException("ChunkPart.getEtag() cannot be null");
-			if(cp.getChunkNumber() == null) throw new IllegalArgumentException("ChunkPart.chunkNumber() cannot be null");
-			PartETag pe = new PartETag(cp.getChunkNumber().intValue(), cp.getEtag());
-			ptList.add(pe);
-		}
-		// We are now ready to complete the parts
-		CompleteMultipartUploadResult cmp = s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(bucket, token.getKey(), token.getUploadId(), ptList));
-		// Update the metadata
-		// The file is now in S3.
-		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setFileName(token.getFileName());
-		fileHandle.setContentType(token.getContentType());
-		fileHandle.setBucketName(bucket);
-		fileHandle.setKey(token.getKey());
-		fileHandle.setCreatedBy(userId);
-		fileHandle.setCreatedOn(new Date(System.currentTimeMillis()));
-		fileHandle.setEtag(UUID.randomUUID().toString());
-		fileHandle.setContentMd5(token.getContentMD5());
-		// Lookup the final file size
-		ObjectMetadata current = s3Client.getObjectMetadata(bucket, token.getKey());
-		// Capture the content length
-		fileHandle.setContentSize(current.getContentLength());
-		// Update the metadata
-		// Save the file handle
-		return fileHandleDao.createFile(fileHandle);
+		// Complete the multi-part
+		return this.multipartManager.completeChunkFileUpload(ccfr, bucket, userId);
 	}
 	
 	/**
@@ -547,17 +472,20 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public UploadDaemonStatus startUploadDeamon(UserInfo userInfo,	CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException {
+	public UploadDaemonStatus startUploadDeamon(UserInfo userInfo, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException {
 		if(cacf == null) throw new IllegalArgumentException("CompleteAllChunksRequest cannot be null");
 		validateChunkedFileToken(userInfo, cacf.getChunkedFileToken());
+		String bucket = StackConfiguration.getS3Bucket();
+		String userId =  getUserId(userInfo);
 		// Start the daemon
 		UploadDaemonStatus status = new UploadDaemonStatus();
 		status.setPercentComplete(0.0);
 		status.setStartedBy(getUserId(userInfo));
+		status.setRunTimeMS(0l);
+		status.setState(State.PROCESSING);
 		status = uploadDaemonStatusDao.create(status);
-		status = uploadDaemonStatusDao.get(status.getId());
 		// Create a worker and add it to the pool.
-		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, this, status, cacf);
+		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, uploadFileDaemonThreadPoolSecondary, status, cacf, multipartManager, bucket, MAX_UPLOAD_WORKER_TIME_MS, userId);
 		// Add this worker the primary pool
 		uploadFileDaemonThreadPoolPrimary.submit(worker);
 		// Return the status to the caller.
