@@ -5,12 +5,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.any;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class StorageQuotaManagerImplTest {
@@ -29,11 +31,13 @@ public class StorageQuotaManagerImplTest {
 		when(user.getIndividualGroup()).thenReturn(userGroup);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
-		when(quotaDao.getQuota("1")).thenReturn(3);
+		StorageQuota quota = new StorageQuota();
+		quota.setQuotaInMb(3L);
+		when(quotaDao.getQuota("1")).thenReturn(quota);
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
 		ReflectionTestUtils.setField(manager, "storageQuotaDao", quotaDao);
-		int quota = manager.getQuotaForUser(currUser, user);
-		assertEquals(3, quota);
+		int quotaInMb = manager.getQuotaForUser(currUser, user);
+		assertEquals(3, quotaInMb);
 	}
 
 	@Test
@@ -50,7 +54,7 @@ public class StorageQuotaManagerImplTest {
 		when(user.getIndividualGroup()).thenReturn(userGroup);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
-		when(quotaDao.getQuota("1")).thenReturn((Integer)null);
+		when(quotaDao.getQuota("1")).thenReturn((StorageQuota)null);
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
 		ReflectionTestUtils.setField(manager, "storageQuotaDao", quotaDao);
 		int quota = manager.getQuotaForUser(currUser, user);
@@ -74,7 +78,7 @@ public class StorageQuotaManagerImplTest {
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
 		ReflectionTestUtils.setField(manager, "storageQuotaDao", quotaDao);
 		manager.setQuotaForUser(currUser, user, 1);
-		verify(quotaDao, times(1)).setQuota("1", 1);
+		verify(quotaDao, times(1)).setQuota(any(StorageQuota.class));
 	}
 
 	@Test(expected=UnauthorizedException.class)

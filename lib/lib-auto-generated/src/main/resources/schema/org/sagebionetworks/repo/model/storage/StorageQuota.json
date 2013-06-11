@@ -1,0 +1,19 @@
+{
+	"description": "JSON schema for StorageQuota.",
+	"properties": {
+		"ownerId": {
+			"description": "The ID of the user to whom the quota applies.",
+			"type": "string",
+			"required": true
+		},
+		"etag": {
+			"type": "string",
+			"required": true
+		},
+		"quotaInMb": {
+			"description": "Quota, measured in MB, allocated to the user.",
+			"type": "integer",
+			"required": true
+		}
+	}
+}
