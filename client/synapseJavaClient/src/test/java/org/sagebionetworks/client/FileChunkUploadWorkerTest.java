@@ -48,63 +48,41 @@ public class FileChunkUploadWorkerTest {
 	
 	@Test
 	public void testHappyCase() throws Exception{
-		ChunkResult expected = new ChunkResult();
-		expected.setChunkNumber(request.getChunkNumber());
-		expected.setEtag("etag");
-		when(mockClient.addChunkToFile(request)).thenReturn(expected);
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
 		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
-		ChunkResult result = worker.call();
-		assertEquals(expected, result);
+		Long result = worker.call();
+		assertEquals(request.getChunkNumber(), result);
 	}
 	
 	@Test
 	public void testOneError() throws Exception{
-		final ChunkResult expected = new ChunkResult();
-		expected.setChunkNumber(request.getChunkNumber());
-		expected.setEtag("etag");
-		final int count = 0;
-		when(mockClient.addChunkToFile(request)).thenAnswer(new Answer<ChunkResult>() {
-			int count = 0;
-			@Override
-			public ChunkResult answer(InvocationOnMock invocation)	throws Throwable {
-				count++;
-				// Fail once
-				if(count < 2) throw new RuntimeException("Some failure");
-				// then pass
-				return expected;
-			}
-		});
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
 		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
-		ChunkResult result = worker.call();
-		assertEquals(expected, result);
+		Long result = worker.call();
+		assertEquals(request.getChunkNumber(), result);
 	}
 	
 	@Test
 	public void testTwoError() throws Exception{
-		final ChunkResult expected = new ChunkResult();
-		expected.setChunkNumber(request.getChunkNumber());
-		expected.setEtag("etag");
+
 		final int count = 0;
-		when(mockClient.addChunkToFile(request)).thenAnswer(new Answer<ChunkResult>() {
+		when(mockClient.createChunkedPresignedUrl(request)).thenAnswer(new Answer<URL>() {
 			int count = 0;
 			@Override
-			public ChunkResult answer(InvocationOnMock invocation)	throws Throwable {
+			public URL answer(InvocationOnMock invocation)	throws Throwable {
 				count++;
 				// Fail the first two times
 				if(count < 3) throw new RuntimeException("Some failure");
 				// then pass
-				return expected;
+				return new URL("http://www.google.com");
 			}
 		});
 		URL url = new URL("http://google.com");
-		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
 		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
-		ChunkResult result = worker.call();
-		assertEquals(expected, result);
+		Long result = worker.call();
+		assertEquals(request.getChunkNumber(), result);
 	}
 	
 	@Test (expected=RuntimeException.class)
@@ -114,22 +92,22 @@ public class FileChunkUploadWorkerTest {
 		expected.setChunkNumber(request.getChunkNumber());
 		expected.setEtag("etag");
 		final int count = 0;
-		when(mockClient.addChunkToFile(request)).thenAnswer(new Answer<ChunkResult>() {
+		when(mockClient.createChunkedPresignedUrl(request)).thenAnswer(new Answer<URL>() {
 			int count = 0;
 			@Override
-			public ChunkResult answer(InvocationOnMock invocation)	throws Throwable {
+			public URL answer(InvocationOnMock invocation)	throws Throwable {
 				count++;
 				// Fail the every time
 				if(count < 4) throw new RuntimeException("Some failure");
 				// then pass
-				return expected;
+				return new URL("http://google.com");
 			}
 		});
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
 		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
-		ChunkResult result = worker.call();
-		assertEquals(expected, result);
+		Long result = worker.call();
+		assertEquals(request.getChunkNumber(), result);
 	}
 	
 }

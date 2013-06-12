@@ -7,8 +7,6 @@ import java.util.concurrent.Callable;
 import org.apache.log4j.Logger;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
-import org.sagebionetworks.repo.model.file.ChunkResult;
-import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 
 /**
  * This worker will upload a single chunk.
@@ -18,7 +16,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
  * @author John
  *
  */
-public class FileChunkUploadWorker implements Callable<ChunkResult> {
+public class FileChunkUploadWorker implements Callable<Long> {
 	
 	protected static final Logger log = Logger.getLogger(FileChunkUploadWorker.class.getName());
 
@@ -44,7 +42,7 @@ public class FileChunkUploadWorker implements Callable<ChunkResult> {
 
 
 	@Override
-	public ChunkResult call() throws Exception {
+	public Long call() throws Exception {
 		try{
 			// The first try
 			return tryUpload();
@@ -70,7 +68,7 @@ public class FileChunkUploadWorker implements Callable<ChunkResult> {
 	 * @return
 	 * @throws SynapseException
 	 */
-	private ChunkResult tryUpload() throws SynapseException {
+	private Long tryUpload() throws SynapseException {
 		log.info("Attempting to upload: "+request);
 		// First get a pre-signed URL for this chunk
 		long start = System.currentTimeMillis();
@@ -80,11 +78,7 @@ public class FileChunkUploadWorker implements Callable<ChunkResult> {
 		start = System.currentTimeMillis();
 		client.putFileToURL(url, chunk, request.getChunkedFileToken().getContentType());
 		log.info("putFileToURL() in "+(System.currentTimeMillis()-start)+" ms"); 
-		// Add the chunk to the final file
-		start = System.currentTimeMillis();
-		ChunkResult result = client.addChunkToFile(request);
-		log.info("addChunkToFile() in "+(System.currentTimeMillis()-start)+" ms"); 
-		return result;
+		return request.getChunkNumber();
 	}
 
 }

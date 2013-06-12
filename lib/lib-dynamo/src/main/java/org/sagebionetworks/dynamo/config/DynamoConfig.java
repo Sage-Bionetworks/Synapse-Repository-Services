@@ -28,7 +28,7 @@ class DynamoConfig {
 		DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);
 		DynamoThroughput throughput = new DynamoThroughput(10L, 5L);
 		if (this.isProdStack()) {
-			throughput = new DynamoThroughput(75L, 50L);
+			throughput = new DynamoThroughput(150L, 75L);
 		}
 		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
 		tableList.add(table);
