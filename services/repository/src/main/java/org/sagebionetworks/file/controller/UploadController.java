@@ -17,12 +17,14 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.controller.BaseController;
@@ -185,4 +187,34 @@ public class UploadController extends BaseController {
 		return fileService.completeChunkFileUpload(userId, ccfr);
 	}
 	
+	/**
+	 * After all of the chunks are added, start a Daemon that will copy all of the parts and complete the request.
+	 * The daemon status can be monitored by calling {@link #getDaemonStatus(String, String)}
+	 * @param userId
+	 * @param cacf
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/startCompleteUploadDaemon" , method = RequestMethod.POST)
+	public @ResponseBody UploadDaemonStatus startCompleteUploadDaemon(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException{
+		return fileService.startUploadDeamon(userId, cacf);
+	}
+	
+	/**
+	 * Get the status of a daemon started with {@link #startUpload(String, CompleteAllChunksRequest)}
+	 * @param userId
+	 * @param cacf
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value ="/completeUploadDaemonStatus/{daemonId}" , method = RequestMethod.GET)
+	public @ResponseBody UploadDaemonStatus completeUploadDaemonStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@PathVariable String daemonId) throws DatastoreException, NotFoundException{
+		return fileService.getUploadDaemonStatus(userId, daemonId);
+	}
 }

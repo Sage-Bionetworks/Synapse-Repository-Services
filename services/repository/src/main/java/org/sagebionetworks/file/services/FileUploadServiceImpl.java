@@ -17,12 +17,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,5 +116,22 @@ public class FileUploadServiceImpl implements FileUploadService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.completeChunkFileUpload(userInfo, ccfr);
 	}
+
+	@Override
+	public UploadDaemonStatus startUploadDeamon(String userId, CompleteAllChunksRequest cacf) throws DatastoreException,
+			NotFoundException {
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.startUploadDeamon(userInfo, cacf);
+	}
+
+	@Override
+	public UploadDaemonStatus getUploadDaemonStatus(String userId, String daemonId) throws DatastoreException, NotFoundException {
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getUploadDaemonStatus(userInfo, daemonId);
+	}
+	
+	
 
 }
