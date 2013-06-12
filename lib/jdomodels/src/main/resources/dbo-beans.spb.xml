@@ -60,6 +60,7 @@
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 			</list>
 		</property>
 	</bean>

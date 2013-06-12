@@ -1,0 +1,14 @@
+{
+	"description": "JSON schema for Finish chunk request",
+	"properties": {
+		"chunkNumbers": {
+			"type": "array",
+			"items": {
+				"type": "integer"
+			}
+		},
+		"chunkedFileToken": {
+			"$ref": "org.sagebionetworks.repo.model.file.ChunkedFileToken"
+		}
+	}
+}
