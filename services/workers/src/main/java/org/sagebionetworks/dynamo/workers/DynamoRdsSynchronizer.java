@@ -20,8 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class DynamoRdsSynchronizer {
 
-	/** How many nodes to check in one batch */
-	private static final int BATCH_SIZE = 30;
+	/** How many nodes to synchronize in one batch */
+	static final long BATCH_SIZE = 30L;
 
 	@Autowired
 	private Consumer consumer;

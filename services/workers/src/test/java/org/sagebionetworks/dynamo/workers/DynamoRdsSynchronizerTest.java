@@ -38,7 +38,8 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(),
+				eq(DynamoRdsSynchronizer.BATCH_SIZE))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
@@ -68,7 +69,8 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(),
+				eq(DynamoRdsSynchronizer.BATCH_SIZE))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn(null);
@@ -98,7 +100,8 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(),
+				eq(DynamoRdsSynchronizer.BATCH_SIZE))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("21");
@@ -128,14 +131,15 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setTotalNumberOfResults(100L);
 
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(),
+				eq(DynamoRdsSynchronizer.BATCH_SIZE))).thenReturn(queryResults);
 
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
 		when(nodeTreeDao.isRoot("1")).thenReturn(true);
 
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
-		
+
 		DynamoRdsSynchronizer sync = new DynamoRdsSynchronizer(
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		ReflectionTestUtils.setField(sync, "consumer", mock(Consumer.class));
@@ -143,7 +147,7 @@ public class DynamoRdsSynchronizerTest {
 		sync.triggerFired();
 		verify(nodeTreeDao, times(1)).isRoot("1");
 	}
-	
+
 	@Test
 	public void testEmptyResults() {
 
@@ -152,7 +156,8 @@ public class DynamoRdsSynchronizerTest {
 		queryResults.setResults(results);
 		queryResults.setTotalNumberOfResults(0L);
 		NodeDAO nodeDao = mock(NodeDAO.class);
-		when(nodeDao.getParentRelations(anyLong(), eq(30L))).thenReturn(queryResults);
+		when(nodeDao.getParentRelations(anyLong(),
+				eq(DynamoRdsSynchronizer.BATCH_SIZE))).thenReturn(queryResults);
 		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
 		DynamoRdsSynchronizer sync = new DynamoRdsSynchronizer(
