@@ -104,6 +104,14 @@ public interface AuthorizationManager {
 	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator);
 	
 	/**
+	 * Is the user the creator or are they an admin
+	 * @param userInfo
+	 * @param creator
+	 * @return
+	 */
+	public boolean isUserCreatorOrAdmin(UserInfo userInfo, String creator);
+	
+	/**
 	 * 
 	 * @param userInfo
 	 * @param fileHandleId
@@ -113,5 +121,6 @@ public interface AuthorizationManager {
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
+	
 	
 }

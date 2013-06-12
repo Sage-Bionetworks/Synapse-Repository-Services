@@ -100,12 +100,15 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.State;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -132,6 +135,8 @@ public class Synapse implements SynapseInt {
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
+	
+	protected static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
 
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
@@ -215,6 +220,8 @@ public class Synapse implements SynapseInt {
 	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
 	private static final String ADD_CHUNK_TO_FILE = "/addChunkToFile";
 	private static final String COMPLETE_CHUNK_FILE_UPLOAD = "/completeChunkFileUpload";
+	private static final String START_COMPLETE_UPLOAD_DAEMON = "/startCompleteUploadDaemon";
+	private static final String COMPLETE_UPLOAD_DAEMON_STATUS = "/completeUploadDaemonStatus" ;
 	
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
@@ -1469,6 +1476,8 @@ public class Synapse implements SynapseInt {
 	 * 
 	 * @param files
 	 * @return
+	 * @throws InterruptedException 
+	 * @throws JSONObjectAdapterException 
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
@@ -1498,7 +1507,9 @@ public class Synapse implements SynapseInt {
 	 * @param contentType
 	 * @return
 	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException 
 	 * @throws IOException 
+	 * @throws InterruptedException 
 	 */
 	public S3FileHandle createFileHandle(File file, String contentType) throws SynapseException, IOException{
 		if(file == null) throw new IllegalArgumentException("File cannot be null");
@@ -1515,13 +1526,31 @@ public class Synapse implements SynapseInt {
 		List<File> fileChunks = FileUtils.chunkFile(file, MINIMUM_CHUNK_SIZE_BYTES);
 		try{
 			// Upload all of the parts.
-			List<ChunkResult> results = uploadChunks(fileChunks, token);
+			List<Long> partNumbers = uploadChunks(fileChunks, token);
 			// We can now complete the upload
-			CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();
-			ccfr.setChunkedFileToken(token);
-			ccfr.setChunkResults(results);
+			CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
+			cacr.setChunkedFileToken(token);
+			cacr.setChunkNumbers(partNumbers);
+			// Start the daemon
+			UploadDaemonStatus status = startUploadDeamon(cacr);
+			// Wait for it to complete
+			long start = System.currentTimeMillis();
+			while(State.COMPLETED != status.getState()){
+				// Check for failure
+				if(State.FAILED == status.getState()){
+					throw new SynapseException("Upload failed: "+status.getErrorMessage());
+				}
+				log.debug("Waiting for upload daemon: "+status.toString());
+				Thread.sleep(1000);
+				status = getCompleteUploadDaemonStatus(status.getDaemonId());
+				if(System.currentTimeMillis() -start > MAX_UPLOAD_DAEMON_MS){
+					throw new SynapseException("Timed out waiting for upload daemon: "+status.toString());
+				}
+			}
 			// Complete the upload
-			return completeChunkFileUpload(ccfr);
+			return (S3FileHandle) getRawFileHandle(status.getFileHandleId());
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
 		}finally{
 			// Delete any tmep files created by this method.  The original file will not be deleted.
 			FileUtils.deleteAllFilesExcludingException(file, fileChunks);
@@ -1537,11 +1566,11 @@ public class Synapse implements SynapseInt {
 	 * @throws ExecutionException 
 	 * @throws InterruptedException 
 	 */
-	private List<ChunkResult> uploadChunks(List<File> fileChunks, ChunkedFileToken token) throws SynapseException{
+	private List<Long> uploadChunks(List<File> fileChunks, ChunkedFileToken token) throws SynapseException{
 		try{
-			List<ChunkResult> results = new LinkedList<ChunkResult>();
+			List<Long> results = new LinkedList<Long>();
 			// The future list
-			List<Future<ChunkResult>> futureList = new ArrayList<Future<ChunkResult>>();
+			List<Future<Long>> futureList = new ArrayList<Future<Long>>();
 			// For each chunk create a worker and add it to the thread pool
 			long chunkNumber = 1;
 			for(File file: fileChunks){
@@ -1551,14 +1580,14 @@ public class Synapse implements SynapseInt {
 				request.setChunkNumber(chunkNumber);
 				FileChunkUploadWorker worker = new FileChunkUploadWorker(this, request, file);
 				// Add this the the thread pool
-				Future<ChunkResult> future = fileUplaodthreadPool.submit(worker);
+				Future<Long> future = fileUplaodthreadPool.submit(worker);
 				futureList.add(future);
 				chunkNumber++;
 			}
 			// Get all of the results
-			for(Future<ChunkResult> future: futureList){
-				ChunkResult cr = future.get();
-				results.add(cr);
+			for(Future<Long> future: futureList){
+				Long partNumber = future.get();
+				results.add(partNumber);
 			}
 			return results;
 		} catch (Exception e) {
@@ -1669,6 +1698,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	public ChunkResult addChunkToFile(ChunkRequest chunkRequest) throws SynapseException{
 		String url = getFileEndpoint()+ADD_CHUNK_TO_FILE;
 		return asymmetricalPost(url, chunkRequest, ChunkResult.class);
@@ -1687,9 +1717,38 @@ public class Synapse implements SynapseInt {
 	 * @return Returns the resulting {@link S3FileHandle} that can be used for any opperation that accepts {@link FileHandle} objects.
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request) throws SynapseException{
 		String url = getFileEndpoint()+COMPLETE_CHUNK_FILE_UPLOAD;
 		return asymmetricalPost(url, request, S3FileHandle.class);
+	}
+	
+	/**
+	 * Start a daemon that will asycnrhounsously complete the multi-part upload.
+	 * @param cacr
+	 * @return
+	 * @throws SynapseException
+	 */
+	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr) throws SynapseException{
+		String url = getFileEndpoint()+START_COMPLETE_UPLOAD_DAEMON;
+		return asymmetricalPost(url, cacr, UploadDaemonStatus.class);
+	}
+	
+	/**
+	 * Get the status of daemon used to complete the multi-part upload.
+	 * @param daemonId
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId) throws SynapseException{
+		String url = COMPLETE_UPLOAD_DAEMON_STATUS+"/"+daemonId;
+		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
+		try {
+			return EntityFactory.createEntityFromJSONObject(json, UploadDaemonStatus.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	
