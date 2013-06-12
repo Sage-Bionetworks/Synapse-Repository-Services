@@ -54,12 +54,17 @@ public class DynamoRdsSynchronizer {
 
 	public void triggerFired() {
 
+		final long start1 = System.currentTimeMillis();
+
 		// Get a random node and its parent from RDS
 		// This is returns a value between 0 (inclusive) and count (exclusive)
 		// The value range is consistent with the MySQL OFFSET parameter
 		final int r = random.nextInt(count);
 		final QueryResults<NodeParentRelation> results = nodeDao.getParentRelations(r, BATCH_SIZE);
 		final Date date = new Date();
+
+		final long latency1 = System.currentTimeMillis() - start1;
+		addLatency("GetBatchFromRds", latency1);
 
 		// Update the count to be used at next trigger
 		// Occasionally count may be out-of-date and out-of-range, in which
@@ -69,9 +74,11 @@ public class DynamoRdsSynchronizer {
 			count = 1;
 		}
 
+		final long start2 = System.currentTimeMillis();
+
 		// Now cross check with DynamoDB
 		List<NodeParentRelation> list = results.getResults();
-		addMetric("TotalSync", list.size());
+		addCount("TotalSynced", list.size());
 		for (NodeParentRelation childParent : list) {
 
 			String childInRds = childParent.getId();
@@ -80,7 +87,7 @@ public class DynamoRdsSynchronizer {
 			String parentKeyInDynamo = nodeTreeQueryDao.getParent(childKeyInRds);
 			if (parentKeyInDynamo == null) {
 				// The child does not exist in DynamoDB yet
-				addMetric("MissingNode", 1);
+				addCount("MissingNode", 1);
 				nodeTreeUpdateManager.create(childInRds, parentInRds, date);
 				return;
 			}
@@ -88,7 +95,7 @@ public class DynamoRdsSynchronizer {
 			if (parentInRds == null) {
 				// Check against the root
 				if (!nodeTreeQueryDao.isRoot(childKeyInRds)) {
-					addMetric("IncorrectRoot", 1);
+					addCount("IncorrectRoot", 1);
 					nodeTreeUpdateManager.update(childKeyInRds, childKeyInRds, date);
 				}
 				return;
@@ -97,18 +104,29 @@ public class DynamoRdsSynchronizer {
 			String parentKeyInRds = KeyFactory.stringToKey(parentInRds).toString();
 			if (!parentKeyInDynamo.equals(parentKeyInRds)) {
 				// Implies that the child is pointing to the wrong parent
-				addMetric("IncorrectParent", 1);;
+				addCount("IncorrectParent", 1);;
 				nodeTreeUpdateManager.update(childInRds, parentInRds, date);
 			}
 		}
+
+		final long latency2 = System.currentTimeMillis() - start2;
+		addLatency("SyncBatchWithDynamo", latency2);
 	}
 
-	private void addMetric(String name, long count) {
+	private void addLatency(String name, long latency) {
+		addMetric(name, latency, "Milliseconds");
+	}
+
+	private void addCount(String name, long count) {
+		addMetric(name, count, "Count");
+	}
+
+	private void addMetric(String name, long metric, String unit) {
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("DynamoRdsSynchronizer");
-		profileData.setName(name); // Method name
-		profileData.setLatency(count);
-		profileData.setUnit("Count");
+		profileData.setName(name);
+		profileData.setLatency(metric);
+		profileData.setUnit(unit);
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);
 	}
