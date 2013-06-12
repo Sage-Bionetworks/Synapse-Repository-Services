@@ -8,7 +8,6 @@
     <version>develop-SNAPSHOT</version>
   </parent>
 
-  <groupId>org.sagebionetworks</groupId>
   <artifactId>services</artifactId>
   <packaging>pom</packaging>
   <name>Services</name>
@@ -17,7 +16,6 @@
     <module>repository-managers</module>
     <module>authutil</module>
     <module>repository</module>
-    <module>competition-services</module>
     <module>workers</module>
   </modules>
 
