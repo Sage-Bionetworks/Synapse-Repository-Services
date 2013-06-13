@@ -164,8 +164,6 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			for (EntityHeader eh : ehList) {
 				path.add(eh.getId());
 			}
-			// Add the child to the path
-			path.add(childId);
 			for (int i = 0; i < path.size(); i++) {
 				if (i == 0) {
 					// Handling the root
