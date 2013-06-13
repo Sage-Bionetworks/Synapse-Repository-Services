@@ -187,7 +187,9 @@ public class DBOAccessRequirementDAOImplTest {
 		
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
-		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(rod, principalIds, ACCESS_TYPE.DOWNLOAD);
+		List<ACCESS_TYPE> downloadAccessType = new ArrayList<ACCESS_TYPE>();
+		downloadAccessType.add(ACCESS_TYPE.DOWNLOAD);
+		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(rod, principalIds, downloadAccessType);
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}

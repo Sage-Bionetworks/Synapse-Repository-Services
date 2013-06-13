@@ -46,11 +46,6 @@ public class AccessRequirementUtil {
 			principalIds.add(Long.parseLong(ug.getId()));
 		}
 		
-		//collect all unmet access requirements for the specified access types
-		List<Long> accessRequirementIds = new ArrayList<Long>();
-		for (ACCESS_TYPE accessType : accessTypes) {
-			accessRequirementIds.addAll(accessRequirementDAO.unmetAccessRequirements(subjectId, principalIds, accessType));
-		}
-		return accessRequirementIds;
+		return accessRequirementDAO.unmetAccessRequirements(subjectId, principalIds, accessTypes);
 	}
 }

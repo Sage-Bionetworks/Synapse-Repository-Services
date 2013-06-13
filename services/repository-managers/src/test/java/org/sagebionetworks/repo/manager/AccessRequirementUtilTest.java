@@ -2,9 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,8 +29,7 @@ public class AccessRequirementUtilTest {
 	NodeDAO mockNodeDAO;
 	AccessRequirementDAO mockAccessRequirementDAO;
 	Node testEntityNode;
-	List<Long> unmetARsDownload;
-	List<Long> unmetARsParticipate;
+	List<Long> unmetARsDownload, unmetARsParticipate, unmetARsDownloadAndParticipate;
 	
 	@Before
 	public void before() throws Exception{
@@ -58,8 +55,21 @@ public class AccessRequirementUtilTest {
 		unmetARsParticipate = new ArrayList<Long>();
 		unmetARsParticipate.add(2l);
 		
-		when(mockAccessRequirementDAO.unmetAccessRequirements(any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.DOWNLOAD))).thenReturn(unmetARsDownload);
-		when(mockAccessRequirementDAO.unmetAccessRequirements(any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(unmetARsParticipate);
+		unmetARsDownloadAndParticipate = new ArrayList<Long>();
+		unmetARsDownloadAndParticipate.addAll(unmetARsDownload);
+		unmetARsDownloadAndParticipate.addAll(unmetARsParticipate);
+		
+		List<ACCESS_TYPE> downloadOnly = new ArrayList<ACCESS_TYPE>();
+		downloadOnly.add(ACCESS_TYPE.DOWNLOAD);
+		List<ACCESS_TYPE> participateOnly = new ArrayList<ACCESS_TYPE>();
+		participateOnly.add(ACCESS_TYPE.PARTICIPATE);
+		List<ACCESS_TYPE> downloadAndParticipate = new ArrayList<ACCESS_TYPE>();
+		downloadAndParticipate.addAll(downloadOnly);
+		downloadAndParticipate.addAll(participateOnly);
+		
+		when(mockAccessRequirementDAO.unmetAccessRequirements(any(RestrictableObjectDescriptor.class), any(Collection.class), eq(downloadOnly))).thenReturn(unmetARsDownload);
+		when(mockAccessRequirementDAO.unmetAccessRequirements(any(RestrictableObjectDescriptor.class), any(Collection.class), eq(participateOnly))).thenReturn(unmetARsParticipate);
+		when(mockAccessRequirementDAO.unmetAccessRequirements(any(RestrictableObjectDescriptor.class), any(Collection.class), eq(downloadAndParticipate))).thenReturn(unmetARsDownloadAndParticipate);
 	}
 	
 	@Test
@@ -82,8 +92,7 @@ public class AccessRequirementUtilTest {
 		//verify both download and participate ARs are returned
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		List<Long> unmetARs = AccessRequirementUtil.unmetAccessRequirementIds(userInfo, subjectId, mockNodeDAO, mockAccessRequirementDAO);
-		assertTrue(unmetARs.containsAll(unmetARsDownload));
-		assertTrue(unmetARs.containsAll(unmetARsParticipate));
+		assertEquals(unmetARsDownloadAndParticipate, unmetARs);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
