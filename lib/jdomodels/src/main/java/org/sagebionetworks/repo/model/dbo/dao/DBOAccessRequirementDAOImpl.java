@@ -110,8 +110,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	private static final String UNMET_REQUIREMENTS_SQL_SUFFIX = " left join "+TABLE_ACCESS_APPROVAL+" aa on ar."+COL_ACCESS_REQUIREMENT_ID+"=aa."+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
 	" and aa."+COL_ACCESS_APPROVAL_ACCESSOR_ID+" in (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+
-	") where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+"=:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+
-	" order by "+UNMET_REQUIREMENTS_AR_COL_ID;
+	") where ar."+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+" in (:"+COL_ACCESS_REQUIREMENT_ACCESS_TYPE+
+	") order by "+UNMET_REQUIREMENTS_AR_COL_ID;
 	
 	// select ar.id as ar_id, aa.id as aa_id
 	// from ACCESS_REQUIREMENT ar 
@@ -128,11 +128,15 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
 	@Override
-	public List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds, ACCESS_TYPE accessType) throws DatastoreException {
+	public List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
 
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
-		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessType.toString());
+		List<String> accessTypeStrings = new ArrayList<String>();
+		for (ACCESS_TYPE type : accessTypes) {
+			accessTypeStrings.add(type.toString());
+		}
+		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subject.getId()));
 		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subject.getType().toString());
 		String unmetRequirementsSQL = SELECT_UNMET_REQUIREMENTS_SQL;
