@@ -49,7 +49,7 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 
 		final long start = System.nanoTime();
 		final List<Message> processedMessages = new ArrayList<Message>();
-		for (Message message : this.messages) {
+		for (Message message : messages) {
 			// Extract the ChangeMessage
 			ChangeMessage change = MessageUtils.extractMessageBody(message);
 			if (ObjectType.ENTITY.equals(change.getObjectType())) {
@@ -61,19 +61,19 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 				}
 				try {
 					if (ChangeType.CREATE.equals(change.getChangeType())) {
-						this.updateManager.create(change.getObjectId(),
+						updateManager.create(change.getObjectId(),
 								change.getParentId(), timestamp);
 					} else if (ChangeType.UPDATE.equals(change.getChangeType())) {
-						this.updateManager.update(change.getObjectId(),
+						updateManager.update(change.getObjectId(),
 								change.getParentId(), timestamp);
 					} else if (ChangeType.DELETE.equals(change.getChangeType())) {
-						this.updateManager.delete(change.getObjectId(), timestamp);
+						updateManager.delete(change.getObjectId(), timestamp);
 					} else {
 						throw new IllegalArgumentException("Unknown change type: " + change.getChangeType());
 					}
 					processedMessages.add(message);
 				} catch (Throwable e) {
-					this.logger.error("Failed to process message", e);
+					logger.error("Failed to process message", e);
 				}
 			} else {
 				processedMessages.add(message);
@@ -82,9 +82,10 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 
 		// Emit a latency metric
 		final long latency = (System.nanoTime() - start) / 1000000L;
+		logger.info("DynamoQueueWorker.call() latency is " + latency + " ms.");
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("DynamoQueueWorker");
-		profileData.setName("call()"); // Method name
+		profileData.setName("TotalLatency"); // Method name
 		profileData.setLatency(latency);
 		profileData.setUnit("Milliseconds");
 		profileData.setTimestamp(new Date());
