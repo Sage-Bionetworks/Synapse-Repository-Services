@@ -1,6 +1,6 @@
 CREATE TABLE `SEMAPHORE` (
-  `ID` smallint NOT NULL,
+  `SEM_KEY` char(36) NOT NULL,
   `TOKEN` char(36) NOT NULL,
   `EXPIRATION` bigint(20) NOT NULL,
-  PRIMARY KEY (`ID`)
+  PRIMARY KEY (`SEM_KEY`)
 )

@@ -406,5 +406,4 @@ public interface NodeDAO {
 
 	long getCount();
 
-
 }

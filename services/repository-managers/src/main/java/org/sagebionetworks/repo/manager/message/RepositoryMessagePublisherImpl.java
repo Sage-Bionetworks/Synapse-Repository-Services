@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao.LockType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -29,6 +28,7 @@ import com.amazonaws.services.sns.model.PublishRequest;
  */
 public class RepositoryMessagePublisherImpl implements RepositoryMessagePublisher {
 
+	public static final String SEMAPHORE_KEY = "UNSENT_MESSAGE_WORKER";
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
 
 	@Autowired
@@ -212,7 +212,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		// Do nothing if the messages should not be published.
 		if(!shouldMessagesBePublishedToTopic) return;
 		// We use a semaphore to ensure only one worker per stack does this task at a time.
-		String lockToken = semaphoreDao.attemptToAcquireLock(LockType.UNSENT_MESSAGE_WORKER, lockTimeoutMS);
+		String lockToken = semaphoreDao.attemptToAcquireLock(SEMAPHORE_KEY, lockTimeoutMS);
 		if(lockToken != null){
 			log.debug("Acquire the lock with token: "+lockToken);
 			try{
@@ -223,7 +223,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 				}
 			}finally{
 				// Release the lock
-				boolean released = semaphoreDao.releaseLock(LockType.UNSENT_MESSAGE_WORKER, lockToken);
+				boolean released = semaphoreDao.releaseLock(SEMAPHORE_KEY, lockToken);
 				if(!released){
 					log.warn("Failed to release the lock with token: "+lockToken);
 				}
