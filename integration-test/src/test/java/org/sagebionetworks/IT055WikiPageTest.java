@@ -37,7 +37,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
 	
-	public static final long MAX_WAIT_MS = 1000*10; // 10 sec
+	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	
 	private static String FILE_NAME = "LittleImage.png";
 

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.message;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Sends messages as part of a transaction.
@@ -45,8 +46,9 @@ public interface TransactionalMessenger {
 	 * either for the first time or re-sent on a new stacks.
 	 * 
 	 * @param changeNumber
+	 * @throws NotFoundException 
 	 */
-	public void registerMessageSent(long changeNumber);
+	public void registerMessageSent(long changeNumber) throws NotFoundException;
 	
 	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).

@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Synchronizes RDS and DynamoDB on randomly selected nodes.
  */
-public class DynamoRdsSynchronizer {
+public class DynamoRdsSynchronizer implements Runnable {
 
 	/** How many nodes to synchronize in one batch */
 	static final long BATCH_SIZE = 30L;
@@ -52,6 +52,12 @@ public class DynamoRdsSynchronizer {
 		this.random = new SecureRandom();
 	}
 
+	@Override
+	public void run() {
+		// Call the original method.
+		triggerFired();
+	}
+	
 	public void triggerFired() {
 
 		final long start1 = System.currentTimeMillis();
@@ -130,4 +136,5 @@ public class DynamoRdsSynchronizer {
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);
 	}
+
 }

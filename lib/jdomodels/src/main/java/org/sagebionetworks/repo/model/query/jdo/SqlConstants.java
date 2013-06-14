@@ -328,7 +328,7 @@ public class SqlConstants {
 	
 	// SEMAPHORE
 	public static final String TABLE_SEMAPHORE 			= "SEMAPHORE";
-	public static final String COL_SEMAPHORE_ID			= "ID";
+	public static final String COL_SEMAPHORE_KEY		= "SEM_KEY";
 	public static final String COL_SEMAPHORE_TOKEN		= "TOKEN";
 	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
 	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
