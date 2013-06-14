@@ -157,6 +157,15 @@ public class MessageReceiverImpl implements MessageReceiver {
 	public void setWorkerFactory(MessageWorkerFactory workerFactory) {
 		this.workerFactory = workerFactory;
 	}
+	
+	@Override
+	public void run(){
+		try {
+			triggerFired();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Override
 	public int triggerFired() throws InterruptedException{

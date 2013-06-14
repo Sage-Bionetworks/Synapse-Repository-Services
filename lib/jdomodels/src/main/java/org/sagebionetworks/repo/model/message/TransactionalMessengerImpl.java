@@ -9,10 +9,13 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+
 
 /**
  * Basic implementation of TransactionalMessenger.  Messages are bound to the current transaction and thread.
@@ -195,8 +198,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	}
 
 	@Override
-	public void registerMessageSent(long changeNumber) {
-		this.changeDAO.registerMessageSent(changeNumber);
+	public void registerMessageSent(long changeNumber) throws NotFoundException {
+		try {
+			this.changeDAO.registerMessageSent(changeNumber);
+		} catch (DataIntegrityViolationException e) {
+			throw new NotFoundException("Change number: '"+changeNumber+"' does not exist");
+		}
 	}
 
 	@Override
