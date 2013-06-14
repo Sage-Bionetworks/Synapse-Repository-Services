@@ -25,8 +25,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DynamoQueueWorkerIntegrationTest {
 
-	public static final long MAX_WAIT = 60 * 1000; // one minute
-
 	@Autowired private EntityManager entityManager;
 	@Autowired private UserProvider userProvider;
 	@Autowired private DynamoAdminDao dynamoAdminDao;
@@ -86,12 +84,12 @@ public class DynamoQueueWorkerIntegrationTest {
 		int i = 0;
 		do {
 			// Pause 1 second for eventual consistency
-			// Wait at most 30 seconds
-			Thread.sleep(3000);
+			// Wait at most 60 seconds
+			Thread.sleep(2000);
 			results = this.nodeTreeQueryDao.getAncestors(
 					KeyFactory.stringToKey(this.project.getId()).toString());
 			i++;
-		} while (i < 10 && results.size() == 0);
+		} while (i < 30 && results.size() == 0);
 
 		Assert.assertNotNull(results);
 		Assert.assertTrue(results.size() > 0);

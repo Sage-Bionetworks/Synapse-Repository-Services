@@ -17,10 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Synchronizes RDS and DynamoDB on randomly selected nodes.
- *
- * @author Eric Wu
  */
 public class DynamoRdsSynchronizer implements Runnable {
+
+	/** How many nodes to synchronize in one batch */
+	static final long BATCH_SIZE = 30L;
 
 	@Autowired
 	private Consumer consumer;
@@ -36,13 +37,13 @@ public class DynamoRdsSynchronizer implements Runnable {
 			NodeTreeUpdateManager nodeTreeUpdateManager) {
 
 		if (nodeDao == null) {
-			throw new NullPointerException("nodeDao cannot be null");
+			throw new IllegalArgumentException("nodeDao cannot be null");
 		}
 		if (nodeTreeQueryDao == null) {
-			throw new NullPointerException("nodeTreeQueryDao cannot be null");
+			throw new IllegalArgumentException("nodeTreeQueryDao cannot be null");
 		}
 		if (nodeTreeUpdateManager == null) {
-			throw new NullPointerException("nodeTreeUpdateManager cannot be null");
+			throw new IllegalArgumentException("nodeTreeUpdateManager cannot be null");
 		}
 
 		this.nodeDao = nodeDao;
@@ -59,42 +60,49 @@ public class DynamoRdsSynchronizer implements Runnable {
 	
 	public void triggerFired() {
 
+		final long start1 = System.currentTimeMillis();
+
 		// Get a random node and its parent from RDS
 		// This is returns a value between 0 (inclusive) and count (exclusive)
 		// The value range is consistent with the MySQL OFFSET parameter
-		int r = this.random.nextInt(this.count);
-		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(r, 5);
-		Date date = new Date();
+		final int r = random.nextInt(count);
+		final QueryResults<NodeParentRelation> results = nodeDao.getParentRelations(r, BATCH_SIZE);
+		final Date date = new Date();
+
+		final long latency1 = System.currentTimeMillis() - start1;
+		addLatency("GetBatchFromRds", latency1);
 
 		// Update the count to be used at next trigger
 		// Occasionally count may be out-of-date and out-of-range, in which
 		// case the check will be skipped
-		this.count = (int)results.getTotalNumberOfResults();
-		if (this.count == 0) {
-			this.count = 1;
+		count = (int)results.getTotalNumberOfResults();
+		if (count == 0) {
+			count = 1;
 		}
+
+		final long start2 = System.currentTimeMillis();
 
 		// Now cross check with DynamoDB
 		List<NodeParentRelation> list = results.getResults();
-		this.addMetric("TotalSync", list.size());
+		addCount("TotalSynced", list.size());
 		for (NodeParentRelation childParent : list) {
 
 			String childInRds = childParent.getId();
 			String parentInRds = childParent.getParentId();
 			String childKeyInRds = KeyFactory.stringToKey(childInRds).toString();
-			String parentKeyInDynamo = this.nodeTreeQueryDao.getParent(childKeyInRds);
+			String parentKeyInDynamo = nodeTreeQueryDao.getParent(childKeyInRds);
 			if (parentKeyInDynamo == null) {
 				// The child does not exist in DynamoDB yet
-				this.addMetric("MissingNode", 1);
-				this.nodeTreeUpdateManager.create(childInRds, parentInRds, date);
+				addCount("MissingNode", 1);
+				nodeTreeUpdateManager.create(childInRds, parentInRds, date);
 				return;
 			}
 
 			if (parentInRds == null) {
 				// Check against the root
-				if (!this.nodeTreeQueryDao.isRoot(childKeyInRds)) {
-					this.addMetric("IncorrectRoot", 1);
-					this.nodeTreeUpdateManager.update(childKeyInRds, childKeyInRds, date);
+				if (!nodeTreeQueryDao.isRoot(childKeyInRds)) {
+					addCount("IncorrectRoot", 1);
+					nodeTreeUpdateManager.update(childKeyInRds, childKeyInRds, date);
 				}
 				return;
 			}
@@ -102,18 +110,29 @@ public class DynamoRdsSynchronizer implements Runnable {
 			String parentKeyInRds = KeyFactory.stringToKey(parentInRds).toString();
 			if (!parentKeyInDynamo.equals(parentKeyInRds)) {
 				// Implies that the child is pointing to the wrong parent
-				this.addMetric("IncorrectParent", 1);;
-				this.nodeTreeUpdateManager.update(childInRds, parentInRds, date);
+				addCount("IncorrectParent", 1);;
+				nodeTreeUpdateManager.update(childInRds, parentInRds, date);
 			}
 		}
+
+		final long latency2 = System.currentTimeMillis() - start2;
+		addLatency("SyncBatchWithDynamo", latency2);
 	}
 
-	private void addMetric(String name, long count) {
+	private void addLatency(String name, long latency) {
+		addMetric(name, latency, "Milliseconds");
+	}
+
+	private void addCount(String name, long count) {
+		addMetric(name, count, "Count");
+	}
+
+	private void addMetric(String name, long metric, String unit) {
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("DynamoRdsSynchronizer");
-		profileData.setName(name); // Method name
-		profileData.setLatency(count);
-		profileData.setUnit("Count");
+		profileData.setName(name);
+		profileData.setLatency(metric);
+		profileData.setUnit(unit);
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);
 	}

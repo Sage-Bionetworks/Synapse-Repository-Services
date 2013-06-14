@@ -32,4 +32,18 @@
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
+	<!-- Redefine the dynamo worker trigger for shorter intervals during tests -->
+	<bean id="dynamoQueueMessageRetrieverTrigger"
+			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+			scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="dynamoQueueMessageRetriever" />
+				<property name="targetMethod" value="triggerFired" />
+			</bean>
+		</property>
+		<property name="startDelay" value="0" />
+		<property name="repeatInterval" value="200" />
+	</bean>
+
 </beans>
