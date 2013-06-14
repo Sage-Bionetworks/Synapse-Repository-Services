@@ -49,6 +49,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
+		if (parentId == null) {
+			parentId = childId; // Interpret as root
+		}
 
 		// Sync with RDS and update parent and timestamp if necessary
 		String newParentId = this.getParentInRds(childId);
@@ -59,14 +62,14 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), newTimestamp);
 			return;
 		}
-		if (!newParentId.equals(parentId)) {
+		if (!newParentId.equals(parentId) && parentId != null) {
 			parentId = newParentId;
 			timestamp = newTimestamp;
 		}
 
+		final String cId = KeyFactory.stringToKey(childId).toString();
+		final String pId = KeyFactory.stringToKey(parentId).toString();
 		try {
-			String cId = KeyFactory.stringToKey(childId).toString();
-			String pId = KeyFactory.stringToKey(parentId).toString();
 			boolean success = this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 			if (!success) {
 				String childParent = "("+ childId + ", " + parentId + ")";
@@ -78,6 +81,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					throw new RuntimeException("Create failed for child-parent pair " + childParent);
 				}
 			}
+		} catch (MultipleParentsException e) {
+			// Remove the damaged child and try one more time
+			this.nodeTreeUpdateDao.delete(cId, timestamp);
+			this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId, parentId);
@@ -97,6 +104,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
+		if (parentId == null) {
+			parentId = childId; // Interpret as root
+		}
 
 		// Sync with RDS and update parent and timestamp if necessary
 		String newParentId = this.getParentInRds(childId);
@@ -112,9 +122,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			timestamp = newTimestamp;
 		}
 
+		final String cId = KeyFactory.stringToKey(childId).toString();
+		final String pId = KeyFactory.stringToKey(parentId).toString();
 		try {
-			String cId = KeyFactory.stringToKey(childId).toString();
-			String pId = KeyFactory.stringToKey(parentId).toString();
 			boolean success = this.nodeTreeUpdateDao.update(cId, pId, timestamp);
 			if (!success) {
 				String childParent = "("+ childId + ", " + parentId + ")";
@@ -126,6 +136,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					throw new RuntimeException("Update failed for child-parent pair " + childParent);
 				}
 			}
+		} catch (MultipleParentsException e) {
+			// Remove the damaged child and try one more time
+			this.nodeTreeUpdateDao.delete(cId, timestamp);
+			this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId, parentId);
