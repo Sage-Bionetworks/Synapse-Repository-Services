@@ -7,7 +7,7 @@ package org.sagebionetworks.asynchronous.workers.sqs;
  * @author John
  *
  */
-public interface MessageReceiver {
+public interface MessageReceiver extends Runnable {
 	
 	/**
 	 * This is where the MessageReceiver will do all work.  A timer must be setup to fire this method.

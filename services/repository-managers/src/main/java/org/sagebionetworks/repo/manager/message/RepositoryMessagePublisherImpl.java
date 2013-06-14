@@ -10,6 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,6 +201,12 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			// If it does we want to log it but continue to send messages
 			// as this is called from a timer and not a web-services.
 			log.error("Failed to parse ChangeMessage:", e);
+		}catch (NotFoundException e){
+			// This can occur when we try to send a message that has already been deleted.
+			// It is not really an error condition but we log it.
+			if(log.isDebugEnabled()){
+				log.debug(e.getMessage());
+			}
 		}
 	}
 	

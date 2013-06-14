@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * @author Eric Wu
  */
-public class DynamoRdsSynchronizer {
+public class DynamoRdsSynchronizer implements Runnable {
 
 	@Autowired
 	private Consumer consumer;
@@ -51,6 +51,12 @@ public class DynamoRdsSynchronizer {
 		this.random = new SecureRandom();
 	}
 
+	@Override
+	public void run() {
+		// Call the original method.
+		triggerFired();
+	}
+	
 	public void triggerFired() {
 
 		// Get a random node and its parent from RDS
@@ -111,4 +117,5 @@ public class DynamoRdsSynchronizer {
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);
 	}
+
 }
