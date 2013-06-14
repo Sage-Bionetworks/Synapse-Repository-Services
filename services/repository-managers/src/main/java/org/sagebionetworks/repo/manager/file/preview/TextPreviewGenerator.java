@@ -20,6 +20,7 @@ import org.apache.commons.lang.StringUtils;
 public class TextPreviewGenerator implements PreviewGenerator {
 	
 	public static final String TEXT_PLAIN 	= "text/plain";
+	public static final String TEXT_SLASH 	= "text/";
 	public static final int MAX_CHARACTER_COUNT = 1500;
 	@Override
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
@@ -48,7 +49,7 @@ public class TextPreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public boolean supportsContentType(String contentType) {
-		return TEXT_PLAIN.equals(contentType.toLowerCase());
+		return contentType.toLowerCase().startsWith(TEXT_SLASH);
 	}
 
 	@Override
