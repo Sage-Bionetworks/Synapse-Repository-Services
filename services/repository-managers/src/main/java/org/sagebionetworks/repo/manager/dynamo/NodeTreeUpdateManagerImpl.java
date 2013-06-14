@@ -82,9 +82,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 				}
 			}
 		} catch (MultipleParentsException e) {
-			// Remove the damaged child and try one more time
-			this.nodeTreeUpdateDao.delete(cId, timestamp);
-			this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+			repair(cId, pId, timestamp);
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId, parentId);
@@ -137,9 +135,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 				}
 			}
 		} catch (MultipleParentsException e) {
-			// Remove the damaged child and try one more time
-			this.nodeTreeUpdateDao.delete(cId, timestamp);
-			this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+			repair(cId, pId, timestamp);
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId, parentId);
@@ -204,9 +200,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					try {
 						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 					} catch (MultipleParentsException e) {
-						// Remove the damaged child and try one more time
-						this.nodeTreeUpdateDao.delete(cId, timestamp);
-						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+						repair(cId, pId, timestamp);
+					} catch (IncompletePathException e) {
+						repair(cId, pId, timestamp);
 					}
 				}
 			}
@@ -249,5 +245,11 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		} catch (NotFoundException e) {
 			return null;
 		}
+	}
+
+	private void repair(final String cId, final String pId, final Date timestamp) {
+		// Remove the damaged child and try recreating it
+		this.nodeTreeUpdateDao.delete(cId, timestamp);
+		this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 	}
 }
