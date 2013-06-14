@@ -41,20 +41,27 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	@Override
-	public void create(String childId, String parentId, Date timestamp) {
+	public void create(final String childId, String parentId, Date timestamp) {
 
 		if (childId == null) {
 			throw new IllegalArgumentException("Child ID cannot be null.");
 		}
-		// Validate against RDS
-		parentId = this.getParentInRds(childId);
-		if (parentId == null) {
-			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
-			return;
-		}
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
+		}
+
+		// Sync with RDS and update parent and timestamp if necessary
+		String newParentId = this.getParentInRds(childId);
+		Date newTimestamp = new Date();
+		if (newParentId == null) {
+			this.logger.info("The node " + childId + " does not exist any more in RDS."
+					+ " Message to be dropped and node to be removed from Dynamo.");
+			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), newTimestamp);
+			return;
+		}
+		if (!newParentId.equals(parentId)) {
+			parentId = newParentId;
+			timestamp = newTimestamp;
 		}
 
 		try {
@@ -82,20 +89,27 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	@Override
-	public void update(String childId, String parentId,  Date timestamp) {
+	public void update(final String childId, String parentId,  Date timestamp) {
 
 		if (childId == null) {
 			throw new IllegalArgumentException("Child ID cannot be null");
 		}
-		// Validate against RDS
-		parentId = this.getParentInRds(childId);
-		if (parentId == null) {
-			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
-			return;
-		}
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
+		}
+
+		// Sync with RDS and update parent and timestamp if necessary
+		String newParentId = this.getParentInRds(childId);
+		Date newTimestamp = new Date();
+		if (newParentId == null) {
+			this.logger.info("The node " + childId + " does not exist any more in RDS."
+					+ " Message to be dropped and node to be removed from Dynamo.");
+			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), newTimestamp);
+			return;
+		}
+		if (!newParentId.equals(parentId)) {
+			parentId = newParentId;
+			timestamp = newTimestamp;
 		}
 
 		try {
