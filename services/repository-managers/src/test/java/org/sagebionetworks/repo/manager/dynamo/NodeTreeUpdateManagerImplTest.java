@@ -371,11 +371,11 @@ public class NodeTreeUpdateManagerImplTest {
 	public void testNodeNotExitInRds() {
 		this.man.create(this.cNotExistInRds, this.pSuccess, this.tSuccess);
 		verify(this.nodeTreeDaoMock, times(1)).delete(
-				KeyFactory.stringToKey(this.cNotExistInRds).toString(),
-				this.tSuccess);
+				eq(KeyFactory.stringToKey(this.cNotExistInRds).toString()),
+				any(Date.class));
 		this.man.update(this.cNotExistInRds, this.pSuccess, this.tSuccess);
 		verify(this.nodeTreeDaoMock, times(2)).delete(
-				KeyFactory.stringToKey(this.cNotExistInRds).toString(),
-				this.tSuccess);
+				eq(KeyFactory.stringToKey(this.cNotExistInRds).toString()),
+				any(Date.class));
 	}
 }

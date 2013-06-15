@@ -79,7 +79,7 @@ public class CompleteUploadWorkerTest {
 		when(mockThreadPool.submit(any(Callable.class))).thenReturn(mockFuture);
 		when(mockFuture.isDone()).thenReturn(true);
 		when(mockFuture.get()).thenThrow(new ExecutionException("some kind of error", new IllegalArgumentException("foo")));
-		maxWaitMS = 1000;
+		maxWaitMS = 2000;
 		CompleteUploadWorker cuw = new CompleteUploadWorker(stubUploadDaemonStatusDao, mockThreadPool, uploadStatus, cacf, mockmulltipartManager, bucket, maxWaitMS, userId);
 		assertFalse(cuw.call());
 		// The status should be set to failed
