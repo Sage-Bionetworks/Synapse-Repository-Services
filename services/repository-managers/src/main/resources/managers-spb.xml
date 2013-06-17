@@ -35,6 +35,32 @@
 
 	<!-- Trash manager -->
 	<bean id="trashManager" class="org.sagebionetworks.repo.manager.trash.TrashManagerImpl" />
+	
+	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
+	
+	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
+	<bean id="uploadFileDaemonThreadPoolPrimary"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments" value="10"/>
+	</bean>
+
+	<!-- The thread pool used by the asynchronous fileupload secondary daemons -->
+	<bean id="uploadFileDaemonThreadPoolSecondary"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments" value="10"/>
+	</bean>
 
 	<!-- Fixed Memory Pool - Used to provided a fix amount of memory used for transfering files
 	      from http input streams to S3 -->
@@ -216,6 +242,11 @@
 
 	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl"
 		scope="singleton" />
+
+	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
+		<constructor-arg index="0" ref="nodeTreeUpdateDao" />
+		<constructor-arg index="1" ref="nodeDao" />
+	</bean>
 
 	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
 		scope="singleton" />

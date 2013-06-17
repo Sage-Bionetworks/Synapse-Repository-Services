@@ -221,7 +221,9 @@ public class NodeTreeDaoWriteAutowireTest {
 		this.verifyRoot(a, timestampA);
 		this.verifyRoot(b, timestampB);
 		this.verifyPair(c, b, timestampC2);
+		this.verifyPair(d, c, timestampD);
 		this.verifyPair(d, b, timestampC2, 2);
+		this.verifyNotRoot(c);
 
 		// Add e to d to make sure c and d are in a valid state
 		final String e = this.idMap.get("e");
@@ -561,6 +563,19 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(LineageType.ANCESTOR, lineage.getLineageType());
 		Assert.assertEquals(timestamp, lineage.getTimestamp());
 		Assert.assertEquals(1L, lineage.getVersion().longValue());
+	}
+
+	private void verifyNotRoot(final String node) {
+		// Verify the descendant pointer
+		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
+		String rangeKey = DboNodeLineage.createRangeKey(1, node);
+		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		Assert.assertNull(dbo);
+		// Verify the ancestor pointer
+		hashKey = DboNodeLineage.createHashKey(node, LineageType.ANCESTOR);
+		rangeKey = DboNodeLineage.createRangeKey(1, DboNodeLineage.ROOT);
+		dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
+		Assert.assertNull(dbo);
 	}
 
 	private void verifyPair(final String child, final String parent, final Date timestamp) {

@@ -7,15 +7,18 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -108,5 +111,27 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	S3FileHandle completeChunkFileUpload(String userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Start an asynchronous daemon that will add all chunks to the file upload and complete the file upload
+	 * process. 
+	 * @param userInfo
+	 * @param cacf
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public UploadDaemonStatus startUploadDeamon(String userId, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the status of an asynchronous daemon stated with {@link #startUploadDeamon(UserInfo, CompleteAllChunksRequest)}
+	 * @param userInfo
+	 * @param daemonId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public UploadDaemonStatus getUploadDaemonStatus(String userId, String daemonId) throws DatastoreException, NotFoundException;
+	
 
 }

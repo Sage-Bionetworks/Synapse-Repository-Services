@@ -50,19 +50,28 @@
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
+	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+	<bean id="fileSemaphoreGatedRunner"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
+		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
+		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" />
+		<property name="semaphoreKey" value="filePreviewWorker" />		
+		<property name="runner" ref="fileQueueMessageReveiver" />
+	</bean>
 
-	<!-- This trigger is used to process messages from the search queue. -->
+	<!-- This trigger is used to process messages from the file preview queue. -->
 	<bean id="fileQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="fileQueueMessageReveiver" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject" ref="fileSemaphoreGatedRunner" />
+				<property name="targetMethod" value="attemptToRun" />
 			</bean>
 		</property>
-		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="1000" />
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="256" />
+		<property name="repeatInterval" value="987" />
 	</bean>
 
 </beans>

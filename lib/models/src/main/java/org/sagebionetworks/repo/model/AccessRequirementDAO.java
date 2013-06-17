@@ -78,7 +78,7 @@ public interface AccessRequirementDAO {
 	 * @throws DatastoreException
 	 */
 	List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds,
-			ACCESS_TYPE accessType) throws DatastoreException;
+			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
 
 	long getCount() throws DatastoreException;
 }

@@ -35,6 +35,13 @@ public class ExpectedStackBeansTest {
 			// Migration
 			"stackConfiguration.migrationBackupBatchMax",
 			"stackConfiguration.migrationMaxAllowedPacketBytes",
+			// Semaphore gated runner configuration.
+			"stackConfiguration.semaphoreGatedLockTimeoutMS",
+			"stackConfiguration.semaphoreGatedMaxRunnersRds",
+			"stackConfiguration.semaphoreGatedMaxRunnersSearch",
+			"stackConfiguration.semaphoreGatedMaxRunnersFilePreview",
+			"stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex",
+			"stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize",
 	};
 	
 	@Before

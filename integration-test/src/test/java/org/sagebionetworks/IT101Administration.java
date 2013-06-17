@@ -55,7 +55,6 @@ public class IT101Administration {
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
 
-		System.out.println(StackConfiguration.getPortalEndpoint());
 		String iamId = StackConfiguration.getIAMUserId();
 		String iamKey = StackConfiguration.getIAMUserKey();
 		if (iamId == null)

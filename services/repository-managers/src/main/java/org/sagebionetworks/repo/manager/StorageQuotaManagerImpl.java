@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +34,13 @@ public class StorageQuotaManagerImpl implements StorageQuotaManager{
 		}
 
 		final String userId = user.getIndividualGroup().getId();
-		storageQuotaDao.setQuota(userId, quotaInMb);
+		StorageQuota quota = storageQuotaDao.getQuota(userId);
+		if (quota == null) {
+			quota = new StorageQuota();
+			quota.setOwnerId(userId);
+		}
+		quota.setQuotaInMb((long)quotaInMb);
+		storageQuotaDao.setQuota(quota);
 	}
 
 	@Override
@@ -56,10 +63,10 @@ public class StorageQuotaManagerImpl implements StorageQuotaManager{
 		}
 
 		final String userId = user.getIndividualGroup().getId();
-		Integer quota = storageQuotaDao.getQuota(userId);
+		StorageQuota quota = storageQuotaDao.getQuota(userId);
 		if (quota == null) {
 			return DEFAULT_QUOTA;
 		}
-		return quota.intValue();
+		return quota.getQuotaInMb().intValue();
 	}
 }

@@ -1,12 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -24,11 +23,10 @@ public class AccessRequirementUtil {
 			UserInfo userInfo, 
 			RestrictableObjectDescriptor subjectId,
 			NodeDAO nodeDAO,
-			EvaluationDAO evaluationDAO,
 			AccessRequirementDAO accessRequirementDAO) throws NotFoundException {
-		ACCESS_TYPE accessType = null;
+		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
 		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
-			accessType = ACCESS_TYPE.DOWNLOAD;
+			accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 			// if the user is the owner of the object, then she automatically 
 			// has access to the object and therefore has no unmet access requirements
 			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
@@ -37,7 +35,8 @@ public class AccessRequirementUtil {
 				return EMPTY_LIST;
 			}
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
-			accessType = ACCESS_TYPE.PARTICIPATE;
+			accessTypes.add(ACCESS_TYPE.DOWNLOAD);
+			accessTypes.add(ACCESS_TYPE.PARTICIPATE);
 		} else {
 			throw new IllegalArgumentException("Unexpected type: "+subjectId.getType());
 		}
@@ -46,6 +45,7 @@ public class AccessRequirementUtil {
 		for (UserGroup ug : userInfo.getGroups()) {
 			principalIds.add(Long.parseLong(ug.getId()));
 		}
-		return accessRequirementDAO.unmetAccessRequirements(subjectId, principalIds, accessType);
+		
+		return accessRequirementDAO.unmetAccessRequirements(subjectId, principalIds, accessTypes);
 	}
 }

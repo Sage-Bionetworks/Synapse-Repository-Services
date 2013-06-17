@@ -114,7 +114,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		rod.setId(nodeId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		List<Long> accessRequirementIds = 
-			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, evaluationDAO, accessRequirementDAO);
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 	
@@ -126,7 +126,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		rod.setId(evaluationId);
 		rod.setType(RestrictableObjectType.EVALUATION);
 		List<Long> accessRequirementIds = 
-			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, evaluationDAO, accessRequirementDAO);
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 	
@@ -249,13 +249,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// no access found to generated entities, no access
 		return false;
 	}
-
+	
 	@Override
-	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator) {
+	public boolean isUserCreatorOrAdmin(UserInfo userInfo, String creator) {
 		// Admins can see anything.
 		if (userInfo.isAdmin()) return true;
 		// Only the creator can see the raw file handle
 		return userInfo.getIndividualGroup().getId().equals(creator);
+	}
+
+	@Override
+	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator) {
+		return isUserCreatorOrAdmin(userInfo, creator);
 	}
 
 	@Override
@@ -408,6 +413,5 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		return true;
 	}
-	
 	
 }
