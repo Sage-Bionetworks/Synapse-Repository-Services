@@ -34,7 +34,7 @@ public class SpringMVCDoclet {
 		File outputDirectory = getOutputDirectory(root.options());
 		
 		// Copy all of the base file to the output directory
-		CopyBaseFiles.copyFiel(outputDirectory);
+		CopyBaseFiles.copyDirectory(outputDirectory);
 		
 		// First write all of the schema files
 		SchemaWriter schemaWriter = new SchemaWriter(outputDirectory, root);
