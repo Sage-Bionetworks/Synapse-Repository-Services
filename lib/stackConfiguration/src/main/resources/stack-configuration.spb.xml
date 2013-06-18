@@ -57,4 +57,11 @@
 	<bean id="stackConfiguration.migrationBackupBatchMax" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.migrationMaxAllowedPacketBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<!-- Semaphore gated runner configuration -->
+	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersRds" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersSearch" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 </beans>

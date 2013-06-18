@@ -31,4 +31,12 @@ public class TextPreviewTest {
 		assertTrue(output.indexOf("...") > -1);
 	}
 
+	@Test
+	public void testContentType() throws IOException {
+		assertTrue(textPreviewGenerator.supportsContentType("text/csv"));
+		assertTrue(textPreviewGenerator.supportsContentType("TEXT/XML"));
+		assertTrue(textPreviewGenerator.supportsContentType("text/HTML"));
+		assertFalse(textPreviewGenerator.supportsContentType("image/anything"));
+		assertFalse(textPreviewGenerator.supportsContentType("csv"));
+	}
 }

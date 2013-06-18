@@ -125,9 +125,13 @@ public class AuthorizationManagerImplUnitTest {
 		evaluation.setId(EVAL_ID);
 		evaluation.setOwnerId(EVAL_OWNER_PRINCIPAL_ID);
 		when(mockEvaluationDAO.get(EVAL_ID)).thenReturn(evaluation);
+		
+		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
+		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
+		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
 
 		when(mockAccessRequirementDAO.unmetAccessRequirements(
-				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.PARTICIPATE))).
+				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(participateAndDownload))).
 				thenReturn(new ArrayList<Long>());
 	}
 
@@ -256,8 +260,12 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanAccessWithObjectTypeCompetitionUnmetAccessRequirement() throws Exception {
+		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
+		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
+		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
+		
 		when(mockAccessRequirementDAO.unmetAccessRequirements(
-				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(ACCESS_TYPE.PARTICIPATE))).
+				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(participateAndDownload))).
 				thenReturn(Arrays.asList(new Long[]{101L}));
 		// takes a little more to mock admin access to evaluation
 		String origEvaluationOwner = evaluation.getOwnerId();

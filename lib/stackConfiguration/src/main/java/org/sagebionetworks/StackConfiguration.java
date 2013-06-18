@@ -801,4 +801,52 @@ public class StackConfiguration {
 	public Integer getMigrationMaxAllowedPacketBytes(){
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.repo.model.dbo.migration.max.allowed.packet.byte"));
 	}
+	
+	/**
+	 * The maxiumn number of worker in the cluster that will process RDS index data
+	 * @return
+	 */
+	public Long getSemaphoreGatedLockTimeoutMS(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.semaphore.gated.lock.timeout.ms"));
+	}
+	
+	/**
+	 * The maxiumn number of worker in the cluster that will process RDS index data
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersRds(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.rds"));
+	}
+	
+	/**
+	 * The maxiumn number of worker in the cluster that will process search index data
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersSearch(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.search"));
+	}
+	
+	/**
+	 * The maxiumn number of worker in the cluster that will process file previews
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersFilePreview(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.file.preview"));
+	}
+	
+	/**
+	 * The maxiumn number of worker in the cluster that will process Dynamo index data
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersDynamoIndex(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.index"));
+	}
+
+	/**
+	 * The maxiumn number of worker in the cluster that will synchronize Dynamo with RDS
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersDynamoSynchronize(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
+	}
 }

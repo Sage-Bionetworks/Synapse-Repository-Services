@@ -41,25 +41,35 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	@Override
-	public void create(String childId, String parentId, Date timestamp) {
+	public void create(final String childId, String parentId, Date timestamp) {
 
 		if (childId == null) {
 			throw new IllegalArgumentException("Child ID cannot be null.");
 		}
-		// Validate against RDS
-		parentId = this.getParentInRds(childId);
-		if (parentId == null) {
-			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
-			return;
-		}
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
+		if (parentId == null) {
+			parentId = childId; // Interpret as root
+		}
 
+		// Sync with RDS and update parent and timestamp if necessary
+		String newParentId = this.getParentInRds(childId);
+		Date newTimestamp = new Date();
+		if (newParentId == null) {
+			this.logger.info("The node " + childId + " does not exist any more in RDS."
+					+ " Message to be dropped and node to be removed from Dynamo.");
+			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), newTimestamp);
+			return;
+		}
+		if (!newParentId.equals(parentId) && parentId != null) {
+			parentId = newParentId;
+			timestamp = newTimestamp;
+		}
+
+		final String cId = KeyFactory.stringToKey(childId).toString();
+		final String pId = KeyFactory.stringToKey(parentId).toString();
 		try {
-			String cId = KeyFactory.stringToKey(childId).toString();
-			String pId = KeyFactory.stringToKey(parentId).toString();
 			boolean success = this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 			if (!success) {
 				String childParent = "("+ childId + ", " + parentId + ")";
@@ -71,6 +81,8 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					throw new RuntimeException("Create failed for child-parent pair " + childParent);
 				}
 			}
+		} catch (MultipleParentsException e) {
+			repair(cId, pId, timestamp);
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId, parentId);
@@ -82,25 +94,35 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	@Override
-	public void update(String childId, String parentId,  Date timestamp) {
+	public void update(final String childId, String parentId,  Date timestamp) {
 
 		if (childId == null) {
 			throw new IllegalArgumentException("Child ID cannot be null");
 		}
-		// Validate against RDS
-		parentId = this.getParentInRds(childId);
-		if (parentId == null) {
-			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
-			return;
-		}
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Timestamp cannot be null");
 		}
+		if (parentId == null) {
+			parentId = childId; // Interpret as root
+		}
 
+		// Sync with RDS and update parent and timestamp if necessary
+		String newParentId = this.getParentInRds(childId);
+		Date newTimestamp = new Date();
+		if (newParentId == null) {
+			this.logger.info("The node " + childId + " does not exist any more in RDS."
+					+ " Message to be dropped and node to be removed from Dynamo.");
+			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), newTimestamp);
+			return;
+		}
+		if (!newParentId.equals(parentId)) {
+			parentId = newParentId;
+			timestamp = newTimestamp;
+		}
+
+		final String cId = KeyFactory.stringToKey(childId).toString();
+		final String pId = KeyFactory.stringToKey(parentId).toString();
 		try {
-			String cId = KeyFactory.stringToKey(childId).toString();
-			String pId = KeyFactory.stringToKey(parentId).toString();
 			boolean success = this.nodeTreeUpdateDao.update(cId, pId, timestamp);
 			if (!success) {
 				String childParent = "("+ childId + ", " + parentId + ")";
@@ -112,6 +134,8 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					throw new RuntimeException("Update failed for child-parent pair " + childParent);
 				}
 			}
+		} catch (MultipleParentsException e) {
+			repair(cId, pId, timestamp);
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId, parentId);
@@ -164,8 +188,6 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			for (EntityHeader eh : ehList) {
 				path.add(eh.getId());
 			}
-			// Add the child to the path
-			path.add(childId);
 			for (int i = 0; i < path.size(); i++) {
 				if (i == 0) {
 					// Handling the root
@@ -178,9 +200,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					try {
 						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 					} catch (MultipleParentsException e) {
-						// Remove the damaged child and try one more time
-						this.nodeTreeUpdateDao.delete(cId, timestamp);
-						this.nodeTreeUpdateDao.create(cId, pId, timestamp);
+						repair(cId, pId, timestamp);
+					} catch (IncompletePathException e) {
+						repair(cId, pId, timestamp);
 					}
 				}
 			}
@@ -223,5 +245,11 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		} catch (NotFoundException e) {
 			return null;
 		}
+	}
+
+	private void repair(final String cId, final String pId, final Date timestamp) {
+		// Remove the damaged child and try recreating it
+		this.nodeTreeUpdateDao.delete(cId, timestamp);
+		this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 	}
 }

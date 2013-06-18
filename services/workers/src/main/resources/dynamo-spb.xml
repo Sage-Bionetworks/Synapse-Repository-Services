@@ -53,18 +53,29 @@
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
+	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+	<bean id="dynamoIndexSemaphoreGatedRunner"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
+		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
+		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex" />
+		<property name="semaphoreKey" value="dynamoIndexWorker" />		
+		<property name="runner" ref="dynamoQueueMessageRetriever" />
+	</bean>
+
 	<bean id="dynamoQueueMessageRetrieverTrigger"
 			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 			scope="singleton">
 		<property name="jobDetail">
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="dynamoQueueMessageRetriever" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject" ref="dynamoIndexSemaphoreGatedRunner" />
+				<property name="targetMethod" value="attemptToRun" />
 			</bean>
 		</property>
-		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="2000" />
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="630" />
+		<property name="repeatInterval" value="1013" />
 	</bean>
+
 
 	<bean id="dynamoRdsSynchronizer"
 			class="org.sagebionetworks.dynamo.workers.DynamoRdsSynchronizer"
@@ -74,16 +85,25 @@
 		<constructor-arg index="2" ref="nodeTreeUpdateManager" />
 	</bean>
 
+	<bean id="dynamoRdsSynchronizerSemaphoreGatedRunner"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
+		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
+		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize" />
+		<property name="semaphoreKey" value="dynamoRdsSynchronizerWorker" />		
+		<property name="runner" ref="dynamoRdsSynchronizer" />
+	</bean>
+
 	<bean id="dynamoRdsSynchronizerTrigger"
 			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 			scope="singleton">
 		<property name="jobDetail">
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="dynamoRdsSynchronizer" />
-				<property name="targetMethod" value="triggerFired" />
+				<property name="targetObject" ref="dynamoRdsSynchronizerSemaphoreGatedRunner" />
+				<property name="targetMethod" value="attemptToRun" />
 			</bean>
 		</property>
-		<property name="startDelay" value="0" />
+		<!-- We stager the start delay of each trigger to spread out the timing -->
+		<property name="startDelay" value="1234" />
 		<property name="repeatInterval" value="30000" />
 	</bean>
 

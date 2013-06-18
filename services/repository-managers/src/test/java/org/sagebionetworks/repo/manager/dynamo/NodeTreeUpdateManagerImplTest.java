@@ -232,6 +232,10 @@ public class NodeTreeUpdateManagerImplTest {
 				eq(KeyFactory.stringToKey(this.cIncompletePath).toString()),
 				eq(KeyFactory.stringToKey(this.pIncompletePath).toString()),
 				any(Date.class));
+		// Should call in total 4 times -- the 1st time to generate the incomplete path exception
+		// and then 3 time to rebuild the path
+		verify(this.nodeTreeDaoMock, times(4)).create(any(String.class), any(String.class),
+				any(Date.class));
 	}
 
 	@Test
@@ -293,6 +297,9 @@ public class NodeTreeUpdateManagerImplTest {
 		verify(this.nodeTreeDaoMock, times(1)).create(
 				eq(KeyFactory.stringToKey(this.cIncompletePath).toString()),
 				eq(KeyFactory.stringToKey(this.pIncompletePath).toString()),
+				any(Date.class));
+		// Should call in total 3 times to rebuild the path
+		verify(this.nodeTreeDaoMock, times(3)).create(any(String.class), any(String.class),
 				any(Date.class));
 	}
 
@@ -364,11 +371,11 @@ public class NodeTreeUpdateManagerImplTest {
 	public void testNodeNotExitInRds() {
 		this.man.create(this.cNotExistInRds, this.pSuccess, this.tSuccess);
 		verify(this.nodeTreeDaoMock, times(1)).delete(
-				KeyFactory.stringToKey(this.cNotExistInRds).toString(),
-				this.tSuccess);
+				eq(KeyFactory.stringToKey(this.cNotExistInRds).toString()),
+				any(Date.class));
 		this.man.update(this.cNotExistInRds, this.pSuccess, this.tSuccess);
 		verify(this.nodeTreeDaoMock, times(2)).delete(
-				KeyFactory.stringToKey(this.cNotExistInRds).toString(),
-				this.tSuccess);
+				eq(KeyFactory.stringToKey(this.cNotExistInRds).toString()),
+				any(Date.class));
 	}
 }
