@@ -170,6 +170,11 @@
 		</property>
 	</bean>
 
+	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects -->
+	<bean id="controllerProfiler" class="org.sagebionetworks.cloudwatch.ControllerProfiler">
+		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff" />
+	</bean>
+
 	<!-- A profiler that logs performance data for all bean method calls. -->
 	<bean id="profiler" class="org.sagebionetworks.profiler.Profiler">
 		<property name="handlers">
