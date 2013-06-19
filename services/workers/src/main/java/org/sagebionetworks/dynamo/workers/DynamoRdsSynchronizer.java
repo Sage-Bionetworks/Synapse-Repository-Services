@@ -54,11 +54,6 @@ public class DynamoRdsSynchronizer implements Runnable {
 
 	@Override
 	public void run() {
-		// Call the original method.
-		triggerFired();
-	}
-	
-	public void triggerFired() {
 
 		final long start1 = System.currentTimeMillis();
 
@@ -70,7 +65,7 @@ public class DynamoRdsSynchronizer implements Runnable {
 		final Date date = new Date();
 
 		final long latency1 = System.currentTimeMillis() - start1;
-		addLatency("GetBatchFromRds", latency1);
+		addLatency("GetBatchFromRdsLatency", latency1);
 
 		// Update the count to be used at next trigger
 		// Occasionally count may be out-of-date and out-of-range, in which
@@ -84,7 +79,7 @@ public class DynamoRdsSynchronizer implements Runnable {
 
 		// Now cross check with DynamoDB
 		List<NodeParentRelation> list = results.getResults();
-		addCount("TotalSynced", list.size());
+		addCount("TotalSyncedCount", list.size());
 		for (NodeParentRelation childParent : list) {
 
 			String childInRds = childParent.getId();
@@ -93,7 +88,7 @@ public class DynamoRdsSynchronizer implements Runnable {
 			String parentKeyInDynamo = nodeTreeQueryDao.getParent(childKeyInRds);
 			if (parentKeyInDynamo == null) {
 				// The child does not exist in DynamoDB yet
-				addCount("MissingNode", 1);
+				addCount("MissingNodeCount", 1);
 				nodeTreeUpdateManager.create(childInRds, parentInRds, date);
 				return;
 			}
@@ -101,7 +96,7 @@ public class DynamoRdsSynchronizer implements Runnable {
 			if (parentInRds == null) {
 				// Check against the root
 				if (!nodeTreeQueryDao.isRoot(childKeyInRds)) {
-					addCount("IncorrectRoot", 1);
+					addCount("IncorrectRootCount", 1);
 					nodeTreeUpdateManager.update(childKeyInRds, childKeyInRds, date);
 				}
 				return;
@@ -110,13 +105,13 @@ public class DynamoRdsSynchronizer implements Runnable {
 			String parentKeyInRds = KeyFactory.stringToKey(parentInRds).toString();
 			if (!parentKeyInDynamo.equals(parentKeyInRds)) {
 				// Implies that the child is pointing to the wrong parent
-				addCount("IncorrectParent", 1);;
+				addCount("IncorrectParentCount", 1);;
 				nodeTreeUpdateManager.update(childInRds, parentInRds, date);
 			}
 		}
 
 		final long latency2 = System.currentTimeMillis() - start2;
-		addLatency("SyncBatchWithDynamo", latency2);
+		addLatency("SyncBatchWithDynamoLatency", latency2);
 	}
 
 	private void addLatency(String name, long latency) {
@@ -136,5 +131,4 @@ public class DynamoRdsSynchronizer implements Runnable {
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);
 	}
-
 }
