@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -70,7 +71,10 @@ public class DBOAccessApprovalDAOImplTest {
 	private AccessApproval accessApproval = null;
 	private AccessApproval accessApproval2 = null;
 	private Evaluation evaluation = null;
-		
+	private List<ACCESS_TYPE> participateAndDownload=null;
+	private List<ACCESS_TYPE> downloadAccessType=null;
+	private List<ACCESS_TYPE> updateAccessType=null;
+	
 	@Before
 	public void setUp() throws Exception {
 		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
@@ -111,6 +115,20 @@ public class DBOAccessApprovalDAOImplTest {
 		id = accessRequirement2.getId();
 		assertNotNull(id);
 
+		if (participateAndDownload == null) {
+			participateAndDownload = new ArrayList<ACCESS_TYPE>();
+			participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
+			participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
+		}
+		
+		if (downloadAccessType == null) {
+			downloadAccessType= new ArrayList<ACCESS_TYPE>();
+			downloadAccessType.add(ACCESS_TYPE.DOWNLOAD);
+		}
+		if (updateAccessType == null) {
+			updateAccessType= new ArrayList<ACCESS_TYPE>();
+			updateAccessType.add(ACCESS_TYPE.UPDATE);
+		}
 }
 		
 	
@@ -167,12 +185,12 @@ public class DBOAccessApprovalDAOImplTest {
 	public void testUnmetARsForEvaluation() throws Exception {
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
 		// Logic for unmet requirements doesn't reflect ownership at the DAO level.  It's factored in at the manager level.
-		// Therefore, the owner see unmet ARs for herself.. 
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.PARTICIPATE);
+		// Therefore, the owner see unmet ARs for herself..
+		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		// ... just as someone else does, if they haven't signed the ToU
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), ACCESS_TYPE.PARTICIPATE);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		
@@ -190,7 +208,7 @@ public class DBOAccessApprovalDAOImplTest {
 				accessRequirementDAO.unmetAccessRequirements(
 						rod, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), 
-						ACCESS_TYPE.PARTICIPATE).isEmpty()
+						participateAndDownload).isEmpty()
 				);
 
 		// Get by evaluation Id
@@ -205,12 +223,12 @@ public class DBOAccessApprovalDAOImplTest {
 	public void testCRUD() throws Exception {
 		// first of all, we should see the unmet requirement
 		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.DOWNLOAD);
+		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// while we're at it, check the edge cases:
 		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), ACCESS_TYPE.DOWNLOAD);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// no unmet requirements for ficticious node ID
@@ -218,14 +236,14 @@ public class DBOAccessApprovalDAOImplTest {
 				accessRequirementDAO.unmetAccessRequirements(
 						AccessRequirementUtilsTest.createRestrictableObjectDescriptor("syn7890"), 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
-						ACCESS_TYPE.DOWNLOAD).isEmpty()
+						downloadAccessType).isEmpty()
 				);
 		// no unmet requirement for other type of access
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
 						rod, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
-						ACCESS_TYPE.UPDATE).isEmpty()
+						updateAccessType).isEmpty()
 				);
 		
 		
@@ -242,15 +260,15 @@ public class DBOAccessApprovalDAOImplTest {
 				accessRequirementDAO.unmetAccessRequirements(
 						rod, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
-						ACCESS_TYPE.DOWNLOAD).isEmpty()
+						downloadAccessType).isEmpty()
 				);
 		// ... but for a different (ficticious) user, the requirement isn't met...
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), ACCESS_TYPE.DOWNLOAD);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// ... and it's still unmet for the second node
 		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod2, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.PARTICIPATE);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod2, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		

@@ -9,33 +9,44 @@
        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
-	
+
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
-	<import resource="classpath:aws-spb.xml" />
 
-	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects --> 
-	<bean id="controllerProfiler" class="org.sagebionetworks.cloudwatch.ControllerProfiler">
-		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff"/>
+	<import resource="classpath:stack-configuration.spb.xml" />
+
+	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
+	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
+
+	<!-- bean for AmazonWebServices BasicAWSCredentials -->
+	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
+		<constructor-arg index="0"><ref bean="userID"/></constructor-arg>
+		<constructor-arg index="1"><ref bean="userKey"/></constructor-arg>
+	</bean>	
+
+	<!-- bean for AmazonCloudWatch client -->
+	<bean id="cloudWatchClient" class="com.amazonaws.services.cloudwatch.AmazonCloudWatchClient">
+  		<constructor-arg>
+            <ref bean="awsCredentials"/>
+        </constructor-arg>
 	</bean>
-	
+
 	<!-- A consumer that logs performance data for all bean method calls to Amazon CloudWatch. -->  
 	<bean id="consumer" class="org.sagebionetworks.cloudwatch.Consumer" scope="singleton"/>
-	
+
 	<!--  bean saying we want to invoke the sendEm method in Consumer class -->
 	<bean id="methodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
   		<property name="targetObject" ref="consumer" />
   		<property name="targetMethod" value="executeCloudWatchPut" />
 	</bean>
-	
+
 	<!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
 	<bean id="simpleTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
     	<property name="jobDetail" ref="methodInvoking" />
     	<property name="startDelay" value="0" />
     	<property name="repeatInterval" ref="stackConfiguration.cloudWatchTriggerTime" />
 	</bean>
-	
+
 	<!-- Trigger needs a scheduler to start it -->
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="autoStartup">
@@ -47,20 +58,4 @@
     		</list>
   		</property>
 	</bean>	
-	
-	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
-	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
-	
-	<!-- bean for AmazonWebServices BasicAWSCredentials -->
-	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
-		<constructor-arg index="0"><ref bean="userID"/></constructor-arg>
-		<constructor-arg index="1"><ref bean="userKey"/></constructor-arg>
-	</bean>	
-	
-	<!-- bean for AmazonCloudWatch client -->
-	<bean id="cloudWatchClient" class="com.amazonaws.services.cloudwatch.AmazonCloudWatchClient">
-  		<constructor-arg>
-            <ref bean="awsCredentials"/>
-        </constructor-arg>
-	</bean>
 </beans>

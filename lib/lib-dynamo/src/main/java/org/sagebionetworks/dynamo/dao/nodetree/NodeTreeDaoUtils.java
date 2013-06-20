@@ -43,25 +43,13 @@ class NodeTreeDaoUtils {
 		}
 
 		// Start from checking the root
-		final List<NodeLineage> rootList = getRootLineage(mapper);
 		final NodeLineage lastLineage = new NodeLineage(dboList.get(dboListSize - 1));
 		final String lastNode = lastLineage.getAncestorOrDescendantId();
-		boolean lastIsRoot = false;
-		for (NodeLineage rootLineage : rootList) {
-			final String root = rootLineage.getAncestorOrDescendantId();
-			if (DboNodeLineage.ROOT.equals(lastNode)) {
-				// If the last node is the dummy node, this node must be the actual root.
-				// No other node points to the dummy node except the actual root.
-				if (root.equals(node)) {
-					lastIsRoot = true;
-					return new ArrayList<NodeLineage>(0);
-				}
-			} else if (root.equals(lastNode)) {
-				lastIsRoot = true;
-				break;
-			}
+		// In the case the querying node is the actually root, the last node would be the dummy ROOT
+		if (DboNodeLineage.ROOT.equals(lastNode) && isRoot(node, mapper)) {
+			return new ArrayList<NodeLineage>(0);
 		}
-		if (!lastIsRoot) {
+		if (!isRoot(lastNode, mapper)) {
 			throw new IncompletePathException("The list of ancestors for node " + node + " is missing the root.");
 		}
 
@@ -85,7 +73,7 @@ class NodeTreeDaoUtils {
 				if ((i + 1) < dboListSize) {
 					ancestors.add(new NodeLineage(dboList.get(i + 1)));
 				}
-				throw new MultipleInheritanceException(msg, dist, ancestors);
+				throw new MultipleInheritanceException(msg, node, dist, ancestors);
 			}
 			path.add(lineage);
 		}
@@ -97,29 +85,9 @@ class NodeTreeDaoUtils {
 	 * Whether the node is a root.
 	 */
 	static boolean isRoot(final String nodeId, final DynamoDBMapper mapper) {
-		List<NodeLineage> rootList = getRootLineage(mapper);
-		for (NodeLineage rootLineage : rootList) {
-			String root = rootLineage.getAncestorOrDescendantId();
-			if (root.equals(nodeId)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Gets the lineage from the dummy ROOT to all the root nodes. These are essentially
-	 * the pointers from the dummy ROOT to the actual roots.
-	 */
-	static List<NodeLineage> getRootLineage(final DynamoDBMapper mapper) {
-		// Use the dummy ROOT to locate the actual root
-		// The actual root is directly below the dummy ROOT
-		List<DboNodeLineage> results = query(DboNodeLineage.ROOT, LineageType.DESCENDANT, 1, mapper);
-		List<NodeLineage> roots = new ArrayList<NodeLineage>();
-		for (DboNodeLineage dbo : results) {
-			roots.add(new NodeLineage(dbo));
-		}
-		return roots;
+		NodeLineage parent = getParentLineage(nodeId, mapper);
+		return parent != null &&
+				DboNodeLineage.ROOT.equals(parent.getAncestorOrDescendantId());
 	}
 
 	/**
@@ -142,12 +110,11 @@ class NodeTreeDaoUtils {
 		}
 		if (dboList.size() > 1) {
 			String msg = child + " fetches back more than 1 parent.";
-			int distance = 1;
 			List<NodeLineage> parents = new ArrayList<NodeLineage>(dboList.size());
 			for (DboNodeLineage dbo : dboList) {
 				parents.add(new NodeLineage(dbo));
 			}
-			throw new MultipleInheritanceException(msg, distance, parents);
+			throw new MultipleParentsException(msg, child, parents);
 		}
 		NodeLineage parent = new NodeLineage(dboList.get(0));
 		return parent;

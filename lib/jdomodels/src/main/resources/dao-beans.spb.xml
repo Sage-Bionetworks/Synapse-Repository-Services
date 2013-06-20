@@ -30,6 +30,9 @@
 	<bean id="dboAnnotationsDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl" />
 
+	<bean id="uploadDaemonStatusDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOUploadDaemonStatusDaoImpl" />
+
 	<bean id="referenceDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl" />
 	<bean id="dboReferenceDao"
@@ -162,6 +165,16 @@
 
 	<bean id="doiMigratableDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiMigratableDaoImpl"
+		scope="singleton">
+	</bean>
+
+	<bean id="storageQuotaDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOStorageQuotaDaoImpl"
+		scope="singleton">
+	</bean>
+
+	<bean id="storageQuotaAdminDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.StorageQuotaAdminDaoImpl"
 		scope="singleton">
 	</bean>
 

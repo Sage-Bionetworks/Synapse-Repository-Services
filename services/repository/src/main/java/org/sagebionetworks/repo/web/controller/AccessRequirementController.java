@@ -47,7 +47,16 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 
-
+	/**
+	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity
+	 * @param userId
+	 * @param entityId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -77,7 +86,17 @@ public class AccessRequirementController extends BaseController {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request);
 	}
-
+	
+	/**
+	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for an evaluation
+	 * @param userId
+	 * @param evaluationId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody

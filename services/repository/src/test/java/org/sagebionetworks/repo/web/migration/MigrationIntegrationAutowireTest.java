@@ -28,6 +28,7 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -114,7 +116,11 @@ public class MigrationIntegrationAutowireTest {
 	EntityBootstrapper entityBootstrapper;
 	@Autowired
 	MigrationManager migrationManager;
-	
+	@Autowired
+	StorageQuotaManager storageQuotaManager;
+	@Autowired
+	StorageQuotaAdminDao storageQuotaAdminDao;
+
 	UserInfo userInfo;
 	private String userName;
 	private String adminId;
@@ -175,6 +181,7 @@ public class MigrationIntegrationAutowireTest {
 		createAccessApproval();
 		creatWikiPages();
 		createDoi();
+		createStorageQuota();
 	}
 
 
@@ -184,6 +191,7 @@ public class MigrationIntegrationAutowireTest {
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
 		userManager.clearCache();
+		storageQuotaAdminDao.clear();
 	}
 
 
@@ -360,8 +368,11 @@ public class MigrationIntegrationAutowireTest {
 		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
 		fileHandlesToDelete.add(handleOne.getId());
 	}
-	
-	
+
+	private void createStorageQuota() {
+		storageQuotaManager.setQuotaForUser(userInfo, userInfo, 3000);
+	}
+
 	@After
 	public void after() throws Exception{
 		// to cleanup for this test we delete all in the database

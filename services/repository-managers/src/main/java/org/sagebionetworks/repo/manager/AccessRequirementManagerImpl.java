@@ -86,7 +86,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<Long> unmetIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, subjectId, nodeDAO, evaluationDAO, accessRequirementDAO);
+				userInfo, subjectId, nodeDAO, accessRequirementDAO);
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)

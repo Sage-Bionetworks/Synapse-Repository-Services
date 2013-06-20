@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_EXPIRES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_SEMAPHORE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SEMAPHORE;
@@ -22,7 +21,7 @@ public class DBOSemaphore implements DatabaseObject<DBOSemaphore> {
 
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("typeId", COL_SEMAPHORE_ID, true),
+		new FieldColumn("key", COL_SEMAPHORE_KEY, true),
 		new FieldColumn("token", COL_SEMAPHORE_TOKEN),
 		new FieldColumn("expiration", COL_SEMAPHORE_EXPIRES),
 		};
@@ -34,7 +33,7 @@ public class DBOSemaphore implements DatabaseObject<DBOSemaphore> {
 			@Override
 			public DBOSemaphore mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOSemaphore sem = new DBOSemaphore();
-				sem.setTypeId(rs.getInt(COL_SEMAPHORE_ID));
+				sem.setKey(rs.getString(COL_SEMAPHORE_KEY));
 				sem.setToken(rs.getString(COL_SEMAPHORE_TOKEN));
 				sem.setExpiration(rs.getLong(COL_SEMAPHORE_EXPIRES));
 				return sem;
@@ -61,15 +60,10 @@ public class DBOSemaphore implements DatabaseObject<DBOSemaphore> {
 			}};
 	}
 	
-	private Integer typeId;
+	private String key;
 	private String token;
 	private Long expiration;
-	public Integer getTypeId() {
-		return typeId;
-	}
-	public void setTypeId(Integer typeId) {
-		this.typeId = typeId;
-	}
+
 	public String getToken() {
 		return token;
 	}
@@ -82,14 +76,20 @@ public class DBOSemaphore implements DatabaseObject<DBOSemaphore> {
 	public void setExpiration(Long expiration) {
 		this.expiration = expiration;
 	}
+	public String getKey() {
+		return key;
+	}
+	public void setKey(String key) {
+		this.key = key;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((expiration == null) ? 0 : expiration.hashCode());
+		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result + ((token == null) ? 0 : token.hashCode());
-		result = prime * result + ((typeId == null) ? 0 : typeId.hashCode());
 		return result;
 	}
 	@Override
@@ -106,21 +106,21 @@ public class DBOSemaphore implements DatabaseObject<DBOSemaphore> {
 				return false;
 		} else if (!expiration.equals(other.expiration))
 			return false;
+		if (key == null) {
+			if (other.key != null)
+				return false;
+		} else if (!key.equals(other.key))
+			return false;
 		if (token == null) {
 			if (other.token != null)
 				return false;
 		} else if (!token.equals(other.token))
 			return false;
-		if (typeId == null) {
-			if (other.typeId != null)
-				return false;
-		} else if (!typeId.equals(other.typeId))
-			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
-		return "DBOSemaphore [typeId=" + typeId + ", token=" + token
+		return "DBOSemaphore [key=" + key + ", token=" + token
 				+ ", expiration=" + expiration + "]";
 	}
 

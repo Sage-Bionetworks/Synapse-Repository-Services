@@ -139,6 +139,28 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
+		},
+		"url": {
+			"type": "string",
+			"title": "URL",
+			"description": "A link to more information about this user",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"teamName": {
+			"type": "string",
+			"title": "Team Name",
+			"description": "Team Name",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		}
 	}
 }
