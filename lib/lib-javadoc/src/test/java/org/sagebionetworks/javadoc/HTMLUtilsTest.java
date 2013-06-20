@@ -10,7 +10,7 @@ public class HTMLUtilsTest {
 
 	@Test
 	public void testCreateHTMFromTempalte() throws IOException{
-		String pathToRoot = FileUtils.pathToRoot("org.sagebionetworks.sample.Example");
+		String pathToRoot = BasicFileUtils.pathToRoot("org.sagebionetworks.sample.Example");
 		String body = "this is the body of the test";
 		String result = HTMLUtils.createHTMFromTempalte(pathToRoot, body);
 		System.out.println(result);

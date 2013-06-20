@@ -1,7 +1,6 @@
 package org.sagebionetworks.javadoc.web.services;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -14,11 +13,14 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.sagebionetworks.javadoc.FileUtils;
+import org.apache.commons.io.FileUtils;
+import org.sagebionetworks.javadoc.BasicFileUtils;
 import org.sagebionetworks.javadoc.HTMLUtils;
+import org.sagebionetworks.javadoc.writer.CharacterWriter;
+import org.sagebionetworks.javadoc.writer.HyperLinkWriter;
+import org.sagebionetworks.javadoc.writer.SubWriter;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Write a JSON schema to HTML
@@ -39,21 +41,18 @@ public class SchemaHTMLWriter {
 	 * @throws XMLStreamException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public static void write(File outputFile, String jsonSchema, String name)
+	public static void write(File outputFile, ObjectSchema schema, String name)
 			throws IOException, XMLStreamException, JSONObjectAdapterException {
 		if (outputFile == null)
 			throw new IllegalArgumentException("The outputFile cannot be null");
-		if (jsonSchema == null)
-			throw new IllegalArgumentException("JSON Schema cannot be null");
-		// Parse the schema
-		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl(jsonSchema);
-		ObjectSchema schema = new ObjectSchema(adpater);
+		if (schema == null)
+			throw new IllegalArgumentException("Schema cannot be null");
 		// Get the body HTML
 		String body = writeToHTML(schema);
-		String pathToRoot = FileUtils.pathToRoot(name);
+		String pathToRoot = BasicFileUtils.pathToRoot(name);
 		String pageHTML = HTMLUtils.createHTMFromTempalte(pathToRoot, body);
 		// Write the file
-		org.apache.commons.io.FileUtils.writeStringToFile(outputFile, pageHTML);
+		FileUtils.writeStringToFile(outputFile, pageHTML);
 	}
 
 
@@ -75,7 +74,11 @@ public class SchemaHTMLWriter {
 		writeElement(writer, "h5", schema.getId());
 
 		// Write the properties to a table
-		writePropertiesToTable(writer, schema.getProperties());
+		if(schema.getEnum() != null){
+			writeEnumToTable(writer, schema.getEnum());
+		}else{
+			writePropertiesToTable(writer, schema.getProperties());
+		}
 		writer.writeEndDocument();// end
 		// done
 		writer.flush();
@@ -85,8 +88,27 @@ public class SchemaHTMLWriter {
 		return bodyHTML;
 	}
 	
+	/**
+	 * Write enumerations to the table.
+	 * @param writer
+	 * @param enums
+	 * @throws XMLStreamException
+	 */
+	private static void writeEnumToTable(XMLStreamWriter writer, String[] enums) throws XMLStreamException {
+		String[] headers = new String[]{"Enumeration"};
+		List<SubWriter[]> data = new LinkedList<SubWriter[]>();
+		for(String enumName: enums){
+			SubWriter[] row = new SubWriter[]{
+					new CharacterWriter(enumName),
+			};
+			data.add(row);
+		}
+		// Write this as a table
+		HTMLUtils.writeTable(writer, headers, data);
+	}
 
-	
+
+
 	/**
 	 * Write a header to the stream
 	 * @param writer
@@ -107,7 +129,7 @@ public class SchemaHTMLWriter {
 	 */
 	public static void writePropertiesToTable(XMLStreamWriter writer, Map<String, ObjectSchema> properties) throws XMLStreamException{
 		String[] headers = new String[]{"name","description","type"};
-		List<String[]> data = new LinkedList<String[]>();
+		List<SubWriter[]> data = new LinkedList<SubWriter[]>();
 		// For each 
 		Iterator<Entry<String, ObjectSchema>> it = properties.entrySet().iterator();
 		while(it.hasNext()){
@@ -117,16 +139,17 @@ public class SchemaHTMLWriter {
 			if(description == null){
 				description = "";
 			}
-			String format;
-			if(prop.getFormat() != null){
-				format = prop.getFormat().name();
+			SubWriter typeWriter;
+			if(prop.getId() != null){
+				final String id = prop.getId();
+				typeWriter = new HyperLinkWriter("${"+id+"}", id);
 			}else{
-				format = "";
+				typeWriter =new CharacterWriter(prop.getType().name());
 			}			
-			String[] row = new String[]{
-					entry.getKey(),
-					description,
-					format,
+			SubWriter[] row = new SubWriter[]{
+					new CharacterWriter(entry.getKey()),
+					new CharacterWriter(description),
+					typeWriter,
 			};
 			data.add(row);
 		}

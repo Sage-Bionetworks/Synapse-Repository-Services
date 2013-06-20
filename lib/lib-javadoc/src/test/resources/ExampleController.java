@@ -2,6 +2,8 @@ package org.sagebionetworks.samples;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
@@ -64,4 +66,12 @@ public class ExampleController {
 			) throws DatastoreException, NotFoundException{
 		return null;
 	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/startCompleteUploadDaemon" , method = RequestMethod.POST)
+	public @ResponseBody UploadDaemonStatus startCompleteUploadDaemon(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException{
+		return null;
+	}
+	
 }

@@ -2,10 +2,15 @@ package org.sagebionetworks.javadoc.web.services;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
 
 import org.sagebionetworks.javadoc.CopyBaseFiles;
+import org.sagebionetworks.javadoc.linker.FileLink;
+import org.sagebionetworks.javadoc.linker.Linker;
+import org.sagebionetworks.javadoc.linker.PropertyRegExLinker;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.sun.javadoc.DocErrorReporter;
@@ -18,6 +23,12 @@ import com.sun.javadoc.RootDoc;
  *
  */
 public class SpringMVCDoclet {
+	
+	static Linker linker = new PropertyRegExLinker();
+	static List<FileWriter> writers = new LinkedList<FileWriter>();
+	static{
+		writers.add(new SchemaWriter());
+	}
 
 
 	/**
@@ -36,8 +47,13 @@ public class SpringMVCDoclet {
 		// Copy all of the base file to the output directory
 		CopyBaseFiles.copyDirectory(outputDirectory);
 		
-		// First write all of the schema files
-		SchemaWriter schemaWriter = new SchemaWriter(outputDirectory, root);
+		// Run all of the file writers
+		List<FileLink> fileLinkes = new LinkedList<FileLink>();
+		for(FileWriter writer: writers){
+			fileLinkes.addAll(writer.writeAllFiles(outputDirectory, root));
+		}
+		// Link all of the files.
+		linker.link(outputDirectory, fileLinkes);
 		return true;
 	}
 	

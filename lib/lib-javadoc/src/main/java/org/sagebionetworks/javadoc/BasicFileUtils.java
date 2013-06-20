@@ -9,7 +9,7 @@ import java.io.IOException;
  * @author John
  *
  */
-public class FileUtils {
+public class BasicFileUtils {
 	
 	/**
 	 * Create a new File for the given class name.
@@ -55,14 +55,50 @@ public class FileUtils {
 	 * @return
 	 */
 	public static String pathToRoot(String className){
-		StringBuilder builder = new  StringBuilder();
 		String[] split = className.split("\\.");
-		for(int i=0; i<split.length-1; i++){
+		return pathToRoot(split.length);
+	}
+
+	/**
+	 * Path to root given a depths
+	 * @param length
+	 * @return
+	 */
+	public static String pathToRoot(int depths) {
+		StringBuilder builder = new  StringBuilder();
+		for(int i=0; i<depths-1; i++){
 			if(i > 0){
 				builder.append("/");
 			}
 			builder.append("..");
 		}
 		return builder.toString();
+	}
+	
+	/**
+	 * Build the path to root for a given file.
+	 * @param root
+	 * @param file
+	 * @return
+	 */
+	public static String pathToRoot(File root, File file){
+		int depth = countDepth(root, file, 0);
+		return pathToRoot(depth);
+	}
+	
+	/**
+	 * Recursively count the depth that the child is from the parent.
+	 * @param root
+	 * @param file
+	 * @param depth
+	 * @return
+	 */
+	private static int countDepth(File root, File child, int depth){
+		depth++;
+		if(root.equals(child.getParentFile())){
+			return depth;
+		}else{
+			return countDepth(root, child.getParentFile(), depth);
+		}
 	}
 }

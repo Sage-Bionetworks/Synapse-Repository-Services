@@ -5,11 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavadocMockUtils;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.schema.ObjectSchema;
 
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
@@ -64,13 +67,13 @@ public class SchemaWriterTest {
 		when(method.returnType()).thenReturn(retunType);
 		when(method.parameters()).thenReturn(params);
 		
-		HashSet<String> set = new HashSet<String>();
+		Map<String, ObjectSchema> schemaMap = new HashMap<String, ObjectSchema>();
 		// Make the call
-		SchemaWriter.findSchemaFiles(set, method);
-		assertEquals(2, set.size());
-		assertTrue(set.contains(returnName));
-		assertTrue(set.contains(paramTwo));
-		assertFalse(set.contains(paramOne));
+		SchemaWriter.findSchemaFiles(schemaMap, method);
+		assertEquals(2, schemaMap.size());
+		assertTrue(schemaMap.containsKey(returnName));
+		assertTrue(schemaMap.containsKey(paramTwo));
+		assertFalse(schemaMap.containsKey(paramOne));
 		
 	}
 }
