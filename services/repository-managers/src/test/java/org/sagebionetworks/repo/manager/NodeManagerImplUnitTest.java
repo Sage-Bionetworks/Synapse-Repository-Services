@@ -130,7 +130,7 @@ public class NodeManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidateNodeCreatedDataWithNulls() {
+	public void testValidateNodeCreatedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
 		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
@@ -140,7 +140,7 @@ public class NodeManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testValidateNodeModifiedDataWithPreset() {
+	public void testValidateNodeModifiedDataWithPreset(){
 		Node node = new Node();
 		Long presetModifiedBy = 2L;
 		Date presetModifiedOn = new Date(100L);

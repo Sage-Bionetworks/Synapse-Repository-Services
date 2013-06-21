@@ -141,5 +141,4 @@ public interface TemplatedConfiguration {
 	 */
 	public int getHttpClientMaxConnsPerRoute();
 
-
 }
