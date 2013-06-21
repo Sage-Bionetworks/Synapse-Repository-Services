@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -96,12 +95,12 @@ public class UserProfileServiceTest {
 		userInfo = new UserInfo(false);
 		userInfo.setIndividualGroup(new UserGroup());
 		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
-		
-		when(mockPermissionsManager.getGroups()).thenReturn(groups);
+
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserManager.getGroups()).thenReturn(groups);
 
 		userProfileService.setPermissionsManager(mockPermissionsManager);
 		userProfileService.setUserProfileManager(mockUserProfileManager);

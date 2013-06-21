@@ -22,6 +22,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface EvaluationService {
 
+	////// Methods for managing evaluations //////
+
 	/**
 	 * Create a new Synapse Evaluation
 	 * 
@@ -113,6 +115,8 @@ public interface EvaluationService {
 	public void deleteEvaluation(String userId, String evalId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
+	////// Methods for managing participants //////
+
 	/**
 	 * Add self as a Participant to a Evaluation.
 	 * 
@@ -183,6 +187,8 @@ public interface EvaluationService {
 	 */
 	public long getParticipantCount(String evalId) throws DatastoreException,
 			NotFoundException;
+
+	////// Methods for managing submissions //////
 
 	/**
 	 * Create a Submission.
@@ -364,21 +370,6 @@ public interface EvaluationService {
 			String evalId, SubmissionStatusEnum status, long limit,
 			long offset, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-	
-	/**
-	 * determine whether a user has the given access type for a given evaluation
-	 * 
-	 * @param evalId
-	 * @param userId
-	 * @param accessType
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> boolean hasAccess(String evalId, String userName,
-			HttpServletRequest request, String accessType)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get all SubmissionStatuses for a given Evaluation. This method is
@@ -403,4 +394,20 @@ public interface EvaluationService {
 			long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
+	////// Methods for managing ACLs //////
+
+	/**
+	 * determine whether a user has the given access type for a given evaluation
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Entity> boolean hasAccess(String evalId, String userName,
+			HttpServletRequest request, String accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
 }

@@ -46,7 +46,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	@Autowired
 	SubmissionManager submissionManager;
 	@Autowired
-	EntityPermissionsManager permissionsManager;
+	EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
 	UserManager userManager;
@@ -369,7 +369,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
-		return permissionsManager.hasAccess(id, ObjectType.EVALUATION, ACCESS_TYPE.valueOf(accessType), userInfo);
+		return entityPermissionsManager.hasAccess(id, ObjectType.EVALUATION, ACCESS_TYPE.valueOf(accessType), userInfo);
 	}
 	
 }

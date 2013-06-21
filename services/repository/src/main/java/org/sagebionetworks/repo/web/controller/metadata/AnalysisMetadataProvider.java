@@ -32,7 +32,7 @@ public class AnalysisMetadataProvider implements
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	EntityPermissionsManager permissionsManager;
+	EntityPermissionsManager entityPermissionsManager;
 
 
 	@Override
@@ -90,7 +90,7 @@ public class AnalysisMetadataProvider implements
 					Step.class);
 			step.setParentId(entity.getId());
 			entityManager.updateEntity(user, step, false, null);
-			permissionsManager.restoreInheritance(stepId, user);
+			entityPermissionsManager.restoreInheritance(stepId, user);
 		}
 		// Sorry for the big catch block, its not a good habit to just catch
 		// Exception

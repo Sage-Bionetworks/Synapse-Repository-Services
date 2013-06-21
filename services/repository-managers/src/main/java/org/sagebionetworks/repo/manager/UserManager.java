@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import javax.xml.xpath.XPathExpressionException;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -82,5 +85,19 @@ public interface UserManager {
 	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException;
 	
 	public void clearCache();
-	
+
+	/**
+	 * Get all non-individual user groups, including Public.
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public Collection<UserGroup> getGroups() throws DatastoreException;
+
+	/**
+	 * get non-individual user groups (including Public) in range
+	 * 
+	 **/
+	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 }
