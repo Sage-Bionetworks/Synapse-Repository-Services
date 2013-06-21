@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface PermissionsManager {
+public interface EntityPermissionsManager {
 	/**
 	 * Invoked for a node which currently inherits its permissions, this
 	 * method overrides inheritance so that the node defines its own

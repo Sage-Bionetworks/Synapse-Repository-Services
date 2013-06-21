@@ -22,7 +22,7 @@ import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
@@ -61,7 +61,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	UserManager userManager;	
 	@Autowired
-	PermissionsManager permissionsManager;	
+	EntityPermissionsManager permissionsManager;	
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 	@Autowired
@@ -256,7 +256,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public void setPermissionsManager(PermissionsManager permissionsManager) {
+	public void setPermissionsManager(EntityPermissionsManager permissionsManager) {
 		this.permissionsManager = permissionsManager;
 	}
 

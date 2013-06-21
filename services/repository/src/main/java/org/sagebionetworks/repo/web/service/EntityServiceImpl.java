@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -73,7 +73,7 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	PermissionsManager permissionsManager;
+	EntityPermissionsManager permissionsManager;
 	@Autowired
 	UserManager userManager;
 	@Autowired

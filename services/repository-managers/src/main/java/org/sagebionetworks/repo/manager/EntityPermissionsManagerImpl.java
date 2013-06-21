@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -30,9 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class PermissionsManagerImpl implements PermissionsManager {
-	
-	
+public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
+
 	@Autowired
 	private AccessControlListDAO aclDAO;	
 	@Autowired

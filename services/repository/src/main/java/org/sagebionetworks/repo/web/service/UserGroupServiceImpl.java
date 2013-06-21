@@ -4,7 +4,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserGroupServiceImpl implements UserGroupService {
 	
 	@Autowired
-	PermissionsManager permissionsManager;	
+	EntityPermissionsManager permissionsManager;	
 	@Autowired
 	UserManager userManager;
 	

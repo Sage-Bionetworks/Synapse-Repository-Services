@@ -12,7 +12,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -46,7 +46,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	@Autowired
 	SubmissionManager submissionManager;
 	@Autowired
-	PermissionsManager permissionsManager;
+	EntityPermissionsManager permissionsManager;
 	
 	@Autowired
 	UserManager userManager;

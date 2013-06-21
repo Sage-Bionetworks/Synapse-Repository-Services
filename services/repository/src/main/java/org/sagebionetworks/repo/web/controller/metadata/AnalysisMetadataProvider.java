@@ -6,7 +6,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -32,7 +32,7 @@ public class AnalysisMetadataProvider implements
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	PermissionsManager permissionsManager;
+	EntityPermissionsManager permissionsManager;
 
 
 	@Override

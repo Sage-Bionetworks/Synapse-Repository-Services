@@ -28,7 +28,7 @@ import javax.servlet.ServletException;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -52,14 +52,14 @@ public class UserProfileServiceTest {
 	
 	private UserProfileService userProfileService = new UserProfileServiceImpl();
 	
-	private PermissionsManager mockPermissionsManager;
+	private EntityPermissionsManager mockPermissionsManager;
 	private UserProfileManager mockUserProfileManager;
 	private UserManager mockUserManager;
 	private EntityManager mockEntityManager;
 	
 	@Before
 	public void before() throws Exception {
-		mockPermissionsManager = mock(PermissionsManager.class);
+		mockPermissionsManager = mock(EntityPermissionsManager.class);
 		mockUserProfileManager = mock(UserProfileManager.class);
 		mockUserManager = mock(UserManager.class);
 		mockEntityManager = mock(EntityManager.class);

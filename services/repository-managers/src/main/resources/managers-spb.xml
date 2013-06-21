@@ -109,7 +109,7 @@
 	<bean id="authorizationManager"
 		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 
-	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />
+	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
