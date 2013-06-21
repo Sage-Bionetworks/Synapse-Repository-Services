@@ -21,8 +21,6 @@ public interface JiraClient {
 	 */
 	Project getProject(String projectKey);
 	
-	Iterable<BasicProject> listProjects();
-	
 	/**
 	 * return the issue fields defined for the Jira instance
 	 * @return

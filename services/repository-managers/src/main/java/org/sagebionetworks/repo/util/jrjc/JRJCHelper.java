@@ -1,25 +1,19 @@
 package org.sagebionetworks.repo.util.jrjc;
 
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
-import org.sagebionetworks.StackConfiguration;
-
-import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.Field;
 import com.atlassian.jira.rest.client.api.domain.IssueType;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInputBuilder;
-import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 
 public class JRJCHelper {
 
-	private static final String JIRA_PROJECT_KEY = "DSG"; // dev Synapse Governance, "SG" for "Synapse Governance"
+	private static final String JIRA_PROJECT_KEY = "SG"; // dev Synapse Governance, "SG" for "Synapse Governance"
 	private static final String JIRA_FLAG_ISSUE_TYPE_NAME = "Flag";
 	private static final String JIRA_RESTRICT_ISSUE_TYPE_NAME = "Access Restriction";
 	private static final String JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME = "Synapse Principal ID"; // The ID of the Synapse user reporting the issue.
@@ -28,10 +22,6 @@ public class JRJCHelper {
 	private static final String FLAG_SUMMARY = "Request for ACT to review data";
 	private static final String RESTRICT_SUMMARY = "Request for ACT to add data restriction";
 	
-	public static void main(String[] args) throws Exception {
-    	System.out.println(createRestrictIssue(new JiraClientImpl(), "1010101", "foo@bar.com", "syn123456"));
-	}
-        
 	public static String createFlagIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
         Map<String,String> params = new HashMap<String,String>();
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
@@ -49,7 +39,6 @@ public class JRJCHelper {
         BasicIssue createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
         return createdIssue.getKey();
 	} 
-	
 	
 	/**
 	 * 

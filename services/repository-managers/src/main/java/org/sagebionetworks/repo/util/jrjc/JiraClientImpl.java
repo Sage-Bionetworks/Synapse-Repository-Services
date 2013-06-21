@@ -72,10 +72,5 @@ public class JiraClientImpl implements JiraClient {
         return waitForPromise(basicIssuePromise);
 	}
 
-	@Override
-	public Iterable<BasicProject> listProjects() {
-		ProjectRestClient prc = restClient.getProjectClient();
-		return waitForPromise(prc.getAllProjects());
-	}
 
 }

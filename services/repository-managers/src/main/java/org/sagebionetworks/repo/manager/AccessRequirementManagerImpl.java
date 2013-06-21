@@ -47,7 +47,15 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public AccessRequirementManagerImpl() {}
 	
 	// for testing 
-	public AccessRequirementManagerImpl(JiraClient jiraClient) {this.jiraClient=jiraClient;}
+	public AccessRequirementManagerImpl(
+			AccessRequirementDAO accessRequirementDAO,
+			AuthorizationManager authorizationManager,
+			JiraClient jiraClient
+	) {
+		this.accessRequirementDAO=accessRequirementDAO;
+		this.authorizationManager=authorizationManager;
+		this.jiraClient=jiraClient;
+	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
 		if (a.getEntityType()==null ||
