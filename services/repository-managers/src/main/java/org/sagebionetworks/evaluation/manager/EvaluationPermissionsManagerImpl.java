@@ -19,7 +19,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException {
 		// TODO Auto-generated method stub
-		return null;
+		return acl;
 	}
 
 	@Override
@@ -28,7 +28,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException {
 		// TODO Auto-generated method stub
-		return null;
+		return acl;
 	}
 
 	@Override
@@ -44,7 +44,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throws NotFoundException, DatastoreException,
 			ACLInheritanceException {
 		// TODO Auto-generated method stub
-		return null;
+		AccessControlList acl = new AccessControlList();
+		return acl;
 	}
 
 	@Override
@@ -59,7 +60,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	public UserEvaluationPermissions getUserPermissionsForEvaluation(
 			UserInfo userInfo, String evalId) throws NotFoundException,
 			DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
+		return new UserEvaluationPermissions();
 	}
 }
