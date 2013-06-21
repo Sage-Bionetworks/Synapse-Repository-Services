@@ -11,7 +11,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -47,9 +46,6 @@ public class LocationableMetadataProvider implements
 
 	@Autowired
 	LocationHelper locationHelper;
-
-	@Autowired
-	PermissionsManager permissionsManager;
 
 	@Autowired
 	EntityManager entityManager;

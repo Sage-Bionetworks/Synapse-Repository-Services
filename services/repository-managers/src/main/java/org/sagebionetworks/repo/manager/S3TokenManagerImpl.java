@@ -41,7 +41,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 			.getFileNameMap();
 	
 	@Autowired
-	private PermissionsManager permissionsManager;
+	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -61,11 +61,11 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 * @param idGenerator
 	 * @param locationHelper
 	 */
-	public S3TokenManagerImpl(PermissionsManager permissionsManager,
+	public S3TokenManagerImpl(EntityPermissionsManager permissionsManager,
 			UserManager userManager, IdGenerator idGenerator,
 			LocationHelper locationHelper, AmazonS3Utility s3Utility) {
 		super();
-		this.permissionsManager = permissionsManager;
+		this.entityPermissionsManager = permissionsManager;
 		this.userManager = userManager;
 		this.idGenerator = idGenerator;
 		this.locationHelper = locationHelper;
@@ -174,7 +174,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 */
 	void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!permissionsManager.hasAccess(entityId,
+		if (!entityPermissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.UPDATE, userInfo)) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "

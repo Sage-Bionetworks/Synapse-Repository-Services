@@ -28,14 +28,13 @@ import javax.servlet.ServletException;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -52,14 +51,14 @@ public class UserProfileServiceTest {
 	
 	private UserProfileService userProfileService = new UserProfileServiceImpl();
 	
-	private PermissionsManager mockPermissionsManager;
+	private EntityPermissionsManager mockPermissionsManager;
 	private UserProfileManager mockUserProfileManager;
 	private UserManager mockUserManager;
 	private EntityManager mockEntityManager;
 	
 	@Before
 	public void before() throws Exception {
-		mockPermissionsManager = mock(PermissionsManager.class);
+		mockPermissionsManager = mock(EntityPermissionsManager.class);
 		mockUserProfileManager = mock(UserProfileManager.class);
 		mockUserManager = mock(UserManager.class);
 		mockEntityManager = mock(EntityManager.class);
@@ -96,12 +95,12 @@ public class UserProfileServiceTest {
 		userInfo = new UserInfo(false);
 		userInfo.setIndividualGroup(new UserGroup());
 		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
-		
-		when(mockPermissionsManager.getGroups()).thenReturn(groups);
+
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+		when(mockUserManager.getGroups()).thenReturn(groups);
 
 		userProfileService.setPermissionsManager(mockPermissionsManager);
 		userProfileService.setUserProfileManager(mockUserProfileManager);

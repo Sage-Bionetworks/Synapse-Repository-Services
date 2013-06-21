@@ -552,6 +552,10 @@ public class UrlHelpers {
 	public static final String EVALUATION_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = EVALUATION_WITH_ID+"/accessRequirementUnfulfilled";
 	public static final String ACCESS_APPROVAL_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_APPROVAL;
 
+	public static final String EVALUATION_ACL = EVALUATION + ACL;
+	public static final String EVALUATION_ID_ACL = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + ACL;
+	public static final String EVALUATION_ID_PERMISSIONS = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + PERMISSIONS;
+
 	// Wiki URL
 	public static final String WIKI = "/wiki";
 	public static final String WIKI_HEADER_TREE = "/wikiheadertree";
