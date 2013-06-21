@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -39,7 +39,7 @@ public class TrashManagerImplAutowiredTest {
 	@Autowired private TrashManager trashManager;
 	@Autowired private NodeManager nodeManager;
 	@Autowired private NodeInheritanceManager nodeInheritanceManager;
-	@Autowired private PermissionsManager permissionsManager;
+	@Autowired private EntityPermissionsManager entityPermissionsManager;
 	@Autowired private DBOTrashCanDao trashCanDao;
 	@Autowired private NodeDAO nodeDAO;
 	@Autowired private UserProvider userProvider;
@@ -54,7 +54,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(trashManager);
 		assertNotNull(nodeManager);
 		assertNotNull(nodeInheritanceManager);
-		assertNotNull(permissionsManager);
+		assertNotNull(entityPermissionsManager);
 		assertNotNull(trashCanDao);
 		assertNotNull(nodeDAO);
 		assertNotNull(userProvider);
@@ -302,7 +302,7 @@ public class TrashManagerImplAutowiredTest {
 
 		// Modify nodeId12 to be its own benefactor
 		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId12, testUserInfo);
-		permissionsManager.overrideInheritance(acl, testUserInfo);
+		entityPermissionsManager.overrideInheritance(acl, testUserInfo);
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId12));
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId22));
 

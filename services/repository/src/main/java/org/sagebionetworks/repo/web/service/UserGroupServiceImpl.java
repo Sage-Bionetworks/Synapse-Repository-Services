@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -18,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserGroupServiceImpl implements UserGroupService {
 	
 	@Autowired
-	PermissionsManager permissionsManager;	
-	@Autowired
 	UserManager userManager;
 	
 	@Override
@@ -28,8 +25,8 @@ public class UserGroupServiceImpl implements UserGroupService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		List<UserGroup> results = permissionsManager.getGroupsInRange(userInfo, offset, endExcl, sort, ascending);
-		int totalNumberOfResults = permissionsManager.getGroups().size();
+		List<UserGroup> results = userManager.getGroupsInRange(userInfo, offset, endExcl, sort, ascending);
+		int totalNumberOfResults = userManager.getGroups().size();
 		return new PaginatedResults<UserGroup>(
 				request.getServletPath()+UrlHelpers.USERGROUP, 
 				results,

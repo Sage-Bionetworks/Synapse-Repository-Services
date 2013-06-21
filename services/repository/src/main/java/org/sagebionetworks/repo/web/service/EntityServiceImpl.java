@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -73,7 +73,7 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	EntityManager entityManager;
 	@Autowired
-	PermissionsManager permissionsManager;
+	EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
 	@Autowired
@@ -447,7 +447,7 @@ public class EntityServiceImpl implements EntityService {
 			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);		
-		AccessControlList acl = permissionsManager.overrideInheritance(newACL, userInfo);
+		AccessControlList acl = entityPermissionsManager.overrideInheritance(newACL, userInfo);
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
@@ -457,7 +457,7 @@ public class EntityServiceImpl implements EntityService {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException {
 		// First try the updated
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessControlList acl = permissionsManager.getACL(entityId, userInfo);
+		AccessControlList acl = entityPermissionsManager.getACL(entityId, userInfo);
 		
 		acl.setUri(UrlHelpers.makeEntityACLUri(entityId));
 
@@ -470,9 +470,9 @@ public class EntityServiceImpl implements EntityService {
 			AccessControlList updated, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessControlList acl = permissionsManager.updateACL(updated, userInfo);
+		AccessControlList acl = entityPermissionsManager.updateACL(updated, userInfo);
 		if (recursive != null && recursive.equalsIgnoreCase("true"))
-			permissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
+			entityPermissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
@@ -482,7 +482,7 @@ public class EntityServiceImpl implements EntityService {
 	public AccessControlList createOrUpdateEntityACL(String userId,
 			AccessControlList acl, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		String entityId = acl.getId();
-		if (permissionsManager.hasLocalACL(entityId)) {
+		if (entityPermissionsManager.hasLocalACL(entityId)) {
 			// Local ACL exists; update it
 			return updateEntityACL(userId, acl, recursive, request);
 		} else {
@@ -496,14 +496,14 @@ public class EntityServiceImpl implements EntityService {
 	public void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		permissionsManager.restoreInheritance(id, userInfo);
+		entityPermissionsManager.restoreInheritance(id, userInfo);
 	}
 
 	@Override
 	public boolean hasAccess(String entityId, String userId, HttpServletRequest request, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return permissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo);
+		return entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo);
 	}
 
 	@Override
@@ -525,7 +525,7 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the permissions benefactor
-		String benefactor = permissionsManager.getPermissionBenefactor(entityId, userInfo);
+		String benefactor = entityPermissionsManager.getPermissionBenefactor(entityId, userInfo);
 		return getEntityHeader(userId, benefactor, null);
 	}
 
@@ -544,7 +544,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public UserEntityPermissions getUserEntityPermissions(String userId, String entityId) throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return permissionsManager.getUserPermissionsForEntity(userInfo, entityId);
+		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 	
 	@Override

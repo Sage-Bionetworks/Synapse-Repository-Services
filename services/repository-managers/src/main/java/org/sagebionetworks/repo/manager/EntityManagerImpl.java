@@ -42,7 +42,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	private S3TokenManager s3TokenManager;
 	@Autowired
-	private PermissionsManager permissionsManager;
+	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
 
@@ -51,11 +51,11 @@ public class EntityManagerImpl implements EntityManager {
 	
 	public EntityManagerImpl(NodeManager nodeManager,
 			S3TokenManager s3TokenManager,
-			PermissionsManager permissionsManager, UserManager userManager) {
+			EntityPermissionsManager permissionsManager, UserManager userManager) {
 		super();
 		this.nodeManager = nodeManager;
 		this.s3TokenManager = s3TokenManager;
-		this.permissionsManager = permissionsManager;
+		this.entityPermissionsManager = permissionsManager;
 		this.userManager = userManager;
 	}
 
@@ -546,7 +546,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!permissionsManager.hasAccess(entityId,
+		if (!entityPermissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.READ, userInfo)) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
@@ -557,7 +557,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!permissionsManager.hasAccess(entityId,
+		if (!entityPermissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.UPDATE, userInfo)) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "

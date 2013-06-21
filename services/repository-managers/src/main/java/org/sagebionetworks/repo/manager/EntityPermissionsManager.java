@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -10,13 +7,12 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface PermissionsManager {
+public interface EntityPermissionsManager {
 	/**
 	 * Invoked for a node which currently inherits its permissions, this
 	 * method overrides inheritance so that the node defines its own
@@ -91,34 +87,6 @@ public interface PermissionsManager {
 	 */
 	public AccessControlList applyInheritanceToChildren(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
-	// the following methods provide the groups
-	// to which resource access permission may be granted
-	
-	/**
-	 * Get all non-individual user groups, including Public.
-	 * 
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public Collection<UserGroup> getGroups() throws DatastoreException;
-
-	/**
-	 * Get all non-individual user groups, including Public. Deprecated, since userInfo is
-	 * not required to fetch groups.
-	 * 
-	 * @throws DatastoreException 
-	 * 
-	 **/
-	@Deprecated
-	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException;
-	
-	/**
-	 * get non-individual user groups (including Public) in range
-	 * 
-	 **/
-	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
-	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 

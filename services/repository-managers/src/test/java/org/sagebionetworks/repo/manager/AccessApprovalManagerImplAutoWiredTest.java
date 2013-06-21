@@ -54,7 +54,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Autowired
 	public AuthorizationManager authorizationManager;
 	@Autowired
-	public PermissionsManager permissionsManager;
+	public EntityPermissionsManager entityPermissionsManager;
 	
 	private UserInfo adminUserInfo;
 	
@@ -88,13 +88,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		
 		// now give 'testUserInfo' READ access to the entity
-		AccessControlList acl = permissionsManager.getACL(rootId, adminUserInfo);
+		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(Long.parseLong(testUserProvider.getTestUserInfo().getIndividualGroup().getId()));
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
 		ras.add(ra);
-		permissionsManager.updateACL(acl, adminUserInfo);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
 }
 	
 	@After
