@@ -9,7 +9,9 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -410,4 +412,37 @@ public interface EvaluationService {
 	public <T extends Entity> boolean hasAccess(String evalId, String userName,
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Creates a new ACL.
+	 */
+	public AccessControlList createAcl(String userName, AccessControlList acl)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Updates with the given ACL.
+	 */
+	public AccessControlList updateAcl(String userName, AccessControlList acl)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Deletes the ACL of the specified evaluation.
+	 */
+	public void deleteAcl(String userName, String evalId)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Gets the access control list (ACL) governing the given evaluation.
+	 */
+	public AccessControlList getAcl(String userName, String evalId)
+			throws NotFoundException, DatastoreException, ACLInheritanceException;
+
+	/**
+	 * Gets the user permissions for an evaluation.
+	 */
+	public UserEvaluationPermissions getUserPermissionsForEvaluation(String userName, String evalId)
+			throws NotFoundException, DatastoreException;
 }

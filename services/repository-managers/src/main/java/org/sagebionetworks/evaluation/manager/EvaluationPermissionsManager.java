@@ -33,7 +33,7 @@ public interface EvaluationPermissionsManager {
 	/**
 	 * Deletes the ACL of the specified evaluation.
 	 */
-	public void updateAcl(UserInfo userInfo, String evalId)
+	public void deleteAcl(UserInfo userInfo, String evalId)
 			throws NotFoundException, DatastoreException, InvalidModelException,
 			UnauthorizedException, ConflictingUpdateException;
 
@@ -46,12 +46,12 @@ public interface EvaluationPermissionsManager {
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 */
-	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE  accessType)
+	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException;
 
 	/**
 	 * Gets the user permissions for an evaluation.
 	 */
-	public UserEvaluationPermissions getUserPermissionsForEvaluation(UserInfo userInfo,	String evalId)
+	public UserEvaluationPermissions getUserPermissionsForEvaluation(UserInfo userInfo, String evalId)
 			throws NotFoundException, DatastoreException;
 }

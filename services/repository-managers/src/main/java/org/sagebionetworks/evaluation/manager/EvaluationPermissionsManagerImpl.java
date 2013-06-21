@@ -32,7 +32,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	@Override
-	public void updateAcl(UserInfo userInfo, String evalId)
+	public void deleteAcl(UserInfo userInfo, String evalId)
 			throws NotFoundException, DatastoreException,
 			InvalidModelException, UnauthorizedException,
 			ConflictingUpdateException {
