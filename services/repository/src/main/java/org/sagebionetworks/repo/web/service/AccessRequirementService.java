@@ -14,6 +14,9 @@ public interface AccessRequirementService {
 	public AccessRequirement createAccessRequirement(String userId,
 			AccessRequirement accessRequirement) throws Exception;
 
+	public AccessRequirement createLockAccessRequirement(String userId,
+			String entityId) throws Exception;
+
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
 			String userId, RestrictableObjectDescriptor subjectId,	HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException,

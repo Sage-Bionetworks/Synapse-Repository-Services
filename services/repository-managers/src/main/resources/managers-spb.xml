@@ -282,9 +282,14 @@
 		scope="singleton" >
 	</bean>
 	
-		<!-- Used to read document from repo -->
+	<!-- Used to read document from repo -->
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
+		scope="singleton" />
+
+	<!-- Used to interface to the Jira server -->
+	<bean id="jiraClient"
+		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
 		scope="singleton" />
 
 </beans>

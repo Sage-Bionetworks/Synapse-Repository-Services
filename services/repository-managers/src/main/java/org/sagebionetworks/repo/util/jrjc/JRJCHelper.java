@@ -4,9 +4,9 @@ package org.sagebionetworks.repo.util.jrjc;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
+
+import org.sagebionetworks.StackConfiguration;
 
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
@@ -19,9 +19,6 @@ import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientF
 
 public class JRJCHelper {
 
-	private static final String JIRA_URL = "https://sagebionetworks.jira.com";
-	private static final String SYNAPSE_JIRA_USER = "synapse-jira-service";
-	private static final String SYNAPSE_JIRA_PASSWORD = "5ec8800858e5cdbe2760a4";
 	private static final String JIRA_PROJECT_KEY = "DSG"; // dev Synapse Governance, "SG" for "Synapse Governance"
 	private static final String JIRA_FLAG_ISSUE_TYPE_NAME = "Flag";
 	private static final String JIRA_RESTRICT_ISSUE_TYPE_NAME = "Access Restriction";
@@ -31,48 +28,26 @@ public class JRJCHelper {
 	private static final String FLAG_SUMMARY = "Request for ACT to review data";
 	private static final String RESTRICT_SUMMARY = "Request for ACT to add data restriction";
 	
-	/**
-	 * mape the field names to their ids, making the names lower case for case insensitivity
-	 * @param fields
-	 * @return
-	 */
-	public static Map<String, String> lcFieldNameToIdMap(Iterable<Field> fields) {
-		Map<String, String> ans = new HashMap<String, String>();
-		for (Field field : fields) {
-			ans.put(field.getName().toLowerCase(), field.getId());
-		}
-		return ans;
-	}
-	
-	private static JiraClient getJiraClientInstance() {
-    	final AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
-    	URI jiraServerUri = URI.create(JIRA_URL);
-    	JiraRestClient jrc = factory.createWithBasicHttpAuthentication(jiraServerUri, SYNAPSE_JIRA_USER, SYNAPSE_JIRA_PASSWORD);
-    	JiraClientImpl jiraClientImpl = new JiraClientImpl(jrc);
-    	return jiraClientImpl;
-	}
-	
 	public static void main(String[] args) throws Exception {
-		JiraClient jc = getJiraClientInstance();
-    	System.out.println(createRestrictIssue(jc, "1010101", "foo@bar.com", "syn123456"));
+    	System.out.println(createRestrictIssue(new JiraClientImpl(), "1010101", "foo@bar.com", "syn123456"));
 	}
         
-	public static String createFlagIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId)  throws ExecutionException, InterruptedException {
+	public static String createFlagIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
         Map<String,String> params = new HashMap<String,String>();
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
         BasicIssue createdIssue = createIssue(jiraClient, JIRA_FLAG_ISSUE_TYPE_NAME, FLAG_SUMMARY, params);
-        return JIRA_URL+"/browse/"+createdIssue.getKey();
+        return createdIssue.getKey();
 	}
 	
-	public static String createRestrictIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId)  throws ExecutionException, InterruptedException {
+	public static String createRestrictIssue(JiraClient jiraClient, String principalId, String displayName, String dataObjectId) {
         Map<String,String> params = new HashMap<String,String>();
         params.put(JIRA_PRINCIPAL_ID_ISSUE_FIELD_NAME, principalId);
         params.put(JIRA_USER_DISPLAY_NAME_ISSUE_FIELD_NAME, displayName);
         params.put(JIRA_SYNAPSE_ENTITY_ID_FIELD_NAME, dataObjectId);
         BasicIssue createdIssue = createIssue(jiraClient, JIRA_RESTRICT_ISSUE_TYPE_NAME, RESTRICT_SUMMARY, params);
-        return JIRA_URL+"/browse/"+createdIssue.getKey();
+        return createdIssue.getKey();
 	} 
 	
 	
@@ -83,7 +58,7 @@ public class JRJCHelper {
 	 * @param params a map from field names to field values
 	 * @return
 	 */
-	public static BasicIssue createIssue(JiraClient jiraClient, String issueTypeName, String summary, Map<String,String> params) throws ExecutionException, InterruptedException {
+	public static BasicIssue createIssue(JiraClient jiraClient, String issueTypeName, String summary, Map<String,String> params) {
 		// first, find the project from the JIRA_PROJECT_KEY
         Project project = jiraClient.getProject(JIRA_PROJECT_KEY);
         
@@ -94,8 +69,11 @@ public class JRJCHelper {
 		}
 		if (issueTypeId==-1L) throw new IllegalStateException("Cannot find issue type "+issueTypeName+" in Jira project "+JIRA_PROJECT_KEY);
 		
-		// third, find the defined fields, mapping their names to their IDs
-    	Map<String, String> lcFieldNameToIdMap = lcFieldNameToIdMap(jiraClient.getFields());
+		// third, find the defined fields, mapping their names to their IDs	
+		Map<String, String> lcFieldNameToIdMap = new HashMap<String, String>();
+		for (Field field : jiraClient.getFields()) {
+			lcFieldNameToIdMap.put(field.getName().toLowerCase(), field.getId());
+		}
 
         // now start building the issue.  first set the project and issue type
     	IssueInputBuilder builder =  new IssueInputBuilder(JIRA_PROJECT_KEY, issueTypeId);
@@ -116,6 +94,5 @@ public class JRJCHelper {
         // finally, create the issue
         return jiraClient.createIssue(issueInput);
 	}
-	
 
 }

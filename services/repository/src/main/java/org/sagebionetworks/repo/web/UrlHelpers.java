@@ -175,7 +175,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
-	
+
 	public static final String FILE= "/file";
 	public static final String FILE_PREVIEW = "/filepreview";
 	public static final String FILE_HANDLE = "/filehandles";
@@ -383,6 +383,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
+	public static final String ENTITY_LOCK_ACCESS_REQURIEMENT = ENTITY_ID+"/lockAccessRequirement";	
 	
 	public static final String ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 	

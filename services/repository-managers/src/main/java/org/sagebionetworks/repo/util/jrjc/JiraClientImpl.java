@@ -1,21 +1,31 @@
 package org.sagebionetworks.repo.util.jrjc;
 
+import java.net.URI;
 import java.util.concurrent.ExecutionException;
+
+import org.sagebionetworks.StackConfiguration;
 
 import com.atlassian.jira.rest.client.api.IssueRestClient;
 import com.atlassian.jira.rest.client.api.JiraRestClient;
 import com.atlassian.jira.rest.client.api.MetadataRestClient;
-import com.atlassian.jira.rest.client.api.OptionalIterable;
 import com.atlassian.jira.rest.client.api.ProjectRestClient;
 import com.atlassian.jira.rest.client.api.domain.BasicIssue;
 import com.atlassian.jira.rest.client.api.domain.BasicProject;
 import com.atlassian.jira.rest.client.api.domain.Field;
-import com.atlassian.jira.rest.client.api.domain.IssueType;
 import com.atlassian.jira.rest.client.api.domain.Project;
 import com.atlassian.jira.rest.client.api.domain.input.IssueInput;
+import com.atlassian.jira.rest.client.internal.async.AsynchronousJiraRestClientFactory;
 import com.atlassian.util.concurrent.Promise;
 
+/**
+ * An implementation of JiraClient using the Jira-Rest-Java-Client
+ * 
+ * @author brucehoff
+ *
+ */
 public class JiraClientImpl implements JiraClient {
+	private static final String JIRA_URL = "https://sagebionetworks.jira.com";
+
 	private JiraRestClient restClient;
 	
 	private static <T> T waitForPromise(Promise<T> promise) {
@@ -31,8 +41,13 @@ public class JiraClientImpl implements JiraClient {
 		}
 	}
 	
-	public JiraClientImpl(JiraRestClient restClient) {
-		this.restClient=restClient;
+	public JiraClientImpl() {
+    	final AsynchronousJiraRestClientFactory factory = new AsynchronousJiraRestClientFactory();
+    	URI jiraServerUri = URI.create(JIRA_URL);
+    	this.restClient = factory.createWithBasicHttpAuthentication(
+    			jiraServerUri, 
+    			StackConfiguration.getJiraUserName(), 
+    			StackConfiguration.getJiraUserPassword());
 	}
 
 	@Override
