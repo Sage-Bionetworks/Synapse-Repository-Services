@@ -1,18 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -20,7 +15,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -30,9 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class PermissionsManagerImpl implements PermissionsManager {
-	
-	
+public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
+
 	@Autowired
 	private AccessControlListDAO aclDAO;	
 	@Autowired
@@ -178,25 +171,6 @@ public class PermissionsManagerImpl implements PermissionsManager {
 				applyInheritanceToChildrenHelper(idToChange, userInfo);
 			}
 		}
-	}
-	
-	@Override
-	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException {
-		return getGroups();
-	}
-
-	@Override
-	public Collection<UserGroup> getGroups() throws DatastoreException {
-		List<String> groupsToOmit = new ArrayList<String>();
-		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
-		return userGroupDAO.getAllExcept(false, groupsToOmit);
-	}
-
-	@Override
-	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
-		List<String> groupsToOmit = new ArrayList<String>();
-		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
-		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
 	}
 
 	/**

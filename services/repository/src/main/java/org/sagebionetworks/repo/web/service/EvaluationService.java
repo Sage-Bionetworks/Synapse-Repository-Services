@@ -9,7 +9,9 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -21,6 +23,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface EvaluationService {
+
+	////// Methods for managing evaluations //////
 
 	/**
 	 * Create a new Synapse Evaluation
@@ -113,6 +117,8 @@ public interface EvaluationService {
 	public void deleteEvaluation(String userId, String evalId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
+	////// Methods for managing participants //////
+
 	/**
 	 * Add self as a Participant to a Evaluation.
 	 * 
@@ -183,6 +189,8 @@ public interface EvaluationService {
 	 */
 	public long getParticipantCount(String evalId) throws DatastoreException,
 			NotFoundException;
+
+	////// Methods for managing submissions //////
 
 	/**
 	 * Create a Submission.
@@ -364,21 +372,6 @@ public interface EvaluationService {
 			String evalId, SubmissionStatusEnum status, long limit,
 			long offset, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-	
-	/**
-	 * determine whether a user has the given access type for a given evaluation
-	 * 
-	 * @param evalId
-	 * @param userId
-	 * @param accessType
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> boolean hasAccess(String evalId, String userName,
-			HttpServletRequest request, String accessType)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get all SubmissionStatuses for a given Evaluation. This method is
@@ -403,4 +396,53 @@ public interface EvaluationService {
 			long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
+	////// Methods for managing ACLs //////
+
+	/**
+	 * determine whether a user has the given access type for a given evaluation
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Entity> boolean hasAccess(String evalId, String userName,
+			HttpServletRequest request, String accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Creates a new ACL.
+	 */
+	public AccessControlList createAcl(String userName, AccessControlList acl)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Updates with the given ACL.
+	 */
+	public AccessControlList updateAcl(String userName, AccessControlList acl)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Deletes the ACL of the specified evaluation.
+	 */
+	public void deleteAcl(String userName, String evalId)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * Gets the access control list (ACL) governing the given evaluation.
+	 */
+	public AccessControlList getAcl(String userName, String evalId)
+			throws NotFoundException, DatastoreException, ACLInheritanceException;
+
+	/**
+	 * Gets the user permissions for an evaluation.
+	 */
+	public UserEvaluationPermissions getUserPermissionsForEvaluation(String userName, String evalId)
+			throws NotFoundException, DatastoreException;
 }

@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,10 +27,13 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -36,10 +43,16 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.servlet.DispatcherServlet;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -392,7 +405,99 @@ public class EvaluationControllerAutowiredTest {
 		subs = entityServletHelper.getAllSubmissions(ownerName, eval2.getId(), null);
 		assertEquals(0, subs.getTotalNumberOfResults());
 	}
-	
+
+	@Test
+	public void testAcl() throws Exception {
+
+		DispatcherServlet dispatcher = DispatchServletSingleton.getInstance();
+
+		// createAcl()
+		AccessControlList acl = new AccessControlList();
+		acl.setId("1234567");
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("POST");
+		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		String body = EntityFactory.createJSONStringForEntity(acl);
+		request.setContent(body.getBytes("UTF-8"));
+
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+
+		AccessControlList aclReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		assertNotNull(aclReturned);
+		assertEquals(acl.getId(), aclReturned.getId());
+
+		// updateAcl()
+		request = new MockHttpServletRequest();
+		request.setMethod("PUT");
+		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		body = EntityFactory.createJSONStringForEntity(acl);
+		request.setContent(body.getBytes("UTF-8"));
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		aclReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		assertNotNull(aclReturned);
+		assertEquals(acl.getId(), aclReturned.getId());
+
+		// deleteAcl()
+		request = new MockHttpServletRequest();
+		request.setMethod("DELETE");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/123321" + UrlHelpers.ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
+		response.getContentAsString();
+
+		// getAcl()
+		request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/123321" + UrlHelpers.ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		aclReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		assertNotNull(aclReturned);
+
+		// getUserEvaluationPermissions()
+		request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/123321" + UrlHelpers.PERMISSIONS);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		UserEvaluationPermissions uepReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), UserEvaluationPermissions.class);
+		assertNotNull(uepReturned);
+	}
+
 	private String createNode(String name, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException {
 		Node toCreate = new Node();
 		toCreate.setName(name);

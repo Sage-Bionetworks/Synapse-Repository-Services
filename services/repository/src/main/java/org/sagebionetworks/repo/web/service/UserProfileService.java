@@ -8,7 +8,7 @@ import javax.xml.xpath.XPathExpressionException;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -157,7 +157,7 @@ public interface UserProfileService {
 
 	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer);
 
-	public void setPermissionsManager(PermissionsManager permissionsManager);
+	public void setPermissionsManager(EntityPermissionsManager permissionsManager);
 
 	public void setUserManager(UserManager userManager);
 
