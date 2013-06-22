@@ -101,13 +101,18 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE))) 
 			throw new UnauthorizedException();
 		
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+
+		// check whether there is already an access requirement in place
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		if (!ars.isEmpty()) throw new IllegalArgumentException("Entity "+entityId+" is already restricted.");
+		
 		// create the 'lock down' access requirement'
 		ACTAccessRequirement accessRequirement = new ACTAccessRequirement();
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setId(entityId);
-		subjectId.setType(RestrictableObjectType.ENTITY);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
 		populateCreationFields(userInfo, accessRequirement);
 		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);

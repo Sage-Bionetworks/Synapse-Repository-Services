@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +71,12 @@ public class AccessRequirementManagerImplUnitTest {
 		when(jiraClient.getFields()).thenReturn(fields);
 		when(jiraClient.getProject(anyString())).thenReturn(sgProject);
 		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
+		
+		// by default the user is authorized to create, edit.  individual tests may override these settings
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.CREATE)).thenReturn(true);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(true);
 	}
+	
 	private AccessRequirement createExpectedAR() {
 		ACTAccessRequirement expectedAR = new ACTAccessRequirement();
 		expectedAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
@@ -85,13 +91,10 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@Test
 	public void testCreateLockAccessRequirementHappyPath() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.CREATE)).thenReturn(true);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		
 		// test that the right AR was created
 		AccessRequirement expectedAR = createExpectedAR();
-		assertEquals(createExpectedAR() , createExpectedAR());
 		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
 		verify(accessRequirementDAO).create(argument.capture());
 		// can't just call equals on the objects, because the time stamps are slightly different
@@ -112,5 +115,17 @@ public class AccessRequirementManagerImplUnitTest {
 		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateLockAccessRequirementAlreadyExists() throws Exception {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(TEST_ENTITY_ID);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		List<AccessRequirement> ars = Arrays.asList(new AccessRequirement[]{createExpectedAR()});
+		when(accessRequirementDAO.getForSubject(subjectId)).thenReturn(ars);
+		// this should throw the illegal argument exception
+		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
+		
 	}
 }
