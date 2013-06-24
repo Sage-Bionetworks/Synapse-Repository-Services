@@ -39,6 +39,15 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		return accessRequirementManager.createAccessRequirement(userInfo, accessRequirement);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessRequirement createLockAccessRequirement(String userId, 
+			String entityId) throws Exception {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		return accessRequirementManager.createLockAccessRequirement(userInfo, entityId);
+	}
+	
 	@Override
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
 			String userId, RestrictableObjectDescriptor subjectId, HttpServletRequest request) 

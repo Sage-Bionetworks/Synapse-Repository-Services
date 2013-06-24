@@ -212,6 +212,12 @@
 			<artifactId>services-repository</artifactId>
 			<type>war</type>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>repository-managers</artifactId>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-workers</artifactId>
