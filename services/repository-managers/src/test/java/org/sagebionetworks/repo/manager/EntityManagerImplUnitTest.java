@@ -27,7 +27,7 @@ import com.amazonaws.services.securitytoken.model.Credentials;
 public class EntityManagerImplUnitTest {
 
 	private UserManager mockUserManager;
-	private PermissionsManager mockPermissionsManager;
+	private EntityPermissionsManager mockPermissionsManager;
 	private UserInfo mockUser;
 	private EntityManagerImpl entityManager;
 	private NodeManager mockNodeManager;
@@ -39,7 +39,7 @@ public class EntityManagerImplUnitTest {
 	@Before
 	public void before(){
 		// Create the mocks
-		mockPermissionsManager = Mockito.mock(PermissionsManager.class);
+		mockPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockNodeManager = Mockito.mock(NodeManager.class);
 		mockS3TokenManager = Mockito.mock(S3TokenManager.class);

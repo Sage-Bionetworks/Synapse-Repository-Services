@@ -873,4 +873,11 @@ public class StackConfiguration {
 	public Long getFileMultipartUploadDaemonCopyPartMaxThreads(){
 		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.file.multipart.upload.daemon.copy.part.max.threads"));
 	}
+	
+	/**
+	 * Get credentials for the Jira service account used to create Jira issues
+	 * @return
+	 */
+	public static String getJiraUserName() {return configuration.getProperty("org.sagebionetworks.repo.manager.jira.user.name");}
+	public static String getJiraUserPassword() {return configuration.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");}
 }

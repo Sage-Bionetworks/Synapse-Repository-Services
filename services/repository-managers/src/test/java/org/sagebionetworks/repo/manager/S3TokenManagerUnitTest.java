@@ -32,7 +32,7 @@ import com.amazonaws.services.securitytoken.model.Credentials;
  */
 public class S3TokenManagerUnitTest {
 
-	private PermissionsManager mockPermissionsManager;
+	private EntityPermissionsManager mockPermissionsManager;
 	private UserManager mockUuserManager;
 	private IdGenerator mocIdGenerator;
 	private LocationHelper mocKLocationHelper;
@@ -44,7 +44,7 @@ public class S3TokenManagerUnitTest {
 	@Before
 	public void before(){
 		// Create the mocks
-		mockPermissionsManager = Mockito.mock(PermissionsManager.class);
+		mockPermissionsManager = Mockito.mock(EntityPermissionsManager.class);
 		mockUuserManager = Mockito.mock(UserManager.class);
 		mocIdGenerator = Mockito.mock(IdGenerator.class);
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);

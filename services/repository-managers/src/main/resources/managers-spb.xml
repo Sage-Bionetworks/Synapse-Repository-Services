@@ -110,7 +110,7 @@
 	<bean id="authorizationManager"
 		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 
-	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />
+	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
@@ -228,7 +228,10 @@
 		
 	<bean id="submissionManager" class="org.sagebionetworks.evaluation.manager.SubmissionManagerImpl" 
 		scope="singleton" />
-	
+
+	<bean id="evaluationPermissionsManager" class="org.sagebionetworks.evaluation.manager.EvaluationPermissionsManagerImpl"
+		scope="singleton" />
+
 	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
 		scope="singleton" />
 
@@ -283,9 +286,14 @@
 		scope="singleton" >
 	</bean>
 	
-		<!-- Used to read document from repo -->
+	<!-- Used to read document from repo -->
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
+		scope="singleton" />
+
+	<!-- Used to interface to the Jira server -->
+	<bean id="jiraClient"
+		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
 		scope="singleton" />
 
 </beans>
