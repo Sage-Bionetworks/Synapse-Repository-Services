@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -41,6 +42,20 @@ public interface AccessRequirementManager {
 	 *  delete an access requirement
 	 */
 	public void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Create an ACTAccessRequirement on an entity
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo,
+			String entityId) throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException;
 
 	
 }
