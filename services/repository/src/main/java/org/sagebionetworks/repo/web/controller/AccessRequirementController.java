@@ -47,6 +47,17 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_LOCK_ACCESS_REQURIEMENT, method = RequestMethod.POST)
+	public @ResponseBody
+	AccessRequirement createLockAccessRequirement(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id
+			) throws Exception {
+		return serviceProvider.getAccessRequirementService().createLockAccessRequirement(userId, id);
+	}
+	
+
 	/**
 	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity
 	 * @param userId
