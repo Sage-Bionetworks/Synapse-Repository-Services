@@ -119,6 +119,8 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 	private List<ChunkResult> waitForCopyWorkers(List<Future<ChunkResult>> futures) throws InterruptedException, ExecutionException {
 		// Now we need to wait for all of the workers to copy the parts.
 		long start = System.currentTimeMillis();
+		// We keep a second start time that we can reset as long as we are making progress.
+		long resetableStart = start;
 		int totalCount = futures.size();
 		int doneCount =0;
 		List<ChunkResult> done = new LinkedList<ChunkResult>();
@@ -127,7 +129,7 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 			log.debug("Waiting for copy workers. Done: "+done.size()+" Total: "+totalCount);
 			Thread.sleep(1000);
 			// We are still waiting for the workers to finish
-			if(System.currentTimeMillis() - start > maxWaitMS){
+			if(System.currentTimeMillis() - resetableStart > maxWaitMS){
 				throw new RuntimeException("Timed out waiting for the multi-part load to finish: "+cacf.toString());
 			}
 			List<Future<ChunkResult>> toRemove = new LinkedList<Future<ChunkResult>>();
@@ -153,6 +155,8 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 				uploadStatus.setPercentComplete(new Double(percent));
 				uploadStatus.setRunTimeMS(System.currentTimeMillis()-start);
 				uploadDaemonStatusDao.update(uploadStatus);
+				// As long as we are making progress reset the timer
+				resetableStart = System.currentTimeMillis();
 			}
 		}
 		return done;
