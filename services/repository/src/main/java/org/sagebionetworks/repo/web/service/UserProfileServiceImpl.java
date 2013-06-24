@@ -22,7 +22,7 @@ import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -61,7 +60,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	UserManager userManager;	
 	@Autowired
-	PermissionsManager permissionsManager;	
+	EntityPermissionsManager entityPermissionsManager;	
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 	@Autowired
@@ -225,7 +224,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 				addToIdCache(tempIdCache, header);
 			}
 		}
-		Collection<UserGroup> userGroups = permissionsManager.getGroups();
+		Collection<UserGroup> userGroups = userManager.getGroups();
 		this.logger.info("Loaded " + userGroups.size() + " user groups.");
 		for (UserGroup group : userGroups) {
 			if (group.getName() != null) {
@@ -256,8 +255,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public void setPermissionsManager(PermissionsManager permissionsManager) {
-		this.permissionsManager = permissionsManager;
+	public void setPermissionsManager(EntityPermissionsManager permissionsManager) {
+		this.entityPermissionsManager = permissionsManager;
 	}
 
 	@Override
@@ -280,7 +279,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public EntityHeader addFavorite(String userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if(!permissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
+		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
 			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version

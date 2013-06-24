@@ -50,7 +50,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		ReflectionTestUtils.setField(sync, "consumer", mock(Consumer.class));
 
-		sync.triggerFired();
+		sync.run();
 		verify(nodeTreeUpdateManager, times(0)).create(anyString(), anyString(), any(Date.class));
 		verify(nodeTreeUpdateManager, times(0)).update(anyString(), anyString(), any(Date.class));
 	}
@@ -81,7 +81,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		ReflectionTestUtils.setField(sync, "consumer", mock(Consumer.class));
 
-		sync.triggerFired();
+		sync.run();
 		verify(nodeTreeUpdateManager, times(1)).create(eq("syn1"), eq("syn11"), any(Date.class));
 		verify(nodeTreeUpdateManager, times(0)).update(anyString(), anyString(), any(Date.class));
 	}
@@ -112,7 +112,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		ReflectionTestUtils.setField(sync, "consumer", mock(Consumer.class));
 
-		sync.triggerFired();
+		sync.run();
 		verify(nodeTreeUpdateManager, times(0)).create(anyString(), anyString(), any(Date.class));
 		verify(nodeTreeUpdateManager, times(1)).update(eq("syn1"), eq("syn11"), any(Date.class));
 	}
@@ -144,7 +144,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		ReflectionTestUtils.setField(sync, "consumer", mock(Consumer.class));
 
-		sync.triggerFired();
+		sync.run();
 		verify(nodeTreeDao, times(1)).isRoot("1");
 	}
 
@@ -164,7 +164,7 @@ public class DynamoRdsSynchronizerTest {
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);
 		ReflectionTestUtils.setField(sync, "consumer", mock(Consumer.class));
 
-		sync.triggerFired();
+		sync.run();
 		verify(nodeTreeDao, times(0)).isRoot(anyString());
 		verify(nodeTreeUpdateManager, times(0)).create(anyString(), anyString(), any(Date.class));
 		verify(nodeTreeUpdateManager, times(0)).update(anyString(), anyString(), any(Date.class));

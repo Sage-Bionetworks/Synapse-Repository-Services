@@ -12,7 +12,9 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -33,6 +35,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -408,5 +411,77 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
 		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, request, accessType));
+	}
+
+	/**
+	 * Creates a new ACL.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
+	public @ResponseBody AccessControlList
+	createAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestBody AccessControlList acl,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException {
+		return serviceProvider.getEvaluationService().createAcl(userId, acl);
+	}
+
+	/**
+	 * Updates with the given ACL.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
+	public @ResponseBody AccessControlList
+	updateAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestBody AccessControlList acl,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException {
+		return serviceProvider.getEvaluationService().updateAcl(userId, acl);
+	}
+
+	/**
+	 * Deletes the ACL of the specified evaluation.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
+	public void deleteAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String evalId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException {
+		serviceProvider.getEvaluationService().deleteAcl(userId, evalId);
+	}
+
+	/**
+	 * Gets the access control list (ACL) governing the given evaluation.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.GET)
+	public @ResponseBody AccessControlList
+	getAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String evalId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, ACLInheritanceException {
+		return serviceProvider.getEvaluationService().getAcl(userId, evalId);
+	}
+
+	/**
+	 * Gets the user permissions for an evaluation.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ID_PERMISSIONS, method = RequestMethod.GET)
+	public @ResponseBody UserEvaluationPermissions
+	getUserPermissionsForEvaluation(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String evalId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+		return serviceProvider.getEvaluationService().getUserPermissionsForEvaluation(userId, evalId);
 	}
 }

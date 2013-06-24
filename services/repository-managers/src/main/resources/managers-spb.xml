@@ -47,7 +47,7 @@
 		<property name="targetMethod">
 			<value>newFixedThreadPool</value>
 		</property>
-		<property name="arguments" value="10"/>
+		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads"/>
 	</bean>
 
 	<!-- The thread pool used by the asynchronous fileupload secondary daemons -->
@@ -59,7 +59,7 @@
 		<property name="targetMethod">
 			<value>newFixedThreadPool</value>
 		</property>
-		<property name="arguments" value="10"/>
+		<property name="arguments" ref="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads"/>
 	</bean>
 
 	<!-- Fixed Memory Pool - Used to provided a fix amount of memory used for transfering files
@@ -85,6 +85,7 @@
 	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
 	   	<!-- The temp strategy is the fall-back -->
 	    <property name="fallbackStrategy" ref="tempFileTransferStrategy"/>
+	    <property name="multipartUploadDaemonTimeoutMS" ref="stackConfiguration.fileMultipartUploadDaemonTimeoutMS"/>
 	</bean>
 	
 	<!-- The preview manager -->
@@ -109,7 +110,7 @@
 	<bean id="authorizationManager"
 		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 
-	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />
+	<bean id="entityPermissionsManager" class="org.sagebionetworks.repo.manager.EntityPermissionsManagerImpl" />
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
@@ -227,7 +228,10 @@
 		
 	<bean id="submissionManager" class="org.sagebionetworks.evaluation.manager.SubmissionManagerImpl" 
 		scope="singleton" />
-	
+
+	<bean id="evaluationPermissionsManager" class="org.sagebionetworks.evaluation.manager.EvaluationPermissionsManagerImpl"
+		scope="singleton" />
+
 	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
 		scope="singleton" />
 
@@ -282,9 +286,14 @@
 		scope="singleton" >
 	</bean>
 	
-		<!-- Used to read document from repo -->
+	<!-- Used to read document from repo -->
 	<bean id="searchDocumentDriver"
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
+		scope="singleton" />
+
+	<!-- Used to interface to the Jira server -->
+	<bean id="jiraClient"
+		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
 		scope="singleton" />
 
 </beans>

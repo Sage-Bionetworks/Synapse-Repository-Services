@@ -42,6 +42,10 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.semaphoreGatedMaxRunnersFilePreview",
 			"stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex",
 			"stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize",
+			
+			"stackConfiguration.fileMultipartUploadDaemonTimeoutMS",
+			"stackConfiguration.fileMultipartUploadDaemonMainMaxThreads",
+			"stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads",
 	};
 	
 	@Before
