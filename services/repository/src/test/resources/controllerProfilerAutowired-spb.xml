@@ -11,12 +11,7 @@
   <context:annotation-config />
 
   <import resource="classpath:repository-servlet.xml" />
-    
-    <!-- controllerProfiler that collects latency information in the form of CloudWatch objects --> 
-	<bean id="controllerProfiler" class="profiler.org.sagebionetworks.cloudwatch.ControllerProfiler">
-		<property name="shouldProfile" value="true"/>
-	</bean>
-    
+ 
     <!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
 	<bean id="simpleTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
     	<property name="jobDetail" ref="methodInvoking" />
