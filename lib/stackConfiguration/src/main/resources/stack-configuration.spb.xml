@@ -64,4 +64,10 @@
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	
+	<!-- Configuration for multi-part upload daemons. -->
+	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
+	<bean id="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 </beans>

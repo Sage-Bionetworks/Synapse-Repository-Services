@@ -61,11 +61,6 @@ import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
  */
 public class FileHandleManagerImpl implements FileHandleManager {
 
-	/**
-	 * This is the maximum amount of time the upload workers are allowed to take before timing out.
-	 */
-	public static final long MAX_UPLOAD_WORKER_TIME_MS = 15*1000;
-
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30*1000; // 30 secs
 	
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
@@ -104,6 +99,21 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * 
 	 */
 	FileTransferStrategy fallbackStrategy;
+	
+ 	/**
+	 * This is the maximum amount of time the upload workers are allowed to take before timing out.
+	 */
+	long multipartUploadDaemonTimeoutMS;
+	
+	/**
+	 * This is the maximum amount of time the upload workers are allowed to take
+	 * before timing out. Injected via Spring
+	 * 
+	 * @param multipartUploadDaemonTimeoutMS
+	 */
+	public void setMultipartUploadDaemonTimeoutMS(long multipartUploadDaemonTimeoutMS) {
+		this.multipartUploadDaemonTimeoutMS = multipartUploadDaemonTimeoutMS;
+	}
 	
 	/**
 	 * Used by spring
@@ -485,7 +495,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		status.setState(State.PROCESSING);
 		status = uploadDaemonStatusDao.create(status);
 		// Create a worker and add it to the pool.
-		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, uploadFileDaemonThreadPoolSecondary, status, cacf, multipartManager, bucket, MAX_UPLOAD_WORKER_TIME_MS, userId);
+		CompleteUploadWorker worker = new CompleteUploadWorker(uploadDaemonStatusDao, uploadFileDaemonThreadPoolSecondary, status, cacf, multipartManager, bucket, multipartUploadDaemonTimeoutMS, userId);
 		// Get a new copy of the status so we are not returning the same instance that we passed to the worker.
 		status = uploadDaemonStatusDao.get(status.getDaemonId());
 		// Add this worker the primary pool
