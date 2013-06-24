@@ -60,6 +60,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -189,6 +190,7 @@ public class Synapse implements SynapseInt {
 	protected static final String ALL = "/all";
 	protected static final String STATUS = "/status";
 	protected static final String PARTICIPANT = "participant";
+	protected static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
 	protected static final String SUBMISSION = "submission";
 	protected static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
 	protected static final String SUBMISSION_ALL = SUBMISSION + ALL;
@@ -1098,6 +1100,13 @@ public class Synapse implements SynapseInt {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+		
+	}
+	
+	public ACTAccessRequirement createLockAccessRequirement(String entityId) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		JSONObject jsonObj = postUri(LOCK_ACCESS_REQUIREMENT);
+		return initializeFromJSONObject(jsonObj, ACTAccessRequirement.class);
 		
 	}
 
