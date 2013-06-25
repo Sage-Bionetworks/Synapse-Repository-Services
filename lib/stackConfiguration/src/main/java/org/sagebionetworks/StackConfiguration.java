@@ -849,4 +849,35 @@ public class StackConfiguration {
 	public Integer getSemaphoreGatedMaxRunnersDynamoSynchronize(){
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
 	}
+		
+	/**
+	 * This is the maximum amount of time the upload workers are allowed to take before timing out.
+	 * @return
+	 */
+	public Long getFileMultipartUploadDaemonTimeoutMS(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.file.multipart.upload.daemon.timeout.ms"));
+	}
+	
+	/**
+	 * The maximum number of threads that can be used for the mutipart upload daemons.
+	 * @return
+	 */
+	public Long getFileMultipartUploadDaemonMainMaxThreads(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.file.multipart.upload.daemon.main.max.threads"));
+	}
+	
+	/**
+	 * The maximum number of threads that can be used for the mutipart upload daemons copy part sub-task.
+	 * @return
+	 */
+	public Long getFileMultipartUploadDaemonCopyPartMaxThreads(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.file.multipart.upload.daemon.copy.part.max.threads"));
+	}
+	
+	/**
+	 * Get credentials for the Jira service account used to create Jira issues
+	 * @return
+	 */
+	public static String getJiraUserName() {return configuration.getProperty("org.sagebionetworks.repo.manager.jira.user.name");}
+	public static String getJiraUserPassword() {return configuration.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");}
 }
