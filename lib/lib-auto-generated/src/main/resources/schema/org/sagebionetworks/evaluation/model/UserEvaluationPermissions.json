@@ -20,11 +20,15 @@
 		},
 		"canDelete": {
 			"type": "boolean",
-			"description": "Can the user delete this entity?"
+			"description": "Can the user delete this evaluation?"
+		},
+		"canParticipate": {
+			"type": "boolean",
+			"description": "Can the user participate in this evaluation?"
 		},
 		"ownerPrincipalId": {
 			"type": "integer",
-			"description": "The principal ID of the evaluation's owner (i.e. the entity's 'createdBy')"
+			"description": "The principal ID of the evaluation's owner (i.e. the evaluation's 'createdBy')"
 		}
 	}
 }
