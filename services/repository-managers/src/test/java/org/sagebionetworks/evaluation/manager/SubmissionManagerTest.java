@@ -3,10 +3,13 @@ package org.sagebionetworks.evaluation.manager;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -86,12 +89,13 @@ public class SubmissionManagerTest {
 	private static final String ETAG = "etag";	
 	private static final String HANDLE_ID_2 = "handle2";
 	private static final String HANDLE_ID_1 = "handle1";
+	private static final String TEST_URL = "http://www.foo.com/bar";
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
-    
+	
     @Before
-    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
+    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException, MalformedURLException {
 		// User Info
     	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID);
@@ -205,6 +209,7 @@ public class SubmissionManagerTest {
     	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
+    	when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(new URL(TEST_URL));
     	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
@@ -319,15 +324,16 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetRedirectURLForFileHandle()
 			throws DatastoreException, NotFoundException {
-		submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB_ID, HANDLE_ID_1);
+		URL url = submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB_ID, HANDLE_ID_1);
+		assertEquals(TEST_URL, url.toString());
 		verify(mockSubmissionFileHandleDAO).getAllBySubmission(eq(SUB_ID));
+		verify(mockFileHandleManager).getRedirectURLForFileHandle(eq(HANDLE_ID_1));
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetRedirectURLForFileHandleUnauthorized()
 			throws DatastoreException, NotFoundException {
 		submissionManager.getRedirectURLForFileHandle(userInfo, SUB_ID, HANDLE_ID_1);
-		verify(mockSubmissionFileHandleDAO, never()).getAllBySubmission(eq(SUB_ID));
 	}
 	
 	@Test(expected=NotFoundException.class)
@@ -335,7 +341,6 @@ public class SubmissionManagerTest {
 			throws DatastoreException, NotFoundException {
 		// HANDLE_ID_1 is not contained in this Submission
 		submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB2_ID, HANDLE_ID_1);
-		verify(mockSubmissionFileHandleDAO).getAllBySubmission(eq(SUB2_ID));
 	}
 
 }
