@@ -20,6 +20,7 @@ import org.sagebionetworks.javadoc.writer.CharacterWriter;
 import org.sagebionetworks.javadoc.writer.HyperLinkWriter;
 import org.sagebionetworks.javadoc.writer.SubWriter;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
@@ -128,7 +129,7 @@ public class SchemaHTMLWriter {
 	 * @throws XMLStreamException
 	 */
 	public static void writePropertiesToTable(XMLStreamWriter writer, Map<String, ObjectSchema> properties) throws XMLStreamException{
-		String[] headers = new String[]{"name","description","type"};
+		String[] headers = new String[]{"type", "name","description"};
 		List<SubWriter[]> data = new LinkedList<SubWriter[]>();
 		// For each 
 		Iterator<Entry<String, ObjectSchema>> it = properties.entrySet().iterator();
@@ -140,16 +141,18 @@ public class SchemaHTMLWriter {
 				description = "";
 			}
 			SubWriter typeWriter;
-			if(prop.getId() != null){
+			if(TYPE.ARRAY == prop.getType()){
+				typeWriter =new CharacterWriter(TYPE.ARRAY.name()+"<"+prop.getItems().getType().name()+">");
+			}else if(prop.getId() != null){
 				final String id = prop.getId();
 				typeWriter = new HyperLinkWriter("${"+id+"}", id);
 			}else{
 				typeWriter =new CharacterWriter(prop.getType().name());
 			}			
 			SubWriter[] row = new SubWriter[]{
+					typeWriter,
 					new CharacterWriter(entry.getKey()),
 					new CharacterWriter(description),
-					typeWriter,
 			};
 			data.add(row);
 		}

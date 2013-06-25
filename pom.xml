@@ -481,7 +481,11 @@
 				<artifactId>xstream</artifactId>
 				<version>${xstream.version}</version>
 			</dependency>
-
+			<dependency>
+				<groupId>org.apache.velocity</groupId>
+				<artifactId>velocity</artifactId>
+				<version>1.7</version>
+			</dependency>
 			<!-- Used to for file upload -->
 			<dependency>
 				<groupId>commons-fileupload</groupId>

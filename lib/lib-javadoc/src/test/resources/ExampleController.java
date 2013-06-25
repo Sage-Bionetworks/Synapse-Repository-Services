@@ -1,9 +1,10 @@
-package org.sagebionetworks.samples;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
@@ -71,6 +72,31 @@ public class ExampleController {
 	@RequestMapping(value ="/startCompleteUploadDaemon" , method = RequestMethod.POST)
 	public @ResponseBody UploadDaemonStatus startCompleteUploadDaemon(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
 			@RequestBody CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException{
+		return null;
+	}
+	
+	/**
+	 * This method is called on the destination stack to compare compare its
+	 * metadata with the source stack metadata
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/migration/delata", method = RequestMethod.GET)
+	public @ResponseBody
+	RowMetadataResult getRowMetadataDelta(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(required = true) String type,
+			@RequestBody IdList request) throws DatastoreException,
+			NotFoundException {
+		if (request == null)
+			throw new IllegalArgumentException("Request cannot be null");
 		return null;
 	}
 	
