@@ -1,5 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.net.URL;
+
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -195,5 +197,19 @@ public interface SubmissionManager {
 	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, 
 			SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get a redirect URL for a given FileHandle in a specified Submission.
+	 * Requires admin-level permissions on the associated Evaluation.
+	 * 
+	 * @param submissionId
+	 * @param filehandleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public URL getRedirectURLForFileHandle(UserInfo userInfo,
+			String submissionId, String filehandleId)
+			throws DatastoreException, NotFoundException;
 
 }

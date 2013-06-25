@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -381,6 +384,32 @@ public class EvaluationController extends BaseController {
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
 		return serviceProvider.getEvaluationService().getAllSubmissionBundlesByEvaluationAndUser(evalId, userId, limit, offset, request);
+	}
+	
+	/**
+	 * Get a pre-signed URL to access a requested File contained within a
+	 * specified Submission.
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 * @param fileHandleId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void redirectURLForFileHandle(
+			@PathVariable String subId,
+			@PathVariable String fileHandleId,
+			@RequestParam (required = false) Boolean redirect,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException {
+		URL url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
+		RedirectUtils.handleRedirect(redirect, url, response);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

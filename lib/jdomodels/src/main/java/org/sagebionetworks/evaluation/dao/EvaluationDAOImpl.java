@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -129,6 +130,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 				if (e2.getCause().getClass() == DuplicateKeyException.class)
 					message = "An Evaluation already exists with the name '" +
 							dto.getName() + "'";
+				throw new NameConflictException(message, e);
 			}
 			
 			throw new DatastoreException(message, e);
