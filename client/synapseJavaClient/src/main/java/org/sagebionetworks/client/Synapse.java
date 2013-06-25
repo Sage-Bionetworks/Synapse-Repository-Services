@@ -3707,7 +3707,7 @@ public class Synapse implements SynapseInt {
 	
 	public Submission getSubmission(String subId) throws SynapseException {
 		if (subId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId;		
+		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		try {
@@ -3881,7 +3881,25 @@ public class Synapse implements SynapseInt {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-	}	
+	}
+	
+	/**
+	 * Get a temporary URL to access a File contained in a Submission.
+	 * 
+	 * @param submissionId
+	 * @param fileHandleId
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId, String fileHandleId)
+			throws ClientProtocolException, MalformedURLException, IOException {
+		String url = getRepoEndpoint() + EVALUATION_URI_PATH + "/" + 
+				SUBMISSION + "/" + submissionId + FILE + "/" + fileHandleId +
+				QUERY_REDIRECT_PARAMETER + "false";
+		return getUrl(url);
+	}
 	
 	public Long getSubmissionCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
