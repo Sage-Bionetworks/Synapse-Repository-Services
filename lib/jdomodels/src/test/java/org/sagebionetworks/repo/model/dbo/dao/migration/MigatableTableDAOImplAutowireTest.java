@@ -191,6 +191,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
+		expectedPrimaryTypes.add(MigrationType.ACL);
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);

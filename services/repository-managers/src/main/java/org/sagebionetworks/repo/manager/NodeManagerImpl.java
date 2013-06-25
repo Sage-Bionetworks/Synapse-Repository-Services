@@ -242,7 +242,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
-		
+		aclDAO.delete(nodeId);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
