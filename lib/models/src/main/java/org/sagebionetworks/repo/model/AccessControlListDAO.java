@@ -20,12 +20,6 @@ public interface AccessControlListDAO  {
 	public boolean canAccess(Collection<UserGroup> groups, String resourceId, ACCESS_TYPE accessType) throws DatastoreException;
 
 	/**
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	public String authorizationSQL(int n);
-
-	/**
 	 * Create a new ACL
 	 * @param dto
 	 * @return

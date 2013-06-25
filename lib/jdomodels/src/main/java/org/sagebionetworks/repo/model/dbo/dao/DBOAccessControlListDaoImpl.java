@@ -11,31 +11,39 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
-	
+public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
+
 	private static final String SELECT_ACCESS_TYPES_FOR_RESOURCE = "SELECT "+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" FROM "+TABLE_RESOURCE_ACCESS_TYPE+" WHERE "+COL_RESOURCE_ACCESS_TYPE_ID+" = ?";
 
 	private static final String SELECT_OWNER_ETAG = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -47,18 +55,18 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	/**
 	 * Keep a copy of the row mapper.
 	 */
-	private static RowMapper<DBOResourceAccess> accessMapper = new DBOResourceAccess().getTableMapping();
-	
+	private static final RowMapper<DBOResourceAccess> accessMapper = new DBOResourceAccess().getTableMapping();
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
 	@Autowired
 	private IdGenerator idGenerator;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessControlList createACL(AccessControlList acl) throws DatastoreException, NotFoundException {
+	public String create(AccessControlList acl) throws DatastoreException, NotFoundException {
 		AccessControlListUtils.validateACL(acl);
 		// First create the base
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
@@ -66,9 +74,8 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(acl);
 		acl.setEtag(getETag(acl.getId()));
-		return acl;
+		return acl.getId();
 	}
-
 
 	/**
 	 * Populate the resource access table after the ACL table is ready.
@@ -101,13 +108,14 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	}
 
 	@Override
-	public AccessControlList getACL(Long owner) throws DatastoreException, NotFoundException {
+	public AccessControlList get(String ownerId) throws DatastoreException, NotFoundException {
+		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue("id", owner);
+		param.addValue("id", ownerKey);
 		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
-		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl);
+		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ObjectType.ENTITY);
 		// Now fetch the rest of the data for this ACL
-		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, owner);
+		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(raSet);
 		for(DBOResourceAccess raDbo: raList){
@@ -128,7 +136,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		acl.setEtag(getETag(acl.getId()));
 		return acl;
 	}
-	
+
 	private String getETag(String ownerString) throws DatastoreException{
 		Long owner = KeyFactory.stringToKey(ownerString);
 		String eTag = simpleJdbcTemplate.queryForObject(SELECT_OWNER_ETAG, String.class, owner);
@@ -137,7 +145,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessControlList update(AccessControlList acl) throws DatastoreException, NotFoundException {
+	public void update(AccessControlList acl) throws DatastoreException, NotFoundException {
 		AccessControlListUtils.validateACL(acl);
 		// First convert the ACL to a DBO
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
@@ -148,16 +156,42 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, owner);
 		// Now recreate it from the passed data.
 		populateResourceAccess(acl);
-		return null;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean delete(Long owner) throws DatastoreException {
-		// TODO Auto-generated method stub
+	public void delete(String ownerId) throws DatastoreException {
+		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("id", owner);
-		return dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
+		params.addValue("id", ownerKey);
+		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
 	}
 
+	@Override
+	public AccessControlList getForResource(String rid)
+			throws DatastoreException, NotFoundException {
+		return get(rid);
+	}
+
+	@Override
+	public boolean canAccess(Collection<UserGroup> groups, String resourceId,
+			ACCESS_TYPE accessType) throws DatastoreException {
+		// Build up the parameters
+		Map<String,Object> parameters = new HashMap<String,Object>();
+		int i=0;
+		for (UserGroup gId : groups) {
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId.getId());
+		}
+		// Bind the type
+		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
+		// Bind the node id
+		parameters.put(AuthorizationSqlUtil.NODE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
+		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
+		try{
+			Long count = simpleJdbcTemplate.queryForLong(sql, parameters);
+			return count.longValue() > 0;
+		}catch (DataAccessException e){
+			throw new DatastoreException(e);
+		}
+	}
 }
