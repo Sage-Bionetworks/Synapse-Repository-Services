@@ -1,4 +1,4 @@
-
+package org.sagebionetworks.samples;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;

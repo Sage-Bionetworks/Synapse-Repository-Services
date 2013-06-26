@@ -100,6 +100,7 @@ public class JavadocMockUtils {
 		ClassDoc cd = createMockClassDoc(name);
 		ClassDoc[] interfaces = createMockClassDocs(new String[]{JSONEntity.class.getName()});
 		when(cd.interfaces()).thenReturn(interfaces);
+		when(cd.qualifiedName()).thenReturn(name);
 		return cd;
 	}
 	
