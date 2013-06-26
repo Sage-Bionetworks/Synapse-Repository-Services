@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -395,6 +397,20 @@ public interface EvaluationService {
 			String evalId, SubmissionStatusEnum status,
 			long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get a pre-signed URL to access a requested File contained within a
+	 * specified Submission.
+	 * 
+	 * @param userInfo
+	 * @param submissionId
+	 * @param fileHandleId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public URL getRedirectURLForFileHandle(String userName, String submissionId,
+			String fileHandleId) throws DatastoreException, NotFoundException;
 
 	////// Methods for managing ACLs //////
 
