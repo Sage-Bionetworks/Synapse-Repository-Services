@@ -64,11 +64,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		validateACLContent(acl, userInfo, ownerId);
-		// Before we can update the ACL we must grab the lock on the node.
-		String newETag = nodeDao.lockNodeAndIncrementEtag(acl.getId(), acl.getEtag());
 		aclDAO.update(acl);
-		acl = aclDAO.get(acl.getId());
-		acl.setEtag(newETag);
+		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
 
@@ -92,9 +89,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
 		aclDAO.create(acl);
-		acl = aclDAO.get(acl.getId());
-		node = nodeDao.getNode(rId);
-		acl.setEtag(node.getETag());
+		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
 

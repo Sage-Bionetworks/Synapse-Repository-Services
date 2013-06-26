@@ -174,10 +174,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
 			partsMask += EntityBundle.ENTITY;			
 			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
-			
-			// Update etag
-			if (acl != null)
-				acl.setEtag(entity.getEtag());
 		}
 			
 		// Update the ACL

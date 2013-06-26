@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessControlListDAO  {
@@ -20,12 +21,6 @@ public interface AccessControlListDAO  {
 	public boolean canAccess(Collection<UserGroup> groups, String resourceId, ACCESS_TYPE accessType) throws DatastoreException;
 
 	/**
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	public String authorizationSQL(int n);
-
-	/**
 	 * Create a new ACL
 	 * @param dto
 	 * @return
@@ -42,7 +37,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessControlList get(String id) throws DatastoreException,	NotFoundException;
+	public AccessControlList get(String id, ObjectType objectType) throws DatastoreException,	NotFoundException;
 
 	/**
 	 * Update the JDO
