@@ -1,0 +1,16 @@
+{
+	"description": "An Annotation containing a Date value",
+	"type":"object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.annotation.AnnotationBase"
+		}
+	],
+	"properties": {
+		"value": {			
+			"type": "string",
+			"format": "date-time",
+			"description": "The time value of this Annotation"
+		}
+	}
+}
