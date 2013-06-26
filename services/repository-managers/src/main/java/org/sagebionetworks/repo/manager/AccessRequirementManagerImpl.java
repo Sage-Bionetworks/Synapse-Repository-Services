@@ -93,6 +93,20 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return accessRequirementDAO.create(accessRequirement);
 	}
 	
+	public static ACTAccessRequirement newLockAccessRequirement(UserInfo userInfo, String entityId) {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		// create the 'lock down' access requirement'
+		ACTAccessRequirement accessRequirement = new ACTAccessRequirement();
+		accessRequirement.setEntityType("org.sagebionetworks.repo.model.ACTAccessRequirement");
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		populateCreationFields(userInfo, accessRequirement);
+		return accessRequirement;
+	}
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -109,12 +123,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
 		if (!ars.isEmpty()) throw new IllegalArgumentException("Entity "+entityId+" is already restricted.");
 		
-		// create the 'lock down' access requirement'
-		ACTAccessRequirement accessRequirement = new ACTAccessRequirement();
-		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
-		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		populateCreationFields(userInfo, accessRequirement);
+		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
 		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);
 		
 		// now create the Jira issue
