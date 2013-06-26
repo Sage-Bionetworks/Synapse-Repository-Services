@@ -1105,9 +1105,8 @@ public class Synapse implements SynapseInt {
 	
 	public ACTAccessRequirement createLockAccessRequirement(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
-		JSONObject jsonObj = postUri(LOCK_ACCESS_REQUIREMENT);
+		JSONObject jsonObj = postUri(ENTITY+"/"+entityId+LOCK_ACCESS_REQUIREMENT);
 		return initializeFromJSONObject(jsonObj, ACTAccessRequirement.class);
-		
 	}
 
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
