@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -21,7 +22,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACL_ID, true).withIsBackupId(true),
-		new FieldColumn("etag", COL_ACL_ETAG),
+		new FieldColumn("etag", COL_ACL_ETAG).withIsEtag(true),
 		new FieldColumn("resource", COL_ACL_OWNER_ID_COLUMN),
 		new FieldColumn("creationDate", COL_ACL_CREATED_ON)
 		};
@@ -120,7 +121,10 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	}
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBOResourceAccess());
+		list.add(new DBOResourceAccessType());
+		return list;
 	}
 	@Override
 	public int hashCode() {
