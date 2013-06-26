@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -445,7 +446,7 @@ public class DBOReferenceDaoImplTest {
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 		String aclId = aclDAO.create(acl);
-		acl = aclDAO.get(aclId);
+		acl = aclDAO.get(aclId, ObjectType.ENTITY);
 		// add acl to a list of objects to delete
 		aclIdToDelete = acl.getId();
 		assertEquals(""+node0.getId()+"!="+acl.getId(), ""+node0.getId(), aclId);

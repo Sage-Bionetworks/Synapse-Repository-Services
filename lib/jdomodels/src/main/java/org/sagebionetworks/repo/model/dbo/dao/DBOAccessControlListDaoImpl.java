@@ -114,7 +114,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public AccessControlList get(String ownerId) throws DatastoreException, NotFoundException {
+	public AccessControlList get(final String ownerId, final ObjectType objectType)
+			throws DatastoreException, NotFoundException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", ownerKey);
@@ -179,7 +180,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public AccessControlList getForResource(String rid)
 			throws DatastoreException, NotFoundException {
-		return get(rid);
+		return get(rid, ObjectType.ENTITY);
 	}
 
 	@Override

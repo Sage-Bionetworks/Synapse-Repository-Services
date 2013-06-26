@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -214,7 +215,7 @@ public class DBOAccessControlListDAOImplTest {
 		AccessControlList acl = aclList.iterator().next();
 		String id = acl.getId();
 		
-		AccessControlList acl2 = aclDAO.get(id);
+		AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
 		
 		assertEquals(acl, acl2);
 		
@@ -222,7 +223,7 @@ public class DBOAccessControlListDAOImplTest {
 		aclDAO.delete(id);
 		
 		try {
-			aclDAO.get(id);
+			aclDAO.get(id, ObjectType.ENTITY);
 			fail("NotFoundException expected");	
 		} catch (NotFoundException e) {  // any other kind of exception will cause a failure
 			// as expected

@@ -65,7 +65,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		validateACLContent(acl, userInfo, ownerId);
 		aclDAO.update(acl);
-		acl = aclDAO.get(acl.getId());
+		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
 
@@ -89,7 +89,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
 		aclDAO.create(acl);
-		acl = aclDAO.get(acl.getId());
+		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
 

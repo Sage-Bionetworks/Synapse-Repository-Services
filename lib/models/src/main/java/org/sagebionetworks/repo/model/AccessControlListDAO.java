@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessControlListDAO  {
@@ -36,7 +37,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessControlList get(String id) throws DatastoreException,	NotFoundException;
+	public AccessControlList get(String id, ObjectType objectType) throws DatastoreException,	NotFoundException;
 
 	/**
 	 * Update the JDO
