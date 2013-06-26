@@ -1,7 +1,4 @@
-/**
- * 
- */
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -42,10 +39,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class JDOAccessControlListDAOImplTest {
+public class DBOAccessControlListDAOImplTest {
 	
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
+	private AccessControlListDAO aclDAO;
 	
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -58,7 +55,6 @@ public class JDOAccessControlListDAOImplTest {
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
 
 	private Node node = null;
-	private AccessControlList acl = null;
 	private UserGroup group = null;
 	private UserGroup group2 = null;
 	
@@ -108,9 +104,9 @@ public class JDOAccessControlListDAOImplTest {
 		acl.setId(nodeId);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		accessControlListDAO.create(acl);
+		aclDAO.create(acl);
 		
-		acl = accessControlListDAO.getForResource(node.getId());
+		acl = aclDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		assertNotNull(acl.getEtag());
 		assertEquals(node.getId(), acl.getId());
@@ -125,8 +121,8 @@ public class JDOAccessControlListDAOImplTest {
 				})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		accessControlListDAO.update(acl);
-		acl = accessControlListDAO.getForResource(node.getId());
+		aclDAO.update(acl);
+		acl = aclDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		ras = acl.getResourceAccess();
 		assertEquals(1, ras.size());
@@ -148,7 +144,6 @@ public class JDOAccessControlListDAOImplTest {
 		groupList.clear();
 		aclList.clear();
 		this.node=null;
-		this.acl=null;
 		this.group=null;
 		this.group2=null;
 	}
@@ -160,14 +155,14 @@ public class JDOAccessControlListDAOImplTest {
 	public void testGetForResource() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
-		AccessControlList acl = accessControlListDAO.getForResource(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		assertEquals(acl, aclList.iterator().next());
 	}
 
 	@Test (expected=NotFoundException.class)
 	public void testGetForResourceBadID() throws Exception {
 		String rid = "-598787";
-		AccessControlList acl = accessControlListDAO.getForResource(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		assertNull(acl);
 	}
 	
@@ -186,10 +181,10 @@ public class JDOAccessControlListDAOImplTest {
 		gs.add(group);
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		
 		// but it doesn't have 'UPDATE' access
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
@@ -197,7 +192,7 @@ public class JDOAccessControlListDAOImplTest {
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
 		gs.add(sham);
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 	}
 
 	/**
@@ -209,15 +204,15 @@ public class JDOAccessControlListDAOImplTest {
 		AccessControlList acl = aclList.iterator().next();
 		String id = acl.getId();
 		
-		AccessControlList acl2 = accessControlListDAO.get(id);
+		AccessControlList acl2 = aclDAO.get(id);
 		
 		assertEquals(acl, acl2);
 		
 		aclList.remove(acl);
-		accessControlListDAO.delete(id);
+		aclDAO.delete(id);
 		
 		try {
-			accessControlListDAO.get(id);
+			aclDAO.get(id);
 			fail("NotFoundException expected");	
 		} catch (NotFoundException e) {  // any other kind of exception will cause a failure
 			// as expected
@@ -234,7 +229,7 @@ public class JDOAccessControlListDAOImplTest {
 	public void testUpdate() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
-		AccessControlList acl = accessControlListDAO.getForResource(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = ras.iterator().next();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(
@@ -243,16 +238,16 @@ public class JDOAccessControlListDAOImplTest {
 						ACCESS_TYPE.CREATE
 				})));
 		String etagBeforeUpdate = acl.getEtag();
-		accessControlListDAO.update(acl);
+		aclDAO.update(acl);
 		
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
 		gs.add(group);
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
 	
-		AccessControlList acl2 = accessControlListDAO.getForResource(rid);
+		AccessControlList acl2 = aclDAO.getForResource(rid);
 		// This test is moved to permission manager
 		//assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
 	}
@@ -262,7 +257,7 @@ public class JDOAccessControlListDAOImplTest {
 	public void testUpdateMultipleGroups() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
-		AccessControlList acl = accessControlListDAO.getForResource(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = ras.iterator().next();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(
@@ -279,21 +274,21 @@ public class JDOAccessControlListDAOImplTest {
 						ACCESS_TYPE.READ,
 				})));
 		acl.getResourceAccess().add(ra2);
-		accessControlListDAO.update(acl);
+		aclDAO.update(acl);
 		
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
 		gs.add(group);
 		Collection<UserGroup> gs2 = new ArrayList<UserGroup>();
 		gs2.add(group2);
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
-		assertTrue(accessControlListDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
 		
 		// Group one can do this but 2 cannot.
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
 		// Now try 2
-		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.UPDATE));
-		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.CREATE));
+		assertFalse(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.UPDATE));
+		assertFalse(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.CREATE));
 		
 	}
 

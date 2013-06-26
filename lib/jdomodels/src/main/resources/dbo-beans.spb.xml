@@ -83,6 +83,7 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
