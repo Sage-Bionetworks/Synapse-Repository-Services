@@ -85,6 +85,7 @@ public class AccessRequirementManagerImplUnitTest {
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		expectedAR.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		expectedAR.setEntityType("org.sagebionetworks.repo.model.ACTAccessRequirement");;
 		AccessRequirementManagerImpl.populateCreationFields(userInfo, expectedAR);
 		return 	expectedAR;
 	}
