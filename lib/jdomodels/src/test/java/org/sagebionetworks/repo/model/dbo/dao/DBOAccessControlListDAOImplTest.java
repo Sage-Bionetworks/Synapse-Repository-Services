@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -104,11 +105,13 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setId(nodeId);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		aclDAO.create(acl);
-		
+		String aclId = aclDAO.create(acl);
+		assertEquals(nodeId, aclId);
+
 		acl = aclDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		assertNotNull(acl.getEtag());
+		final String etagBeforeUpdate = acl.getEtag();
 		assertEquals(node.getId(), acl.getId());
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
@@ -121,9 +124,11 @@ public class DBOAccessControlListDAOImplTest {
 				})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
+
 		aclDAO.update(acl);
 		acl = aclDAO.getForResource(node.getId());
 		assertNotNull(acl);
+		assertFalse(etagBeforeUpdate.equals(acl.getEtag()));
 		ras = acl.getResourceAccess();
 		assertEquals(1, ras.size());
 		ResourceAccess raClone = ras.iterator().next();
@@ -138,11 +143,16 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
-		for (Node n : nodeList) nodeDAO.delete(n.getId());
+		for (Node n : nodeList) {
+			nodeDAO.delete(n.getId());
+			aclDAO.delete(n.getId());
+		}
 		nodeList.clear();
-		for (UserGroup g : groupList) userGroupDAO.delete(g.getId());
-		groupList.clear();
 		aclList.clear();
+		for (UserGroup g : groupList) {
+			userGroupDAO.delete(g.getId());
+		}
+		groupList.clear();
 		this.node=null;
 		this.group=null;
 		this.group2=null;
@@ -243,13 +253,19 @@ public class DBOAccessControlListDAOImplTest {
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
 		gs.add(group);
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
-		
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
-	
+
 		AccessControlList acl2 = aclDAO.getForResource(rid);
-		// This test is moved to permission manager
-		//assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
+		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
+
+		try {
+			acl2.setEtag("someFakeEtag");
+			aclDAO.update(acl2);
+		} catch (ConflictingUpdateException e) {
+			// Expected
+			assertTrue(true);
+		}
 	}
 	
 	

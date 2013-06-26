@@ -106,7 +106,9 @@ public class EntityPermissionsManagerImplTest {
 	@After
 	public void tearDown() throws Exception {
 		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
+		for (Node n : nodeList) {
+			nodeManager.delete(adminUser, n.getId());
+		}
 		this.project=null;
 		if(userManager != null && usersToDelete != null){
 			for(String idToDelete: usersToDelete){
@@ -294,9 +296,7 @@ public class EntityPermissionsManagerImplTest {
 		assertNotNull(results.getEtag());
 		assertFalse("The Etag should have changed", eTagBefore.equals(results.getEtag()));
 		assertEquals(childNode.getId(), results.getId());
-		// The etag should match the node's tag
 		childNode = nodeManager.get(adminInfo, childNode.getId());
-		assertEquals(childNode.getETag(), results.getEtag());
 		// call 'getACL':  the ACL should match the requested settings and specify the resource as the owner of the ACL
 		AccessControlList acl2 = entityPermissionsManager.getACL(childNode.getId(), adminInfo);
 		assertEquals(childNode.getId(), acl2.getId());

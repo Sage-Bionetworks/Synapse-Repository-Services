@@ -107,10 +107,11 @@ public class DBOAccessControlListDAOScaleTest {
 	@After
 	public void after() throws DatastoreException {
 		// Delete all nodes created
-		if (nodeDAO != null && toDelete != null) {
+		if (nodeDAO != null && aclDAO != null && toDelete != null) {
 			for (String id : toDelete) {
 				try {
 					nodeDAO.delete(id);
+					aclDAO.delete(id);
 				} catch (NotFoundException e) {
 				}
 			}

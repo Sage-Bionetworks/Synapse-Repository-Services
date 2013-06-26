@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
@@ -17,12 +14,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -46,8 +45,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SELECT_ACCESS_TYPES_FOR_RESOURCE = "SELECT "+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" FROM "+TABLE_RESOURCE_ACCESS_TYPE+" WHERE "+COL_RESOURCE_ACCESS_TYPE_ID+" = ?";
 
-	private static final String SELECT_OWNER_ETAG = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
-
 	private static final String DELETE_RESOURCE_ACCESS_SQL = "DELETE FROM "+TABLE_RESOURCE_ACCESS+" WHERE "+COL_RESOURCE_ACCESS_OWNER+" = ?";
 
 	private static final String SELECT_ALL_RESOURCE_ACCESS = "SELECT * FROM "+TABLE_RESOURCE_ACCESS+" WHERE "+COL_RESOURCE_ACCESS_OWNER+" = ?";
@@ -67,14 +64,23 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String create(AccessControlList acl) throws DatastoreException, NotFoundException {
+
+		if (acl == null) {
+			throw new IllegalArgumentException("ACL cannot be null.");
+		}
+
+		// When we migrate we keep the original etag.  When it is null we set it.
+		if(acl.getEtag() == null){
+			acl.setEtag(UUID.randomUUID().toString());
+		}
+
 		AccessControlListUtils.validateACL(acl);
-		// First create the base
+
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
-		// Create a new ACL 
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(acl);
-		acl.setEtag(getETag(acl.getId()));
-		return acl.getId();
+
+		return acl.getId(); // This preserves the "syn" prefix
 	}
 
 	/**
@@ -133,27 +139,30 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			}
 			raSet.add(ra);
 		}
-		acl.setEtag(getETag(acl.getId()));
 		return acl;
-	}
-
-	private String getETag(String ownerString) throws DatastoreException{
-		Long owner = KeyFactory.stringToKey(ownerString);
-		String eTag = simpleJdbcTemplate.queryForObject(SELECT_OWNER_ETAG, String.class, owner);
-		return eTag;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void update(AccessControlList acl) throws DatastoreException, NotFoundException {
+
 		AccessControlListUtils.validateACL(acl);
-		// First convert the ACL to a DBO
+
+		// Check e-tags before update
+		final Long ownerKey = KeyFactory.stringToKey(acl.getId());
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue("id", ownerKey);
+		DBOAccessControlList existingAcl = dboBasicDao.getObjectByPrimaryKey(
+				DBOAccessControlList.class, param);
+		if (!existingAcl.getEtag().equals(acl.getEtag())) {
+			throw new ConflictingUpdateException("E-tags do not match.");
+		}
+		acl.setEtag(UUID.randomUUID().toString());
+
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
-		// Create a new ACL 
 		dboBasicDao.update(dbo);
-		Long owner = KeyFactory.stringToKey(acl.getId());
 		// Now delete the resource access
-		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, owner);
+		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, ownerKey);
 		// Now recreate it from the passed data.
 		populateResourceAccess(acl);
 	}
