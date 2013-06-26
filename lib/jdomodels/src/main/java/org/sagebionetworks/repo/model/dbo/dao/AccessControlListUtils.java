@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * AccessControlList utils.
@@ -29,6 +30,7 @@ public class AccessControlListUtils {
 	public static DBOAccessControlList createDBO(AccessControlList acl) throws DatastoreException {
 		DBOAccessControlList dbo = new DBOAccessControlList();
 		dbo.setId(KeyFactory.stringToKey(acl.getId()));
+		dbo.setEtag(acl.getEtag());
 		dbo.setResource(dbo.getId());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
 		return dbo;
@@ -40,9 +42,14 @@ public class AccessControlListUtils {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static AccessControlList createAcl(DBOAccessControlList dbo) throws DatastoreException {
+	public static AccessControlList createAcl(DBOAccessControlList dbo, ObjectType objectType) throws DatastoreException {
 		AccessControlList acl = new AccessControlList();
-		acl.setId(KeyFactory.keyToString(dbo.getId()));
+		if (ObjectType.ENTITY.equals(objectType)) {
+			acl.setId(KeyFactory.keyToString(dbo.getId()));
+		} else {
+			acl.setId(dbo.getId().toString());
+		}
+		acl.setEtag(dbo.getEtag());
 		acl.setCreationDate(new Date(dbo.getCreationDate()));
 		return acl;
 	}
@@ -70,9 +77,10 @@ public class AccessControlListUtils {
 	 * @param acl
 	 */
 	public static void validateACL(AccessControlList acl) {
-		if(acl == null) throw new IllegalArgumentException("ACL cannot be null");
-		if(acl.getId() == null) throw new IllegalArgumentException("ACL.getID cannot be null");
-		if(acl.getCreationDate() == null) throw new IllegalArgumentException("ACL.getCreationDate() cannot be null");
-		if(acl.getResourceAccess() == null) throw new IllegalArgumentException("ACL.getResourceAccess() cannot be null");
+		if(acl == null) throw new IllegalArgumentException("ACL cannot be null.");
+		if(acl.getId() == null) throw new IllegalArgumentException("ACL.getID() cannot return null.");
+		if(acl.getEtag() == null) throw new IllegalArgumentException("ACL.getEtag() cannot return null.");
+		if(acl.getCreationDate() == null) throw new IllegalArgumentException("ACL.getCreationDate() cannot return null.");
+		if(acl.getResourceAccess() == null) throw new IllegalArgumentException("ACL.getResourceAccess() cannot return null.");
 	}
 }

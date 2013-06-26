@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -69,7 +70,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		backup.setBenefactor(benefactor);
 		// This node only has an ACL if it is its own benefactor
 		if(id.equals(benefactor)){
-			backup.setAcl(aclDAO.get(id));
+			backup.setAcl(aclDAO.get(id, ObjectType.ENTITY));
 		}
 		backup.setChildren(nodeDao.getChildrenIdsAsList(id));
 		backup.setRevisions(nodeDao.getVersionNumbers(id));

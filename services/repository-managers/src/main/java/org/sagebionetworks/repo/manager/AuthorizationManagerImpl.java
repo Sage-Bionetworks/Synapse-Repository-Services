@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -169,7 +170,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 */
 	@Override
 	public String authorizationSQL(int n) {
-		return accessControlListDAO.authorizationSQL(n);
+			return AuthorizationSqlUtil.authorizationSQL(n);
 	}
 	
 	@Override

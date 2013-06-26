@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -38,10 +38,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class JDOAccessControlListDAOScaleTest {
+public class DBOAccessControlListDAOScaleTest {
 
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
+	private AccessControlListDAO aclDAO;
 
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -99,7 +99,7 @@ public class JDOAccessControlListDAOScaleTest {
 			}
 			ra.setAccessType(types);
 			acl.getResourceAccess().add(ra);
-			accessControlListDAO.create(acl);
+			aclDAO.create(acl);
 		}
 
 	}
@@ -107,10 +107,11 @@ public class JDOAccessControlListDAOScaleTest {
 	@After
 	public void after() throws DatastoreException {
 		// Delete all nodes created
-		if (nodeDAO != null && toDelete != null) {
+		if (nodeDAO != null && aclDAO != null && toDelete != null) {
 			for (String id : toDelete) {
 				try {
 					nodeDAO.delete(id);
+					aclDAO.delete(id);
 				} catch (NotFoundException e) {
 				}
 			}
@@ -132,7 +133,7 @@ public class JDOAccessControlListDAOScaleTest {
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			long start = System.nanoTime();
-			boolean canAccess = accessControlListDAO.canAccess(groups, toDelete.get(0), type);
+			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), type);
 			long end = System.nanoTime();
 			long elpaseMs = (end-start)/1000000;
 			assertTrue(canAccess);
