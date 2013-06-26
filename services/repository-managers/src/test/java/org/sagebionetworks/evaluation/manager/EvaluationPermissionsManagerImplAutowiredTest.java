@@ -12,16 +12,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class EvaluationPermissionsManagerImplAutowiredTest {
 
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
-	@Autowired
 	private AccessControlListDAO aclDAO;
-	@Autowired
-	private AccessControlListDAO someDao;
 
 	@Test
 	public void test() {
-		System.out.println(System.identityHashCode(accessControlListDAO));
-		System.out.println(System.identityHashCode(aclDAO));
-		System.out.println(System.identityHashCode(someDao));
+		// TODO: To be written
 	}
 }
