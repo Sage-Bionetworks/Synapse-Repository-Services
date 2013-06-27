@@ -1,90 +1,50 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="utf-8" />
-<title>Synapse REST API</title>
-
-<!-- Mobile viewport optimisation -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<!-- (en) Add your meta data here -->
-<link type="text/css" rel="stylesheet"
-	href="webapp/Main.css">
-<!-- (de) Fuegen Sie hier ihre Meta-Daten ein -->
-<!-- YAML -->
-<link rel="stylesheet"
-	href="webapp/yaml/core/base.min.css" type="text/css" />
-<link rel="stylesheet"
-	href="webapp/yaml/navigation/hlist.css" type="text/css" />
-<link rel="stylesheet"
-	href="webapp/yaml/forms/gray-theme.css" type="text/css" />
-<link rel="stylesheet"
-	href="webapp/yaml/screen/typography.css" type="text/css" />
-<link rel="stylesheet"
-	href="webapp/yaml/screen/screen-FULLPAGE-layout.css"
-	type="text/css" />
-<link rel="stylesheet" href="webapp/yaml/print/print.css"
-	type="text/css" />
-</head>
-
+#parse( "docHeaderTemplate.html" )
 <body>
 	<div id="container">
-		<header>
-			<div class="ym-wrapper">
-				<div class="ym-wbox">
-					<h1>Synapse REST API</h1>
-				</div>
-			</div>
-		</header>
+		#parse( "bannerHeader.html" )
 		<div id="main">
 			<div class="ym-wrapper">
 				<div class="ym-wbox">
-					<div id="rootPanel" class="ym-grid linearize-level-1">	
-					#foreach( $controller in $controllers.controllers )
-						<h2>${controller.name}</h2>
-						#if(${controller.classDescription})
-							<p>${controller.classDescription}</p>
-						#end
-						## List the methods 
-						#if($controller.methods)
-							<h5>Web Services</h5>
-							<table >
-								<thead>
-								<tr>
-									<th>Resource</th>
-									<th>Description</th>
-								</tr>
-								</thead>
-								<tbody>
-								#foreach( $method in $controller.methods )
-								<tr>
-									<td width="30%">
-										<a href="$method.methodLink.href">$method.methodLink.display</a>
-									</td>
-									<td>
-										#if($method.shortDescription)
-											$method.shortDescription
+					<div id="rootPanel" class="ym-grid linearize-level-1">
+						<div class="ym-grid">
+							<div class="ym-gbox">
+								#foreach( $controller in $controllers.controllers )
+								<h2>${controller.name}</h2>
+								#if(${controller.classDescription})
+								<p>${controller.classDescription}</p>
+								#end 
+								## List the methods 
+								#if($controller.methods)
+								<h5>Web Services</h5>
+								<table>
+									<thead>
+										<tr>
+											<th>Resource</th>
+											<th>Description</th>
+										</tr>
+									</thead>
+									<tbody>
+										#foreach( $method in $controller.methods )
+										<tr>
+											<td class="ym-g33"><a href="$method.methodLink.href">$method.methodLink.display</a>
+											</td>
+											<td>#if($method.shortDescription)
+												$method.shortDescription #end</td>
+										</tr>
 										#end
-									</td>
-								</tr>
+									</tbody>
+								</table>
 								#end
-								</tbody>
-							</table>
-						#end
-					#end	
+								#end
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-		<footer>
-			<div class="ym-wrapper">
-				<div class="ym-wbox">
-					<p>
-						&#169 Sagebionetworks 2013 &ndash; Layout based on <a href="http://www.yaml.de">YAML</a>
-					</p>
-				</div>
-			</div>
-		</footer>
+	#parse( "footerTemplate.html" )
 	</div>
 </body>
 </html>

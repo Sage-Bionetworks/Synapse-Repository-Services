@@ -1,4 +1,5 @@
 package org.sagebionetworks.samples;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
@@ -18,41 +19,74 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * This is an example controller that is used to test javadoc generation.
- * @author jmhill
- *
+ * Proin ornare ligula eu tellus tempus elementum. Aenean bibendum iaculis mi,
+ * nec blandit lacus interdum vitae. Vestibulum non nibh risus, a scelerisque
+ * purus. Ut vel arcu ac tortor adipiscing hendrerit vel sed massa. Fusce sem
+ * libero, lacinia vulputate interdum non, porttitor non quam. Aliquam sed felis
+ * ligula. Duis non nulla magna.
+ * 
  */
 @Controller
 public class ExampleController {
 
-
 	/**
-	 * Create a wiki page with an entity owner.
+	 * Etiam aliquam sem ac velit feugiat elementum. Nunc eu elit velit, nec
+	 * vestibulum nibh. Curabitur ultrices, diam non ullamcorper blandit, nunc
+	 * lacus ornare nisi, egestas rutrum magna est id nunc. Pellentesque
+	 * imperdiet malesuada quam, et rhoncus eros auctor eu. Nullam vehicula
+	 * metus ac lacus rutrum nec fermentum urna congue. Vestibulum et risus at
+	 * mi ultricies sagittis quis nec ligula. Suspendisse dignissim dignissim
+	 * luctus. Duis ac dictum nibh. Etiam id massa magna. Morbi molestie posuere
+	 * posuere.
 	 * 
-	 * @param userId - the user's id.
-	 * @param ownerId - the ID of thw owner object.
-	 * @param toCreate - the WikiPage to create.s
-	 * @return - 
-	 * @throws DatastoreException - Synapse error.
-	 * @throws NotFoundException - returned if the user or owner does not exist.
+	 * Etiam aliquam sem ac velit feugiat elementum. Nunc eu elit velit, nec
+	 * vestibulum nibh. Curabitur ultrices, diam non ullamcorper blandit, nunc
+	 * lacus ornare nisi, egestas rutrum magna est id nunc. Pellentesque
+	 * imperdiet malesuada quam, et rhoncus eros auctor eu. Nullam vehicula
+	 * metus ac lacus rutrum nec fermentum urna congue. Vestibulum et risus at
+	 * mi ultricies sagittis quis nec ligula. Suspendisse dignissim dignissim
+	 * luctus. Duis ac dictum nibh. Etiam id massa magna. Morbi molestie posuere
+	 * posuere.
+	 * 
+	 * @param userId
+	 *            - the user's id.
+	 * @param ownerId
+	 *            - the ID of the owner object.
+	 * @param toCreate
+	 *            - The wiki page to create.
+	 * @return -
+	 * @throws DatastoreException
+	 *             - Synapse error.
+	 * @throws NotFoundException
+	 *             - returned if the user or owner does not exist.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/entity/{ownerId}/wiki", method = RequestMethod.POST)
 	public @ResponseBody
 	WikiPage createEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@RequestBody WikiPage toCreate
-			) throws DatastoreException, NotFoundException{
+			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
+			throws DatastoreException, NotFoundException {
 		return null;
 	}
-	
+
 	/**
-	 * Create a wiki page with a evaluation owner.
+	 * Maecenas eu placerat ante. Fusce ut neque justo, et aliquet enim. In hac
+	 * habitasse platea dictumst. Nullam commodo neque erat, vitae facilisis
+	 * erat. Cras at mauris ut tortor vestibulum fringilla vel sed metus. Donec
+	 * interdum purus a justo feugiat rutrum. Sed ac neque ut neque dictum
+	 * accumsan. Cras lacinia rutrum risus, id viverra metus dictum sit amet.
+	 * Fusce venenatis, urna eget cursus placerat, dui nisl fringilla purus, nec
+	 * tincidunt sapien justo ut nisl. Curabitur lobortis semper neque et
+	 * varius. Etiam eget lectus risus, a varius orci. Nam placerat mauris at
+	 * dolor imperdiet at aliquet lectus ultricies. Duis tincidunt mi at quam
+	 * condimentum lobortis.
 	 * 
 	 * @param userId
 	 * @param ownerId
+	 *            - The ID of the object that owns the wiki page.
 	 * @param toCreate
+	 *            - The body
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -62,14 +96,22 @@ public class ExampleController {
 	public @ResponseBody
 	WikiPage createCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@RequestBody WikiPage toCreate
-			) throws DatastoreException, NotFoundException{
+			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
+			throws DatastoreException, NotFoundException {
 		return null;
 	}
-	
+
 	/**
-	 * Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+	 * Lorem Ipsum is simply dummy text of the printing and typesetting
+	 * industry. Lorem Ipsum has been the industry's standard dummy text ever
+	 * since the 1500s, when an unknown printer took a galley of type and
+	 * scrambled it to make a type specimen book. It has survived not only five
+	 * centuries, but also the leap into electronic typesetting, remaining
+	 * essentially unchanged. It was popularised in the 1960s with the release
+	 * of Letraset sheets containing Lorem Ipsum passages, and more recently
+	 * with desktop publishing software like Aldus PageMaker including versions
+	 * of Lorem Ipsum.
+	 * 
 	 * @param userId
 	 * @param cacf
 	 * @return
@@ -77,20 +119,26 @@ public class ExampleController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value ="/startCompleteUploadDaemon" , method = RequestMethod.POST)
-	public @ResponseBody UploadDaemonStatus startCompleteUploadDaemon(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
-			@RequestBody CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException{
+	@RequestMapping(value = "/startCompleteUploadDaemon", method = RequestMethod.POST)
+	public @ResponseBody
+	UploadDaemonStatus startCompleteUploadDaemon(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody CompleteAllChunksRequest cacf)
+			throws DatastoreException, NotFoundException {
 		return null;
 	}
-	
+
 	/**
-	 * This method is called on the destination stack to compare compare its
-	 * metadata with the source stack metadata
+	 * In facilisis scelerisque dui vel dignissim. Sed nunc orci, ultricies
+	 * congue vehicula quis, facilisis a orci. In aliquet facilisis condimentum.
+	 * Donec at orci orci, a dictum justo. Sed a nunc non lectus fringilla
+	 * suscipit. Vivamus pretium sapien sit amet mauris aliquet eleifend vel
+	 * vitae arcu. Fusce pharetra dignissim nisl egestas pretium.
 	 * 
 	 * @param userId
-	 * @param type
-	 * @param limit
-	 * @param offset
+	 * @param type - The MigrationType.name()
+	 * @param limit - Limit the number of results resturned.
+	 * @param offset - The offest from zero of the page.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -101,11 +149,13 @@ public class ExampleController {
 	RowMetadataResult getRowMetadataDelta(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@RequestParam(required = true) String type,
+			@RequestParam(required = false) String limit,
+			@RequestParam(required = false) String offset,
 			@RequestBody IdList request) throws DatastoreException,
 			NotFoundException {
 		if (request == null)
 			throw new IllegalArgumentException("Request cannot be null");
 		return null;
 	}
-	
+
 }

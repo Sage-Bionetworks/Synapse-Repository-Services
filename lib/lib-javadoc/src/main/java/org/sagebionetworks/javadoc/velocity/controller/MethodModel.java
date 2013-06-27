@@ -1,5 +1,7 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import java.util.List;
+
 /**
  * Model of a controller web services request.
  * 
@@ -17,6 +19,9 @@ public class MethodModel {
 	String httpType;
 	String url;
 	String description;
+	boolean isAuthenticationRequired;
+	List<ParameterModel> pathVariables;
+	List<ParameterModel> parameters;
 	
 	public Link getResponseBody() {
 		return responseBody;
@@ -49,6 +54,24 @@ public class MethodModel {
 		this.description = description;
 	}
 	
+	public boolean getIsAuthenticationRequired() {
+		return isAuthenticationRequired;
+	}
+	public void setIsAuthenticationRequired(boolean authenticationRequired) {
+		this.isAuthenticationRequired = authenticationRequired;
+	}
+	public List<ParameterModel> getPathVariables() {
+		return pathVariables;
+	}
+	public void setPathVariables(List<ParameterModel> pathVariables) {
+		this.pathVariables = pathVariables;
+	}
+	public List<ParameterModel> getParameters() {
+		return parameters;
+	}
+	public void setParameters(List<ParameterModel> parameters) {
+		this.parameters = parameters;
+	}
 	public String getShortDescription() {
 		if(this.description.length() > MAX_SHORT_DESCRIPTION_LENGHT){
 			StringBuilder builder = new StringBuilder();

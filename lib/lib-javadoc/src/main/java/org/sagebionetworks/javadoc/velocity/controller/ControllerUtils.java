@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -74,8 +75,14 @@ public class ControllerUtils {
         			for(AnnotationDesc ad: paramAnnos){
         				String qualifiedName = ad.annotationType().qualifiedName();
         				if(RequestBody.class.getName().equals(qualifiedName)){
+        					// Request body
         					Link link = new Link("${"+param.type().qualifiedTypeName()+"}", param.typeName());
         					methodModel.setRequestBody(link);
+        				}else if(PathVariable.class.getName().equals(qualifiedName)){
+        					// Path parameter
+        					ParameterModel paramModel = new ParameterModel();
+        					paramModel.setName("{"+param.name()+"}");
+//        					paramModel.set("{"+param.name()+"}");
         				}
         			}
         		}
