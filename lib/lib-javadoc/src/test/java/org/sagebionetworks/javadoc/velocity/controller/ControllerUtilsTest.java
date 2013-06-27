@@ -1,11 +1,11 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.BeforeClass;
@@ -61,8 +61,21 @@ public class ControllerUtilsTest {
 		assertNotNull(model);
 		assertEquals("/migration/delata", model.getUrl());
 		assertEquals("GET", model.getHttpType());
+		assertEquals("GET.migration.delata", model.getFullMethodName());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.RowMetadataResult}", "RowMetadataResult"), model.getResponseBody());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.IdList}", "IdList"), model.getRequestBody());
+		assertEquals(new Link("${GET.migration.delata}", "GET /migration/delata"), model.getMethodLink());
+	}
+	
+	@Test
+	public void testTranslateMethodLink(){
+		MethodDoc method = methodMap.get("createCompetitionWikiPage");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertEquals("POST.evaluation.ownerId.wiki", model.getFullMethodName());
+		assertEquals(new Link("${POST.evaluation.ownerId.wiki}", "POST /evaluation/{ownerId}/wiki"), model.getMethodLink());
 	}
 
 }

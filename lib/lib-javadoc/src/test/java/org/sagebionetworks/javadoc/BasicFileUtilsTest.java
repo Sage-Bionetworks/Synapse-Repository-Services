@@ -20,7 +20,7 @@ public class BasicFileUtilsTest {
 	public void testPathToRoot(){
 		String result = BasicFileUtils.pathToRoot("org.sagebionetworks.samples.Example");
 		System.out.println(result);
-		assertEquals("../../..", result);
+		assertEquals("../../../", result);
 	}
 	
 	@Test
@@ -32,7 +32,7 @@ public class BasicFileUtilsTest {
 			File child = new File(two, "test.txt");
 			System.out.println(child.getAbsolutePath());
 			String results = BasicFileUtils.pathToRoot(temp.getParentFile(), child);
-			assertEquals("../..", results);
+			assertEquals("../../", results);
 		}finally{
 			temp.delete();
 		}

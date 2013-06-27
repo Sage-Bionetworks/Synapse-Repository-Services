@@ -8,6 +8,10 @@ package org.sagebionetworks.javadoc.velocity.controller;
  */
 public class MethodModel {
 	
+	public static int MAX_SHORT_DESCRIPTION_LENGHT = 300;
+	
+	String fullMethodName;
+	Link methodLink;
 	Link responseBody;
 	Link requestBody;
 	String httpType;
@@ -44,6 +48,29 @@ public class MethodModel {
 	public void setDescription(String description) {
 		this.description = description;
 	}
+	
+	public String getShortDescription() {
+		if(this.description.length() > MAX_SHORT_DESCRIPTION_LENGHT){
+			StringBuilder builder = new StringBuilder();
+			builder.append(this.description.substring(0, MAX_SHORT_DESCRIPTION_LENGHT-3)).append("...");
+			return builder.toString();
+		}else{
+			return this.description;
+		}
+	}
+	public Link getMethodLink() {
+		return methodLink;
+	}
+	public void setMethodLink(Link methodLink) {
+		this.methodLink = methodLink;
+	}
+	
+	public String getFullMethodName() {
+		return fullMethodName;
+	}
+	public void setFullMethodName(String fullMethodName) {
+		this.fullMethodName = fullMethodName;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -51,7 +78,11 @@ public class MethodModel {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result
+				+ ((fullMethodName == null) ? 0 : fullMethodName.hashCode());
+		result = prime * result
 				+ ((httpType == null) ? 0 : httpType.hashCode());
+		result = prime * result
+				+ ((methodLink == null) ? 0 : methodLink.hashCode());
 		result = prime * result
 				+ ((requestBody == null) ? 0 : requestBody.hashCode());
 		result = prime * result
@@ -73,10 +104,20 @@ public class MethodModel {
 				return false;
 		} else if (!description.equals(other.description))
 			return false;
+		if (fullMethodName == null) {
+			if (other.fullMethodName != null)
+				return false;
+		} else if (!fullMethodName.equals(other.fullMethodName))
+			return false;
 		if (httpType == null) {
 			if (other.httpType != null)
 				return false;
 		} else if (!httpType.equals(other.httpType))
+			return false;
+		if (methodLink == null) {
+			if (other.methodLink != null)
+				return false;
+		} else if (!methodLink.equals(other.methodLink))
 			return false;
 		if (requestBody == null) {
 			if (other.requestBody != null)
@@ -97,9 +138,11 @@ public class MethodModel {
 	}
 	@Override
 	public String toString() {
-		return "MethodModel [responseBody=" + responseBody + ", requestBody="
-				+ requestBody + ", httpType=" + httpType + ", url=" + url
-				+ ", description=" + description + "]";
+		return "MethodModel [fullMethodName=" + fullMethodName
+				+ ", methodLink=" + methodLink + ", responseBody="
+				+ responseBody + ", requestBody=" + requestBody + ", httpType="
+				+ httpType + ", url=" + url + ", description=" + description
+				+ "]";
 	}
 
 }

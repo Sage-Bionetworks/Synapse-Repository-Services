@@ -18,6 +18,7 @@ public class PropertyRegExLinkerTest {
 		File baseDir = new File("basedir");
 		File fileOne = new File(baseDir, "org/sage/test.txt");
 		File fileTwo = new File(baseDir, "org/sage/something/foo.bar");
+		File index = new File(baseDir, "index.txt");
 		List<FileLink> list = new LinkedList<FileLink>();
 		list.add(new FileLink(fileOne, "one"));
 		list.add(new FileLink(fileTwo, "two"));
@@ -36,6 +37,15 @@ public class PropertyRegExLinkerTest {
 		expectedPath = "../../../org/sage/test.txt";
 		assertEquals(expectedPath, map.get("one"));
 		expectedPath = "../../../org/sage/something/foo.bar";
+		assertEquals(expectedPath, map.get("two"));
+		
+		// relative to the index
+		map = PropertyRegExLinker.buildReplacement(baseDir, index, list);
+		assertNotNull(map);
+		assertEquals(2, map.size());
+		expectedPath = "org/sage/test.txt";
+		assertEquals(expectedPath, map.get("one"));
+		expectedPath = "org/sage/something/foo.bar";
 		assertEquals(expectedPath, map.get("two"));
 	}
 }

@@ -67,10 +67,10 @@ public class BasicFileUtils {
 	public static String pathToRoot(int depths) {
 		StringBuilder builder = new  StringBuilder();
 		for(int i=0; i<depths-1; i++){
-			if(i > 0){
-				builder.append("/");
-			}
-			builder.append("..");
+//			if(i > 0){
+//				builder.append("/");
+//			}
+			builder.append("../");
 		}
 		return builder.toString();
 	}

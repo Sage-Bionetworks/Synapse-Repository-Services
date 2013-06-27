@@ -26,15 +26,30 @@ public class ControllerContextGenerator implements ClassContextGenerator {
 		// Iterate over all of the controllers.
         Iterator<ClassDoc> contollers = FilterUtils.controllerIterator(root.classes());
         List<ClassContext> results = new LinkedList<ClassContext>();
+        Controllers controllers = new Controllers();
+        controllers.setControllers(new LinkedList<ControllerModel>());
         while(contollers.hasNext()){
         	ClassDoc classDoc = contollers.next();
-        	Context velocityContext = factory.createNewContext();
+
         	// Translate to the model
         	ControllerModel model = ControllerUtils.translateToModel(classDoc);
-        	velocityContext.put("model", model);
-        	ClassContext classContext = new ClassContext(classDoc.qualifiedName(), "controllerHtmlTemplate.html", velocityContext);
-        	results.add(classContext);
-        }       
+        	controllers.getControllers().add(model);
+        	// Create a context for each method.
+        	if(model.getMethods() != null){
+        		for(MethodModel method: model.getMethods()){
+                	Context velocityContext = factory.createNewContext();
+                	// Add this to the controller's model
+                	velocityContext.put("method", method);
+                	ClassContext classContext = new ClassContext(method.getFullMethodName(), "methodHtmlTemplate.html", velocityContext);
+                	results.add(classContext);
+        		}
+        	}
+        } 
+        // Create the context for all controllers.
+        Context velocityContext = factory.createNewContext();
+        velocityContext.put("controllers", controllers);
+    	ClassContext classContext = new ClassContext("index", "controllersHtmlTemplate.html", velocityContext);
+    	results.add(classContext);
         return results;
 	}
 

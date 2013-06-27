@@ -54,6 +54,14 @@ public class ControllerUtils {
         // Now process the parameters
         processParameterAnnotations(methodDoc, methodModel);
 		methodModel.setDescription(methodDoc.commentText());
+		// Create the Link to this method
+		String niceUrl = methodModel.getUrl().replaceAll("\\{", "");
+		niceUrl = niceUrl.replaceAll("\\}", "");
+		niceUrl = niceUrl.replaceAll("/", ".");
+		String fullName = methodModel.getHttpType()+niceUrl;
+		methodModel.setFullMethodName(fullName);
+		Link methodLink = new Link("${"+fullName+"}", methodModel.getHttpType()+" "+methodModel.getUrl());
+		methodModel.setMethodLink(methodLink);
 		return methodModel;
 	}
 
