@@ -62,7 +62,7 @@ public class MigrationClient {
 	 * If finalSynchronize is set to false, the source repository will remain in READ_WRITE mode during the migration process.
 	 * @throws Exception 
 	 */
-	public void migrate(boolean finalSynchronize, long batchSize, long timeoutMS, int retryDenominator) throws Exception {
+	public void migrate(boolean finalSynchronize, long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
 		// First set the destination stack status to down
 		setDestinationStatus(StatusEnum.DOWN, "Staging is down for data migration");
 		if(finalSynchronize){
@@ -70,7 +70,7 @@ public class MigrationClient {
 			setSourceStatus(StatusEnum.READ_ONLY, "Synapse is in read-only mode for maintenance");
 		}
 		try{
-			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator);
+			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator, deferExceptions);
 			// After migration is complete, re-enable staging
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
 		}catch (Exception e){
@@ -139,8 +139,7 @@ public class MigrationClient {
 	 * @param retryDenominator - how to divide a batch into sub-batches when errors occur.
 	 * @throws Exception
 	 */
-	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator) throws Exception {
-		setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
+	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
 		SynapseAdministrationInt source = factory.createNewSourceClient();
 		SynapseAdministrationInt destination = factory.createNewDestinationClient();
 		// Get the counts for all type from both the source and destination
@@ -151,14 +150,14 @@ public class MigrationClient {
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes);
+		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
 		log.info("End counts:");
 		printCounts(endSourceCounts.getList(), endDestCounts.getList());
 
-		if (this.deferredExceptions.size() > 0) {
+		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
 			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
 			this.dumpDeferredExceptions();
 			throw this.deferredExceptions.get(deferredExceptions.size()-1);
@@ -173,7 +172,7 @@ public class MigrationClient {
 	 * @param primaryTypes
 	 * @throws Exception
 	 */
-	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes)
+	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes, boolean deferExceptions)
 			throws Exception {
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
 		for(MigrationType type: primaryTypes){
@@ -185,7 +184,7 @@ public class MigrationClient {
 			DeltaData dd = deltaList.get(i);
 			long count =  dd.getCounts().getDelete();
 			if(count > 0){
-				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize);
+				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
 			}
 		}
 		// Now do all adds in the original order
@@ -193,7 +192,7 @@ public class MigrationClient {
 			DeltaData dd = deltaList.get(i);
 			long count = dd.getCounts().getCreate();
 			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator);
+				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
 			}
 		}
 		// Now do all updates in the original order
@@ -201,7 +200,7 @@ public class MigrationClient {
 			DeltaData dd = deltaList.get(i);
 			long count = dd.getCounts().getUpdate();
 			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator);
+				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
 			}
 		}
 	}
@@ -214,7 +213,7 @@ public class MigrationClient {
 	 * @param batchSize
 	 * @throws Exception
 	 */
-	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, int retryDenominator) throws Exception {
+	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, int retryDenominator, boolean deferExceptions) throws Exception {
 		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(createUpdateTemp));
 		try{
 			BasicProgress progress = new BasicProgress();
@@ -233,7 +232,11 @@ public class MigrationClient {
 				Long counts = future.get();
 				log.info("Creating/updating the following counts for type: "+type.name()+" Counts: "+counts);
 			} catch (ExecutionException e) {
-				deferException(e);
+				if (deferExceptions) {
+					deferException(e);
+				} else {
+					throw(e);
+				}
 			}
 		}finally{
 			reader.close();
@@ -328,7 +331,7 @@ public class MigrationClient {
 	 * @throws IOException 
 	 * 
 	 */
-	private void deleteFromDestination(MigrationType type, File deleteTemp, long count, long batchSize) throws Exception{
+	private void deleteFromDestination(MigrationType type, File deleteTemp, long count, long batchSize, boolean deferExceptions) throws Exception{
 		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(deleteTemp));
 		try{
 			BasicProgress progress = new BasicProgress();
@@ -343,7 +346,11 @@ public class MigrationClient {
 				Long counts = future.get();
 				log.info("Deleted the following counts for type: "+type.name()+" Counts: "+counts);
 			} catch (ExecutionException e) {
-				deferException(e);
+				if (deferExceptions) {
+					deferException(e);
+				} else {
+					throw(e);
+				}
 			}
 		}finally{
 			reader.close();
