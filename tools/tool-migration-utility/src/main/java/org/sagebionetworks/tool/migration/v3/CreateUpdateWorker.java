@@ -178,12 +178,14 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		while (true) {
 			long now = System.currentTimeMillis();
 			if(now-start > timeoutMS){
+				log.debug("Timeout waiting for daemon to complete");
 				throw new InterruptedException("Timed out waiting for the daemon to complete");
 			}
 			BackupRestoreStatus status = client.getStatus(daemonId);
 			progress.setMessage(String.format("\t Waiting for daemon: %1$s id: %2$s", status.getType().name(), status.getId()));
 			// Check to see if we failed.
 			if(DaemonStatus.FAILED == status.getStatus()){
+				log.debug("Daemon failure");
 				throw new DaemonFailedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
 			}
 			// Are we done?
