@@ -302,7 +302,7 @@ public class NodeDAOImplTest {
 		ra.setPrincipalId(altUserGroupId);
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		acl.setId(parentId);
+		acl.setId(KeyFactory.stringToKey(parentId).toString());
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl);
 		

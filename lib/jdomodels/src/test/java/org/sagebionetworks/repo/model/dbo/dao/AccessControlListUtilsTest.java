@@ -1,18 +1,23 @@
-package org.sagebionetworks.repo.model;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserInfo;
 
 /**
  * Test for the ACL DTO object
  * @author jmhill
  *
  */
-public class AccessControlListTest {
+public class AccessControlListUtilsTest {
 
 	@Test
 	public void testGrantAll(){
@@ -27,7 +32,7 @@ public class AccessControlListTest {
 		user.setUserId("someUser@somedomain.net");
 		info.setUser(user);
 		info.setIndividualGroup(userGroup);
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId, info);
+		AccessControlList acl = AccessControlListUtils.createACLToGrantAll(nodeId, info);
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());

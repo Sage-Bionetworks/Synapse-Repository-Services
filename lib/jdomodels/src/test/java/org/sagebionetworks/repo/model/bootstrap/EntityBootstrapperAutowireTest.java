@@ -27,7 +27,7 @@ public class EntityBootstrapperAutowireTest {
 	@Autowired
 	EntityBootstrapper entityBootstrapper;
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
+	private AccessControlListDAO aclDAO;
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
 	
@@ -51,7 +51,7 @@ public class EntityBootstrapperAutowireTest {
 			
 			// root nodes don't have ACLs
 			try {
-				AccessControlList acl = accessControlListDAO.getForResource(id);
+				AccessControlList acl = aclDAO.get(id);
 				assertNotNull(acl);
 			} catch (NotFoundException nfe) {
 				throw new NotFoundException("id="+id);

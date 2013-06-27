@@ -13,9 +13,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -24,9 +24,9 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils;
 import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -301,7 +301,7 @@ public class TrashManagerImplAutowiredTest {
 		toClearList.add(nodeId22);
 
 		// Modify nodeId12 to be its own benefactor
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId12, testUserInfo);
+		AccessControlList acl = AccessControlListUtils.createACLToGrantAll(nodeId12, testUserInfo);
 		entityPermissionsManager.overrideInheritance(acl, testUserInfo);
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId12));
 		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId22));

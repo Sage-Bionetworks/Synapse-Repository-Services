@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.RandomNodeBackupUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeRevisionUtil;
 
@@ -312,7 +313,7 @@ public class NodeSerializerUtilTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(node.getCreatedOn());
 		acl.setEtag(node.getETag());
-		acl.setId(node.getId());
+		acl.setId(KeyFactory.stringToKey(node.getId()).toString());
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());

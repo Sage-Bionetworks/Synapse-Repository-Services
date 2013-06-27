@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -153,7 +154,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
-		acl.setId(nodeId);
+		acl.setId(KeyFactory.stringToKey(nodeId).toString());
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		for(AccessBootstrapData data: list){

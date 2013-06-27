@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -123,7 +124,7 @@ public class EntityPermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminInfo);
 		assertNotNull(acl);
-		assertEquals(project.getId(), acl.getId());
+		assertEquals(KeyFactory.stringToKey(project.getId()).toString(), acl.getId());
 		assertEquals(1, acl.getResourceAccess().size());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			// ra should have pId but not 'groupName' which is deprecated
@@ -268,7 +269,7 @@ public class EntityPermissionsManagerImplTest {
 		assertEquals(1, acl.getResourceAccess().size());
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminInfo);
-		acl.setId(project.getId());
+		acl.setId(KeyFactory.stringToKey(project.getId()).toString());
 		// ...group id is null...
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(null);
@@ -288,18 +289,18 @@ public class EntityPermissionsManagerImplTest {
 	public void testOverrideInheritance() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = new AccessControlList();
-		acl.setId(childNode.getId());
+		acl.setId(KeyFactory.stringToKey(childNode.getId()).toString());
 		String eTagBefore = childNode.getETag();
 		assertNotNull(eTagBefore);
 		AccessControlList results = entityPermissionsManager.overrideInheritance(acl, adminInfo);
 		assertNotNull(results);
 		assertNotNull(results.getEtag());
 		assertFalse("The Etag should have changed", eTagBefore.equals(results.getEtag()));
-		assertEquals(childNode.getId(), results.getId());
+		assertEquals(KeyFactory.stringToKey(childNode.getId()).toString(), results.getId());
 		childNode = nodeManager.get(adminInfo, childNode.getId());
 		// call 'getACL':  the ACL should match the requested settings and specify the resource as the owner of the ACL
 		AccessControlList acl2 = entityPermissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(childNode.getId(), acl2.getId());
+		assertEquals(KeyFactory.stringToKey(childNode.getId()).toString(), acl2.getId());
 		assertEquals(acl, acl2);
 	}
 
@@ -336,10 +337,10 @@ public class EntityPermissionsManagerImplTest {
 			acl = entityPermissionsManager.getACL(e.getBenefactorId(), adminInfo);
 		}
 		// Set the ID to the child.
-		acl.setId(childNode.getId());
+		acl.setId(KeyFactory.stringToKey(childNode.getId()).toString());
 		entityPermissionsManager.overrideInheritance(acl, adminInfo);
 		AccessControlList acl2 = entityPermissionsManager.getACL(childNode.getId(), adminInfo);
-		assertEquals(childNode.getId(), acl2.getId());
+		assertEquals(KeyFactory.stringToKey(childNode.getId()).toString(), acl2.getId());
 		assertEquals(acl, acl2);
 		String eTagBefore = childNode.getETag();
 		assertNotNull(eTagBefore);
@@ -352,7 +353,7 @@ public class EntityPermissionsManagerImplTest {
 		assertFalse("The etag of the child node should have changed", eTagBefore.equals(childNode.getETag()));
 		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
 		try{
-			AccessControlList acl3 = entityPermissionsManager.getACL(childNode.getId(), adminInfo);
+			entityPermissionsManager.getACL(childNode.getId(), adminInfo);
 			fail("Should not have been able to get the ACL for a node that inherits");
 		}catch (ACLInheritanceException e){
 			// Get the parent ACL
@@ -378,7 +379,7 @@ public class EntityPermissionsManagerImplTest {
 			acl = entityPermissionsManager.getACL(e.getBenefactorId(), adminInfo);
 		}
 
-		acl.setId(childNode.getId());
+		acl.setId(KeyFactory.stringToKey(childNode.getId()).toString());
 		entityPermissionsManager.overrideInheritance(acl, adminInfo);
 		
 		// should get exception if don't have authority to change permissions
@@ -397,21 +398,21 @@ public class EntityPermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList parentAcl = entityPermissionsManager.getACL(project.getId(), adminInfo);
 		assertNotNull(parentAcl);
-		assertEquals(project.getId(), parentAcl.getId());
+		assertEquals(KeyFactory.stringToKey(project.getId()).toString(), parentAcl.getId());
 
 		// retrieve child acl - should get parent's
 		verifyInheritedAcl(childNode, project.getId(), adminInfo);
 		
 		// assign new ACL to child
 		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(childNode.getId());
+		childAcl.setId(KeyFactory.stringToKey(childNode.getId()).toString());
 		String eTagBefore = childNode.getETag();
 		assertNotNull(eTagBefore);
 		entityPermissionsManager.overrideInheritance(childAcl, adminInfo);
 		
 		// assign new ACL to grandchild0
 		AccessControlList grandchild0Acl = new AccessControlList();
-		grandchild0Acl.setId(grandchildNode0.getId());
+		grandchild0Acl.setId(KeyFactory.stringToKey(grandchildNode0.getId()).toString());
 		eTagBefore = grandchildNode0.getETag();
 		assertNotNull(eTagBefore);
 		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminInfo);
@@ -445,18 +446,18 @@ public class EntityPermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList parentAcl = entityPermissionsManager.getACL(project.getId(), adminInfo);
 		assertNotNull(parentAcl);
-		assertEquals(project.getId(), parentAcl.getId());
+		assertEquals(KeyFactory.stringToKey(project.getId()).toString(), parentAcl.getId());
 		
 		// assign new ACL to child
 		AccessControlList childAcl = new AccessControlList();
-		childAcl.setId(childNode.getId());
+		childAcl.setId(KeyFactory.stringToKey(childNode.getId()).toString());
 		String eTagBefore = childNode.getETag();
 		assertNotNull(eTagBefore);
 		entityPermissionsManager.overrideInheritance(childAcl, adminInfo);
 		
 		// assign new ACL to grandchild0
 		AccessControlList grandchild0Acl = new AccessControlList();
-		grandchild0Acl.setId(grandchildNode0.getId());
+		grandchild0Acl.setId(KeyFactory.stringToKey(grandchildNode0.getId()).toString());
 		eTagBefore = grandchildNode0.getETag();
 		assertNotNull(eTagBefore);
 		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminInfo);
@@ -516,7 +517,7 @@ public class EntityPermissionsManagerImplTest {
 		
 		// create local ACL for folder
 		AccessControlList folderAcl = new AccessControlList();
-		folderAcl.setId(folder.getId());
+		folderAcl.setId(KeyFactory.stringToKey(folder.getId()).toString());
 		folderAcl.setResourceAccess(acl.getResourceAccess());		
 		entityPermissionsManager.overrideInheritance(folderAcl, adminUser);
 		

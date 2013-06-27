@@ -30,9 +30,9 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -41,7 +41,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -446,7 +445,7 @@ public class DBOReferenceDaoImplTest {
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 		String aclId = aclDAO.create(acl);
-		acl = aclDAO.get(aclId, ObjectType.ENTITY);
+		acl = aclDAO.get(aclId);
 		// add acl to a list of objects to delete
 		aclIdToDelete = acl.getId();
 		assertEquals(""+node0.getId()+"!="+acl.getId(), ""+node0.getId(), aclId);
@@ -461,7 +460,7 @@ public class DBOReferenceDaoImplTest {
 		String permissionsBenefactor0 = nodeInheritanceDao.getBenefactor(""+node0.getId());
 		// node0 is its own permissions supplier
 		assertEquals(""+node0.getId()+"!="+permissionsBenefactor0, ""+KeyFactory.keyToString(node0.getId()), permissionsBenefactor0);
-		AccessControlList acl2 = aclDAO.getForResource(""+node0.getId());
+		AccessControlList acl2 = aclDAO.get(node0.getId().toString());
 		assertNotNull(acl2);
 		Set<ResourceAccess> ras2 = acl2.getResourceAccess();
 		assertEquals(1, ras2.size());

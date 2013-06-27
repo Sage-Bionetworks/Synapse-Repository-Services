@@ -36,12 +36,12 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
-import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -448,7 +448,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesToDelete.add(id);
 		projectA = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
+		AccessControlList acl = AccessControlListUtils.createACLToGrantAll(id, adminUser);
 		// Make sure group A can read from this node
 		ResourceAccess access = new ResourceAccess();
 		access.setPrincipalId(Long.parseLong(groupA.getId()));
@@ -464,7 +464,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		toUpdate.add(id);
 		projectB = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
+		acl = AccessControlListUtils.createACLToGrantAll(id, adminUser);
 		// Make sure group B can read from this node
 		access = new ResourceAccess();
 		access.setPrincipalId(Long.parseLong(groupB.getId()));

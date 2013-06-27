@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -86,7 +87,7 @@ public class DBOAccessControlListDAOScaleTest {
 			// Create an ACL for each node
 			// Create an ACL for this node
 			AccessControlList acl = new AccessControlList();
-			acl.setId(nodeId);
+			acl.setId(KeyFactory.stringToKey(nodeId).toString());
 			acl.setCreationDate(new Date(System.currentTimeMillis()));
 			acl.setResourceAccess(new HashSet<ResourceAccess>());
 			ResourceAccess ra = new ResourceAccess();
