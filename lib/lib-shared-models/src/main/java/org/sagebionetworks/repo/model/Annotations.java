@@ -19,6 +19,10 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
+ * Primary container object for Annotations on a Synapse object.
+ * 
+ * Note: this class may be deprecated for replacement by auto-generated class
+ * org.sagebionetworks.repo.model.annotation.Annotations
  * 
  * @author bhoff
  * 

@@ -1,0 +1,14 @@
+{
+	"description": "Generic interface for a key-value Annotation pair",
+	"type": "interface",
+	"properties": {
+		"key": {
+			"description": "The key of this Annotation",
+			"type": "string"
+		},
+		"isPrivate": {
+			"description": "Flag denoting whether this Annotation should be private.",
+			"type": "boolean"
+		}
+	}
+}

@@ -3,7 +3,6 @@ package org.sagebionetworks.evaluation.dao;
 import static org.junit.Assert.*;
 
 import java.util.Date;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +23,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -117,6 +117,7 @@ public class SubmissionStatusDAOImplTest {
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);
         status.setScore(0.1);
+        status.setAnnotations(TestUtils.createDummyAnnotations());
         long initialCount = submissionStatusDAO.getCount();
         
         // Create it
@@ -193,4 +194,5 @@ public class SubmissionStatusDAOImplTest {
     	assertEquals(subStatusDTO, subStatusDTOclone);
     	assertEquals(subStatusDBO, subStatusDBOclone);
     }
+
 }
