@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -346,7 +345,7 @@ public class AuthorizationManagerImplTest {
 
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl.setId(KeyFactory.stringToKey(childNode.getId()).toString());
+		acl.setId(childNode.getId());
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		entityPermissionsManager.overrideInheritance(acl, adminInfo); // must do as admin!
 		// permissions haven't changed (yet)

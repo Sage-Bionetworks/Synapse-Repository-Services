@@ -71,7 +71,6 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -249,7 +248,7 @@ public class IT500SynapseJavaClient {
 		
 		// assign new ACL to child
 		childAcl = new AccessControlList();
-		childAcl.setId(KeyFactory.stringToKey(dataset.getId()).toString());
+		childAcl.setId(dataset.getId());
 		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
 		resourceAccesses.add(ra);
 		childAcl.setResourceAccess(resourceAccesses);
@@ -449,7 +448,7 @@ public class IT500SynapseJavaClient {
 		
 		AccessControlList acl = synapse.getACL(project.getId());
 		acl.setCreatedBy("John Doe");
-		acl.setId(KeyFactory.stringToKey(project.getId()).toString());
+		acl.setId(project.getId());
 		synapse.updateACL(acl);
 			
 		int allPartsMask = EntityBundle.ENTITY |

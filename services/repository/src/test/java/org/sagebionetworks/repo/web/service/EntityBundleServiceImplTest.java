@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -158,7 +157,7 @@ public class EntityBundleServiceImplTest {
 		EntityBundleCreate ebc = new EntityBundleCreate();
 		study.setId(STUDY_ID);
 		annos.setId(STUDY_ID);
-		acl.setId(KeyFactory.stringToKey(STUDY_ID).toString());
+		acl.setId(STUDY_ID);
 		ebc.setEntity(study);
 		ebc.setAnnotations(annos);
 		ebc.setAccessControlList(acl);

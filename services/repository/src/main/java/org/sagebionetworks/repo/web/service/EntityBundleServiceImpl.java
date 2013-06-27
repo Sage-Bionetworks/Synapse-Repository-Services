@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -140,7 +139,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if (ebc.getAccessControlList() != null) {
 			partsMask += EntityBundle.ACL;
 			AccessControlList acl = ebc.getAccessControlList();
-			acl.setId(KeyFactory.stringToKey(entity.getId()).toString());
+			acl.setId(entity.getId());
 			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
 		}
 		

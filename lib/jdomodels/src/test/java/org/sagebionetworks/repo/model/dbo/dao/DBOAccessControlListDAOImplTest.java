@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -103,17 +103,17 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
-		acl.setId(KeyFactory.stringToKey(nodeId).toString());
+		acl.setId(nodeId);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		String aclId = aclDAO.create(acl);
 		assertEquals(nodeId, aclId);
 
-		acl = aclDAO.get(node.getId());
+		acl = aclDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		assertNotNull(acl.getEtag());
 		final String etagBeforeUpdate = acl.getEtag();
-		assertEquals(KeyFactory.stringToKey(node.getId()).toString(), acl.getId());
+		assertEquals(node.getId(), acl.getId());
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setGroupName(group.getName()); 
@@ -127,7 +127,7 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setResourceAccess(ras);
 
 		aclDAO.update(acl);
-		acl = aclDAO.get(node.getId());
+		acl = aclDAO.getForResource(node.getId());
 		assertNotNull(acl);
 		assertFalse(etagBeforeUpdate.equals(acl.getEtag()));
 		ras = acl.getResourceAccess();
@@ -166,14 +166,14 @@ public class DBOAccessControlListDAOImplTest {
 	public void testGetForResource() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
-		AccessControlList acl = aclDAO.get(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		assertEquals(acl, aclList.iterator().next());
 	}
 
 	@Test (expected=NotFoundException.class)
 	public void testGetForResourceBadID() throws Exception {
 		String rid = "-598787";
-		AccessControlList acl = aclDAO.get(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		assertNull(acl);
 	}
 	
@@ -215,7 +215,7 @@ public class DBOAccessControlListDAOImplTest {
 		AccessControlList acl = aclList.iterator().next();
 		String id = acl.getId();
 		
-		AccessControlList acl2 = aclDAO.get(id);
+		AccessControlList acl2 = aclDAO.get(id, ObjectType.ENTITY);
 		
 		assertEquals(acl, acl2);
 		
@@ -223,7 +223,7 @@ public class DBOAccessControlListDAOImplTest {
 		aclDAO.delete(id);
 		
 		try {
-			aclDAO.get(id);
+			aclDAO.get(id, ObjectType.ENTITY);
 			fail("NotFoundException expected");	
 		} catch (NotFoundException e) {  // any other kind of exception will cause a failure
 			// as expected
@@ -240,7 +240,7 @@ public class DBOAccessControlListDAOImplTest {
 	public void testUpdate() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
-		AccessControlList acl = aclDAO.get(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = ras.iterator().next();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(
@@ -257,7 +257,7 @@ public class DBOAccessControlListDAOImplTest {
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
 
-		AccessControlList acl2 = aclDAO.get(rid);
+		AccessControlList acl2 = aclDAO.getForResource(rid);
 		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
 
 		try {
@@ -274,7 +274,7 @@ public class DBOAccessControlListDAOImplTest {
 	public void testUpdateMultipleGroups() throws Exception {
 		Node node = nodeList.iterator().next();
 		String rid = node.getId();
-		AccessControlList acl = aclDAO.get(rid);
+		AccessControlList acl = aclDAO.getForResource(rid);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = ras.iterator().next();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(

@@ -118,7 +118,7 @@ public class EntityBundleTest {
 		AccessControlList acl = (AccessControlList) 
 				autoGenFactory.newInstance(AccessControlList.class.getName());
 		acl.setCreatedBy("John Doe");
-		acl.setId("456");
+		acl.setId("syn456");
 		
 		// Child Count
 		Boolean hasChildren = true;

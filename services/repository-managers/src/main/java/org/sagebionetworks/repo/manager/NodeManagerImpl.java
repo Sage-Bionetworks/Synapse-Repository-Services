@@ -28,12 +28,12 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,7 +149,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			String parentBenefactor = nodeInheritanceManager.getBenefactor(newNode.getParentId());
 			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
 		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem){
-			AccessControlList rootAcl = AccessControlListUtils.createACLToGrantAll(id, userInfo);
+			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantAll(id, userInfo);
 			aclDAO.create(rootAcl);
 			// This node is its own benefactor
 			nodeInheritanceManager.addBeneficiary(id, id);
@@ -386,7 +386,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
 				if (newAcl) {
-					AccessControlList acl = AccessControlListUtils.createACLToGrantAll(nodeInUpdate, userInfo);
+					AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeInUpdate, userInfo);
 					aclDAO.create(acl);
 					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
 				} else {

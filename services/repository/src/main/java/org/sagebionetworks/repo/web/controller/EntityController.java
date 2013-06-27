@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -598,7 +597,7 @@ public class EntityController extends BaseController{
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
 		// pass it along.
 		// This is a fix for PLFM-410
-		newAcl.setId(KeyFactory.stringToKey(id).toString());
+		newAcl.setId(id);
 		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
 		return acl;
 	}
@@ -652,7 +651,7 @@ public class EntityController extends BaseController{
 		// This is a fix for 
 		if(!id.equals(updatedACL.getId())) throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+updatedACL.getId());
 		// This is a fix for PLFM-621
-		updatedACL.setId(KeyFactory.stringToKey(id).toString());
+		updatedACL.setId(id);
 		// pass it along.
 		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, null, request);
 		

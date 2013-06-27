@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -115,13 +116,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public AccessControlList get(final String ownerId)
+	public AccessControlList get(final String ownerId, final ObjectType objectType)
 			throws DatastoreException, NotFoundException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", ownerKey);
 		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
-		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl);
+		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ObjectType.ENTITY);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
@@ -173,6 +174,12 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", ownerKey);
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
+	}
+
+	@Override
+	public AccessControlList getForResource(String rid)
+			throws DatastoreException, NotFoundException {
+		return get(rid, ObjectType.ENTITY);
 	}
 
 	@Override
