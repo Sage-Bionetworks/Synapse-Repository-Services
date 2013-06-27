@@ -1,5 +1,5 @@
 {
-	"description": "An Annotation containing a String value",
+	"description": "An Annotation containing a Double value",
 	"type":"object",
 	"implements": [
 		{
@@ -9,7 +9,7 @@
 	"properties": {
 		"value": {
 			"description": "The value of this Annotation",
-			"type": "string"
+			"type": "number"
 		}
 	}
 }

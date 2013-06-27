@@ -9,7 +9,7 @@
 	"properties": {
 		"value": {
 			"description": "The value of this Annotation",
-			"type": "number"
+			"type": "integer"
 		}
 	}
 }
