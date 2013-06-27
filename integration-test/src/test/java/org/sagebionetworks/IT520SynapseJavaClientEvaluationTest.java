@@ -44,6 +44,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -360,9 +362,21 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// update
 		Thread.sleep(1L);
+		
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(true);
+		sa.setKey("foo");
+		sa.setValue("bar");
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		stringAnnos.add(sa);
+		Annotations annos = new Annotations();
+		annos.setStringAnnos(stringAnnos);
+		
 		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
 		status.setReport("Lorem ipsum");
+		status.setAnnotations(annos);
+		
 		SubmissionStatus statusClone = synapseOne.updateSubmissionStatus(status);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
