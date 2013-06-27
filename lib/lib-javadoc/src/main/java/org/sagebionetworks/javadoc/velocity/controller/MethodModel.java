@@ -13,6 +13,7 @@ public class MethodModel {
 	String httpType;
 	String url;
 	String description;
+	
 	public Link getResponseBody() {
 		return responseBody;
 	}

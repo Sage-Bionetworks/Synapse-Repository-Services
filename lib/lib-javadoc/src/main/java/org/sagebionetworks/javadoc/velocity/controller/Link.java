@@ -10,6 +10,12 @@ public class Link {
 
 	String display;
 	String href;
+	public Link(){}
+	public Link(String href, String display) {
+		super();
+		this.href = href;
+		this.display = display;
+	}
 	public String getDisplay() {
 		return display;
 	}

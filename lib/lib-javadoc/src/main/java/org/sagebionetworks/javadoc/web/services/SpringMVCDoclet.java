@@ -75,6 +75,7 @@ public class SpringMVCDoclet {
 		VelocityEngine ve = new VelocityEngine();
 		ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath"); 
 		ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		ve.setProperty("runtime.references.strict", true);
 		List<FileLink> links = new LinkedList<FileLink>();
 		for(ClassContext classContext: contextList){
 			System.out.println(classContext);

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Demo: Flexible Grid Layout &ndash; YAML CSS Framework</title>
+<title>Synapse REST API</title>
 
 <!-- Mobile viewport optimisation -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -42,30 +42,33 @@
 					<div id="rootPanel" class="ym-grid linearize-level-1">
 						<h2>${model.name}</h2>
 						#if(${model.classDescription})
-						<p>${model.classDescription}</p>
+							<p>${model.classDescription}</p>
 						#end
 						## List the methods 
 						#if($model.methods)
-						<h5>Web Services</h5>
-						<table border="1">
-							<tr>
-								<th>Response</th>
-								<th>URL</th>
-								<th>description</th>
-							</tr>
-							#foreach( $method in $model.methods )
-							<tr>
-								<td><a href="$method.responseBody.href">$method.responseBody.display</a></td>
-								<td>$method.url</td>
-								#if($method.description)
-									<td>$method.description</td>
-								#else
-									<td>empty</td>
+							<h5>Web Services</h5>
+							<table >
+								<thead>
+								<tr>
+									<th>Resource</th>
+									<th>Description</th>
+								</tr>
+								</thead>
+								<tbody>
+								#foreach( $method in $model.methods )
+								<tr>
+									<td width="30%">
+										<a href="http://www.google.com">$method.httpType $method.url</a>
+									</td>
+									<td>
+										#if($method.description)
+											$method.description
+										#end
+									</td>
+								</tr>
 								#end
-							</tr>
-							
-							#end
-						</table>
+								</tbody>
+							</table>
 						#end
 					</div>
 				</div>
@@ -75,8 +78,7 @@
 			<div class="ym-wrapper">
 				<div class="ym-wbox">
 					<p>
-						&#169 Sagebionetworks 2013 &ndash; Layout based on <a
-							href="http://www.yaml.de">YAML</a>
+						&#169 Sagebionetworks 2013 &ndash; Layout based on <a href="http://www.yaml.de">YAML</a>
 					</p>
 				</div>
 			</div>
