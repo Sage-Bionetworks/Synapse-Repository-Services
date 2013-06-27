@@ -94,7 +94,7 @@ public class MigrationClientTest {
 		sourceSynapse.setMetadata(metadata);
 		
 		// Migrate the data
-		migrationClient.migrateAllTypes(1l, 1000*60, 2);
+		migrationClient.migrateAllTypes(1l, 1000*60, 2, false);
 		// Now validate the results
 		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
 		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});

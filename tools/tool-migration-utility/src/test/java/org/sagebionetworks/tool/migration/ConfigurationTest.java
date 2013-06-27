@@ -1,7 +1,9 @@
 package org.sagebionetworks.tool.migration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -53,5 +55,23 @@ public class ConfigurationTest {
 	@Test
 	public void testWorkerTimeout(){
 		assertEquals(30*1000, configuration.getWorkerTimeoutMs());
+	}
+	
+	@Test
+	public void testMaxRetries() {
+		assertEquals(5, configuration.getMaxRetries());
+	}
+	
+	@Test
+	public void testGetDeferExceptionsNotSpecified() {
+		assertFalse(configuration.getDeferExceptions());
+	}
+	
+	@Test
+	public void testGetDeferExceptionsSpecified() {
+		System.setProperty("org.sagebionetworks.defer.exceptions", "false");
+		assertFalse(configuration.getDeferExceptions());
+		System.setProperty("org.sagebionetworks.defer.exceptions", "true");
+		assertTrue(configuration.getDeferExceptions());
 	}
 }
