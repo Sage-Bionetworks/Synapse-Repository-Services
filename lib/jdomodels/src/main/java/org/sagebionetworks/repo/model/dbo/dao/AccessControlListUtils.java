@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * AccessControlList utils.
@@ -42,13 +41,9 @@ public class AccessControlListUtils {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static AccessControlList createAcl(DBOAccessControlList dbo, ObjectType objectType) throws DatastoreException {
+	public static AccessControlList createAcl(DBOAccessControlList dbo) throws DatastoreException {
 		AccessControlList acl = new AccessControlList();
-		if (ObjectType.ENTITY.equals(objectType)) {
-			acl.setId(KeyFactory.keyToString(dbo.getId()));
-		} else {
-			acl.setId(dbo.getId().toString());
-		}
+		acl.setId(dbo.getId().toString());
 		acl.setEtag(dbo.getEtag());
 		acl.setCreationDate(new Date(dbo.getCreationDate()));
 		return acl;
@@ -82,5 +77,6 @@ public class AccessControlListUtils {
 		if(acl.getEtag() == null) throw new IllegalArgumentException("ACL.getEtag() cannot return null.");
 		if(acl.getCreationDate() == null) throw new IllegalArgumentException("ACL.getCreationDate() cannot return null.");
 		if(acl.getResourceAccess() == null) throw new IllegalArgumentException("ACL.getResourceAccess() cannot return null.");
+		acl.setId(KeyFactory.stringToKey(acl.getId()).toString());
 	}
 }
