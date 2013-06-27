@@ -107,7 +107,7 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		String aclId = aclDAO.create(acl);
-		assertEquals(nodeId, aclId);
+		assertEquals(KeyFactory.stringToKey(nodeId).toString(), aclId);
 
 		acl = aclDAO.get(node.getId());
 		assertNotNull(acl);
