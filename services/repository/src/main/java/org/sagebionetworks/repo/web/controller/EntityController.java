@@ -1143,10 +1143,12 @@ public class EntityController extends BaseController{
 		// Strip off the prefix
 		final String key = KeyFactory.stringToKey(id).toString();
 		final String aclId = acl.getId();
-		final String aclKey = KeyFactory.stringToKey(aclId).toString();
-		if(!key.equals(aclKey)) {
-			throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+aclId);
+		if (aclId != null) {
+			final String aclKey = KeyFactory.stringToKey(aclId).toString();
+			if(!key.equals(aclKey)) {
+				throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+aclId);
+			}
 		}
-		acl.setId(aclKey);
+		acl.setId(key);
 	}
 }

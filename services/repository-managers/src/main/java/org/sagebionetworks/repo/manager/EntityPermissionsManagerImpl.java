@@ -215,7 +215,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public boolean hasLocalACL(String resourceId) {
 		try {
-			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
+			Long resourceKey = KeyFactory.stringToKey(resourceId);
+			String benefactorId = nodeInheritanceManager.getBenefactor(resourceId);
+			Long benefactorKey = KeyFactory.stringToKey(benefactorId);
+			return resourceKey.equals(benefactorKey);
 		} catch (Exception e) {
 			return false;
 		}
