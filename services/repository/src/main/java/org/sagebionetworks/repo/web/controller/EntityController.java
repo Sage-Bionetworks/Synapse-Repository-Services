@@ -1139,8 +1139,11 @@ public class EntityController extends BaseController{
 		return serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, id, versionNumber);
 	}
 
+	/**
+	 * Makes sure the ACL's ID is consistent with the entity's ID. If the ACL's is null,
+	 * this will set the ACL's ID to the entity's ID.
+	 */
 	private void validateAclId(final String id, final AccessControlList acl) {
-		// Strip off the prefix
 		final String key = KeyFactory.stringToKey(id).toString();
 		final String aclId = acl.getId();
 		if (aclId != null) {

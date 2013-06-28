@@ -55,8 +55,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		Long aclKey = KeyFactory.stringToKey(acl.getId());
-		String rId = KeyFactory.keyToString(aclKey);
+		String rId = restorePrefix(acl.getId());
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
@@ -74,8 +73,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		Long aclKey = KeyFactory.stringToKey(acl.getId());
-		String rId = KeyFactory.keyToString(aclKey);
+		String rId = restorePrefix(acl.getId());
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
 		// check permissions of user to change permissions for the resource
@@ -215,10 +213,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public boolean hasLocalACL(String resourceId) {
 		try {
-			Long resourceKey = KeyFactory.stringToKey(resourceId);
-			String benefactorId = nodeInheritanceManager.getBenefactor(resourceId);
-			Long benefactorKey = KeyFactory.stringToKey(benefactorId);
-			return resourceKey.equals(benefactorKey);
+			String rId = restorePrefix(resourceId);
+			return nodeInheritanceManager.getBenefactor(rId).equals(rId);
 		} catch (Exception e) {
 			return false;
 		}
@@ -252,5 +248,16 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new InvalidModelException("Caller is trying to revoke their own ACL editing permissions.");
 		}
 	}
-	
+
+	/**
+	 * ACL does not store the ID with the prefix. This method restores the ID
+	 * with the prefix. For example,
+	 *
+	 *     "123" -> "syn123"
+	 *     "syn123" -> "syn123"
+	 */
+	private String restorePrefix(String id) {
+		Long key = KeyFactory.stringToKey(id);
+		return KeyFactory.keyToString(key);
+	}	
 }
