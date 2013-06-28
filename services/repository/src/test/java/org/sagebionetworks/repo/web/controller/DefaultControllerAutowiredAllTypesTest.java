@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -155,7 +156,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Grant this project public access
 		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, id, userName);
 		assertNotNull(acl);
-		assertEquals(id, acl.getId());
+		assertEquals(KeyFactory.stringToKey(id).toString(), acl.getId());
 		ResourceAccess ac = new ResourceAccess();
 		UserGroup publicUserGroup = userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name(), false);
 		assertNotNull(publicUserGroup);
@@ -536,7 +537,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			// The ACL should match the root of the node
 			EntityHeader rootHeader = path.get(1);
 			// the returned ACL should refer to the parent
-			assertEquals(rootHeader.getId(), acl.getId());
+			assertEquals(KeyFactory.stringToKey(rootHeader.getId()).toString(), acl.getId());
 			
 			// We cannot add an ACL to a node that already has one
 			if(acl.getId().equals(entity.getId())){
@@ -550,7 +551,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, userName);
 			// now retrieve the acl for the child. should get its own back
 			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userName);
-			assertEquals(entity.getId(), acl3.getId());
+			assertEquals(KeyFactory.stringToKey(entity.getId()).toString(), acl3.getId());
 			
 			
 			// now delete the ACL (restore inheritance)
@@ -566,7 +567,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			}
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent
-			assertEquals(rootHeader.getId(), acl4.getId());
+			assertEquals(KeyFactory.stringToKey(rootHeader.getId()).toString(), acl4.getId());
 		}
 	}
 	

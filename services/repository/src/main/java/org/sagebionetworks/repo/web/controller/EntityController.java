@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -595,9 +596,7 @@ public class EntityController extends BaseController{
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
-		// pass it along.
-		// This is a fix for PLFM-410
-		newAcl.setId(id);
+		validateAclId(id, newAcl);
 		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
 		return acl;
 	}
@@ -623,7 +622,7 @@ public class EntityController extends BaseController{
 		// pass it along.
 		return serviceProvider.getEntityService().getEntityACL(id, userId, request);
 	}
-	
+
 	/**
 	 * Update an entity's ACL.
 	 * @param id
@@ -648,13 +647,8 @@ public class EntityController extends BaseController{
 			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		if(updatedACL == null) throw new IllegalArgumentException("ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ID cannot be null");
-		// This is a fix for 
-		if(!id.equals(updatedACL.getId())) throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+updatedACL.getId());
-		// This is a fix for PLFM-621
-		updatedACL.setId(id);
-		// pass it along.
+		validateAclId(id, updatedACL);
 		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, null, request);
-		
 		/* 
 		 * DEV NOTE (10/15/12): Recursive application disabled to prevent users
 		 * from inadvertently deleting permissions. This feature (and its UI 
@@ -663,7 +657,7 @@ public class EntityController extends BaseController{
 		 * See also IT500SynapseJavaClient.testUpdateACLRecursive()
 		 */
 	}
-	
+
 	/**
 	 * Called to restore inheritance (vs. defining ones own ACL)
 	 * @param id - The entity whose inheritance is to be restored
@@ -1143,5 +1137,16 @@ public class EntityController extends BaseController{
 			@PathVariable Long versionNumber) throws DatastoreException, NotFoundException, IOException{
 		// pass it!
 		return serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, id, versionNumber);
+	}
+
+	private void validateAclId(final String id, final AccessControlList acl) {
+		// Strip off the prefix
+		final String key = KeyFactory.stringToKey(id).toString();
+		final String aclId = acl.getId();
+		final String aclKey = KeyFactory.stringToKey(aclId).toString();
+		if(!key.equals(aclKey)) {
+			throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+aclId);
+		}
+		acl.setId(aclKey);
 	}
 }
