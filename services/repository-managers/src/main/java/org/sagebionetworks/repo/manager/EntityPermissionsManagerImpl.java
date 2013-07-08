@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,14 +48,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!benefactor.equals(nodeId)) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
-		AccessControlList acl = aclDAO.getForResource(nodeId);
+		AccessControlList acl = aclDAO.get(nodeId);
 		return acl;
 	}
 		
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		String rId = acl.getId();
+		String rId = restorePrefix(acl.getId());
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
@@ -65,14 +66,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		validateACLContent(acl, userInfo, ownerId);
 		aclDAO.update(acl);
-		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		acl = aclDAO.get(acl.getId());
 		return acl;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
-		String rId = acl.getId();
+		String rId = restorePrefix(acl.getId());
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
 		// check permissions of user to change permissions for the resource
@@ -89,7 +90,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
 		aclDAO.create(acl);
-		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		acl = aclDAO.get(acl.getId());
 		return acl;
 	}
 
@@ -112,13 +113,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
 		// delete access control list
-		AccessControlList acl = aclDAO.getForResource(rId);
+		AccessControlList acl = aclDAO.get(rId);
 		aclDAO.delete(acl.getId());
 		
 		// now find the newly governing ACL
 		benefactor = nodeInheritanceManager.getBenefactor(rId);
 		
-		return aclDAO.getForResource(benefactor);
+		return aclDAO.get(benefactor);
 	}	
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -136,7 +137,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		applyInheritanceToChildrenHelper(parentId, userInfo);
 
 		// return governing parent ACL
-		return aclDAO.getForResource(nodeInheritanceManager.getBenefactor(parentId));
+		return aclDAO.get(nodeInheritanceManager.getBenefactor(parentId));
 	}
 	
 	private void applyInheritanceToChildrenHelper(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, ConflictingUpdateException {
@@ -156,7 +157,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 					
 					// delete ACL
-					AccessControlList acl = aclDAO.getForResource(idToChange);
+					AccessControlList acl = aclDAO.get(idToChange);
 					aclDAO.delete(acl.getId());
 				}								
 				// set benefactor ACL
@@ -212,7 +213,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public boolean hasLocalACL(String resourceId) {
 		try {
-			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
+			String rId = restorePrefix(resourceId);
+			return nodeInheritanceManager.getBenefactor(rId).equals(rId);
 		} catch (Exception e) {
 			return false;
 		}
@@ -246,5 +248,16 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new InvalidModelException("Caller is trying to revoke their own ACL editing permissions.");
 		}
 	}
-	
+
+	/**
+	 * ACL does not store the ID with the prefix. This method restores the ID
+	 * with the prefix. For example,
+	 *
+	 *     "123" -> "syn123"
+	 *     "syn123" -> "syn123"
+	 */
+	private String restorePrefix(String id) {
+		Long key = KeyFactory.stringToKey(id);
+		return KeyFactory.keyToString(key);
+	}	
 }

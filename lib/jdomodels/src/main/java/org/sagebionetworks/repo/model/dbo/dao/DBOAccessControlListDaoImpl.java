@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
@@ -31,7 +34,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -48,6 +50,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static final String DELETE_RESOURCE_ACCESS_SQL = "DELETE FROM "+TABLE_RESOURCE_ACCESS+" WHERE "+COL_RESOURCE_ACCESS_OWNER+" = ?";
 
 	private static final String SELECT_ALL_RESOURCE_ACCESS = "SELECT * FROM "+TABLE_RESOURCE_ACCESS+" WHERE "+COL_RESOURCE_ACCESS_OWNER+" = ?";
+
+	private static final String SELECT_ETAG_FOR_UPDATE = "SELECT "+COL_ACL_ETAG+" FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_ID+" = :" + COL_ACL_ID+" FOR UPDATE";
 
 	/**
 	 * Keep a copy of the row mapper.
@@ -69,10 +73,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			throw new IllegalArgumentException("ACL cannot be null.");
 		}
 
-		// When we migrate we keep the original etag.  When it is null we set it.
-		if(acl.getEtag() == null){
-			acl.setEtag(UUID.randomUUID().toString());
-		}
+		acl.setEtag(UUID.randomUUID().toString());
 
 		AccessControlListUtils.validateACL(acl);
 
@@ -114,13 +115,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public AccessControlList get(final String ownerId, final ObjectType objectType)
+	public AccessControlList get(final String ownerId)
 			throws DatastoreException, NotFoundException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", ownerKey);
 		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
-		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ObjectType.ENTITY);
+		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
@@ -151,11 +152,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 		// Check e-tags before update
 		final Long ownerKey = KeyFactory.stringToKey(acl.getId());
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue("id", ownerKey);
-		DBOAccessControlList existingAcl = dboBasicDao.getObjectByPrimaryKey(
-				DBOAccessControlList.class, param);
-		if (!existingAcl.getEtag().equals(acl.getEtag())) {
+		String etag = selectEtagForUpdate(ownerKey);
+		if (!acl.getEtag().equals(etag)) {
 			throw new ConflictingUpdateException("E-tags do not match.");
 		}
 		acl.setEtag(UUID.randomUUID().toString());
@@ -178,12 +176,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public AccessControlList getForResource(String rid)
-			throws DatastoreException, NotFoundException {
-		return get(rid, ObjectType.ENTITY);
-	}
-
-	@Override
 	public boolean canAccess(Collection<UserGroup> groups, String resourceId,
 			ACCESS_TYPE accessType) throws DatastoreException {
 		// Build up the parameters
@@ -203,5 +195,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}catch (DataAccessException e){
 			throw new DatastoreException(e);
 		}
+	}
+
+	// To avoid potential race conditions, we do "SELECT ... FOR UPDATE" on etags.
+	private String selectEtagForUpdate(final Long id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_ACL_ID, id);
+		String etag = simpleJdbcTemplate.queryForObject(
+				SELECT_ETAG_FOR_UPDATE, String.class, param);
+		return etag;
 	}
 }

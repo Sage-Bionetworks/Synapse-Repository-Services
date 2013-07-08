@@ -51,7 +51,7 @@ public class EntityBootstrapperAutowireTest {
 			
 			// root nodes don't have ACLs
 			try {
-				AccessControlList acl = accessControlListDAO.getForResource(id);
+				AccessControlList acl = accessControlListDAO.get(id);
 				assertNotNull(acl);
 			} catch (NotFoundException nfe) {
 				throw new NotFoundException("id="+id);
