@@ -596,7 +596,7 @@ public class EntityController extends BaseController{
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
-		validateAclId(id, newAcl);
+		newAcl.setId(KeyFactory.stringToKey(id).toString());
 		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
 		return acl;
 	}
