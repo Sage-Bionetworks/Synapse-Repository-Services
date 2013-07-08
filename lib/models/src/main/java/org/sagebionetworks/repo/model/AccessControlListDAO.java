@@ -2,17 +2,9 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessControlListDAO  {
-	
-	/**
-	 * Find the access control list for the given resource
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public AccessControlList getForResource(String rid) throws DatastoreException, NotFoundException;
 
 	/**
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
@@ -37,7 +29,7 @@ public interface AccessControlListDAO  {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public AccessControlList get(String id, ObjectType objectType) throws DatastoreException,	NotFoundException;
+	public AccessControlList get(String id) throws DatastoreException,	NotFoundException;
 
 	/**
 	 * Update the JDO

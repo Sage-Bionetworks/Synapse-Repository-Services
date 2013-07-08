@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.backup;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +56,6 @@ public class NodeBackupStub implements NodeBackupManager {
 		Long nodeId = new Long(nodeIdSequence++);
 		Node node = nodeNode.getNode();
 		node.setId(nodeId.toString());
-		String benefactor = null;
 		if(nodeNode.getAcl() != null){
 			previousBenefactor = nodeId.toString();
 			nodeNode.setBenefactor(nodeId.toString());
@@ -189,13 +186,6 @@ public class NodeBackupStub implements NodeBackupManager {
 		}
 	}
 
-	private void createOrUpdateRevision(NodeRevisionBackup rev) {
-		if(rev == null) throw new IllegalArgumentException("Rev cannot be null");
-		TreeNodeBackup node = getNodeNode(rev.getNodeId());
-		if(node == null) throw new IllegalArgumentException("Could not find the owner of the given revision");
-		node.getRevisions().add(rev);
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -255,29 +245,8 @@ public class NodeBackupStub implements NodeBackupManager {
 	}
 
 	@Override
-	public void createOrUpdateNodeWithRevisions(NodeBackup backup,	List<NodeRevisionBackup> revisions) {
-		if(backup == null) throw new IllegalArgumentException("backup cannot be null");
-		if(revisions == null) throw new IllegalArgumentException("revisions cannot be null");
-		// Make sure we process revision in their natural order
-		Collections.sort(revisions, new Comparator<NodeRevisionBackup>(){
-			@Override
-			public int compare(NodeRevisionBackup one, NodeRevisionBackup two) {
-				// Sort based on the revision number only.
-				return one.getRevisionNumber().compareTo(two.getRevisionNumber());
-			}} );
-		// First handle the node
-		createOrUpdateNode(backup);
-		// Now process all revisions
-		for(NodeRevisionBackup rev: revisions){
-			createOrUpdateRevision(rev);
-		}
-	}
-
-	@Override
 	public boolean doesNodeExist(String nodeId, String etag) {
 		// TODO Auto-generated method stub
 		return false;
 	}
-	
-
 }
