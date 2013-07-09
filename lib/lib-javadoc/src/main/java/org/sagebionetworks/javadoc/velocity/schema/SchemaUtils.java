@@ -5,8 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -63,6 +61,7 @@ public class SchemaUtils {
 		if (!schemaMap.containsKey(id)) {
 			if (schema == null) {
 				schema = getSchema(id);
+				if(schema == null) return;
 			}
 			schemaMap.put(id, schema);
 			Iterator<ObjectSchema> it = schema.getSubSchemaIterator();
@@ -133,6 +132,7 @@ public class SchemaUtils {
 	public static ObjectSchema getSchema(String name) {
 		try {
 			String json = getEffectiveSchema(name);
+			if(json == null) return null;
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl(json);
 			ObjectSchema schema = new ObjectSchema(adpater);
 			return schema;

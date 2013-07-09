@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -84,8 +85,11 @@ public class ControllerUtils {
         				System.out.println(annotationMap);
         				if(RequestBody.class.getName().equals(qualifiedName)){
         					// Request body
-        					Link link = new Link("${"+param.type().qualifiedTypeName()+"}", param.typeName());
-        					methodModel.setRequestBody(link);
+        					String schema = SchemaUtils.getEffectiveSchema(param.type().qualifiedTypeName());
+        					if(schema != null){
+            					Link link = new Link("${"+param.type().qualifiedTypeName()+"}", param.typeName());
+            					methodModel.setRequestBody(link);
+        					}
         				}else if(PathVariable.class.getName().equals(qualifiedName)){
         					// Path parameter
         					ParameterModel paramModel = new ParameterModel();
@@ -142,6 +146,8 @@ public class ControllerUtils {
 	private static Link extractResponseLink(MethodDoc methodDoc) {
 		// this means there is a response body for this method.
 		Type returnType = methodDoc.returnType();
+		String schema = SchemaUtils.getEffectiveSchema(returnType.qualifiedTypeName());
+		if(schema == null) return null;
 		Link reponseLink = new Link();
 		StringBuilder builder = new StringBuilder();
 		builder.append("${").append(returnType.qualifiedTypeName()).append("}");

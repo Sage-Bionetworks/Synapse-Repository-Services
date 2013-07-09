@@ -186,5 +186,34 @@ public class ExampleController {
 			throw new IllegalArgumentException("Request cannot be null");
 		return null;
 	}
+	
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/missing/descriptions", method = RequestMethod.GET)
+	public @ResponseBody
+	RowMetadataResult missingDescriptions(
+			@PathVariable(required = true) String pathVar,
+			@RequestParam(required = false) String limit,
+			@RequestParam(required = false) String offset,
+			@RequestBody IdList request) throws DatastoreException,
+			NotFoundException {
+		if (request == null)
+			throw new IllegalArgumentException("Request cannot be null");
+		return null;
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/nonJson", method = RequestMethod.GET)
+	public @ResponseBody
+	String nonJsonEntity(@RequestBody String request) {
+		return null;
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/void", method = RequestMethod.GET)
+	public @ResponseBody
+	void noParamsOrReturn() {
+		return null;
+	}
 
 }

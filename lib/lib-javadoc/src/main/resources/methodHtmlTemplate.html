@@ -35,7 +35,9 @@
 											#foreach( $param in $method.pathVariables)
 											<tr>
 												<td>{$param.name}</td>
-												<td>$param.description</td>
+												<td>#if($param.description)
+												$param.description
+												#end</td>
 											</tr>
 											#end
 										</tbody>
@@ -57,7 +59,9 @@
 												<p class="dimmed">optional</p>
 												#end
 												</td>
-												<td>$param.description</td>
+												<td>#if($param.description)
+												$param.description
+												#end</td>
 											</tr>
 											#end
 										</tbody>
@@ -89,11 +93,15 @@
 											</tr>
 											<tr>
 												<td>Request Object</td>
-												<td><a href="$method.requestBody.href">$method.requestBody.display</a><br>(application/json)</br></td>
+												<td>#if($method.requestBody)
+												<a href="$method.requestBody.href">$method.requestBody.display</a><br>(application/json)</br>
+												#end</td>
 											</tr>
 											<tr>
 												<td>Response Object</td>
-												<td><a href="$method.responseBody.href">$method.responseBody.display</a><br>(application/json)</br></td>
+												<td>#if($method.responseBody)
+												<a href="$method.responseBody.href">$method.responseBody.display</a><br>(application/json)</br>
+												#end</td>
 											</tr>
 										</tbody>
 									</table>
