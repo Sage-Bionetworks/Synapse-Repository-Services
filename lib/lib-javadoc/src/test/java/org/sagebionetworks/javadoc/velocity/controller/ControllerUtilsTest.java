@@ -59,7 +59,7 @@ public class ControllerUtilsTest {
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
 		assertNotNull(model);
-		assertEquals("/migration/delata", model.getUrl());
+		assertEquals("/multiple/params", model.getUrl());
 		assertEquals("GET", model.getHttpType());
 		assertEquals("GET.migration.delata", model.getFullMethodName());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.RowMetadataResult}", "RowMetadataResult"), model.getResponseBody());

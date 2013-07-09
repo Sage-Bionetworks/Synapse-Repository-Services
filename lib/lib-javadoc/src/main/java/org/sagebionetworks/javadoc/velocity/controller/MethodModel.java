@@ -1,5 +1,6 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -63,6 +64,22 @@ public class MethodModel {
 	public List<ParameterModel> getPathVariables() {
 		return pathVariables;
 	}
+	
+	public void addPathVariable(ParameterModel pathVar){
+		if(this.pathVariables == null){
+			this.pathVariables = new LinkedList<ParameterModel>();
+		}
+		this.pathVariables.add(pathVar);
+	}
+	
+	public void addParameter(ParameterModel param){
+		if(this.parameters == null){
+			this.parameters = new LinkedList<ParameterModel>();
+		}
+		this.parameters.add(param);
+	}
+	
+	
 	public void setPathVariables(List<ParameterModel> pathVariables) {
 		this.pathVariables = pathVariables;
 	}

@@ -51,7 +51,7 @@ public class ExampleController {
 	 * @param userId
 	 *            - the user's id.
 	 * @param ownerId
-	 *            - the ID of the owner object.
+	 *            The ID of the object that owns the wiki page.
 	 * @param toCreate
 	 *            - The wiki page to create.
 	 * @return -
@@ -136,19 +136,48 @@ public class ExampleController {
 	 * vitae arcu. Fusce pharetra dignissim nisl egestas pretium.
 	 * 
 	 * @param userId
-	 * @param type - The MigrationType.name()
-	 * @param limit - Limit the number of results resturned.
-	 * @param offset - The offest from zero of the page.
+	 * @param type The MigrationType.name()
+	 * @param limit Limit the number of results resturned.
+	 * @param offset The offest from zero of the page.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/migration/delata", method = RequestMethod.GET)
+	@RequestMapping(value = "/multiple/params", method = RequestMethod.GET)
 	public @ResponseBody
 	RowMetadataResult getRowMetadataDelta(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@RequestParam(required = true) String type,
+			@RequestParam(required = false) String limit,
+			@RequestParam(required = false) String offset,
+			@RequestBody IdList request) throws DatastoreException,
+			NotFoundException {
+		if (request == null)
+			throw new IllegalArgumentException("Request cannot be null");
+		return null;
+	}
+	
+	/**
+	 * In facilisis scelerisque dui vel dignissim. Sed nunc orci, ultricies
+	 * congue vehicula quis, facilisis a orci. In aliquet facilisis condimentum.
+	 * Donec at orci orci, a dictum justo. Sed a nunc non lectus fringilla
+	 * suscipit. Vivamus pretium sapien sit amet mauris aliquet eleifend vel
+	 * vitae arcu. Fusce pharetra dignissim nisl egestas pretium.
+	 * 
+	 * @param pathVar An exmaple path variable
+	 * @param type The MigrationType.name()
+	 * @param limit Limit the number of results resturned.
+	 * @param offset The offest from zero of the page.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/multiple/{pathVar}", method = RequestMethod.GET)
+	public @ResponseBody
+	RowMetadataResult noAuthPathVariable(
+			@PathVariable(required = true) String pathVar,
 			@RequestParam(required = false) String limit,
 			@RequestParam(required = false) String offset,
 			@RequestBody IdList request) throws DatastoreException,

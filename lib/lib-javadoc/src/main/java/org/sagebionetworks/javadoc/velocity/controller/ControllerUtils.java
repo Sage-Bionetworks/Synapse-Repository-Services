@@ -1,20 +1,25 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.AnnotationDesc.ElementValuePair;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
+import com.sun.javadoc.ParamTag;
 import com.sun.javadoc.Parameter;
 import com.sun.javadoc.Type;
 
@@ -22,8 +27,8 @@ public class ControllerUtils {
 
 	public static String REQUEST_MAPPING_VALUE = RequestMapping.class.getName()+".value";
 	public static String REQUEST_MAPPING_METHOD = RequestMapping.class.getName()+".method";
-	
-	
+	public static String REQUEST_PARAMETER_VALUE = RequestParam.class.getName()+".value";
+	public static String REQUEST_PARAMETER_REQUIRED = RequestParam.class.getName()+".required";
 	/**
 	 * Translate from a a controller class to a Controller model.
 	 * 
@@ -40,8 +45,6 @@ public class ControllerUtils {
     	model.setMethods(methods);
     	while(methodIt.hasNext()){
     		MethodDoc methodDoc = methodIt.next();
-    		System.out.println(methodDoc.qualifiedName());
-    		System.out.println(methodDoc.name());
     		MethodModel methodModel = translateMethod(methodDoc);
     		methods.add(methodModel);
     	}
@@ -68,12 +71,17 @@ public class ControllerUtils {
 
 	private static void processParameterAnnotations(MethodDoc methodDoc, MethodModel methodModel) {
 		Parameter[] params = methodDoc.parameters();
+		// Start with false here.  If we find the userId parameter this will be changed to true.
+		methodModel.setIsAuthenticationRequired(false);
+		Map<String, ParameterModel> paramMap = new HashMap<String, ParameterModel>();
         if(params != null){
         	for(Parameter param: params){
         		AnnotationDesc[] paramAnnos = param.annotations();
         		if(paramAnnos != null){
         			for(AnnotationDesc ad: paramAnnos){
         				String qualifiedName = ad.annotationType().qualifiedName();
+        				Map<String, Object> annotationMap = mapAnnotation(ad);
+        				System.out.println(annotationMap);
         				if(RequestBody.class.getName().equals(qualifiedName)){
         					// Request body
         					Link link = new Link("${"+param.type().qualifiedTypeName()+"}", param.typeName());
@@ -81,13 +89,37 @@ public class ControllerUtils {
         				}else if(PathVariable.class.getName().equals(qualifiedName)){
         					// Path parameter
         					ParameterModel paramModel = new ParameterModel();
-        					paramModel.setName("{"+param.name()+"}");
-//        					paramModel.set("{"+param.name()+"}");
+        					paramModel.setName(param.name());
+        					methodModel.addPathVariable(paramModel);
+        					paramMap.put(param.name(), paramModel);
+        				}else if(RequestParam.class.getName().equals(qualifiedName)){
+        					// if this is the userId parameter then we do now show it,
+        					// rather it means this method requires authentication.
+        					if(AuthorizationConstants.USER_ID_PARAM.equals(annotationMap.get(REQUEST_PARAMETER_VALUE))){
+        						methodModel.setIsAuthenticationRequired(true);
+        					}else{
+            					ParameterModel paramModel = new ParameterModel();
+            					paramModel.setName(param.name());
+            					paramModel.setIsOptional(!(isRequired(annotationMap)));
+            					methodModel.addParameter(paramModel);
+            					paramMap.put(param.name(), paramModel);
+        					}
         				}
         			}
         		}
         	}
         }
+        ParamTag[] paramTags = methodDoc.paramTags();
+        if(paramTags != null){
+        	for(ParamTag paramTag: paramTags){
+        		ParameterModel paramModel = paramMap.get(paramTag.parameterName());
+        		if(paramModel != null){
+        			paramModel.setDescription(paramTag.parameterComment());
+        		}
+        	}
+        }
+		System.out.println(methodModel);
+        // Lookup the parameter descriptions
 	}
 
 	private static void processMethodAnnotations(MethodDoc methodDoc,
@@ -138,6 +170,39 @@ public class ControllerUtils {
 					methodModel.setHttpType(value.substring(inxed+1));
 				}
 			}
+		}
+	}
+	
+
+	/**
+	 * Put all annotation value key pairs into a map for easier lookup.
+	 * @param ad
+	 * @return
+	 */
+	public static Map<String, Object> mapAnnotation(AnnotationDesc ad){
+		 Map<String, Object> map = new HashMap<String, Object>();
+		 ElementValuePair[] pairs = ad.elementValues();
+		 if(pairs != null){
+			 for(ElementValuePair evp: pairs){
+				 String name = evp.element().qualifiedName();
+				 Object value = evp.value().value();
+				 map.put(name, value);
+			 }
+		 }
+		 return map;
+	}
+	
+	/**
+	 * Check for the required annotation.
+	 * @param map
+	 * @return
+	 */
+	public static boolean isRequired(Map<String, Object> map){
+		Boolean value = (Boolean) map.get(REQUEST_PARAMETER_REQUIRED);
+		if(value != null){
+			return value;
+		}else{
+			return false;
 		}
 	}
 }

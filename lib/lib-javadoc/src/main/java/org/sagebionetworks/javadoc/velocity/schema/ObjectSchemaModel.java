@@ -16,6 +16,7 @@ public class ObjectSchemaModel {
 	List<SchemaFields> fields;
 	String effectiveSchema;
 	List<String> enumValues;
+	String sample;
 	
 	public List<String> getEnumValues() {
 		return enumValues;
@@ -52,6 +53,13 @@ public class ObjectSchemaModel {
 	}
 	public void setEffectiveSchema(String effectiveSchema) {
 		this.effectiveSchema = effectiveSchema;
+	}
+	
+	public String getSample() {
+		return sample;
+	}
+	public void setSample(String sample) {
+		this.sample = sample;
 	}
 	@Override
 	public int hashCode() {

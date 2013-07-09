@@ -5,6 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -172,6 +174,18 @@ public class SchemaUtils {
 				enumValues.add(en);
 			}
 		}
+
+		try {
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("someInt", 123);
+			jsonObject.put("someString", "a nice ride in the park!");
+			results.setSample(jsonObject.toString(1));
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		
 		return results;
 	}
 	

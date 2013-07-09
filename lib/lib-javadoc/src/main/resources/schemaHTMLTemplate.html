@@ -15,8 +15,7 @@
 								<h5>${model.id}</h5>
 								#if (${model.description})
 								<p>${model.description}</p>
-								#end
-								#if ($model.fields)
+								#end #if ($model.fields)
 								<table border="0">
 									<thead>
 										<tr>
@@ -29,15 +28,9 @@
 										#foreach( $field in $model.fields )
 										<tr>
 											<td>$field.name</td>
-											<td>#if($field.type.isArray) 
-													#if($field.type.isUnique)
-														SET&#60
-													#else
-													ARRAY&#60
-													#end 
-												#end 
-												#if($field.type.href)
-													 <a	href="$field.type.href">$field.type.display</a> #else
+											<td>#if($field.type.isArray) #if($field.type.isUnique)
+												SET&#60 #else ARRAY&#60 #end #end #if($field.type.href) <a
+												href="$field.type.href">$field.type.display</a> #else
 												$field.type.display #end #if($field.type.isArray) &#62 #end
 											</td> #if ($field.description)
 											<td>$field.description</td> #else
@@ -46,8 +39,7 @@
 										#end
 									</tbody>
 								</table>
-								#end
-								#if ($model.enumValues)
+								#end #if ($model.enumValues)
 								<h5>Enumeration</h5>
 								<table border="1">
 									<tr>
@@ -61,12 +53,18 @@
 								</table>
 								#end
 							</div>
+							<div class="ym-gbox">
+								<h4>Example</h4>
+							</div>
+							<div class="ym-gbox">
+								<pre class="prettyprint lang-json">$model.sample</pre>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	#parse( "footerTemplate.html" )
+		#parse( "footerTemplate.html" )
 	</div>
 </body>
 </html>

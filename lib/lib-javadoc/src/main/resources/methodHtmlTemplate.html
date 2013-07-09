@@ -25,6 +25,45 @@
 								<div class="ym-gbox">
 									<p>https://repo-prod.sagebase.org/repo/v1${method.url}</p>
 								</div>
+								#if(${method.pathVariables})
+								<div class="ym-gbox">
+									<h6>Resource URL Variables</h6>
+								</div>
+								<div class="ym-gbox">
+									<table class="borderless">
+										<tbody>
+											#foreach( $param in $method.pathVariables)
+											<tr>
+												<td>{$param.name}</td>
+												<td>$param.description</td>
+											</tr>
+											#end
+										</tbody>
+									</table>
+								</div>
+								#end
+								#if(${method.parameters})
+								<div class="ym-gbox">
+									<h6>Parameters</h6>
+								</div>
+								<div class="ym-gbox">
+									<table class="borderless">
+										<tbody>
+											#foreach( $param in $method.parameters)
+											<tr>
+												<td>
+												$param.name
+												#if($param.isOptional)
+												<p class="dimmed">optional</p>
+												#end
+												</td>
+												<td>$param.description</td>
+											</tr>
+											#end
+										</tbody>
+									</table>
+								</div>
+								#end
 							</div>
 							<div class="ym-g33 ym-gr">
 								<div class="ym-gbox">
@@ -37,7 +76,12 @@
 										<tbody>
 											<tr>
 												<td>Authentication</td>
-												<td>Required</td>
+												<td>#if($method.isAuthenticationRequired)
+														Required
+													#else
+														false
+													#end	
+												</td>
 											</tr>
 											<tr>
 												<td>HTTP Methods</td>
