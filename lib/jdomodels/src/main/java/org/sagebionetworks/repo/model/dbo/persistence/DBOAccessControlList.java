@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -102,6 +103,9 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 			@Override
 			public DBOAccessControlList createDatabaseObjectFromBackup(
 					DBOAccessControlList backup) {
+				if (backup.getEtag() == null) {
+					backup.setEtag(UUID.randomUUID().toString());
+				}
 				return backup;
 			}
 
