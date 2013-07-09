@@ -1,6 +1,7 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -61,10 +62,10 @@ public class ControllerUtilsTest {
 		assertNotNull(model);
 		assertEquals("/multiple/params", model.getUrl());
 		assertEquals("GET", model.getHttpType());
-		assertEquals("GET.migration.delata", model.getFullMethodName());
+		assertEquals("GET.multiple.params", model.getFullMethodName());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.RowMetadataResult}", "RowMetadataResult"), model.getResponseBody());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.IdList}", "IdList"), model.getRequestBody());
-		assertEquals(new Link("${GET.migration.delata}", "GET /migration/delata"), model.getMethodLink());
+		assertEquals(new Link("${GET.multiple.params}", "GET /multiple/params"), model.getMethodLink());
 	}
 	
 	@Test
@@ -77,5 +78,68 @@ public class ControllerUtilsTest {
 		assertEquals("POST.evaluation.ownerId.wiki", model.getFullMethodName());
 		assertEquals(new Link("${POST.evaluation.ownerId.wiki}", "POST /evaluation/{ownerId}/wiki"), model.getMethodLink());
 	}
+	
+	@Test
+	public void testPathVariables(){
+		MethodDoc method = methodMap.get("createEntityWikiPage");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertNotNull(model.getPathVariables());
+		assertEquals(1, model.getPathVariables().size());
+		ParameterModel pathParam = model.getPathVariables().get(0);
+		assertNotNull(pathParam);
+		assertEquals("ownerId", pathParam.getName());
+		assertNotNull(pathParam.getDescription());
+	}
+	
+	@Test
+	public void testParameters(){
+		MethodDoc method = methodMap.get("getRowMetadataDelta");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertNotNull(model.getParameters());
+		assertEquals(3, model.getParameters().size());
+		// one
+		ParameterModel param = model.getParameters().get(0);
+		assertNotNull(param);
+		assertEquals("type", param.getName());
+		assertNotNull(param.getDescription());
+		assertFalse(param.getIsOptional());
+		// two
+		param = model.getParameters().get(1);
+		assertNotNull(param);
+		assertEquals("limit", param.getName());
+		assertNotNull(param.getDescription());
+		assertTrue(param.getIsOptional());
+		// three
+		param = model.getParameters().get(2);
+		assertNotNull(param);
+		assertEquals("offset", param.getName());
+		assertNotNull(param.getDescription());
+		assertTrue(param.getIsOptional());
+	}
 
+	@Test
+	public void testAuthetincationNotRequired(){
+		MethodDoc method = methodMap.get("noAuthPathVariable");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertFalse(model.getIsAuthenticationRequired());
+	}
+	
+	@Test
+	public void testAuthetincationRequired(){
+		MethodDoc method = methodMap.get("getRowMetadataDelta");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		assertTrue(model.getIsAuthenticationRequired());
+	}
 }

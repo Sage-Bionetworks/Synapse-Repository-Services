@@ -173,19 +173,7 @@ public class SchemaUtils {
 			for(String en: schema.getEnum()){
 				enumValues.add(en);
 			}
-		}
-
-		try {
-			JSONObject jsonObject = new JSONObject();
-			jsonObject.put("someInt", 123);
-			jsonObject.put("someString", "a nice ride in the park!");
-			results.setSample(jsonObject.toString(1));
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		
+		}	
 		return results;
 	}
 	
