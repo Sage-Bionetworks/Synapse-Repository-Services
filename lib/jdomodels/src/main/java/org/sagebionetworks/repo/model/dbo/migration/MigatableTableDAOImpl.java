@@ -188,6 +188,8 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	@Override
 	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		// Fix for PLFM-1978
+		if(idList.size() < 1) return new LinkedList<RowMetadata>();
 		String sql = this.getDeltaListSql(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
 		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, idList);
@@ -201,6 +203,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	public int deleteObjectsById(MigrationType type, List<Long> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
+		if(idList.size() < 1) return 0;
 		String deleteSQL = this.deleteSqlMap.get(type);
 		if(deleteSQL == null) throw new IllegalArgumentException("Cannot find batch delete SQL for "+type);
 		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, idList);
@@ -210,6 +213,9 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 
 	@Override
 	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds) {
+		if(clazz == null) throw new IllegalArgumentException("clazz cannot be null");
+		if(rowIds == null) throw new IllegalArgumentException("idList cannot be null");
+		if(rowIds.size() < 1) return new LinkedList<D>();
 		MigrationType type = getTypeForClass(clazz);
 		String sql = getBatchBackupSql(type);
 		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
@@ -222,6 +228,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	@Override
 	public <D extends DatabaseObject<D>> List<Long> createOrUpdateBatch(List<D> batch) {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
+		if(batch.size() <1) return new LinkedList<Long>();
 		List<Long> createOrUpdateIds = new LinkedList<Long>();
 		// nothing to do with an empty batch
 		if(batch.size() < 1) return createOrUpdateIds;
