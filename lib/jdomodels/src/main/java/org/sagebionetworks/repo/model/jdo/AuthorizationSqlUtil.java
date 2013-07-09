@@ -10,7 +10,7 @@ public class AuthorizationSqlUtil {
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
 	private static final String AUTHORIZATION_SQL_1 = 
-		"select distinct acl."+SqlConstants.ACL_OWNER_ID_COLUMN+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
+		"select distinct acl."+SqlConstants.COL_ACL_OWNER_ID_COLUMN+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at where ra."+
 		SqlConstants.COL_RESOURCE_ACCESS_OWNER+
@@ -29,7 +29,7 @@ public class AuthorizationSqlUtil {
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
 	
 	private static final String CAN_ACCESS_SQL_1 ="select count(n."+SqlConstants.COL_NODE_ID+")  from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at, "+SqlConstants.TABLE_NODE+" n where ra."+SqlConstants.COL_RESOURCE_ACCESS_OWNER+"=acl."+SqlConstants.COL_ACL_ID+" and (ra."+SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID+" in (";
-	private static final String CAN_ACCESS_SQL_2 =")) and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_ID+" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR+" AND acl."+SqlConstants.ACL_OWNER_ID_COLUMN+" = n."+SqlConstants.COL_NODE_BENEFACTOR_ID+" and n."+SqlConstants.COL_NODE_ID+" =:"+NODE_ID_BIND_VAR;
+	private static final String CAN_ACCESS_SQL_2 =")) and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_ID+" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR+" AND acl."+SqlConstants.COL_ACL_OWNER_ID_COLUMN+" = n."+SqlConstants.COL_NODE_BENEFACTOR_ID+" and n."+SqlConstants.COL_NODE_ID+" =:"+NODE_ID_BIND_VAR;
 
 	/**
 	 * The bind variable prefix used for group ID for the authorization SQL.

@@ -107,12 +107,8 @@
 	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />
 
-	<bean id="dboAccessControlListDao"
+	<bean id="aclDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
-		scope="singleton" />
-
-	<bean id="accessControlListDAO"
-		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
 		scope="singleton" />
 
 	<bean id="favoriteDao"

@@ -65,7 +65,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private Evaluation evaluation;
 	private Evaluation adminEvaluation;
 	
-	TermsOfUseAccessRequirement ar;
+	AccessRequirement ar;
 
 	@Before
 	public void before() throws Exception {
@@ -166,6 +166,18 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	}
 	
 	@Test
+	public void testCreateLockAccessRequirement() throws Exception {
+		ar = AccessRequirementManagerImpl.newLockAccessRequirement(adminUserInfo, entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		assertNotNull(ar.getCreatedBy());
+		assertNotNull(ar.getCreatedOn());
+		assertNotNull(ar.getSubjectIds());
+		assertNotNull(ar.getId());
+		assertNotNull(ar.getModifiedBy());
+		assertNotNull(ar.getModifiedOn());
+	}
+	
+	@Test
 	public void testCreateEvaluationAccessRequirement() throws Exception {
 		ar = newEvaluationAccessRequirement(evaluation.getId());
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
@@ -220,7 +232,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		Thread.sleep(100L);
 		long arModifiedOn = ar.getModifiedOn().getTime();
 		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>()); // change the entity id list
-		TermsOfUseAccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar);
+		AccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar);
 		assertTrue(ar2.getModifiedOn().getTime()-arModifiedOn>0);
 		assertTrue(ar2.getSubjectIds().isEmpty());
 	}

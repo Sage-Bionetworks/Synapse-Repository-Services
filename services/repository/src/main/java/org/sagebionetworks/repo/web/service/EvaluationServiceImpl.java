@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
@@ -351,6 +353,14 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
+	public URL getRedirectURLForFileHandle(String userName, 
+			String submissionId, String fileHandleId) 
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getRedirectURLForFileHandle(userInfo, submissionId, fileHandleId);
+	}
+
+	@Override
 	public long getSubmissionCount(String evalId) throws DatastoreException,
 			NotFoundException {
 		return submissionManager.getSubmissionCount(evalId);
@@ -406,7 +416,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		return evaluationPermissionsManager.getUserPermissionsForEvaluation(userInfo, evalId);
 	}
-
+	
 	/**
 	 * Inserts an evaluation ID into a provided URL anywhere the
 	 * EVALUATION_ID_PATH_VAR is found.

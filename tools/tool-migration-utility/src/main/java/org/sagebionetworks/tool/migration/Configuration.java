@@ -42,5 +42,15 @@ public interface Configuration {
 	 * @return
 	 */
 	public int getRetryDenominator();
+	
+	/**
+	 * Maximum number of migration retries
+	 */
+	public int getMaxRetries();
+	
+	/**
+	 * Defer exceptions
+	 */
+	public boolean getDeferExceptions();
 
 }

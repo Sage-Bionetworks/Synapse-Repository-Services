@@ -1,0 +1,46 @@
+{
+	"description": "Primary container object for Annotations on a Synapse object",
+	"type": "object",
+	"properties": {
+		"parentId": {
+			"description": "The Synapse ID of the object with which these Annotations are associated",
+			"type": "string"
+		},
+		"stringAnnos": {
+			"type": "array",
+			"description": "A list of StringAnnnotations",
+			"uniqueItems": false,
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.annotation.StringAnnotation"
+			}
+		},
+		"longAnnos": {
+			"type": "array",
+			"description": "A list of LongAnnnotations",
+			"uniqueItems": false,
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.annotation.LongAnnotation"
+			}
+		},
+		"doubleAnnos": {
+			"type": "array",
+			"description": "A list of DoubleAnnnotations",
+			"uniqueItems": false,
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.annotation.DoubleAnnotation"
+			}
+		},
+		"dateAnnos": {
+			"type": "array",
+			"description": "A list of DateAnnotations",
+			"uniqueItems": false,
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.annotation.DateAnnotation"
+			}
+		}
+	}
+}

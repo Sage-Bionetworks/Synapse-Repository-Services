@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -174,18 +175,16 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
 			partsMask += EntityBundle.ENTITY;			
 			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
-			
-			// Update etag
-			if (acl != null)
-				acl.setEtag(entity.getEtag());
 		}
 			
 		// Update the ACL
 		if (ebc.getAccessControlList() != null) {
-			if (!entityId.equals(ebc.getAccessControlList().getId()))
+			Long entityKey = KeyFactory.stringToKey(entityId);
+			Long aclKey = KeyFactory.stringToKey(acl.getId());
+			if (!entityKey.equals(aclKey)) {
 				throw new IllegalArgumentException("ACL does not match requested entity ID");
+			}
 			partsMask += EntityBundle.ACL;
-			
 			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
 		}
 		

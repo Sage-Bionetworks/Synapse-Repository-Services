@@ -3,7 +3,15 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DateAnnotation;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -115,5 +123,47 @@ public class TestUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * Create a populated Annotations object.
+	 * 
+	 * @return
+	 */
+	public static Annotations createDummyAnnotations() {		
+		List<DateAnnotation> dateAnnos = new ArrayList<DateAnnotation>();
+		DateAnnotation da = new DateAnnotation();
+		da.setIsPrivate(true);
+		da.setKey("da");
+		da.setValue(new Date());
+		dateAnnos.add(da);
+		
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("sa");
+		sa.setValue("foo");
+		stringAnnos.add(sa);
+		
+		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
+		LongAnnotation la = new LongAnnotation();
+		la.setIsPrivate(true);
+		la.setKey("la");
+		la.setValue(42L);
+		longAnnos.add(la);
+		
+		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+		DoubleAnnotation doa = new DoubleAnnotation();
+		doa.setIsPrivate(false);
+		doa.setKey("doa");
+		doa.setValue(3.14);
+		doubleAnnos.add(doa);
+		
+		Annotations annos = new Annotations();
+		annos.setDateAnnos(dateAnnos);
+		annos.setStringAnnos(stringAnnos);
+		annos.setLongAnnos(longAnnos);
+		annos.setDoubleAnnos(doubleAnnos);
+		return annos;
 	}
 }

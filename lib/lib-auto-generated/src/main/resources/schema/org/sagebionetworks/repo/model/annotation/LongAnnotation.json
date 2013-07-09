@@ -1,0 +1,15 @@
+{
+	"description": "An Annotation containing a Long value",
+	"type":"object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.annotation.AnnotationBase"
+		}
+	],
+	"properties": {
+		"value": {
+			"description": "The value of this Annotation",
+			"type": "integer"
+		}
+	}
+}

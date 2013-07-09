@@ -6,10 +6,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -31,6 +34,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -40,6 +44,10 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -57,6 +65,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static Project project = null;
 	private static Study dataset = null;
 	private static Project projectTwo = null;
+	private static S3FileHandle fileHandle = null;
 	
 	private static String userName;
 	
@@ -72,10 +81,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static List<String> submissionsToDelete;
 	private static List<String> entitiesToDelete;
 	private static List<Long> accessRequirementsToDelete;
+	
+	public static final long MAX_WAIT_MS = 1000*10; // 10 sec	
+	private static String FILE_NAME = "LittleImage.png";
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
 		synapseOne = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 		synapseTwo = createSynapseClient(StackConfiguration.getIntegrationTestUserTwoName(),
@@ -88,6 +99,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
+		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
 		synapse.login(user, pw);
 		
 		return synapse;
@@ -169,6 +181,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 		for (String id : entitiesToDelete) {
 			try {
 				synapseOne.deleteEntityById(id);
+			} catch (Exception e) {}
+		}
+		// clean up FileHandle
+		if(fileHandle != null){
+			try {
+				synapseOne.deleteFileHandle(fileHandle.getId());
 			} catch (Exception e) {}
 		}
 	}
@@ -344,9 +362,21 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// update
 		Thread.sleep(1L);
+		
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(true);
+		sa.setKey("foo");
+		sa.setValue("bar");
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		stringAnnos.add(sa);
+		Annotations annos = new Annotations();
+		annos.setStringAnnos(stringAnnos);
+		
 		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
 		status.setReport("Lorem ipsum");
+		status.setAnnotations(annos);
+		
 		SubmissionStatus statusClone = synapseOne.updateSubmissionStatus(status);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
@@ -631,6 +661,59 @@ public class IT520SynapseJavaClientEvaluationTest {
 
 	}
 	
+	@Test
+	public void testGetFileTemporaryUrlForSubmissionFileHandle() throws Exception {
+		// create Objects
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		assertNotNull(eval1.getId());
+		evaluationsToDelete.add(eval1.getId());
+		
+		part1 = synapseOne.createParticipant(eval1.getId());
+		assertNotNull(part1);
+		participantsToDelete.add(part1);
+				
+		FileEntity file = createTestFileEntity();		
+		
+		// create Submission
+		String entityId = file.getId();
+		String entityEtag = file.getEtag();
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		sub1 = synapseOne.createSubmission(sub1, entityEtag);
+		submissionsToDelete.add(sub1.getId());
+
+		// get file URL
+		URL expected = synapseOne.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
+		URL actual = synapseOne.getFileTemporaryUrlForSubmissionFileHandle(sub1.getId(), fileHandle.getId());
+		assertEquals("invalid URL returned", expected, actual);
+	}
+
+	private FileEntity createTestFileEntity() throws SynapseException {
+		// create a FileHandle
+		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
+		File imageFile = new File(url.getFile().replaceAll("%20", " "));
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		List<File> list = new LinkedList<File>();
+		list.add(imageFile);
+		FileHandleResults results = synapseOne.createFileHandles(list);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(1, results.getList().size());
+		fileHandle = (S3FileHandle) results.getList().get(0);
+		
+		// create a FileEntity
+		FileEntity file = new FileEntity();
+		file.setName("IT520SynapseJavaClientEvaluationTest.testGetFileTemporaryUrlForSubmissionFileHandle");
+		file.setParentId(project.getId());
+		file.setDataFileHandleId(fileHandle.getId());
+		file = synapseOne.createEntity(file);
+		assertNotNull(file);
+		entitiesToDelete.add(file.getId());
+		return file;
+	}
+
 	@Test
 	public void testGetUserEvaluationStateRegistered() throws Exception{
 		//base case, OPEN competition where user is a participant

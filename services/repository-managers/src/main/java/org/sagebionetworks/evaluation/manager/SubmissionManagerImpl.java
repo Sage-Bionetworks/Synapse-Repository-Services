@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -26,7 +28,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -55,6 +56,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	NodeManager nodeManager;
 	@Autowired
 	AuthorizationManager authorizationManager;
+	@Autowired
+	FileHandleManager fileHandleManager;
 	
 	public SubmissionManagerImpl() {};
 	
@@ -62,7 +65,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, SubmissionFileHandleDAO submissionFileHandleDAO,
 			EvaluationManager evaluationManager, ParticipantManager participantManager,
-			EntityManager entityManager, NodeManager nodeManager, AuthorizationManager authorizationManager) {
+			EntityManager entityManager, NodeManager nodeManager,
+			AuthorizationManager authorizationManager, FileHandleManager fileHandleManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
@@ -72,6 +76,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		this.entityManager = entityManager;
 		this.nodeManager = nodeManager;
 		this.authorizationManager = authorizationManager;
+		this.fileHandleManager = fileHandleManager;
 	}
 
 	@Override
@@ -300,6 +305,31 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public long getSubmissionCount(String evalId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		return submissionDAO.getCountByEvaluation(evalId);
+	}
+	
+	@Override
+	public URL getRedirectURLForFileHandle(UserInfo userInfo, 
+			String submissionId, String fileHandleId) 
+			throws DatastoreException, NotFoundException {
+		Submission submission = getSubmission(userInfo, submissionId);
+		
+		// validate permissions
+		boolean isEvaluationAdmin = authorizationManager.canAccess(userInfo,
+				submission.getEvaluationId(), ObjectType.EVALUATION, ACCESS_TYPE.UPDATE); // TODO: change to READ_PRIVATE_SUBMISSION
+		if (!isEvaluationAdmin) {
+			throw new UnauthorizedException("Insufficient priveliges to " +
+					"download files from this Evaluation");
+		}
+		
+		// ensure that the requested ID is included in the Submission
+		List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId);
+		if (!ids.contains(fileHandleId)) {
+			throw new NotFoundException("Submission " + submissionId + " does " +
+					"not contain the requested FileHandle " + fileHandleId);
+		}
+		
+		// generate the URL
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
 	
 	protected QueryResults<SubmissionBundle> submissionsToSubmissionBundles(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {

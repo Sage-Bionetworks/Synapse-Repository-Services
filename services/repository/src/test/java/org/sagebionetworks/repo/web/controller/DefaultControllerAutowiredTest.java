@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,13 +46,12 @@ import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * This is a an integration test for the DefaultController.
@@ -171,7 +169,7 @@ public class DefaultControllerAutowiredTest {
 		}
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
-		assertEquals(clone.getId(), acl.getId());
+		assertEquals(KeyFactory.stringToKey(clone.getId()).toString(), acl.getId());
 		assertNotNull(acl.getUri());
 
 		// now switch to child
@@ -187,8 +185,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userName);
-		assertEquals(dsClone.getId(), acl3.getId());
-
+		assertEquals(KeyFactory.stringToKey(dsClone.getId()).toString(), acl3.getId());
 
 		// now delete the ACL (restore inheritance)
 		ServletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userName);
@@ -204,7 +201,7 @@ public class DefaultControllerAutowiredTest {
 
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
-		assertEquals(clone.getId(), acl4.getId());
+		assertEquals(KeyFactory.stringToKey(clone.getId()).toString(), acl4.getId());
 	}
 
 	@Test

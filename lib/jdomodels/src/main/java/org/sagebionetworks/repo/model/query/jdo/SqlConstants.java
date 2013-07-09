@@ -192,10 +192,12 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
 
-	public static final String TABLE_ACCESS_CONTROL_LIST = "ACL";
-	public static final String COL_ACL_ID				= "ID";
-	public static final String ACL_OWNER_ID_COLUMN		= "OWNER_ID_COLUMN";
-	public static final String DDL_FILE_ACL				= "schema/ACL-ddl.sql";
+	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
+	public static final String COL_ACL_ID                 = "ID";
+	public static final String COL_ACL_ETAG               = "ETAG";
+	public static final String COL_ACL_OWNER_ID_COLUMN    = "OWNER_ID_COLUMN";
+	public static final String COL_ACL_CREATED_ON         = "CREATED_ON";
+	public static final String DDL_FILE_ACL               = "schema/ACL-ddl.sql";
 	
 	// The resource access table
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";

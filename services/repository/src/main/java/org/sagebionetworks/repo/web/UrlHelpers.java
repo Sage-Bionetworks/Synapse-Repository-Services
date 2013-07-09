@@ -547,6 +547,7 @@ public class UrlHelpers {
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN = SUBMISSION_WITH_EVAL_ID + ALL;
 	public static final String SUBMISSION_STATUS_WITH_EVAL_ID = SUBMISSION_WITH_EVAL_ID + "/" + STATUS + ALL;
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE + ALL;
+	public static final String SUBMISSION_FILE = SUBMISSION_WITH_ID + FILE + "/{fileHandleId}";
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_EVAL_ID + "/count";
 	
 	public static final String ACCESS_REQUIREMENT_WITH_EVALUATION_ID = EVALUATION_WITH_ID+ACCESS_REQUIREMENT;

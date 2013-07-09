@@ -41,6 +41,8 @@ public class ContentTypeUtilsTest {
 
 	public void testIsRecognizedCodeFileName() throws Exception {
 		assertTrue(ContentTypeUtils.isRecognizedCodeFileName("myCodeFile.R"));
+		assertTrue(ContentTypeUtils.isRecognizedCodeFileName("myCodeFile.py"));
+		assertTrue(ContentTypeUtils.isRecognizedCodeFileName("myCodeFile.ipy"));
 		assertTrue(ContentTypeUtils.isRecognizedCodeFileName("myCodeFile.jAvA"));
 		assertTrue(ContentTypeUtils.isRecognizedCodeFileName("myCodeFile.manyDots.cpp"));
 		
