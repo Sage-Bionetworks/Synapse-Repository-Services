@@ -954,6 +954,13 @@ public class NodeDAOImplTest {
 		assertEquals(EntityType.dataset.getEntityType(), childHeader.getType());
 		assertEquals("child", childHeader.getName());
 		assertEquals(childId, childHeader.getId());
+
+		// Get the header of this node non versioned
+		childHeader = nodeDao.getEntityHeader(childId, null);
+		assertNotNull(childHeader);		
+		assertEquals(childId, childHeader.getId());
+		assertEquals(new Long(1), childHeader.getVersionNumber());
+
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -995,23 +1002,23 @@ public class NodeDAOImplTest {
 		List<EntityHeader> path = nodeDao.getEntityPath(grandId);
 		assertNotNull(path);
 		assertEquals(3, path.size());
-		assertEquals(array[0], path.get(0));
-		assertEquals(array[1], path.get(1));
-		assertEquals(array[2], path.get(2));
+		assertEquals(array[0].getId(), path.get(0).getId());
+		assertEquals(array[1].getId(), path.get(1).getId());
+		assertEquals(array[2].getId(), path.get(2).getId());
 		
 		// child
 		path = nodeDao.getEntityPath(childId);
 		assertNotNull(path);
 		assertEquals(2, path.size());
-		assertEquals(array[0], path.get(0));
-		assertEquals(array[1], path.get(1));
+		assertEquals(array[0].getId(), path.get(0).getId());
+		assertEquals(array[1].getId(), path.get(1).getId());
 		
 		// parent
 		// child
 		path = nodeDao.getEntityPath(parentId);
 		assertNotNull(path);
 		assertEquals(1, path.size());
-		assertEquals(array[0], path.get(0));
+		assertEquals(array[0].getId(), path.get(0).getId());
 	}
 	
 	@Test
