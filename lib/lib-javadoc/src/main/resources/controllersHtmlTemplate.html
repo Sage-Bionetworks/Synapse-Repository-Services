@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+#parse( "docHeaderTemplate.html" )
+<body>
+	<div id="container">
+		#parse( "bannerHeader.html" )
+		<div id="main">
+			<div class="ym-wrapper">
+				<div class="ym-wbox">
+					<div id="rootPanel" class="ym-grid linearize-level-1">
+						<div class="ym-grid">
+							<div class="ym-gbox">
+								#foreach( $controller in $controllers.controllers )
+								<h2>${controller.name}</h2>
+								#if(${controller.classDescription})
+								<p>${controller.classDescription}</p>
+								#end 
+								## List the methods 
+								#if($controller.methods)
+								<h5>Web Services</h5>
+								<table>
+									<thead>
+										<tr>
+											<th>Resource</th>
+											<th>Description</th>
+										</tr>
+									</thead>
+									<tbody>
+										#foreach( $method in $controller.methods )
+										<tr>
+											<td class="ym-g33"><a href="$method.methodLink.href">$method.methodLink.display</a>
+											</td>
+											<td>#if($method.shortDescription)
+												$method.shortDescription #end</td>
+										</tr>
+										#end
+									</tbody>
+								</table>
+								#end
+								#end
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	#parse( "footerTemplate.html" )
+	</div>
+</body>
+</html>

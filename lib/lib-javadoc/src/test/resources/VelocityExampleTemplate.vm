@@ -1,0 +1,14 @@
+<HTML>
+<BODY>
+Hello ${name}!
+<table>
+#foreach( $item in $list )
+   <tr>
+      <td>
+         $item
+      </td>
+   </tr>
+#end
+</table>
+</BODY>
+</HTML>

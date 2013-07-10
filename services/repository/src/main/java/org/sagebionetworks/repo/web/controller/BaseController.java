@@ -91,7 +91,7 @@ import org.springframework.web.util.NestedServletException;
 
 public abstract class BaseController {
 
-	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavaiable, please try again later.";
+	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static final Logger log;
 
 	static {
