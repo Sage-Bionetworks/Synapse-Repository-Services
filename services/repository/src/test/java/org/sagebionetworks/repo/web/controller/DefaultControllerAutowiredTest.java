@@ -169,7 +169,7 @@ public class DefaultControllerAutowiredTest {
 		}
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
-		assertEquals(KeyFactory.stringToKey(clone.getId()).toString(), acl.getId());
+		assertEquals(clone.getId(), acl.getId());
 		assertNotNull(acl.getUri());
 
 		// now switch to child
@@ -185,7 +185,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
 		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userName);
-		assertEquals(KeyFactory.stringToKey(dsClone.getId()).toString(), acl3.getId());
+		assertEquals(dsClone.getId(), acl3.getId());
 
 		// now delete the ACL (restore inheritance)
 		ServletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userName);
@@ -201,7 +201,7 @@ public class DefaultControllerAutowiredTest {
 
 		assertNotNull(acl4);
 		// the returned ACL should refer to the parent
-		assertEquals(KeyFactory.stringToKey(clone.getId()).toString(), acl4.getId());
+		assertEquals(clone.getId(), acl4.getId());
 	}
 
 	@Test

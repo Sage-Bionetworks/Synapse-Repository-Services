@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -596,7 +595,7 @@ public class EntityController extends BaseController{
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
-		newAcl.setId(KeyFactory.stringToKey(id).toString());
+		newAcl.setId(id);
 		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
 		return acl;
 	}
@@ -647,7 +646,9 @@ public class EntityController extends BaseController{
 			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		if(updatedACL == null) throw new IllegalArgumentException("ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ID cannot be null");
-		validateAclId(id, updatedACL);
+		if(!id.equals(updatedACL.getId())) throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+updatedACL.getId());
+		// This is a fix for PLFM-621
+		updatedACL.setId(id);
 		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, null, request);
 		/* 
 		 * DEV NOTE (10/15/12): Recursive application disabled to prevent users
@@ -1137,21 +1138,5 @@ public class EntityController extends BaseController{
 			@PathVariable Long versionNumber) throws DatastoreException, NotFoundException, IOException{
 		// pass it!
 		return serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, id, versionNumber);
-	}
-
-	/**
-	 * Makes sure the ACL's ID is consistent with the entity's ID. If the ACL's is null,
-	 * this will set the ACL's ID to the entity's ID.
-	 */
-	private void validateAclId(final String id, final AccessControlList acl) {
-		final String key = KeyFactory.stringToKey(id).toString();
-		final String aclId = acl.getId();
-		if (aclId != null) {
-			final String aclKey = KeyFactory.stringToKey(aclId).toString();
-			if(!key.equals(aclKey)) {
-				throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+aclId);
-			}
-		}
-		acl.setId(key);
 	}
 }
