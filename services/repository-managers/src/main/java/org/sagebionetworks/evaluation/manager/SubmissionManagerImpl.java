@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.dbo.dao.AnnotationUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -76,7 +77,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
 				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		return submissionToSubmissionStatus(sub, includePrivateAnnos); 
+		return submissionToSubmissionStatus(sub, includePrivateAnnos);
 	}
 
 	@Override
@@ -172,6 +173,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (score != null) {
 			if (score > 1.0 || score < 0.0)
 				throw new IllegalArgumentException("Scores must be between 0 and 1. Received score = " + score);
+		}
+		
+		// validate Annotations, if any
+		Annotations annos = submissionStatus.getAnnotations();
+		if (annos != null) {
+			AnnotationUtils.validateAnnotations(annos);
+			annos.setOwnerId(submissionStatus.getId());
+			annos.setOwnerParentId(evalId);
 		}
 		
 		// update and return the new Submission
@@ -399,6 +408,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		annos.setLongAnnos(newLongAnnos);
 		
 		return annos;
+	}
+	
+	private SubmissionStatus submissionToSubmissionStatus(Submission sub) throws DatastoreException, NotFoundException {
+		SubmissionStatus status = submissionStatusDAO.get(sub.getId());
+		status.setEntityId(sub.getEntityId());
+		status.setVersionNumber(sub.getVersionNumber());
+		return status;
 	}
 
 }

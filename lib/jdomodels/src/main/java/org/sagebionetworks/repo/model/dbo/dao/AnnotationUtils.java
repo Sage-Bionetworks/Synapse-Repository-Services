@@ -3,10 +3,21 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
+import org.sagebionetworks.evaluation.dbo.LongAnnotationDBO;
+import org.sagebionetworks.evaluation.dbo.StringAnnotationDBO;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.annotation.AnnotationBase;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation;
@@ -129,6 +140,81 @@ public class AnnotationUtils {
 			}
 		}
 		return results;
+	}
+
+	public static LongAnnotationDBO createLongAnnotationDBO(
+			Long ownerId, Long ownerParentId, LongAnnotation anno) {
+		LongAnnotationDBO dbo = new LongAnnotationDBO();
+		dbo.setAttribute(anno.getKey());
+		dbo.setValue(anno.getValue());
+		dbo.setSubmissionId(ownerId);
+		dbo.setIsPrivate(anno.getIsPrivate());
+		return dbo;
+	}
+
+	public static StringAnnotationDBO createStringAnnotationDBO(
+			Long ownerId, Long ownerParentId, AnnotationBase anno) {
+		StringAnnotationDBO dbo = new StringAnnotationDBO();
+		dbo.setAttribute(anno.getKey());
+		dbo.setSubmissionId(ownerId);
+		dbo.setIsPrivate(anno.getIsPrivate());
+		
+		// we must manually handle different typed Annos, since the AnnotationBase interface
+		// does not specify the getValue() method
+		if (anno instanceof StringAnnotation) {
+			StringAnnotation sa = (StringAnnotation) anno;
+			dbo.setValue(sa.getValue());
+		} else if (anno instanceof DoubleAnnotation) {
+			DoubleAnnotation da = (DoubleAnnotation) anno;
+			dbo.setValue(da.getValue().toString());
+		} else if (anno instanceof LongAnnotation) {
+			LongAnnotation la = (LongAnnotation) anno;
+			dbo.setValue(la.getValue().toString());
+		} else {
+			throw new IllegalArgumentException(
+					"Unable to determine annotation type for key: " + anno.getKey());
+		}
+		
+		return dbo;
+	}
+
+	public static DoubleAnnotationDBO createDoubleAnnotationDBO(
+			Long ownerId, Long ownerParentId, DoubleAnnotation anno) {
+		DoubleAnnotationDBO dbo = new DoubleAnnotationDBO();
+		dbo.setAttribute(anno.getKey());
+		dbo.setValue(anno.getValue());
+		dbo.setSubmissionId(ownerId);
+		dbo.setIsPrivate(anno.getIsPrivate());
+		return dbo;
+	}
+	
+	/**
+	 * Ensure that Annotation keys are unique.
+	 * 
+	 * @param annos
+	 */
+	public static void validateAnnotations(Annotations annos) {
+		if (annos == null) {
+			throw new IllegalArgumentException("Annotations cannot be null");
+		}
+		Set<String> keys = new HashSet<String>();
+		if (annos.getDoubleAnnos() != null) {
+			checkAnnos(keys, annos.getDoubleAnnos());
+		}
+		if (annos.getLongAnnos() != null) {
+			checkAnnos(keys, annos.getLongAnnos());
+		}
+		if (annos.getStringAnnos() != null) {
+			checkAnnos(keys, annos.getStringAnnos());
+		}
+	}
+	
+	private static void checkAnnos(Set<String> keys, Collection<? extends AnnotationBase> annoCollection) {
+		for (AnnotationBase ba : annoCollection) {
+			if (!keys.add(ba.getKey())) {
+				throw new InvalidModelException("Duplicate annotations found for key: " + ba.getKey());
+			}
+		}
 	}
 
 }

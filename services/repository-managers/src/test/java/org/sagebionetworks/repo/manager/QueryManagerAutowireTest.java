@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.ResourceQueryResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Study;
@@ -164,7 +164,7 @@ public class QueryManagerAutowireTest {
 		// Execute it.
 		long start = System.currentTimeMillis();
 		
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		ResourceQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
 		QueryResults results = new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
@@ -207,7 +207,7 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		ResourceQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
 		QueryResults results = new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");

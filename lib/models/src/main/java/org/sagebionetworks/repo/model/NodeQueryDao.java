@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.query.BasicQuery;
 
 /**
@@ -19,7 +16,7 @@ public interface NodeQueryDao {
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException;
+	public ResourceQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException;
 	
 	/**
 	 * Execute the given query as a 'count' query.  The count will be the number of nodes that meet the passed criteria.

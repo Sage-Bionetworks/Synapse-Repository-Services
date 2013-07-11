@@ -2,8 +2,12 @@
 	"description": "Primary container object for Annotations on a Synapse object",
 	"type": "object",
 	"properties": {
-		"parentId": {
+		"ownerId": {
 			"description": "The Synapse ID of the object with which these Annotations are associated",
+			"type": "string"
+		},
+		"ownerParentId": {
+			"description": "The Synapse ID of the parent object of the object with which these Annotations are associated",
 			"type": "string"
 		},
 		"stringAnnos": {

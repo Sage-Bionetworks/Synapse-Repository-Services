@@ -18,7 +18,7 @@ public interface ServiceProvider {
 	
 	public EntityBundleService getEntityBundleService();
 	
-	public NodeQueryService getNodeQueryService();
+	public QueryService getNodeQueryService();
 	
 	public S3TokenService getS3TokenService();
 	

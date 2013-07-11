@@ -12,6 +12,9 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation;
@@ -206,5 +209,51 @@ public class AnnotationUtilsTest {
 		assertEquals(owner, toCheck.getOwner());
 		assertEquals("nullDateAnnotation", toCheck.getAttribute());
 		assertEquals(null, toCheck.getValue());
+	}
+	
+	@Test
+	public void testValidateAnnotations() {
+		org.sagebionetworks.repo.model.annotation.Annotations annos = TestUtils.createDummyAnnotations();
+		AnnotationUtils.validateAnnotations(annos);
+	}
+	
+	@Test(expected=InvalidModelException.class)
+	public void testValidateAnnotationsDuplicateKeySameType() {
+		org.sagebionetworks.repo.model.annotation.Annotations annos = TestUtils.createDummyAnnotations();
+		
+		StringAnnotation sa1 = new StringAnnotation();
+		sa1.setIsPrivate(false);
+		sa1.setKey("foo");
+		sa1.setValue("bar");
+		
+		StringAnnotation sa2 = new StringAnnotation();
+		sa2.setIsPrivate(false);
+		sa2.setKey("foo");
+		sa2.setValue("baz");
+		
+		annos.getStringAnnos().add(sa1);
+		annos.getStringAnnos().add(sa2);		
+		
+		AnnotationUtils.validateAnnotations(annos);
+	}
+	
+	@Test(expected=InvalidModelException.class)
+	public void testValidateAnnotationsDuplicateKeyDifferentType() {
+		org.sagebionetworks.repo.model.annotation.Annotations annos = TestUtils.createDummyAnnotations();
+		
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("foo");
+		sa.setValue("bar");
+		
+		DoubleAnnotation da = new DoubleAnnotation();
+		da.setIsPrivate(false);
+		da.setKey("foo");
+		da.setValue(3.14);
+		
+		annos.getStringAnnos().add(sa);
+		annos.getDoubleAnnos().add(da);		
+		
+		AnnotationUtils.validateAnnotations(annos);
 	}
 }

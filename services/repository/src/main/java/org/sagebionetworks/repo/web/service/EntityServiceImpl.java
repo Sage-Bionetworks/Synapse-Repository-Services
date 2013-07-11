@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.ResourceQueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -587,7 +587,7 @@ public class EntityServiceImpl implements EntityService {
 			BasicQuery query) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// First execute the query.
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		ResourceQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
 		// Fetch each entity
 		List<T> entityList = new ArrayList<T>();
 		for(String id: nodeResults.getResultIds()){

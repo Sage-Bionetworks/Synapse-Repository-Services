@@ -14,33 +14,39 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.ResourceQueryResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.QueryDAO;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
+import org.sagebionetworks.repo.model.query.Row;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.query.QueryStatement;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class NodeQueryServiceImpl implements NodeQueryService {
+public class QueryServiceImpl implements QueryService {
 
-	private static final String[] excludedDatasetProperties = {
+	private static final String TYPE_SUBMISSION = "submission";
+
+	private static final String[] EXCLUDED_DATASET_PROPERTIES = {
 			"uri", "etag", "annotations", "layer"
 		};
 
-	private static final String[] excludedLayerProperties = {
+	private static final String[] EXCLUDED_LAYER_PROPERTIES = {
 			"uri", "etag", "annotations", "preview", "locations"
 		};
 
-	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;
+	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;	
 	static {
 		Set<String> datasetProperties = new HashSet<String>();
-		datasetProperties.addAll(Arrays.asList(excludedDatasetProperties));
+		datasetProperties.addAll(Arrays.asList(EXCLUDED_DATASET_PROPERTIES));
 		Set<String> layerProperties = new HashSet<String>();
-		layerProperties.addAll(Arrays.asList(excludedLayerProperties));
+		layerProperties.addAll(Arrays.asList(EXCLUDED_LAYER_PROPERTIES));
 		Map<String, Set<String>> excludedProperties = new HashMap<String, Set<String>>();
 		excludedProperties.put("dataset", datasetProperties);
 		excludedProperties.put("layer", layerProperties);
@@ -49,7 +55,8 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 
 	@Autowired
 	private NodeQueryDao nodeQueryDao;
-
+	@Autowired
+	private QueryDAO submissionStatusQueryDAO;
 	@Autowired
 	private UserManager userManager;
 
@@ -68,15 +75,35 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 
 	@Override
 	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
+			throws DatastoreException, NotFoundException, UnauthorizedException, ParseException {
 
 		if (query == null) {
 			throw new IllegalArgumentException("Query cannot be null");
 		}
 
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
+		UserInfo userInfo = userManager.getUserInfo(userId);		
+		String from = query.getFrom().trim().toLowerCase();
+		
+
+		if (from.equals(TYPE_SUBMISSION)) {
+			// Submission query
+			QueryTableResults results;
+			try {
+				results = submissionStatusQueryDAO.executeQuery(query, userInfo);
+			} catch (JSONObjectAdapterException e) {
+				throw new ParseException(e.getMessage());
+			}
+			// inject headers as the first row
+			Row headerRow = new Row();
+			headerRow.setValues(new ArrayList<String>(results.getHeaders()));
+			List<Row> rows = results.getRows();
+			rows.add(0, headerRow);
+			return new QueryResults(rows, results.getTotalNumberOfResults());
+		} else {
+			// Node query
+			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+			return new QueryResults(results.getAllSelectedData(), results.getTotalNumberOfResults());
+		}
 	}
 
 	private List<Map<String, Object>> formulateResult(QueryStatement stmt, List<Map<String, Object>> rows) {

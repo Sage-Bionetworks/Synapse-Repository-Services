@@ -39,6 +39,15 @@
 			"description": "Annotations on this Submission.",
 			"name": "Annotations",
 			"$ref": "org.sagebionetworks.repo.model.annotation.Annotations"
-		}
+		},
+		"entityId": {
+			"type": "string",
+			"description": "The Synapse ID of the Entity in this Submission.",
+			"transient": true
+		},
+		"versionNumber":{
+            "type":"integer",
+            "description":"The version number of the Entity."            
+        }
 	}
 }

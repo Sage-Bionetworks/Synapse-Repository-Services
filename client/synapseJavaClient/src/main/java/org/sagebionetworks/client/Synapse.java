@@ -98,6 +98,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dbo.dao.AnnotationUtils;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
@@ -3759,7 +3760,12 @@ public class Synapse implements SynapseInt {
 	}
 	
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
-		if (status == null) throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		if (status == null) {
+			throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		}
+		if (status.getAnnotations() != null) {
+			AnnotationUtils.validateAnnotations(status.getAnnotations());
+		}
 		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + STATUS;			
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		JSONObject obj;

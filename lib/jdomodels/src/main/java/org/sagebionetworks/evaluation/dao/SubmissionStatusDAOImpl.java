@@ -1,11 +1,11 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_ETAG;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 
 import java.io.IOException;
 import java.util.Date;
@@ -13,7 +13,6 @@ import java.util.Date;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
-import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -22,6 +21,7 @@ import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
