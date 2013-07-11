@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.sun.tools.javadoc.Main;
+//import com.sun.tools.javadoc.Main;
 
 /**
  * Test for the SpringMVCDoclet
@@ -73,21 +73,21 @@ public class SpringMVCDocletTest {
 		assertEquals(outputDirectory.getAbsolutePath()+File.separator+"testing123", result.getAbsolutePath());
 	}
 
-	@Ignore // not working on hudson
-	@Test
-	public void testMain(){
-		// Run a sample javadoc
-		int result = Main.execute(SpringMVCDocletTest.class.getClassLoader(), new String[]{
-			"-d",
-			outputDirectory.getAbsolutePath(),
-			"-doclet", SpringMVCDoclet.class.getName(),
-			"-classpath",
-			"@"+classpathFile.getAbsolutePath(),
-			"-verbose",
-			sampleSourceFile.getAbsolutePath()
-			});
-		assertEquals(0, result);
-	}
+//	@Ignore // not working on hudson
+//	@Test
+//	public void testMain(){
+//		// Run a sample javadoc
+//		int result = Main.execute(SpringMVCDocletTest.class.getClassLoader(), new String[]{
+//			"-d",
+//			outputDirectory.getAbsolutePath(),
+//			"-doclet", SpringMVCDoclet.class.getName(),
+//			"-classpath",
+//			"@"+classpathFile.getAbsolutePath(),
+//			"-verbose",
+//			sampleSourceFile.getAbsolutePath()
+//			});
+//		assertEquals(0, result);
+//	}
 
 	
 }
