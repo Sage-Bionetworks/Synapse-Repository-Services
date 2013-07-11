@@ -857,7 +857,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) {
 			versionNumber = getCurrentRevisionNumber(nodeId);
 		}
-		versionLabel = getVersionLabel(nodeId, versionNumber);
+		if(versionNumber != null) {
+			versionLabel = getVersionLabel(nodeId, versionNumber);			
+		}
 		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
 		return header;
 	}
