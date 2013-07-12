@@ -1,13 +1,16 @@
 package org.sagebionetworks.samples;
-
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * ligula. Duis non nulla magna.
  * 
  */
+@ControllerInfo(displayName="Example Service", path="example/v1")
 @Controller
 public class ExampleController {
 
@@ -216,4 +220,14 @@ public class ExampleController {
 		return null;
 	}
 
+	/**
+	 * Get getting an object that is an interface
+	 * @return
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/some/interface", method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandle getInterface(@RequestBody Annotations annos) {
+		return null;
+	}
 }

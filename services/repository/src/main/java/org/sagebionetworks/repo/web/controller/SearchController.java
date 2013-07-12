@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.SearchService;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,15 +28,16 @@ import org.springframework.web.servlet.ModelAndView;
 /**
  * CloudSearch search controller. It currently offers two methods:
  * <ol>
- * <li>/searchRaw proxies raw CloudSearch requests though as-is except for
+ * <li>'/searchRaw' proxies raw CloudSearch requests though as-is except for
  * adding an authorization filter
- * <li>/search operates like /searchRaw but in addition reformats the result
+ * <li>'/search' operates like /searchRaw but in addition reformats the result
  * into a Synapse model object
  * </ol>
  * 
  * @author deflaux
  * 
  */
+@ControllerInfo(displayName="Search Services", path="repo/v1")
 @Controller
 public class SearchController extends BaseController {
 	

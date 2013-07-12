@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author John
  *
  */
+@ControllerInfo(displayName="Administration Services", path="repo/v1")
 @Controller
 public class AdministrationController extends BaseController {
 	
