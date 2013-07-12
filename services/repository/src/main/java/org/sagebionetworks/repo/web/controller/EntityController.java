@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -60,6 +61,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author John
  *
  */
+@ControllerInfo(displayName="Entity Services", path="repo/v1")
 @Controller
 public class EntityController extends BaseController{
 	

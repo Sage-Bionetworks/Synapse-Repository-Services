@@ -10,6 +10,7 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *  /resourceSession  -- CR-D on a time limited session accessing the resource
  * 
  */
+@ControllerInfo(displayName="Resource Access Services", path="auth/v1")
 @Controller
 public class ResourceAccessController {
 	private static final Logger log = Logger.getLogger(ResourceAccessController.class

@@ -51,7 +51,9 @@ public class PropertyReplacement {
             	String key = group.substring(2, group.length()-1);
             	// Lookup the replacement value from the provided map
             	String value = replacements.get(key);
-            	if(value == null) throw new IllegalArgumentException("No replacement found for key: "+key);
+            	if(value == null) {
+            		throw new IllegalArgumentException("No replacement found for key: "+key);
+            	}
             	// Replace the entire group with the value.
             	matcher.appendReplacement(sb, value);
                 result = matcher.find();

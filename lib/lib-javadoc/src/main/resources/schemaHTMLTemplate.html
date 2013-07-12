@@ -11,11 +11,24 @@
 					<div id="rootPanel" class="ym-grid linearize-level-1">
 						<div class="ym-grid">
 							<div class="ym-gbox">
-								<h2>${model.name}</h2>
+								<h2>${model.name}
+								#if(${model.isInterface})
+								&#60INTERFACE&#62
+								#end
+								</h2>
 								<h5>${model.id}</h5>
 								#if (${model.description})
 								<p>${model.description}</p>
-								#end #if ($model.fields)
+								#end
+								#if(${model.knownImplementations})
+								<h6>Known Implementations:</h6>
+									#foreach( $imp in $model.knownImplementations )
+									#if($imp.href) 
+										<a href="$imp.href">$imp.display</a>#if( $foreach.hasNext ),&nbsp #end
+									#end
+									#end
+								#end
+								#if ($model.fields)
 								<table border="0">
 									<thead>
 										<tr>

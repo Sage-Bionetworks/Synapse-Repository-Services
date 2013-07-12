@@ -1,10 +1,14 @@
 package org.sagebionetworks.javadoc.velocity.schema;
 
+import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.javadoc.web.services.FilterUtils;
+import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -13,9 +17,30 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.Parameter;
+import com.sun.javadoc.RootDoc;
 import com.sun.javadoc.Type;
 
 public class SchemaUtils {
+	
+	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	RootDoc root) {
+		// Add all know concrete classes from the Factory.
+		AutoGenFactory autoGen = new AutoGenFactory();
+		Iterator<String> keySet = autoGen.getKeySetIterator();
+		while(keySet.hasNext()){
+			String name = keySet.next();
+			ObjectSchema schema = SchemaUtils.getSchema(name);
+			SchemaUtils.recursiveAddTypes(schemaMap, name, schema);
+		}
+        Iterator<ClassDoc> contollers = FilterUtils.controllerIterator(root.classes());
+        while(contollers.hasNext()){
+        	ClassDoc classDoc = contollers.next();
+        	Iterator<MethodDoc> methodIt = FilterUtils.requestMappingIterator(classDoc.methods());
+        	while(methodIt.hasNext()){
+        		MethodDoc methodDoc = methodIt.next();
+        		SchemaUtils.findSchemaFiles(schemaMap, methodDoc);
+        	}
+        }
+	}
 
 	/**
 	 * Find the schemas used by the method and add them to the set.
@@ -23,8 +48,7 @@ public class SchemaUtils {
 	 * @param set
 	 * @param method
 	 */
-	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,
-			MethodDoc method) {
+	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	MethodDoc method) {
 		// A schema class can be used for the return type or a parameters
 		Type returnType = method.returnType();
 		ClassDoc returnClassDoc = returnType.asClassDoc();
@@ -42,8 +66,7 @@ public class SchemaUtils {
 		}
 	}
 
-	private static void recursiveAddSubTypes(
-			Map<String, ObjectSchema> schemaMap, ClassDoc paramClass) {
+	private static void recursiveAddSubTypes(Map<String, ObjectSchema> schemaMap, ClassDoc paramClass) {
 		if (implementsJSONEntity(paramClass)) {
 			// Lookup the schema and add sub types.
 			recursiveAddTypes(schemaMap, paramClass.qualifiedName(), null);
@@ -64,6 +87,18 @@ public class SchemaUtils {
 				if(schema == null) return;
 			}
 			schemaMap.put(id, schema);
+			// Add all interfaces
+			try {
+				Class clazz = Class.forName(id);
+				Class[] ins = clazz.getInterfaces();
+				if(ins != null){
+					for(Class inter: ins){
+						recursiveAddTypes(schemaMap, inter.getName(), null);
+					}
+				}
+			} catch (ClassNotFoundException e) {
+				//throw new RuntimeException(e);
+			}
 			Iterator<ObjectSchema> it = schema.getSubSchemaIterator();
 			while (it.hasNext()) {
 				ObjectSchema sub = it.next();
@@ -77,12 +112,51 @@ public class SchemaUtils {
 						if(arrayItems.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems);
 					}
+				}else if(TYPE.INTERFACE == sub.getType()){
+					if(sub.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
+					recursiveAddTypes(schemaMap, sub.getId(), sub);
 				}else if(sub.getId() != null){
 					// Enumeration fall into this category
 					recursiveAddTypes(schemaMap, sub.getId(), sub);
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Map all known implementations of each interface.
+	 * @param schemaMap
+	 * @return
+	 */
+	public static Map<String, List<TypeReference>> mapImplementationsToIntefaces(Map<String, ObjectSchema> schemaMap){
+		Map<String, List<TypeReference>> map = new HashMap<String, List<TypeReference>>();
+		Iterator<String> it =  schemaMap.keySet().iterator();
+		while(it.hasNext()){
+			String key = it.next();
+			ObjectSchema schema = schemaMap.get(key);
+			if(schema.getId() != null){
+				try {
+					Class clazz = Class.forName(schema.getId());
+					Class[] interfaces = clazz.getInterfaces();
+					if(interfaces != null){
+						for(Class inter: interfaces){
+							String interfaceName =inter.getName();
+							if(schemaMap.containsKey(interfaceName)){
+								List<TypeReference> list = map.get(interfaceName);
+								if(list == null){
+									list = new LinkedList<TypeReference>();
+									map.put(interfaceName, list);
+								}
+								list.add(typeToLinkString(schema));
+							}
+						}
+					}
+				} catch (ClassNotFoundException e) {
+					continue;
+				}
+			}
+		}
+		return map;
 	}
 
 	/**
@@ -116,8 +190,11 @@ public class SchemaUtils {
 		Class<JSONEntity> clazz;
 		try {
 			clazz = (Class<JSONEntity>) Class.forName(name);
-			JSONEntity entity = clazz.newInstance();
-			return entity.getJSONSchema();
+			Field f = clazz.getField("EFFECTIVE_SCHEMA");
+			String json = (String)f.get(null);
+			if(json == null) return null;
+			if(!json.startsWith("{")) return null;
+			return json;
 		} catch (Exception e) {
 			return null;
 		}
@@ -130,13 +207,15 @@ public class SchemaUtils {
 	 * @return
 	 */
 	public static ObjectSchema getSchema(String name) {
+		String json = null;
 		try {
-			String json = getEffectiveSchema(name);
+			json = getEffectiveSchema(name);
 			if(json == null) return null;
 			JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl(json);
 			ObjectSchema schema = new ObjectSchema(adpater);
 			return schema;
 		} catch (Exception e) {
+			System.out.println(json);
 			throw new RuntimeException(e);
 		}
 
@@ -148,7 +227,7 @@ public class SchemaUtils {
 	 * @param schema
 	 * @return
 	 */
-	public static ObjectSchemaModel translateToModel(ObjectSchema schema) {
+	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementaions) {
 		ObjectSchemaModel results = new ObjectSchemaModel();
 		results.setDescription(schema.getDescription());
 		results.setEffectiveSchema(schema.getSchema());
@@ -173,7 +252,9 @@ public class SchemaUtils {
 			for(String en: schema.getEnum()){
 				enumValues.add(en);
 			}
-		}	
+		}
+		results.setKnownImplementations(knownImplementaions);
+		results.setIsInterface(knownImplementaions != null);
 		return results;
 	}
 	
@@ -214,7 +295,7 @@ public class SchemaUtils {
 	 * @return
 	 */
 	public static String getTypeHref(ObjectSchema type){
-		if(TYPE.OBJECT == type.getType()){
+		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
 			if(type.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 			StringBuilder builder = new StringBuilder();
 			builder.append("${").append(type.getId()).append("}");
@@ -229,7 +310,7 @@ public class SchemaUtils {
 	}
 	
 	public static String getTypeDisplay(ObjectSchema type){
-		if(TYPE.OBJECT == type.getType()){
+		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
 			return type.getName();
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");

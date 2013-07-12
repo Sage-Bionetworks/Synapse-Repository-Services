@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -29,7 +30,7 @@ public class FilterUtils {
             AnnotationDesc[] annos = classDoc.annotations();
             if(annos != null){
             	for(AnnotationDesc ad: annos){
-                    if(Controller.class.getName().equals(ad.annotationType().qualifiedName())){
+                    if(ControllerInfo.class.getName().equals(ad.annotationType().qualifiedName())){
                     	list.add(classDoc);
                     }
             	}

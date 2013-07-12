@@ -208,7 +208,7 @@ public class SchemaUtilsTest {
 		schema.setDescription(description);
 		schema.setSchema(effective);
 		schema.setName(name);
-		ObjectSchemaModel model = SchemaUtils.translateToModel(schema);
+		ObjectSchemaModel model = SchemaUtils.translateToModel(schema, null);
 		assertNotNull(model);
 		assertEquals(description, model.getDescription());
 		assertEquals(id, model.getId());
@@ -232,7 +232,7 @@ public class SchemaUtilsTest {
 		schema.getProperties().put("someString", new ObjectSchema(TYPE.STRING));
 		schema.getProperties().put("someBoolean", new ObjectSchema(TYPE.BOOLEAN));
 		
-		ObjectSchemaModel model = SchemaUtils.translateToModel(schema);
+		ObjectSchemaModel model = SchemaUtils.translateToModel(schema, null);
 		assertNotNull(model);
 		assertEquals(description, model.getDescription());
 		assertEquals(id, model.getId());

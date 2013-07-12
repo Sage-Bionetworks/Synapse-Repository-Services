@@ -9,6 +9,7 @@ import java.util.Map;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +31,9 @@ public class ControllerUtils {
 	public static String REQUEST_MAPPING_METHOD = RequestMapping.class.getName()+".method";
 	public static String REQUEST_PARAMETER_VALUE = RequestParam.class.getName()+".value";
 	public static String REQUEST_PARAMETER_REQUIRED = RequestParam.class.getName()+".required";
+	
+	public static String CONTROLLER_INFO_DISPLAY_NAME = ControllerInfo.class.getName()+".displayName";
+	public static String CONTROLLER_INFO_PATH = ControllerInfo.class.getName()+".path";
 	/**
 	 * Translate from a a controller class to a Controller model.
 	 * 
@@ -41,6 +45,11 @@ public class ControllerUtils {
 		// Setup the basic data
 		model.setName(classDoc.name());
 		model.setClassDescription(classDoc.getRawCommentText());
+		// Map the annotations of the class
+		Map<String, Object> annotationMap = mapAnnotation(classDoc.annotations());
+		// Get the display name and path if they exist
+		model.setDisplayName((String) annotationMap.get(CONTROLLER_INFO_DISPLAY_NAME));
+		model.setPath((String)annotationMap.get(CONTROLLER_INFO_PATH));
     	Iterator<MethodDoc> methodIt = FilterUtils.requestMappingIterator(classDoc.methods());
     	List<MethodModel> methods = new LinkedList<MethodModel>();
     	model.setMethods(methods);
@@ -51,7 +60,7 @@ public class ControllerUtils {
     	}
 		return model;
 	}
-	
+
 	public static MethodModel translateMethod(MethodDoc methodDoc){
 		MethodModel methodModel = new MethodModel();
 		//Process the method annotations.
@@ -179,6 +188,20 @@ public class ControllerUtils {
 		}
 	}
 	
+	/**
+	 * Put all annotation value key pairs into a map for easier lookup.
+	 * @param annotations
+	 * @return
+	 */
+	public static Map<String, Object> mapAnnotation(AnnotationDesc[] annotations) {
+		Map<String, Object> map = new HashMap<String, Object>();
+		if(annotations != null){
+			for(AnnotationDesc anno: annotations){
+				mapAnnotation(anno, map);
+			}
+		}
+		return map;
+	}
 
 	/**
 	 * Put all annotation value key pairs into a map for easier lookup.
@@ -187,6 +210,16 @@ public class ControllerUtils {
 	 */
 	public static Map<String, Object> mapAnnotation(AnnotationDesc ad){
 		 Map<String, Object> map = new HashMap<String, Object>();
+		 mapAnnotation(ad, map);
+		 return map;
+	}
+	
+	/**
+	 * Put all annotation value key pairs into a map for easier lookup.
+	 * @param ad
+	 * @param map
+	 */
+	public static void mapAnnotation(AnnotationDesc ad, Map<String, Object> map){
 		 ElementValuePair[] pairs = ad.elementValues();
 		 if(pairs != null){
 			 for(ElementValuePair evp: pairs){
@@ -195,9 +228,7 @@ public class ControllerUtils {
 				 map.put(name, value);
 			 }
 		 }
-		 return map;
 	}
-	
 	/**
 	 * Check for the required annotation.
 	 * @param map

@@ -10,7 +10,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.javadoc.JavaDocTestUtil;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
@@ -19,7 +18,6 @@ import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.RootDoc;
 
-@Ignore // not working on hudson
 public class ControllerUtilsTest {
 	
 	private static RootDoc rootDoc;
@@ -41,7 +39,6 @@ public class ControllerUtilsTest {
     		MethodDoc methodDoc = methodIt.next();
     		methodMap.put(methodDoc.name(), methodDoc);
     	}
-        
 	}
 	
 	@Test
@@ -50,6 +47,8 @@ public class ControllerUtilsTest {
 		assertNotNull(model);
 		System.out.println(model);
 		assertEquals("ExampleController", model.getName());
+		assertEquals("Example Service", model.getDisplayName());
+		assertEquals("example/v1", model.getPath());
 		assertNotNull(model.getClassDescription());
 		assertNotNull(model.getMethods());
 		assertTrue(model.getMethods().size() > 0);
