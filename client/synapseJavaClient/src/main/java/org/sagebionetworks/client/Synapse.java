@@ -4125,4 +4125,23 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
+
+	
+	public String retrieveApiKey() throws SynapseException {
+		try {
+			final String ATTRIBUTE_NAME = "secretKey";
+			String url = "/secretKey";
+			JSONObject jsonObj = signAndDispatchSynapseRequest(authEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			String apiKey = null;
+			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
+				apiKey = adapter.getString(ATTRIBUTE_NAME);
+			}
+			return apiKey;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	
 }
