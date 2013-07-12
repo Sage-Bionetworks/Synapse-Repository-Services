@@ -3,12 +3,13 @@ package org.sagebionetworks.javadoc.web.services;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.javadoc.JavadocMockUtils.*;
+import static org.sagebionetworks.javadoc.JavadocMockUtils.createMockClassDoc;
+import static org.sagebionetworks.javadoc.JavadocMockUtils.createMockMethodDoc;
 
 import java.util.Iterator;
 
 import org.junit.Test;
-import org.springframework.stereotype.Controller;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.sun.javadoc.ClassDoc;
@@ -26,9 +27,9 @@ public class FilterUtilsTest {
 	public void testControllerIterator(){
 		// Create 3 clases
 		ClassDoc[] testClassDocs = new ClassDoc[]{
-				createMockClassDoc("one", new String[]{Controller.class.getName()}),
+				createMockClassDoc("one", new String[]{ControllerInfo.class.getName()}),
 				createMockClassDoc("two", new String[]{"not.a.controller"}),
-				createMockClassDoc("three", new String[]{Controller.class.getName()}),
+				createMockClassDoc("three", new String[]{ControllerInfo.class.getName()}),
 		};
 		// Create our iterator
 		Iterator<ClassDoc> it = FilterUtils.controllerIterator(testClassDocs);

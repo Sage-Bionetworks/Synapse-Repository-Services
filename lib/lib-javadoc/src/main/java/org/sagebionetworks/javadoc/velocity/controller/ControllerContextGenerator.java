@@ -1,5 +1,7 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +42,7 @@ public class ControllerContextGenerator implements ClassContextGenerator {
                 	Context velocityContext = factory.createNewContext();
                 	// Add this to the controller's model
                 	velocityContext.put("method", method);
+                	velocityContext.put("controllerPath", model.getPath());
                 	ClassContext classContext = new ClassContext(method.getFullMethodName(), "methodHtmlTemplate.html", velocityContext);
                 	results.add(classContext);
         		}
@@ -47,6 +50,13 @@ public class ControllerContextGenerator implements ClassContextGenerator {
         } 
         // Create the context for all controllers.
         Context velocityContext = factory.createNewContext();
+        // Sort the controllers by DisplayName
+        Collections.sort(controllers.getControllers(), new Comparator<ControllerModel>() {
+			@Override
+			public int compare(ControllerModel o1, ControllerModel o2) {
+				return o1.getDisplayName().compareTo(o2.getDisplayName());
+			}
+		});
         velocityContext.put("controllers", controllers);
     	ClassContext classContext = new ClassContext("index", "controllersHtmlTemplate.html", velocityContext);
     	results.add(classContext);

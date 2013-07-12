@@ -56,7 +56,6 @@ public class SynapseVersionInfoController extends BaseController {
 			)
 	public 
 	@ResponseBody
-//	String getVersionInfo(HttpServletRequest req) throws IOException {
 	SynapseVersionInfo getVersionInfo(HttpServletRequest request) throws RuntimeException {
 		SynapseVersionInfo vInfo = new SynapseVersionInfo();
 		vInfo.setVersion(Holder.getVersionInfo());
