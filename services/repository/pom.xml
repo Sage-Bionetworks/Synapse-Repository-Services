@@ -227,6 +227,7 @@
 					</docletArtifact>
 					<additionalparam>-verbose</additionalparam>
 					<useStandardDocletOptions>false</useStandardDocletOptions>
+					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -234,6 +235,7 @@
 				<artifactId>exec-maven-plugin</artifactId>
 				<executions>
 					<execution>
+						<phase>deploy</phase>
 						<goals>
 							<goal>java</goal>
 						</goals>
@@ -242,7 +244,7 @@
 				<configuration>
 					<mainClass>org.sagebionetworks.repo.PublishToS3</mainClass>
 					<arguments>
-						<argument>${project.build.directory}/site/apidocs</argument>
+						<argument>${project.build.directory}/javadoc/restdocs</argument>
 					</arguments>
 				</configuration>
 			</plugin>
