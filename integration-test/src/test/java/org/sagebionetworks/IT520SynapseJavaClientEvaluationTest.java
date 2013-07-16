@@ -684,8 +684,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		submissionsToDelete.add(sub1.getId());
 
 		// get file URL
-		URL expected = synapseOne.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
-		URL actual = synapseOne.getFileTemporaryUrlForSubmissionFileHandle(sub1.getId(), fileHandle.getId());
+		String expected = synapseOne.getFileEntityTemporaryUrlForCurrentVersion(file.getId()).toString();
+		String actual = synapseOne.getFileTemporaryUrlForSubmissionFileHandle(sub1.getId(), fileHandle.getId()).toString();
+		
+		// trim time-sensitive params from URL (PLFM-2019)
+		String expires = "Expires";
+		expected = expected.substring(0, expected.indexOf(expires));
+		actual = actual.substring(0, actual.indexOf(expires));
+		
 		assertEquals("invalid URL returned", expected, actual);
 	}
 
