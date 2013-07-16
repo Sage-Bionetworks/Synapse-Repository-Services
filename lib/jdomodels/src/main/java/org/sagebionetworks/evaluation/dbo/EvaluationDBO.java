@@ -1,24 +1,9 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CREATED_ON;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_DESCRIPTION;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ETAG;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ID;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_CREATED_ON;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_DESCRIPTION;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ETAG;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_OWNER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_EVALUATION;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
 
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -49,26 +34,31 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_OWNER_ID, COL_EVALUATION_OWNER_ID),
 			new FieldColumn(PARAM_EVALUATION_CREATED_ON, COL_EVALUATION_CREATED_ON),
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
-			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS)
+			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
+			new FieldColumn(PARAM_EVALUATION_SERIALIZED_OBJECT, COL_EVALUATION_SERIALIZED_OBJECT)
 			};
 
 	public TableMapping<EvaluationDBO> getTableMapping() {
 		return new TableMapping<EvaluationDBO>() {
 			// Map a result set to this object
 			public EvaluationDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
-				EvaluationDBO comp = new EvaluationDBO();
-				comp.setId(rs.getLong(COL_EVALUATION_ID));
-				comp.seteTag(rs.getString(COL_EVALUATION_ETAG));
-				comp.setName(rs.getString(COL_EVALUATION_NAME));
-				java.sql.Blob blob = rs.getBlob(COL_EVALUATION_DESCRIPTION);
-				if(blob != null){
-					comp.setDescription(blob.getBytes(1, (int) blob.length()));
+				EvaluationDBO eval = new EvaluationDBO();
+				eval.setId(rs.getLong(COL_EVALUATION_ID));
+				eval.seteTag(rs.getString(COL_EVALUATION_ETAG));
+				eval.setName(rs.getString(COL_EVALUATION_NAME));
+				Blob desc = rs.getBlob(COL_EVALUATION_DESCRIPTION);
+				if(desc != null){
+					eval.setDescription(desc.getBytes(1, (int) desc.length()));
 				}
-				comp.setOwnerId(rs.getLong(COL_EVALUATION_OWNER_ID));
-				comp.setCreatedOn(rs.getLong(COL_EVALUATION_CREATED_ON));
-				comp.setContentSource(rs.getLong(COL_EVALUATION_CONTENT_SOURCE));
-				comp.setStatus(rs.getInt(COL_EVALUATION_STATUS));
-				return comp;
+				eval.setOwnerId(rs.getLong(COL_EVALUATION_OWNER_ID));
+				eval.setCreatedOn(rs.getLong(COL_EVALUATION_CREATED_ON));
+				eval.setContentSource(rs.getLong(COL_EVALUATION_CONTENT_SOURCE));
+				eval.setStatus(rs.getInt(COL_EVALUATION_STATUS));
+				Blob obj = rs.getBlob(COL_EVALUATION_SERIALIZED_OBJECT);
+				if (obj != null) {
+					eval.setSerializedObject(obj.getBytes(1, (int) obj.length()));
+				}
+				return eval;
 			}
 
 			public String getTableName() {
@@ -97,6 +87,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private Long createdOn;
 	private Long contentSource;
 	private int status;
+	private byte[] serializedObject;
 	
 	public Long getId() {
 		return id;
@@ -162,6 +153,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		setStatus(es.ordinal());
 	}
 
+	public byte[] getSerializedObject() {
+		return serializedObject;
+	}
+	public void setSerializedObject(byte[] serializedObject) {
+		this.serializedObject = serializedObject;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
