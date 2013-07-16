@@ -130,11 +130,15 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1.setDescription("description");
         eval1.setContentSource(project.getId());
         eval1.setStatus(EvaluationStatus.PLANNED);
+        eval1.setSubmissionInstructionsMessage("foo");
+        eval1.setSubmissionReceiptMessage("bar");
         eval2 = new Evaluation();
 		eval2.setName("name2");
 		eval2.setDescription("description");
         eval2.setContentSource(project.getId());
         eval2.setStatus(EvaluationStatus.PLANNED);
+        eval2.setSubmissionInstructionsMessage("baz");
+        eval2.setSubmissionReceiptMessage("mumble");
         
         // initialize Submissions
         sub1 = new Submission();
@@ -270,6 +274,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
+		fetched.setSubmissionInstructionsMessage("foobar2");
 		Evaluation updated = synapseOne.updateEvaluation(fetched);
 		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());

@@ -49,7 +49,7 @@ public class EvaluationDAOImplTest {
 	
 	private static final String EVALUATION_NAME = "test-evaluation";
 	private static final String EVALUATION_NAME_2 = "test-evaluation-2";
-    private static final Long EVALUATION_OWNER_ID = 0L;
+    private static final Long EVALUATION_OWNER_ID = 1L;
     private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.keyToString(KeyFactory.ROOT_ID);
     
     private static Evaluation newEvaluation(String id, String name, String contentSource, EvaluationStatus status) {
@@ -335,9 +335,9 @@ public class EvaluationDAOImplTest {
     	evalDTO.setOwnerId("456");
     	evalDTO.setStatus(EvaluationStatus.OPEN);
     	    	
-    	EvaluationDAOImpl.copyDtoToDbo(evalDTO, evalDBO);
-    	EvaluationDAOImpl.copyDboToDto(evalDBO, evalDTOclone);
-    	EvaluationDAOImpl.copyDtoToDbo(evalDTOclone, evalDBOclone);
+    	EvaluationDAOImpl.convertDtoToDbo(evalDTO, evalDBO);
+    	evalDTOclone = EvaluationDAOImpl.convertDboToDto(evalDBO);
+    	EvaluationDAOImpl.convertDtoToDbo(evalDTOclone, evalDBOclone);
     	
     	assertEquals(evalDTO, evalDTOclone);
     	assertEquals(evalDBO, evalDBOclone);
