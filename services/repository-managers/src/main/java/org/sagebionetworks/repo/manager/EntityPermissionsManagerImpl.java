@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -13,7 +11,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -63,7 +60,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
-		validateACLContent(acl, userInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		aclDAO.update(acl);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
@@ -81,7 +78,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
-		validateACLContent(acl, userInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		Node node = nodeDao.getNode(rId);
 		// Before we can update the ACL we must grab the lock on the node.
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
@@ -133,20 +130,21 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		Node node = nodeDao.getNode(parentId);
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 
-		applyInheritanceToChildrenHelper(parentId, userInfo);
+		String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
+		applyInheritanceToChildrenHelper(parentId, benefactorId, userInfo);
 
 		// return governing parent ACL
 		return aclDAO.get(nodeInheritanceManager.getBenefactor(parentId), ObjectType.ENTITY);
 	}
 	
-	private void applyInheritanceToChildrenHelper(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, ConflictingUpdateException {
+	private void applyInheritanceToChildrenHelper(final String parentId, final String benefactorId, UserInfo userInfo)
+			throws NotFoundException, DatastoreException, ConflictingUpdateException {
 		// Get all of the child nodes, sorted by id (to prevent deadlock)
 		List<String> children = nodeDao.getChildrenIdsAsList(parentId);
-		
 		// Update each node
 		for(String idToChange: children) {
-			String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
-			
+			// recursively apply to children
+			applyInheritanceToChildrenHelper(idToChange, benefactorId, userInfo);
 			// must be authorized to modify permissions
 			if (authorizationManager.canAccess(userInfo, idToChange, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
 				// delete child ACL, if present
@@ -161,9 +159,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 				}								
 				// set benefactor ACL
 				nodeInheritanceManager.addBeneficiary(idToChange, benefactorId);
-				
-				// recursively apply to children
-				applyInheritanceToChildrenHelper(idToChange, userInfo);
 			}
 		}
 	}
@@ -215,35 +210,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
 		} catch (Exception e) {
 			return false;
-		}
-	}
-
-	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Long ownerId) throws InvalidModelException {
-		if (acl.getId()==null) 
-			throw new InvalidModelException("Resource ID is null");
-		if(acl.getResourceAccess() == null) 
-			acl.setResourceAccess(new HashSet<ResourceAccess>());
-		if(acl.getCreationDate() == null) 
-			acl.setCreationDate(new Date(System.currentTimeMillis()));
-		
-		// Verify that the caller maintains permissions access
-		String callerPrincipalId = userInfo.getIndividualGroup().getId();
-		boolean callerIsOwner = callerPrincipalId.equals(ownerId.toString());
-		boolean foundCallerInAcl = false;
-		for (ResourceAccess ra : acl.getResourceAccess()) {
-			if (ra==null) throw new InvalidModelException("ACL row is null.");
-			if (ra.getPrincipalId()==null) throw new InvalidModelException("Group ID is null");
-			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
-			if (ra.getPrincipalId().toString().equals(callerPrincipalId)) { 
-				if (ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS)) {
-					// Found caller in the ACL, with access to change permissions
-					foundCallerInAcl = true;
-				}
-			}
-		}
-		
-		if (!foundCallerInAcl && !userInfo.isAdmin() && !callerIsOwner) {
-			throw new InvalidModelException("Caller is trying to revoke their own ACL editing permissions.");
 		}
 	}
 }

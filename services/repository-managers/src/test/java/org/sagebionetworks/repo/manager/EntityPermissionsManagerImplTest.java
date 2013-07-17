@@ -159,7 +159,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should not throw any exceptions
-		EntityPermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 	}
 	
 	@Test(expected = InvalidModelException.class)
@@ -170,7 +170,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should fail, since user is not included with proper permissions in ACL
-		EntityPermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 	}
 
 	
@@ -182,7 +182,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should not throw any exceptions
-		EntityPermissionsManagerImpl.validateACLContent(acl, adminInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, adminInfo, ownerId);
 	}
 	
 	@Test
@@ -193,7 +193,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should not throw any exceptions
-		EntityPermissionsManagerImpl.validateACLContent(acl, ownerInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, ownerInfo, ownerId);
 	}
 	
 	@Test(expected = InvalidModelException.class)
@@ -214,7 +214,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should fail since user does not have permission editing rights in ACL
-		EntityPermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 	}
 
 
