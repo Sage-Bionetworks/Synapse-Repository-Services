@@ -48,6 +48,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Provides access to all services related to Synapse Evaluations. Evaluations are designed to
+ * support open, collaborative data analysis challenges in Synapse.
+ * 
+ * @author bkng
+ */
 @ControllerInfo(displayName="Evaluation Services", path="repo/v1")
 @Controller
 public class EvaluationController extends BaseController {
@@ -55,6 +61,18 @@ public class EvaluationController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
 
+	/**
+	 * Create a new Evaluation.
+	 * 
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -69,6 +87,16 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().createEvaluation(userId, eval);
 	}
 	
+	/**
+	 * Get an Evaluation.
+	 * 
+	 * @param evalId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -81,6 +109,16 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getEvaluation(userId, evalId);
 	}
 	
+	/**
+	 * Get a collection of Evaluations, within a given range.
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -94,6 +132,18 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, limit, offset, request);
 	}
 	
+	/**
+	 * Get a collection of Evaluations in which the user may participate, within a given range.
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @param userId
+	 * @param statusString
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -110,11 +160,16 @@ public class EvaluationController extends BaseController {
 			status = EvaluationStatus.valueOf(statusString.toUpperCase().trim());
 		}
 		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, status, limit, offset, request);
-	}
+	}	
 	
-
-	
-	
+	/**
+	 * Get the total number of Evaluations in Synapse.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -125,6 +180,17 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getEvaluationCount(userId);
 	}
 	
+	/**
+	 * Find an Evaluation by name.
+	 * 
+	 * @param name
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws UnsupportedEncodingException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_NAME, method = RequestMethod.GET)
 	public @ResponseBody
@@ -138,6 +204,21 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().findEvaluation(userId, decodedName);
 	}
 	
+	/**
+	 * Update an Evaluation.
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -154,6 +235,17 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().updateEvaluation(userId, eval);
 	}
 	
+	/**
+	 * Delete an Evaluation.
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.DELETE)
 	public @ResponseBody
@@ -166,6 +258,18 @@ public class EvaluationController extends BaseController {
 		serviceProvider.getEvaluationService().deleteEvaluation(userId, evalId);
 	}
 	
+	/**
+	 * Join as a Participant in a specified Evaluation.
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -178,7 +282,18 @@ public class EvaluationController extends BaseController {
 	{
 		return serviceProvider.getEvaluationService().addParticipant(userId, evalId);
 	}
-
+	
+	/**
+	 * Get a Participant.
+	 * 
+	 * @param evalId
+	 * @param partId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -192,6 +307,18 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getParticipant(userId, partId, evalId);
 	}
 	
+	/**
+	 * Delete a Participant. Requires admin rights on the Evaluation.
+	 * 
+	 * @param evalId
+	 * @param partId
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.DELETE)
 	public @ResponseBody
@@ -206,6 +333,18 @@ public class EvaluationController extends BaseController {
 		serviceProvider.getEvaluationService().removeParticipant(userId, evalId, partId);
 	}
 	
+	/**
+	 * Get all Participants for a specified Evaluation.
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @param evalId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -220,6 +359,15 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getAllParticipants(userId, evalId, limit, offset, request);
 	}
 	
+	/**
+	 * Get the number of Participants in a specified Evaluation.
+	 * 
+	 * @param evalId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -232,6 +380,22 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getParticipantCount(userId, evalId);
 	}
 	
+	/**
+	 * Create a Submission.
+	 * 
+	 * @param userId
+	 * @param entityEtag - the current eTag of the Entity being submitted
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -247,6 +411,17 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, request);
 	}
 	
+	/**
+	 * Get a Submission.
+	 * 
+	 * @param subId
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -259,6 +434,17 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getSubmission(userId, subId);
 	}
 	
+	/**
+	 * Get the SubmissionStatus object associated with a specified Submission. This object includes
+	 * scoring information.
+	 * 
+	 * @param subId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS, method = RequestMethod.GET)
 	public @ResponseBody
@@ -271,6 +457,21 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getSubmissionStatus(userId, subId);
 	}
 	
+	/**
+	 * Update a SubmissionStatus object.
+	 *  
+	 * @param subId
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -289,6 +490,19 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().updateSubmissionStatus(userId, status);
 	}
 	
+	/**	
+	 * Delete a Submission. Requires admin rights on the Evaluation.
+	 * 
+	 * Use of this service is discouraged, since Submissions should be immutable.
+	 * 
+	 * @param subId
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_ID, method = RequestMethod.DELETE)
@@ -302,6 +516,21 @@ public class EvaluationController extends BaseController {
 		serviceProvider.getEvaluationService().deleteSubmission(userId, subId);
 	}
 	
+	/**
+	 * Get a collection of Submissions to a given Evaluation. Requires admin rights on the
+	 * Evaluation.
+	 * 
+	 * @param evalId
+	 * @param offset
+	 * @param limit
+	 * @param userId
+	 * @param statusString
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN, method = RequestMethod.GET)
 	public @ResponseBody
@@ -321,6 +550,20 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getAllSubmissions(userId, evalId, status, limit, offset, request);
 	}
 	
+	/**
+	 * Get a collection of SubmissionStatuses to a given Evaluation. Requires admin rights on the
+	 * Evaluation.
+	 * 
+	 * @param evalId
+	 * @param offset
+	 * @param limit
+	 * @param statusString
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -340,6 +583,21 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(userId, evalId, status, limit, offset, request);
 	}
 	
+	/**
+	 * Get a collection of bundled Submissions and SubmissionStatuses to a given Evaluation. 
+	 * Requires admin rights on the Evaluation.
+	 * 
+	 * @param evalId
+	 * @param offset
+	 * @param limit
+	 * @param userId
+	 * @param statusString
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -359,6 +617,19 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getAllSubmissionBundles(userId, evalId, status, limit, offset, request);
 	}
 	
+	/**
+	 * Get the requesting user's Submissions to a specified Evaluation.
+	 * 
+	 * @param evalId
+	 * @param offset
+	 * @param limit
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -373,6 +644,20 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().getAllSubmissionsByEvaluationAndUser(evalId, userId, limit, offset, request);
 	}
 	
+	/**
+	 * Get the requesting user's bundled Submissions and SubmissionStatuses to a specified
+	 * Evaluation.
+	 * 
+	 * @param evalId
+	 * @param offset
+	 * @param limit
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -413,6 +698,15 @@ public class EvaluationController extends BaseController {
 		RedirectUtils.handleRedirect(redirect, url, response);
 	}
 	
+	/**
+	 * Get the number of Submissions to a specified Evaluation.
+	 * 
+	 * @param evalId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -447,7 +741,25 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * Updates the given ACL.
+=======
+	 * Create a new ACL.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
+	public @ResponseBody AccessControlList
+	createAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestBody AccessControlList acl,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException {
+		return serviceProvider.getEvaluationService().createAcl(userId, acl);
+	}
+
+	/**
+	 * Update the given ACL.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
@@ -462,7 +774,21 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Gets the access control list (ACL) governing the given evaluation.
+	 * Delete the ACL of the specified evaluation.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
+	public void deleteAcl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String evalId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ConflictingUpdateException {
+		serviceProvider.getEvaluationService().deleteAcl(userId, evalId);
+	}
+
+	/**
+	 * Get the access control list (ACL) governing the given evaluation.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.GET)
