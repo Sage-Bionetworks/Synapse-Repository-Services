@@ -188,11 +188,11 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		// Bind the type
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
 		// Bind the node id
-		parameters.put(AuthorizationSqlUtil.NODE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
+		parameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
 		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
 		try{
-			Long count = simpleJdbcTemplate.queryForLong(sql, parameters);
-			return count.longValue() > 0;
+			long count = simpleJdbcTemplate.queryForLong(sql, parameters);
+			return count > 0;
 		}catch (DataAccessException e){
 			throw new DatastoreException(e);
 		}
