@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -19,7 +18,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -56,17 +54,17 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
-	NodeQueryDao nodeQueryDao;	
+	private NodeQueryDao nodeQueryDao;	
 	@Autowired
-	NodeDAO nodeDAO;
+	private NodeDAO nodeDAO;
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 
 	public AuthorizationManagerImpl() {}
 	
@@ -130,7 +128,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
-	
+
 	@Override
 	public boolean canAccess(UserInfo userInfo, final String nodeId, ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException {
@@ -151,17 +149,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
-		// if is an administrator, return true
-		if (userInfo.isAdmin()) return true;
-		// if anonymous, cannot do it
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) return false;
-		// must look-up access
 		String parentId = node.getParentId();
-		if (parentId==null) return false; // if not an admin, can't do it!
-		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(parentId);
-		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE);
+		if (parentId==null && !userInfo.isAdmin()) return false; // if not an admin, can't do it!
+		return canAccess(userInfo, parentId, ACCESS_TYPE.CREATE);
 	}
-	
+
 	/**
 	 * @param n the number of items in the group-id list
 	 * 
@@ -182,7 +174,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// must look-up access (at least to determine if the anonymous user can view)
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		permission.setCanPublicRead(this.accessControlListDAO.canAccess(anonymousUser.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
+		permission.setCanPublicRead(canAccess(anonymousUser, permissionsBenefactor, ACCESS_TYPE.READ));
 		// Admin gets all
 		if (userInfo.isAdmin()) {
 			permission.setCanAddChild(true);
@@ -194,7 +186,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanEnableInheritance(!parentIsRoot);
 			return permission;
 		}
-		permission.setCanView(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
+		permission.setCanView(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.READ));
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
 			permission.setCanAddChild(false);
 			permission.setCanChangePermissions(false);
@@ -204,10 +196,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanEnableInheritance(false);
 		} else {
 			// Child can be added if this entity is not null
-			permission.setCanAddChild(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE));
-			permission.setCanChangePermissions(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
-			permission.setCanDelete(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.DELETE));
-			permission.setCanEdit(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.UPDATE));
+			permission.setCanAddChild(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.CREATE));
+			permission.setCanChangePermissions(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
+			permission.setCanDelete(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.DELETE));
+			permission.setCanEdit(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.UPDATE));
 			permission.setCanDownload(this.canDownload(userInfo, entityId));
 			permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
 		}
