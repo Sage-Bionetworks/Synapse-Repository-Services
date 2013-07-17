@@ -17,6 +17,7 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_CREATED_ON 		= "CREATED_ON";
 	public static final String COL_EVALUATION_CONTENT_SOURCE 	= "CONTENT_SOURCE";
 	public static final String COL_EVALUATION_STATUS 			= "STATUS";
+	public static final String COL_EVALUATION_SERIALIZED_OBJECT	= "SERIALIZED_OBJECT";
 	
 	// Participant table constants
 	public static final String DDL_FILE_PARTICIPANT				= "schema/evaluation/Participant-ddl.sql";

@@ -13,13 +13,11 @@
 		},
 		"name": {
 			"type": "string",
-			"description": "The name of this Evaluation",
-			"title": "Name"
+			"description": "The name of this Evaluation"
 		},
 		"description": {
 			"description": "The description of this Evaluation.",
-			"type": "string",
-			"title": "Description"
+			"type": "string"
 		},
 		"ownerId": {
 			"type": "string",
@@ -30,20 +28,25 @@
 			"type": "string",
 			"format": "date-time",
 			"description": "The date on which Evaluation was created.",
-			"title": "Created On",
 			"transient": true
 		},
 		"contentSource": {
 			"type": "string",
 			"description": "The content source upon which this Evaluation is run, e.g. a reference to a Synapse project.",
-			"title": "Content Source",
 			"transient": true
 		},
 		"status": {
 			"type": "object",
 			"description": "The current status of this Evaluation.",
-			"name": "Status",
 			"$ref": "org.sagebionetworks.evaluation.model.EvaluationStatus"
+		},
+		"submissionInstructionsMessage": {
+			"type": "string",
+			"description": "Message to display to users detailing acceptable formatting for Submissions to this Evaluation."
+		},
+		"submissionReceiptMessage": {
+			"type": "string",
+			"description": "Message to display to users upon successful submission to this Evaluation."
 		}
 	}
 }
