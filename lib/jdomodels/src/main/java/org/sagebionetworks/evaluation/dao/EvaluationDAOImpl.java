@@ -263,7 +263,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 * @return 
 	 * @throws DatastoreException
 	 */
-	protected static Evaluation convertDboToDto(EvaluationDBO dbo) throws DatastoreException {
+	public static Evaluation convertDboToDto(EvaluationDBO dbo) throws DatastoreException {
 		// serialized entity is regarded as the "true" representation of the object
 		Evaluation dto = copyFromSerializedField(dbo);
 		
@@ -274,7 +274,14 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		return dto;
 	}
 	
-	protected static void copyToSerializedField(Evaluation dto, EvaluationDBO dbo) throws DatastoreException {
+	/**
+	 * Serialize the DTO and insert it into the DBO.
+	 * 
+	 * @param dto
+	 * @param dbo
+	 * @throws DatastoreException
+	 */
+	public static void copyToSerializedField(Evaluation dto, EvaluationDBO dbo) throws DatastoreException {
 		try {
 			dbo.setSerializedObject(JDOSecondaryPropertyUtils.compressObject(dto));
 		} catch (IOException e) {
@@ -282,7 +289,14 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 	}
 	
-	protected static Evaluation copyFromSerializedField(EvaluationDBO dbo) throws DatastoreException {
+	/**
+	 * Deserialize the DTO from the DBO.
+	 * 
+	 * @param dbo
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public static Evaluation copyFromSerializedField(EvaluationDBO dbo) throws DatastoreException {
 		try {
 			return (Evaluation) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());
 		} catch (IOException e) {

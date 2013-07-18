@@ -59,10 +59,31 @@ public class EvaluationTranslationUtilTest {
 		backup.setName("name");
 		backup.setOwnerId(999l);
 		backup.setStatus(EvaluationStatus.COMPLETED.ordinal());
+		backup.setSerializedObject("foo".getBytes("UTF-8"));
 		// Create the dbo
 		EvaluationDBO dbo = EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
 		assertNotNull(dbo);
 		EvaluationBackup clone = EvaluationTranslationUtil.createBackupFromDatabaseObject(dbo);
+		assertEquals(backup, clone);
+	}
+	
+	@Test
+	public void testRoundTripMissingSerialized() throws UnsupportedEncodingException{
+		EvaluationBackup backup = new EvaluationBackup();
+		backup.setContentSource("syn123");
+		backup.setCreatedOn(System.currentTimeMillis());
+		backup.setDescription("description".getBytes("UTF-8"));
+		backup.seteTag("tag");
+		backup.setId(456l);
+		backup.setName("name");
+		backup.setOwnerId(999l);
+		backup.setStatus(EvaluationStatus.COMPLETED.ordinal());
+		// Create the dbo
+		EvaluationDBO dbo = EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
+		assertNotNull(dbo);
+		EvaluationBackup clone = EvaluationTranslationUtil.createBackupFromDatabaseObject(dbo);
+		assertNotNull(clone.getSerializedObject());
+		backup.setSerializedObject(clone.getSerializedObject());
 		assertEquals(backup, clone);
 	}
 }
