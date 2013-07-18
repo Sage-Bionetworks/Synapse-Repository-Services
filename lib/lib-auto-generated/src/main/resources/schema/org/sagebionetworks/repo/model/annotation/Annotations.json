@@ -32,15 +32,6 @@
 				"type": "object",
 				"$ref": "org.sagebionetworks.repo.model.annotation.DoubleAnnotation"
 			}
-		},
-		"dateAnnos": {
-			"type": "array",
-			"description": "A list of DateAnnotations",
-			"uniqueItems": false,
-			"items": {
-				"type": "object",
-				"$ref": "org.sagebionetworks.repo.model.annotation.DateAnnotation"
-			}
 		}
 	}
 }
