@@ -8,7 +8,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.annotation.Annotations;
-import org.sagebionetworks.repo.model.annotation.DateAnnotation;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;

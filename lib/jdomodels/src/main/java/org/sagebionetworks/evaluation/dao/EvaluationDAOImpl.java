@@ -258,8 +258,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setContentSource(KeyFactory.stringToKey(dto.getContentSource()));
 		dbo.setStatusEnum(dto.getStatus());
-		dbo.setSubmissionInstructionsMessage(dto.getSubmissionInstructionsMessage().getBytes());
-		dbo.setSubmissionReceiptMessage(dto.getSubmissionReceiptMessage().getBytes());
+		if (dto.getSubmissionInstructionsMessage() != null) {
+			dbo.setSubmissionInstructionsMessage(dto.getSubmissionInstructionsMessage().getBytes());
+		}
+		if (dto.getSubmissionReceiptMessage() != null) {
+			dbo.setSubmissionReceiptMessage(dto.getSubmissionReceiptMessage().getBytes());
+		}
 	}
 	
 	/**
