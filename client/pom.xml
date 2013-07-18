@@ -17,6 +17,7 @@
 
     <module>synapseJavaClient</module>
     <module>commandLineInterface</module>
+    <module>fileUploadClient</module>
   </modules>
 
 </project>
