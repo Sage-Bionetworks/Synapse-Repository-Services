@@ -11,7 +11,8 @@ public class EvaluationBackup {
 	private Long createdOn;
 	private String contentSource;
 	private int status;
-	private byte[] serializedObject;
+	private byte[] submissionInstructions;
+	private byte[] submissionReceiptMessage;
 	
 	public Long getId() {
 		return id;
@@ -61,11 +62,17 @@ public class EvaluationBackup {
 	public void setStatus(int status) {
 		this.status = status;
 	}
-	public byte[] getSerializedObject() {
-		return serializedObject;
+	public byte[] getSubmissionInstructions() {
+		return submissionInstructions;
 	}
-	public void setSerializedObject(byte[] serializedObject) {
-		this.serializedObject = serializedObject;
+	public void setSubmissionInstructions(byte[] submissionInstructions) {
+		this.submissionInstructions = submissionInstructions;
+	}
+	public byte[] getSubmissionReceiptMessage() {
+		return submissionReceiptMessage;
+	}
+	public void setSubmissionReceiptMessage(byte[] submissionReceiptMessage) {
+		this.submissionReceiptMessage = submissionReceiptMessage;
 	}
 	@Override
 	public int hashCode() {
@@ -80,8 +87,9 @@ public class EvaluationBackup {
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
-		result = prime * result + Arrays.hashCode(serializedObject);
 		result = prime * result + status;
+		result = prime * result + Arrays.hashCode(submissionInstructions);
+		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
 	}
 	@Override
@@ -125,9 +133,13 @@ public class EvaluationBackup {
 				return false;
 		} else if (!ownerId.equals(other.ownerId))
 			return false;
-		if (!Arrays.equals(serializedObject, other.serializedObject))
-			return false;
 		if (status != other.status)
+			return false;
+		if (!Arrays
+				.equals(submissionInstructions, other.submissionInstructions))
+			return false;
+		if (!Arrays.equals(submissionReceiptMessage,
+				other.submissionReceiptMessage))
 			return false;
 		return true;
 	}
@@ -137,8 +149,10 @@ public class EvaluationBackup {
 				+ name + ", description=" + Arrays.toString(description)
 				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
 				+ ", contentSource=" + contentSource + ", status=" + status
-				+ ", serializedObject=" + Arrays.toString(serializedObject)
-				+ "]";
+				+ ", submissionInstructions="
+				+ Arrays.toString(submissionInstructions)
+				+ ", submissionReceiptMessage="
+				+ Arrays.toString(submissionReceiptMessage) + "]";
 	}
 	
 }

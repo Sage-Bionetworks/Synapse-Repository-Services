@@ -130,13 +130,7 @@ public class TestUtils {
 	 * 
 	 * @return
 	 */
-	public static Annotations createDummyAnnotations() {		
-		List<DateAnnotation> dateAnnos = new ArrayList<DateAnnotation>();
-		DateAnnotation da = new DateAnnotation();
-		da.setIsPrivate(true);
-		da.setKey("da");
-		da.setValue(new Date());
-		dateAnnos.add(da);
+	public static Annotations createDummyAnnotations() {
 		
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
@@ -160,7 +154,6 @@ public class TestUtils {
 		doubleAnnos.add(doa);
 		
 		Annotations annos = new Annotations();
-		annos.setDateAnnos(dateAnnos);
 		annos.setStringAnnos(stringAnnos);
 		annos.setLongAnnos(longAnnos);
 		annos.setDoubleAnnos(doubleAnnos);

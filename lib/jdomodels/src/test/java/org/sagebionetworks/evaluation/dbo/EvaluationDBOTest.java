@@ -48,7 +48,8 @@ public class EvaluationDBOTest {
         eval.setContentSource(contentSource);
         eval.setStatusEnum(EvaluationStatus.PLANNED);
         eval.setDescription("my description".getBytes());
-        eval.setSerializedObject("foo".getBytes());
+        eval.setSubmissionInstructionsMessage("foo".getBytes());
+        eval.setSubmissionReceiptMessage("bar".getBytes());
  
         // Create it
         EvaluationDBO clone = dboBasicDao.createNew(eval);
@@ -65,6 +66,7 @@ public class EvaluationDBOTest {
         
 		// Update it
 		clone.setDescription("This is a new description".getBytes("UTF-8"));
+		clone.setSubmissionInstructionsMessage("baz".getBytes());
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		
