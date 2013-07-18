@@ -98,7 +98,7 @@ public class QueryUtils {
 		builder.append(") ");
 		builder.append(SqlConstants.AUTH_FILTER_ALIAS);
 		buildJoinOn(builder, SqlConstants.NODE_ALIAS,
-				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.COL_ACL_OWNER_ID_COLUMN);
+				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.COL_ACL_ID);
 		return builder.toString();
 	}
 
