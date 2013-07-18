@@ -3,10 +3,6 @@ package org.sagebionetworks.evaluation.dbo;
 import static org.sagebionetworks.repo.model.jdo.KeyFactory.ROOT_ID;
 import static org.sagebionetworks.repo.model.jdo.KeyFactory.SYNAPSE_ID_PREFIX;
 
-import java.util.Date;
-
-import org.sagebionetworks.evaluation.dao.EvaluationDAOImpl;
-import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
@@ -28,30 +24,9 @@ public class EvaluationTranslationUtil {
 		dbo.setName(backup.getName());
 		dbo.setOwnerId(backup.getOwnerId());
 		dbo.setStatusEnum(EvaluationStatus.values()[backup.getStatus()]);
-		
-		byte[] serializedObject = backup.getSerializedObject();
-		if (serializedObject != null) {
-			dbo.setSerializedObject(serializedObject);
-		} else {
-			// no serialized object from source; create it now (PLFM-2043)
-			Evaluation dto = convertDboToDtoIgnoreSerialized(dbo);
-			EvaluationDAOImpl.copyToSerializedField(dto, dbo);
-		}
+		dbo.setSubmissionInstructionsMessage(backup.getSubmissionInstructions());
+		dbo.setSubmissionReceiptMessage(backup.getSubmissionReceiptMessage());
 		return dbo;
-	}
-
-	// create DTO from first-class columns of the DBO
-	private static Evaluation convertDboToDtoIgnoreSerialized(EvaluationDBO dbo) {
-		Evaluation dto = new Evaluation();
-		dto.setContentSource(dbo.getContentSource().toString());
-		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setDescription(new String(dbo.getDescription()));
-		dto.setEtag(dbo.geteTag());
-		dto.setId(dbo.getIdString());
-		dto.setName(dbo.getName());
-		dto.setOwnerId(dbo.getOwnerId().toString());
-		dto.setStatus(dbo.getStatusEnum());
-		return dto;
 	}
 
 	public static EvaluationBackup createBackupFromDatabaseObject(EvaluationDBO dbo) {
@@ -64,7 +39,8 @@ public class EvaluationTranslationUtil {
 		backup.setName(dbo.getName());
 		backup.setOwnerId(dbo.getOwnerId());
 		backup.setStatus(dbo.getStatus());
-		backup.setSerializedObject(dbo.getSerializedObject());
+		backup.setSubmissionInstructions(dbo.getSubmissionInstructionsMessage());
+		backup.setSubmissionReceiptMessage(dbo.getSubmissionReceiptMessage());
 		return backup;
 	}
 	
