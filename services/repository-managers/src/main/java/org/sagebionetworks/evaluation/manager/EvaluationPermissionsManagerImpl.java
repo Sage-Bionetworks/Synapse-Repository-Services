@@ -204,6 +204,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	 */
 	private boolean canAccess(final UserInfo userInfo, final String evalId,
 			final ACCESS_TYPE accessType) throws NotFoundException {
+		Boolean canAccess = canAccess(userInfo, accessType);
+		if (canAccess != null) {
+			return canAccess.booleanValue();
+		}
 		Evaluation eval = getEvaluation(evalId);
 		return canAccess(userInfo, eval, accessType);
 	}
@@ -212,14 +216,9 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	 * Whether the user can access the specified evaluation.
 	 */
 	private boolean canAccess(final UserInfo userInfo, final Evaluation eval, final ACCESS_TYPE accessType) {
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
-			// A shortcut. Anonymous user at most has read access.
-			if (READ != accessType) {
-				return false;
-			}
-		}
-		if (userInfo.isAdmin()) {
-			return true;
+		Boolean canAccess = canAccess(userInfo, accessType);
+		if (canAccess != null) {
+			return canAccess.booleanValue();
 		}
 		if (isEvalOwner(userInfo, eval)) {
 			if (!ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
@@ -227,6 +226,20 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			}
 		}
 		return aclDAO.canAccess(userInfo.getGroups(), eval.getId(), accessType);
+	}
+
+	// Shortcuts that do not involve database calls
+	private Boolean canAccess(final UserInfo userInfo, final ACCESS_TYPE accessType) {
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+			// A shortcut. Anonymous user at most has read access.
+			if (READ != accessType) {
+				return Boolean.FALSE;
+			}
+		}
+		if (userInfo.isAdmin()) {
+			return Boolean.TRUE;
+		}
+		return null;
 	}
 
 	private Evaluation getEvaluation(final String evalId) throws NotFoundException {

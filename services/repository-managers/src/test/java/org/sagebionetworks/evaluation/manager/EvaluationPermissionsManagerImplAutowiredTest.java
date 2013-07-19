@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -195,8 +194,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
-	public void testCreateWithExceptions() throws Exception {
-
+	public void testCreateWithExceptionsNullEvalId() throws Exception {
 		// Null eval ID
 		try {
 			AccessControlList acl = new AccessControlList();
@@ -205,7 +203,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(true);
 		}
+	}
 
+	@Test
+	public void testCreateWithExceptionsNullEvalNotFound() throws Exception {
 		// Eval not found
 		try {
 			AccessControlList acl = new AccessControlList();
@@ -216,7 +217,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		} catch (NotFoundException e) {
 			assertTrue(true);
 		}
+	}
 
+	@Test
+	public void testCreateWithExceptionsNotAuthorized() throws Exception {
 		// Not authorized
 		try {
 			String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCreateWithExceptions";
@@ -233,8 +237,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
-	public void testUpdateWithExceptions() throws Exception {
-
+	public void testUpdateWithExceptionsEvalNotFound() throws Exception {
 		// Eval not found
 		try {
 			AccessControlList acl = new AccessControlList();
@@ -245,6 +248,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		} catch (NotFoundException e) {
 			assertTrue(true);
 		}
+	}
+
+	@Test
+	public void testUpdateWithExceptions() throws Exception {
 
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testUpdateWithExceptions";
 		String nodeId = createNode(nodeName, EntityType.project, adminUser);
