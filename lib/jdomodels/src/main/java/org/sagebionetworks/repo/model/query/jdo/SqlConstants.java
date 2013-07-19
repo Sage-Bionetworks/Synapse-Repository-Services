@@ -195,7 +195,6 @@ public class SqlConstants {
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID                 = "ID";
 	public static final String COL_ACL_ETAG               = "ETAG";
-	public static final String COL_ACL_OWNER_ID_COLUMN    = "OWNER_ID_COLUMN";
 	public static final String COL_ACL_CREATED_ON         = "CREATED_ON";
 	public static final String DDL_FILE_ACL               = "schema/ACL-ddl.sql";
 	

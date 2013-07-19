@@ -31,7 +31,6 @@ public class AccessControlListUtils {
 		DBOAccessControlList dbo = new DBOAccessControlList();
 		dbo.setId(KeyFactory.stringToKey(acl.getId()));
 		dbo.setEtag(acl.getEtag());
-		dbo.setResource(dbo.getId());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
 		return dbo;
 	}

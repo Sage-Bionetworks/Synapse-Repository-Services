@@ -1,13 +1,14 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,7 +24,6 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -32,9 +32,9 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class EvaluationManagerTest {
 		
@@ -42,8 +42,8 @@ public class EvaluationManagerTest {
 	private static Evaluation eval;
 	private static Evaluation evalWithId;
 	private static List<Evaluation> evaluations;
-	
-	private static AuthorizationManager mockAuthorizationManager;
+
+	private static EvaluationPermissionsManager mockPermissionsManager;
 	private static IdGenerator mockIdGenerator;
 	private static EvaluationDAO mockEvaluationDAO;
 	
@@ -63,11 +63,11 @@ public class EvaluationManagerTest {
     	mockIdGenerator = mock(IdGenerator.class);
     	
     	// Evaluation DAO
-    	mockEvaluationDAO = mock(EvaluationDAO.class);    
-    	
-    	// Authorization Manager
-    	mockAuthorizationManager = mock(AuthorizationManager.class);
-    	
+    	mockEvaluationDAO = mock(EvaluationDAO.class);
+
+    	// Permissions manager
+    	mockPermissionsManager = mock(EvaluationPermissionsManager.class);
+
     	// UserInfo
     	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID.toString());
@@ -92,10 +92,13 @@ public class EvaluationManagerTest {
 		evalWithId.setContentSource(EVALUATION_CONTENT_SOURCE);
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);
-        
+
         // Evaluation Manager
-    	evaluationManager = new EvaluationManagerImpl(mockAuthorizationManager, mockEvaluationDAO, mockIdGenerator);
-    	
+    	evaluationManager = new EvaluationManagerImpl();
+    	ReflectionTestUtils.setField(evaluationManager, "evaluationDAO", mockEvaluationDAO);
+    	ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
+    	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
+
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
@@ -105,9 +108,9 @@ public class EvaluationManagerTest {
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
     	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), (EvaluationStatus)any(), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
-       	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-            }
-	
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    }
+
 	@Test
 	public void testCreateEvaluation() throws Exception {		
 		Evaluation clone = evaluationManager.createEvaluation(ownerInfo, eval);
