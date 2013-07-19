@@ -14,6 +14,21 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface AuthorizationManager {
 	
 	/**
+	 * Check user access to an object
+	 * 
+	 * @param userInfo
+	 * @param objectId
+	 * @param objectType
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Check user access to a Node (default type)
+	 * 
 	 * @param userInfo
 	 * @param nodeId
 	 * @param accessType
@@ -26,19 +41,8 @@ public interface AuthorizationManager {
 	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 	throws NotFoundException, DatastoreException;
 	
 	/**
-	 * Can a user access an Object?
-	 * @param userInfo
-	 * @param objectId
-	 * @param objectType
-	 * @param accessType
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
-
-	/**
-    *
+     * Checks whether the given user can create the given node.
+     *
 	 * @param nodeId
 	 * @param accessType
 	 * 

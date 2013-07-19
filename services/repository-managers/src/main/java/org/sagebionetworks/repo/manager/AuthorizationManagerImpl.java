@@ -96,14 +96,72 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		this.userGroupDAO = userGroupDAO;
 	}
 
-	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
-		User user = userInfo.getUser();
-		if (user==null) return false;
-		// can't agree if you are anonymous
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(user.getUserId())) return false;
-		return user.isAgreesToTermsOfUse();
+	@Override
+	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
+			throws DatastoreException, NotFoundException {
+		// admins can do anything
+		if (userInfo.isAdmin()) {
+			return true;
+		}		
+		// anonymous can at most READ
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+			if (accessType != ACCESS_TYPE.READ) return false;
+		}
+		
+		switch (objectType) {
+			case ENTITY:				
+				if (accessType == ACCESS_TYPE.DOWNLOAD) {
+					return canDownload(userInfo, objectId);
+				}
+				// refer to ACL
+				String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(objectId);
+				return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
+			case EVALUATION:
+				// anyone can read
+				if (accessType == ACCESS_TYPE.READ) {
+					return true;
+				} else if (accessType == ACCESS_TYPE.PARTICIPATE) {
+					// check for unfulfilled access requirements
+					return canParticipate(userInfo, objectId);
+				} else {
+					Evaluation evaluation = evaluationDAO.get(objectId);
+					if (isEvalOwner(userInfo, evaluation)) {
+						// eval owner can do anything
+						return true;
+					} else {
+						// TODO: refer to ACL
+						return false; // accessControlListDAO.canAccess(userInfo.getGroups(), objectId, accessType);
+					}
+				}
+			case ACCESS_REQUIREMENT:
+				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
+				return canAdminAccessRequirement(userInfo, accessRequirement);
+			case ACCESS_APPROVAL:
+				AccessApproval accessApproval = accessApprovalDAO.get(objectId);
+				return canAdminAccessApproval(userInfo, accessApproval);
+			default:
+				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
+		}
 	}
-	
+
+	private static boolean isEvalOwner(UserInfo userInfo, Evaluation evaluation) {
+		return evaluation.getOwnerId().equals(userInfo.getIndividualGroup().getId());
+	}
+
+	@Override
+	public boolean canAccess(UserInfo userInfo, final String nodeId, ACCESS_TYPE accessType) 
+		throws NotFoundException, DatastoreException {
+		return canAccess(userInfo, nodeId, ObjectType.ENTITY, accessType);
+	}
+
+	@Override
+	public boolean canCreate(UserInfo userInfo, final Node node) 
+		throws NotFoundException, DatastoreException {
+		String parentId = node.getParentId();
+		if (parentId==null && !userInfo.isAdmin()) return false; // if not an admin, can't do it!
+		return canAccess(userInfo, parentId, ACCESS_TYPE.CREATE);
+	}
+
 	private boolean canDownload(UserInfo userInfo, final String nodeId) throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return true;
 		if (!agreesToTermsOfUse(userInfo)) return false;
@@ -129,31 +187,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return accessRequirementIds.isEmpty();
 	}
 
-	@Override
-	public boolean canAccess(UserInfo userInfo, final String nodeId, ACCESS_TYPE accessType) 
-		throws NotFoundException, DatastoreException {
-		// if is an administrator, return true
-		if (userInfo.isAdmin()) return true;
-		// anonymous can only READ (if that!)
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
-			if (ACCESS_TYPE.READ!=accessType) return false;
-		}
-		if (accessType.equals(ACCESS_TYPE.DOWNLOAD)) {
-			return canDownload(userInfo, nodeId);
-		}
-		// must look-up access
-		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(nodeId);
-		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
-	}
-
-	@Override
-	public boolean canCreate(UserInfo userInfo, final Node node) 
-		throws NotFoundException, DatastoreException {
-		String parentId = node.getParentId();
-		if (parentId==null && !userInfo.isAdmin()) return false; // if not an admin, can't do it!
-		return canAccess(userInfo, parentId, ACCESS_TYPE.CREATE);
-	}
-
 	/**
 	 * @param n the number of items in the group-id list
 	 * 
@@ -165,6 +198,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			return AuthorizationSqlUtil.authorizationSQL(n);
 	}
 	
+	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
+		User user = userInfo.getUser();
+		if (user==null) return false;
+		// can't agree if you are anonymous
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(user.getUserId())) return false;
+		return user.isAgreesToTermsOfUse();
+	}
+
 	@Override
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException {
 		UserEntityPermissions permission = new UserEntityPermissions();
@@ -257,36 +298,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException {
-		// Admins can do anything
-		if(userInfo.isAdmin()) return true;
-		// If the object is an entity then we use existing methods
-		if(ObjectType.ENTITY == objectType){
-			return canAccess(userInfo, objectId, accessType);
-		}else if (ObjectType.EVALUATION == objectType){
-			// Anyone can read from a competition.
-			if (ACCESS_TYPE.READ == accessType) {
-				return true;
-			} else if (ACCESS_TYPE.PARTICIPATE == accessType) {
-				// look up unfulfilled access requirements
-				return canParticipate(userInfo, objectId);
-			} else {
-				// All other actions require admin access
-				Evaluation evaluation = evaluationDAO.get(objectId);
-				return EvaluationUtil.isEvalAdmin(userInfo, evaluation);
-			}
-		} else if (ObjectType.ACCESS_REQUIREMENT==objectType) {
-			AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
-			return canAdminAccessRequirement(userInfo, accessRequirement);
-		} else if (ObjectType.ACCESS_APPROVAL==objectType) {
-			AccessApproval accessApproval = accessApprovalDAO.get(objectId);
-			return canAdminAccessApproval(userInfo, accessApproval);
-		} else {
-			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
-		}
-	}
-
-	@Override
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
 		// Admins can do anything
 		if(userInfo.isAdmin()) return true;
@@ -372,7 +383,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) return true;
 		for (String id : evaluationIds) {
 			Evaluation evaluation = evaluationDAO.get(id);
-			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
+			if (!isEvalOwner(userInfo, evaluation)) {
 				return false;
 			}
 		}
@@ -398,7 +409,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			if (!(isACTTeamMemberOrAdmin(userInfo))) return false;
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
 			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (!EvaluationUtil.isEvalAdmin(userInfo, evaluation)) {
+			if (!isEvalOwner(userInfo, evaluation)) {
 				return false;
 			}
 		} else {
