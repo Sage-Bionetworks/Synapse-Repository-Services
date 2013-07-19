@@ -11,7 +11,6 @@ import java.util.Collection;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -22,7 +21,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -38,11 +36,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	@Autowired
-	private NodeDAO nodeDao;
-
-	@Autowired
-	private AuthorizationManager authorizationManager;
-	@Autowired
 	private UserManager userManager;
 
 	@Override
@@ -57,22 +50,20 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new IllegalArgumentException("ACL cannot be null.");
 		}
 
-		String evalId = acl.getId();
-		Evaluation eval = evaluationDAO.get(evalId);
-		if (eval == null) {
-			throw new IllegalArgumentException("Evaluation of ID " + evalId + " does not exist yet.");
+		final String evalId = acl.getId();
+		if (evalId == null || evalId.isEmpty()) {
+			throw new IllegalArgumentException("ACL's evaluation ID must not be null or empty.");
 		}
 
-		String entityId = eval.getContentSource();
-		if (!authorizationManager.canAccess(userInfo, entityId, CHANGE_PERMISSIONS)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId()
-					+ " not authorized on entity " + entityId + " to create ACL for evaluation " + evalId);
+		final Evaluation eval = getEvaluation(evalId);
+		if (!isEvalOwner(userInfo, eval)) {
+			throw new UnauthorizedException("Only the owner of evaluation " + evalId + " can create ACL.");
 		}
 
-		Long nodeOwnerId = nodeDao.getCreatedBy(entityId);
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, nodeOwnerId);
+		final String evalOwerId = eval.getOwnerId();
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(evalOwerId));
 
-		String aclId = aclDAO.create(acl);
+		final String aclId = aclDAO.create(acl);
 		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
 		return acl;
 	}
@@ -89,23 +80,22 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new IllegalArgumentException("ACL cannot be null.");
 		}
 
-		String evalId = acl.getId();
-		Evaluation eval = evaluationDAO.get(evalId);
-		if (eval == null) {
-			throw new IllegalArgumentException("Evaluation of ID " + evalId + " does not exist yet.");
+		final String evalId = acl.getId();
+		if (evalId == null || evalId.isEmpty()) {
+			throw new IllegalArgumentException("ACL's evaluation ID must not be null or empty.");
 		}
 
-		Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
-
-		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
+		final Evaluation eval = getEvaluation(evalId);
+		if (!canAccess(userInfo, eval, CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
 
+		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
+
 		aclDAO.update(acl);
-		acl = aclDAO.get(evalId, ObjectType.EVALUATION);
-		return acl;
+		return aclDAO.get(evalId, ObjectType.EVALUATION);
 	}
 
 	@Override
@@ -118,7 +108,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation Id cannot be null or empty.");
 		}
-
 		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId()
 					+ " not authorized to change permissions on evaluation " + evalId);
@@ -167,7 +156,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		UserEvaluationPermissions permission = new UserEvaluationPermissions();
 
-		final Evaluation eval = evaluationDAO.get(evalId);
+		final Evaluation eval = getEvaluation(evalId);
 		permission.setOwnerPrincipalId(KeyFactory.stringToKey(eval.getOwnerId()));
 
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
@@ -179,6 +168,16 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			permission.setCanDelete(true);
 			permission.setCanEdit(true);
 			permission.setCanParticipate(true);
+			permission.setCanView(true);
+			return permission;
+		}
+
+		// Owner gets all except for participate
+		if (isEvalOwner(userInfo, eval)) {
+			permission.setCanChangePermissions(true);
+			permission.setCanDelete(true);
+			permission.setCanEdit(true);
+			permission.setCanParticipate(false);
 			permission.setCanView(true);
 			return permission;
 		}
@@ -200,17 +199,52 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		return permission;
 	}
 
-	private boolean canAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType) {
-		// TODO: Does it make sense to combine with AuthorizationManagerImpl.canAccess()?
-		// For evaluations, we don't check for benefactor and we don't check canDown().
-		if (userInfo.isAdmin()) {
-			return true;
-		}
+	/**
+	 * Whether the user can access the specified evaluation.
+	 */
+	private boolean canAccess(final UserInfo userInfo, final String evalId,
+			final ACCESS_TYPE accessType) throws NotFoundException {
+		Evaluation eval = getEvaluation(evalId);
+		return canAccess(userInfo, eval, accessType);
+	}
+
+	/**
+	 * Whether the user can access the specified evaluation.
+	 */
+	private boolean canAccess(final UserInfo userInfo, final Evaluation eval, final ACCESS_TYPE accessType) {
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+			// A shortcut. Anonymous user at most has read access.
 			if (READ != accessType) {
 				return false;
 			}
 		}
-		return aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
+		if (userInfo.isAdmin()) {
+			return true;
+		}
+		if (isEvalOwner(userInfo, eval)) {
+			if (!ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
+				return true;
+			}
+		}
+		return aclDAO.canAccess(userInfo.getGroups(), eval.getId(), accessType);
+	}
+
+	private Evaluation getEvaluation(final String evalId) throws NotFoundException {
+		try {
+			return evaluationDAO.get(evalId);
+		}
+		catch (NotFoundException e) {
+			// Rethrow with a more specific message
+			throw new NotFoundException("Evaluation of ID " + evalId + " does not exist yet.");
+		}
+	}
+
+	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {
+		String userId = userInfo.getIndividualGroup().getId();
+		String evalOwnerId = eval.getOwnerId();
+		if (userId != null && evalOwnerId != null && userId.equals(evalOwnerId)) {
+			return true;
+		}
+		return false;
 	}
 }
