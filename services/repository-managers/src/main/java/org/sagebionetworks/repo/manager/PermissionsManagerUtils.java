@@ -10,7 +10,10 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class PermissionsManagerUtils {
-	
+
+	/**
+	 * Verifies that the caller does not lose the right to change permissions.
+	 */
 	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Long ownerId) throws InvalidModelException {
 
 		if (acl.getId() == null) {

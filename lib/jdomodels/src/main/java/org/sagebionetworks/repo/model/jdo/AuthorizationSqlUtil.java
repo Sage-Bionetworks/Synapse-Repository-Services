@@ -10,7 +10,7 @@ public class AuthorizationSqlUtil {
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
 	private static final String AUTHORIZATION_SQL_1 = 
-		"select distinct acl."+SqlConstants.COL_ACL_OWNER_ID_COLUMN+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
+		"select distinct acl."+SqlConstants.COL_ACL_ID+" from "+SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
 		SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at where ra."+
 		SqlConstants.COL_RESOURCE_ACCESS_OWNER+

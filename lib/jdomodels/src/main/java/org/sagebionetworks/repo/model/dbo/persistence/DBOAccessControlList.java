@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_CREATED_ON;
@@ -24,7 +23,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACL_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_ACL_ETAG).withIsEtag(true),
-		new FieldColumn("resource", COL_ACL_OWNER_ID_COLUMN),
 		new FieldColumn("creationDate", COL_ACL_CREATED_ON)
 		};
 
@@ -37,7 +35,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				DBOAccessControlList acl = new DBOAccessControlList();
 				acl.setId(rs.getLong(COL_ACL_ID));
 				acl.setEtag(rs.getString(COL_ACL_ETAG));
-				acl.setResource(rs.getLong(COL_ACL_OWNER_ID_COLUMN));
 				acl.setCreationDate(rs.getLong(COL_ACL_CREATED_ON));
 				return acl;
 			}
@@ -65,7 +62,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	
 	private Long id;
 	private String etag;
-	private Long resource;
 	private Long creationDate;
 
 	public Long getId() {
@@ -79,12 +75,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	}
 	public void setEtag(String etag) {
 		this.etag = etag;
-	}
-	public Long getResource() {
-		return resource;
-	}
-	public void setResource(Long resource) {
-		this.resource = resource;
 	}
 	public Long getCreationDate() {
 		return creationDate;
@@ -138,8 +128,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((resource == null) ? 0 : resource.hashCode());
 		return result;
 	}
 	@Override
@@ -166,17 +154,11 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (resource == null) {
-			if (other.resource != null)
-				return false;
-		} else if (!resource.equals(other.resource))
-			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
 		return "DBOAccessControlList [id=" + id + ", etag=" + etag
-				+ ", resource=" + resource + ", creationDate=" + creationDate
-				+ "]";
+				+ ", creationDate=" + creationDate + "]";
 	}
 }
