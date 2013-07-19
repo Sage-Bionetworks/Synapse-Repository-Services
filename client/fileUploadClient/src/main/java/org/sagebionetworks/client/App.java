@@ -34,12 +34,11 @@ public class App implements Application {
 			return;
 		}
 		
-		BXMLSerializer bxmlSerializer = new BXMLSerializer();
-        window = (Window)bxmlSerializer.readObject(FileUploader.class, "fileUploader.bxml");
-        
-        FileUploader uploader = (FileUploader) window;
-        window.open(display);        
-        uploader.setSynapseClient(createSynapseClient());
+		FileUploader fileUploader = WidgetFactory.createFileUploader();
+		window = fileUploader.asWidget();		
+        window.open(display);
+
+        fileUploader.configure(createSynapseClient(), parentId);       
     }
 
 	@Override
