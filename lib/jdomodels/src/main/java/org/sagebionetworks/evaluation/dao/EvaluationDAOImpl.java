@@ -11,8 +11,9 @@ import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.OFFSET_PARAM
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_EVALUATION;
 import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_PARTICIPANT;
 
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -26,7 +27,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -102,7 +102,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		dto.setOwnerId(ownerId.toString());
 		
 		// serialize
-		convertDtoToDbo(dto, dbo);
+		copyDtoToDbo(dto, dbo);
 		
 		// generate a new eTag, unless restoring from backup
 		if (!fromBackup) {			
@@ -137,7 +137,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param);
-		return convertDboToDto(dbo);
+		Evaluation dto = new Evaluation();
+		copyDboToDto(dbo, dto);
+		return dto;
 	}
 
 	@Override
@@ -148,7 +150,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		for (EvaluationDBO dbo : dbos) {
-			dtos.add(convertDboToDto(dbo));
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
 		}
 		return dtos;
 	}
@@ -164,7 +168,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		for (EvaluationDBO dbo : dbos) {
-			dtos.add(convertDboToDto(dbo));
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
 		}
 		return dtos;
 	}
@@ -192,7 +198,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	private void update(Evaluation dto, boolean fromBackup) throws ConflictingUpdateException, DatastoreException, NotFoundException {
 		EvaluationDBO dbo = new EvaluationDBO();
-		convertDtoToDbo(dto, dbo);
+		copyDtoToDbo(dto, dbo);
 		verifyEvaluationDBO(dbo);
 		
 		if (fromBackup) {
@@ -235,7 +241,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	protected static void convertDtoToDbo(Evaluation dto, EvaluationDBO dbo) {	
+	protected static void copyDtoToDbo(Evaluation dto, EvaluationDBO dbo) {	
 		try {
 			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
 		} catch (NumberFormatException e) {
@@ -252,55 +258,51 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setContentSource(KeyFactory.stringToKey(dto.getContentSource()));
 		dbo.setStatusEnum(dto.getStatus());
-		copyToSerializedField(dto, dbo);
-	}
-	
-	/**
-	 * Copy a Evaluation data transfer object to a EvaluationDBO database object
-	 * 
-	 * @param dbo
-	 * @param dto
-	 * @return 
-	 * @throws DatastoreException
-	 */
-	public static Evaluation convertDboToDto(EvaluationDBO dbo) throws DatastoreException {
-		// serialized entity is regarded as the "true" representation of the object
-		Evaluation dto = copyFromSerializedField(dbo);
-		
-		// use non-serialized eTag and ID
-		dto.setEtag(dbo.geteTag());
-		dto.setId(dbo.getIdString());
-		
-		return dto;
-	}
-	
-	/**
-	 * Serialize the DTO and insert it into the DBO.
-	 * 
-	 * @param dto
-	 * @param dbo
-	 * @throws DatastoreException
-	 */
-	public static void copyToSerializedField(Evaluation dto, EvaluationDBO dbo) throws DatastoreException {
-		try {
-			dbo.setSerializedObject(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
+		if (dto.getSubmissionInstructionsMessage() != null) {
+			dbo.setSubmissionInstructionsMessage(dto.getSubmissionInstructionsMessage().getBytes());
+		}
+		if (dto.getSubmissionReceiptMessage() != null) {
+			dbo.setSubmissionReceiptMessage(dto.getSubmissionReceiptMessage().getBytes());
 		}
 	}
 	
 	/**
-	 * Deserialize the DTO from the DBO.
-	 * 
+	 * Copy a Evaluation data transfer object to a EvaluationDBO database object
+	 *
 	 * @param dbo
-	 * @return
+	 * @param dto
 	 * @throws DatastoreException
 	 */
-	public static Evaluation copyFromSerializedField(EvaluationDBO dbo) throws DatastoreException {
-		try {
-			return (Evaluation) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
+	protected static void copyDboToDto(EvaluationDBO dbo, Evaluation dto) throws DatastoreException {	
+		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
+		dto.setEtag(dbo.geteTag());
+		dto.setName(dbo.getName());
+		if (dbo.getDescription() != null) {
+			try {
+				dto.setDescription(new String(dbo.getDescription(), "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		} else {
+			dto.setDescription(null);
+		}
+		dto.setOwnerId(dbo.getOwnerId().toString());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
+		dto.setContentSource(KeyFactory.keyToString(dbo.getContentSource()));
+		dto.setStatus(dbo.getStatusEnum());
+		if (dbo.getSubmissionInstructionsMessage() != null) {
+			try {
+				dto.setSubmissionInstructionsMessage(new String(dbo.getSubmissionInstructionsMessage(), "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		}
+		if (dbo.getSubmissionReceiptMessage() != null) {
+			try {
+				dto.setSubmissionReceiptMessage(new String(dbo.getSubmissionReceiptMessage(), "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
 		}
 	}
 
@@ -317,7 +319,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "creation date");
 		EvaluationUtils.ensureNotNull(dbo.getContentSource(), "content source");
 		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "status");
-		EvaluationUtils.ensureNotNull(dbo.getSerializedObject(), "serialized object");
 	}
 	
 	private String lockAndGenerateEtag(String id, String eTag, ChangeType changeType)
@@ -403,7 +404,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		for (EvaluationDBO dbo : dbos) {
-			dtos.add(convertDboToDto(dbo));
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
 		}
 		return dtos;
 	}

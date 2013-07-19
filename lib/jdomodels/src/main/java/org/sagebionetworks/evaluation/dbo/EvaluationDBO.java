@@ -35,7 +35,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_CREATED_ON, COL_EVALUATION_CREATED_ON),
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
 			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
-			new FieldColumn(PARAM_EVALUATION_SERIALIZED_OBJECT, COL_EVALUATION_SERIALIZED_OBJECT)
+			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
+			new FieldColumn(PARAM_EVALUATION_SUB_RECEPIT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG)
 			};
 
 	public TableMapping<EvaluationDBO> getTableMapping() {
@@ -46,17 +47,21 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				eval.setId(rs.getLong(COL_EVALUATION_ID));
 				eval.seteTag(rs.getString(COL_EVALUATION_ETAG));
 				eval.setName(rs.getString(COL_EVALUATION_NAME));
-				Blob desc = rs.getBlob(COL_EVALUATION_DESCRIPTION);
-				if(desc != null){
-					eval.setDescription(desc.getBytes(1, (int) desc.length()));
+				Blob blob = rs.getBlob(COL_EVALUATION_DESCRIPTION);
+				if(blob != null){
+					eval.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
 				eval.setOwnerId(rs.getLong(COL_EVALUATION_OWNER_ID));
 				eval.setCreatedOn(rs.getLong(COL_EVALUATION_CREATED_ON));
 				eval.setContentSource(rs.getLong(COL_EVALUATION_CONTENT_SOURCE));
 				eval.setStatus(rs.getInt(COL_EVALUATION_STATUS));
-				Blob obj = rs.getBlob(COL_EVALUATION_SERIALIZED_OBJECT);
-				if (obj != null) {
-					eval.setSerializedObject(obj.getBytes(1, (int) obj.length()));
+				blob = rs.getBlob(COL_EVALUATION_SUB_INSTRUCT_MSG);
+				if (blob != null) {
+					eval.setSubmissionInstructionsMessage(blob.getBytes(1, (int) blob.length()));
+				}
+				blob = rs.getBlob(COL_EVALUATION_SUB_RECEIPT_MSG);
+				if (blob != null) {
+					eval.setSubmissionReceiptMessage(blob.getBytes(1, (int) blob.length()));
 				}
 				return eval;
 			}
@@ -87,7 +92,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private Long createdOn;
 	private Long contentSource;
 	private int status;
-	private byte[] serializedObject;
+	private byte[] submissionInstructionsMessage;
+	private byte[] submissionReceiptMessage;
 	
 	public Long getId() {
 		return id;
@@ -153,11 +159,57 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		setStatus(es.ordinal());
 	}
 
-	public byte[] getSerializedObject() {
-		return serializedObject;
+	public byte[] getSubmissionInstructionsMessage() {
+		return submissionInstructionsMessage;
 	}
-	public void setSerializedObject(byte[] serializedObject) {
-		this.serializedObject = serializedObject;
+	public void setSubmissionInstructionsMessage(byte[] submissionInstructionsMessage) {
+		this.submissionInstructionsMessage = submissionInstructionsMessage;
+	}
+	public byte[] getSubmissionReceiptMessage() {
+		return submissionReceiptMessage;
+	}
+	public void setSubmissionReceiptMessage(byte[] submissionReceiptMessage) {
+		this.submissionReceiptMessage = submissionReceiptMessage;
+	}
+	@Override
+	public String getIdString() {
+		return id.toString();
+	}
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.EVALUATION;
+	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.EVALUATION;
+	}
+
+	@Override
+	public Class<? extends EvaluationBackup> getBackupClass() {
+		return EvaluationBackup.class;
+	}
+	@Override
+	public Class<? extends EvaluationDBO> getDatabaseObjectClass() {
+		return EvaluationDBO.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
+	@Override
+	public String toString() {
+		return "EvaluationDBO [id=" + id + ", eTag=" + eTag + ", name=" + name
+				+ ", description=" + Arrays.toString(description)
+				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
+				+ ", contentSource=" + contentSource + ", status=" + status
+				+ ", submissionInstructions="
+				+ Arrays.toString(submissionInstructionsMessage)
+				+ ", submissionReceiptMessage="
+				+ Arrays.toString(submissionReceiptMessage) + "]";
 	}
 	@Override
 	public int hashCode() {
@@ -173,6 +225,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + status;
+		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
+		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
 	}
 	@Override
@@ -218,44 +272,13 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (status != other.status)
 			return false;
+		if (!Arrays
+				.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
+			return false;
+		if (!Arrays.equals(submissionReceiptMessage,
+				other.submissionReceiptMessage))
+			return false;
 		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "EvaluationDBO [id=" + id + ", name=" + name + ", eTag=" + eTag 
-				+ ", description=" + description + ", ownerId=" + ownerId 
-				+ ", createdOn=" + createdOn + ", contentSource=" 
-				+ contentSource + ", status=" + EvaluationStatus.values()[status].toString() + "]";
-	}
-	@Override
-	public String getIdString() {
-		return id.toString();
-	}
-	@Override
-	public String getParentIdString() {
-		return null;
-	}
-	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.EVALUATION;
-	}
-	@Override
-	public MigrationType getMigratableTableType() {
-		return MigrationType.EVALUATION;
-	}
-
-	@Override
-	public Class<? extends EvaluationBackup> getBackupClass() {
-		return EvaluationBackup.class;
-	}
-	@Override
-	public Class<? extends EvaluationDBO> getDatabaseObjectClass() {
-		return EvaluationDBO.class;
-	}
-	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
 	}
 	@Override
 	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {

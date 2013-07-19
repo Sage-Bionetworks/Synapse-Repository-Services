@@ -335,9 +335,9 @@ public class EvaluationDAOImplTest {
     	evalDTO.setOwnerId("456");
     	evalDTO.setStatus(EvaluationStatus.OPEN);
     	    	
-    	EvaluationDAOImpl.convertDtoToDbo(evalDTO, evalDBO);
-    	evalDTOclone = EvaluationDAOImpl.convertDboToDto(evalDBO);
-    	EvaluationDAOImpl.convertDtoToDbo(evalDTOclone, evalDBOclone);
+    	EvaluationDAOImpl.copyDtoToDbo(evalDTO, evalDBO);
+    	EvaluationDAOImpl.copyDboToDto(evalDBO, evalDTOclone);
+    	EvaluationDAOImpl.copyDtoToDbo(evalDTOclone, evalDBOclone);
     	
     	assertEquals(evalDTO, evalDTOclone);
     	assertEquals(evalDBO, evalDBOclone);
