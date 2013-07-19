@@ -207,7 +207,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		Submission sub = submissionDAO.get(submissionId);		
 		String evalId = sub.getEvaluationId();
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
 		submissionDAO.delete(submissionId);
