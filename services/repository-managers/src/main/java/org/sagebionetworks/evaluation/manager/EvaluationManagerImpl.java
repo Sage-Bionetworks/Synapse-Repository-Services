@@ -9,7 +9,6 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -19,32 +18,22 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class EvaluationManagerImpl implements EvaluationManager {
-	
+
 	@Autowired
-	EvaluationDAO evaluationDAO;
-	
+	private EvaluationDAO evaluationDAO;
+
 	@Autowired
 	private IdGenerator idGenerator;
-	
+
 	@Autowired
-	private AuthorizationManager authorizationManager;
-	
-	public EvaluationManagerImpl() {}
-	
-	// Used for testing purposes
-	protected EvaluationManagerImpl(AuthorizationManager authorizationManager, EvaluationDAO evaluationDAO, IdGenerator idGenerator) {
-		this.authorizationManager = authorizationManager;
-		this.evaluationDAO = evaluationDAO;
-		this.idGenerator = idGenerator;
-	}
-	
+	private EvaluationPermissionsManager evaluationPermissionsManager;
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Evaluation createEvaluation(UserInfo userInfo, Evaluation eval) 
@@ -113,10 +102,16 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		if (!old.getEtag().equals(eval.getEtag()))
 			throw new IllegalArgumentException("Your copy of Evaluation " + eval.getId() + " is out of date. Please fetch it again before updating.");
 
-		validateAccessPermission(userInfo, old, ACCESS_TYPE.UPDATE);
+		final String evalId = eval.getId();
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
+			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+					" is not authorized to update evaluation " + evalId +
+					" (" + eval.getName() + ")");
+		}
+
 		validateEvaluation(old, eval);		
 		evaluationDAO.update(eval);
-		return getEvaluation(eval.getId());
+		return getEvaluation(evalId);
 	}
 	
 	@Override
@@ -125,25 +120,22 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		if (comp == null) throw new NotFoundException("No Evaluation found with id " + evalId);
 		evaluationDAO.update(comp);
 	}
-	
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteEvaluation(UserInfo userInfo, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
-		Evaluation comp = evaluationDAO.get(id);
-		if (comp == null) throw new NotFoundException("No Evaluation found with id " + id);
-		validateAccessPermission(userInfo, comp, ACCESS_TYPE.DELETE);
+		Evaluation eval = evaluationDAO.get(id);
+		if (eval == null) throw new NotFoundException("No Evaluation found with id " + id);
+		if (!evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE)) {
+			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+					" is not authorized to update evaluation " + id +
+					" (" + eval.getName() + ")");
+		}
 		evaluationDAO.delete(id);
 	}
-		
-	private void validateAccessPermission(UserInfo userInfo, Evaluation evaluation, ACCESS_TYPE accessType) throws NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, evaluation.getId(), ObjectType.EVALUATION, accessType))
-			throw new UnauthorizedException("User ID " + userInfo.getIndividualGroup().getId() +
-					" is not authorized to access Evaluation ID " + evaluation.getId() +
-					" (" + evaluation.getName() + ")");
-	}
-	
+
 	private void validateEvaluation(Evaluation oldComp, Evaluation newComp) {
 		if (!oldComp.getOwnerId().equals(newComp.getOwnerId()))
 			throw new InvalidModelException("Cannot overwrite Evaluation Owner ID");
