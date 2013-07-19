@@ -207,7 +207,7 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
     	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), any(ACCESS_TYPE.class))).thenReturn(true);
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
     	when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(new URL(TEST_URL));
     	
@@ -270,10 +270,7 @@ public class SubmissionManagerTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testUnauthorizedGet() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-		assertNull(sub.getId());
-		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(ownerInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		submissionManager.getSubmission(userInfo, SUB2_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -333,7 +330,7 @@ public class SubmissionManagerTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testGetRedirectURLForFileHandleUnauthorized()
 			throws DatastoreException, NotFoundException {
-		submissionManager.getRedirectURLForFileHandle(userInfo, SUB_ID, HANDLE_ID_1);
+		submissionManager.getRedirectURLForFileHandle(userInfo, SUB2_ID, HANDLE_ID_1);
 	}
 	
 	@Test(expected=NotFoundException.class)

@@ -125,8 +125,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return canParticipate(userInfo, objectId);
 				} else {
 					Evaluation evaluation = evaluationDAO.get(objectId);
-					if (evaluation.getOwnerId().equals(userInfo.getUser().getId())) {
-						// eval admin can do anything
+					if (isEvalOwner(userInfo, evaluation)) {
+						// eval owner can do anything
 						return true;
 					} else {
 						// TODO: refer to ACL
@@ -142,6 +142,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}
+	}
+
+	private static boolean isEvalOwner(UserInfo userInfo, Evaluation evaluation) {
+		return evaluation.getOwnerId().equals(userInfo.getIndividualGroup().getId());
 	}
 
 	@Override
@@ -379,7 +383,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) return true;
 		for (String id : evaluationIds) {
 			Evaluation evaluation = evaluationDAO.get(id);
-			if (!evaluation.getOwnerId().equals(userInfo.getUser().getId())) {
+			if (!isEvalOwner(userInfo, evaluation)) {
 				return false;
 			}
 		}
@@ -405,7 +409,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			if (!(isACTTeamMemberOrAdmin(userInfo))) return false;
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
 			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (!evaluation.getOwnerId().equals(userInfo.getUser().getId())) {
+			if (!isEvalOwner(userInfo, evaluation)) {
 				return false;
 			}
 		} else {

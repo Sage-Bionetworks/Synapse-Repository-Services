@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -43,7 +44,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
 		
 		// always generate a unique ID
-		eval.setId(idGenerator.generateNewId().toString());
+		eval.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS).toString());
 		
 		// set creation date
 		eval.setCreatedOn(new Date());

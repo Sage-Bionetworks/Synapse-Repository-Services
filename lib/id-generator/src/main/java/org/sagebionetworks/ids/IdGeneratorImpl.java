@@ -51,7 +51,10 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	@Autowired
 	DataSourceTransactionManager idGeneratorTransactionManager;
 	
-	@Transactional(readOnly = false, propagation = Propagation.SUPPORTS)
+	/**
+	 * This call occurs in its own transaction.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public Long generateNewId() {
 		// Use the default domain
