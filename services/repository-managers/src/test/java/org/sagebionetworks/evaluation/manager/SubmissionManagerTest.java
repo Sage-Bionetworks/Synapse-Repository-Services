@@ -330,7 +330,7 @@ public class SubmissionManagerTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testGetRedirectURLForFileHandleUnauthorized()
 			throws DatastoreException, NotFoundException {
-		submissionManager.getRedirectURLForFileHandle(userInfo, SUB2_ID, HANDLE_ID_1);
+		submissionManager.getRedirectURLForFileHandle(userInfo, SUB_ID, HANDLE_ID_1);
 	}
 	
 	@Test(expected=NotFoundException.class)

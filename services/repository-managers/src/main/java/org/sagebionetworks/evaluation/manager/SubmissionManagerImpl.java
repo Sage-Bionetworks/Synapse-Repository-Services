@@ -297,13 +297,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		Submission submission = getSubmission(userInfo, submissionId);
-		
-		// validate permissions
-		String ownerId = submissionDAO.get(submissionId).getUserId();
-		boolean isSubmissionOwner = ownerId.equals(userInfo.getIndividualGroup().getId());
-		if (!isSubmissionOwner) {
-			validateEvaluationAccess(userInfo, submission.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		}
+		validateEvaluationAccess(userInfo, submission.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+
 		// ensure that the requested ID is included in the Submission
 		List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId);
 		if (!ids.contains(fileHandleId)) {
