@@ -1011,11 +1011,11 @@ public class EntityController extends BaseController{
 	
 	// Files
 	/**
-	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * Attempt to download the raw file currently associated with the current version of the Entity.  Note: This call will result in a HTTP temporary redirect (307), to the real file URL if the caller meets all of the download requirements.
 	 * 
 	 * @param userId
-	 * @param id
-	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param id The owning entity id.
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1035,11 +1035,11 @@ public class EntityController extends BaseController{
 	}
 	
 	/**
-	 * Redirect the caller to the URL of the file associated with the current version of this entity.
-	 * 
+	 * 	Attempt to download the raw file of an entity for a given version number of the entity. Note: This call will result in a HTTP temporary redirect (307), to the real file URL if the caller meets all of the download requirements. 
 	 * @param userId
-	 * @param id
-	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param id The owning entity id.
+	 * @param versionNumber The version number of the owing entity.
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1060,11 +1060,11 @@ public class EntityController extends BaseController{
 	}
 	
 	/**
-	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * Attempt to download the preview of the file currently associated with the current version of the Entity.  Note: This call will result in a HTTP temporary redirect (307), to the real file URL if the caller meets all of the download requirements.
 	 * 
 	 * @param userId
-	 * @param id
-	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param id The owning entity id.
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1084,11 +1084,12 @@ public class EntityController extends BaseController{
 	}
 	
 	/**
-	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * 	Attempt to download preview of the file of an entity for a given version number of the entity. Note: This call will result in a HTTP temporary redirect (307), to the real file URL if the caller meets all of the download requirements.
 	 * 
 	 * @param userId
-	 * @param id
-	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param id The owning entity id.
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param versionNumber The version number of the owing entity.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1109,8 +1110,13 @@ public class EntityController extends BaseController{
 	}
 	
 	/**
-	 * Get the FileHandles for the current version of an entity.
+	 * Get the FileHandles of the file currently associated with the current version of the Entity.  If a preview exists for the file then the handle of the preview and the file will be returned with this call.
+	 * @param userId
+	 * @param id The owning entity id.
 	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody
@@ -1123,10 +1129,10 @@ public class EntityController extends BaseController{
 	}
 	
 	/**
-	 * Get the FileHandles for a given version of an entity.
+	 * Get the FileHandles of the file associated with the given version number of the entity.  If a preview exists for the file then the handle of the preview and the file will be returned with this call.
 	 * @param userId
-	 * @param id
-	 * @param versionNumber
+	 * @param id The owning entity id.
+	 * @param versionNumber The version number of the owing entity.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException

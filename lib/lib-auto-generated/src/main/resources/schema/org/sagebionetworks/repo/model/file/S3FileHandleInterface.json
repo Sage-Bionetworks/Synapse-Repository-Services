@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for S3FileHandleInterface",
+	"description": "Defines the common fields of FileHandles stored in AWS S3.",
 	"type": "interface",
 	"implements": [
 		{
@@ -9,18 +9,18 @@
 	"properties": {
 		"bucketName": {
 			"type": "string",
-			"description": "The name of the S3 bucket for this file"
+			"description": "The name of the S3 bucket where this file resides"
 		},
 		"key": {
 			"type": "string",
 			"description": "The S3 key for this object"
 		},
 		"contentSize": {
-			"description": "The size in bytes.",
+			"description": "The size of the file in bytes.",
 			"type": "integer"
 		},
 		"contentMd5": {
-			"description": "MD5 on the content.",
+			"description": "The file's content MD5.",
 			"type": "string"
 		}
 	}
