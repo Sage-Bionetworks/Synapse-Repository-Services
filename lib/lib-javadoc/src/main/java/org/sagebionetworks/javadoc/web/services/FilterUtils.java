@@ -50,10 +50,19 @@ public class FilterUtils {
 		for(MethodDoc methodDoc: methods){
             AnnotationDesc[] annos = methodDoc.annotations();
             if(annos != null){
+                boolean hasRequestMapping = false;
+                boolean isDeprecated = false;
             	for(AnnotationDesc ad: annos){
             		if(RequestMapping.class.getName().equals(ad.annotationType().qualifiedName())){
-                		list.add(methodDoc);
+                		
+            			hasRequestMapping = true;
+            		}else if(Deprecated.class.getName().equals(ad.annotationType().qualifiedName())){
+            			isDeprecated = true;
             		}
+            	}
+            	// Add methods that have the request mapping and are not Deprecated.
+            	if(hasRequestMapping && !isDeprecated){
+            		list.add(methodDoc);
             	}
             }
 		}
