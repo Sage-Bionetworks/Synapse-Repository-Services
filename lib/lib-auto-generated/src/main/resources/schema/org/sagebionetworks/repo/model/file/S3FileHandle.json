@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for S3 File metadata",
+	"description": "An S3FileHandle represents a file stored in AWS S3.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.file.S3FileHandleInterface"
