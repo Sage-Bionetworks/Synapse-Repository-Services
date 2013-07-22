@@ -63,7 +63,11 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	private Long id;
 	private String etag;
 	private Long creationDate;
+	private Long resource;
 
+	public void setResource(Long resource) {
+		this.resource = resource;
+	}
 	public Long getId() {
 		return id;
 	}
@@ -93,9 +97,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 			@Override
 			public DBOAccessControlList createDatabaseObjectFromBackup(
 					DBOAccessControlList backup) {
-				if (backup.getEtag() == null) {
-					backup.setEtag(UUID.randomUUID().toString());
-				}
 				return backup;
 			}
 
