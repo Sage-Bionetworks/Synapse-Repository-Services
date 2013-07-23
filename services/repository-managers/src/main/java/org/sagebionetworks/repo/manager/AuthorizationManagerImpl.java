@@ -207,44 +207,33 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException {
-		UserEntityPermissions permission = new UserEntityPermissions();
+	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId)
+			throws NotFoundException, DatastoreException {
+
+		final String benefactor = nodeInheritanceDAO.getBenefactor(entityId);
+		UserEntityPermissions permissions = new UserEntityPermissions();
+		permissions.setCanAddChild(canAccess(userInfo, benefactor, ACCESS_TYPE.CREATE));
+		permissions.setCanChangePermissions(canAccess(userInfo, benefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
+		permissions.setCanDelete(canAccess(userInfo, benefactor, ACCESS_TYPE.DELETE));
+		permissions.setCanEdit(canAccess(userInfo, benefactor, ACCESS_TYPE.UPDATE));
+		permissions.setCanView(canAccess(userInfo, benefactor, ACCESS_TYPE.READ));
+		permissions.setCanDownload(canDownload(userInfo, entityId));
+
 		Node node = nodeDAO.getNode(entityId);
-		permission.setOwnerPrincipalId(node.getCreatedByPrincipalId());
-		boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
-		// must look-up access (at least to determine if the anonymous user can view)
-		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
+		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
+
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		permission.setCanPublicRead(canAccess(anonymousUser, permissionsBenefactor, ACCESS_TYPE.READ));
-		// Admin gets all
+		permissions.setCanPublicRead(canAccess(anonymousUser, benefactor, ACCESS_TYPE.READ));
+
+		final boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
-			permission.setCanAddChild(true);
-			permission.setCanChangePermissions(true);
-			permission.setCanDelete(true);
-			permission.setCanEdit(true);
-			permission.setCanView(true);
-			permission.setCanDownload(true);
-			permission.setCanEnableInheritance(!parentIsRoot);
-			return permission;
-		}
-		permission.setCanView(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.READ));
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
-			permission.setCanAddChild(false);
-			permission.setCanChangePermissions(false);
-			permission.setCanDelete(false);
-			permission.setCanEdit(false);
-			permission.setCanDownload(false);
-			permission.setCanEnableInheritance(false);
+			permissions.setCanEnableInheritance(!parentIsRoot);
+		} else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+			permissions.setCanEnableInheritance(false);
 		} else {
-			// Child can be added if this entity is not null
-			permission.setCanAddChild(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.CREATE));
-			permission.setCanChangePermissions(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
-			permission.setCanDelete(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.DELETE));
-			permission.setCanEdit(canAccess(userInfo, permissionsBenefactor, ACCESS_TYPE.UPDATE));
-			permission.setCanDownload(this.canDownload(userInfo, entityId));
-			permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
+			permissions.setCanEnableInheritance(!parentIsRoot && permissions.getCanChangePermissions());
 		}
-		return permission;
+		return permissions;
 	}
 
 	@Override
