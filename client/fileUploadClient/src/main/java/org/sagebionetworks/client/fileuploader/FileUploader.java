@@ -67,10 +67,14 @@ public class FileUploader implements FileUploaderView.Presenter {
 		
 		try {
 			Entity parent = synapseClient.getEntityById(parentId);
-			String message = parent.getName();
-			if(message.length() > MAX_NAME_CHARS) message = message.substring(0, MAX_NAME_CHARS) + "...";
-			message += " ("+ parentId +")";
-			view.setUploadingIntoMessage(message);
+			if(parent != null) {
+				String message = parent.getName();
+				if(message.length() > MAX_NAME_CHARS) message = message.substring(0, MAX_NAME_CHARS) + "...";
+				message += " ("+ parentId +")";
+				view.setUploadingIntoMessage(message);
+			} else {
+				view.alert("Upload to is null. Please reload.");
+			}
 		} catch (SynapseException e) {
 			if(e instanceof SynapseNotFoundException) {
 				view.alert("Upload target Not Found: " + parentId);				
@@ -96,25 +100,25 @@ public class FileUploader implements FileUploaderView.Presenter {
 			
 			setFileStatus(file, UploadStatus.WAITING_TO_UPLOAD);
 			final String mimeType = getMimeType(file);
-				// upload file
-				Future<FileEntity> uploadedFuture = uploadPool.submit(new Callable<FileEntity>() {
-					@Override
-					public FileEntity call() throws Exception {
-						// create filehandle via multipart upload (blocking)
-						setFileStatus(file, UploadStatus.UPLOADING);
-						S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
+			// upload file
+			Future<FileEntity> uploadedFuture = uploadPool.submit(new Callable<FileEntity>() {
+				@Override
+				public FileEntity call() throws Exception {
+					// create filehandle via multipart upload (blocking)
+					setFileStatus(file, UploadStatus.UPLOADING);
+					S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
 
-						// create child File entity under parent
-						final FileEntity entity = new FileEntity();
-						entity.setParentId(parentId);
-						entity.setDataFileHandleId(fileHandle.getId());													
-						return synapseClient.createEntity(entity);
-					}
-				}); 
-				int id = ++fileIdSequence;
-				idToFile.put(id, file);
-				futureToId.put(uploadedFuture, id);
-				unfinished.add(uploadedFuture);
+					// create child File entity under parent
+					final FileEntity entity = new FileEntity();
+					entity.setParentId(parentId);
+					entity.setDataFileHandleId(fileHandle.getId());													
+					return synapseClient.createEntity(entity);
+				}
+			}); 
+			int id = ++fileIdSequence;
+			idToFile.put(id, file);
+			futureToId.put(uploadedFuture, id);
+			unfinished.add(uploadedFuture);
 		}
 		
 		// check for completed jobs
