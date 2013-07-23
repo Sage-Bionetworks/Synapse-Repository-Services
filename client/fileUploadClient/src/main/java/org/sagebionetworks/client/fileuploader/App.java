@@ -1,4 +1,4 @@
-package org.sagebionetworks.client;
+package org.sagebionetworks.client.fileuploader;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -13,6 +13,7 @@ import org.apache.pivot.wtk.Label;
 import org.apache.pivot.wtk.VerticalAlignment;
 import org.apache.pivot.wtk.Window;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.client.Synapse;
 
 public class App implements Application {
 	private Window window = null;

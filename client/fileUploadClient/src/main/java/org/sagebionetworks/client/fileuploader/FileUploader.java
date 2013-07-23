@@ -1,4 +1,4 @@
-package org.sagebionetworks.client;
+package org.sagebionetworks.client.fileuploader;
 
 import java.io.File;
 import java.util.HashMap;
@@ -16,12 +16,19 @@ import java.util.concurrent.Future;
 import net.sf.jmimemagic.Magic;
 
 import org.apache.pivot.wtk.Window;
+import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileUploader implements FileUploaderView.Presenter {
+	private static final int MAX_NAME_CHARS = 40;
+
 	private static int fileIdSequence = 0;
 
 	private FileUploaderView view;
@@ -31,7 +38,8 @@ public class FileUploader implements FileUploaderView.Presenter {
 	private Map<Integer,File> idToFile = new HashMap<Integer, File>();
 	private Map<Future<FileEntity>,Integer> futureToId = new HashMap<Future<FileEntity>, Integer>();
 	private Map<File, UploadStatus> fileStatus = new HashMap<File, UploadStatus>();
-	
+	private Set<Future<FileEntity>> unfinished = new HashSet<Future<FileEntity>>();
+	UserSessionData userSessionData;
 	
 	public FileUploader(FileUploaderView view) {
 		this.view = view;
@@ -47,16 +55,34 @@ public class FileUploader implements FileUploaderView.Presenter {
 		this.parentId = parentId;
 		
 		try {
-			synapseClient.getUserSessionData();
+			userSessionData = synapseClient.getUserSessionData();
 		} catch (SynapseException e) {
 			if(e instanceof SynapseUnauthorizedException) {
 				view.alert("Your Synapse session has expired. Please reload.");				
 			} else {
 				view.alert("An Error Occured. Please reload.");
 			}
+			return;
 		}
-
 		
+		try {
+			Entity parent = synapseClient.getEntityById(parentId);
+			String message = parent.getName();
+			if(message.length() > MAX_NAME_CHARS) message = message.substring(0, MAX_NAME_CHARS) + "...";
+			message += " ("+ parentId +")";
+			view.setUploadingIntoMessage(message);
+		} catch (SynapseException e) {
+			if(e instanceof SynapseNotFoundException) {
+				view.alert("Upload target Not Found: " + parentId);				
+			} else if(e instanceof SynapseForbiddenException) {
+				String userName = "(undefined)";
+				if(userSessionData != null && userSessionData.getProfile() != null) 
+					userName = userSessionData.getProfile().getDisplayName();
+				view.alert("Access Denied to " + parentId + "for user " + userName);
+			} else {
+				view.alert("An Error Occured. Please reload.");
+			}
+		}		
 	}
 
 	@Override
@@ -64,11 +90,11 @@ public class FileUploader implements FileUploaderView.Presenter {
 		for (int i = 0; i < files.size(); i++) {
 			final File file = files.get(i);
 			if(fileStatus.containsKey(file) && 
-					(fileStatus.get(file) == UploadStatus.WAITING_FOR_UPLOAD 
+					(fileStatus.get(file) == UploadStatus.WAITING_TO_UPLOAD 
 					|| fileStatus.get(file) == UploadStatus.UPLOADING 
 					|| fileStatus.get(file) == UploadStatus.UPLOADED)) continue; // don't reupload files in the list
 			
-			setFileStatus(file, UploadStatus.WAITING_FOR_UPLOAD);
+			setFileStatus(file, UploadStatus.WAITING_TO_UPLOAD);
 			final String mimeType = getMimeType(file);
 				// upload file
 				Future<FileEntity> uploadedFuture = uploadPool.submit(new Callable<FileEntity>() {
@@ -88,6 +114,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 				int id = ++fileIdSequence;
 				idToFile.put(id, file);
 				futureToId.put(uploadedFuture, id);
+				unfinished.add(uploadedFuture);
 		}
 		
 		// check for completed jobs
@@ -97,6 +124,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 			public void run() {
 				for(Future<FileEntity> future : futureToId.keySet()) {
 					if(future.isDone()) {
+						unfinished.remove(future);
 						File file = idToFile.get(futureToId.get(future));
 						try {
 							future.get();
@@ -104,12 +132,19 @@ public class FileUploader implements FileUploaderView.Presenter {
 						} catch (Exception e) {
 							setFileStatus(file, UploadStatus.FAILED);
 						}
-						timer.cancel();
 					}
 				}
+				if(unfinished.isEmpty()) timer.cancel();
 			}
 		}, 0, 500L); // update every 1/2 second		
 	}
+	
+	@Override
+	public UploadStatus getFileUplaodStatus(File file) {
+		if(!fileStatus.containsKey(file)) return UploadStatus.NOT_UPLOADED;
+		else return fileStatus.get(file);
+	}
+
 
 	/*
 	 * Private Methods
@@ -128,7 +163,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 
 	private void setFileStatus(File file, UploadStatus status) {
 		fileStatus.put(file, status);
+		view.updateFileStatus();
 	}
-
 	
 }
