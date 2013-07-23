@@ -169,6 +169,49 @@ public class MigatableTableDAOImplAutowireTest {
 		assertEquals(idsToBackup1, results);
 	}
 	
+	@Test
+	public void testPLFM_1978_listDeltaRowMetadata(){
+		// For PLFM-1978, calling listDeltaRowMetadata() with an empty list causes a BadSqlGrammarException
+		// because the resulting 'in' clause is empty.
+		List<Long> list = new LinkedList<Long>();
+		// pass the empty list should return an empty result
+		List<RowMetadata> results = migatableTableDAO.listDeltaRowMetadata(MigrationType.ACCESS_APPROVAL, list);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testPLFM_1978_deleteObjectsById(){
+		// For PLFM-1978, calling deleteObjectsById() with an empty list causes a BadSqlGrammarException
+		// because the resulting 'in' clause is empty.
+		List<Long> list = new LinkedList<Long>();
+		// pass the empty list should return an empty result
+		int result = migatableTableDAO.deleteObjectsById(MigrationType.ACCESS_APPROVAL, list);
+		assertEquals(0, result);
+	}
+	
+	@Test
+	public void testPLFM_1978_getBackupBatch(){
+		// For PLFM-1978, calling getBackupBatch() with an empty list causes a BadSqlGrammarException
+		// because the resulting 'in' clause is empty.
+		List<Long> list = new LinkedList<Long>();
+		// pass the empty list should return an empty result
+		List<DBOFileHandle> results = migatableTableDAO.getBackupBatch(DBOFileHandle.class, list);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
+	@Test
+	public void testPLFM_1978_createOrUpdateBatch(){
+		// For PLFM-1978, calling createOrUpdateBatch() with an empty list causes a BadSqlGrammarException
+		// because the resulting 'in' clause is empty.
+		List<DBOFileHandle> list = new LinkedList<DBOFileHandle>();
+		// pass the empty list should return an empty result
+		List<Long> results = migatableTableDAO.createOrUpdateBatch(list);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+	}
+	
 	/**
 	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 
 	 * primary type is added, but that ensures we check that the types are truly primary.
@@ -191,6 +234,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
+		expectedPrimaryTypes.add(MigrationType.ACL);
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);

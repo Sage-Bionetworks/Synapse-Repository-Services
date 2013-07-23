@@ -60,6 +60,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -189,6 +190,7 @@ public class Synapse implements SynapseInt {
 	protected static final String ALL = "/all";
 	protected static final String STATUS = "/status";
 	protected static final String PARTICIPANT = "participant";
+	protected static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
 	protected static final String SUBMISSION = "submission";
 	protected static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
 	protected static final String SUBMISSION_ALL = SUBMISSION + ALL;
@@ -1099,6 +1101,12 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 		
+	}
+	
+	public ACTAccessRequirement createLockAccessRequirement(String entityId) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		JSONObject jsonObj = postUri(ENTITY+"/"+entityId+LOCK_ACCESS_REQUIREMENT);
+		return initializeFromJSONObject(jsonObj, ACTAccessRequirement.class);
 	}
 
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
@@ -3698,7 +3706,7 @@ public class Synapse implements SynapseInt {
 	
 	public Submission getSubmission(String subId) throws SynapseException {
 		if (subId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId;		
+		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		try {
@@ -3872,7 +3880,25 @@ public class Synapse implements SynapseInt {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-	}	
+	}
+	
+	/**
+	 * Get a temporary URL to access a File contained in a Submission.
+	 * 
+	 * @param submissionId
+	 * @param fileHandleId
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId, String fileHandleId)
+			throws ClientProtocolException, MalformedURLException, IOException {
+		String url = getRepoEndpoint() + EVALUATION_URI_PATH + "/" + 
+				SUBMISSION + "/" + submissionId + FILE + "/" + fileHandleId +
+				QUERY_REDIRECT_PARAMETER + "false";
+		return getUrl(url);
+	}
 	
 	public Long getSubmissionCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
@@ -4099,4 +4125,23 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
+
+	
+	public String retrieveApiKey() throws SynapseException {
+		try {
+			final String ATTRIBUTE_NAME = "secretKey";
+			String url = "/secretKey";
+			JSONObject jsonObj = signAndDispatchSynapseRequest(authEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			String apiKey = null;
+			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
+				apiKey = adapter.getString(ATTRIBUTE_NAME);
+			}
+			return apiKey;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	
 }

@@ -9,6 +9,7 @@
         "DELETE",
         "CHANGE_PERMISSIONS",
 	 	"DOWNLOAD",
-	 	"PARTICIPATE"
+	 	"PARTICIPATE",
+	 	"READ_PRIVATE_SUBMISSION"
     ]
 }

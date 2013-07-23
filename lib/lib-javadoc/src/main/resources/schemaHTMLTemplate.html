@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+#parse( "docHeaderTemplate.html" )
+
+<body>
+	<div id="container">
+		#parse( "bannerHeader.html" )
+		<div id="main">
+			<div class="ym-wrapper">
+				<div class="ym-wbox">
+					<div id="rootPanel" class="ym-grid linearize-level-1">
+						<div class="ym-grid">
+							<div class="ym-gbox">
+								<h2>${model.name}
+								#if(${model.isInterface})
+								&#60INTERFACE&#62
+								#end
+								</h2>
+								<h5>${model.id}</h5>
+								#if (${model.description})
+								<p>${model.description}</p>
+								#end
+								#if(${model.knownImplementations})
+								<h6>Known Implementations:</h6>
+									#foreach( $imp in $model.knownImplementations )
+									#if($imp.href) 
+										<a href="$imp.href">$imp.display</a>#if( $foreach.hasNext ),&nbsp #end
+									#end
+									#end
+								#end
+								#if ($model.fields)
+								<table border="0">
+									<thead>
+										<tr>
+											<th>Field</th>
+											<th>Type</th>
+											<th>Description</th>
+										</tr>
+									</thead>
+									<tbody>
+										#foreach( $field in $model.fields )
+										<tr>
+											<td>$field.name</td>
+											<td>#if($field.type.isArray) #if($field.type.isUnique)
+												SET&#60 #else ARRAY&#60 #end #end #if($field.type.href) <a
+												href="$field.type.href">$field.type.display</a> #else
+												$field.type.display #end #if($field.type.isArray) &#62 #end
+											</td> #if ($field.description)
+											<td>$field.description</td> #else
+											<td></td> #end
+										</tr>
+										#end
+									</tbody>
+								</table>
+								#end #if ($model.enumValues)
+								<h5>Enumeration</h5>
+								<table border="1">
+									<tr>
+										<th>value</th>
+									</tr>
+									#foreach( $value in $model.enumValues )
+									<tr>
+										<td>$value</td>
+									</tr>
+									#end
+								</table>
+								#end
+							</div>
+							#if($model.sample)
+							<div class="ym-gbox">
+								<h4>Example</h4>
+							</div>
+							<div class="ym-gbox">
+								<pre class="prettyprint lang-json">$model.sample</pre>
+							</div>
+							#end
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		#parse( "footerTemplate.html" )
+	</div>
+</body>
+</html>

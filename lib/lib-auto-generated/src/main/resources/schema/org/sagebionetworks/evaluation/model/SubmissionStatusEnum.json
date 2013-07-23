@@ -6,6 +6,8 @@
         "OPEN",
         "CLOSED",
         "SCORED",
-        "INVALID"
+        "INVALID",
+        "VALIDATED",
+        "EVALUATION_IN_PROGRESS"
     ]
 }

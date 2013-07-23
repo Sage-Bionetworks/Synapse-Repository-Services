@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+#parse( "docHeaderTemplate.html" )
+
+<body>
+	<div id="container">
+		#parse( "bannerHeader.html" )
+		<div id="main">
+			<div class="ym-wrapper">
+				<div class="ym-wbox">
+					<div id="rootPanel" class="ym-grid linearize-level-1">
+						<div class="ym-grid">
+							<div class="ym-gbox">
+								<h2>${method.methodLink.display}</h2>
+							</div>
+						</div>
+						<div class="ym-grid">
+							<div class="ym-g66 ym-gl">
+								<div class="ym-gbox">
+									<p>${method.description}</p>
+								</div>
+								<div class="ym-gbox">
+									<h4>Resource URL</h4>
+								</div>
+								<div class="ym-gbox">
+									<p>https://repo-prod.sagebase.org/${controllerPath}${method.url}</p>
+								</div>
+								#if(${method.pathVariables})
+								<div class="ym-gbox">
+									<h6>Resource URL Variables</h6>
+								</div>
+								<div class="ym-gbox">
+									<table class="borderless">
+										<tbody>
+											#foreach( $param in $method.pathVariables)
+											<tr>
+												<td>{$param.name}</td>
+												<td>#if($param.description)
+												$param.description
+												#end</td>
+											</tr>
+											#end
+										</tbody>
+									</table>
+								</div>
+								#end
+								#if(${method.parameters})
+								<div class="ym-gbox">
+									<h6>Parameters</h6>
+								</div>
+								<div class="ym-gbox">
+									<table class="borderless">
+										<tbody>
+											#foreach( $param in $method.parameters)
+											<tr>
+												<td>
+												$param.name
+												#if($param.isOptional)
+												<p class="dimmed">optional</p>
+												#end
+												</td>
+												<td>#if($param.description)
+												$param.description
+												#end</td>
+											</tr>
+											#end
+										</tbody>
+									</table>
+								</div>
+								#end
+							</div>
+							<div class="ym-g33 ym-gr">
+								<div class="ym-gbox">
+									<table class="bordertable">
+										<thead>
+											<tr>
+												<th colspan="2">Resource Information</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>Authentication</td>
+												<td>#if($method.isAuthenticationRequired)
+														Required
+													#else
+														false
+													#end	
+												</td>
+											</tr>
+											<tr>
+												<td>HTTP Methods</td>
+												<td>${method.httpType}</td>
+											</tr>
+											<tr>
+												<td>Request Object</td>
+												<td>#if($method.requestBody)
+												<a href="$method.requestBody.href">$method.requestBody.display</a><br>(application/json)</br>
+												#end</td>
+											</tr>
+											<tr>
+												<td>Response Object</td>
+												<td>#if($method.responseBody)
+												<a href="$method.responseBody.href">$method.responseBody.display</a><br>(application/json)</br>
+												#end</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		#parse( "footerTemplate.html" )
+	</div>
+</body>
+</html>

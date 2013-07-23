@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -12,10 +15,12 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -36,21 +41,22 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class EvaluationServiceImpl implements EvaluationService {
-	
+
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
 	@Autowired
-	EvaluationManager evaluationManager;
+	private EvaluationManager evaluationManager;
 	@Autowired
-	ParticipantManager participantManager;
+	private ParticipantManager participantManager;
 	@Autowired
-	SubmissionManager submissionManager;
+	private SubmissionManager submissionManager;
 	@Autowired
-	PermissionsManager permissionsManager;
-	
+	private EntityPermissionsManager entityPermissionsManager; // TODO: To be replaced by evaluationPermissionsManager
 	@Autowired
-	UserManager userManager;
-	
+	private EvaluationPermissionsManager evaluationPermissionsManager;
+	@Autowired
+	private UserManager userManager;
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Evaluation createEvaluation(String userName, Evaluation eval) 
@@ -347,9 +353,68 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
+	public URL getRedirectURLForFileHandle(String userName, 
+			String submissionId, String fileHandleId) 
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getRedirectURLForFileHandle(userInfo, submissionId, fileHandleId);
+	}
+
+	@Override
 	public long getSubmissionCount(String evalId) throws DatastoreException,
 			NotFoundException {
 		return submissionManager.getSubmissionCount(evalId);
+	}
+
+	@Override
+	public <T extends Entity> boolean hasAccess(String id, String userName,
+			HttpServletRequest request, String accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return entityPermissionsManager.hasAccess(id, ObjectType.EVALUATION, ACCESS_TYPE.valueOf(accessType), userInfo);
+	}
+
+	@Override
+	public AccessControlList createAcl(String userName, AccessControlList acl)
+			throws NotFoundException, DatastoreException,
+			InvalidModelException, UnauthorizedException,
+			ConflictingUpdateException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return evaluationPermissionsManager.createAcl(userInfo, acl);
+	}
+
+	@Override
+	public AccessControlList updateAcl(String userName, AccessControlList acl)
+			throws NotFoundException, DatastoreException,
+			InvalidModelException, UnauthorizedException,
+			ConflictingUpdateException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return evaluationPermissionsManager.updateAcl(userInfo, acl);
+	}
+
+	@Override
+	public void deleteAcl(String userName, String evalId)
+			throws NotFoundException, DatastoreException,
+			InvalidModelException, UnauthorizedException,
+			ConflictingUpdateException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		evaluationPermissionsManager.deleteAcl(userInfo, evalId);
+	}
+
+	@Override
+	public AccessControlList getAcl(String userName, String evalId)
+			throws NotFoundException, DatastoreException,
+			ACLInheritanceException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return evaluationPermissionsManager.getAcl(userInfo, evalId);
+	}
+
+	@Override
+	public UserEvaluationPermissions getUserPermissionsForEvaluation(
+			String userName, String evalId) throws NotFoundException,
+			DatastoreException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return evaluationPermissionsManager.getUserPermissionsForEvaluation(userInfo, evalId);
 	}
 	
 	/**
@@ -363,13 +428,4 @@ public class EvaluationServiceImpl implements EvaluationService {
 	private String makeEvalIdUrl(String evalId, String url) {
 		return url.replace(UrlHelpers.EVALUATION_ID_PATH_VAR, evalId);
 	}
-	
-	@Override
-	public <T extends Entity> boolean hasAccess(String id, String userName,
-			HttpServletRequest request, String accessType)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userName);
-		return permissionsManager.hasAccess(id, ObjectType.EVALUATION, ACCESS_TYPE.valueOf(accessType), userInfo);
-	}
-	
 }

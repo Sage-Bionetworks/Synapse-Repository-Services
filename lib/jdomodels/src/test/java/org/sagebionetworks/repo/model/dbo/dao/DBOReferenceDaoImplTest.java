@@ -30,9 +30,9 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -65,12 +66,9 @@ public class DBOReferenceDaoImplTest {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
-	DBOAccessControlListDao dboAccessControlListDao;
-	
-	@Autowired
-	AccessControlListDAO accessControlListDao;
+	private AccessControlListDAO aclDAO;
 	
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
@@ -102,7 +100,7 @@ public class DBOReferenceDaoImplTest {
 			}
 		}
 		
-		if (aclIdToDelete!=null) accessControlListDao.delete(aclIdToDelete);
+		if (aclIdToDelete!=null) aclDAO.delete(aclIdToDelete);
 	}
 	
 	private static final int NODE_COUNT = 2;
@@ -447,10 +445,11 @@ public class DBOReferenceDaoImplTest {
 		ra.setPrincipalId(Long.parseLong(groupId));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		acl = dboAccessControlListDao.createACL(acl);
+		String aclId = aclDAO.create(acl);
+		acl = aclDAO.get(aclId, ObjectType.ENTITY);
 		// add acl to a list of objects to delete
 		aclIdToDelete = acl.getId();
-		assertEquals(""+node0.getId()+"!="+acl.getId(), ""+node0.getId(), acl.getId());
+		assertEquals(""+node0.getId()+"!="+acl.getId(), ""+node0.getId(), aclId);
 		
 		// add the group to the userInfo
 		userInfo = new UserInfo(false); // not an administrator!
@@ -462,17 +461,17 @@ public class DBOReferenceDaoImplTest {
 		String permissionsBenefactor0 = nodeInheritanceDao.getBenefactor(""+node0.getId());
 		// node0 is its own permissions supplier
 		assertEquals(""+node0.getId()+"!="+permissionsBenefactor0, ""+KeyFactory.keyToString(node0.getId()), permissionsBenefactor0);
-		AccessControlList acl2 = accessControlListDao.getForResource(""+node0.getId());
+		AccessControlList acl2 = aclDAO.get(""+node0.getId(), ObjectType.ENTITY);
 		assertNotNull(acl2);
 		Set<ResourceAccess> ras2 = acl2.getResourceAccess();
 		assertEquals(1, ras2.size());
 		ResourceAccess ra2 = ras2.iterator().next();
 		assertEquals(groupId, ra2.getPrincipalId().toString());
-		assertTrue(accessControlListDao.canAccess(userInfo.getGroups(), permissionsBenefactor0, ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor0, ACCESS_TYPE.READ));
 		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactor(""+node1.getId());
 		// node1 is its own permissions supplier
 		assertEquals(""+node1.getId()+"!="+permissionsBenefactor1, KeyFactory.keyToString(node1.getId()), permissionsBenefactor1);
-		assertFalse(accessControlListDao.canAccess(userInfo.getGroups(), permissionsBenefactor1, ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor1, ACCESS_TYPE.READ));
 		
 		// now should only find referrers which allow the created group
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -142,7 +143,7 @@ public class NodeManagerImplAutoWiredTest {
 				// This node should inherit from itself
 				String benefactorId = inheritanceDAO.getBenefactor(id);
 				assertEquals("This node should inherit from its parent",id, benefactorId);
-				AccessControlList acl = aclDAO.getForResource(id);
+				AccessControlList acl = aclDAO.get(id, ObjectType.ENTITY);
 				assertNotNull(acl);
 				assertEquals(id, acl.getId());
 				// Make sure the user can do everything

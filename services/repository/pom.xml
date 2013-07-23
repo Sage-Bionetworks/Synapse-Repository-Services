@@ -39,7 +39,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-logging</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
@@ -131,6 +131,7 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
+
 	</dependencies>
 	<build>
 		<resources>
@@ -198,8 +199,56 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+							<goal>test-jar</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<excludePackageNames>
+						org.sagebionetworks.repo.web.controller.metadata.*
+						:org.sagebionetworks.repo.web.filter.*
+						:org.sagebionetworks.repo.web.service.*
+						:org.sagebionetworks.sweeper.log4j.*
+						:profiler.org.*
+					</excludePackageNames>
+					<doclet>org.sagebionetworks.javadoc.web.services.SpringMVCDoclet</doclet>
+					<docletArtifact>
+						<groupId>org.sagebionetworks</groupId>
+						<artifactId>lib-javadoc</artifactId>
+						<version>${project.version}</version>
+					</docletArtifact>
+					<additionalparam>-verbose</additionalparam>
+					<useStandardDocletOptions>false</useStandardDocletOptions>
+					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>deploy</phase>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<mainClass>org.sagebionetworks.repo.PublishToS3</mainClass>
+					<arguments>
+						<argument>${project.build.directory}/javadoc/restdocs</argument>
+					</arguments>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
-
 </project>
 

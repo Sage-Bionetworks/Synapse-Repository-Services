@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -26,7 +28,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -55,6 +56,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	NodeManager nodeManager;
 	@Autowired
 	AuthorizationManager authorizationManager;
+	@Autowired
+	FileHandleManager fileHandleManager;
 	
 	public SubmissionManagerImpl() {};
 	
@@ -62,7 +65,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, SubmissionFileHandleDAO submissionFileHandleDAO,
 			EvaluationManager evaluationManager, ParticipantManager participantManager,
-			EntityManager entityManager, NodeManager nodeManager, AuthorizationManager authorizationManager) {
+			EntityManager entityManager, NodeManager nodeManager,
+			AuthorizationManager authorizationManager, FileHandleManager fileHandleManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
@@ -72,6 +76,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		this.entityManager = entityManager;
 		this.nodeManager = nodeManager;
 		this.authorizationManager = authorizationManager;
+		this.fileHandleManager = fileHandleManager;
 	}
 
 	@Override
@@ -79,19 +84,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
 		Submission sub = submissionDAO.get(submissionId);
 		boolean isSubmissionOwner = userInfo.getIndividualGroup().getId().equals(sub.getUserId());
-		boolean isEvaluationAdmin = authorizationManager.canAccess(
-				userInfo, sub.getEvaluationId(), ObjectType.EVALUATION, ACCESS_TYPE.UPDATE);
-		if (isSubmissionOwner || isEvaluationAdmin) {
-			return sub;
-		} else {
-			throw new UnauthorizedException("User " + userInfo.getUser().getId() +
-					" is not authorized to view Submission " + submissionId);
+		if (!isSubmissionOwner) {
+			validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);			
 		}
+		return sub;
 	}
 
 	@Override
 	public SubmissionStatus getSubmissionStatus(String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
+		// this API is publicly accessible
 		return submissionStatusDAO.get(submissionId);
 	}
 
@@ -180,9 +182,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
 		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
-		if (!authorizationManager.canAccess(
-				userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE))
-			throw new UnauthorizedException("Not authorized");
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE);
 		
 		if (!old.getEtag().equals(submissionStatus.getEtag()))
 			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 
@@ -204,16 +204,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
 		
 		Submission sub = submissionDAO.get(submissionId);		
 		String evalId = sub.getEvaluationId();
-		
-		// verify access permission
-		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException("User ID: " + principalId +
-					" is not authorized to modify Submission ID: " + submissionId);
-		}
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
 		submissionDAO.delete(submissionId);
@@ -224,15 +218,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
-		
-		if (!authorizationManager.canAccess(
-				userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE))
-			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Evaluation " + evalId);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		
 		return getAllSubmissions(evalId, status, limit, offset);
 	}
-	
+
 	private QueryResults<Submission> getAllSubmissions(String evalId, SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, NotFoundException {		
 		List<Submission> submissions;
@@ -302,6 +292,23 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		return submissionDAO.getCountByEvaluation(evalId);
 	}
 	
+	@Override
+	public URL getRedirectURLForFileHandle(UserInfo userInfo, 
+			String submissionId, String fileHandleId) 
+			throws DatastoreException, NotFoundException {
+		Submission submission = getSubmission(userInfo, submissionId);
+		validateEvaluationAccess(userInfo, submission.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+
+		// ensure that the requested ID is included in the Submission
+		List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId);
+		if (!ids.contains(fileHandleId)) {
+			throw new NotFoundException("Submission " + submissionId + " does " +
+					"not contain the requested FileHandle " + fileHandleId);
+		}			
+		// generate the URL
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+	}
+	
 	protected QueryResults<SubmissionBundle> submissionsToSubmissionBundles(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
 		List<SubmissionBundle> bundles = new ArrayList<SubmissionBundle>(submissions.getResults().size());
 		for (Submission sub : submissions.getResults()) {
@@ -319,6 +326,15 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			statuses.add(getSubmissionStatus(sub.getId()));
 		}
 		return new QueryResults<SubmissionStatus>(statuses, submissions.getTotalNumberOfResults());
+	}
+
+	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+			throws NotFoundException {
+		String principalId = userInfo.getIndividualGroup().getId();		
+		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, accessType)) {
+			throw new UnauthorizedException("User " + principalId + 
+					" is not authorized to perform this operation on Evaluation " + evalId);
+		}
 	}
 
 }

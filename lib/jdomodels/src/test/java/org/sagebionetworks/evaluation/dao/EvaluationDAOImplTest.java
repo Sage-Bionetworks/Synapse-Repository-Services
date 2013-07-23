@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +49,7 @@ public class EvaluationDAOImplTest {
 	
 	private static final String EVALUATION_NAME = "test-evaluation";
 	private static final String EVALUATION_NAME_2 = "test-evaluation-2";
-    private static final Long EVALUATION_OWNER_ID = 0L;
+    private static final Long EVALUATION_OWNER_ID = 1L;
     private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.keyToString(KeyFactory.ROOT_ID);
     
     private static Evaluation newEvaluation(String id, String name, String contentSource, EvaluationStatus status) {
@@ -159,7 +160,7 @@ public class EvaluationDAOImplTest {
         try {
         	evaluationDAO.create(clone, EVALUATION_OWNER_ID);
         	fail("Should not be able to create two Evaluations with the same name");
-        } catch (DatastoreException e) {
+        } catch (NameConflictException e) {
         	// Expected name conflict
         	assertTrue("Name conflict message should contain the requested name", 
         			e.getMessage().contains(EVALUATION_NAME));

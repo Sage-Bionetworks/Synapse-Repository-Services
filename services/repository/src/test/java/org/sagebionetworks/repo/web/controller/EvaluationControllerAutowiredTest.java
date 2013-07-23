@@ -1,11 +1,17 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 
@@ -23,23 +29,33 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.web.servlet.DispatcherServlet;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -392,7 +408,134 @@ public class EvaluationControllerAutowiredTest {
 		subs = entityServletHelper.getAllSubmissions(ownerName, eval2.getId(), null);
 		assertEquals(0, subs.getTotalNumberOfResults());
 	}
-	
+
+	@Test
+	public void testAclRoundTrip() throws Exception {
+
+		// Create the entity first
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		String nodeId = createNode("EvaluationControllerAutowiredTest.testAclRoundTrip()", userInfo);
+		assertNotNull(nodeId);
+		nodesToDelete.add(nodeId);
+
+		// Create the evaluation
+		eval1.setContentSource(nodeId);
+		eval1 = entityServletHelper.createEvaluation(eval1, userName);		
+		assertNotNull(eval1.getEtag());
+		assertNotNull(eval1.getId());
+		assertEquals(nodeId, eval1.getContentSource());
+		evaluationsToDelete.add(eval1.getId());
+
+		DispatcherServlet dispatcher = DispatchServletSingleton.getInstance();
+
+		// Create the ACL
+		AccessControlList acl = new AccessControlList();
+		acl.setId(eval1.getId());
+		ResourceAccess ra = new ResourceAccess();
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		ra.setAccessType(accessType);
+		ra.setPrincipalId(Long.parseLong(userId));
+		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
+		resourceAccess.add(ra);
+		acl.setResourceAccess(resourceAccess);
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("POST");
+		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		String body = EntityFactory.createJSONStringForEntity(acl);
+		request.setContent(body.getBytes("UTF-8"));
+
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+
+		AccessControlList aclReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		assertNotNull(aclReturned);
+		assertEquals(acl.getId(), aclReturned.getId());
+		assertNotNull(aclReturned.getResourceAccess());
+
+		// Update the ACL
+		ra = new ResourceAccess();
+		accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		accessType.add(ACCESS_TYPE.PARTICIPATE);
+		accessType.add(ACCESS_TYPE.READ);
+		ra.setAccessType(accessType);
+		ra.setPrincipalId(Long.parseLong(userId));
+		resourceAccess = new HashSet<ResourceAccess>();
+		resourceAccess.add(ra);
+		aclReturned.setResourceAccess(resourceAccess);
+
+		request = new MockHttpServletRequest();
+		request.setMethod("PUT");
+		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		body = EntityFactory.createJSONStringForEntity(aclReturned);
+		request.setContent(body.getBytes("UTF-8"));
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		aclReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		assertNotNull(aclReturned);
+		assertEquals(acl.getId(), aclReturned.getId());
+
+		// getAcl()
+		request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		aclReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		assertNotNull(aclReturned);
+		assertEquals(acl.getId(), aclReturned.getId());
+
+		// getUserEvaluationPermissions()
+		request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.PERMISSIONS);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		UserEvaluationPermissions uepReturned = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), UserEvaluationPermissions.class);
+		assertNotNull(uepReturned);
+
+		// deleteAcl()
+		request = new MockHttpServletRequest();
+		request.setMethod("DELETE");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+
+		response = new MockHttpServletResponse();
+		dispatcher.service(request, response);
+		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
+		response.getContentAsString();
+	}
+
 	private String createNode(String name, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException {
 		Node toCreate = new Node();
 		toCreate.setName(name);

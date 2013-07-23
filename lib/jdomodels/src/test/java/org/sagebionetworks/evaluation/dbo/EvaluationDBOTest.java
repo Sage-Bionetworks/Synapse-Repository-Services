@@ -39,30 +39,34 @@ public class EvaluationDBOTest {
     @Test
     public void testCRUD() throws Exception{
         // Initialize a new competition
-        EvaluationDBO competition = new EvaluationDBO();
-        competition.setId(id);
-        competition.seteTag(eTag);
-        competition.setName(name);
-        competition.setOwnerId(ownerId);
-        competition.setCreatedOn(System.currentTimeMillis());
-        competition.setContentSource(contentSource);
-        competition.setStatusEnum(EvaluationStatus.PLANNED);
+        EvaluationDBO eval = new EvaluationDBO();
+        eval.setId(id);
+        eval.seteTag(eTag);
+        eval.setName(name);
+        eval.setOwnerId(ownerId);
+        eval.setCreatedOn(System.currentTimeMillis());
+        eval.setContentSource(contentSource);
+        eval.setStatusEnum(EvaluationStatus.PLANNED);
+        eval.setDescription("my description".getBytes());
+        eval.setSubmissionInstructionsMessage("foo".getBytes());
+        eval.setSubmissionReceiptMessage("bar".getBytes());
  
         // Create it
-        EvaluationDBO clone = dboBasicDao.createNew(competition);
+        EvaluationDBO clone = dboBasicDao.createNew(eval);
         assertNotNull(clone);
-        assertEquals(competition, clone);
+        assertEquals(eval, clone);
         
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id", id);
         clone = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params);
         assertNotNull(clone);
-        assertEquals(competition.getId(), clone.getId());
-        assertEquals(competition.getName(), clone.getName());
+        assertEquals(eval.getId(), clone.getId());
+        assertEquals(eval.getName(), clone.getName());
         
 		// Update it
 		clone.setDescription("This is a new description".getBytes("UTF-8"));
+		clone.setSubmissionInstructionsMessage("baz".getBytes());
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		

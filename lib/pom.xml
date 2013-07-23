@@ -28,6 +28,7 @@
 		<module>lib-dynamo</module>
 		<module>lib-worker</module>
 		<module>lib-doi</module>
+		<module>lib-javadoc</module>
 	</modules>
 
 </project>

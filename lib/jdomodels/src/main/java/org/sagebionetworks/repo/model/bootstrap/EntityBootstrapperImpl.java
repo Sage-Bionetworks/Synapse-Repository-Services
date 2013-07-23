@@ -40,7 +40,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
+	private AccessControlListDAO aclDAO;
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
 
@@ -100,13 +100,13 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 				Long groupId = Long.parseLong(userGroupDAO.findGroup(abd.getGroup().name(), false).getId());
 				abd.setGroupId(groupId);
 			}
-			if (true/*parentId!=null*/) { // root HAS ACL
-				// Now create the ACL on the node
-				AccessControlList acl = createAcl(nodeId, bootstrapPrincipal.getId(), entityBoot.getAccessList());
-				// Now set the ACL for this node.
-				accessControlListDAO.create(acl);
-				nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
-			}
+
+			// Now create the ACL on the node
+			AccessControlList acl = createAcl(nodeId, bootstrapPrincipal.getId(), entityBoot.getAccessList());
+			// Now set the ACL for this node.
+			aclDAO.create(acl);
+			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
+
 			// Verify the bootstrap entity has indeed been created
 			id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());
 			if (id == null) {

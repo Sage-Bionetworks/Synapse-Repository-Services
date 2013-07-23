@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -51,7 +52,7 @@ public class EntityBootstrapperAutowireTest {
 			
 			// root nodes don't have ACLs
 			try {
-				AccessControlList acl = accessControlListDAO.getForResource(id);
+				AccessControlList acl = accessControlListDAO.get(id, ObjectType.ENTITY);
 				assertNotNull(acl);
 			} catch (NotFoundException nfe) {
 				throw new NotFoundException("id="+id);

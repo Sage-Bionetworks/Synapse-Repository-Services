@@ -1,24 +1,24 @@
 {
-	"description": "JSON schema for ChunkedFileToken",
+	"description": "The ChunkedFileToken contains data to track the chunked upload a file.  The first step in uploading a file is to create ChunkedFileToken.",
 	"properties": {
 		"key": {
 			"type": "string",
-			"description": "The S3 key for this object"
+			"description": "The S3 key for this object.  Synapse will provide this value upon creation."
 		},
 		"uploadId": {
-			"description": "The uploadId",
+			"description": "The unique ID that tracks this file upload. Synapse will provide this value upon creation.",
 			"type": "string"
 		},
 		"fileName": {
-			"description": "The name of the file",
+			"description": "The short name of the file.  This should include the appropriate file prefix.",
 			"type": "string"
 		},
 		"contentType": {
-			"description": "The content type of the file",
+			"description": "The content type of the file. Must be: http://en.wikipedia.org/wiki/Internet_media_type",
 			"type": "string"
 		},
 		"contentMD5": {
-			"description": "The content MD5 of the file",
+			"description": "The file's content MD5 (should be a HEX encoded string).",
 			"type": "string"
 		}
 	}

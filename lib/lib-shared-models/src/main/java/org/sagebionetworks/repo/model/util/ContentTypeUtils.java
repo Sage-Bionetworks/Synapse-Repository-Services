@@ -7,7 +7,7 @@ public class ContentTypeUtils {
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 	public static final String PLAIN_TEXT = "text/plain";
 	
-	private static final String[] CODE_EXTENSIONS = new String[] {".awk",".bat",".btm",".c",".cmd",".cpp",".cxx",".def",".dlg",".dpc",".dpj",".dtd",".h",".hdl",".hpp",".hrc",".html",".hxx",".inc",".ini",".inl",".ins",".java",".js",".jsp",".l",".lgt",".ll",".par",".pl",".r",".rc",".rdb",".res",".s",".sbl",".scp",".sh",".sql",".src",".srs",".xml",".xrb",".y",".yxx"};
+	private static final String[] CODE_EXTENSIONS = new String[] {".awk",".bat",".btm",".c",".cmd",".cpp",".cxx",".def",".dlg",".dpc",".dpj",".dtd",".h",".hdl",".hpp",".hrc",".html",".hxx",".inc",".ini",".inl",".ins",".ipy",".java",".js",".jsp",".l",".lgt",".ll",".par",".pl",".py",".r",".rc",".rdb",".res",".s",".sbl",".scp",".sh",".sql",".src",".srs",".xml",".xrb",".y",".yxx"};
 	private static final HashSet<String> CODE_EXTENSIONS_SET = new HashSet<String>(Arrays.asList(CODE_EXTENSIONS));
 	/**
 	 * Return the content type that should be used for this file.

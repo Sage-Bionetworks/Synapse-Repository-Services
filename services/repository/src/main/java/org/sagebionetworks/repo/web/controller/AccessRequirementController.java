@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+@ControllerInfo(displayName="Access Requirement Services", path="repo/v1")
 @Controller
 public class AccessRequirementController extends BaseController {
 
@@ -44,6 +46,17 @@ public class AccessRequirementController extends BaseController {
 			) throws Exception {
 		AccessRequirement accessRequirement = (AccessRequirement)ControllerEntityClassHelper.deserialize(request, header);
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
+	}
+	
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_LOCK_ACCESS_REQURIEMENT, method = RequestMethod.POST)
+	public @ResponseBody
+	AccessRequirement createLockAccessRequirement(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id
+			) throws Exception {
+		return serviceProvider.getAccessRequirementService().createLockAccessRequirement(userId, id);
 	}
 	
 

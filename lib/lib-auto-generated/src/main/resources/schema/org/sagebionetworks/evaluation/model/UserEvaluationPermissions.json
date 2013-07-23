@@ -1,0 +1,34 @@
+{
+	"title": "Evaluation Permissions",
+	"description": "The permission a User has for a given Evaluation",
+	"properties": {
+		"canChangePermissions": {
+			"type": "boolean",
+			"description": "Can the user change the permissions of this evaluation?"
+		},
+		"canView": {
+			"type": "boolean",
+			"description": "Can the user view this evaluation?"
+		},
+		"canPublicRead": {
+			"type": "boolean",
+			"description": "Is this evaluation considered public?"
+		},
+		"canEdit": {
+			"type": "boolean",
+			"description": "Can the user edit this evaluation?"
+		},
+		"canDelete": {
+			"type": "boolean",
+			"description": "Can the user delete this evaluation?"
+		},
+		"canParticipate": {
+			"type": "boolean",
+			"description": "Can the user participate in this evaluation?"
+		},
+		"ownerPrincipalId": {
+			"type": "integer",
+			"description": "The principal ID of the evaluation's owner (i.e. the evaluation's 'createdBy')"
+		}
+	}
+}

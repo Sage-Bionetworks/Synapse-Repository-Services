@@ -8,21 +8,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import javax.xml.xpath.XPathExpressionException;
 
 import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.Session;
-import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -316,4 +314,17 @@ public class UserManagerImpl implements UserManager {
 		}
 	}
 
+	@Override
+	public Collection<UserGroup> getGroups() throws DatastoreException {
+		List<String> groupsToOmit = new ArrayList<String>();
+		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
+		return userGroupDAO.getAllExcept(false, groupsToOmit);
+	}
+
+	@Override
+	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
+		List<String> groupsToOmit = new ArrayList<String>();
+		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
+		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
+	}
 }
