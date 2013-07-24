@@ -127,7 +127,7 @@ public class UserProfileController extends BaseController {
 
 	/**
 	 * Update your own profile
-	 * <p><b>Note: </b> The user associated with the UserProfile "ownerId" must match the identity of the authenticated user making the request, 
+	 * <p><b>Note: </b> The user associated with the UserProfile "ownerId" must match the identity of the caller, 
 	 * otherwise an Unauthorized response will occur.</p>
 	 * @param userId
 	 * 		The user that is making the request.
@@ -182,7 +182,7 @@ public class UserProfileController extends BaseController {
 		return serviceProvider.getUserProfileService().createUserProfileS3AttachmentToken(userId, profileId, token, request);
 	}
 	/**
-	 * Create a new <a href="${org.sagebionetworks.repo.model.attachment.PresignedUrl}">PresignedUrl</a> for a profile picture attachment.
+	 * Create a new PresignedUrl for a profile picture attachment.
 	 * 
 	 * @param userId
 	 * @param id
@@ -208,11 +208,11 @@ public class UserProfileController extends BaseController {
 	}
 	
 	/**
-	 * Batch get <a href="${org.sagebionetworks.repo.model.UserGroupHeader}">UserGroupHeaders</a>.
+	 * Batch get UserGroupHeaders.
 	 * This fetches information about a collection of users or groups, specified by Synapse IDs.
 	 * 
 	 * @param header
-	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas.  <p>For example: <code>/userGroupHeaders/batch?ids=1001,819</code></p>
+	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas.  <p>For example: <pre class="prettyprint">ids=1001,819</pre></p>
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -262,7 +262,7 @@ public class UserProfileController extends BaseController {
 	}
 	
 	/**
-	 * Add an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the authenticated user.
+	 * Add an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the caller.
 	 * @param id
 	 *        Entity ID of the favorite <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>
 	 * @param userId
@@ -290,7 +290,7 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Remove an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the authenticated user.
+	 * Remove an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the caller.
 	 * @param id
 	 *       Entity ID of the <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> that should be removed as a favorite
 	 * @param userId
@@ -318,7 +318,7 @@ public class UserProfileController extends BaseController {
 
 	/**
 	 * Get a <a href="${org.sagebionetworks.repo.model.PaginatedResults}">paginated result</a> that contains the 
-	 * authenticated user's <a href="${org.sagebionetworks.repo.model.Favorite}">Favorites</a> 
+	 * caller's <a href="${org.sagebionetworks.repo.model.Favorite}">Favorites</a> 
 	 * @param userId
 	 * @param offset
 	 * 			The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
