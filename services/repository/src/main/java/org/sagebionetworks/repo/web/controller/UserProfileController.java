@@ -317,7 +317,7 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Get a <a href="${org.sagebionetworks.repo.model.PaginatedResults}">paginated result</a> that contains the 
+	 * Get a paginated result that contains the 
 	 * caller's <a href="${org.sagebionetworks.repo.model.Favorite}">Favorites</a> 
 	 * @param userId
 	 * @param offset
