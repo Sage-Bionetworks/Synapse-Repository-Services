@@ -154,7 +154,7 @@
 		"teamName": {
 			"type": "string",
 			"title": "Team Name",
-			"description": "This person's default DREAM8 challenge alias/team name",
+			"description": "This person's default team name",
 			"links": [
 				{
 					"rel": "describedby",
