@@ -15,7 +15,6 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -117,30 +116,26 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Evaluation updateEvaluation(UserInfo userInfo, Evaluation eval)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-
+		// validate arguments
 		EvaluationUtils.ensureNotNull(eval, "Evaluation");
 		UserInfo.validateUserInfo(userInfo);
-
 		final String evalId = eval.getId();
-		Evaluation old = evaluationDAO.get(evalId);
-		if (old == null) {
-			throw new NotFoundException("No Evaluation found with id " + eval.getId());
-		}
-		if (!old.getEtag().equals(eval.getEtag())) {
-			// NOTE: we have not yet locked the DB row for update; this will occur at the DAO layer.			
-			// This check is a performance optimization (in the interest of fail-fast behavior).
-			throw new ConflictingUpdateException("Your copy of Evaluation " + eval.getId() +
-					" is out of date. Please fetch it again before updating.");
-		}
-
+		
+		// validate permissions
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 					" is not authorized to update evaluation " + evalId +
 					" (" + eval.getName() + ")");
 		}
 
+		// fetch the existing Evaluation and validate changes		
+		Evaluation old = evaluationDAO.get(evalId);
+		if (old == null) {
+			throw new NotFoundException("No Evaluation found with id " + eval.getId());
+		}
 		validateEvaluation(old, eval);
 
+		// perform the update
 		evaluationDAO.update(eval);
 		return getEvaluation(evalId);
 	}
@@ -168,16 +163,16 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		evaluationDAO.delete(id);
 	}
 
-	private void validateEvaluation(Evaluation oldComp, Evaluation newComp) {
-		if (!oldComp.getOwnerId().equals(newComp.getOwnerId()))
+	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {
+		if (!oldEval.getOwnerId().equals(newEval.getOwnerId())) {
 			throw new InvalidModelException("Cannot overwrite Evaluation Owner ID");
-		if (!oldComp.getCreatedOn().equals(newComp.getCreatedOn()))
+		}
+		if (!oldEval.getCreatedOn().equals(newEval.getCreatedOn())) {
 			throw new InvalidModelException("Cannot overwrite CreatedOn date");
-		if (!oldComp.getEtag().equals(newComp.getEtag()))
-			throw new InvalidModelException("Etag is invalid. Please fetch the Evaluation again.");
+		}
 	}
 
-	private AccessControlList createDefaultAcl(final UserInfo creator, final String evalId) {
+	private static AccessControlList createDefaultAcl(final UserInfo creator, final String evalId) {
 
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
 		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);

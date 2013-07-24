@@ -326,7 +326,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		String currentTag = lockForUpdate(id);
 		// Check the eTags
 		if(!currentTag.equals(eTag)){
-			throw new ConflictingUpdateException("Evaluation: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
+			throw new ConflictingUpdateException("Evaluation: " + id + " has been updated since " +
+					"you last fetched it; please retrieve it again and re-apply the update");
 		}
 		// Get a new e-tag
 		EvaluationDBO dbo = getDBO(id);
