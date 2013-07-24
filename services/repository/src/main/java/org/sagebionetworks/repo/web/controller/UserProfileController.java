@@ -53,10 +53,10 @@ public class UserProfileController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Get the profile of the authenticated user.
+	 * Get the profile of the caller (my profile).
 	 * <p><b>Note:</b> Private user profile fields will be returned.</p>
 	 * @param userId
-	 *             - The user that is making the request.
+	 *             The user that is making the request.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -76,9 +76,9 @@ public class UserProfileController extends BaseController {
 	 * Get the profile of a specified user.
 	 * <p><b>Note:</b> Private fields (e.g. "rStudioUrl") are omitted unless the requester is the profile owner or an administrator.</p>
 	 * @param userId
-	 *            - The user that is making the request.
+	 *            The user that is making the request.
 	 * @param profileId 
-	 *             - The target profile owner ID (the "id" field returned in the "/user" request).
+	 *            The target profile owner ID (the "id" field returned in the "/user" request).
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -96,14 +96,17 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Get a <a href="${org.sagebionetworks.repo.model.PaginatedResults}">paginated result</a> that contains 
-	 * all of the <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfiles</a> in the system
+	 * Get all publicly available <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a> data in the system
 	 * @param request
 	 * @param userId
 	 * @param offset
+	 *        The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
 	 * @param limit
+	 *        Limits the number of items that will be fetched for this page. <p><i>Default is 100</i></p>
 	 * @param sort
+	 *        Used to indicate upon which field(s) to sort. <p><i>Default is NONE</i></p>
 	 * @param ascending
+	 *        Used to indicate whether the sort direction is ascending or not.  <p><i>Default is true</i></p>
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -125,9 +128,9 @@ public class UserProfileController extends BaseController {
 	/**
 	 * Update your own profile
 	 * <p><b>Note: </b> The user associated with the UserProfile "ownerId" must match the identity of the authenticated user making the request, 
-	 * otherwise and Unauthorized response will occur.</p>
+	 * otherwise an Unauthorized response will occur.</p>
 	 * @param userId
-	 * 		- The user that is making the request.
+	 * 		The user that is making the request.
 	 * @param header
 	 * @param request
 	 * @return The updated <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a>
@@ -167,6 +170,7 @@ public class UserProfileController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.USER_PROFILE_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -190,6 +194,7 @@ public class UserProfileController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.USER_PROFILE_ATTACHMENT_URL }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -204,11 +209,10 @@ public class UserProfileController extends BaseController {
 	
 	/**
 	 * Batch get <a href="${org.sagebionetworks.repo.model.UserGroupHeader}">UserGroupHeaders</a>.
-	 * This fetches information about a collection of users or groups, specified by Synapse IDs. <p><b>Note:</b> IDs are specified as request 
-	 * parameters at the end of the URL, separated by commas.</p> 
+	 * This fetches information about a collection of users or groups, specified by Synapse IDs.
 	 * 
 	 * @param header
-	 * @param ids
+	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas.  <p>For example: <code>/userGroupHeaders/batch?ids=1001,819</code></p>
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -235,7 +239,9 @@ public class UserProfileController extends BaseController {
 	 * 
 	 * @param prefixFilter The name or email to search for.
 	 * @param offset
+	 *         The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p> 
 	 * @param limit
+	 * 			Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
 	 * @param header
 	 * @param request
 	 * @return
@@ -258,7 +264,7 @@ public class UserProfileController extends BaseController {
 	/**
 	 * Add an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the authenticated user.
 	 * @param id
-	 *          - Entity ID of the favorite <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>
+	 *        Entity ID of the favorite <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>
 	 * @param userId
 	 * @param request
 	 * @return
@@ -286,7 +292,7 @@ public class UserProfileController extends BaseController {
 	/**
 	 * Remove an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the authenticated user.
 	 * @param id
-	 *       - Entity ID of the <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> that is no longer a favorite
+	 *       Entity ID of the <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> that should be removed as a favorite
 	 * @param userId
 	 * @param request
 	 * @throws DatastoreException
@@ -315,7 +321,9 @@ public class UserProfileController extends BaseController {
 	 * authenticated user's <a href="${org.sagebionetworks.repo.model.Favorite}">Favorites</a> 
 	 * @param userId
 	 * @param offset
+	 * 			The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
 	 * @param limit
+	 *          Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
