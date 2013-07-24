@@ -122,7 +122,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * The <a href="${GET.entity.id.acl">GET /entity/{id}/acl</a> can be used to get
  * an Entity's ACL.
  * </p>
- * 
+ * <p>
+ * To determine what permissions a User has on an Entity, the <a
+ * href="${GET.entity.id.permissions}" >GET /entity/{id}/permissions</a> method
+ * should be used. to do.
+ * </p>
  * 
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
@@ -662,6 +666,27 @@ public class EntityController extends BaseController {
 		return results;
 	}
 
+	/**
+	 * Get the list of permission that the caller has on a given Entity.
+	 * <p>
+	 * A User's permission on an Entity is a calculation based several factors
+	 * including the permission granted by the Entity's ACL and the User's group
+	 * membership. There might also be extra requirement for an Entity, such as
+	 * special terms-of-use or special restrictions for sensitive data. This
+	 * means a client cannot accurately calculate a User's permission on an
+	 * Entity simply by inspecting the Entity's ACL. Instead, all clients should use this
+	 * method to get the calculated permission a User has on an Entity.
+	 * </p>
+	 * 
+	 * @param id
+	 *            The ID of the Entity to get permissions for.
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.PERMISSIONS }, method = RequestMethod.GET)
 	public @ResponseBody
@@ -938,9 +963,11 @@ public class EntityController extends BaseController {
 	 * Get an Entity's benefactor.
 	 * <p>
 	 * The term 'benefactor' is used indicate which Entity an Entity inherits is
-	 * ACL from. For example, a newly created Project will have its own ACL and therefore, it will be its own benefactor.
-	 * A Folder will inherit its ACL (by default) from its containing Project so the Project will be the Folder's benefactor.
-	 * This method will return the EntityHeader of an Entity's benefactor.
+	 * ACL from. For example, a newly created Project will have its own ACL and
+	 * therefore, it will be its own benefactor. A Folder will inherit its ACL
+	 * (by default) from its containing Project so the Project will be the
+	 * Folder's benefactor. This method will return the EntityHeader of an
+	 * Entity's benefactor.
 	 * </p>
 	 * 
 	 * @param id
@@ -1206,8 +1233,7 @@ public class EntityController extends BaseController {
 	/**
 	 * Get an existing activity for a specific version of an Entity with a GET.
 	 * 
-	 * @param id
-	 *            - The ID of the entity to fetch.
+	 * @param id The ID of the entity to fetch.
 	 * @param versionNumber
 	 *            the version of the entity
 	 * @param userId
@@ -1240,11 +1266,11 @@ public class EntityController extends BaseController {
 	 * with a PUT
 	 * 
 	 * @param id
-	 *            - The ID of the entity to fetch.
+	 *            The ID of the entity to fetch.
 	 * @param activityId
 	 *            the id of the activity to connect to the entity
 	 * @param userId
-	 *            -The user that is doing the get.
+	 *            The user that is doing the get.
 	 * @param request
 	 * @return The requested Activity if it exists.
 	 * @throws NotFoundException
