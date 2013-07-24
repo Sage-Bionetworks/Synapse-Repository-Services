@@ -205,6 +205,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (userInfo.isAdmin()) {
 			return Boolean.TRUE;
 		}
+		// A temporary flag to let bypass ACLs before the web portal is ready
 		if (turnOffAcl) {
 			// TODO: To be removed once web ui is in place
 			// Anyone can read

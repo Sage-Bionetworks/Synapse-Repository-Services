@@ -2,7 +2,9 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,6 +50,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		UserInfo.validateUserInfo(userInfo);
 
 		final String nodeId = eval.getContentSource();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Evaluation " + eval.getId() +
+					" is missing content source (are you sure there is Synapse entity for it?).");
+		}
 		if (!authorizationManager.canAccess(userInfo, nodeId, ACCESS_TYPE.CREATE)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 					" must have " + ACCESS_TYPE.CREATE.name() + " right on the entity " +
@@ -131,8 +138,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		validateEvaluation(old, eval);
 
-		evaluationPermissionsManager.deleteAcl(userInfo, evalId);
-
 		evaluationDAO.update(eval);
 		return getEvaluation(evalId);
 	}
@@ -156,6 +161,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 					" is not authorized to update evaluation " + id +
 					" (" + eval.getName() + ")");
 		}
+		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		evaluationDAO.delete(id);
 	}
 
@@ -168,10 +174,29 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new InvalidModelException("Etag is invalid. Please fetch the Evaluation again.");
 	}
 
-	private AccessControlList createDefaultAcl(final UserInfo userInfo, final String evalId) {
+	private AccessControlList createDefaultAcl(final UserInfo creator, final String evalId) {
+
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		accessSet.add(ACCESS_TYPE.CREATE);
+		accessSet.add(ACCESS_TYPE.DELETE);
+		accessSet.add(ACCESS_TYPE.READ);
+		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		accessSet.add(ACCESS_TYPE.UPDATE);
+
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String userId = creator.getIndividualGroup().getId();
+		ra.setPrincipalId(Long.parseLong(userId));
+
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+
 		AccessControlList acl = new AccessControlList();
 		acl.setId(evalId);
 		acl.setCreationDate(new Date());
+		acl.setResourceAccess(raSet);
+
 		return acl;
 	}
 }

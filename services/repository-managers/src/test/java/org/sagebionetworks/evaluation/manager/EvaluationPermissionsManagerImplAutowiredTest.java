@@ -77,6 +77,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(nodeManager);
 		assertNotNull(testUserProvider);
 
+		assertTrue((Boolean)ReflectionTestUtils.getField(evaluationPermissionsManager, "turnOffAcl"));
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", false);
 
 		adminUser = testUserProvider.getTestAdminUserInfo();
@@ -100,6 +101,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (String id : nodesToDelete) {
 			nodeManager.delete(adminUser, id);
 		}
+		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
 	}
 
 	@Test
@@ -159,13 +161,15 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 
-		// Delete ACL
-		evaluationPermissionsManager.deleteAcl(user, evalId);
-		for (int i = 0; i < aclsToDelete.size(); i++) {
-			if (aclsToDelete.get(i).equals(evalId)) {
-				aclsToDelete.remove(i);
-				break;
-			}
+		// Make sure ACL is deleted when the evaluation is deleted
+		evaluationManager.deleteEvaluation(adminUser, evalId);
+		evalsToDelete.remove(evalId);
+		try {
+			evaluationPermissionsManager.getAcl(adminUser, evalId);
+			aclsToDelete.remove(evalId);
+			fail();
+		} catch (NotFoundException e) {
+			assertTrue(true);
 		}
 	}
 
@@ -177,19 +181,19 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String nodeId = createNode(nodeName, EntityType.project, user);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, user);
-		// Evaluation owner can create ACL
 		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
 		assertNotNull(acl);
-		aclsToDelete.add(acl.getId());
 		assertEquals(evalId, acl.getId());
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.UPDATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.DELETE));
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
+		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 
 		// Update ACL
-		// Owner can update even though the newly created ACL has empty ResourceAccess
 		acl = evaluationPermissionsManager.updateAcl(user, acl);
 		assertNotNull(acl);
 		assertEquals(evalId, acl.getId());
-
-		// Has access
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.UPDATE));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.DELETE));
