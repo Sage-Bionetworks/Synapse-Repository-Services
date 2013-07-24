@@ -34,6 +34,10 @@ public class ControllerUtils {
 	
 	public static String CONTROLLER_INFO_DISPLAY_NAME = ControllerInfo.class.getName()+".displayName";
 	public static String CONTROLLER_INFO_PATH = ControllerInfo.class.getName()+".path";
+	
+	public static int MAX_SHORT_DESCRIPTION_LENGTH = 150;
+	public static String ELLIPSES = "&#8230";
+	
 	/**
 	 * Translate from a a controller class to a Controller model.
 	 * 
@@ -68,6 +72,8 @@ public class ControllerUtils {
         // Now process the parameters
         processParameterAnnotations(methodDoc, methodModel);
 		methodModel.setDescription(methodDoc.commentText());
+		String truncated = createTruncatedText(MAX_SHORT_DESCRIPTION_LENGTH, methodModel.getDescription());
+		methodModel.setShortDescription(truncated);
 		// Create the Link to this method
 		String niceUrl = methodModel.getUrl().replaceAll("\\{", "");
 		niceUrl = niceUrl.replaceAll("\\}", "");
@@ -79,6 +85,30 @@ public class ControllerUtils {
 		return methodModel;
 	}
 
+	/**
+	 * Create a text string that is shorter than the max number of characters.
+	 * @param maxChars
+	 * @param text
+	 * @return
+	 */
+	public static String createTruncatedText(int maxChars, String text){
+		if(text == null) return null;
+		if(text.length() < maxChars) return text;
+		// We need to ensure that we do not cut on any HTML tags
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<maxChars; i++){
+			char ch = text.charAt(i);
+			if('<' == ch){
+				// Start of an HTML tag so stop here
+				break;
+			}else{
+				builder.append(ch);
+			}
+		}
+		builder.append(ELLIPSES);
+		return builder.toString();
+	}
+	
 	private static void processParameterAnnotations(MethodDoc methodDoc, MethodModel methodModel) {
 		Parameter[] params = methodDoc.parameters();
 		// Start with false here.  If we find the userId parameter this will be changed to true.

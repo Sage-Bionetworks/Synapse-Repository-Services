@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for Preview POJO",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.Entity"

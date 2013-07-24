@@ -20,6 +20,7 @@ public class MethodModel {
 	String httpType;
 	String url;
 	String description;
+	String shortDescription;
 	boolean isAuthenticationRequired;
 	List<ParameterModel> pathVariables;
 	List<ParameterModel> parameters;
@@ -90,13 +91,7 @@ public class MethodModel {
 		this.parameters = parameters;
 	}
 	public String getShortDescription() {
-		if(this.description.length() > MAX_SHORT_DESCRIPTION_LENGHT){
-			StringBuilder builder = new StringBuilder();
-			builder.append(this.description.substring(0, MAX_SHORT_DESCRIPTION_LENGHT-3)).append("...");
-			return builder.toString();
-		}else{
-			return this.description;
-		}
+		return this.shortDescription;
 	}
 	public Link getMethodLink() {
 		return methodLink;
@@ -111,6 +106,11 @@ public class MethodModel {
 	public void setFullMethodName(String fullMethodName) {
 		this.fullMethodName = fullMethodName;
 	}
+	
+	public void setShortDescription(String shortDescription) {
+		this.shortDescription = shortDescription;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -121,12 +121,20 @@ public class MethodModel {
 				+ ((fullMethodName == null) ? 0 : fullMethodName.hashCode());
 		result = prime * result
 				+ ((httpType == null) ? 0 : httpType.hashCode());
+		result = prime * result + (isAuthenticationRequired ? 1231 : 1237);
 		result = prime * result
 				+ ((methodLink == null) ? 0 : methodLink.hashCode());
+		result = prime * result
+				+ ((parameters == null) ? 0 : parameters.hashCode());
+		result = prime * result
+				+ ((pathVariables == null) ? 0 : pathVariables.hashCode());
 		result = prime * result
 				+ ((requestBody == null) ? 0 : requestBody.hashCode());
 		result = prime * result
 				+ ((responseBody == null) ? 0 : responseBody.hashCode());
+		result = prime
+				* result
+				+ ((shortDescription == null) ? 0 : shortDescription.hashCode());
 		result = prime * result + ((url == null) ? 0 : url.hashCode());
 		return result;
 	}
@@ -154,10 +162,22 @@ public class MethodModel {
 				return false;
 		} else if (!httpType.equals(other.httpType))
 			return false;
+		if (isAuthenticationRequired != other.isAuthenticationRequired)
+			return false;
 		if (methodLink == null) {
 			if (other.methodLink != null)
 				return false;
 		} else if (!methodLink.equals(other.methodLink))
+			return false;
+		if (parameters == null) {
+			if (other.parameters != null)
+				return false;
+		} else if (!parameters.equals(other.parameters))
+			return false;
+		if (pathVariables == null) {
+			if (other.pathVariables != null)
+				return false;
+		} else if (!pathVariables.equals(other.pathVariables))
 			return false;
 		if (requestBody == null) {
 			if (other.requestBody != null)
@@ -168,6 +188,11 @@ public class MethodModel {
 			if (other.responseBody != null)
 				return false;
 		} else if (!responseBody.equals(other.responseBody))
+			return false;
+		if (shortDescription == null) {
+			if (other.shortDescription != null)
+				return false;
+		} else if (!shortDescription.equals(other.shortDescription))
 			return false;
 		if (url == null) {
 			if (other.url != null)
@@ -182,7 +207,10 @@ public class MethodModel {
 				+ ", methodLink=" + methodLink + ", responseBody="
 				+ responseBody + ", requestBody=" + requestBody + ", httpType="
 				+ httpType + ", url=" + url + ", description=" + description
-				+ "]";
+				+ ", shortDescription=" + shortDescription
+				+ ", isAuthenticationRequired=" + isAuthenticationRequired
+				+ ", pathVariables=" + pathVariables + ", parameters="
+				+ parameters + "]";
 	}
 
 }

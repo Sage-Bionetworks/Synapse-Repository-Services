@@ -1,5 +1,5 @@
 {
-	"description": "JSON Data about a single attachment.",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
 	"properties": {
 		"name": {
 			"type": "string",

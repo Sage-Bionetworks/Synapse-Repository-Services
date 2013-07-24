@@ -1,5 +1,5 @@
 {
-	"description": "JSON The base interface for S3 Tokens",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
 	"type": "interface",
 	"properties": {
 		"md5": {
