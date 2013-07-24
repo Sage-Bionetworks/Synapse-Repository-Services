@@ -58,6 +58,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -4142,6 +4143,36 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
+
+	public AccessControlList createEvaluationAcl() throws SynapseException {
+		try {
+			final String ATTRIBUTE_NAME = "secretKey";
+			String url = "/secretKey";
+			JSONObject jsonObj = signAndDispatchSynapseRequest(authEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			String apiKey = null;
+			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
+				apiKey = adapter.getString(ATTRIBUTE_NAME);
+			}
+			return null;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	public AccessControlList updateEvaluationAcl() throws SynapseException {
+		return null;
+	}
 	
+	public AccessControlList deleteEvaluationAcl() throws SynapseException {
+		return null;
+	}
 	
+	public AccessControlList getEvaluationAcl() throws SynapseException {
+		return null;
+	}
+	
+	public UserEvaluationPermissions getUserPermissions() throws SynapseException {
+		return null;
+	}
 }

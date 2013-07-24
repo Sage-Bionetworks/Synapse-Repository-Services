@@ -1,12 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
-
-import java.util.Collection;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -22,7 +17,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -37,6 +31,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private UserManager userManager;
+
+	private boolean turnOffAcl = true; // TODO: To be removed once web ui is in place
 
 	@Override
 	public AccessControlList createAcl(UserInfo userInfo, AccessControlList acl)
@@ -159,43 +155,17 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final Evaluation eval = getEvaluation(evalId);
 		permission.setOwnerPrincipalId(KeyFactory.stringToKey(eval.getOwnerId()));
 
+		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		permission.setCanPublicRead(aclDAO.canAccess(anonymousUser.getGroups(), evalId, READ));
 
-		// Admin gets all
-		if (userInfo.isAdmin()) {
-			permission.setCanChangePermissions(true);
-			permission.setCanDelete(true);
-			permission.setCanEdit(true);
-			permission.setCanParticipate(true);
-			permission.setCanView(true);
-			return permission;
-		}
+		// Other permissions
+		permission.setCanChangePermissions(canAccess(userInfo, eval, ACCESS_TYPE.CHANGE_PERMISSIONS));
+		permission.setCanDelete(canAccess(userInfo, eval, ACCESS_TYPE.DELETE));
+		permission.setCanEdit(canAccess(userInfo, eval, ACCESS_TYPE.UPDATE));
+		permission.setCanParticipate(canAccess(userInfo, eval, ACCESS_TYPE.PARTICIPATE));
+		permission.setCanView(canAccess(userInfo, eval, ACCESS_TYPE.READ));
 
-		// Owner gets all except for participate
-		if (isEvalOwner(userInfo, eval)) {
-			permission.setCanChangePermissions(true);
-			permission.setCanDelete(true);
-			permission.setCanEdit(true);
-			permission.setCanParticipate(false);
-			permission.setCanView(true);
-			return permission;
-		}
-
-		// Other users
-		permission.setCanView(aclDAO.canAccess(userInfo.getGroups(), evalId, READ));
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
-			permission.setCanChangePermissions(false);
-			permission.setCanDelete(false);
-			permission.setCanEdit(false);
-			permission.setCanParticipate(false);
-		} else {
-			Collection<UserGroup> userGroups = userInfo.getGroups();
-			permission.setCanChangePermissions(aclDAO.canAccess(userGroups, evalId, CHANGE_PERMISSIONS));
-			permission.setCanDelete(aclDAO.canAccess(userGroups, evalId, DELETE));
-			permission.setCanEdit(aclDAO.canAccess(userGroups, evalId, UPDATE));
-			permission.setCanParticipate(aclDAO.canAccess(userGroups, evalId, PARTICIPATE));
-		}
 		return permission;
 	}
 
@@ -204,22 +174,56 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	 */
 	private boolean canAccess(final UserInfo userInfo, final String evalId,
 			final ACCESS_TYPE accessType) throws NotFoundException {
-		Boolean canAccess = canAccess(userInfo, accessType);
+		Boolean canAccess = canAccessShortcuts(userInfo, accessType);
 		if (canAccess != null) {
 			return canAccess.booleanValue();
 		}
 		Evaluation eval = getEvaluation(evalId);
-		return canAccess(userInfo, eval, accessType);
+		return canAccess(accessType, userInfo, eval);
 	}
 
 	/**
 	 * Whether the user can access the specified evaluation.
 	 */
-	private boolean canAccess(final UserInfo userInfo, final Evaluation eval, final ACCESS_TYPE accessType) {
-		Boolean canAccess = canAccess(userInfo, accessType);
+	private boolean canAccess(final UserInfo userInfo, final Evaluation eval,
+			final ACCESS_TYPE accessType) {
+		Boolean canAccess = canAccessShortcuts(userInfo, accessType);
 		if (canAccess != null) {
 			return canAccess.booleanValue();
 		}
+		return canAccess(accessType, userInfo, eval);
+	}
+
+	// Shortcuts that do not involve database calls
+	private Boolean canAccessShortcuts(final UserInfo userInfo, final ACCESS_TYPE accessType) {
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(
+				userInfo.getUser().getUserId())) {
+			if (READ != accessType) {
+				return Boolean.FALSE;
+			}
+		}
+		if (userInfo.isAdmin()) {
+			return Boolean.TRUE;
+		}
+		// A temporary flag to let bypass ACLs before the web portal is ready
+		if (turnOffAcl) {
+			// TODO: To be removed once web ui is in place
+			// Anyone can read
+			if (ACCESS_TYPE.READ.equals(accessType)) {
+				return Boolean.TRUE;
+			}
+			// Any registered user, once logging in, can participate
+			if (!AuthorizationConstants.ANONYMOUS_USER_ID.equals(
+					userInfo.getUser().getId())) {
+				if (ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
+					return Boolean.TRUE;
+				}
+			}
+		}
+		return null;
+	}
+
+	private boolean canAccess(ACCESS_TYPE accessType, UserInfo userInfo, Evaluation eval) {
 		if (isEvalOwner(userInfo, eval)) {
 			if (!ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
 				return true;
@@ -228,18 +232,13 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		return aclDAO.canAccess(userInfo.getGroups(), eval.getId(), accessType);
 	}
 
-	// Shortcuts that do not involve database calls
-	private Boolean canAccess(final UserInfo userInfo, final ACCESS_TYPE accessType) {
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
-			// A shortcut. Anonymous user at most has read access.
-			if (READ != accessType) {
-				return Boolean.FALSE;
-			}
+	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {
+		String userId = userInfo.getIndividualGroup().getId();
+		String evalOwnerId = eval.getOwnerId();
+		if (userId != null && evalOwnerId != null && userId.equals(evalOwnerId)) {
+			return true;
 		}
-		if (userInfo.isAdmin()) {
-			return Boolean.TRUE;
-		}
-		return null;
+		return false;
 	}
 
 	private Evaluation getEvaluation(final String evalId) throws NotFoundException {
@@ -250,14 +249,5 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			// Rethrow with a more specific message
 			throw new NotFoundException("Evaluation of ID " + evalId + " does not exist yet.");
 		}
-	}
-
-	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {
-		String userId = userInfo.getIndividualGroup().getId();
-		String evalOwnerId = eval.getOwnerId();
-		if (userId != null && evalOwnerId != null && userId.equals(evalOwnerId)) {
-			return true;
-		}
-		return false;
 	}
 }
