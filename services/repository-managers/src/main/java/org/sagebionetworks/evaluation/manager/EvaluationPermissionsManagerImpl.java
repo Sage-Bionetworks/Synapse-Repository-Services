@@ -157,7 +157,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		permission.setCanPublicRead(aclDAO.canAccess(anonymousUser.getGroups(), evalId, READ));
+		permission.setCanPublicRead(canAccess(anonymousUser, evalId, READ));
 
 		// Other permissions
 		permission.setCanChangePermissions(canAccess(userInfo, eval, ACCESS_TYPE.CHANGE_PERMISSIONS));
