@@ -23,6 +23,7 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.ParticipantDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -62,37 +63,39 @@ import org.springframework.web.servlet.DispatcherServlet;
 public class EvaluationControllerAutowiredTest {
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationPermissionsManager evalPermissionsManager;
 	@Autowired
-	ParticipantDAO participantDAO;
+	private EvaluationDAO evaluationDAO;
 	@Autowired
-	SubmissionDAO submissionDAO;
+	private ParticipantDAO participantDAO;
 	@Autowired
-	SubmissionStatusDAO submissionStatusDAO;
+	private SubmissionDAO submissionDAO;
 	@Autowired
-	NodeDAO nodeDAO;
+	private SubmissionStatusDAO submissionStatusDAO;
+	@Autowired
+	private NodeDAO nodeDAO;
 	
-	private static String ownerName;
-	private static String userName;
-	private static String userId;
+	private String ownerName;
+	private String userName;
+	private String userId;
 	
-	private static Evaluation eval1;
-	private static Evaluation eval2;
-	private static Participant part1;
-	private static Participant part2;
-	private static Submission sub1;
-	private static Submission sub2;
+	private Evaluation eval1;
+	private Evaluation eval2;
+	private Participant part1;
+	private Participant part2;
+	private Submission sub1;
+	private Submission sub2;
 	
-	private static List<String> evaluationsToDelete;
-	private static List<Participant> participantsToDelete;
-	private static List<String> submissionsToDelete;
-	private static List<String> nodesToDelete;
+	private List<String> evaluationsToDelete;
+	private List<Participant> participantsToDelete;
+	private List<String> submissionsToDelete;
+	private List<String> nodesToDelete;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
@@ -158,6 +161,8 @@ public class EvaluationControllerAutowiredTest {
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
+				UserInfo admin = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+				evalPermissionsManager.deleteAcl(admin, id);
 				evaluationDAO.delete(id);
 			} catch (Exception e) {}
 		}
@@ -426,48 +431,34 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(nodeId, eval1.getContentSource());
 		evaluationsToDelete.add(eval1.getId());
 
-		DispatcherServlet dispatcher = DispatchServletSingleton.getInstance();
-
-		// Create the ACL
-		AccessControlList acl = new AccessControlList();
-		acl.setId(eval1.getId());
-		ResourceAccess ra = new ResourceAccess();
-		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
-		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		ra.setAccessType(accessType);
-		ra.setPrincipalId(Long.parseLong(userId));
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		resourceAccess.add(ra);
-		acl.setResourceAccess(resourceAccess);
-
+		// Get the ACL
 		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("POST");
-		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.ACL);
 		request.addHeader("Accept", "application/json");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-		String body = EntityFactory.createJSONStringForEntity(acl);
-		request.setContent(body.getBytes("UTF-8"));
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
+		DispatcherServlet dispatcher = DispatchServletSingleton.getInstance();
 		dispatcher.service(request, response);
-		assertEquals(HttpStatus.CREATED.value(), response.getStatus());
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
 
 		AccessControlList aclReturned = EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), AccessControlList.class);
 		assertNotNull(aclReturned);
-		assertEquals(acl.getId(), aclReturned.getId());
+		assertEquals(eval1.getId(), aclReturned.getId());
 		assertNotNull(aclReturned.getResourceAccess());
 
 		// Update the ACL
-		ra = new ResourceAccess();
-		accessType = new HashSet<ACCESS_TYPE>();
+		ResourceAccess ra = new ResourceAccess();
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessType);
 		ra.setPrincipalId(Long.parseLong(userId));
-		resourceAccess = new HashSet<ResourceAccess>();
+		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		resourceAccess.add(ra);
 		aclReturned.setResourceAccess(resourceAccess);
 
@@ -477,7 +468,7 @@ public class EvaluationControllerAutowiredTest {
 		request.addHeader("Accept", "application/json");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-		body = EntityFactory.createJSONStringForEntity(aclReturned);
+		String body = EntityFactory.createJSONStringForEntity(aclReturned);
 		request.setContent(body.getBytes("UTF-8"));
 
 		response = new MockHttpServletResponse();
@@ -487,7 +478,7 @@ public class EvaluationControllerAutowiredTest {
 		aclReturned = EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), AccessControlList.class);
 		assertNotNull(aclReturned);
-		assertEquals(acl.getId(), aclReturned.getId());
+		assertEquals(eval1.getId(), aclReturned.getId());
 
 		// getAcl()
 		request = new MockHttpServletRequest();
@@ -504,7 +495,7 @@ public class EvaluationControllerAutowiredTest {
 		aclReturned = EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), AccessControlList.class);
 		assertNotNull(aclReturned);
-		assertEquals(acl.getId(), aclReturned.getId());
+		assertEquals(eval1.getId(), aclReturned.getId());
 
 		// getUserEvaluationPermissions()
 		request = new MockHttpServletRequest();
@@ -521,19 +512,6 @@ public class EvaluationControllerAutowiredTest {
 		UserEvaluationPermissions uepReturned = EntityFactory.createEntityFromJSONString(
 				response.getContentAsString(), UserEvaluationPermissions.class);
 		assertNotNull(uepReturned);
-
-		// deleteAcl()
-		request = new MockHttpServletRequest();
-		request.setMethod("DELETE");
-		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.ACL);
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-
-		response = new MockHttpServletResponse();
-		dispatcher.service(request, response);
-		assertEquals(HttpStatus.NO_CONTENT.value(), response.getStatus());
-		response.getContentAsString();
 	}
 
 	private String createNode(String name, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException {

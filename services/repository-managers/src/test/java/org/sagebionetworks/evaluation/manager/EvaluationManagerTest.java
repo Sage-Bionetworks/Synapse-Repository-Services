@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -38,24 +39,25 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class EvaluationManagerTest {
 		
-	private static EvaluationManager evaluationManager;
-	private static Evaluation eval;
-	private static Evaluation evalWithId;
-	private static List<Evaluation> evaluations;
+	private EvaluationManager evaluationManager;
+	private Evaluation eval;
+	private Evaluation evalWithId;
+	private List<Evaluation> evaluations;
 
-	private static EvaluationPermissionsManager mockPermissionsManager;
-	private static IdGenerator mockIdGenerator;
-	private static EvaluationDAO mockEvaluationDAO;
+	private AuthorizationManager mockAuthorizationManager;
+	private EvaluationPermissionsManager mockPermissionsManager;
+	private IdGenerator mockIdGenerator;
+	private EvaluationDAO mockEvaluationDAO;
 	
-	private static final Long OWNER_ID = 123L;
-	private static final Long USER_ID = 456L;
-	private static UserInfo ownerInfo;
-	private static UserInfo userInfo;
+	private final Long OWNER_ID = 123L;
+	private final Long USER_ID = 456L;
+	private UserInfo ownerInfo;
+	private UserInfo userInfo;
 	
-	private static final String EVALUATION_NAME = "test-evaluation";
-    private static final String EVALUATION_ID = "1234";
-    private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
-    private static final String EVALUATION_ETAG = "etag";
+	private final String EVALUATION_NAME = "test-evaluation";
+    private final String EVALUATION_ID = "1234";
+    private final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
+    private final String EVALUATION_ETAG = "etag";
     
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
@@ -67,6 +69,9 @@ public class EvaluationManagerTest {
 
     	// Permissions manager
     	mockPermissionsManager = mock(EvaluationPermissionsManager.class);
+
+    	// Authorization manager
+    	mockAuthorizationManager = mock(AuthorizationManager.class);
 
     	// UserInfo
     	ownerInfo = UserInfoUtils.createValidUserInfo(false);
@@ -97,6 +102,7 @@ public class EvaluationManagerTest {
     	evaluationManager = new EvaluationManagerImpl();
     	ReflectionTestUtils.setField(evaluationManager, "evaluationDAO", mockEvaluationDAO);
     	ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
+    	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
 
     	// configure mocks
@@ -108,6 +114,7 @@ public class EvaluationManagerTest {
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
     	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), (EvaluationStatus)any(), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
     }
 
