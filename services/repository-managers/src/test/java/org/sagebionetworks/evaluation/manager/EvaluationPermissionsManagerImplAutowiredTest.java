@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -76,6 +77,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(nodeManager);
 		assertNotNull(testUserProvider);
 
+		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", false);
+
 		adminUser = testUserProvider.getTestAdminUserInfo();
 		assertNotNull(adminUser);
 		user = testUserProvider.getTestUserInfo();
@@ -107,11 +110,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String nodeId = createNode(nodeName, EntityType.project, adminUser);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, adminUser);
-		AccessControlList acl = createAcl(evalId, adminUser);
-		acl = evaluationPermissionsManager.createAcl(adminUser, acl);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUser, evalId);
 		assertNotNull(acl);
 		aclsToDelete.add(acl.getId());
 		assertEquals(evalId, acl.getId());
+		assertNotNull(acl.getEtag());
+		final Date dateTime = new Date();
+		assertTrue(dateTime.after(acl.getCreationDate()) || dateTime.equals(acl.getCreationDate()));
 
 		// Has access
 		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
@@ -172,9 +177,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String nodeId = createNode(nodeName, EntityType.project, user);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, user);
-		AccessControlList acl = createAcl(evalId, user);
 		// Evaluation owner can create ACL
-		acl = evaluationPermissionsManager.createAcl(user, acl);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
 		assertNotNull(acl);
 		aclsToDelete.add(acl.getId());
 		assertEquals(evalId, acl.getId());
@@ -257,6 +261,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String nodeId = createNode(nodeName, EntityType.project, adminUser);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, adminUser);
+		evaluationPermissionsManager.deleteAcl(adminUser, evalId);
 
 		// ACL does not exist yet (e-tag is null)
 		try {
@@ -290,8 +295,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String nodeId = createNode(nodeName, EntityType.project, user);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, user);
-		AccessControlList acl = createAcl(evalId, user);
-		acl = evaluationPermissionsManager.createAcl(user, acl);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
 		assertNotNull(acl);
 		aclsToDelete.add(acl.getId());
 		assertEquals(evalId, acl.getId());
@@ -325,8 +329,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		nodeId = createNode(nodeName, EntityType.project, adminUser);
 		evalName = nodeName;
 		evalId = createEval(evalName, nodeId, adminUser);
-		acl = createAcl(evalId, adminUser);
-		acl = evaluationPermissionsManager.createAcl(adminUser, acl);
+		acl = evaluationPermissionsManager.getAcl(adminUser, evalId);
 		assertNotNull(acl);
 		aclsToDelete.add(acl.getId());
 		assertEquals(evalId, acl.getId());
@@ -412,6 +415,27 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertEquals(adminUser.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
 		assertFalse(permissions.getCanParticipate());
 		assertTrue(permissions.getCanPublicRead());
+	}
+
+	@Test
+	public void testTurnOffAcl() throws Exception {
+
+		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
+
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testTurnOffAcl";
+		String nodeId = createNode(nodeName, EntityType.project, user);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUser);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUser, evalId);
+		assertNotNull(acl);
+		aclsToDelete.add(acl.getId());
+		assertEquals(evalId, acl.getId());
+
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
+		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		assertTrue(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.READ));
+		assertFalse(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.PARTICIPATE));
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {

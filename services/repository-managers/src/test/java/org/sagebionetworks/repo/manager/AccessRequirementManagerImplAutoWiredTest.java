@@ -7,32 +7,34 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Autowired
 	EvaluationManager evaluationManager;
 	
+	@Autowired
+	EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired
+	EvaluationPermissionsManager evaluationPermissionsManager;
+	
 	private UserInfo adminUserInfo;
 	
 	private static final String TERMS_OF_USE = "my dog has fleas";
@@ -61,8 +69,10 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private List<String> nodesToDelete;
 	
 	private String entityId;
+	private String entityId2;
 	
 	private Evaluation evaluation;
+	private Evaluation evaluation2;
 	private Evaluation adminEvaluation;
 	
 	AccessRequirement ar;
@@ -83,9 +93,33 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setNodeType(EntityType.layer.name());
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
-		
+
+		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
+		Set<ResourceAccess> raSet = acl.getResourceAccess();
+		ResourceAccess ra = new ResourceAccess();
+		String testUserId = testUserProvider.getTestUserInfo().getIndividualGroup().getId();
+		ra.setPrincipalId(Long.parseLong(testUserId));
+		Set<ACCESS_TYPE> atSet = new HashSet<ACCESS_TYPE>();
+		atSet.add(ACCESS_TYPE.CREATE);
+		ra.setAccessType(atSet);
+		raSet.add(ra);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+
 		evaluation = newEvaluation("test-name", testUserProvider.getTestUserInfo(), rootId);
 		adminEvaluation = newEvaluation("admin-name", testUserProvider.getTestAdminUserInfo(), rootId);
+
+		rootProject = new Node();
+		rootProject.setName("root "+System.currentTimeMillis());
+		rootProject.setNodeType(EntityType.project.name());
+		String rootId2 = nodeManager.createNewNode(rootProject, adminUserInfo);
+		nodesToDelete.add(rootId2); // the deletion of 'rootId' will cascade to its children
+		node = new Node();
+		node.setName("B");
+		node.setNodeType(EntityType.layer.name());
+		node.setParentId(rootId2);
+		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
+
+		evaluation2 = newEvaluation("test-name2", testUserProvider.getTestAdminUserInfo(), rootId2);
 	}
 	
 	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {
@@ -117,7 +151,15 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		if (evaluation!=null) {
 			try {
+				evaluationPermissionsManager.deleteAcl(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
 				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
+				evaluation=null;
+			} catch (Exception e) {}
+		}
+		if (evaluation2!=null) {
+			try {
+				evaluationPermissionsManager.deleteAcl(testUserProvider.getTestAdminUserInfo(), evaluation2.getId());
+				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation2.getId());
 				evaluation=null;
 			} catch (Exception e) {}
 		}
@@ -212,7 +254,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testEntityCreateAccessRequirementForbidden() throws Exception {
-		ar = newEntityAccessRequirement(entityId);
+		ar = newEntityAccessRequirement(entityId2);
 		ar = accessRequirementManager.createAccessRequirement(testUserProvider.getTestUserInfo(), ar);
 	}
 	

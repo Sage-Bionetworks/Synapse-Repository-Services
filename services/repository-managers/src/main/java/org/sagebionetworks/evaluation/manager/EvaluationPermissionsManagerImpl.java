@@ -32,6 +32,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Autowired
 	private UserManager userManager;
 
+	private boolean turnOffAcl = true; // TODO: To be removed once web ui is in place
+
 	@Override
 	public AccessControlList createAcl(UserInfo userInfo, AccessControlList acl)
 			throws NotFoundException, DatastoreException, InvalidModelException,
@@ -202,6 +204,20 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 		if (userInfo.isAdmin()) {
 			return Boolean.TRUE;
+		}
+		if (turnOffAcl) {
+			// TODO: To be removed once web ui is in place
+			// Anyone can read
+			if (ACCESS_TYPE.READ.equals(accessType)) {
+				return Boolean.TRUE;
+			}
+			// Any registered user, once logging in, can participate
+			if (!AuthorizationConstants.ANONYMOUS_USER_ID.equals(
+					userInfo.getUser().getId())) {
+				if (ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
+					return Boolean.TRUE;
+				}
+			}
 		}
 		return null;
 	}
