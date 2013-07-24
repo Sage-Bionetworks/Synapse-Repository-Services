@@ -15,6 +15,7 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -126,7 +127,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new NotFoundException("No Evaluation found with id " + eval.getId());
 		}
 		if (!old.getEtag().equals(eval.getEtag())) {
-			throw new IllegalArgumentException("Your copy of Evaluation " + eval.getId() +
+			// NOTE: we have not yet locked the DB row for update; this will occur at the DAO layer.			
+			// This check is a performance optimization (in the interest of fail-fast behavior).
+			throw new ConflictingUpdateException("Your copy of Evaluation " + eval.getId() +
 					" is out of date. Please fetch it again before updating.");
 		}
 
