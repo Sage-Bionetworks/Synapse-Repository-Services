@@ -1,5 +1,5 @@
 {
-    "description":"JSON schema for an Attachment S3 token",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.S3TokenBase"
