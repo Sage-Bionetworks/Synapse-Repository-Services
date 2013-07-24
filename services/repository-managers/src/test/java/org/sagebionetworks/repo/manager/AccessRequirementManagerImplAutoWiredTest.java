@@ -32,8 +32,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -151,16 +149,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		if (evaluation!=null) {
 			try {
-				evaluationPermissionsManager.deleteAcl(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
 				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
 				evaluation=null;
 			} catch (Exception e) {}
 		}
 		if (evaluation2!=null) {
 			try {
-				evaluationPermissionsManager.deleteAcl(testUserProvider.getTestAdminUserInfo(), evaluation2.getId());
 				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation2.getId());
-				evaluation=null;
+				evaluation2=null;
 			} catch (Exception e) {}
 		}
 		if (adminEvaluation!=null) {
