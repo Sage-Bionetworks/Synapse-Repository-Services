@@ -445,22 +445,7 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Creates a new ACL.
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
-	public @ResponseBody AccessControlList
-	createAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestBody AccessControlList acl,
-			HttpServletRequest request)
-			throws NotFoundException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ConflictingUpdateException {
-		return serviceProvider.getEvaluationService().createAcl(userId, acl);
-	}
-
-	/**
-	 * Updates with the given ACL.
+	 * Updates the given ACL.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
@@ -472,20 +457,6 @@ public class EvaluationController extends BaseController {
 			throws NotFoundException, DatastoreException, InvalidModelException,
 			UnauthorizedException, ConflictingUpdateException {
 		return serviceProvider.getEvaluationService().updateAcl(userId, acl);
-	}
-
-	/**
-	 * Deletes the ACL of the specified evaluation.
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
-	public void deleteAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@PathVariable String evalId,
-			HttpServletRequest request)
-			throws NotFoundException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ConflictingUpdateException {
-		serviceProvider.getEvaluationService().deleteAcl(userId, evalId);
 	}
 
 	/**
@@ -503,7 +474,7 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Gets the user permissions for an evaluation.
+	 * Gets the user permissions for the specified evaluation.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_PERMISSIONS, method = RequestMethod.GET)

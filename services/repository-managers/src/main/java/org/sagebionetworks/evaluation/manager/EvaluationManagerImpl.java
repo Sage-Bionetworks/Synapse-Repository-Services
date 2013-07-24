@@ -2,7 +2,9 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -10,11 +12,13 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,26 +37,43 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	private IdGenerator idGenerator;
 
 	@Autowired
+	private AuthorizationManager authorizationManager;
+
+	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Evaluation createEvaluation(UserInfo userInfo, Evaluation eval) 
 			throws DatastoreException, InvalidModelException, NotFoundException {
+
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
+
+		final String nodeId = eval.getContentSource();
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Evaluation " + eval.getId() +
+					" is missing content source (are you sure there is Synapse entity for it?).");
+		}
+		if (!authorizationManager.canAccess(userInfo, nodeId, ACCESS_TYPE.CREATE)) {
+			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+					" must have " + ACCESS_TYPE.CREATE.name() + " right on the entity " +
+					nodeId + " in order to create a evaluation based on it.");
+		}
+
+		// Create the evaluation
 		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
-		
-		// always generate a unique ID
 		eval.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS).toString());
-		
-		// set creation date
 		eval.setCreatedOn(new Date());
-		
+		String principalId = userInfo.getIndividualGroup().getId();
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
+
+		// Create the default ACL
+		AccessControlList acl = createDefaultAcl(userInfo, eval.getId());
+		evaluationPermissionsManager.createAcl(userInfo, acl);
+
 		return evaluationDAO.get(id);
 	}
-	
+
 	@Override
 	public Evaluation getEvaluation(String id) throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
@@ -93,24 +114,30 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Evaluation updateEvaluation(UserInfo userInfo, Evaluation eval) throws DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException, ConflictingUpdateException {
+	public Evaluation updateEvaluation(UserInfo userInfo, Evaluation eval)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+
 		EvaluationUtils.ensureNotNull(eval, "Evaluation");
 		UserInfo.validateUserInfo(userInfo);
-		
-		Evaluation old = evaluationDAO.get(eval.getId());
-		if (old == null) 
-			throw new NotFoundException("No Evaluation found with id " + eval.getId());
-		if (!old.getEtag().equals(eval.getEtag()))
-			throw new IllegalArgumentException("Your copy of Evaluation " + eval.getId() + " is out of date. Please fetch it again before updating.");
 
 		final String evalId = eval.getId();
+		Evaluation old = evaluationDAO.get(evalId);
+		if (old == null) {
+			throw new NotFoundException("No Evaluation found with id " + eval.getId());
+		}
+		if (!old.getEtag().equals(eval.getEtag())) {
+			throw new IllegalArgumentException("Your copy of Evaluation " + eval.getId() +
+					" is out of date. Please fetch it again before updating.");
+		}
+
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 					" is not authorized to update evaluation " + evalId +
 					" (" + eval.getName() + ")");
 		}
 
-		validateEvaluation(old, eval);		
+		validateEvaluation(old, eval);
+
 		evaluationDAO.update(eval);
 		return getEvaluation(evalId);
 	}
@@ -134,6 +161,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 					" is not authorized to update evaluation " + id +
 					" (" + eval.getName() + ")");
 		}
+		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		evaluationDAO.delete(id);
 	}
 
@@ -144,5 +172,31 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new InvalidModelException("Cannot overwrite CreatedOn date");
 		if (!oldComp.getEtag().equals(newComp.getEtag()))
 			throw new InvalidModelException("Etag is invalid. Please fetch the Evaluation again.");
+	}
+
+	private AccessControlList createDefaultAcl(final UserInfo creator, final String evalId) {
+
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		accessSet.add(ACCESS_TYPE.CREATE);
+		accessSet.add(ACCESS_TYPE.DELETE);
+		accessSet.add(ACCESS_TYPE.READ);
+		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		accessSet.add(ACCESS_TYPE.UPDATE);
+
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String userId = creator.getIndividualGroup().getId();
+		ra.setPrincipalId(Long.parseLong(userId));
+
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId(evalId);
+		acl.setCreationDate(new Date());
+		acl.setResourceAccess(raSet);
+
+		return acl;
 	}
 }
