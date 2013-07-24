@@ -183,7 +183,7 @@ public class Synapse implements SynapseInt {
 	protected static final String REDIRECT_PARAMETER = "redirect=";
 	protected static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	protected static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
-	
+
 	protected static final String EVALUATION_URI_PATH = "/evaluation";
 	protected static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	protected static final String COUNT = "count";
@@ -198,6 +198,7 @@ public class Synapse implements SynapseInt {
 	protected static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
 	protected static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
 	protected static final String STATUS_SUFFIX = "?status=";
+	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -4144,35 +4145,56 @@ public class Synapse implements SynapseInt {
 		}
 	}
 
-	public AccessControlList createEvaluationAcl() throws SynapseException {
+	public AccessControlList updateEvaluationAcl(AccessControlList acl) throws SynapseException {
+
+		if (acl == null) {
+			throw new IllegalArgumentException("ACL can not be null.");
+		}
+
+		String url = EVALUATION_ACL_URI_PATH;	
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
 		try {
-			final String ATTRIBUTE_NAME = "secretKey";
-			String url = "/secretKey";
-			JSONObject jsonObj = signAndDispatchSynapseRequest(authEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			obj = new JSONObject(acl.writeToJSONObject(toUpdateAdapter).toJSONString());
+			JSONObject jsonObj = putJSONObject(url, obj, new HashMap<String,String>());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			String apiKey = null;
-			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
-				apiKey = adapter.getString(ATTRIBUTE_NAME);
-			}
-			return null;
+			return new AccessControlList(adapter);
+		} catch (JSONException e) {
+			throw new SynapseException(e);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
 
-	public AccessControlList updateEvaluationAcl() throws SynapseException {
-		return null;
+	public AccessControlList getEvaluationAcl(String evalId) throws SynapseException {
+
+		if (evalId == null) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null.");
+		}
+
+		String url = EVALUATION_URI_PATH + "/" + evalId + "/acl";		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new AccessControlList(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
-	
-	public AccessControlList deleteEvaluationAcl() throws SynapseException {
-		return null;
-	}
-	
-	public AccessControlList getEvaluationAcl() throws SynapseException {
-		return null;
-	}
-	
-	public UserEvaluationPermissions getUserPermissions() throws SynapseException {
-		return null;
+
+	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId) throws SynapseException {
+
+		if (evalId == null) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null.");
+		}
+
+		String url = EVALUATION_URI_PATH + "/" + evalId + "/permissions";
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new UserEvaluationPermissions(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 }
