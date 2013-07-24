@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.jsoup.Jsoup;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -93,17 +94,16 @@ public class ControllerUtils {
 	 */
 	public static String createTruncatedText(int maxChars, String text){
 		if(text == null) return null;
+		// Strip out all HTML text from the description.
+		// If we do not remove the HTML, we could truncate in the middle of a tag
+		// which would break the final HTML.
+		text = Jsoup.parse(text).text();
 		if(text.length() < maxChars) return text;
 		// We need to ensure that we do not cut on any HTML tags
 		StringBuilder builder = new StringBuilder();
 		for(int i=0; i<maxChars; i++){
 			char ch = text.charAt(i);
-			if('<' == ch){
-				// Start of an HTML tag so stop here
-				break;
-			}else{
-				builder.append(ch);
-			}
+			builder.append(ch);
 		}
 		builder.append(ELLIPSES);
 		return builder.toString();

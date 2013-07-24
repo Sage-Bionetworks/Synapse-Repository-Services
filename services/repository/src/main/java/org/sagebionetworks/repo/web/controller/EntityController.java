@@ -98,7 +98,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * created for the Project. New Folders and FileEnties start off inheriting the
  * ACL of their containing Project. This means they do not have their own ACL
  * and all authorization is controlled by their Project's ACL. The term
- * 'benefactor' is used indicate which Entity an Entity inherits is ACL from.
+ * 'benefactor' is used to indicate which Entity an Entity inherits its ACL from.
  * For example, a newly created Project will be its own benefactor, while a new
  * FileEntity's benefactor will start off as its containing Project. The current
  * benefactor of any Entity can be determined using the <a
@@ -125,7 +125,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * To determine what permissions a User has on an Entity, the <a
  * href="${GET.entity.id.permissions}" >GET /entity/{id}/permissions</a> method
- * should be used. to do.
+ * should be used.
  * </p>
  * 
  */
@@ -242,7 +242,7 @@ public class EntityController extends BaseController {
 	 * If the Entity is a FileEntity and the dataFileHandleId fields is set to a
 	 * new value, then a new version will automatically be created for this
 	 * update. You can also force the creation of a new version using the
-	 * newVersion parameter (see: below).
+	 * newVersion parameter (see below).
 	 * </p>
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -1506,7 +1506,7 @@ public class EntityController extends BaseController {
 	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
 	 * 
 	 * @param md5
-	 *            The MD5 to look up for
+	 *            The MD5 to look up
 	 * @param userId
 	 *            The user making the request
 	 * @throws NotFoundException

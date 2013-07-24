@@ -167,7 +167,7 @@ public class ControllerUtilsTest {
 		String input = "This is <a href=\"some.link\">Dispaly</a>";
 		// Spliting in the middle of an HTML tag will generate bad text so we need to avoid doing so.
 		String result = ControllerUtils.createTruncatedText(15, input);
-		String expected = "This is &#8230";
+		String expected = "This is Dispaly&#8230";
 		assertEquals(expected, result);
 	}
 	
