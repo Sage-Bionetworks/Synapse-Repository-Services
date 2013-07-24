@@ -179,14 +179,6 @@ public class MigrationClient {
 			DeltaData dd = calculateDeltaForType(type, batchSize);
 			deltaList.add(dd);
 		}
-		// Now we need to delete any data in reverse order
-		for(int i=deltaList.size()-1; i >= 0; i--){
-			DeltaData dd = deltaList.get(i);
-			long count =  dd.getCounts().getDelete();
-			if(count > 0){
-				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
-			}
-		}
 		// Now do all adds in the original order
 		for(int i=0; i<deltaList.size(); i++){
 			DeltaData dd = deltaList.get(i);
@@ -201,6 +193,14 @@ public class MigrationClient {
 			long count = dd.getCounts().getUpdate();
 			if(count > 0){
 				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+			}
+		}
+		// Now we need to delete any data in reverse order
+		for(int i=deltaList.size()-1; i >= 0; i--){
+			DeltaData dd = deltaList.get(i);
+			long count =  dd.getCounts().getDelete();
+			if(count > 0){
+				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
 			}
 		}
 	}
