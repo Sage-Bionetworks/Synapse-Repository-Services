@@ -98,10 +98,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * created for the Project. New Folders and FileEnties start off inheriting the
  * ACL of their containing Project. This means they do not have their own ACL
  * and all authorization is controlled by their Project's ACL. The term
- * 'benefactor' is used to indicate which Entity an Entity inherits its ACL from.
- * For example, a newly created Project will be its own benefactor, while a new
- * FileEntity's benefactor will start off as its containing Project. The current
- * benefactor of any Entity can be determined using the <a
+ * 'benefactor' is used to indicate which Entity an Entity inherits its ACL
+ * from. For example, a newly created Project will be its own benefactor, while
+ * a new FileEntity's benefactor will start off as its containing Project. The
+ * current benefactor of any Entity can be determined using the <a
  * href="${GET.entity.id.benefactor}">GET /entity/{id}/benefactor</a> method.
  * </p>
  * <p>
@@ -127,7 +127,40 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${GET.entity.id.permissions}" >GET /entity/{id}/permissions</a> method
  * should be used.
  * </p>
- * 
+ * <h6>Versions</h6>
+ * <p>
+ * Currently, <a
+ * href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> are
+ * "versionable" meaning it is possible for it to have multiple versions of the
+ * file. Whenever, a FileEntity is updated with a new <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> a new
+ * version of the FileEntity is automatically created. The file history an
+ * FileEntity can be retrieved using <a href="${GET.entity.id.version}">GET
+ * /entity/{id}/version</a> method. A particular version of a FileEntity can be
+ * retrieved using <a href="${GET.entity.id.version.versionNumber}">GET
+ * /entity/{id}/version/{versionNumber}</a> method. The Annotations of a
+ * particular version of an FileEntity can be retrieved using the <a
+ * href="${GET.entity.id.version.versionNumber.annotations">GET
+ * /entity/{id}/version/{versionNumber}/annotations</a> method.
+ * </p>
+ * <p>
+ * <b><i>Note: </b>Only the File and Annotations of an Entity are include in the
+ * version. All other components of an Entity such as description, name, parent,
+ * ACL, and WikiPage are <b>not</b> not part of the version, and will not vary
+ * from version to version.</i>
+ * </p>
+ * <h6>JSON Schemas</h6>
+ * <p>
+ * Each Entity type and Model object in Synapse is define by a JSON schema. The
+ * <a href="${GET.REST.resources}">GET /REST/resources</a> method will list the
+ * full name of all Resource used by Synapse. The schema for each of these
+ * Resource is accessible via <a href="${GET.REST.resources.schema}">GET
+ * /REST/resources/schema</a>. Note: Many of these resource are composition
+ * objects and one must navigate various interfaces of an object to fully digest
+ * it. Therefore, a flattened (or effective) schema for each resource is
+ * available from the <a href="${GET.REST.resources.effectiveSchema}">GET
+ * /REST/resources/effectiveSchema</a>
+ * </p>
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
 @Controller
@@ -674,8 +707,8 @@ public class EntityController extends BaseController {
 	 * membership. There might also be extra requirement for an Entity, such as
 	 * special terms-of-use or special restrictions for sensitive data. This
 	 * means a client cannot accurately calculate a User's permission on an
-	 * Entity simply by inspecting the Entity's ACL. Instead, all clients should use this
-	 * method to get the calculated permission a User has on an Entity.
+	 * Entity simply by inspecting the Entity's ACL. Instead, all clients should
+	 * use this method to get the calculated permission a User has on an Entity.
 	 * </p>
 	 * 
 	 * @param id
@@ -794,9 +827,26 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Create a new ACL, overriding inheritance.
+	 * Create a new Access Control List (ACL), overriding inheritance.
+	 * <p>
+	 * By default, Entities such as Files and Folder inherit their permission
+	 * from their containing Project. For such Entities the Project is the
+	 * Entity's 'benefactor'. This permission inheritance can be override by
+	 * creating an ACL for the Entity. When this occurs the Entity becomes its
+	 * own benefactor and all permission are determined by its own ACL.
+	 * </p>
+	 * <p>
+	 * If the ACL of an Entity is deleted, then its benefactor will
+	 * automatically be set to its parent's benefactor.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CHANGE_PERMISSIONS</a> on the Entity to call this method.
+	 * </p>
 	 * 
 	 * @param id
+	 *            The ID of the Entity to create an ACL for.
 	 * @param userId
 	 *            - The user that is doing the create.
 	 * @param newAcl
@@ -847,7 +897,7 @@ public class EntityController extends BaseController {
 	 * </p>
 	 * 
 	 * @param id
-	 *            The ID of the entity to get the ACL for.
+	 *            The ID of the Entity to get the ACL for.
 	 * @param userId
 	 *            - The user that is making the request.
 	 * @param request
@@ -873,9 +923,15 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Update an entity's ACL.
+	 * Update an Entity's ACL.
+	 * <p>
+	 * Note: The caller must be granted <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CHANGE_PERMISSIONS</a> on the Entity to call this method.
+	 * </p>
 	 * 
 	 * @param id
+	 *            The ID of the Entity to create an ACL for.
 	 * @param userId
 	 * @param updatedACL
 	 * @param request
@@ -910,10 +966,27 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Called to restore inheritance (vs. defining ones own ACL)
+	 * Delete the Access Control List (ACL) for a given Entity.
+	 * <p>
+	 * By default, Entities such as Files and Folder inherit their permission
+	 * from their containing Project. For such Entities the Project is the
+	 * Entity's 'benefactor'. This permission inheritance can be override by
+	 * creating an ACL for the Entity. When this occurs the Entity becomes its
+	 * own benefactor and all permission are determined by its own ACL.
+	 * </p>
+	 * <p>
+	 * If the ACL of an Entity is deleted, then its benefactor will
+	 * automatically be set to its parent's benefactor. The ACL for a Project
+	 * cannot be deleted.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CHANGE_PERMISSIONS</a> on the Entity to call this method.
+	 * </p>
 	 * 
 	 * @param id
-	 *            - The entity whose inheritance is to be restored
+	 *            The ID of the Entity that should have its ACL deleted.
 	 * @param userId
 	 *            - The user that is deleting the entity.
 	 * @throws NotFoundException
@@ -1233,7 +1306,8 @@ public class EntityController extends BaseController {
 	/**
 	 * Get an existing activity for a specific version of an Entity with a GET.
 	 * 
-	 * @param id The ID of the entity to fetch.
+	 * @param id
+	 *            The ID of the entity to fetch.
 	 * @param versionNumber
 	 *            the version of the entity
 	 * @param userId
