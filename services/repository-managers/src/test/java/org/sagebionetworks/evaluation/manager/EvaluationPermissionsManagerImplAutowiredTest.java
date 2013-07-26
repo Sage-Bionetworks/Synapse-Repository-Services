@@ -454,7 +454,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, user);
 		// Even if we delete the ACL, backfill() should create one for use
-		evaluationManager.deleteEvaluation(user, evalId);
+		evaluationPermissionsManager.deleteAcl(user, evalId);
 		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
 		validatePublicReadParticipate(acl);
 	}
