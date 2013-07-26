@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -37,7 +38,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Autowired
 	private UserManager userManager;
 
-	private boolean turnOffAcl = true; // TODO: To be removed once web ui is in place
+	 // TODO: To be removed once the web ui (SWC-728) is ready
+	private boolean turnOffAcl = true;
 
 	@Override
 	public AccessControlList createAcl(UserInfo userInfo, AccessControlList acl)
@@ -63,6 +65,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		final String evalOwerId = eval.getOwnerId();
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(evalOwerId));
+
+		if (turnOffAcl) {
+			acl = addPublicReadParticipate(acl);
+		}
 
 		final String aclId = aclDAO.create(acl);
 		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
@@ -267,7 +273,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private AccessControlList backfill(UserInfo userInfo, String evalId)
 			throws NotFoundException {
 
-		// Make sure only owner and admin can backfill
+		// Make sure only the owner and admin can backfill
 		final Evaluation eval = getEvaluation(evalId);
 		if (!userInfo.isAdmin()) {
 			if (!isEvalOwner(userInfo, eval)) {
@@ -275,7 +281,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			}
 		}
 
-		// Backfill evaluation owner
+		// Backfill the evaluation owner
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
 		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessSet.add(ACCESS_TYPE.CREATE);
@@ -297,7 +303,36 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		acl.setCreationDate(new Date());
 		acl.setResourceAccess(raSet);
 
-		// Backfill for the public
+		acl = addPublicReadParticipate(acl);
+
+		return acl;
+	}
+
+	// TODO: This is a temporary method that goes with the 'turnOffAcl' flag
+	private AccessControlList addPublicReadParticipate(final AccessControlList acl) {
+
+		if (turnOffAcl) {
+
+			// The public can read
+			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>();
+			accessSet.add(ACCESS_TYPE.READ);
+			ResourceAccess ra = new ResourceAccess();
+			ra.setAccessType(accessSet);
+			String publicUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC).getId();
+			ra.setPrincipalId(Long.parseLong(publicUserId));
+			final Set<ResourceAccess> raSet = acl.getResourceAccess();
+			raSet.add(ra);
+
+			// Authenticated users can participate
+			accessSet = new HashSet<ACCESS_TYPE>();
+			accessSet.add(ACCESS_TYPE.READ);
+			accessSet.add(ACCESS_TYPE.PARTICIPATE);
+			ra = new ResourceAccess();
+			ra.setAccessType(accessSet);
+			String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
+			ra.setPrincipalId(Long.parseLong(userId));
+			raSet.add(ra);
+		}
 
 		return acl;
 	}

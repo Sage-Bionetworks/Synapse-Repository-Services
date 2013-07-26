@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -434,12 +435,28 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(acl);
 		aclsToDelete.add(acl.getId());
 		assertEquals(evalId, acl.getId());
+		validatePublicReadParticipate(acl);
 
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		assertTrue(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.READ));
 		assertFalse(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.PARTICIPATE));
+	}
+
+	@Test
+	public void testBackfill() throws Exception {
+
+		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
+
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testBackfill";
+		String nodeId = createNode(nodeName, EntityType.project, user);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, user);
+		// Even if we delete the ACL, backfill() should create one for use
+		evaluationManager.deleteEvaluation(user, evalId);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
+		validatePublicReadParticipate(acl);
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {
@@ -479,5 +496,38 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		acl.setModifiedBy(principalId);
 		acl.setModifiedOn(now);
 		return acl;
+	}
+
+	// PUBLIC: READ
+	// AUTHENTICATED)USERS: READ, PARTICIPATE
+	private void validatePublicReadParticipate(AccessControlList acl) {
+		Set<ResourceAccess> raSet = acl.getResourceAccess();
+		assertNotNull(raSet);
+		String publicUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC).getId();
+		String authenticatedUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
+		boolean hasPublicUser = false;
+		boolean hasAuthenticatedUser = false;
+		for (ResourceAccess ra: raSet) {
+			String principalId = ra.getPrincipalId().toString();
+			if (principalId.equals(publicUserId)) {
+				hasPublicUser = true;
+				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.READ));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CREATE));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.DELETE));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.PARTICIPATE));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.UPDATE));
+			} else if (principalId.equals(authenticatedUserId)) {
+				hasAuthenticatedUser = true;
+				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.READ));
+				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.PARTICIPATE));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CREATE));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.DELETE));
+				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.UPDATE));
+			}
+		}
+		assertTrue(hasPublicUser);
+		assertTrue(hasAuthenticatedUser);
 	}
 }
