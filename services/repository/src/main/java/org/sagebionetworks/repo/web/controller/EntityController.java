@@ -151,11 +151,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <h6>JSON Schemas</h6>
  * <p>
- * Each Entity type and Model object in Synapse is define by a JSON schema. The
+ * Each Entity type and Model object in Synapse is defined by a JSON schema. The
  * <a href="${GET.REST.resources}">GET /REST/resources</a> method will list the
- * full name of all Resource used by Synapse. The schema for each of these
- * Resource is accessible via <a href="${GET.REST.resources.schema}">GET
- * /REST/resources/schema</a>. Note: Many of these resource are composition
+ * full name of all Resources used by Synapse. The schema for each Resource is
+ * accessible via <a href="${GET.REST.resources.schema}">GET
+ * /REST/resources/schema</a>. Note: Many of these resources are composition
  * objects and one must navigate various interfaces of an object to fully digest
  * it. Therefore, a flattened (or effective) schema for each resource is
  * available from the <a href="${GET.REST.resources.effectiveSchema}">GET
@@ -866,9 +866,9 @@ public class EntityController extends BaseController {
 	/**
 	 * Create a new Access Control List (ACL), overriding inheritance.
 	 * <p>
-	 * By default, Entities such as Files and Folder inherit their permission
+	 * By default, Entities such as FileEntity and Folder inherit their permission
 	 * from their containing Project. For such Entities the Project is the
-	 * Entity's 'benefactor'. This permission inheritance can be override by
+	 * Entity's 'benefactor'. This permission inheritance can be overridden by
 	 * creating an ACL for the Entity. When this occurs the Entity becomes its
 	 * own benefactor and all permission are determined by its own ACL.
 	 * </p>
@@ -1005,9 +1005,9 @@ public class EntityController extends BaseController {
 	/**
 	 * Delete the Access Control List (ACL) for a given Entity.
 	 * <p>
-	 * By default, Entities such as Files and Folder inherit their permission
+	 * By default, Entities such as FileEntity and Folder inherit their permission
 	 * from their containing Project. For such Entities the Project is the
-	 * Entity's 'benefactor'. This permission inheritance can be override by
+	 * Entity's 'benefactor'. This permission inheritance can be overridden by
 	 * creating an ACL for the Entity. When this occurs the Entity becomes its
 	 * own benefactor and all permission are determined by its own ACL.
 	 * </p>
@@ -1085,7 +1085,7 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get all version of an Entity one page at a time.
+	 * Get all versions of an Entity one page at a time.
 	 * 
 	 * @param id
 	 *            The ID of the Entity to get all versions for.
