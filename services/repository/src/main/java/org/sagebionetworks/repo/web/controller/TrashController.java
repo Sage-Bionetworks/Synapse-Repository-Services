@@ -24,8 +24,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * REST APIs for the trash can.
- *
- * @author Eric Wu
  */
 @ControllerInfo(displayName="Recycle Bin Services", path="repo/v1")
 @Controller
