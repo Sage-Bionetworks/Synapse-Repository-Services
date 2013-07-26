@@ -3,6 +3,10 @@ package org.sagebionetworks.evaluation.manager;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
@@ -16,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -120,8 +125,16 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
-		AccessControlList acl = aclDAO.get(evalId, ObjectType.EVALUATION);
-		return acl;
+		try {
+			AccessControlList acl = aclDAO.get(evalId, ObjectType.EVALUATION);
+			return acl;
+		} catch (NotFoundException e) {
+			AccessControlList acl = backfill(userInfo, evalId);
+			if (acl == null) {
+				throw e;
+			}
+			return acl;
+		}
 	}
 
 	@Override
@@ -249,5 +262,43 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			// Rethrow with a more specific message
 			throw new NotFoundException("Evaluation of ID " + evalId + " does not exist yet.");
 		}
+	}
+
+	private AccessControlList backfill(UserInfo userInfo, String evalId)
+			throws NotFoundException {
+
+		// Make sure only owner and admin can backfill
+		final Evaluation eval = getEvaluation(evalId);
+		if (!userInfo.isAdmin()) {
+			if (!isEvalOwner(userInfo, eval)) {
+				return null;
+			}
+		}
+
+		// Backfill evaluation owner
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		accessSet.add(ACCESS_TYPE.CREATE);
+		accessSet.add(ACCESS_TYPE.DELETE);
+		accessSet.add(ACCESS_TYPE.READ);
+		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		accessSet.add(ACCESS_TYPE.UPDATE);
+
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String userId = eval.getOwnerId();
+		ra.setPrincipalId(Long.parseLong(userId));
+
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId(evalId);
+		acl.setCreationDate(new Date());
+		acl.setResourceAccess(raSet);
+
+		// Backfill for the public
+
+		return acl;
 	}
 }
