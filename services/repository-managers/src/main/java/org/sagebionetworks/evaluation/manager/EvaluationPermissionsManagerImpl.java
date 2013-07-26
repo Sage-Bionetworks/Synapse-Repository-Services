@@ -305,6 +305,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		acl = addPublicReadParticipate(acl);
 
+		final String aclId = aclDAO.create(acl);
+		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
 		return acl;
 	}
 
