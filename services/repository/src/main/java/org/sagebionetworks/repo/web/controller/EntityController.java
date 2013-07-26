@@ -98,10 +98,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * created for the Project. New Folders and FileEnties start off inheriting the
  * ACL of their containing Project. This means they do not have their own ACL
  * and all authorization is controlled by their Project's ACL. The term
- * 'benefactor' is used to indicate which Entity an Entity inherits its ACL from.
- * For example, a newly created Project will be its own benefactor, while a new
- * FileEntity's benefactor will start off as its containing Project. The current
- * benefactor of any Entity can be determined using the <a
+ * 'benefactor' is used to indicate which Entity an Entity inherits its ACL
+ * from. For example, a newly created Project will be its own benefactor, while
+ * a new FileEntity's benefactor will start off as its containing Project. The
+ * current benefactor of any Entity can be determined using the <a
  * href="${GET.entity.id.benefactor}">GET /entity/{id}/benefactor</a> method.
  * </p>
  * <p>
@@ -127,7 +127,40 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${GET.entity.id.permissions}" >GET /entity/{id}/permissions</a> method
  * should be used.
  * </p>
- * 
+ * <h6>Versions</h6>
+ * <p>
+ * Currently, <a
+ * href="${org.sagebionetworks.repo.model.FileEntity}">FileEntities</a> are
+ * "versionable" meaning it is possible for it to have multiple versions of the
+ * file. Whenever, a FileEntity is updated with a new <a
+ * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> a new
+ * version of the FileEntity is automatically created. The file history an
+ * FileEntity can be retrieved using <a href="${GET.entity.id.version}">GET
+ * /entity/{id}/version</a> method. A specific version of a FileEntity can be
+ * retrieved using <a href="${GET.entity.id.version.versionNumber}">GET
+ * /entity/{id}/version/{versionNumber}</a> method. The Annotations of a
+ * specific version of an FileEntity can be retrieved using the <a
+ * href="${GET.entity.id.version.versionNumber.annotations">GET
+ * /entity/{id}/version/{versionNumber}/annotations</a> method.
+ * </p>
+ * <p>
+ * <b><i>Note: </b>Only the File and Annotations of an Entity are include in the
+ * version. All other components of an Entity such as description, name, parent,
+ * ACL, and WikiPage are <b>not</b> not part of the version, and will not vary
+ * from version to version.</i>
+ * </p>
+ * <h6>JSON Schemas</h6>
+ * <p>
+ * Each Entity type and Model object in Synapse is defined by a JSON schema. The
+ * <a href="${GET.REST.resources}">GET /REST/resources</a> method will list the
+ * full name of all Resources used by Synapse. The schema for each Resource is
+ * accessible via <a href="${GET.REST.resources.schema}">GET
+ * /REST/resources/schema</a>. Note: Many of these resources are composition
+ * objects and one must navigate various interfaces of an object to fully digest
+ * it. Therefore, a flattened (or effective) schema for each resource is
+ * available from the <a href="${GET.REST.resources.effectiveSchema}">GET
+ * /REST/resources/effectiveSchema</a>
+ * </p>
  */
 @ControllerInfo(displayName = "Entity Services", path = "repo/v1")
 @Controller
@@ -428,18 +461,22 @@ public class EntityController extends BaseController {
 	}
 
 	/**
+	 * This is a duplicate method to update.
+	 * 
 	 * @param userId
+	 * @param activityId
 	 * @param header
-	 * @param etag
 	 * @param request
-	 * @return the newly created versionable entity
+	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
+	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -457,7 +494,7 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Does the actually entity update.
+	 * This is a duplicate of update and will be removed.
 	 * 
 	 * @param userId
 	 * @param header
@@ -473,6 +510,7 @@ public class EntityController extends BaseController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	private Entity updateEntityImpl(String userId, HttpHeaders header,
 			boolean newVersion, String activityId, HttpServletRequest request)
 			throws IOException, NotFoundException, ConflictingUpdateException,
@@ -492,18 +530,16 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Called to delete an entity.
+	 * Delete a specific version of a FileEntity.
 	 * 
 	 * @param id
-	 *            - The id of the user that is deleting the entity.
+	 *            The ID of the Entity
 	 * @param userId
-	 *            - The user that is deleting the entity.
 	 * @param versionNumber
+	 *            The version number of the Entity to delete.
 	 * @param request
 	 * @throws NotFoundException
-	 *             - Thrown when the entity to delete does not exist.
 	 * @throws DatastoreException
-	 *             - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
@@ -521,19 +557,17 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get an existing entity with a GET.
+	 * Get a specific version of a FileEntity.
 	 * 
 	 * @param id
-	 *            - The ID of the entity to fetch.
+	 *            The ID of the Entity.
 	 * @param userId
-	 *            -The user that is doing the get.
 	 * @param versionNumber
+	 *            The version number of the Entity to get.
 	 * @param request
-	 * @return The requested Entity if it exists.
+	 * @return
 	 * @throws NotFoundException
-	 *             - Thrown if the requested entity does not exist.
 	 * @throws DatastoreException
-	 *             - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -553,18 +587,17 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get an existing entity with a GET.
+	 * Get the EntityHeader of an Entity given its ID. The EntityHeader is a
+	 * light weight object with basic information about an Entity includes its
+	 * type.
 	 * 
-	 * @param id
-	 *            - The ID of the entity to fetch.
 	 * @param userId
-	 *            -The user that is doing the get.
+	 * @param id
+	 *            The ID of the Entity to get the EntityHeader for.
 	 * @param request
-	 * @return The requested Entity if it exists.
+	 * @return
 	 * @throws NotFoundException
-	 *             - Thrown if the requested entity does not exist.
 	 * @throws DatastoreException
-	 *             - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -580,19 +613,17 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the EntityHeader for an existing entity with a GET. If any item in
-	 * the batch fails (e.g., with a 404) they all fail.
+	 * Get a batch of EntityHeader given multile Entity IDs. The EntityHeader is
+	 * a light weight object with basic information about an Entity includes its
+	 * type.
 	 * 
 	 * @param userId
-	 *            -The user that is doing the get.
 	 * @param batch
-	 *            - The comma-separated list of IDs of the entity to fetch.
+	 *            A comma separated list of Entity IDs to get EntityHeaders for.
 	 * @param request
-	 * @return The requested Entity if it exists.
+	 * @return
 	 * @throws NotFoundException
-	 *             - Thrown if the requested entity does not exist.
 	 * @throws DatastoreException
-	 *             - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -634,6 +665,9 @@ public class EntityController extends BaseController {
 	 *             - Thrown when an there is a server failure.
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
+	// It is silly to overload an HTTP GET method with a POST!! An optional
+	// paramter on the GET method would have been a better solution.
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
 	public @ResponseBody
@@ -674,8 +708,8 @@ public class EntityController extends BaseController {
 	 * membership. There might also be extra requirement for an Entity, such as
 	 * special terms-of-use or special restrictions for sensitive data. This
 	 * means a client cannot accurately calculate a User's permission on an
-	 * Entity simply by inspecting the Entity's ACL. Instead, all clients should use this
-	 * method to get the calculated permission a User has on an Entity.
+	 * Entity simply by inspecting the Entity's ACL. Instead, all clients should
+	 * use this method to get the calculated permission a User has on an Entity.
 	 * </p>
 	 * 
 	 * @param id
@@ -698,6 +732,44 @@ public class EntityController extends BaseController {
 		// pass it along.
 		return serviceProvider.getEntityService().getUserEntityPermissions(
 				userId, id);
+	}
+
+	/**
+	 * Determine if the caller have a given permission on a given Entity.
+	 * <p>
+	 * A User's permission on an Entity is a calculation based several factors
+	 * including the permission granted by the Entity's ACL and the User's group
+	 * membership. There might also be extra requirement for an Entity, such as
+	 * special terms-of-use or special restrictions for sensitive data. This
+	 * means a client cannot accurately calculate a User's permission on an
+	 * Entity simply by inspecting the Entity's ACL. Instead, all clients should
+	 * use this method to get the calculated permission a User has on an Entity.
+	 * </p>
+	 * 
+	 * @param id
+	 *            The ID of the Entity to check the permission on.
+	 * @param accessType
+	 *            The permission to check. Must be from: <a
+	 *            href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 *            >ACCESS_TYPE</a>
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.ACCESS }, method = RequestMethod.GET)
+	public @ResponseBody
+	BooleanResult hasAccess(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		// pass it along.
+		return new BooleanResult(serviceProvider.getEntityService().hasAccess(
+				id, userId, request, accessType));
 	}
 
 	/**
@@ -762,19 +834,17 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the path of an entity.
+	 * Get the full path of an Entity as a List of EntityHeaders. The first
+	 * EntityHeader will be the Root Entity, and the last EntityHeader will be
+	 * the requested Entity.
 	 * 
 	 * @param id
-	 *            - The id of the entity to update.
+	 *            The ID of the Entity to get the full path for.
 	 * @param userId
-	 *            - The user that is doing the update.
 	 * @param request
-	 *            - Used to read the contents.
-	 * @return The annotations for the given entity.
+	 * @return
 	 * @throws NotFoundException
-	 *             - Thrown if the given entity does not exist.
 	 * @throws DatastoreException
-	 *             - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -794,9 +864,26 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Create a new ACL, overriding inheritance.
+	 * Create a new Access Control List (ACL), overriding inheritance.
+	 * <p>
+	 * By default, Entities such as FileEntity and Folder inherit their permission
+	 * from their containing Project. For such Entities the Project is the
+	 * Entity's 'benefactor'. This permission inheritance can be overridden by
+	 * creating an ACL for the Entity. When this occurs the Entity becomes its
+	 * own benefactor and all permission are determined by its own ACL.
+	 * </p>
+	 * <p>
+	 * If the ACL of an Entity is deleted, then its benefactor will
+	 * automatically be set to its parent's benefactor.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CHANGE_PERMISSIONS</a> on the Entity to call this method.
+	 * </p>
 	 * 
 	 * @param id
+	 *            The ID of the Entity to create an ACL for.
 	 * @param userId
 	 *            - The user that is doing the create.
 	 * @param newAcl
@@ -847,7 +934,7 @@ public class EntityController extends BaseController {
 	 * </p>
 	 * 
 	 * @param id
-	 *            The ID of the entity to get the ACL for.
+	 *            The ID of the Entity to get the ACL for.
 	 * @param userId
 	 *            - The user that is making the request.
 	 * @param request
@@ -873,9 +960,15 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Update an entity's ACL.
+	 * Update an Entity's ACL.
+	 * <p>
+	 * Note: The caller must be granted <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CHANGE_PERMISSIONS</a> on the Entity to call this method.
+	 * </p>
 	 * 
 	 * @param id
+	 *            The ID of the Entity to create an ACL for.
 	 * @param userId
 	 * @param updatedACL
 	 * @param request
@@ -910,10 +1003,27 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Called to restore inheritance (vs. defining ones own ACL)
+	 * Delete the Access Control List (ACL) for a given Entity.
+	 * <p>
+	 * By default, Entities such as FileEntity and Folder inherit their permission
+	 * from their containing Project. For such Entities the Project is the
+	 * Entity's 'benefactor'. This permission inheritance can be overridden by
+	 * creating an ACL for the Entity. When this occurs the Entity becomes its
+	 * own benefactor and all permission are determined by its own ACL.
+	 * </p>
+	 * <p>
+	 * If the ACL of an Entity is deleted, then its benefactor will
+	 * automatically be set to its parent's benefactor. The ACL for a Project
+	 * cannot be deleted.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CHANGE_PERMISSIONS</a> on the Entity to call this method.
+	 * </p>
 	 * 
 	 * @param id
-	 *            - The entity whose inheritance is to be restored
+	 *            The ID of the Entity that should have its ACL deleted.
 	 * @param userId
 	 *            - The user that is deleting the entity.
 	 * @throws NotFoundException
@@ -933,30 +1043,6 @@ public class EntityController extends BaseController {
 			ConflictingUpdateException {
 		// Determine the object type from the url.
 		serviceProvider.getEntityService().deleteEntityACL(userId, id);
-	}
-
-	/**
-	 * @param id
-	 * @param userId
-	 * @param accessType
-	 * @param request
-	 * @return the access types that the given user has to the given resource
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ID + UrlHelpers.ACCESS }, method = RequestMethod.GET)
-	public @ResponseBody
-	BooleanResult hasAccess(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
-			HttpServletRequest request) throws DatastoreException,
-			NotFoundException, UnauthorizedException {
-		// pass it along.
-		return new BooleanResult(serviceProvider.getEntityService().hasAccess(
-				id, userId, request, accessType));
 	}
 
 	/**
@@ -999,17 +1085,17 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Fetch all of the entities of a given type in a paginated form.
+	 * Get all versions of an Entity one page at a time.
 	 * 
 	 * @param id
-	 * @param userId
-	 *            - The id of the user doing the fetch.
+	 *            The ID of the Entity to get all versions for.
 	 * @param offset
-	 *            - The offset index determines where this page will start from.
+	 *            The offset index determines where this page will start from.
 	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1.
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
-	 *            - Limits the number of entities that will be fetched for this
+	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
 	 * @param request
 	 * @return A paginated list of results.
@@ -1042,20 +1128,16 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the annotations for a given version of an entity.
+	 * Get an Entity's annotations for a specific version of a FileEntity.
 	 * 
 	 * @param id
-	 *            - The id of the entity to update.
-	 * @param userId
-	 *            - The user that is doing the update.
+	 *            The ID of the Entity.
 	 * @param versionNumber
+	 *            The version number of the Entity.
 	 * @param request
-	 *            - Used to read the contents.
-	 * @return The annotations for the given entity.
+	 * @return
 	 * @throws NotFoundException
-	 *             - Thrown if the given entity does not exist.
 	 * @throws DatastoreException
-	 *             - Thrown when there is a server side problem.
 	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -1073,6 +1155,18 @@ public class EntityController extends BaseController {
 	}
 
 	/**
+	 * Get the list of Resource names for all Resources of Synapse. This
+	 * includes The full names of each Entity type and Model object of the API.
+	 * <p>
+	 * The resulting names can be used to get the full schema or effective
+	 * schema of each object (see : <a href="${GET.REST.resources.schema}">GET
+	 * /REST/resources/schema</a> and <a
+	 * href="${GET.REST.resources.effectiveSchema}">GET
+	 * /REST/resources/effectiveSchema</a>)
+	 * </p>
+	 * 
+	 * @param request
+	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REST_RESOURCES }, method = RequestMethod.GET)
@@ -1083,9 +1177,17 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * 
+	 * Get the effective schema of a resource using its name.
+	 * <p>
+	 * Many of the Synapse resource are composition objects and one must
+	 * navigate various interfaces of an object to fully digest it. This method
+	 * provides a flattened (or effective) schema for the requested resource.
+	 * </p>
 	 * 
 	 * @param resourceId
+	 *            The full name of the resource (see <a
+	 *            href="${GET.REST.resources}">GET /REST/resources</a> for the
+	 *            full list of names).
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -1106,8 +1208,19 @@ public class EntityController extends BaseController {
 
 	/**
 	 * Get the full schema of a REST resource.
+	 * <p>
+	 * Many of the Synapse resource are composition objects and the various
+	 * interfaces must be navigated to fully digest the object. The schema
+	 * objects provided by this method include this composition. If the full
+	 * composition is not needed, then a flattened or effective schema can be
+	 * retrieved with the <a href="${GET.REST.resources.effectiveSchema}">GET
+	 * /REST/resources/effectiveSchema</a> method.
+	 * </p>
 	 * 
 	 * @param resourceId
+	 *            The full name of the resource (see <a
+	 *            href="${GET.REST.resources}">GET /REST/resources</a> for the
+	 *            full list of names).
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
@@ -1127,12 +1240,11 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the full schema of a REST resource.
+	 * Get the EntityRegistry for all Synapse Entities. This registry provides
+	 * information about each Entity type.
 	 * 
-	 * @param resourceId
+	 * @param request
 	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.ENTITY + UrlHelpers.REGISTRY }, method = RequestMethod.GET)
@@ -1202,10 +1314,10 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get an existing activity for the current version of an Entity with a GET.
+	 * Get an existing activity for the current version of an Entity.
 	 * 
 	 * @param id
-	 *            - The ID of the activity to fetch.
+	 *            The ID of the activity to fetch.
 	 * @param userId
 	 *            -The user that is doing the get.
 	 * @param request
@@ -1231,9 +1343,10 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get an existing activity for a specific version of an Entity with a GET.
+	 * Get an existing activity for a specific version of an Entity.
 	 * 
-	 * @param id The ID of the entity to fetch.
+	 * @param id
+	 *            The ID of the entity to fetch.
 	 * @param versionNumber
 	 *            the version of the entity
 	 * @param userId
@@ -1262,13 +1375,12 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Sets the genratedBy relationship for the current version of an Entity
-	 * with a PUT
+	 * Sets the genratedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id
-	 *            The ID of the entity to fetch.
+	 *            The ID of the entity to update.
 	 * @param activityId
-	 *            the id of the activity to connect to the entity
+	 *            The id of the activity to connect to the entity.
 	 * @param userId
 	 *            The user that is doing the get.
 	 * @param request
@@ -1295,8 +1407,7 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Deletes the genratedBy relationship for the current version of an Entity
-	 * with a DELETE
+	 * Deletes the genratedBy relationship for the current version of an Entity.
 	 * 
 	 * @param id
 	 *            - The ID of the activity to fetch.
@@ -1325,14 +1436,16 @@ public class EntityController extends BaseController {
 
 	// Files
 	/**
-	 * Attempt to download the raw file currently associated with the current
-	 * version of the Entity. Note: This call will result in a HTTP temporary
-	 * redirect (307), to the real file URL if the caller meets all of the
-	 * download requirements.
+	 * Get the actual URL of the file associated with the current version of a
+	 * FileEntity.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The owning entity id.
+	 *            The ID of the FileEntity to get.
 	 * @param redirect
 	 *            When set to false, the URL will be returned as text/plain
 	 *            instead of redirecting.
@@ -1356,16 +1469,18 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Attempt to download the raw file of an entity for a given version number
-	 * of the entity. Note: This call will result in a HTTP temporary redirect
-	 * (307), to the real file URL if the caller meets all of the download
-	 * requirements.
+	 * Get the actual URL of the file associated with a specific version of a
+	 * FileEntity.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The owning entity id.
+	 *            The ID of the FileEntity to get.
 	 * @param versionNumber
-	 *            The version number of the owing entity.
+	 *            The version number of the FileEntity to get.
 	 * @param redirect
 	 *            When set to false, the URL will be returned as text/plain
 	 *            instead of redirecting.
@@ -1389,14 +1504,16 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Attempt to download the preview of the file currently associated with the
-	 * current version of the Entity. Note: This call will result in a HTTP
-	 * temporary redirect (307), to the real file URL if the caller meets all of
-	 * the download requirements.
+	 * Get the URL of the preview file associated with the current version of a
+	 * FileEntity.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The owning entity id.
+	 *            The ID of the FileEntity to get.
 	 * @param redirect
 	 *            When set to false, the URL will be returned as text/plain
 	 *            instead of redirecting.
@@ -1420,19 +1537,21 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Attempt to download preview of the file of an entity for a given version
-	 * number of the entity. Note: This call will result in a HTTP temporary
-	 * redirect (307), to the real file URL if the caller meets all of the
-	 * download requirements.
+	 * Get the URL of the preview file associated with a specific version of a
+	 * FileEntity.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The owning entity id.
+	 *            The ID of the FileEntity to get.
+	 * @param versionNumber
+	 *            The version number of the FileEntity to get.
 	 * @param redirect
 	 *            When set to false, the URL will be returned as text/plain
 	 *            instead of redirecting.
-	 * @param versionNumber
-	 *            The version number of the owing entity.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1454,12 +1573,15 @@ public class EntityController extends BaseController {
 
 	/**
 	 * Get the FileHandles of the file currently associated with the current
-	 * version of the Entity. If a preview exists for the file then the handle
-	 * of the preview and the file will be returned with this call.
+	 * version of the Entity
+	 * <p>
+	 * If a preview exists for the file then the handle of the preview and the
+	 * file will be returned with this call.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The owning entity id.
+	 *            The ID of the FileEntity to get.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1477,15 +1599,18 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Get the FileHandles of the file associated with the given version number
-	 * of the entity. If a preview exists for the file then the handle of the
-	 * preview and the file will be returned with this call.
+	 * Get the FileHandles of the file associated with a specific version of a
+	 * FileEntity.
+	 * <p>
+	 * If a preview exists for the file then the handle of the preview and the
+	 * file will be returned with this call.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
-	 *            The owning entity id.
+	 *            The ID of the FileEntity to get.
 	 * @param versionNumber
-	 *            The version number of the owing entity.
+	 *            The version number of the FileEntity to get
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -1503,10 +1628,10 @@ public class EntityController extends BaseController {
 	}
 
 	/**
-	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
+	 * Gets all FileEntities whose file's MD5 is the same as the specified MD5
+	 * string.
 	 * 
 	 * @param md5
-	 *            The MD5 to look up
 	 * @param userId
 	 *            The user making the request
 	 * @throws NotFoundException
