@@ -286,6 +286,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessSet.add(ACCESS_TYPE.CREATE);
 		accessSet.add(ACCESS_TYPE.DELETE);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.READ);
 		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		accessSet.add(ACCESS_TYPE.UPDATE);
