@@ -29,38 +29,56 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Controller for WikiPage services.
- * @author John
- *
+ * <p>
+ * The Synapse <a
+ * href="${org.sagebionetworks.repo.model.wiki.WikiPage}">WikiPage</a> model
+ * object contains the data needed to render an end-user crafted web page. The
+ * Synapse Web Client will dynamically render a WikiPage into a combination of
+ * HTML, CSS and Javascript which is then finally rendered as a web page in the
+ * client's web browser.
+ * </p>
+ * <p>
+ * These services provide provides support for creating, reading, updating, and
+ * deleting (CRUD) the WikiPage model objects.
+ * </p>
+ * <p>
+ * WikiPages are composed of two major parts; the raw markdown text and a list
+ * of file attachments.  For example, to embed an image from an end-user's machine into a WikiPage, the image file must first be upload to Synapse as a <
+ * </p>
  */
-@ControllerInfo(displayName="Wiki Page Services", path="repo/v1")
+@ControllerInfo(displayName = "WikiPage Services", path = "repo/v1")
 @Controller
 public class WikiController extends BaseController {
-	
+
 	@Autowired
 	ServiceProvider serviceProvider;
-	
+
 	/**
 	 * Create a wiki page with an entity owner.
 	 * 
-	 * @param userId - the user's id.
-	 * @param ownerId - the ID of thw owner object.
-	 * @param toCreate - the WikiPage to create.s
-	 * @return - 
-	 * @throws DatastoreException - Synapse error.
-	 * @throws NotFoundException - returned if the user or owner does not exist.
+	 * @param userId
+	 *            - the user's id.
+	 * @param ownerId
+	 *            - the ID of thw owner object.
+	 * @param toCreate
+	 *            - the WikiPage to create.s
+	 * @return -
+	 * @throws DatastoreException
+	 *             - Synapse error.
+	 * @throws NotFoundException
+	 *             - returned if the user or owner does not exist.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI, method = RequestMethod.POST)
 	public @ResponseBody
 	WikiPage createEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@RequestBody WikiPage toCreate
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.ENTITY, toCreate);
+			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
+				ObjectType.ENTITY, toCreate);
 	}
-	
+
 	/**
 	 * Create a wiki page with a evaluation owner.
 	 * 
@@ -76,14 +94,15 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage createCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@RequestBody WikiPage toCreate
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.EVALUATION, toCreate);
+			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
+				ObjectType.EVALUATION, toCreate);
 	}
-	
+
 	/**
 	 * Get the root wiki page for an owner.
+	 * 
 	 * @param userId
 	 * @param ownerId
 	 * @return
@@ -95,13 +114,15 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getEntityRootWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getRootWikiPage(userId, ownerId, ObjectType.ENTITY);
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getWikiService().getRootWikiPage(userId,
+				ownerId, ObjectType.ENTITY);
 	}
-	
+
 	/**
 	 * Get the root wiki page owned by an evaluation.
+	 * 
 	 * @param userId
 	 * @param ownerId
 	 * @return
@@ -113,13 +134,15 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getCompetitionRootWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getRootWikiPage(userId, ownerId, ObjectType.EVALUATION);
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getWikiService().getRootWikiPage(userId,
+				ownerId, ObjectType.EVALUATION);
 	}
-	
+
 	/**
 	 * Get a wiki page owned by an entity.
+	 * 
 	 * @param userId
 	 * @param ownerId
 	 * @param wikiId
@@ -132,17 +155,20 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getWikiService().getWikiPage(userId,
+				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
-	
+
 	/**
-	 * Get a WikiPage owed by 
+	 * Get a WikiPage owed by
+	 * 
 	 * @param userId
-	 * @param ownerId - the ID of the owner object
-	 * @param wikiId - the ID of the wiki.
+	 * @param ownerId
+	 *            - the ID of the owner object
+	 * @param wikiId
+	 *            - the ID of the wiki.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -152,78 +178,81 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getWikiService().getWikiPage(userId,
+				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
-	
+
 	// Update methods.
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	WikiPage updateEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId,
-			@RequestBody WikiPage toUpdate
-			) throws DatastoreException, NotFoundException{
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody WikiPage toUpdate) throws DatastoreException,
+			NotFoundException {
 		validateUpateArguments(wikiId, toUpdate);
-		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId, ObjectType.ENTITY, toUpdate);
+		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
+				ObjectType.ENTITY, toUpdate);
 	}
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	WikiPage updateCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId,
-			@RequestBody WikiPage toUpdate
-			) throws DatastoreException, NotFoundException{
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestBody WikiPage toUpdate) throws DatastoreException,
+			NotFoundException {
 		validateUpateArguments(wikiId, toUpdate);
-		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId, ObjectType.EVALUATION, toUpdate);
+		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
+				ObjectType.EVALUATION, toUpdate);
 	}
 
 	/**
 	 * Helper to validate update arguments.
+	 * 
 	 * @param wikiId
 	 * @param wikiPage
 	 */
 	private void validateUpateArguments(String wikiId, WikiPage wikiPage) {
-		if(wikiPage == null) throw new IllegalArgumentException("WikiPage cannot be null");
-		if(!wikiId.equals(wikiPage.getId())){
-			throw new IllegalArgumentException("Path variable wikiId does not match the ID of the passed WikiPage");
+		if (wikiPage == null)
+			throw new IllegalArgumentException("WikiPage cannot be null");
+		if (!wikiId.equals(wikiPage.getId())) {
+			throw new IllegalArgumentException(
+					"Path variable wikiId does not match the ID of the passed WikiPage");
 		}
 	}
-	
+
 	// Delete methods
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void deleteEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId
-			) throws DatastoreException, NotFoundException{
-		serviceProvider.getWikiService().deleteWikiPage(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
+		serviceProvider.getWikiService().deleteWikiPage(userId,
+				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID, method = RequestMethod.DELETE)
 	public @ResponseBody
 	void deleteCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId
-			) throws DatastoreException, NotFoundException{
-		serviceProvider.getWikiService().deleteWikiPage(userId, new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
+		serviceProvider.getWikiService().deleteWikiPage(userId,
+				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
-	
+
 	// Get Wiki Hierarchy
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_TREE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -231,11 +260,12 @@ public class WikiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
-			@PathVariable String ownerId
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getWikiHeaderTree(userId, ownerId, ObjectType.ENTITY, limit, offset);
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getWikiService().getWikiHeaderTree(userId,
+				ownerId, ObjectType.ENTITY, limit, offset);
 	}
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_TREE, method = RequestMethod.GET)
 	public @ResponseBody
@@ -243,96 +273,111 @@ public class WikiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
-			@PathVariable String ownerId
-			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getWikiHeaderTree(userId, ownerId, ObjectType.EVALUATION, limit, offset);
+			@PathVariable String ownerId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getWikiService().getWikiHeaderTree(userId,
+				ownerId, ObjectType.EVALUATION, limit, offset);
 	}
+
 	// Handles
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_HANDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getEntityWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId
-			) throws DatastoreException, NotFoundException{
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
 		// Get the redirect url
-		return serviceProvider.getWikiService().getAttachmentFileHandles(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+		return serviceProvider.getWikiService().getAttachmentFileHandles(
+				userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_HANDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getCompetitionWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId
-			) throws DatastoreException, NotFoundException{
+			@PathVariable String ownerId, @PathVariable String wikiId)
+			throws DatastoreException, NotFoundException {
 		// Get the redirect url
-		return serviceProvider.getWikiService().getAttachmentFileHandles(userId, new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+		return serviceProvider
+				.getWikiService()
+				.getAttachmentFileHandles(userId,
+						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
-	
+
 	// Files
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam String fileName,
-			@RequestParam (required = false) Boolean redirect,
-			HttpServletResponse response
-			) throws DatastoreException, NotFoundException, IOException{
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getWikiService().getAttachmentRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), fileName);
+		URL redirectUrl = serviceProvider.getWikiService()
+				.getAttachmentRedirectURL(userId,
+						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
-	
+
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void getCompetitionAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam String fileName,
-			@RequestParam (required = false) Boolean redirect,
-			HttpServletResponse response
-			) throws DatastoreException, NotFoundException, IOException{
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getWikiService().getAttachmentRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), fileName);
+		URL redirectUrl = serviceProvider
+				.getWikiService()
+				.getAttachmentRedirectURL(
+						userId,
+						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
+						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
-	
+
 	// Files
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiAttachmenPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam String fileName,
-			@RequestParam (required = false) Boolean redirect,
-			HttpServletResponse response
-			) throws DatastoreException, NotFoundException, IOException{
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getWikiService().getAttachmentPreviewRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), fileName);
+		URL redirectUrl = serviceProvider.getWikiService()
+				.getAttachmentPreviewRedirectURL(userId,
+						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
-	
+
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void getCompetitionAttachmenthPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId,
-			@PathVariable String wikiId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam String fileName,
-			@RequestParam (required = false) Boolean redirect,
-			HttpServletResponse response
-			) throws DatastoreException, NotFoundException, IOException{
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getWikiService().getAttachmentPreviewRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), fileName);
+		URL redirectUrl = serviceProvider
+				.getWikiService()
+				.getAttachmentPreviewRedirectURL(
+						userId,
+						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
+						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
-	
 
 }
