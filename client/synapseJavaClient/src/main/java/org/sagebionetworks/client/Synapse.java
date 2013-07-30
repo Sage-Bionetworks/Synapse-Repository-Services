@@ -3636,18 +3636,7 @@ public class Synapse implements SynapseInt {
 		JSONObject jsonObj = postUri(uri);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
-	
-	/**
-	 * Adds a separate user as a Participant in Evaluation evalId.
-	 */
-	public Participant createParticipantAsAdmin(String evalId, String participantPrincipalId) throws SynapseException {
-		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT
-				+ "/" + participantPrincipalId;
-		JSONObject jsonObj = postUri(uri);
-		return initializeFromJSONObject(jsonObj, Participant.class);
-	}
-	
+
 	public Participant getParticipant(String evalId, String principalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");

@@ -172,21 +172,7 @@ public class EvaluationController extends BaseController {
 	{
 		return serviceProvider.getEvaluationService().addParticipant(userId, evalId);
 	}
-	
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.POST)
-	public @ResponseBody
-	Participant createParticipantAsAdmin(
-			@PathVariable String evalId,
-			@PathVariable String partId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException
-	{
-		return serviceProvider.getEvaluationService().addParticipantAsAdmin(userId, evalId, partId);
-	}
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody

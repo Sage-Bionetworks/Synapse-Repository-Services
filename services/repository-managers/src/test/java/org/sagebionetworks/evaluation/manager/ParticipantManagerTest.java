@@ -93,24 +93,20 @@ public class ParticipantManagerTest {
     }
 
     @Test
-    public void testCRDAsAdmin() throws NotFoundException {
-    	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
+    public void testRDAsAdmin() throws NotFoundException {
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(any(Participant.class));
-    	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
+    	verify(mockParticipantDAO, times(1)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
     
     @Test
-    public void testCRDAsAdmin_NotOpen() throws NotFoundException {
+    public void testRDAsAdmin_NotOpen() throws NotFoundException {
     	// admin should be able to add participants even if Evaluation is closed
     	eval.setStatus(EvaluationStatus.CLOSED);
-    	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(any(Participant.class));
-    	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
+    	verify(mockParticipantDAO, times(1)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
     

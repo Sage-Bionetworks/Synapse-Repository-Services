@@ -133,19 +133,6 @@ public interface EvaluationService {
 			throws NotFoundException;
 
 	/**
-	 * Add a different user as a Participant to a Evaluation. Requires admin
-	 * rights on the Evaluation.
-	 * 
-	 * @param userId
-	 * @param evalId
-	 * @param idToAdd
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public Participant addParticipantAsAdmin(String userId, String evalId,
-			String idToAdd) throws NotFoundException;
-
-	/**
 	 * Get a Participant
 	 * 
 	 * @param principalId
