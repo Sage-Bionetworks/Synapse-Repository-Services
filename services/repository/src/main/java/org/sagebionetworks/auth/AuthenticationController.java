@@ -108,7 +108,7 @@ public class AuthenticationController extends BaseController {
 			}
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
-				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
+				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.getAcceptsTermsOfUse()))
 					throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
@@ -306,7 +306,9 @@ public class AuthenticationController extends BaseController {
 			// else return the current one
 			secretKey = secretKeyCollection.iterator().next();
 		}
-		return new SecretKey(secretKey);
+		SecretKey key = new SecretKey();
+		key.setSecretKey(secretKey);
+		return key;
 	}
 	
 

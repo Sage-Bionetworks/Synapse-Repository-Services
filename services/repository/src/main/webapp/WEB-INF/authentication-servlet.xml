@@ -13,89 +13,27 @@
   
   <import resource="classpath:authentication-services-spb.xml" />
   
-  <!-- To enable @RequestMapping process on type level and method level -->
-  <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
-  
-  <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
-    <property name="messageConverters">
-      <list>
-        <ref bean="jsonConverter" />
-        <ref bean="atomConverter"  />
-        <ref bean="marshallingConverter" />
-      </list>
-    </property>
-    <property name="customModelAndViewResolvers">
-        <list>
-            <!-- bean class="org.sagebionetworks.repo.web.ResponseHeaderResolver"/ -->
-        </list>
-    </property>
-  </bean>
-  <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
-    <property name="messageConverters">
-      <list>
-        <ref bean="jsonConverter" />
-        <ref bean="atomConverter"  />
-        <ref bean="marshallingConverter" />
-      </list>
-    </property>
-  </bean>    
-  
-  <bean id="jsonConverter" class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
-    <property name="supportedMediaTypes" value="application/json" />
-  </bean>
-  
-  <bean id="atomConverter" class="org.springframework.http.converter.feed.AtomFeedHttpMessageConverter">
-    <property name="supportedMediaTypes" value="application/atom+xml" />
-  </bean>
-  
-  <bean id="marshallingConverter" class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
-    <constructor-arg ref="jaxbMarshaller" />
-    <property name="supportedMediaTypes" value="application/xml"/>
-  </bean>
-  
-  <bean id="jaxbMarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
-    <property name="classesToBeBound">
-      <list>
-        <value>org.sagebionetworks.auth.ErrorResponse</value>
-        <value>org.sagebionetworks.authutil.User</value>
-        <value>org.sagebionetworks.authutil.Session</value>
-      </list>
-    </property>
-  </bean>
+ 	<!-- Used to Serialize object types -->
+	<bean id="jsonEntityConverter" class="org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverter" >
+		<!-- Force all responses to JSON -->
+		<property name="convertAnyRequestToJson" value="true"/>
+	</bean>
 
-  <!-- Here's the configuration for when we are using a View -->
-  <bean class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-    <property name="mediaTypes">
-      <map>
-        <entry key="atom" value="application/atom+xml"/>
-        <entry key="html" value="text/html"/>
-        <entry key="json" value="application/json"/>
-        <entry key="xml" value="application/xml" />
-      </map>
-    </property>
-    
-    <property name="defaultContentType" value="application/json" />
-    <property name="favorPathExtension" value="true" />
-    
-    <property name="defaultViews">
-      <list>
-        <bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView"/>
-      </list>
-    </property>
-    
-    <property name="viewResolvers">
-      <list>
-        <!-- Allow custom views -->
-        <bean class="org.springframework.web.servlet.view.BeanNameViewResolver"/>
-        <!-- Allow JSP templates for service admin pages -->
-        <bean id="viewResolver" class="org.springframework.web.servlet.view.UrlBasedViewResolver">
-          <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
-          <property name="prefix" value="/WEB-INF/jsp/"/>
-          <property name="suffix" value=".jsp"/>
-        </bean>
-      </list>
-    </property>
-    
-  </bean>
+	<!-- Setup our own JSON processing. -->
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+			    <ref bean="jsonEntityConverter" />
+			</list>
+		</property>
+	</bean>
+	<!-- Setup our own JSON processing. -->
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
+		<property name="messageConverters">
+			<list>
+			    <ref bean="jsonEntityConverter" />
+			</list>
+		</property>
+	</bean>
   
 </beans>

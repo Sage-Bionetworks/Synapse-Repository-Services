@@ -192,7 +192,9 @@ public class CrowdAuthUtil {
 					" but subsequentially could not retrieve attributes from server. \n");
 
 		}
-		return new Session(token);
+		Session session = new Session();
+		session.setSessionToken(token);
+		return session;
 	}
 	
 	public static String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {

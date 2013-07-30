@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -22,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -41,10 +41,10 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	AccessRequirement createAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestBody AccessRequirement accessRequirement,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws Exception {
-		AccessRequirement accessRequirement = (AccessRequirement)ControllerEntityClassHelper.deserialize(request, header);
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}
 	
@@ -82,7 +82,7 @@ public class AccessRequirementController extends BaseController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -97,7 +97,7 @@ public class AccessRequirementController extends BaseController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
 		subjectId.setType(RestrictableObjectType.ENTITY);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 	
 	/**
@@ -122,7 +122,7 @@ public class AccessRequirementController extends BaseController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
 		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -137,7 +137,7 @@ public class AccessRequirementController extends BaseController {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
 		subjectId.setType(RestrictableObjectType.EVALUATION);
-		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
