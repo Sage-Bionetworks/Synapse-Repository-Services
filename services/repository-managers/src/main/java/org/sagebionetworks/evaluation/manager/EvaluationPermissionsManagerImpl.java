@@ -180,7 +180,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		permission.setCanPublicRead(canAccess(anonymousUser, evalId, READ));
-		permission.setCanPublicParticipate(canAccess(anonymousUser, evalId, PARTICIPATE));
 
 		// Other permissions
 		permission.setCanChangePermissions(canAccess(userInfo, evalId, CHANGE_PERMISSIONS));
@@ -200,7 +199,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(
 				userInfo.getUser().getUserId())) {
-			if (!READ.equals(accessType) && !PARTICIPATE.equals(accessType)) {
+			if (!READ.equals(accessType)) {
 				return false;
 			}
 		}
@@ -211,10 +210,16 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		// A temporary flag to let bypass ACLs before the web portal is ready
 		if (turnOffAcl) {
 			// TODO: To be removed once web ui is in place
-			// Anyone can read and participate
-			if (ACCESS_TYPE.READ.equals(accessType) ||
-					ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
+			// Anyone can read
+			if (ACCESS_TYPE.READ.equals(accessType)) {
 				return Boolean.TRUE;
+			}
+			// Any registered user, once logging in, can participate
+			if (!AuthorizationConstants.ANONYMOUS_USER_ID.equals(
+					userInfo.getUser().getId())) {
+				if (ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
+					return Boolean.TRUE;
+				}
 			}
 		}
 
@@ -289,7 +294,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			// The public can read and participate
 			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>();
 			accessSet.add(ACCESS_TYPE.READ);
-			accessSet.add(ACCESS_TYPE.PARTICIPATE);
 			ResourceAccess ra = new ResourceAccess();
 			ra.setAccessType(accessSet);
 			String publicUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC).getId();
