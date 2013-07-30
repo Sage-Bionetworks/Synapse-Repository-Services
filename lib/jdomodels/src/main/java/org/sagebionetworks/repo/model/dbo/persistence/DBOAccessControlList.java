@@ -58,7 +58,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				return DBOAccessControlList.class;
 			}};
 	}
-	
+
 	private Long id;
 	private String etag;
 	private Long creationDate;

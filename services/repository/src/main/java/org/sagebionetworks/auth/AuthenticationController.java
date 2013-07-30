@@ -17,13 +17,14 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
-import org.sagebionetworks.authutil.Session;
-import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
+import org.sagebionetworks.repo.model.auth.SecretKey;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,7 +109,7 @@ public class AuthenticationController extends BaseController {
 			}
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
-				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
+				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.getAcceptsTermsOfUse()))
 					throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
@@ -306,7 +307,9 @@ public class AuthenticationController extends BaseController {
 			// else return the current one
 			secretKey = secretKeyCollection.iterator().next();
 		}
-		return new SecretKey(secretKey);
+		SecretKey key = new SecretKey();
+		key.setSecretKey(secretKey);
+		return key;
 	}
 	
 
