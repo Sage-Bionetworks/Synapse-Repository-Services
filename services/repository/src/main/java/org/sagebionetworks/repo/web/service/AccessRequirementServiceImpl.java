@@ -50,7 +50,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	
 	@Override
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			String userId, RestrictableObjectDescriptor subjectId, HttpServletRequest request) 
+			String userId, RestrictableObjectDescriptor subjectId) 
 			throws DatastoreException, UnauthorizedException, 
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -59,7 +59,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 			accessRequirementManager.getUnmetAccessRequirements(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessRequirement>(
-				request.getServletPath()+UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
+				UrlHelpers.ENTITY_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
 				results.getResults(),
 				(int)results.getTotalNumberOfResults(), 
 				1, 
@@ -70,7 +70,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 	@Override	
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			String userId, RestrictableObjectDescriptor subjectId,	HttpServletRequest request) 
+			String userId, RestrictableObjectDescriptor subjectId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -79,7 +79,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 			accessRequirementManager.getAccessRequirementsForSubject(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessRequirement>(
-				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT, 
+				UrlHelpers.ACCESS_REQUIREMENT, 
 				results.getResults(),
 				(int)results.getTotalNumberOfResults(), 
 				1, 
