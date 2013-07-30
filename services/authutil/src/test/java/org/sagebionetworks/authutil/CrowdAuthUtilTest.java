@@ -16,6 +16,7 @@ import java.util.TreeSet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
