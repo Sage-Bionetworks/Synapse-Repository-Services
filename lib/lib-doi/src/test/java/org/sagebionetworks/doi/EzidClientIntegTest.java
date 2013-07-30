@@ -12,7 +12,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.doi.Doi;
 
-@Ignore // Broken on windows due to the SSL cert changes PLFM-2070
 public class EzidClientIntegTest {
 
 	@Test
