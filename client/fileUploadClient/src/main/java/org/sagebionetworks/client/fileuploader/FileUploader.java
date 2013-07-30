@@ -110,6 +110,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 
 					// create child File entity under parent
 					final FileEntity entity = new FileEntity();
+					entity.setName(file.getName());
 					entity.setParentId(parentId);
 					entity.setDataFileHandleId(fileHandle.getId());													
 					return synapseClient.createEntity(entity);

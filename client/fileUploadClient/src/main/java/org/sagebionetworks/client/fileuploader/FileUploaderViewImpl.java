@@ -94,6 +94,26 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
                 
     }
 
+	@Override
+	public void alert(String message) {
+		Alert.alert(message, this);
+	}
+
+	@Override
+	public void updateFileStatus() {
+		fileTableView.repaint();
+	}	
+
+	@Override
+	public void setUploadingIntoMessage(String message) {
+		parentMessage.setText(message);
+	}
+	
+	
+	
+	/*
+	 * Private Methods
+	 */
 	private void setupBrowseButton() {
 		browseButton.getButtonPressListeners().add(new ButtonPressListener() {			
         	@Override
@@ -117,24 +137,6 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
         });
 	}
 	
-	@Override
-	public void alert(String message) {
-		Alert.alert(message, this);
-	}
-
-	@Override
-	public void updateFileStatus() {
-		fileTableView.repaint();
-	}	
-
-	@Override
-	public void setUploadingIntoMessage(String message) {
-		parentMessage.setText(message);
-	}
-	
-	/*
-	 * Private Methods
-	 */
 	private void uploadFiles() {
 		FileList tableData = (FileList)fileTableView.getTableData();		
 		presenter.uploadFiles(tableData.getList());		

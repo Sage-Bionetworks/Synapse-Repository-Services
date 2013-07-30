@@ -2,8 +2,8 @@ package org.sagebionetworks.client.fileuploader;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.util.logging.Logger;
 
-import org.apache.pivot.beans.BXMLSerializer;
 import org.apache.pivot.collections.Map;
 import org.apache.pivot.wtk.Application;
 import org.apache.pivot.wtk.DesktopApplicationContext;
@@ -16,14 +16,23 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.client.Synapse;
 
 public class App implements Application {
+	
+	private static Logger logger = Logger.getLogger(App.class.getName());
+	
 	private Window window = null;
 	private static String sessionToken;
 	private static String parentId;
+	private static Boolean isUpdate;
 	
-	public static void main(String[] args) {			
-		if(args != null && args.length >= 2) {
-			sessionToken = args[0];
-			parentId = args[1];
+	public static void main(String[] args) {
+		logger.info("starting app");
+		if(args != null && args.length >= 3) {
+			for(String arg : args) {
+				if(arg.startsWith("--sessionToken=")) sessionToken = arg.replace("--sessionToken=", "");
+				if(arg.startsWith("--entityId=")) parentId = arg.replace("--entityId=", "");
+				if(arg.startsWith("--isUpdate=")) isUpdate = Boolean.parseBoolean(arg.replace("--isUpdate=", ""));
+			}
+			logger.info("sessiontoken: "+ sessionToken + ", parentId: "+ parentId + ", isUpdate: "+ isUpdate);
 		}
 		DesktopApplicationContext.main(App.class, args);				
 	}
