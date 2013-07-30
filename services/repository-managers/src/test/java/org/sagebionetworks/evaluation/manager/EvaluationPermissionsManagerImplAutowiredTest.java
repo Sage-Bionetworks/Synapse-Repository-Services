@@ -189,7 +189,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.UPDATE));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.DELETE));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
-		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 
 		// Update ACL
 		acl = evaluationPermissionsManager.updateAcl(user, acl);
@@ -199,7 +199,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.UPDATE));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.DELETE));
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
-		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 	}
 
 	@Test
@@ -323,9 +323,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanDelete());
 		assertTrue(permissions.getCanEdit());
 		assertTrue(permissions.getCanView());
+		assertTrue(permissions.getCanParticipate());
 		assertEquals(user.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
-		// Owner can't participate
-		assertFalse(permissions.getCanParticipate());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
@@ -356,9 +355,8 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(permissions.getCanDelete());
 		assertFalse(permissions.getCanEdit());
 		assertFalse(permissions.getCanView());
-		assertEquals(adminUser.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
-		// Owner can't participate
 		assertFalse(permissions.getCanParticipate());
+		assertEquals(adminUser.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
@@ -387,7 +385,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(permissions.getCanEdit());
 		assertFalse(permissions.getCanView());
 		assertEquals(adminUser.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
-		// Should have been updated
 		assertTrue(permissions.getCanParticipate());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
