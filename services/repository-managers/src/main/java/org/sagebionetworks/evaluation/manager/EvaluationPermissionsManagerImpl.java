@@ -291,7 +291,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		if (turnOffAcl) {
 
-			// The public can read and participate
+			// The public can read (but not participate)
 			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>();
 			accessSet.add(ACCESS_TYPE.READ);
 			ResourceAccess ra = new ResourceAccess();
