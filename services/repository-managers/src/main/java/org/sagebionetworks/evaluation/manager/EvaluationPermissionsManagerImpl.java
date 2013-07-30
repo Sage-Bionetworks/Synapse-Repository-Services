@@ -1,7 +1,10 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -93,7 +96,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		final Evaluation eval = getEvaluation(evalId);
-		if (!canAccess(userInfo, eval, CHANGE_PERMISSIONS)) {
+		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
@@ -179,11 +182,11 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		permission.setCanPublicRead(canAccess(anonymousUser, evalId, READ));
 
 		// Other permissions
-		permission.setCanChangePermissions(canAccess(userInfo, eval, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		permission.setCanDelete(canAccess(userInfo, eval, ACCESS_TYPE.DELETE));
-		permission.setCanEdit(canAccess(userInfo, eval, ACCESS_TYPE.UPDATE));
-		permission.setCanParticipate(canAccess(userInfo, eval, ACCESS_TYPE.PARTICIPATE));
-		permission.setCanView(canAccess(userInfo, eval, ACCESS_TYPE.READ));
+		permission.setCanChangePermissions(canAccess(userInfo, evalId, CHANGE_PERMISSIONS));
+		permission.setCanDelete(canAccess(userInfo, evalId, DELETE));
+		permission.setCanEdit(canAccess(userInfo, evalId, UPDATE));
+		permission.setCanParticipate(canAccess(userInfo, evalId, PARTICIPATE));
+		permission.setCanView(canAccess(userInfo, evalId, READ));
 
 		return permission;
 	}
@@ -193,37 +196,17 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	 */
 	private boolean canAccess(final UserInfo userInfo, final String evalId,
 			final ACCESS_TYPE accessType) throws NotFoundException {
-		Boolean canAccess = canAccessShortcuts(userInfo, accessType);
-		if (canAccess != null) {
-			return canAccess.booleanValue();
-		}
-		Evaluation eval = getEvaluation(evalId);
-		return canAccess(accessType, userInfo, eval);
-	}
 
-	/**
-	 * Whether the user can access the specified evaluation.
-	 */
-	private boolean canAccess(final UserInfo userInfo, final Evaluation eval,
-			final ACCESS_TYPE accessType) {
-		Boolean canAccess = canAccessShortcuts(userInfo, accessType);
-		if (canAccess != null) {
-			return canAccess.booleanValue();
-		}
-		return canAccess(accessType, userInfo, eval);
-	}
-
-	// Shortcuts that do not involve database calls
-	private Boolean canAccessShortcuts(final UserInfo userInfo, final ACCESS_TYPE accessType) {
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(
 				userInfo.getUser().getUserId())) {
-			if (READ != accessType) {
-				return Boolean.FALSE;
+			if (!READ.equals(accessType)) {
+				return false;
 			}
 		}
 		if (userInfo.isAdmin()) {
-			return Boolean.TRUE;
+			return true;
 		}
+
 		// A temporary flag to let bypass ACLs before the web portal is ready
 		if (turnOffAcl) {
 			// TODO: To be removed once web ui is in place
@@ -239,16 +222,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 				}
 			}
 		}
-		return null;
-	}
 
-	private boolean canAccess(ACCESS_TYPE accessType, UserInfo userInfo, Evaluation eval) {
-		if (isEvalOwner(userInfo, eval)) {
-			if (!ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
-				return true;
-			}
-		}
-		return aclDAO.canAccess(userInfo.getGroups(), eval.getId(), accessType);
+		return aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
 	}
 
 	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {
@@ -286,6 +261,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessSet.add(ACCESS_TYPE.CREATE);
 		accessSet.add(ACCESS_TYPE.DELETE);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.READ);
 		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		accessSet.add(ACCESS_TYPE.UPDATE);
@@ -315,7 +291,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		if (turnOffAcl) {
 
-			// The public can read
+			// The public can read (but not participate)
 			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>();
 			accessSet.add(ACCESS_TYPE.READ);
 			ResourceAccess ra = new ResourceAccess();
@@ -325,7 +301,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			final Set<ResourceAccess> raSet = acl.getResourceAccess();
 			raSet.add(ra);
 
-			// Authenticated users can participate
+			// Authenticated users can read and participate
 			accessSet = new HashSet<ACCESS_TYPE>();
 			accessSet.add(ACCESS_TYPE.READ);
 			accessSet.add(ACCESS_TYPE.PARTICIPATE);
