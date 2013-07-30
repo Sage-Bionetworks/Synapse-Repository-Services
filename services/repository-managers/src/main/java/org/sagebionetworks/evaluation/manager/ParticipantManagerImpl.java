@@ -30,6 +30,8 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	private EvaluationManager evaluationManager;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
 	public Participant getParticipant(String userId, String evalId) throws DatastoreException, NotFoundException {
