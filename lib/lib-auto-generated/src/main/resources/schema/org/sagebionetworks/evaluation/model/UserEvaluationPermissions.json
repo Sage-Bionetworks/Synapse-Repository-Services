@@ -26,6 +26,10 @@
 			"type": "boolean",
 			"description": "Can the user participate in this evaluation?"
 		},
+		"canPublicParticipate": {
+			"type": "boolean",
+			"description": "The public can participate."
+		},
 		"ownerPrincipalId": {
 			"type": "integer",
 			"description": "The principal ID of the evaluation's owner (i.e. the evaluation's 'createdBy')"

@@ -1,7 +1,10 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -177,13 +180,14 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		permission.setCanPublicRead(canAccess(anonymousUser, evalId, READ));
+		permission.setCanPublicParticipate(canAccess(anonymousUser, evalId, PARTICIPATE));
 
 		// Other permissions
-		permission.setCanChangePermissions(canAccess(userInfo, evalId, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		permission.setCanDelete(canAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
-		permission.setCanEdit(canAccess(userInfo, evalId, ACCESS_TYPE.UPDATE));
-		permission.setCanParticipate(canAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
-		permission.setCanView(canAccess(userInfo, evalId, ACCESS_TYPE.READ));
+		permission.setCanChangePermissions(canAccess(userInfo, evalId, CHANGE_PERMISSIONS));
+		permission.setCanDelete(canAccess(userInfo, evalId, DELETE));
+		permission.setCanEdit(canAccess(userInfo, evalId, UPDATE));
+		permission.setCanParticipate(canAccess(userInfo, evalId, PARTICIPATE));
+		permission.setCanView(canAccess(userInfo, evalId, READ));
 
 		return permission;
 	}
@@ -196,7 +200,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(
 				userInfo.getUser().getUserId())) {
-			if (READ != accessType) {
+			if (!READ.equals(accessType) && !PARTICIPATE.equals(accessType)) {
 				return false;
 			}
 		}
@@ -207,16 +211,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		// A temporary flag to let bypass ACLs before the web portal is ready
 		if (turnOffAcl) {
 			// TODO: To be removed once web ui is in place
-			// Anyone can read
-			if (ACCESS_TYPE.READ.equals(accessType)) {
+			// Anyone can read and participate
+			if (ACCESS_TYPE.READ.equals(accessType) ||
+					ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
 				return Boolean.TRUE;
-			}
-			// Any registered user, once logging in, can participate
-			if (!AuthorizationConstants.ANONYMOUS_USER_ID.equals(
-					userInfo.getUser().getId())) {
-				if (ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
-					return Boolean.TRUE;
-				}
 			}
 		}
 
@@ -288,9 +286,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		if (turnOffAcl) {
 
-			// The public can read
+			// The public can read and participate
 			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>();
 			accessSet.add(ACCESS_TYPE.READ);
+			accessSet.add(ACCESS_TYPE.PARTICIPATE);
 			ResourceAccess ra = new ResourceAccess();
 			ra.setAccessType(accessSet);
 			String publicUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC).getId();
@@ -298,7 +297,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			final Set<ResourceAccess> raSet = acl.getResourceAccess();
 			raSet.add(ra);
 
-			// Authenticated users can participate
+			// Authenticated users can read and participate
 			accessSet = new HashSet<ACCESS_TYPE>();
 			accessSet.add(ACCESS_TYPE.READ);
 			accessSet.add(ACCESS_TYPE.PARTICIPATE);

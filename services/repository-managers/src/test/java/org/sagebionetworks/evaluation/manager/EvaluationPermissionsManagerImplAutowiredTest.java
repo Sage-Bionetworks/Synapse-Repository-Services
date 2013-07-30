@@ -438,7 +438,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		assertTrue(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.READ));
-		assertFalse(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.PARTICIPATE));
 	}
 
 	@Test
@@ -509,10 +509,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 			if (principalId.equals(publicUserId)) {
 				hasPublicUser = true;
 				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.READ));
+				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.PARTICIPATE));
 				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS));
 				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CREATE));
 				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.DELETE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.PARTICIPATE));
 				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.UPDATE));
 			} else if (principalId.equals(authenticatedUserId)) {
 				hasAuthenticatedUser = true;
