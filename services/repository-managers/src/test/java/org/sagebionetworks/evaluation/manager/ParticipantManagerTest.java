@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class ParticipantManagerTest {
 		
@@ -82,11 +83,15 @@ public class ParticipantManagerTest {
     	mockAuthorizationManager = mock(AuthorizationManager.class);
     	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-        
+
         // Participant Manager
-    	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockEvaluationManager, mockAuthorizationManager);
+    	participantManager = new ParticipantManagerImpl();
+    	ReflectionTestUtils.setField(participantManager, "participantDAO", mockParticipantDAO);
+    	ReflectionTestUtils.setField(participantManager, "userManager", mockUserManager);
+    	ReflectionTestUtils.setField(participantManager, "evaluationManager", mockEvaluationManager);
+    	ReflectionTestUtils.setField(participantManager, "authorizationManager", mockAuthorizationManager);
     }
-	
+
     @Test
     public void testCRDAsAdmin() throws NotFoundException {
     	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
