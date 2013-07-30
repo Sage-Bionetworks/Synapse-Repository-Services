@@ -21,27 +21,16 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class ParticipantManagerImpl implements ParticipantManager {
-	
+
 	@Autowired
-	ParticipantDAO participantDAO;
+	private ParticipantDAO participantDAO;
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	@Autowired
-	EvaluationManager evaluationManager;
+	private EvaluationManager evaluationManager;
 	@Autowired
-	AuthorizationManager authorizationManager;
-	
-	public ParticipantManagerImpl() {};
-	
-	// for testing purposes
-	protected ParticipantManagerImpl(ParticipantDAO participantDAO, 
-			UserManager userManager, EvaluationManager EvaluationManager, AuthorizationManager authorizationManager) {		
-		this.participantDAO = participantDAO;
-		this.userManager = userManager;
-		this.evaluationManager = EvaluationManager;
-		this.authorizationManager = authorizationManager;
-	}
-	
+	private AuthorizationManager authorizationManager;
+
 	@Override
 	public Participant getParticipant(String userId, String evalId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(userId, evalId);
