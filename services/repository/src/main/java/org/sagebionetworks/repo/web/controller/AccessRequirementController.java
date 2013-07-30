@@ -50,8 +50,7 @@ public class AccessRequirementController extends BaseController {
 	/**
 	 * Add an access requirement to an entity or Evaluation queue.  This is a tool for the Synapse Access and Compliance Team.
 	 * @param userId
-	 * @param header
-	 * @param request
+	 * @param accessRequirement
 	 * @return
 	 * @throws Exception
 	 */
@@ -60,17 +59,13 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	AccessRequirement createAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestBody AccessRequirement accessRequirement,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request
-			) throws Exception {
+			@RequestBody AccessRequirement accessRequirement) throws Exception {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}
 	
 	/**
 	 * Add a temporary access restriction that prevents access pending review by the Synapse Access and Compliance Team.  
 	 * This is a tool for the object's owner.
-	 * 
 	 * @param userId
 	 * @param id
 	 * @return
@@ -91,7 +86,6 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity.
 	 * @param userId
 	 * @param entityId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -103,8 +97,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEntityAccessRequirement(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			HttpServletRequest request
+			@PathVariable(value = ID_PATH_VARIABLE) String entityId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
@@ -116,7 +109,6 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve paginated list of ALL access requirements associated with an entity.
 	 * @param userId
 	 * @param entityId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -128,8 +120,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getEntityAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
-			HttpServletRequest request
+				@PathVariable(value = ID_PATH_VARIABLE) String entityId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(entityId);
@@ -141,7 +132,6 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for an evaluation queue.
 	 * @param userId
 	 * @param evaluationId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -153,8 +143,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEvaluationAccessRequirement(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			HttpServletRequest request
+			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
@@ -166,7 +155,6 @@ public class AccessRequirementController extends BaseController {
 	 * Retrieve paginated list of ALL access requirements associated with an evaluation queue.
 	 * @param userId
 	 * @param evaluationId
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
@@ -178,8 +166,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getEvaluationAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
-			HttpServletRequest request
+				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setId(evaluationId);
@@ -191,7 +178,6 @@ public class AccessRequirementController extends BaseController {
 	 * Delete an access requirement.
 	 * @param userId
 	 * @param requirementId
-	 * @param request
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
@@ -200,8 +186,8 @@ public class AccessRequirementController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String requirementId,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@PathVariable String requirementId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
 	}
 }
