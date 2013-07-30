@@ -14,6 +14,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.utils.EmailUtils;
 
 //http://www.mkyong.com/java/javamail-api-sending-email-via-gmail-smtp-example/

@@ -254,7 +254,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	public void createAccessRequirement() throws ServletException, IOException {
+	public void createAccessRequirement() throws Exception {
 		// Add an access requirement to this entity
 		accessRequirement = newAccessRequirement();
 		String entityId = project.getId();

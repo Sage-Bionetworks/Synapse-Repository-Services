@@ -99,7 +99,7 @@ public class CrowdUserDAO implements UserDAO {
 		values = userAttrValues.get(AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE);
 		if (values!=null && values.size()>0) user.setAgreesToTermsOfUse(Boolean.parseBoolean(values.iterator().next()));
 		
-		org.sagebionetworks.authutil.User authUser = null;
+		org.sagebionetworks.repo.model.auth.User authUser = null;
 		try { 
 			authUser = CrowdAuthUtil.getUser(userName);
 		}catch (IOException e) {
