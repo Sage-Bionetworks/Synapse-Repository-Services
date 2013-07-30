@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -88,7 +89,9 @@ public class BaseController {
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request) {
 		log.log(Level.WARNING, "Handling " + request.toString(), ex);
-		return new ErrorResponse(ex.getMessage());
+		ErrorResponse response = new ErrorResponse();
+		response.setReason(ex.getMessage());
+		return response;
 	}
 
 

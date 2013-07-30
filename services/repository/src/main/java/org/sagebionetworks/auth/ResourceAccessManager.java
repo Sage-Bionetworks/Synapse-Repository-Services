@@ -12,8 +12,8 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.Session;
-import org.sagebionetworks.authutil.User;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 

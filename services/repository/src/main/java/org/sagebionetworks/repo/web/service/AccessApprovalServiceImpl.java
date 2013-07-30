@@ -34,11 +34,10 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessApproval createAccessApproval(String userId, HttpHeaders header,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, 
+	public AccessApproval createAccessApproval(String userId,
+			AccessApproval accessApproval) throws DatastoreException, UnauthorizedException, 
 			NotFoundException, InvalidModelException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessApproval accessApproval = (AccessApproval)ControllerEntityClassHelper.deserialize(request, header);
 		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
 
