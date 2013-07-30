@@ -9,6 +9,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.ResourceAccessToken;
+import org.sagebionetworks.repo.model.auth.ResourceUserData;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;

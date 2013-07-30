@@ -32,6 +32,8 @@ import org.apache.http.HttpResponse;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -563,8 +565,8 @@ public class CrowdAuthUtil {
 	 */
 	public static void copyUser(String oldEmail, String newEmail, Random rand) throws IOException, AuthenticationException, XPathExpressionException {
 		//create a new user in crowd
-		org.sagebionetworks.authutil.User oldUser = CrowdAuthUtil.getUser(oldEmail);
-		org.sagebionetworks.authutil.User newUser = new org.sagebionetworks.authutil.User();
+		User oldUser = CrowdAuthUtil.getUser(oldEmail);
+		User newUser = new User();
 		newUser.setDisplayName(oldUser.getDisplayName());
 		newUser.setFirstName(oldUser.getFirstName());
 		newUser.setLastName(oldUser.getLastName());

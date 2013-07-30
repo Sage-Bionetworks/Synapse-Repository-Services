@@ -1,9 +1,0 @@
-{
-	"description": "Needs a description",
-	"properties": {
-		"sessionToken": {
-			"type": "string",
-			"description": "??"
-		}
-	}
-}
