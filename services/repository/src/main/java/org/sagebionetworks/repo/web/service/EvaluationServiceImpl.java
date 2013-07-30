@@ -150,14 +150,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Participant addParticipantAsAdmin(String userName, String evalId,
-			String idToAdd) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userName);
-		return participantManager.addParticipantAsAdmin(userInfo, evalId, idToAdd);
-	}
-
-	@Override
 	public Participant getParticipant(String principalId, String evalId)
 			throws DatastoreException, NotFoundException {
 		return participantManager.getParticipant(principalId, evalId);

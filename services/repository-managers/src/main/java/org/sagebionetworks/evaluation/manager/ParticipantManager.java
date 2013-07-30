@@ -31,20 +31,6 @@ public interface ParticipantManager {
 	Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException;
 
 	/**
-	 * Add a different user as a Participant to a Evaluation.
-	 * 'userInfo' is the requesting user, 'evalId' is of the target Evaluation,
-	 * and 'idToAdd' is of the user to be added as a Participant.
-	 * 
-	 * @param userInfo
-	 * @param evalId
-	 * @param idToAdd
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public Participant addParticipantAsAdmin(UserInfo userInfo, String evalId,
-			String idToAdd) throws NotFoundException;
-
-	/**
 	 * Remove a Participant from a Evaluation.
 	 * 
 	 * @param userInfo

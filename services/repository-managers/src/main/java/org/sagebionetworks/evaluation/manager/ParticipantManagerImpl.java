@@ -67,38 +67,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		
 		return getParticipant(principalIdToAdd, evalId);
 	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Participant addParticipantAsAdmin(UserInfo userInfo, String evalId, String principalIdToAdd) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
-		EvaluationUtils.ensureNotNull(principalIdToAdd, "Principal ID");
-		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
-		
-		// verify permissions
-		Evaluation eval = evaluationManager.getEvaluation(evalId);
 
-		// add other user (requires admin rights)
-		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE)) {
-			EvaluationUtils.ensureEvaluationIsOpen(eval);
-			throw new UnauthorizedException("User Principal ID: " + principalId + " is not authorized to add other users to Evaluation ID: " + evalId);
-		}
-			
-		// create the new Participant
-		Participant part = new Participant();
-		part.setEvaluationId(evalId);
-		part.setUserId(principalIdToAdd);
-		part.setCreatedOn(new Date());
-		participantDAO.create(part);
-		
-		// trigger etag update of the parent Evaluation
-		// this is required for migration consistency
-		evaluationManager.updateEvaluationEtag(evalId);
-		
-		return getParticipant(principalIdToAdd, evalId);
-	}
-	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove) throws DatastoreException, NotFoundException {

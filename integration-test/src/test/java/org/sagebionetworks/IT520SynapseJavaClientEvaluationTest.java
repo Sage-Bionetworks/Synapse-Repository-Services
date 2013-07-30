@@ -471,9 +471,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		part1 = synapseOne.createParticipant(eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-				
-		String userId = synapseTwo.getMyProfile().getOwnerId();
-		part2 = synapseOne.createParticipantAsAdmin(eval1.getId(), userId);
+
+		part2 = synapseTwo.createParticipant(eval1.getId());
 		assertNotNull(part2);
 		participantsToDelete.add(part2);
 
@@ -511,9 +510,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		part1 = synapseOne.createParticipant(eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-				
-		String userId = synapseTwo.getMyProfile().getOwnerId();
-		part2 = synapseOne.createParticipantAsAdmin(eval1.getId(), userId);
+
+		part2 = synapseTwo.createParticipant(eval1.getId());
 		assertNotNull(part2);
 		participantsToDelete.add(part2);
 		
