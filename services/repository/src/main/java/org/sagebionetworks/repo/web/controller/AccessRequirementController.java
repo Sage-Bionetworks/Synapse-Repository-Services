@@ -29,6 +29,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * These services manage the Access Requirements/Restrictions which may be placed on Entities or
+ * Evaluation queues.  An Access Requirement specifies the type of access being restricted as well
+ * as how the requirement is fulfilled. 
+ * 
+ * More design information is available 
+ * <a href=https://sagebionetworks.jira.com/wiki/display/PLFM/Data+Access+Control/>here.</a>
+ * 
+ * @author brucehoff
+ *
+ */
 @ControllerInfo(displayName="Access Requirement Services", path="repo/v1")
 @Controller
 public class AccessRequirementController extends BaseController {
@@ -36,6 +47,14 @@ public class AccessRequirementController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
 
+	/**
+	 * Add an access requirement to an entity or Evaluation queue.  This is a tool for the Synapse Access and Compliance Team.
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -48,7 +67,15 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}
 	
-
+	/**
+	 * Add a temporary access restriction that prevents access pending review by the Synapse Access and Compliance Team.  
+	 * This is a tool for the object's owner.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_LOCK_ACCESS_REQURIEMENT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -61,7 +88,7 @@ public class AccessRequirementController extends BaseController {
 	
 
 	/**
-	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity
+	 * Retrieve paginated list of unfulfilled access requirements (of type DOWNLOAD) for an entity.
 	 * @param userId
 	 * @param entityId
 	 * @param request
@@ -85,6 +112,16 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request);
 	}
 
+	/**
+	 * Retrieve paginated list of ALL access requirements associated with an entity.
+	 * @param userId
+	 * @param entityId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -101,7 +138,7 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 	/**
-	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for an evaluation
+	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for an evaluation queue.
 	 * @param userId
 	 * @param evaluationId
 	 * @param request
@@ -125,6 +162,16 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId, request);
 	}
 
+	/**
+	 * Retrieve paginated list of ALL access requirements associated with an evaluation queue.
+	 * @param userId
+	 * @param evaluationId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_EVALUATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -140,6 +187,15 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId, request);
 	}
 
+	/**
+	 * Delete an access requirement.
+	 * @param userId
+	 * @param requirementId
+	 * @param request
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
