@@ -94,6 +94,8 @@
 	    <property name="generatorList">
 	        <list>
 	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	            <bean id="csvPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.CsvPreviewGenerator" />
+	            <bean id="tabPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TabPreviewGenerator" />
 	            <bean id="textPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
 	            <bean id="zipPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
 	        </list>
