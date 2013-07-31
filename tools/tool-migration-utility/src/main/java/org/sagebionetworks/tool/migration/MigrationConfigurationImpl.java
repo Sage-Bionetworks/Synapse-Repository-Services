@@ -29,10 +29,10 @@ public class MigrationConfigurationImpl implements Configuration {
 	 * @throws IOException
 	 */
 	public void loadConfigurationFile(String path) throws IOException{
-		log.debug("Using configuation file: "+path);
+		log.debug("Using configuration file: "+path);
 		File file = new File(path);
 		if(!file.exists()){
-			throw new IllegalArgumentException("The configuartion file: "+path+" does not exist");
+			throw new IllegalArgumentException("The configurartion file: "+path+" does not exist");
 		}
 		FileInputStream fis = null;
 		try{
@@ -48,23 +48,10 @@ public class MigrationConfigurationImpl implements Configuration {
 		props.load(inputStream);
 		// Add all of these properties to the system properties.
 		System.getProperties().putAll(props);
-		validateConfigurationProperties();
 	}
 	
 	public void loadApiKey(String path) throws IOException {
-		Properties props = new Properties();
-		File f = new File(path);
-		if(! f.exists()){
-			throw new IllegalArgumentException("The configuration file: " + path + " does not exist");
-		}
-		FileInputStream s  = null;
-		try {
-			s = new FileInputStream(f);
-			props.load(s);
-			System.getProperties().putAll(props);
-		} finally {
-			s.close();
-		}
+		loadConfigurationFile(path);
 	}
 	
 	/**

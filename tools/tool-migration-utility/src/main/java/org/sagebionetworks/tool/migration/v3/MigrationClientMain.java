@@ -39,6 +39,9 @@ public class MigrationClientMain {
 				failed = true;
 				log.error("Failed at attempt: " + i + " with error " + e.getMessage(), e);
 			}
+			if (! failed) {
+				break;
+			}
 		}
 		if (failed) {
 			System.exit(-1);
@@ -58,16 +61,17 @@ public class MigrationClientMain {
 			// Load and validate from file
 			String path = args[1];
 			configuration.loadConfigurationFile(path);
-		} else {
-			// Validate System properties
-			configuration.validateConfigurationProperties();
 		}
+		// Validate System properties
+		configuration.validateConfigurationProperties();
 	}
 	
 	public static void loadCredentials(MigrationConfigurationImpl configuration, String[] args) throws IOException {
 		if (args != null && args.length >= 1) {
 			String path = args[0];
 			configuration.loadApiKey(path);
+		} else {
+			throw new IllegalArgumentException("Path to API Key file must be specified as first argument.");
 		}
 	}
 }
