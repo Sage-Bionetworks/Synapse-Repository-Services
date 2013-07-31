@@ -22,10 +22,11 @@ public class BatchUtility {
 	 * @param worker - The worker that does the actual work.
 	 * @param ids - The original batch of IDs.
 	 */
-	public static void attemptBatchWithRetry(BatchWorker worker, List<Long> ids) throws Exception{
+	public static Long attemptBatchWithRetry(BatchWorker worker, List<Long> ids) throws Exception{
+		Long c = 0L;
 		// if there is a failure attempt to migrate a sub-set of the list
 		try{
-			worker.attemptBatch(ids);
+			c = worker.attemptBatch(ids);
 		}catch(DaemonFailedException e){
 
 			if(ids.size() < 2){
@@ -54,6 +55,6 @@ public class BatchUtility {
 				throw lastException;
 			}
 		}
+		return c;
 	}
-
 }

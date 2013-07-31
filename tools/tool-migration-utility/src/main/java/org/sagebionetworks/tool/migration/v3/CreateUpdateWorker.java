@@ -139,7 +139,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	 * @throws SynapseException
 	 * @throws InterruptedException
 	 */
-	public boolean attemptBatch(List<Long> ids) throws JSONObjectAdapterException, SynapseException, InterruptedException {
+	public Long attemptBatch(List<Long> ids) throws JSONObjectAdapterException, SynapseException, InterruptedException {
 		int listSize = ids.size();
 		progress.setMessage("Starting backup daemon for "+listSize+" objects");
 		// Start a backup.
@@ -158,7 +158,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		// Update the progress
 		progress.setMessage("Finished restore for "+listSize+" objects");
 		progress.setCurrent(progress.getCurrent()+listSize);
-		return true;
+		return (long) (listSize);
 	}
 	
 	/**
