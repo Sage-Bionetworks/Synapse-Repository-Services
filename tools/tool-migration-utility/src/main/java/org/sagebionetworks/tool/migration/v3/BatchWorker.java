@@ -15,5 +15,5 @@ public interface BatchWorker {
 	 * @throws DaemonFailedException - Should be thrown if the daemon fails.
 	 * 
 	 */
-	public boolean attemptBatch(List<Long> batch) throws DaemonFailedException, Exception;
+	public Long attemptBatch(List<Long> batch) throws DaemonFailedException, Exception;
 }
