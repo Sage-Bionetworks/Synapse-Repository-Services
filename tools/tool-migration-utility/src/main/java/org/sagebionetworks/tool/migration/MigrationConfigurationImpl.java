@@ -51,6 +51,22 @@ public class MigrationConfigurationImpl implements Configuration {
 		validateConfigurationProperties();
 	}
 	
+	public void loadApiKey(String path) throws IOException {
+		Properties props = new Properties();
+		File f = new File(path);
+		if(! f.exists()){
+			throw new IllegalArgumentException("The configuration file: " + path + " does not exist");
+		}
+		FileInputStream s  = null;
+		try {
+			s = new FileInputStream(f);
+			props.load(s);
+			System.getProperties().putAll(props);
+		} finally {
+			s.close();
+		}
+	}
+	
 	/**
 	 * Validate the properties against the command line.
 	 * @throws IOException
@@ -102,8 +118,7 @@ public class MigrationConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 					System.getProperty("org.sagebionetworks.source.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.source.repository.endpoint"),
-					System.getProperty("org.sagebionetworks.source.admin.username"),
-					System.getProperty("org.sagebionetworks.source.admin.password"),
+					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
 					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
@@ -118,8 +133,7 @@ public class MigrationConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 					System.getProperty("org.sagebionetworks.destination.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.destination.repository.endpoint"),
-					System.getProperty("org.sagebionetworks.destination.admin.username"),
-					System.getProperty("org.sagebionetworks.destination.admin.password"),
+					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
 					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
