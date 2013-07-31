@@ -129,7 +129,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	protected void migrateBatch(List<Long> ids) throws Exception {
 		// This utility will first attempt to execute the batch.
 		// If there are failures it will break the batch into sub-batches and attempt to execute eatch sub-batch.
-		BatchUtility.attemptBatchWithRetry(this.retryDenominator, this, ids);
+		BatchUtility.attemptBatchWithRetry(this, ids);
 	}
 
 	/**

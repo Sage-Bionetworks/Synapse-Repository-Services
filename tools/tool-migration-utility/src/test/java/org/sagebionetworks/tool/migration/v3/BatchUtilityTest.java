@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -26,12 +27,13 @@ public class BatchUtilityTest {
 		mockWorker = Mockito.mock(BatchWorker.class);
 	}
 	
+	@Ignore
 	@Test(expected=DaemonFailedException.class)
 	public void testAttemptBatchWithRetryRetryDenominatorTooSmall() throws Exception{
 		List<Long> batch = Arrays.asList(1l,2l);
 		// Only one attempt should be made
 		when(mockWorker.attemptBatch(any(List.class))).thenThrow(new DaemonFailedException(), new IllegalArgumentException());
-		BatchUtility.attemptBatchWithRetry(1, mockWorker, batch);
+		BatchUtility.attemptBatchWithRetry(mockWorker, batch);
 	}
 	
 	@Test
@@ -39,7 +41,7 @@ public class BatchUtilityTest {
 		List<Long> batch = Arrays.asList(1l,2l);
 		// Only one attempt should be made
 		when(mockWorker.attemptBatch(batch)).thenReturn(true);
-		BatchUtility.attemptBatchWithRetry(1, mockWorker, batch);
+		BatchUtility.attemptBatchWithRetry(mockWorker, batch);
 		verify(mockWorker, times(1)).attemptBatch(batch);
 	}
 	
@@ -56,7 +58,7 @@ public class BatchUtilityTest {
 		when(mockWorker.attemptBatch(Arrays.asList(3l))).thenReturn(true);
 		when(mockWorker.attemptBatch(Arrays.asList(4l))).thenReturn(true);
 		try{
-			BatchUtility.attemptBatchWithRetry(100, mockWorker, batch);
+			BatchUtility.attemptBatchWithRetry(mockWorker, batch);
 			fail("should have failed");
 		}catch(DaemonFailedException e){
 			// expected
@@ -78,7 +80,7 @@ public class BatchUtilityTest {
 		// Last fail
 		when(mockWorker.attemptBatch(Arrays.asList(5l))).thenThrow(new DaemonFailedException("five failed"));
 		try{
-			BatchUtility.attemptBatchWithRetry(2, mockWorker, batch);
+			BatchUtility.attemptBatchWithRetry(mockWorker, batch);
 			fail("should have failed");
 		}catch(DaemonFailedException e){
 			// expected
