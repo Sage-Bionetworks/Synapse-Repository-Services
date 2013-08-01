@@ -83,7 +83,14 @@ public class DeleteWorker implements Callable<Long>, BatchWorker{
 	public Long attemptBatch(List<Long> batch) throws JSONObjectAdapterException, SynapseException {
 		IdList req = new IdList();
 		req.setList(batch);
-		MigrationTypeCount  mtc = destClient.deleteMigratableObject(type, req);
+		MigrationTypeCount mtc = null;
+		// Catch exception and re-throw as DaemonFailedException (technically, it's not)
+		try {
+			mtc = destClient.deleteMigratableObject(type, req);
+		} catch (Exception e) {
+			throw new DaemonFailedException(e);
+		}
+		
 		return mtc.getCount();
 	}
 	

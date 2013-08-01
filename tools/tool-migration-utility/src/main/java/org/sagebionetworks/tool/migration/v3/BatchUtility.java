@@ -51,8 +51,9 @@ public class BatchUtility {
 			}
 			// Throw the last exception found
 			if(lastException != null){
-				log.warn("Failed ids in batch retry:\t" + failedIds);
-				throw lastException;
+				String msg = "Failed ids in batch retry:\t" + failedIds;
+				log.warn(msg);
+				throw new DaemonFailedException(msg, lastException.getCause());
 			}
 		}
 		return c;
