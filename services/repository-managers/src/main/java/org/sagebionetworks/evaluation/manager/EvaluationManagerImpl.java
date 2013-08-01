@@ -84,7 +84,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 		return evaluationDAO.get(id);
 	}
-	
+
+	@Deprecated
 	@Override
 	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
 			throws DatastoreException, NotFoundException {
@@ -99,7 +100,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 		return res;
 	}
-	
+
+	@Deprecated
 	@Override
 	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset)
 			throws DatastoreException, NotFoundException {
@@ -118,7 +120,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 		return res;
 	}
-	
+
+	@Deprecated
 	@Override
 	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin()) {

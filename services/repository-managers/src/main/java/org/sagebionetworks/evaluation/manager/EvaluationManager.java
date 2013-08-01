@@ -27,18 +27,21 @@ public interface EvaluationManager {
 	/**
 	 * Get a collection of Evaluations, within a given range
 	 */
+	@Deprecated
 	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations which the user may participate in, within a given range
 	 */
+	@Deprecated
 	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system
 	 */
+	@Deprecated
 	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException;
 
 	/**

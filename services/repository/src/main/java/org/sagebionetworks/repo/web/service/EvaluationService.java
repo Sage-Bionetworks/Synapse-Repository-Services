@@ -53,6 +53,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsInRange(String userId, long limit, long offset,
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
 
@@ -66,6 +67,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
 			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
@@ -75,6 +77,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public long getEvaluationCount(String userId) throws DatastoreException,
 			NotFoundException;
 
@@ -412,6 +415,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	public <T extends Entity> boolean hasAccess(String evalId, String userName,
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;

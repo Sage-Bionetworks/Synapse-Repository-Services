@@ -72,6 +72,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
+	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsInRange(String userId, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -98,6 +99,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	 * @throws NotFoundException
 	 */
 	@Override
+	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
 			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
@@ -116,6 +118,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 
 	@Override
+	@Deprecated
 	public long getEvaluationCount(String userId) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationManager.getCount(userInfo);
@@ -362,6 +365,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
+	@Deprecated
 	public <T extends Entity> boolean hasAccess(String id, String userName,
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {

@@ -3553,6 +3553,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
@@ -3567,6 +3568,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
 		String url = null;
 		if (null==status) {
@@ -3586,6 +3588,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public Long getEvaluationCount() throws SynapseException {
 		PaginatedResults<Evaluation> res = getEvaluationsPaginated(0,0);
 		return res.getTotalNumberOfResults();
