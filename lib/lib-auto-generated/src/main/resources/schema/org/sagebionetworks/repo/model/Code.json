@@ -1,6 +1,6 @@
 {
 	"title": "Code",
-	"description": "JSON schema for Code POJO",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.Locationable"

@@ -9,6 +9,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.ResourceAccessToken;
+import org.sagebionetworks.repo.model.auth.ResourceUserData;
+import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.http.HttpStatus;
@@ -23,130 +26,157 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * The URIs are:
- *  /resourceAccess   -- CRUD on the access a User has to a resource
- *  /resourceSession  -- CR-D on a time limited session accessing the resource
+ * The URIs are: /resourceAccess -- CRUD on the access a User has to a resource
+ * /resourceSession -- CR-D on a time limited session accessing the resource
  * 
  */
-@ControllerInfo(displayName="Resource Access Services", path="auth/v1")
+@ControllerInfo(displayName = "Resource Access Services", path = "auth/v1")
 @Controller
 public class ResourceAccessController {
-	private static final Logger log = Logger.getLogger(ResourceAccessController.class
-			.getName());
-	
+	private static final Logger log = Logger
+			.getLogger(ResourceAccessController.class.getName());
+
 	public static final String RESOURCE_ACCESS_URI = "/resourceAccess";
 	public static final String RESOURCE_NAME_PATH_VAR = "/{resourceName}";
 	public static final String RESOURCE_USER_NAME_PARAM = "resourceUserName";
 	public static final String RESOURCE_SESSION_URI = "/resourceSession";
 	public static final String RESOURCE_ACCESS_TOKEN_PATH_VAR = "/{resourceAccessToken}";
 
-	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = RESOURCE_ACCESS_URI+RESOURCE_NAME_PATH_VAR, method = RequestMethod.POST)
+	@RequestMapping(value = RESOURCE_ACCESS_URI + RESOURCE_NAME_PATH_VAR, method = RequestMethod.POST)
 	public void createResourceAccess(
 			@RequestBody ResourceUserData ra,
 			@PathVariable String resourceName,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userName,
+
 			HttpServletRequest request) throws Exception {
-		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
-		
+		if (null == userName)
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", null);
+
 		if (!CrowdAuthUtil.isAdmin(userName)) {
-			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized: "+userName+" is not an administrator.", null);
+			throw new AuthenticationException(
+					HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized: " + userName + " is not an administrator.",
+					null);
 		}
-		
-		ResourceAccessManager.createResourceAccess(ra.getUserName(), resourceName, ra.getUserData());
+
+		ResourceAccessManager.createResourceAccess(ra.getUserName(),
+				resourceName, ra.getUserData());
 	}
-	
+
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = RESOURCE_ACCESS_URI+RESOURCE_NAME_PATH_VAR, method = RequestMethod.DELETE)
+	@RequestMapping(value = RESOURCE_ACCESS_URI + RESOURCE_NAME_PATH_VAR, method = RequestMethod.DELETE)
 	public void deleteResourceAccess(
 			@PathVariable String resourceName,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userName,
 			@RequestParam(value = RESOURCE_USER_NAME_PARAM, required = false) String resourceUserName,
 			HttpServletRequest request) throws Exception {
-		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
-		
+		if (null == userName)
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", null);
+
 		if (!CrowdAuthUtil.isAdmin(userName)) {
-			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized: "+userName+" is not an administrator.", null);
+			throw new AuthenticationException(
+					HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized: " + userName + " is not an administrator.",
+					null);
 		}
-		
-		ResourceAccessManager.deleteResourceAccess(resourceUserName, resourceName);
+
+		ResourceAccessManager.deleteResourceAccess(resourceUserName,
+				resourceName);
 	}
-	
+
 	// TODO: READ, UPDATE ResourceAccess
-	
+
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = RESOURCE_SESSION_URI+RESOURCE_NAME_PATH_VAR, method = RequestMethod.POST)
+	@RequestMapping(value = RESOURCE_SESSION_URI + RESOURCE_NAME_PATH_VAR, method = RequestMethod.POST)
 	public @ResponseBody
 	ResourceAccessToken createResourceSession(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userName,
-			@PathVariable String resourceName,
-			HttpServletRequest request) throws Exception {
-		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
+			@PathVariable String resourceName, HttpServletRequest request)
+			throws Exception {
+		if (null == userName)
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", null);
 
-		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		if (sessionToken==null) {
-			// if there is no sessionToken but there IS a user name, 
+		String sessionToken = request
+				.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
+		if (sessionToken == null) {
+			// if there is no sessionToken but there IS a user name,
 			// then the request was authenticated by an HMAC-SHA1 signature
 			// in this case we need to create a session token
-			sessionToken = ResourceAccessManager.getSessionTokenFromUserName(userName);
+			sessionToken = ResourceAccessManager
+					.getSessionTokenFromUserName(userName);
 		}
 
 		// check resource authorization
 		try {
 			ResourceAccessManager.readResourceAccess(userName, resourceName);
 		} catch (NotFoundException nfe) {
-			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", null);
 		}
 
-		String token = ResourceAccessManager.createResourceAccessToken(sessionToken, resourceName);
+		String token = ResourceAccessManager.createResourceAccessToken(
+				sessionToken, resourceName);
 		ResourceAccessToken resourceAccessToken = new ResourceAccessToken();
 		resourceAccessToken.setResourceAccessToken(token);
 		return resourceAccessToken;
 	}
-	
 
 	/**
 	 * Note: 'userName' is the name of the user making the request.
 	 * 'resourceUserName' is the user referred to by the resource-access token.
-	 * These two users need not be the same, i.e. one user (e.g. a service account)
-	 * can execute the request on behalf of another user (the actual resource user).
+	 * These two users need not be the same, i.e. one user (e.g. a service
+	 * account) can execute the request on behalf of another user (the actual
+	 * resource user).
 	 * 
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = RESOURCE_SESSION_URI+RESOURCE_ACCESS_TOKEN_PATH_VAR, method = RequestMethod.GET)
+	@RequestMapping(value = RESOURCE_SESSION_URI
+			+ RESOURCE_ACCESS_TOKEN_PATH_VAR, method = RequestMethod.GET)
 	public @ResponseBody
 	ResourceUserData getResourceSession(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false)  String userName,
-			@PathVariable String resourceAccessToken,
-			HttpServletRequest request) throws Exception {
-		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
-		
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userName,
+			@PathVariable String resourceAccessToken, HttpServletRequest request)
+			throws Exception {
+		if (null == userName)
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", null);
+
 		String sessionToken = null;
 		String resourceName = null;
 		try {
-			sessionToken = ResourceAccessManager.extractSessionToken(resourceAccessToken);
-			resourceName = ResourceAccessManager.extractResourceName(resourceAccessToken);
+			sessionToken = ResourceAccessManager
+					.extractSessionToken(resourceAccessToken);
+			resourceName = ResourceAccessManager
+					.extractResourceName(resourceAccessToken);
 		} catch (IllegalArgumentException e) {
-			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", e);
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", e);
 		}
-		
-		// validate sessionToken (throw authentication exception if token isn't valid)
-		String resourceUserName = ResourceAccessManager.getUserNameFromSessionToken(sessionToken);
+
+		// validate sessionToken (throw authentication exception if token isn't
+		// valid)
+		String resourceUserName = ResourceAccessManager
+				.getUserNameFromSessionToken(sessionToken);
 
 		// check resource authorization
 		String userData = null;
 		try {
-			userData = ResourceAccessManager.readResourceAccess(resourceUserName, resourceName);
+			userData = ResourceAccessManager.readResourceAccess(
+					resourceUserName, resourceName);
 		} catch (NotFoundException nfe) {
-			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
+			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(),
+					"Not authorized.", null);
 		}
 		ResourceUserData resourceUserData = new ResourceUserData();
 		resourceUserData.setUserName(resourceUserName);
 		resourceUserData.setUserData(userData);
 		return resourceUserData;
 	}
-	
+
 	/**
 	 * 
 	 * @param ex
@@ -159,12 +189,10 @@ public class ResourceAccessController {
 	@ExceptionHandler(AuthenticationException.class)
 	public @ResponseBody
 	ErrorResponse handleAuthenticationException(AuthenticationException ex,
-			HttpServletRequest request,
-			HttpServletResponse response) {
+			HttpServletRequest request, HttpServletResponse response) {
 		response.setStatus(ex.getRespStatus());
 		return handleException(ex, request);
 	}
-
 
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional
@@ -188,7 +216,7 @@ public class ResourceAccessController {
 						+ ex.getClass().getName());
 		return handleException(ex, request);
 	}
-	
+
 	/**
 	 * Log the exception at the warning level and return an ErrorResponse
 	 * object. Child classes should override this method if they want to change
@@ -204,8 +232,9 @@ public class ResourceAccessController {
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request) {
 		log.log(Level.WARNING, "Handling " + request.toString(), ex);
-		return new ErrorResponse(ex.getMessage());
+		ErrorResponse response = new ErrorResponse();
+		response.setReason(ex.getMessage());
+		return response;
 	}
-
 
 }

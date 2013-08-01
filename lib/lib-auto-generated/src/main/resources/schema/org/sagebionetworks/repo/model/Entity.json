@@ -1,5 +1,5 @@
 {
-	"description": "This is the base interface that all Entities should implement",
+	"description": "This is the base interface that all Entities implement.",
 	"type": "interface",
 	"implements": [
 		{
@@ -9,7 +9,7 @@
 	"properties": {
 		"name": {
 			"type": "string",
-			"description": "The name of this entity",
+			"description": "The name of this entity.",
 			"title": "Name"
 		},
 		"description": {
@@ -24,7 +24,7 @@
 		},
 		"uri": {
 			"type": "string",
-			"description": "The Uniform Resource Identifier (URI) for this entity.",
+			"description": "This field is deprecated and will be removed in future versions of Synapse",
 			"transient": true
 		},
 		"etag": {
@@ -48,41 +48,42 @@
 		},
 		"createdBy": {
 			"type": "string",
-			"description": "The user that created this entity.",
+			"description": "The ID of the user that created this entity.",
 			"title": "Created By",
 			"transient": true
 		},
 		"modifiedBy": {
 			"type": "string",
-			"description": "The user that last modified this entity.",
+			"description": "The ID of the user that last modified this entity.",
 			"title": "Modified By",
 			"transient": true
 		},
 		"annotations": {
 			"type": "string",
-			"description": "The URI to get to this entity's annotations",
+			"description": "This field is deprecated and will be removed in future versions of Synapse",
 			"transient": true
 		},
 		"accessControlList": {
 			"type": "string",
-			"description": "The URI to get to this entity's access control list",
+			"description": "This field is deprecated and will be removed in future versions of Synapse",
 			"transient": true
 		},
 		"parentId": {
 			"type": "string",
-			"description": "The ID of the parent of this entity"
+			"description": "The ID of the Entity that is the parent of this Entity."
 		},
 		"entityType": {
 			"type": "string",
-			"description": "The full class name of this entiy.",
+			"description": "This field is deprecated and will be removed in future versions of Synapse",
 			"transient": true
 		},
         "concreteType":{
-            "type":"string"
+            "type":"string",
+            "description":"Indicates which implementation of Entity this object represents. It should be set to one of the following: org.sagebionetworks.repo.model.Project, org.sagebionetworks.repo.model.Folder, or org.sagebionetworks.repo.model.FileEntity."
         },
 		"attachments": {
 			"type": "array",
-			"description": "The list of attachment data.",
+			"description": "This field is deprecated and will be removed in future versions of Synapse",
 			"uniqueItems": false,
 			"contentEncoding": "binary",
 			"items": {

@@ -21,7 +21,7 @@
 		},
         "concreteType":{
             "type":"string",
-            "description":"This is used to indicate the implementation of this interface. For example an S3FileHandle should be set to: org.sagebionetworks.repo.model.file.S3FileHandle"
+            "description":"This is used to indicate the implementation of this interface. For example, an S3FileHandle should be set to: org.sagebionetworks.repo.model.file.S3FileHandle"
         },
 		"contentType": {
 			"description": "Must be: http://en.wikipedia.org/wiki/Internet_media_type",

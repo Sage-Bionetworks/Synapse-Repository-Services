@@ -1,5 +1,5 @@
 {
-    "description":"The type of this location",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
     "type":"string",
     "name":"LocationTypeNames",
     "enum":[

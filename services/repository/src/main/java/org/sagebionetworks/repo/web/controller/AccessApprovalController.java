@@ -24,6 +24,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -43,10 +44,11 @@ public class AccessApprovalController extends BaseController {
 	public @ResponseBody
 	AccessApproval createAccessApproval(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestBody AccessApproval accessApproval,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
-		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, header, request);
+		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, accessApproval);
 	}
 
 	@ResponseStatus(HttpStatus.OK)

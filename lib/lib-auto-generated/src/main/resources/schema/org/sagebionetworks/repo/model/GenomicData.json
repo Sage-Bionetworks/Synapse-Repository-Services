@@ -1,6 +1,6 @@
 {
     "title":"Genomic Data",
-    "description":"JSON schema for Genomic Data POJO",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.GenericData"

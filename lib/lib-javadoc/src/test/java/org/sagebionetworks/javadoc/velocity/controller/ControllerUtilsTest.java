@@ -67,6 +67,8 @@ public class ControllerUtilsTest {
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.RowMetadataResult}", "RowMetadataResult"), model.getResponseBody());
 		assertEquals(new Link("${org.sagebionetworks.repo.model.migration.IdList}", "IdList"), model.getRequestBody());
 		assertEquals(new Link("${GET.multiple.params}", "GET /multiple/params"), model.getMethodLink());
+		assertNotNull(model.getDescription());
+		assertNotNull(model.getShortDescription());
 	}
 	
 	@Test
@@ -153,5 +155,28 @@ public class ControllerUtilsTest {
 		assertNotNull(model);
 		Link responseLink = model.getResponseBody();
 		assertNotNull(responseLink);
+	}
+	@Test
+	public void testCreateTruncatedTextNull(){
+		String result = ControllerUtils.createTruncatedText(100, null);
+		assertEquals(null, result);
+	}
+	
+	@Test
+	public void testCreateTruncatedTextWithHTML(){
+		String input = "This is <a href=\"some.link\">Dispaly</a>";
+		// Spliting in the middle of an HTML tag will generate bad text so we need to avoid doing so.
+		String result = ControllerUtils.createTruncatedText(15, input);
+		String expected = "This is Dispaly&#8230";
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testCreateTruncatedTextWithNoHTML(){
+		String input = "This is text is longer than the max";
+		// Spliting in the middle of an HTML tag will generate bad text so we need to avoid doing so.
+		String result = ControllerUtils.createTruncatedText(15, input);
+		String expected = "This is text is&#8230";
+		assertEquals(expected, result);
 	}
 }

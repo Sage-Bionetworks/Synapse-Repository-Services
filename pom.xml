@@ -296,7 +296,12 @@
 				<artifactId>httpmime</artifactId>
 				<version>${org.apache.httpcomponents.version}</version>
 			</dependency>
-
+			<dependency>
+				<!-- jsoup HTML parser library @ http://jsoup.org/ -->
+				<groupId>org.jsoup</groupId>
+				<artifactId>jsoup</artifactId>
+				<version>1.7.2</version>
+			</dependency>
 			<!-- Synapse internal dependencies -->
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
@@ -758,6 +763,7 @@
 		<schema-to-pojo.version>0.2.0</schema-to-pojo.version>
 		<org.json.version>20090211</org.json.version>
 		<com.amazonaws.version>1.3.26</com.amazonaws.version>
+		<!-- Note this is the lastest version of clover that our current Atlassian license can get. -->
 		<maven-clover2-plugin.version>3.1.3</maven-clover2-plugin.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.2.5
@@ -805,10 +811,10 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-pmd-plugin</artifactId>
-				<version>2.7.1</version>
+				<version>3.0.1</version>
 				<configuration>
 					<linkXref>true</linkXref>
-					<targetJdk>1.6</targetJdk>
+					<targetJdk>1.7</targetJdk>
 					<excludes>
 						<exclude>**/*generated*/*.java</exclude>
 					</excludes>

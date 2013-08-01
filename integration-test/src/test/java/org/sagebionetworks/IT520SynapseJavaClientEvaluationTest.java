@@ -29,20 +29,24 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
@@ -770,5 +774,67 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1 = synapseOne.updateEvaluation(eval1);		
 		state = synapseOne.getUserEvaluationState(eval1.getId());
 		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
+	}
+	
+	@Test
+	public void testAclRoundtrip() throws Exception {
+
+		// Create ACL
+		eval1 = synapseOne.createEvaluation(eval1);		
+		assertNotNull(eval1);
+		final String evalId = eval1.getId();
+		assertNotNull(evalId);
+		evaluationsToDelete.add(evalId);
+
+		// Get ACL
+		AccessControlList acl = synapseOne.getEvaluationAcl(evalId);
+		assertNotNull(acl);
+		assertEquals(evalId, acl.getId());
+
+		// Get Permissions
+		UserEvaluationPermissions uep1 = synapseOne.getUserEvaluationPermissions(evalId);
+		assertNotNull(uep1);
+		assertTrue(uep1.getCanChangePermissions());
+		assertTrue(uep1.getCanDelete());
+		assertTrue(uep1.getCanEdit());
+		assertTrue(uep1.getCanParticipate());
+		assertTrue(uep1.getCanPublicRead());
+		assertTrue(uep1.getCanView());
+		UserEvaluationPermissions uep2 = synapseTwo.getUserEvaluationPermissions(evalId);
+		assertNotNull(uep2);
+		assertFalse(uep2.getCanChangePermissions());
+		assertFalse(uep2.getCanDelete());
+		assertFalse(uep2.getCanEdit());
+		assertTrue(uep2.getCanParticipate());
+		assertTrue(uep2.getCanPublicRead());
+		assertTrue(uep2.getCanView());
+
+		// Update ACL
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		accessSet.add(ACCESS_TYPE.DELETE);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		UserSessionData session = synapseTwo.getUserSessionData();
+		Long user2Id = Long.parseLong(session.getProfile().getOwnerId());
+		ra.setPrincipalId(user2Id);
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+		acl.setResourceAccess(raSet);
+		acl = synapseOne.updateEvaluationAcl(acl);
+		assertNotNull(acl);
+		assertEquals(evalId, acl.getId());
+
+		// Check again for updated permissions
+		uep1 = synapseOne.getUserEvaluationPermissions(evalId);
+		assertNotNull(uep1);
+		uep2 = synapseTwo.getUserEvaluationPermissions(evalId);
+		assertNotNull(uep2);
+		assertTrue(uep2.getCanChangePermissions());
+		assertTrue(uep2.getCanDelete());
+		assertFalse(uep2.getCanEdit());
+		assertTrue(uep2.getCanParticipate());
+		assertTrue(uep2.getCanPublicRead());
+		assertTrue(uep2.getCanView());
 	}
 }
