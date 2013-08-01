@@ -77,7 +77,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getEvaluation(evalId);
+		return serviceProvider.getEvaluationService().getEvaluation(userId, evalId);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -90,7 +90,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationsInRange(limit, offset, request);
+		return serviceProvider.getEvaluationService().getEvaluationsInRange(userId, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -121,7 +121,7 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationCount();
+		return serviceProvider.getEvaluationService().getEvaluationCount(userId);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -134,7 +134,7 @@ public class EvaluationController extends BaseController {
 			) throws DatastoreException, UnauthorizedException, NotFoundException, UnsupportedEncodingException 
 	{
 		String decodedName = URLDecoder.decode(name, "UTF-8");
-		return serviceProvider.getEvaluationService().findEvaluation(decodedName);
+		return serviceProvider.getEvaluationService().findEvaluation(userId, decodedName);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -188,7 +188,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getParticipant(partId, evalId);
+		return serviceProvider.getEvaluationService().getParticipant(userId, partId, evalId);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -216,7 +216,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getAllParticipants(evalId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getAllParticipants(userId, evalId, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -228,7 +228,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request) 
 			throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getParticipantCount(evalId);
+		return serviceProvider.getEvaluationService().getParticipantCount(userId, evalId);
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)

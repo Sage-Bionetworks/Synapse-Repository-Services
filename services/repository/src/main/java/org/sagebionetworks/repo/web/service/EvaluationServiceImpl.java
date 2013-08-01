@@ -65,13 +65,13 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	public Evaluation getEvaluation(String id) throws DatastoreException,
+	public Evaluation getEvaluation(String userId, String id) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		return evaluationManager.getEvaluation(id);
 	}
 
 	@Override
-	public PaginatedResults<Evaluation> getEvaluationsInRange(long limit, long offset, HttpServletRequest request) 
+	public PaginatedResults<Evaluation> getEvaluationsInRange(String userId, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		QueryResults<Evaluation> res = evaluationManager.getInRange(limit, offset);
 		return new PaginatedResults<Evaluation>(
@@ -114,12 +114,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 
 
 	@Override
-	public long getEvaluationCount() throws DatastoreException, NotFoundException {
+	public long getEvaluationCount(String userId) throws DatastoreException, NotFoundException {
 		return evaluationManager.getCount();
 	}
 
 	@Override
-	public Evaluation findEvaluation(String name)
+	public Evaluation findEvaluation(String userId, String name)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		return evaluationManager.findEvaluation(name);
 	}
@@ -149,7 +149,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public Participant getParticipant(String principalId, String evalId)
+	public Participant getParticipant(String userId, String principalId, String evalId)
 			throws DatastoreException, NotFoundException {
 		return participantManager.getParticipant(principalId, evalId);
 	}
@@ -163,7 +163,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public PaginatedResults<Participant> getAllParticipants(String evalId, long limit, long offset, HttpServletRequest request)
+	public PaginatedResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException {
 		QueryResults<Participant> res = participantManager.getAllParticipants(evalId, limit, offset);
 		return new PaginatedResults<Participant>(
@@ -178,7 +178,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public long getParticipantCount(String evalId)
+	public long getParticipantCount(String userId, String evalId)
 			throws DatastoreException, NotFoundException {
 		return participantManager.getNumberofParticipants(evalId);
 	}

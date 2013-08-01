@@ -41,7 +41,7 @@ public interface EvaluationService {
 	/**
 	 * Get a Synapse Evaluation by its id
 	 */
-	public Evaluation getEvaluation(String id)
+	public Evaluation getEvaluation(String userId, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -53,7 +53,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getEvaluationsInRange(long limit, long offset,
+	public PaginatedResults<Evaluation> getEvaluationsInRange(String userId, long limit, long offset,
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
@@ -75,7 +75,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getEvaluationCount() throws DatastoreException,
+	public long getEvaluationCount(String userId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -87,7 +87,7 @@ public interface EvaluationService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Evaluation findEvaluation(String name) throws DatastoreException,
+	public Evaluation findEvaluation(String userId, String name) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
 	/**
@@ -141,7 +141,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Participant getParticipant(String principalId, String evalId)
+	public Participant getParticipant(String userId, String principalId, String evalId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -165,7 +165,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Participant> getAllParticipants(String evalId, long limit, long offset, HttpServletRequest request)
+	public PaginatedResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -176,7 +176,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getParticipantCount(String evalId) throws DatastoreException,
+	public long getParticipantCount(String userId, String evalId) throws DatastoreException,
 			NotFoundException;
 
 	////// Methods for managing submissions //////
