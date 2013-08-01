@@ -10,6 +10,8 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
@@ -28,6 +30,8 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 
 public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSONEntity> {
 
+	private static final String CONCRETE_TYPE = "concreteType";
+	private static final String ENTITY_TYPE = "entityType";
 	private List<MediaType> supportedMedia;
 	/**
 	 * When set to true, this message converter will attempt to convert any object to JSON.
@@ -80,15 +84,33 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	}
 
 	@Override
-	public JSONEntity read(Class<? extends JSONEntity> clazz,
-			HttpInputMessage inputMessage) throws IOException,
+	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
 			HttpMessageNotReadableException {
 		// First read the string
 		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), inputMessage.getHeaders().getContentType().getCharSet());
 		try {
 			return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 		} catch (JSONObjectAdapterException e) {
-			throw new HttpMessageNotReadableException(e.getMessage());
+			// Try to convert entity type to a concrete type and try again. See PLFM-2079.
+			try {
+				JSONObject jsonObject = new JSONObject(jsonString);
+				if(jsonObject.has(ENTITY_TYPE)){
+					// get the entity type so we can replace it with concrete type
+					String type = jsonObject.getString(ENTITY_TYPE);
+					jsonObject.remove(ENTITY_TYPE);
+					jsonObject.put(CONCRETE_TYPE, type);
+					jsonString = jsonObject.toString();
+					// try again
+					return EntityFactory.createEntityFromJSONString(jsonString, clazz);
+				}else{
+					// Something else went wrong
+					throw new HttpMessageNotReadableException(e.getMessage(), e);
+				}
+			} catch (JSONException e1) {
+				throw new HttpMessageNotReadableException(e1.getMessage(), e);
+			} catch (JSONObjectAdapterException e2) {
+				throw new HttpMessageNotReadableException(e2.getMessage(), e);
+			}
 		}
 	}
 

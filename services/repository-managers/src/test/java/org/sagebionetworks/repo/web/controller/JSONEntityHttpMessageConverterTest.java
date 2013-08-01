@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -12,10 +13,13 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ExampleEntity;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.sample.ExampleContainer;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -28,6 +32,8 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+
+import com.amazonaws.util.StringInputStream;
 
 public class JSONEntityHttpMessageConverterTest {
 	
@@ -160,6 +166,42 @@ public class JSONEntityHttpMessageConverterTest {
 		adapter.put("entityType", ExampleEntity.class.getName());
 		adapter.put("notAField", "shoudld not exist");
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
+	}
+	
+	@Test
+	public void testPLFM_2079() throws Exception{
+		// In the past we used the "entityType" field to determine which implementation Entity to create when a caller passed an JSON string.
+		// This was specific to Entity so when the JSON schema project tackled the same problem "concreteType" was used instead of entityType.
+		// We then switch Entities to use concreteType but we did not want this to be a breaking API change.
+		// So when a old client uses "entityType" it should not break.
+		
+		// Create some JSON using a project entity.
+		Project project = new Project();
+		project.setName("someProject");
+		project.setParentId("syn123");
+		project.setId("syn456");
+		JSONObject jsonObject = new JSONObject();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+		project.writeToJSONObject(adapter);
+		// Swap the concreteType field with entityType
+		String type = jsonObject.getString("concreteType");
+		jsonObject.remove("concreteType");
+		// replace it with entity type
+		jsonObject.put("entityType", type);
+		String json = adapter.toJSONString();
+		assertTrue(json.indexOf("entityType") > 0);
+		assertFalse(json.indexOf("concreteType") > 0);
+		// Now make sure we can parse the json
+		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
+		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(json));
+		try{
+			Project clone = (Project) converter.read(Entity.class, mockInMessage);
+			assertNotNull(clone);
+			// It should match the original
+			assertEquals(project, clone);
+		}catch(Exception e){
+			throw new RuntimeException(json,e);
+		}
 	}
 	
 }
