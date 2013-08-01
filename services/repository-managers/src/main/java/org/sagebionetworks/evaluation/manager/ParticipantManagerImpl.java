@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
@@ -12,7 +13,6 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -51,7 +51,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 
 		if (!userId.equals(participantId)) {
 			UserInfo userInfo = userManager.getUserInfo(userId);
-			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
+			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
 				throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
 						" not allowed to read participant of ID " + participantId);
 			}
@@ -100,7 +100,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		String principalId = userInfo.getIndividualGroup().getId();
 
 		// verify permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, DELETE)) {
 			EvaluationUtils.ensureEvaluationIsOpen(evaluationDAO.get(evalId));
 			throw new UnauthorizedException("User Principal ID: " + principalId +
 					" is not authorized to remove other users from Evaluation ID: " + evalId);
@@ -116,28 +116,21 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Override
 	public QueryResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException {
-
-		if (userId == null || userId.isEmpty()) {
-			throw new IllegalArgumentException("User ID cannot be null or empty.");
-		}
-		if (evalId == null || evalId.isEmpty()) {
-			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
-		}
-
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
-			throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
-					" not allowed to retrieve the list of participants for evaluation " + evalId);
-		}
-
+		validateUpdateAccess(userId, evalId);
 		List<Participant> participants = participantDAO.getAllByEvaluation(evalId, limit, offset);
 		long totalNumberOfResults = participantDAO.getCountByEvaluation(evalId);
 		QueryResults<Participant> res = new QueryResults<Participant>(participants, totalNumberOfResults);
 		return res;
 	}
-	
+
 	@Override
 	public long getNumberofParticipants(String userId, String evalId)
+			throws DatastoreException, NotFoundException {
+		validateUpdateAccess(userId, evalId);
+		return participantDAO.getCountByEvaluation(evalId);
+	}
+
+	private void validateUpdateAccess(final String userId, final String evalId)
 			throws DatastoreException, NotFoundException {
 
 		if (userId == null || userId.isEmpty()) {
@@ -148,11 +141,9 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		}
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
-			throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
-						" not allowed to get the number of participants in evaluation " + evalId);
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
+			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+						" not allowed to get participants for evaluation " + evalId);
 		}
-		
-		return participantDAO.getCountByEvaluation(evalId);
 	}
 }

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
@@ -46,8 +45,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
-	private EvaluationDAO evaluationDAO;
-	@Autowired
 	private EvaluationManager evaluationManager;
 	@Autowired
 	private ParticipantManager participantManager;
@@ -85,7 +82,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
-		Evaluation eval = evaluationDAO.get(evalId);
+		Evaluation eval = evaluationManager.getEvaluation(userInfo, evalId);
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		

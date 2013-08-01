@@ -83,6 +83,7 @@ public class ParticipantManagerTest {
     	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
     	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(EVAL_ID))).thenReturn(eval);
     	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.DELETE))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
 
