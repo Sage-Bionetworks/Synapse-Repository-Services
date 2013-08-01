@@ -75,41 +75,74 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 
 	@Override
-	public Evaluation getEvaluation(String id) throws DatastoreException, NotFoundException, UnauthorizedException {
+	public Evaluation getEvaluation(UserInfo userInfo, String id)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
+		if (!evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+					" not allowed to read evaluation " + id);
+		}
 		return evaluationDAO.get(id);
 	}
-	
+
+	@Deprecated
 	@Override
-	public QueryResults<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
-		List<Evaluation> evaluations = evaluationDAO.getInRange(limit, offset);
+	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		List<Evaluation> evalList = evaluationDAO.getInRange(limit, offset);
+		List<Evaluation> evaluations = new ArrayList<Evaluation>();
+		for (Evaluation eval : evalList) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
+				evaluations.add(eval);
+			}
+		}
 		long totalNumberOfResults = evaluationDAO.getCount();
 		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 		return res;
 	}
-	
+
+	@Deprecated
 	@Override
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) throws DatastoreException{
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset)
+			throws DatastoreException, NotFoundException {
 		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
-		for (UserGroup g : userInfo.getGroups()) principalIds.add(Long.parseLong(g.getId()));
-		List<Evaluation> evaluations = evaluationDAO.getAvailableInRange(principalIds, status, limit, offset);
+		for (UserGroup g : userInfo.getGroups()) {
+			principalIds.add(Long.parseLong(g.getId()));
+		}
+		List<Evaluation> evalList = evaluationDAO.getAvailableInRange(principalIds, status, limit, offset);
+		List<Evaluation> evaluations = new ArrayList<Evaluation>();
+		for (Evaluation eval : evalList) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
+				evaluations.add(eval);
+			}
+		}
 		long totalNumberOfResults = evaluationDAO.getAvailableCount(principalIds, status);
 		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 		return res;
 	}
-	
+
+	@Deprecated
 	@Override
-	public long getCount() throws DatastoreException, NotFoundException {
+	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException {
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Must be an administrator.");
+		}
 		return evaluationDAO.getCount();
 	}
 
 	@Override
-	public Evaluation findEvaluation(String name) throws DatastoreException, NotFoundException, UnauthorizedException {
+	public Evaluation findEvaluation(UserInfo userInfo, String name)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(name, "Name");
 		String evalId = evaluationDAO.lookupByName(name);
-		Evaluation comp = evaluationDAO.get(evalId);
-		if (comp == null) throw new NotFoundException("No Evaluation found with name " + name);
-		return comp;
+		Evaluation eval = evaluationDAO.get(evalId);
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ)) {
+			eval = null;
+		}
+		if (eval == null) {
+			throw new NotFoundException("No Evaluation found with name " + name);
+		}
+		return eval;
 	}
 	
 	@Override
@@ -137,7 +170,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		// perform the update
 		evaluationDAO.update(eval);
-		return getEvaluation(evalId);
+		return evaluationDAO.get(evalId);
 	}
 	
 	@Override

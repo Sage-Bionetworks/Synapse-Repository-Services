@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
+import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -64,6 +65,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private UserManager userManager;
 	@Autowired
+	private EvaluationPermissionsManager evaluationPermissionsManager;
+	@Autowired
 	private FileHandleDao fileHandleDao;
 
 	public AuthorizationManagerImpl() {}
@@ -117,22 +120,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(objectId);
 				return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
 			case EVALUATION:
-				// anyone can read
-				if (accessType == ACCESS_TYPE.READ) {
-					return true;
-				} else if (accessType == ACCESS_TYPE.PARTICIPATE) {
-					// check for unfulfilled access requirements
-					return canParticipate(userInfo, objectId);
-				} else {
-					Evaluation evaluation = evaluationDAO.get(objectId);
-					if (isEvalOwner(userInfo, evaluation)) {
-						// eval owner can do anything
-						return true;
-					} else {
-						// TODO: refer to ACL
-						return false; // accessControlListDAO.canAccess(userInfo.getGroups(), objectId, accessType);
-					}
-				}
+				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
 				return canAdminAccessRequirement(userInfo, accessRequirement);
@@ -170,18 +158,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(nodeId);
 		rod.setType(RestrictableObjectType.ENTITY);
-		List<Long> accessRequirementIds = 
-			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
-		return accessRequirementIds.isEmpty();
-	}
-	
-	private boolean canParticipate(UserInfo userInfo, final String evaluationId) throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return true;
-		
-		// if there are any unmet access requirements return false
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(evaluationId);
-		rod.setType(RestrictableObjectType.EVALUATION);
 		List<Long> accessRequirementIds = 
 			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
