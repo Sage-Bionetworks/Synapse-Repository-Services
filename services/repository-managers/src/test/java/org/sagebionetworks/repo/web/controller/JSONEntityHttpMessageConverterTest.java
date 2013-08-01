@@ -189,7 +189,6 @@ public class JSONEntityHttpMessageConverterTest {
 		// replace it with entity type
 		jsonObject.put("entityType", type);
 		String json = adapter.toJSONString();
-		System.out.println(json);
 		assertTrue(json.indexOf("entityType") > 0);
 		assertFalse(json.indexOf("concreteType") > 0);
 		// Now make sure we can parse the json
