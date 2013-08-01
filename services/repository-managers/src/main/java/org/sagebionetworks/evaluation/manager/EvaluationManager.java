@@ -21,30 +21,30 @@ public interface EvaluationManager {
 	/**
 	 * Get a Synapse Evaluation by its id
 	 */
-	public Evaluation getEvaluation(String id)
+	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
 	 */
-	public QueryResults<Evaluation> getInRange(long limit, long offset) 
+	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations which the user may participate in, within a given range
 	 */
 	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) 
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system
 	 */
-	public long getCount() throws DatastoreException, NotFoundException;
+	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Find a Evaluation, by name
 	 */
-	public Evaluation findEvaluation(String name)
+	public Evaluation findEvaluation(UserInfo userInfo, String name)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -71,5 +71,4 @@ public interface EvaluationManager {
 	 * @throws NotFoundException
 	 */
 	void updateEvaluationEtag(String evalId) throws NotFoundException;
-	
 }

@@ -6,11 +6,13 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.ParticipantDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -23,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ParticipantManagerImpl implements ParticipantManager {
 
 	@Autowired
+	private EvaluationDAO evaluationDAO;
+	@Autowired
 	private ParticipantDAO participantDAO;
 	@Autowired
 	private UserManager userManager;
@@ -32,9 +36,28 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
-	public Participant getParticipant(String userId, String evalId) throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(userId, evalId);
-		return participantDAO.get(userId, evalId);
+	public Participant getParticipant(final String userId, final String participantId, final String evalId)
+			throws DatastoreException, NotFoundException {
+
+		if (userId == null || userId.isEmpty()) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		}
+		if (participantId == null || participantId.isEmpty()) {
+			throw new IllegalArgumentException("Participant user ID cannot be null or empty.");
+		}
+		if (evalId == null || evalId.isEmpty()) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
+		}
+
+		if (!userId.equals(participantId)) {
+			UserInfo userInfo = userManager.getUserInfo(userId);
+			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
+				throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
+						" not allowed to read participant of ID " + participantId);
+			}
+		}
+
+		return participantDAO.get(participantId, evalId);
 	}
 
 	@Override
@@ -45,7 +68,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 					" is not allowed to join evaluation " + evalId);
 		}
-		Evaluation eval = evaluationManager.getEvaluation(evalId);
+		Evaluation eval = evaluationDAO.get(evalId);
 		try {
 			EvaluationUtils.ensureEvaluationIsOpen(eval);
 		} catch (IllegalStateException e) {
@@ -65,7 +88,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		// this is required for migration consistency
 		evaluationManager.updateEvaluationEtag(evalId);
 		
-		return getParticipant(principalIdToAdd, evalId);
+		return getParticipant(principalIdToAdd, principalIdToAdd, evalId);
 	}
 
 	@Override
@@ -78,7 +101,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 
 		// verify permissions
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
-			EvaluationUtils.ensureEvaluationIsOpen(evaluationManager.getEvaluation(evalId));
+			EvaluationUtils.ensureEvaluationIsOpen(evaluationDAO.get(evalId));
 			throw new UnauthorizedException("User Principal ID: " + principalId +
 					" is not authorized to remove other users from Evaluation ID: " + evalId);
 		}
@@ -91,9 +114,22 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 	
 	@Override
-	public QueryResults<Participant> getAllParticipants(String evalId, long limit, long offset)
+	public QueryResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+
+		if (userId == null || userId.isEmpty()) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		}
+		if (evalId == null || evalId.isEmpty()) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
+		}
+
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
+			throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
+					" not allowed to retrieve the list of participants for evaluation " + evalId);
+		}
+
 		List<Participant> participants = participantDAO.getAllByEvaluation(evalId, limit, offset);
 		long totalNumberOfResults = participantDAO.getCountByEvaluation(evalId);
 		QueryResults<Participant> res = new QueryResults<Participant>(participants, totalNumberOfResults);
@@ -101,8 +137,22 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 	
 	@Override
-	public long getNumberofParticipants(String evalId) throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+	public long getNumberofParticipants(String userId, String evalId)
+			throws DatastoreException, NotFoundException {
+
+		if (userId == null || userId.isEmpty()) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		}
+		if (evalId == null || evalId.isEmpty()) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
+		}
+
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
+			throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
+						" not allowed to get the number of participants in evaluation " + evalId);
+		}
+		
 		return participantDAO.getCountByEvaluation(evalId);
 	}
 }

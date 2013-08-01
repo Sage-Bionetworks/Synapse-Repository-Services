@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
@@ -39,41 +40,25 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	SubmissionDAO submissionDAO;
+	private SubmissionDAO submissionDAO;
 	@Autowired
-	SubmissionStatusDAO submissionStatusDAO;
+	private SubmissionStatusDAO submissionStatusDAO;
 	@Autowired
-	SubmissionFileHandleDAO submissionFileHandleDAO;
+	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
-	EvaluationManager evaluationManager;
+	private EvaluationDAO evaluationDAO;
 	@Autowired
-	ParticipantManager participantManager;
+	private EvaluationManager evaluationManager;
 	@Autowired
-	EntityManager entityManager;
+	private ParticipantManager participantManager;
 	@Autowired
-	NodeManager nodeManager;
+	private EntityManager entityManager;
 	@Autowired
-	FileHandleManager fileHandleManager;
+	private NodeManager nodeManager;
 	@Autowired
-	EvaluationPermissionsManager evaluationPermissionsManager;
-
-	public SubmissionManagerImpl() {};
-	
-	// for testing purposes
-	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
-			SubmissionStatusDAO submissionStatusDAO, SubmissionFileHandleDAO submissionFileHandleDAO,
-			EvaluationManager evaluationManager, ParticipantManager participantManager,
-			EntityManager entityManager, NodeManager nodeManager, FileHandleManager fileHandleManager) {
-		this.idGenerator = idGenerator;
-		this.submissionDAO = submissionDAO;
-		this.submissionStatusDAO = submissionStatusDAO;
-		this.submissionFileHandleDAO = submissionFileHandleDAO;
-		this.evaluationManager = evaluationManager;
-		this.participantManager = participantManager;
-		this.entityManager = entityManager;
-		this.nodeManager = nodeManager;
-		this.fileHandleManager = fileHandleManager;
-	}
+	private FileHandleManager fileHandleManager;
+	@Autowired
+	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -100,7 +85,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
-		Evaluation eval = evaluationManager.getEvaluation(evalId);
+		Evaluation eval = evaluationDAO.get(evalId);
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		
@@ -108,7 +93,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// ensure participant exists
 		try {
-			participantManager.getParticipant(principalId, evalId);
+			participantManager.getParticipant(principalId, principalId, evalId);
 		} catch (NotFoundException e) {
 			throw new UnauthorizedException("User Princpal ID: " + principalId + 
 					" has not joined Evaluation ID: " + evalId);

@@ -177,7 +177,7 @@ public class EvaluationControllerAutowiredTest {
 	
 	@Test
 	public void testEvaluationRoundTrip() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
-		long initialCount = entityServletHelper.getEvaluationCount();
+		long initialCount = entityServletHelper.getEvaluationCount(ownerName);
 		
 		// Create
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);		
@@ -193,9 +193,9 @@ public class EvaluationControllerAutowiredTest {
 		assertTrue(canRead);
 		
 		// Read
-		Evaluation fetched = entityServletHelper.getEvaluation(eval1.getId());
+		Evaluation fetched = entityServletHelper.getEvaluation(userName, eval1.getId());
 		assertEquals(eval1, fetched);
-		fetched = entityServletHelper.findEvaluation(eval1.getName());
+		fetched = entityServletHelper.findEvaluation(userName, eval1.getName());
 		assertEquals(eval1, fetched);
 		
 		//can update
@@ -211,17 +211,17 @@ public class EvaluationControllerAutowiredTest {
 		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);		
-		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount());
+		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount(ownerName));
 		
 		// Delete
 		entityServletHelper.deleteEvaluation(eval1.getId(), ownerName);
 		try {
-			entityServletHelper.getEvaluation(eval1.getId());
+			entityServletHelper.getEvaluation(ownerName, eval1.getId());
 			fail("Delete failed");
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getEvaluationCount());
+		assertEquals(initialCount, entityServletHelper.getEvaluationCount(ownerName));
 	}
 	
 	@Test
@@ -230,19 +230,19 @@ public class EvaluationControllerAutowiredTest {
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
 		
-		long initialCount = entityServletHelper.getParticipantCount(eval1.getId());
+		long initialCount = entityServletHelper.getParticipantCount(ownerName, eval1.getId());
 		
 		// create
 		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
-		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(eval1.getId()));
+		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(ownerName, eval1.getId()));
 		
 		// query, just checking basic wiring
 		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName, null);
 		assertEquals(1L, pr.getTotalNumberOfResults());
 		// get the new etag (changed when participant was added?)
-		eval1 = entityServletHelper.getEvaluation(eval1.getId());
+		eval1 = entityServletHelper.getEvaluation(userName, eval1.getId());
 		assertEquals(eval1, pr.getResults().iterator().next());
 		// make sure 'status' parameter is wired up
 		assertEquals(0, entityServletHelper.getAvailableEvaluations(userName, "PLANNED").getTotalNumberOfResults());
@@ -260,7 +260,7 @@ public class EvaluationControllerAutowiredTest {
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getParticipantCount(eval1.getId()));
+		assertEquals(initialCount, entityServletHelper.getParticipantCount(ownerName, eval1.getId()));
 	}
 	
 	@Test
@@ -358,7 +358,7 @@ public class EvaluationControllerAutowiredTest {
 		
 		// fetch eval1 and verify that eTag has been updated
 		String oldEtag = eval1.getEtag();
-		eval1 = entityServletHelper.getEvaluation(eval1.getId());
+		eval1 = entityServletHelper.getEvaluation(userName, eval1.getId());
 		assertFalse("Etag was not updated", oldEtag.equals(eval1.getEtag()));
 		
 		UserInfo userInfo = userManager.getUserInfo(userName);
@@ -387,18 +387,18 @@ public class EvaluationControllerAutowiredTest {
 		submissionsToDelete.add(sub2.getId());
 		
 		// paginated evaluations
-		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(10, 0);
+		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(ownerName, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults())
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		
 		// paginated participants
-		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(eval1.getId());
+		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(ownerName, eval1.getId());
 		assertEquals(2, parts.getTotalNumberOfResults());
 		for (Participant p : parts.getResults())
 			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
 		
-		parts = entityServletHelper.getAllParticipants(eval2.getId());
+		parts = entityServletHelper.getAllParticipants(ownerName, eval2.getId());
 		assertEquals(0, parts.getTotalNumberOfResults());
 		
 		// paginated submissions

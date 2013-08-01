@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
@@ -67,6 +68,7 @@ public class SubmissionManagerTest {
 	private SubmissionDAO mockSubmissionDAO;
 	private SubmissionStatusDAO mockSubmissionStatusDAO;
 	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
+	private EvaluationDAO mockEvalDAO;
 	private EvaluationManager mockEvaluationManager;
 	private ParticipantManager mockParticipantManager;
 	private EntityManager mockEntityManager;
@@ -185,6 +187,7 @@ public class SubmissionManagerTest {
     	mockSubmissionDAO = mock(SubmissionDAO.class);
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
+    	mockEvalDAO = mock(EvaluationDAO.class);
     	mockEvaluationManager = mock(EvaluationManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
     	mockEntityManager = mock(EntityManager.class);
@@ -194,8 +197,8 @@ public class SubmissionManagerTest {
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
-    	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
-    	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
+    	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
+    	when(mockEvalDAO.get(eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
@@ -213,10 +216,17 @@ public class SubmissionManagerTest {
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(true);
 
     	// Submission Manager
-    	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockEvaluationManager, 
-    			mockParticipantManager, mockEntityManager, mockNodeManager, 
-    			mockFileHandleManager);
+    	submissionManager = new SubmissionManagerImpl();
+    	ReflectionTestUtils.setField(submissionManager, "idGenerator", mockIdGenerator);
+    	ReflectionTestUtils.setField(submissionManager, "submissionDAO", mockSubmissionDAO);
+    	ReflectionTestUtils.setField(submissionManager, "submissionStatusDAO", mockSubmissionStatusDAO);
+    	ReflectionTestUtils.setField(submissionManager, "submissionFileHandleDAO", mockSubmissionFileHandleDAO);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationManager", mockEvaluationManager);
+    	ReflectionTestUtils.setField(submissionManager, "participantManager", mockParticipantManager);
+    	ReflectionTestUtils.setField(submissionManager, "entityManager", mockEntityManager);
+    	ReflectionTestUtils.setField(submissionManager, "nodeManager", mockNodeManager);
+    	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationDAO", mockEvalDAO);
     	ReflectionTestUtils.setField(submissionManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     }
 	

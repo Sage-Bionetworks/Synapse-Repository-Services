@@ -17,7 +17,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Participant getParticipant(String userId, String evalId)
+	public Participant getParticipant(String userId, String participantId, String evalId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -51,7 +51,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Participant> getAllParticipants(String evalId, long limit, long offset)
+	public QueryResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -62,7 +62,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getNumberofParticipants(String evalId)
+	public long getNumberofParticipants(String userId, String evalId)
 			throws DatastoreException, NotFoundException;
 
 }
