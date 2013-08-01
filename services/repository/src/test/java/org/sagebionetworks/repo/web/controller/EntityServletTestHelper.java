@@ -607,13 +607,14 @@ public class EntityServletTestHelper {
 		return new Evaluation(joa);
 	}
 	
-	public Evaluation getEvaluation(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public Evaluation getEvaluation(String userId, String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION+"/"+evalId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
@@ -648,13 +649,14 @@ public class EntityServletTestHelper {
 	}
 
 	
-	public Evaluation findEvaluation(String name) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public Evaluation findEvaluation(String userId, String name) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION+"/name/"+name);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
@@ -734,7 +736,7 @@ public class EntityServletTestHelper {
 		}
 	}
 	
-	public PaginatedResults<Evaluation> getEvaluationsPaginated(long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(String userId, long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -743,6 +745,7 @@ public class EntityServletTestHelper {
 		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
 		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
@@ -757,13 +760,14 @@ public class EntityServletTestHelper {
 		return res;
 	}
 	
-	public long getEvaluationCount() throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public long getEvaluationCount(String userId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION_COUNT);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
@@ -833,13 +837,14 @@ public class EntityServletTestHelper {
 		}
 	}
 	
-	public PaginatedResults<Participant> getAllParticipants(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public PaginatedResults<Participant> getAllParticipants(String userId, String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/participant");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
@@ -854,13 +859,14 @@ public class EntityServletTestHelper {
 		return res;
 	}
 	
-	public long getParticipantCount(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public long getParticipantCount(String userId, String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/participant/count");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {

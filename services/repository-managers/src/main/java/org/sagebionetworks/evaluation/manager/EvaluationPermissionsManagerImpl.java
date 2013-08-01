@@ -8,22 +8,28 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
@@ -38,6 +44,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
+	@Autowired
+	private NodeDAO nodeDAO;
+	@Autowired
+	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
 	private UserManager userManager;
 
@@ -223,7 +233,16 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			}
 		}
 
-		return aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
+		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
+		if (canAccess && PARTICIPATE.equals(accessType)) {
+			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+			rod.setId(evalId);
+			rod.setType(RestrictableObjectType.EVALUATION);
+			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
+					userInfo, rod, nodeDAO, accessRequirementDAO);
+			canAccess = canAccess && unmetRequirements.isEmpty();
+		}
+		return canAccess;
 	}
 
 	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {

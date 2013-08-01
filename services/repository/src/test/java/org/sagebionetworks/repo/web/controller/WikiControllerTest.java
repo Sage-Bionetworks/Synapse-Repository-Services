@@ -86,17 +86,16 @@ public class WikiControllerTest {
 	
 	@After
 	public void after() throws Exception{
-		// Delete the project
-		if(entity != null){
-			entityServletHelper.deleteEntity(entity.getId(), userName);
+		for(WikiPageKey key: toDelete){
+			entityServletHelper.deleteWikiPage(key, userName);
 		}
 		if(evaluation != null){
 			try {
 				entityServletHelper.deleteEvaluation(evaluation.getId(), userName);
 			} catch (Exception e) {}
 		}
-		for(WikiPageKey key: toDelete){
-			entityServletHelper.deleteWikiPage(key, userName);
+		if(entity != null){
+			entityServletHelper.deleteEntity(entity.getId(), userName);
 		}
 		if(handleOne != null && handleOne.getId() != null){
 			fileMetadataDao.delete(handleOne.getId());

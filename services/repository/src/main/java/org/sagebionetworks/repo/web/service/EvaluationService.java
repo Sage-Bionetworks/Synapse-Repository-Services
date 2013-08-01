@@ -41,7 +41,7 @@ public interface EvaluationService {
 	/**
 	 * Get a Synapse Evaluation by its id
 	 */
-	public Evaluation getEvaluation(String id)
+	public Evaluation getEvaluation(String userId, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -53,7 +53,8 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Evaluation> getEvaluationsInRange(long limit, long offset,
+	@Deprecated
+	public PaginatedResults<Evaluation> getEvaluationsInRange(String userId, long limit, long offset,
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
@@ -66,6 +67,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
 			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
@@ -75,7 +77,8 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getEvaluationCount() throws DatastoreException,
+	@Deprecated
+	public long getEvaluationCount(String userId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -87,7 +90,7 @@ public interface EvaluationService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Evaluation findEvaluation(String name) throws DatastoreException,
+	public Evaluation findEvaluation(String userId, String name) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
 	/**
@@ -133,19 +136,6 @@ public interface EvaluationService {
 			throws NotFoundException;
 
 	/**
-	 * Add a different user as a Participant to a Evaluation. Requires admin
-	 * rights on the Evaluation.
-	 * 
-	 * @param userId
-	 * @param evalId
-	 * @param idToAdd
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public Participant addParticipantAsAdmin(String userId, String evalId,
-			String idToAdd) throws NotFoundException;
-
-	/**
 	 * Get a Participant
 	 * 
 	 * @param principalId
@@ -154,7 +144,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Participant getParticipant(String principalId, String evalId)
+	public Participant getParticipant(String userId, String principalId, String evalId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -178,7 +168,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Participant> getAllParticipants(String evalId, long limit, long offset, HttpServletRequest request)
+	public PaginatedResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -189,7 +179,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getParticipantCount(String evalId) throws DatastoreException,
+	public long getParticipantCount(String userId, String evalId) throws DatastoreException,
 			NotFoundException;
 
 	////// Methods for managing submissions //////
@@ -425,6 +415,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
+	@Deprecated
 	public <T extends Entity> boolean hasAccess(String evalId, String userName,
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;

@@ -15,7 +15,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -27,7 +26,6 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -37,47 +35,27 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class SubmissionManagerImpl implements SubmissionManager {
-	
+
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	SubmissionDAO submissionDAO;
+	private SubmissionDAO submissionDAO;
 	@Autowired
-	SubmissionStatusDAO submissionStatusDAO;
+	private SubmissionStatusDAO submissionStatusDAO;
 	@Autowired
-	SubmissionFileHandleDAO submissionFileHandleDAO;
+	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
-	EvaluationManager evaluationManager;
+	private EvaluationManager evaluationManager;
 	@Autowired
-	ParticipantManager participantManager;
+	private ParticipantManager participantManager;
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private FileHandleManager fileHandleManager;
 	@Autowired
-	FileHandleManager fileHandleManager;
-	
-	public SubmissionManagerImpl() {};
-	
-	// for testing purposes
-	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
-			SubmissionStatusDAO submissionStatusDAO, SubmissionFileHandleDAO submissionFileHandleDAO,
-			EvaluationManager evaluationManager, ParticipantManager participantManager,
-			EntityManager entityManager, NodeManager nodeManager,
-			AuthorizationManager authorizationManager, FileHandleManager fileHandleManager) {
-		this.idGenerator = idGenerator;
-		this.submissionDAO = submissionDAO;
-		this.submissionStatusDAO = submissionStatusDAO;
-		this.submissionFileHandleDAO = submissionFileHandleDAO;
-		this.evaluationManager = evaluationManager;
-		this.participantManager = participantManager;
-		this.entityManager = entityManager;
-		this.nodeManager = nodeManager;
-		this.authorizationManager = authorizationManager;
-		this.fileHandleManager = fileHandleManager;
-	}
+	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -104,7 +82,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
-		Evaluation eval = evaluationManager.getEvaluation(evalId);
+		Evaluation eval = evaluationManager.getEvaluation(userInfo, evalId);
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		
@@ -112,7 +90,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// ensure participant exists
 		try {
-			participantManager.getParticipant(principalId, evalId);
+			participantManager.getParticipant(principalId, principalId, evalId);
 		} catch (NotFoundException e) {
 			throw new UnauthorizedException("User Princpal ID: " + principalId + 
 					" has not joined Evaluation ID: " + evalId);
@@ -121,8 +99,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// 'canParticipate' is checked before someone is allowed to join,
 		// but just in-case authorization changes between the time she joins
 		// and the time she submits, we check authorization again:
-		boolean canParticipate = authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE);
-		if (!canParticipate) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE)) {
 			throw new UnauthorizedException("Not allowed to participate in "+eval.getName());
 		}
 		
@@ -331,7 +308,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
 		String principalId = userInfo.getIndividualGroup().getId();		
-		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, accessType)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType)) {
 			throw new UnauthorizedException("User " + principalId + 
 					" is not authorized to perform this operation on Evaluation " + evalId);
 		}
