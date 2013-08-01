@@ -1,6 +1,11 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
 
@@ -10,10 +15,6 @@ import org.sagebionetworks.evaluation.dao.ParticipantDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
-import org.sagebionetworks.evaluation.manager.ParticipantManager;
-import org.sagebionetworks.evaluation.manager.ParticipantManagerImpl;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -21,7 +22,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -31,12 +31,12 @@ public class ParticipantManagerTest {
 	private static Evaluation eval;
 	private static ParticipantManager participantManager;
 	private static Participant part;
-	
+
 	private static ParticipantDAO mockParticipantDAO;
 	private static UserManager mockUserManager;
 	private static EvaluationManager mockEvaluationManager;
-	private static AuthorizationManager mockAuthorizationManager;
-	
+	private EvaluationPermissionsManager mockEvalPermissionsManager;
+
 	private static final String EVAL_ID = "123";
 	private static final String OWNER_ID = "456";
 	private static final String USER_ID = "789";
@@ -78,18 +78,16 @@ public class ParticipantManagerTest {
     	when(mockParticipantDAO.get(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
     	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
-    	//when(mockEvaluationManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
-    	
-    	mockAuthorizationManager = mock(AuthorizationManager.class);
-    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
 
         // Participant Manager
     	participantManager = new ParticipantManagerImpl();
     	ReflectionTestUtils.setField(participantManager, "participantDAO", mockParticipantDAO);
-    	ReflectionTestUtils.setField(participantManager, "userManager", mockUserManager);
     	ReflectionTestUtils.setField(participantManager, "evaluationManager", mockEvaluationManager);
-    	ReflectionTestUtils.setField(participantManager, "authorizationManager", mockAuthorizationManager);
+    	ReflectionTestUtils.setField(participantManager, "userManager", mockUserManager);
+    	ReflectionTestUtils.setField(participantManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     }
 
     @Test
@@ -129,11 +127,10 @@ public class ParticipantManagerTest {
     
     @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotAbleToParticipate() throws DatastoreException, NotFoundException {
-    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);    	
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);
     	participantManager.addParticipant(userInfo, EVAL_ID);
     }
-    
-    
+
     @Test
     public void testGetAllParticipants() throws NumberFormatException, DatastoreException, NotFoundException {
     	participantManager.getAllParticipants(EVAL_ID, 10, 0);
@@ -145,5 +142,4 @@ public class ParticipantManagerTest {
     	participantManager.getNumberofParticipants(EVAL_ID);
     	verify(mockParticipantDAO).getCountByEvaluation(eq(EVAL_ID));
     }
-
 }

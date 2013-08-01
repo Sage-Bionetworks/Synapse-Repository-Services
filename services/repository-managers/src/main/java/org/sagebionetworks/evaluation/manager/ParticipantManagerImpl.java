@@ -1,5 +1,8 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
+
 import java.util.Date;
 import java.util.List;
 
@@ -7,14 +10,11 @@ import org.sagebionetworks.evaluation.dao.ParticipantDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -29,8 +29,6 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Autowired
 	private EvaluationManager evaluationManager;
 	@Autowired
-	private AuthorizationManager authorizationManager;
-	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
@@ -43,11 +41,11 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
-		Evaluation eval = evaluationManager.getEvaluation(evalId);
-		boolean canParticipate = authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.PARTICIPATE);
-		if (!canParticipate) {
-			throw new UnauthorizedException("Not allowed to participate in "+eval.getName());
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, PARTICIPATE)) {
+			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+					" is not allowed to join evaluation " + evalId);
 		}
+		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		try {
 			EvaluationUtils.ensureEvaluationIsOpen(eval);
 		} catch (IllegalStateException e) {
@@ -77,15 +75,14 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		EvaluationUtils.ensureNotNull(idToRemove, "Participant User ID");
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
-		
+
 		// verify permissions
-		if (!authorizationManager.canAccess(userInfo, evalId, ObjectType.EVALUATION, ACCESS_TYPE.UPDATE)) {
-			// user is not an admin; only authorized to cancel their own participation
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
 			EvaluationUtils.ensureEvaluationIsOpen(evaluationManager.getEvaluation(evalId));
-			if (!principalId.equals(idToRemove))
-				throw new UnauthorizedException("User Principal ID: " + principalId + " is not authorized to remove other users from Evaluation ID: " + evalId);
+			throw new UnauthorizedException("User Principal ID: " + principalId +
+					" is not authorized to remove other users from Evaluation ID: " + evalId);
 		}
-		
+
 		// trigger etag update of the parent Evaluation
 		// this is required for migration consistency
 		evaluationManager.updateEvaluationEtag(evalId);
@@ -94,7 +91,8 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 	
 	@Override
-	public QueryResults<Participant> getAllParticipants(String evalId, long limit, long offset) throws NumberFormatException, DatastoreException, NotFoundException {
+	public QueryResults<Participant> getAllParticipants(String evalId, long limit, long offset)
+			throws NumberFormatException, DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		List<Participant> participants = participantDAO.getAllByEvaluation(evalId, limit, offset);
 		long totalNumberOfResults = participantDAO.getCountByEvaluation(evalId);
