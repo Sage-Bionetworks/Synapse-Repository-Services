@@ -195,10 +195,14 @@ public class JSONEntityHttpMessageConverterTest {
 		// Now make sure we can parse the json
 		JSONEntityHttpMessageConverter converter = new JSONEntityHttpMessageConverter();
 		Mockito.when(mockInMessage.getBody()).thenReturn(new StringInputStream(json));
-		Project clone = (Project) converter.read(Entity.class, mockInMessage);
-		assertNotNull(clone);
-		// It should match the original
-		assertEquals(project, clone);
+		try{
+			Project clone = (Project) converter.read(Entity.class, mockInMessage);
+			assertNotNull(clone);
+			// It should match the original
+			assertEquals(project, clone);
+		}catch(Exception e){
+			throw new RuntimeException(json,e);
+		}
 	}
 	
 }

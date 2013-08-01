@@ -104,12 +104,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 					return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 				}else{
 					// Something else went wrong
-					throw new HttpMessageNotReadableException(e.getMessage());
+					throw new HttpMessageNotReadableException(e.getMessage(), e);
 				}
 			} catch (JSONException e1) {
-				throw new HttpMessageNotReadableException(e.getMessage());
+				throw new HttpMessageNotReadableException(e1.getMessage(), e);
 			} catch (JSONObjectAdapterException e2) {
-				throw new HttpMessageNotReadableException(e2.getMessage());
+				throw new HttpMessageNotReadableException(e2.getMessage(), e);
 			}
 		}
 	}
