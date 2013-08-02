@@ -27,15 +27,6 @@ public class BatchUtilityTest {
 		mockWorker = Mockito.mock(BatchWorker.class);
 	}
 	
-	@Ignore
-	@Test(expected=DaemonFailedException.class)
-	public void testAttemptBatchWithRetryRetryDenominatorTooSmall() throws Exception{
-		List<Long> batch = Arrays.asList(1l,2l);
-		// Only one attempt should be made
-		when(mockWorker.attemptBatch(any(List.class))).thenThrow(new DaemonFailedException(), new IllegalArgumentException());
-		BatchUtility.attemptBatchWithRetry(mockWorker, batch);
-	}
-	
 	@Test
 	public void testAttemptBatchWithRetryHappyCase() throws Exception{
 		List<Long> batch = Arrays.asList(1l,2l);
@@ -62,7 +53,7 @@ public class BatchUtilityTest {
 			fail("should have failed");
 		}catch(DaemonFailedException e){
 			// expected
-			assertEquals("two failed", e.getMessage());
+			assertEquals("Failed ids in batch retry:	[2]", e.getMessage());
 		}
 		verify(mockWorker).attemptBatch(Arrays.asList(1l,2l,3l,4l));
 
@@ -84,7 +75,29 @@ public class BatchUtilityTest {
 			fail("should have failed");
 		}catch(DaemonFailedException e){
 			// expected
-			assertEquals("five failed", e.getMessage());
+			assertEquals("Failed ids in batch retry:	[5]", e.getMessage());
+		}
+
+	}
+
+	@Test
+	public void testAttemptBatchWithMultipleFailsOnRetry() throws Exception{
+		List<Long> batch = Arrays.asList(1l,2l,3l,4l,5l,6l);
+		// The full list should fail.
+		when(mockWorker.attemptBatch(batch)).thenThrow(new DaemonFailedException());
+		// First two okay
+		when(mockWorker.attemptBatch(Arrays.asList(1l,2l))).thenReturn(2L);
+		// Last next two okay
+		when(mockWorker.attemptBatch(Arrays.asList(3l,4l))).thenReturn(2L);
+		// Last 2 fail
+		when(mockWorker.attemptBatch(Arrays.asList(5l))).thenThrow(new DaemonFailedException("five failed"));
+		when(mockWorker.attemptBatch(Arrays.asList(6l))).thenThrow(new DaemonFailedException("six failed"));
+		try{
+			BatchUtility.attemptBatchWithRetry(mockWorker, batch);
+			fail("should have failed");
+		}catch(DaemonFailedException e){
+			// expected
+			assertEquals("Failed ids in batch retry:	[5, 6]", e.getMessage());
 		}
 
 	}
