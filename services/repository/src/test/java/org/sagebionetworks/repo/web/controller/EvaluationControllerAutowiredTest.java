@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -44,19 +44,14 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -188,15 +183,30 @@ public class EvaluationControllerAutowiredTest {
 		//can read
 		Boolean canRead = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.READ);
 		assertTrue(canRead);
-		//test user can also read
+		//test user cannot read
 		canRead = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.READ);
-		assertTrue(canRead);
+		assertFalse(canRead);
 		
 		// Read
-		Evaluation fetched = entityServletHelper.getEvaluation(userName, eval1.getId());
+		Evaluation fetched = entityServletHelper.getEvaluation(ownerName, eval1.getId());
 		assertEquals(eval1, fetched);
-		fetched = entityServletHelper.findEvaluation(userName, eval1.getName());
+		try {
+			fetched = entityServletHelper.getEvaluation(userName, eval1.getId());
+			fail();
+		} catch (UnauthorizedException e) {
+			// Expected
+		}
+
+		// Find
+		fetched = entityServletHelper.findEvaluation(ownerName, eval1.getName());
 		assertEquals(eval1, fetched);
+		try {
+			fetched = entityServletHelper.findEvaluation(userName, eval1.getName());
+			assertEquals(eval1, fetched);
+			fail();
+		} catch (NotFoundException e) {
+			// Expected
+		}
 		
 		//can update
 		Boolean canUpdate = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.UPDATE);
@@ -230,9 +240,31 @@ public class EvaluationControllerAutowiredTest {
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
 		
-		long initialCount = entityServletHelper.getParticipantCount(ownerName, eval1.getId());
+		// create -- can't join yet
+		try {
+			part1 = entityServletHelper.createParticipant(userName, eval1.getId());
+			fail();
+		} catch (UnauthorizedException e) {
+			// Expected
+		}
 		
+		// open the evaluation to join
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.READ);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
+		ra.setPrincipalId(Long.parseLong(userId));
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
+		acl.setResourceAccess(raSet);
+		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
+		assertNotNull(acl);
+
 		// create
+		long initialCount = entityServletHelper.getParticipantCount(ownerName, eval1.getId());
 		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
@@ -249,13 +281,14 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(1, entityServletHelper.getAvailableEvaluations(userName, "OPEN").getTotalNumberOfResults());
 		
 		// read
-		Participant clone = entityServletHelper.getParticipant(userId, eval1.getId());
+		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+		Participant clone = entityServletHelper.getParticipant(userName, userId, eval1.getId());
 		assertEquals(part1, clone);
 		
 		// delete
 		entityServletHelper.deleteParticipant(ownerName, userId, eval1.getId());
 		try {
-			entityServletHelper.getParticipant(userId, eval1.getId());
+			entityServletHelper.getParticipant(ownerName, userId, eval1.getId());
 			fail("Failed to delete Participant " + part1.toString());
 		} catch (NotFoundException e) {
 			// expected
@@ -268,6 +301,21 @@ public class EvaluationControllerAutowiredTest {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
+		// open the evaluation to join
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.READ);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
+		ra.setPrincipalId(Long.parseLong(userId));
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
+		acl.setResourceAccess(raSet);
+		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
+		assertNotNull(acl);
+		// join
 		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
 		participantsToDelete.add(part1);
 		UserInfo userInfo = userManager.getUserInfo(userName);
@@ -319,7 +367,7 @@ public class EvaluationControllerAutowiredTest {
 	
 
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testSubmissionUnauthorized() throws NotFoundException, DatastoreException, JSONObjectAdapterException, IOException, ServletException {		
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
@@ -352,6 +400,20 @@ public class EvaluationControllerAutowiredTest {
 		part1 = entityServletHelper.createParticipant(ownerName, eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
+		// open the evaluation to join
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.READ);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
+		ra.setPrincipalId(Long.parseLong(userId));
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
+		acl.setResourceAccess(raSet);
+		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
+		assertNotNull(acl);
 		part2 = entityServletHelper.createParticipant(userName, eval1.getId());
 		assertNotNull(part2);
 		participantsToDelete.add(part2);
@@ -423,7 +485,7 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
 
-		// Create the evaluation
+		// Create the evaluation (which should also creates the ACL)
 		eval1.setContentSource(nodeId);
 		eval1 = entityServletHelper.createEvaluation(eval1, userName);		
 		assertNotNull(eval1.getEtag());
@@ -432,20 +494,7 @@ public class EvaluationControllerAutowiredTest {
 		evaluationsToDelete.add(eval1.getId());
 
 		// Get the ACL
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.ACL);
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		DispatcherServlet dispatcher = DispatchServletSingleton.getInstance();
-		dispatcher.service(request, response);
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-
-		AccessControlList aclReturned = EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), AccessControlList.class);
+		AccessControlList aclReturned = entityServletHelper.getEvaluationAcl(userName, eval1.getId());
 		assertNotNull(aclReturned);
 		assertEquals(eval1.getId(), aclReturned.getId());
 		assertNotNull(aclReturned.getResourceAccess());
@@ -462,55 +511,17 @@ public class EvaluationControllerAutowiredTest {
 		resourceAccess.add(ra);
 		aclReturned.setResourceAccess(resourceAccess);
 
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-		String body = EntityFactory.createJSONStringForEntity(aclReturned);
-		request.setContent(body.getBytes("UTF-8"));
-
-		response = new MockHttpServletResponse();
-		dispatcher.service(request, response);
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-
-		aclReturned = EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), AccessControlList.class);
+		aclReturned = entityServletHelper.updateEvaluationAcl(userName, aclReturned);
 		assertNotNull(aclReturned);
 		assertEquals(eval1.getId(), aclReturned.getId());
 
 		// getAcl()
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.ACL);
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-
-		response = new MockHttpServletResponse();
-		dispatcher.service(request, response);
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-
-		aclReturned = EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), AccessControlList.class);
+		aclReturned = entityServletHelper.getEvaluationAcl(userName, eval1.getId());
 		assertNotNull(aclReturned);
 		assertEquals(eval1.getId(), aclReturned.getId());
 
 		// getUserEvaluationPermissions()
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.setRequestURI(UrlHelpers.EVALUATION + "/" + eval1.getId() + UrlHelpers.PERMISSIONS);
-		request.addHeader("Accept", "application/json");
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-
-		response = new MockHttpServletResponse();
-		dispatcher.service(request, response);
-		assertEquals(HttpStatus.OK.value(), response.getStatus());
-
-		UserEvaluationPermissions uepReturned = EntityFactory.createEntityFromJSONString(
-				response.getContentAsString(), UserEvaluationPermissions.class);
+		UserEvaluationPermissions uepReturned = entityServletHelper.getEvaluationPermissions(userName, eval1.getId());
 		assertNotNull(uepReturned);
 	}
 

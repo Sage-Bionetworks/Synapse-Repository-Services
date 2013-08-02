@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -21,7 +23,9 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
@@ -34,6 +38,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -299,6 +304,12 @@ public class EntityServletTestHelper {
 		}
 		if(status == 409){
 			throw new NameConflictException();
+		}
+		if(status == 403) {
+			throw new UnauthorizedException(message);
+		}
+		if(status == 404) {
+			throw new NotFoundException(message);
 		}
 		if(status > 399 && status < 500){
 			throw new IllegalArgumentException(message);
@@ -803,13 +814,17 @@ public class EntityServletTestHelper {
 		return new Participant(joa);
 	}
 	
-	public Participant getParticipant(String partId, String evalId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public Participant getParticipant(String userId, String partId, String evalId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+
+		// Make sure we are passing in the ID, not the user name
+		Long.parseLong(partId);
+
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION+"/"+evalId+"/participant/" + partId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, partId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1024,7 +1039,66 @@ public class EntityServletTestHelper {
 		// Read in the value.
 		return Long.parseLong(response.getContentAsString());
 	}
-	
+
+	public AccessControlList getEvaluationAcl(String userId, String evalId)
+			throws ServletException, IOException, JSONObjectAdapterException {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + UrlHelpers.ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcherServlet.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		AccessControlList acl = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		return acl;
+	}
+
+	public AccessControlList updateEvaluationAcl(String userId, AccessControlList acl)
+			throws ServletException, IOException, JSONObjectAdapterException {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("PUT");
+		request.setRequestURI(UrlHelpers.EVALUATION_ACL);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		String body = EntityFactory.createJSONStringForEntity(acl);
+		request.setContent(body.getBytes("UTF-8"));
+
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcherServlet.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		AccessControlList aclUpdated = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
+		return aclUpdated;
+	}
+
+	public UserEvaluationPermissions getEvaluationPermissions(String userId, String evalId)
+			throws ServletException, IOException, JSONObjectAdapterException {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("GET");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + UrlHelpers.PERMISSIONS);
+		request.addHeader("Accept", "application/json");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		dispatcherServlet.service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+
+		UserEvaluationPermissions uep = EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), UserEvaluationPermissions.class);
+		return uep;
+	}
+
 	/**
 	 * Get the migration counts
 	 * @param userId
