@@ -78,6 +78,8 @@ public class SpringMVCDocletTest {
 	public void testMain(){
 		// Run a sample javadoc
 		int result = Main.execute(SpringMVCDocletTest.class.getClassLoader(), new String[]{
+			"-authControllerName",
+			"org.sagebionetworks.samples.ExampleController",
 			"-d",
 			outputDirectory.getAbsolutePath(),
 			"-doclet", SpringMVCDoclet.class.getName(),

@@ -222,6 +222,7 @@ public class ExampleController {
 
 	/**
 	 * Get getting an object that is an interface
+	 * Link to this controller <a href="${org.sagebionetworks.samples.ExampleController}">Example Controller</a>
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
