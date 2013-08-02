@@ -49,11 +49,12 @@ public class ParticipantManagerImpl implements ParticipantManager {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
 
-		if (!userId.equals(participantId)) {
-			UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		String userPrincipalId = userInfo.getIndividualGroup().getId();
+		if (!userPrincipalId.equals(participantId)) {
 			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
-				throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
-						" not allowed to read participant of ID " + participantId);
+				throw new UnauthorizedException("User " + userId +
+						" not allowed to read participant " + participantId);
 			}
 		}
 
@@ -64,6 +65,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, PARTICIPATE)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 					" is not allowed to join evaluation " + evalId);
@@ -93,7 +95,9 @@ public class ParticipantManagerImpl implements ParticipantManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove) throws DatastoreException, NotFoundException {
+	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove)
+			throws DatastoreException, NotFoundException {
+
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		EvaluationUtils.ensureNotNull(idToRemove, "Participant User ID");
 		UserInfo.validateUserInfo(userInfo);

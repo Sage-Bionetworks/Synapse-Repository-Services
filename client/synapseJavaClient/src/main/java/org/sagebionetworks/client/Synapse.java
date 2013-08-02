@@ -3643,6 +3643,8 @@ public class Synapse implements SynapseInt {
 	public Participant getParticipant(String evalId, String principalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
+		// Make sure we are passing in the ID, not the user name
+		Long.parseLong(principalId);
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT
 				+ "/" + principalId;		
 		JSONObject jsonObj = getEntity(uri);
