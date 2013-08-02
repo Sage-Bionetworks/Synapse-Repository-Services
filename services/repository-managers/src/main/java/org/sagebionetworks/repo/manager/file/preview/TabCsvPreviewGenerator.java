@@ -5,9 +5,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
 
 import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.repo.model.registry.EntityMigrationData;
+import org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl;
 
 /**
  * Generates previews for text content types.
@@ -15,7 +16,7 @@ import org.apache.commons.io.IOUtils;
  * @author Jay
  *
  */
-public class TabCsvPreviewGenerator {
+public class TabCsvPreviewGenerator implements PreviewGenerator {
 	
 	public static final String TEXT_TAB_SEPARATED_VALUES = "text/tab-separated-values";
 	public static final String TEXT_CSV_SEPARATED_VALUES = "text/csv";
@@ -25,11 +26,23 @@ public class TabCsvPreviewGenerator {
 	public static final Character NEWLINE = '\n';
 	public static final Character CR = '\r';
 	public static final Character EOF = '\u001a';
-	
+	public static final String HTML_ELLIPSIS = "&hellip;";
+	public static final String HTML_COMMA = "%2C";
 	public static final int MAX_ROW_COUNT = 30;
 	public static final int MAX_COLUMN_COUNT = 20;
 	public static final int MAX_CELL_CHARACTER_COUNT = 40;
 	public Character delimiter;
+	
+	public static Character getComma() {
+		return COMMA;
+	}
+	public static Character getTab() {
+		return TAB;
+	}
+	
+	public TabCsvPreviewGenerator(Character delimiter) {
+		this.delimiter = delimiter;
+	}
 	
 	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		String output = read(from);
@@ -64,7 +77,7 @@ public class TabCsvPreviewGenerator {
 				//output the correct number of columns
 				int columnCount = lastRow.split(",").length;
 				for (int i = 0; i < columnCount; i++) {
-					buffer.append("...");
+					buffer.append(HTML_ELLIPSIS);
 					if (i != columnCount-1)
 						buffer.append(COMMA);
 				}
@@ -94,7 +107,7 @@ public class TabCsvPreviewGenerator {
 		}
         if (currentColumn >= MAX_COLUMN_COUNT) {
 			//indicate we are truncating columns.
-        	buffer.append("...");
+        	buffer.append(HTML_ELLIPSIS);
         	//and read until the end of line
         	in.readLine();
         }
@@ -109,20 +122,22 @@ public class TabCsvPreviewGenerator {
 		int ch;
 		int count = 0;
 		boolean isInQuote = false;
+		//extract the cell text (or as much as we are allowed)
 		while ((ch = in.read()) > -1 && count < MAX_CELL_CHARACTER_COUNT && isInCell(ch, isInQuote)) {
 			if (ch == DOUBLE_QUOTE) {
 				isInQuote = !isInQuote;
 			} else {
 				if (ch == delimiter) {
-					ch = ' ';
+					buffer.append(HTML_COMMA);
+				} else {
+					buffer.append((char) ch);	
 				}
-				buffer.append((char) ch);
 				count++;
 			}
 		}
 		// now scan forward to the next newline if we didn't find one above
 		if (isInCell(ch, isInQuote)) {
-			buffer.append("...");
+			buffer.append(HTML_ELLIPSIS);
 			while ((ch = in.read()) > -1) {
 				if (ch == DOUBLE_QUOTE) {
 					isInQuote = !isInQuote;
@@ -152,5 +167,14 @@ public class TabCsvPreviewGenerator {
 	
 	public float getMemoryMultiplierForContentType(String contentType) {
 		return 1;
+	}
+	
+	@Override
+	public boolean supportsContentType(String contentType) {
+		if (delimiter == COMMA)
+			return contentType.equals(TEXT_CSV_SEPARATED_VALUES);
+		else if (delimiter == TAB)
+			return contentType.equals(TEXT_TAB_SEPARATED_VALUES);
+		else return false;
 	}
 }

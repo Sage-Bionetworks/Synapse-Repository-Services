@@ -17,6 +17,8 @@ import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
+import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
+import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -40,6 +42,9 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class PreviewIntegrationTest {
 
 	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
+	private static String LITTLE_CSV_NAME = "previewtest.csv";
+	private static String LITTLE_TAB_NAME = "previewtest.tab";
+	private static String LITTLE_TXT_NAME = "previewtest.txt";
 	public static final long MAX_WAIT = 30*1000; // 30 seconds
 	
 	@Autowired
@@ -56,7 +61,7 @@ public class PreviewIntegrationTest {
 	
 	List<S3FileHandleInterface> toDelete;
 	UserInfo userInfo;
-	S3FileHandle originalfileMetadata;
+	S3FileHandle imageFileHandle, csvFileHandle, tabFileHandle, txtFileHandle;
 	
 	@Before
 	public void before() throws Exception {
@@ -66,15 +71,28 @@ public class PreviewIntegrationTest {
 		userInfo = userProvider.getTestUserInfo();
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
+		imageFileHandle = uploadFile(LITTLE_IMAGE_NAME, ImagePreviewGenerator.IMAGE_PNG);
+		toDelete.add(imageFileHandle);
+		
+		csvFileHandle = uploadFile(LITTLE_CSV_NAME, TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES);
+		toDelete.add(csvFileHandle);
+		
+		tabFileHandle = uploadFile(LITTLE_TAB_NAME, TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES);
+		toDelete.add(tabFileHandle);
+		
+		txtFileHandle = uploadFile(LITTLE_TXT_NAME, TextPreviewGenerator.TEXT_PLAIN);
+		toDelete.add(txtFileHandle);
+	}
+	
+	public S3FileHandle uploadFile(String fileName, String contentType) throws Exception{
 		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
-		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(LITTLE_IMAGE_NAME);
-		assertNotNull("Failed to find a test file on the classpath: "+LITTLE_IMAGE_NAME, in);
+		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(fileName);
+		assertNotNull("Failed to find a test file on the classpath: "+fileName, in);
 		when(mockFiz.openStream()).thenReturn(in);
-		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
-		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
+		when(mockFiz.getContentType()).thenReturn(contentType);
+		when(mockFiz.getName()).thenReturn(fileName);
 		// Now upload the file.
-		originalfileMetadata = fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
-		toDelete.add(originalfileMetadata);
+		return fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
 	}
 	
 	@After
@@ -108,23 +126,42 @@ public class PreviewIntegrationTest {
 
 	
 	
-	@Test
-	public void testRoundTrip() throws Exception {
+	public void testRoundTripHelper(S3FileHandle imageFileHandle) throws Exception {
 		// If the preview system is setup correctly, then a preview should
 		// get generated for the file that was uploaded in the before() method.
-		assertNotNull(originalfileMetadata);
+		assertNotNull(imageFileHandle);
 		long start = System.currentTimeMillis();
-		while(originalfileMetadata.getPreviewId() == null){
-			System.out.println("Waiting for a preview to be generated for the file: "+originalfileMetadata);
+		while(imageFileHandle.getPreviewId() == null){
+			System.out.println("Waiting for a preview to be generated for the file: "+imageFileHandle);
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for a preview file to be generated", elapse < MAX_WAIT);
-			originalfileMetadata = (S3FileHandle) fileMetadataDao.get(originalfileMetadata.getId());
+			imageFileHandle = (S3FileHandle) fileMetadataDao.get(imageFileHandle.getId());
 		}
 		// Get the preview
-		PreviewFileHandle pfm = (PreviewFileHandle) fileMetadataDao.get(originalfileMetadata.getPreviewId());
+		PreviewFileHandle pfm = (PreviewFileHandle) fileMetadataDao.get(imageFileHandle.getPreviewId());
 		assertNotNull(pfm);
 		// Make sure the preview is deleted as well
 		toDelete.add(pfm);
+	}
+	
+	@Test
+	public void testRoundTripImage() throws Exception {
+		testRoundTripHelper(imageFileHandle);
+	}
+	
+	@Test
+	public void testRoundTripCsv() throws Exception {
+		testRoundTripHelper(csvFileHandle);
+	}
+	
+	@Test
+	public void testRoundTripTab() throws Exception {
+		testRoundTripHelper(tabFileHandle);
+	}
+	
+	@Test
+	public void testRoundTripTxt() throws Exception {
+		testRoundTripHelper(txtFileHandle);
 	}
 }
