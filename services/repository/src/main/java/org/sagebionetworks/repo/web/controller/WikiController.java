@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * client's web browser.
  * </p>
  * <p>
- * These services provide provides support for creating, reading, updating, and
+ * These services provide support for creating, reading, updating, and
  * deleting (CRUD) the WikiPage model objects.
  * </p>
  * <p>
@@ -46,7 +46,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * of file attachments. For example, to embed an image from an end-user's
  * machine into a WikiPage, the image file must first be upload to Synapse as <a
  * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> (see
- * File Services). The FileHandle ID can then be added to a
+ * <a href="${org.sagebionetworks.file.controller.UploadController}">File
+ * Services</a>). The FileHandle ID can then be added to a
  * WikiPage.attachmentFileHandleIds list. See <a
  * href="https://www.synapse.org">www.synapse.org</a> for details on the
  * supported markdown syntax.
@@ -54,12 +55,19 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * <p>
  * WikiPages are not stand-alone objects, instead they are a component of
- * another object such as an Entity, Competition or Evaluation. For example,
- * when a WikiPage is created for an Entity, the Entity becomes the "owner" of
- * the WikiPage. Access to the WikiPage is always tied to its owner. For
- * example, to GET a WikiPage of an Entity, the caller must have read permission
- * on the Entity.
- * 
+ * another object such as an Entity or Evaluation. For example, when a WikiPage
+ * is created for an Entity, the Entity becomes the "owner" of the WikiPage.
+ * Access to the WikiPage is always tied to its owner. For example, to GET a
+ * WikiPage of an Entity, the caller must have read permission on the Entity.
+ * </p>
+ * <p>
+ * To navigate the hierarchy of WikiPages associated with an owner use the <a
+ * href="${GET.entity.ownerId.wikiheadertree}">GET
+ * /entity/{ownerId}/wikiheadertree</a> method. The returned list of <a
+ * href="${org.sagebionetworks.repo.model.wiki.WikiHeader}">WikiHeaders</a> can
+ * be used to construct a full wiki hierarchy tree for that owner.
+ * </p>
+ * <p>
  * Note: WikiPages can be nested to created a hierarchy of sub-pages. However,
  * there can only be one root WikiPage per owner object, and all sub-pages are
  * considered to be owned by the same object as the root page.
@@ -497,7 +505,7 @@ public class WikiController extends BaseController {
 	/**
 	 * Get the list of FileHandles for a all file attachments of a specific
 	 * WikiPage for a given owning Entity. This list will include Previews if
-	 * they exist and will provides information about file sizes, content types
+	 * they exist and will provide information about file sizes, content types
 	 * and names.
 	 * <p>
 	 * Note: The caller must be granted the <a
@@ -529,7 +537,7 @@ public class WikiController extends BaseController {
 	/**
 	 * Get the list of FileHandles for a all file attachments of a specific
 	 * WikiPage for a given owning Evaluation. This list will include Previews
-	 * if they exist and will provides information about file sizes, content
+	 * if they exist and will provide information about file sizes, content
 	 * types and names.
 	 * <p>
 	 * Note: The caller must be granted the <a
@@ -597,7 +605,7 @@ public class WikiController extends BaseController {
 	void getEntityWikiAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestParam String fileName,
+			@RequestParam(required = true)  String fileName,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
@@ -646,7 +654,7 @@ public class WikiController extends BaseController {
 	void getCompetitionAttachmentFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestParam String fileName,
+			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
@@ -696,7 +704,7 @@ public class WikiController extends BaseController {
 	void getEntityWikiAttachmenPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestParam String fileName,
+			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
@@ -709,8 +717,8 @@ public class WikiController extends BaseController {
 	}
 
 	/**
-	 * Get a URL that can be used to download a preview file for a given WikiPage file
-	 * attachment.
+	 * Get a URL that can be used to download a preview file for a given
+	 * WikiPage file attachment.
 	 * <p>
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
 	 * actual file URL if the caller meets all of the download requirements.
@@ -745,7 +753,7 @@ public class WikiController extends BaseController {
 	void getCompetitionAttachmenthPreviewFile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestParam String fileName,
+			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {

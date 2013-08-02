@@ -1,5 +1,5 @@
 {
-	"description": "The model object representing a Wiki Page",
+	"description": "The WikiPage model object represent a single user managed wiki page.",
 	"properties": {
 		"id": {
 			"type": "string",

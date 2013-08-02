@@ -46,6 +46,9 @@ public class PropertyRegExLinker implements Linker {
 		for(FileLink link: toLink){
 			String path = replacePath(link.getFile().getAbsolutePath());
 			String subPath = path.substring(baseDirPath.length()+1, path.length());
+			if(link.isHashTagId()){
+				subPath = subPath+"#"+link.getName();
+			}
 			replacements.put(link.getName(), pathToRoot+subPath);
 		}
 		return replacements;
