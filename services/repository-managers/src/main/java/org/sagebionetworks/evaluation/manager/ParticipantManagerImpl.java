@@ -90,7 +90,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		// this is required for migration consistency
 		evaluationManager.updateEvaluationEtag(evalId);
 		
-		return getParticipant(principalIdToAdd, principalIdToAdd, evalId);
+		return participantDAO.get(principalIdToAdd, evalId);
 	}
 
 	@Override
