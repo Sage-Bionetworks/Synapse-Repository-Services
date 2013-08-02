@@ -50,6 +50,7 @@ public class ControllerUtils {
 		// Setup the basic data
 		model.setName(classDoc.name());
 		model.setClassDescription(classDoc.getRawCommentText());
+		model.setFullClassName(classDoc.qualifiedName());
 		// Map the annotations of the class
 		Map<String, Object> annotationMap = mapAnnotation(classDoc.annotations());
 		// Get the display name and path if they exist

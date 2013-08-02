@@ -3,6 +3,7 @@ package org.sagebionetworks.javadoc.web.services;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,6 +28,7 @@ import org.sagebionetworks.javadoc.velocity.controller.ControllerContextGenerato
 import org.sagebionetworks.javadoc.velocity.schema.SchemaClassContextGenerator;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
+import com.sun.javadoc.ClassDoc;
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.RootDoc;
@@ -96,6 +98,16 @@ public class SpringMVCDoclet {
 			// Write output to the file
 			FileUtils.writeStringToFile(file, writer.toString(), "UTF-8");
 		}
+		// Map each controller to the index file
+		String fileName = BasicFileUtils.getFileNameForClassName("index", "html");
+		File index = new File(outputDirectory, fileName);
+        Iterator<ClassDoc> contollers = FilterUtils.controllerIterator(root.classes());
+        while(contollers.hasNext()){
+        	ClassDoc cd = contollers.next();
+        	FileLink link = new FileLink(index, cd.qualifiedName());
+        	link.setHashTagId(true);
+        	links.add(link);
+        }
 		// Link all of the files.
 		linker.link(outputDirectory, links);
 		return true;
@@ -127,7 +139,7 @@ public class SpringMVCDoclet {
 	 *         known. Negative value means error occurred.
 	 */
 	public static int optionLength(String option) {
-		return Options.optionLength(option);
+		return 2;
 	}
 
 	/**

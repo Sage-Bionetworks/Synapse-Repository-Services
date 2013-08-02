@@ -228,6 +228,8 @@
 					<additionalparam>-verbose</additionalparam>
 					<useStandardDocletOptions>false</useStandardDocletOptions>
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
+					<!-- This name is used to link to the authentication controller -->
+					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
 				</configuration>
 			</plugin>
 			<plugin>

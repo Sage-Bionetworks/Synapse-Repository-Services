@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for WikiPage",
+	"description": "The WikiPage model object represent a single user managed wiki page.",
 	"properties": {
 		"id": {
 			"type": "string",
@@ -29,7 +29,7 @@
 		},		
 		"parentWikiId": {
 			"type": "string",
-			"description": "The parent ID of a wiki that is a sub-page of another wiki."
+			"description": "When set, the WikiPage is a sub-page of the indicated parent WikiPage."
 		},
 		"title": {
 			"type": "string",
