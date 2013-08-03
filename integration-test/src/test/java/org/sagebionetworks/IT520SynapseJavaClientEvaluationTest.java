@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -472,9 +473,15 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
 
-		part2 = synapseTwo.createParticipant(eval1.getId());
-		assertNotNull(part2);
-		participantsToDelete.add(part2);
+		// User 2 not allowed to join eval 1
+		try {
+			part2 = synapseTwo.createParticipant(eval1.getId());
+			assertNotNull(part2);
+			participantsToDelete.add(part2);
+			fail();
+		} catch (SynapseException e) {
+			// expected
+		}
 
 		// paginated evaluations
 		eval1 = synapseOne.getEvaluation(eval1.getId());
@@ -488,12 +495,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// paginated participants
 		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(eval1.getId(), 0, 10);
-		assertEquals(2, parts.getTotalNumberOfResults());
-		for (Participant p : parts.getResults())
-			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
-		
-		parts = synapseOne.getAllParticipants(eval2.getId(), 0, 10);
-		assertEquals(0, parts.getTotalNumberOfResults());
+		assertEquals(1, parts.getTotalNumberOfResults());
+		assertEquals(part1.getUserId(), parts.getResults().get(0).getUserId());
 	}
 	
 	@Test
@@ -510,10 +513,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		part1 = synapseOne.createParticipant(eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-
-		part2 = synapseTwo.createParticipant(eval1.getId());
-		assertNotNull(part2);
-		participantsToDelete.add(part2);
 		
 		String entityId1 = project.getId();
 		String entityEtag1 = project.getEtag();
@@ -538,7 +537,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub2 = synapseOne.createSubmission(sub2, entityEtag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
-				
+
 		// paginated submissions, statuses, and bundles
 		PaginatedResults<Submission> subs;
 		PaginatedResults<SubmissionStatus> subStatuses;
@@ -626,14 +625,25 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1 = synapseOne.createEvaluation(eval1);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
-		
+
+		// open the evaluation for user 2 to join
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
+		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.READ);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		String user2Id = synapseTwo.getMyProfile().getOwnerId();
+		ra.setPrincipalId(Long.parseLong(user2Id));
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+		AccessControlList acl = synapseOne.getEvaluationAcl(eval1.getId());
+		acl.setResourceAccess(raSet);
+		acl = synapseOne.updateEvaluationAcl(acl);
+		assertNotNull(acl);
+
 		part1 = synapseOne.createParticipant(eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-		
-		part2 = synapseTwo.createParticipant(eval1.getId());
-		assertNotNull(part2);
-		participantsToDelete.add(part2);
 		
 		String entityId1 = project.getId();
 		String entityEtag1 = project.getEtag();
@@ -651,7 +661,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1 = synapseOne.createSubmission(sub1, entityEtag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
-		
+
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(projectTwo.getId());
 		sub2.setVersionNumber(1L);
@@ -778,7 +788,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	public void testAclRoundtrip() throws Exception {
 
 		// Create ACL
-		eval1 = synapseOne.createEvaluation(eval1);		
+		eval1 = synapseOne.createEvaluation(eval1);
 		assertNotNull(eval1);
 		final String evalId = eval1.getId();
 		assertNotNull(evalId);
@@ -796,16 +806,16 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(uep1.getCanDelete());
 		assertTrue(uep1.getCanEdit());
 		assertTrue(uep1.getCanParticipate());
-		assertTrue(uep1.getCanPublicRead());
+		assertFalse(uep1.getCanPublicRead());
 		assertTrue(uep1.getCanView());
 		UserEvaluationPermissions uep2 = synapseTwo.getUserEvaluationPermissions(evalId);
 		assertNotNull(uep2);
 		assertFalse(uep2.getCanChangePermissions());
 		assertFalse(uep2.getCanDelete());
 		assertFalse(uep2.getCanEdit());
-		assertTrue(uep2.getCanParticipate());
-		assertTrue(uep2.getCanPublicRead());
-		assertTrue(uep2.getCanView());
+		assertFalse(uep2.getCanParticipate());
+		assertFalse(uep2.getCanPublicRead());
+		assertFalse(uep2.getCanView());
 
 		// Update ACL
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
@@ -831,8 +841,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(uep2.getCanChangePermissions());
 		assertTrue(uep2.getCanDelete());
 		assertFalse(uep2.getCanEdit());
-		assertTrue(uep2.getCanParticipate());
-		assertTrue(uep2.getCanPublicRead());
-		assertTrue(uep2.getCanView());
+		assertFalse(uep2.getCanParticipate());
+		assertFalse(uep2.getCanPublicRead());
+		assertFalse(uep2.getCanView());
 	}
 }
