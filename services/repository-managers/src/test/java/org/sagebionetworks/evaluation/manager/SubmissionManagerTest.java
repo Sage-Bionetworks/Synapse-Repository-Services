@@ -194,7 +194,7 @@ public class SubmissionManagerTest {
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
-    	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
+    	when(mockParticipantManager.getParticipant(eq(userInfo), eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);

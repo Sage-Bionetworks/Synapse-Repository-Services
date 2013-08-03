@@ -39,9 +39,9 @@ public class ParticipantManagerTest {
 	private EvaluationManager mockEvaluationManager;
 	private EvaluationPermissionsManager mockEvalPermissionsManager;
 
-	private static final String EVAL_ID = "123";
-	private static final String OWNER_ID = "456";
-	private static final String USER_ID = "789";
+	private final String evalId = "123";
+	private final String ownerId = "456";
+	private final String userId = "789";
 	
 	private UserInfo ownerInfo;
 	private UserInfo userInfo;
@@ -54,15 +54,15 @@ public class ParticipantManagerTest {
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 		// User Info
     	ownerInfo = UserInfoUtils.createValidUserInfo(false);
-    	ownerInfo.getIndividualGroup().setId(OWNER_ID);
+    	ownerInfo.getIndividualGroup().setId(ownerId);
     	userInfo = UserInfoUtils.createValidUserInfo(false);
-    	userInfo.getIndividualGroup().setId(USER_ID);
+    	userInfo.getIndividualGroup().setId(userId);
     	
     	// Competition
 		eval = new Evaluation();
 		eval.setName(COMPETITION_NAME);
-		eval.setId(EVAL_ID);
-		eval.setOwnerId(OWNER_ID);
+		eval.setId(evalId);
+		eval.setOwnerId(ownerId);
         eval.setContentSource(COMPETITION_CONTENT_SOURCE);
         eval.setStatus(EvaluationStatus.OPEN);
         eval.setCreatedOn(new Date());
@@ -70,22 +70,22 @@ public class ParticipantManagerTest {
         
 		// Participant
     	part = new Participant();
-		part.setEvaluationId(EVAL_ID);
-		part.setUserId(USER_ID);
+		part.setEvaluationId(evalId);
+		part.setUserId(userId);
 		
     	// Mocks
     	mockParticipantDAO = mock(ParticipantDAO.class);
     	mockEvalDAO = mock(EvaluationDAO.class);
-    	when(mockEvalDAO.get(eq(EVAL_ID))).thenReturn(eval);
+    	when(mockEvalDAO.get(eq(evalId))).thenReturn(eval);
     	mockUserManager = mock(UserManager.class);
     	mockEvaluationManager = mock(EvaluationManager.class);
-    	when(mockParticipantDAO.get(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
-    	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
-    	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(EVAL_ID))).thenReturn(eval);
+    	when(mockParticipantDAO.get(eq(userId), eq(evalId))).thenReturn(part);
+    	when(mockUserManager.getDisplayName(eq(Long.parseLong(userId)))).thenReturn("foo");
+    	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(evalId))).thenReturn(eval);
     	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.DELETE))).thenReturn(true);
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.DELETE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
 
         // Participant Manager
     	participantManager = new ParticipantManagerImpl();
@@ -98,54 +98,54 @@ public class ParticipantManagerTest {
 
     @Test
     public void testRDAsAdmin() throws NotFoundException {
-    	participantManager.getParticipant(OWNER_ID, USER_ID, EVAL_ID);
-    	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO, times(1)).get(eq(USER_ID), eq(EVAL_ID));
-    	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
+    	participantManager.getParticipant(ownerInfo, userId, evalId);
+    	participantManager.removeParticipant(ownerInfo, evalId, userId);
+    	verify(mockParticipantDAO, times(1)).get(eq(userId), eq(evalId));
+    	verify(mockParticipantDAO).delete(eq(userId), eq(evalId));
     }
     
     @Test
     public void testRDAsAdmin_NotOpen() throws NotFoundException {
     	// admin should be able to add participants even if Evaluation is closed
     	eval.setStatus(EvaluationStatus.CLOSED);
-    	participantManager.getParticipant(OWNER_ID, USER_ID, EVAL_ID);
-    	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO, times(1)).get(eq(USER_ID), eq(EVAL_ID));
-    	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
+    	participantManager.getParticipant(ownerInfo, userId, evalId);
+    	participantManager.removeParticipant(ownerInfo, evalId, userId);
+    	verify(mockParticipantDAO, times(1)).get(eq(userId), eq(evalId));
+    	verify(mockParticipantDAO).delete(eq(userId), eq(evalId));
     }
     
     @Test
     public void testCRDAsUser() throws DatastoreException, NotFoundException {
-    	participantManager.addParticipant(userInfo, EVAL_ID);
-    	participantManager.getParticipant(USER_ID, USER_ID, EVAL_ID);
-    	participantManager.removeParticipant(userInfo, EVAL_ID, USER_ID);
+    	participantManager.addParticipant(userInfo, evalId);
+    	participantManager.getParticipant(userInfo, userId, evalId);
+    	participantManager.removeParticipant(userInfo, evalId, userId);
     	verify(mockParticipantDAO).create(any(Participant.class));
-    	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
-    	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
+    	verify(mockParticipantDAO, times(2)).get(eq(userId), eq(evalId));
+    	verify(mockParticipantDAO).delete(eq(userId), eq(evalId));
     }
     
     @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotOpen() throws DatastoreException, NotFoundException {
     	// user should not be able to join Evaluation if it is closed
     	eval.setStatus(EvaluationStatus.CLOSED);
-    	participantManager.addParticipant(userInfo, EVAL_ID);
+    	participantManager.addParticipant(userInfo, evalId);
     }
     
     @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotAbleToParticipate() throws DatastoreException, NotFoundException {
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);
-    	participantManager.addParticipant(userInfo, EVAL_ID);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);
+    	participantManager.addParticipant(userInfo, evalId);
     }
 
     @Test
     public void testGetAllParticipants() throws NumberFormatException, DatastoreException, NotFoundException {
-    	participantManager.getAllParticipants(OWNER_ID, EVAL_ID, 10, 0);
-    	verify(mockParticipantDAO).getAllByEvaluation(eq(EVAL_ID), eq(10L), eq(0L));
+    	participantManager.getAllParticipants(ownerInfo, evalId, 10, 0);
+    	verify(mockParticipantDAO).getAllByEvaluation(eq(evalId), eq(10L), eq(0L));
     }
     
     @Test
     public void testGetNumberOfParticipants() throws DatastoreException, NotFoundException {
-    	participantManager.getNumberofParticipants(OWNER_ID, EVAL_ID);
-    	verify(mockParticipantDAO).getCountByEvaluation(eq(EVAL_ID));
+    	participantManager.getNumberofParticipants(ownerInfo, evalId);
+    	verify(mockParticipantDAO).getCountByEvaluation(eq(evalId));
     }
 }

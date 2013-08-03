@@ -36,11 +36,11 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 
 	@Override
-	public Participant getParticipant(final String userId, final String participantId, final String evalId)
+	public Participant getParticipant(UserInfo userInfo, final String participantId, final String evalId)
 			throws DatastoreException, NotFoundException {
 
-		if (userId == null || userId.isEmpty()) {
-			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null or empty.");
 		}
 		if (participantId == null || participantId.isEmpty()) {
 			throw new IllegalArgumentException("Participant user ID cannot be null or empty.");
@@ -49,11 +49,11 @@ public class ParticipantManagerImpl implements ParticipantManager {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
 
+		String userId = userInfo.getIndividualGroup().getId();
 		if (!userId.equals(participantId)) {
-			UserInfo userInfo = userManager.getUserInfo(userId);
 			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
-				throw new IllegalArgumentException("User " + userInfo.getIndividualGroup().getId() +
-						" not allowed to read participant of ID " + participantId);
+				throw new UnauthorizedException("User " + userId +
+						" not allowed to read participant " + participantId);
 			}
 		}
 
@@ -64,6 +64,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, PARTICIPATE)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 					" is not allowed to join evaluation " + evalId);
@@ -88,12 +89,14 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		// this is required for migration consistency
 		evaluationManager.updateEvaluationEtag(evalId);
 		
-		return getParticipant(principalIdToAdd, principalIdToAdd, evalId);
+		return participantDAO.get(principalIdToAdd, evalId);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove) throws DatastoreException, NotFoundException {
+	public void removeParticipant(UserInfo userInfo, String evalId, String idToRemove)
+			throws DatastoreException, NotFoundException {
+
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		EvaluationUtils.ensureNotNull(idToRemove, "Participant User ID");
 		UserInfo.validateUserInfo(userInfo);
@@ -114,9 +117,10 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 	
 	@Override
-	public QueryResults<Participant> getAllParticipants(String userId, String evalId, long limit, long offset)
+	public QueryResults<Participant> getAllParticipants(
+			UserInfo userInfo, final String evalId, final long limit, final long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException {
-		validateUpdateAccess(userId, evalId);
+		validateUpdateAccess(userInfo, evalId);
 		List<Participant> participants = participantDAO.getAllByEvaluation(evalId, limit, offset);
 		long totalNumberOfResults = participantDAO.getCountByEvaluation(evalId);
 		QueryResults<Participant> res = new QueryResults<Participant>(participants, totalNumberOfResults);
@@ -124,23 +128,22 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 
 	@Override
-	public long getNumberofParticipants(String userId, String evalId)
+	public long getNumberofParticipants(UserInfo userInfo, final String evalId)
 			throws DatastoreException, NotFoundException {
-		validateUpdateAccess(userId, evalId);
+		validateUpdateAccess(userInfo, evalId);
 		return participantDAO.getCountByEvaluation(evalId);
 	}
 
-	private void validateUpdateAccess(final String userId, final String evalId)
+	private void validateUpdateAccess(final UserInfo userInfo, final String evalId)
 			throws DatastoreException, NotFoundException {
 
-		if (userId == null || userId.isEmpty()) {
-			throw new IllegalArgumentException("User ID cannot be null or empty.");
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null or empty.");
 		}
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
 
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
 			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
 						" not allowed to get participants for evaluation " + evalId);
