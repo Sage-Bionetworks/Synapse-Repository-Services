@@ -7,8 +7,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.sagebionetworks.repo.model.registry.EntityMigrationData;
-import org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl;
 
 /**
  * Generates previews for text content types.
@@ -27,7 +25,7 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 	public static final Character CR = '\r';
 	public static final Character EOF = '\u001a';
 	public static final String HTML_ELLIPSIS = "&hellip;";
-	public static final String HTML_COMMA = "%2C";
+	public static final String HTML_COMMA = "&#44;";
 	public static final int MAX_ROW_COUNT = 30;
 	public static final int MAX_COLUMN_COUNT = 20;
 	public static final int MAX_CELL_CHARACTER_COUNT = 40;
@@ -127,8 +125,12 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 			if (ch == DOUBLE_QUOTE) {
 				isInQuote = !isInQuote;
 			} else {
-				if (ch == delimiter) {
+				if (ch == COMMA) {
+					//convert commas that occur inside of a cell to HTML_COMMA
 					buffer.append(HTML_COMMA);
+				} else if (ch == NEWLINE || ch == CR) {
+					//eat newlines inside of cells (convert to spaces)
+					buffer.append(" ");
 				} else {
 					buffer.append((char) ch);	
 				}
