@@ -49,7 +49,10 @@ public class TextPreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public boolean supportsContentType(String contentType) {
-		return contentType.toLowerCase().startsWith(TEXT_SLASH);
+		//supported if it's text (and not csv or tab)
+		return !contentType.equals(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES) && 
+		!contentType.equals(TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES) &&
+		contentType.startsWith(TEXT_SLASH);
 	}
 
 	@Override

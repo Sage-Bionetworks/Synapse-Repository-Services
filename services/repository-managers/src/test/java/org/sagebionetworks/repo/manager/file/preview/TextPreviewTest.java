@@ -33,10 +33,11 @@ public class TextPreviewTest {
 
 	@Test
 	public void testContentType() throws IOException {
-		assertTrue(textPreviewGenerator.supportsContentType("text/csv"));
-		assertTrue(textPreviewGenerator.supportsContentType("TEXT/XML"));
-		assertTrue(textPreviewGenerator.supportsContentType("text/HTML"));
+		assertTrue(textPreviewGenerator.supportsContentType("text/xml"));
+		assertTrue(textPreviewGenerator.supportsContentType("text/html"));
 		assertFalse(textPreviewGenerator.supportsContentType("image/anything"));
 		assertFalse(textPreviewGenerator.supportsContentType("csv"));
+		assertFalse(textPreviewGenerator.supportsContentType(TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES));
+		assertFalse(textPreviewGenerator.supportsContentType(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES));
 	}
 }
