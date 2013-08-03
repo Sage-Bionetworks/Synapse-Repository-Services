@@ -633,10 +633,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		ra.setAccessType(accessSet);
 		String user2Id = synapseTwo.getMyProfile().getOwnerId();
 		ra.setPrincipalId(Long.parseLong(user2Id));
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
 		AccessControlList acl = synapseOne.getEvaluationAcl(eval1.getId());
-		acl.setResourceAccess(raSet);
+		acl.getResourceAccess().add(ra);
 		acl = synapseOne.updateEvaluationAcl(acl);
 		assertNotNull(acl);
 

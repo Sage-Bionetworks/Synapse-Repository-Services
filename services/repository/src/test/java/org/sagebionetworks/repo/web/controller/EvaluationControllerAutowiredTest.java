@@ -256,10 +256,8 @@ public class EvaluationControllerAutowiredTest {
 		ra.setAccessType(accessSet);
 		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
 		ra.setPrincipalId(Long.parseLong(userId));
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
-		acl.setResourceAccess(raSet);
+		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
 		assertNotNull(acl);
 
@@ -269,7 +267,7 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
 		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(ownerName, eval1.getId()));
-		
+
 		// query, just checking basic wiring
 		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName, null);
 		assertEquals(1L, pr.getTotalNumberOfResults());
@@ -309,10 +307,8 @@ public class EvaluationControllerAutowiredTest {
 		ra.setAccessType(accessSet);
 		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
 		ra.setPrincipalId(Long.parseLong(userId));
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
-		acl.setResourceAccess(raSet);
+		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
 		assertNotNull(acl);
 		// join
@@ -408,10 +404,8 @@ public class EvaluationControllerAutowiredTest {
 		ra.setAccessType(accessSet);
 		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
 		ra.setPrincipalId(Long.parseLong(userId));
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
-		acl.setResourceAccess(raSet);
+		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
 		assertNotNull(acl);
 		part2 = entityServletHelper.createParticipant(userName, eval1.getId());
@@ -507,9 +501,7 @@ public class EvaluationControllerAutowiredTest {
 		accessType.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessType);
 		ra.setPrincipalId(Long.parseLong(userId));
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		resourceAccess.add(ra);
-		aclReturned.setResourceAccess(resourceAccess);
+		aclReturned.getResourceAccess().add(ra);
 
 		aclReturned = entityServletHelper.updateEvaluationAcl(userName, aclReturned);
 		assertNotNull(aclReturned);
