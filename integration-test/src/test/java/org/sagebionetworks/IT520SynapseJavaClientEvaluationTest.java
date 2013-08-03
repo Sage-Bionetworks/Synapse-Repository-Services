@@ -48,7 +48,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -644,7 +643,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		part1 = synapseOne.createParticipant(eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-		
+
+		part2 = synapseTwo.createParticipant(eval1.getId());
+		assertNotNull(part2);
+		participantsToDelete.add(part2);
+
 		String entityId1 = project.getId();
 		String entityEtag1 = project.getEtag();
 		assertNotNull(entityId1);
