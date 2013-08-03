@@ -216,7 +216,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 */
 	private PreviewGenerator findPreviewGenerator(String contentType) {
 		for(PreviewGenerator gen: generatorList){
-			if(gen.supportsContentType(contentType)){
+			if(gen.supportsContentType(contentType.toLowerCase())){
 				return gen;
 			}
 		}
