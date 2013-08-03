@@ -90,7 +90,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// ensure participant exists
 		try {
-			participantManager.getParticipant(principalId, principalId, evalId);
+			participantManager.getParticipant(userInfo, principalId, evalId);
 		} catch (NotFoundException e) {
 			throw new UnauthorizedException("User Princpal ID: " + principalId + 
 					" has not joined Evaluation ID: " + evalId);

@@ -86,9 +86,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(nodeManager);
 		assertNotNull(testUserProvider);
 
-		assertTrue((Boolean)ReflectionTestUtils.getField(evaluationPermissionsManager, "turnOffAcl"));
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", false);
-
 		adminUser = testUserProvider.getTestAdminUserInfo();
 		assertNotNull(adminUser);
 		user = testUserProvider.getTestUserInfo();
@@ -110,7 +107,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (String id : nodesToDelete) {
 			nodeManager.delete(adminUser, id);
 		}
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
 	}
 
 	@Test
@@ -472,43 +468,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", mockAccessRequirementDao);
 		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", original);
-	}
-
-	@Test
-	public void testTurnOffAcl() throws Exception {
-
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
-
-		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testTurnOffAcl";
-		String nodeId = createNode(nodeName, EntityType.project, user);
-		String evalName = nodeName;
-		String evalId = createEval(evalName, nodeId, adminUser);
-		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUser, evalId);
-		assertNotNull(acl);
-		aclsToDelete.add(acl.getId());
-		assertEquals(evalId, acl.getId());
-		validatePublicReadParticipate(acl);
-
-		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
-		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
-		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		assertTrue(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.READ));
-		assertFalse(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.PARTICIPATE));
-	}
-
-	@Test
-	public void testBackfill() throws Exception {
-
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
-
-		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testBackfill";
-		String nodeId = createNode(nodeName, EntityType.project, user);
-		String evalName = nodeName;
-		String evalId = createEval(evalName, nodeId, user);
-		// Even if we delete the ACL, backfill() should create one for use
-		evaluationPermissionsManager.deleteAcl(user, evalId);
-		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
-		validatePublicReadParticipate(acl);
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {

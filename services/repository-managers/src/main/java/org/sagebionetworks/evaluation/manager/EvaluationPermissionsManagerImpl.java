@@ -6,10 +6,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -27,12 +24,10 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,9 +45,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
 	private UserManager userManager;
-
-	 // TODO: To be removed once the web ui (SWC-728) is ready
-	private boolean turnOffAcl = true;
 
 	@Override
 	public AccessControlList createAcl(UserInfo userInfo, AccessControlList acl)
@@ -78,10 +70,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		final String evalOwerId = eval.getOwnerId();
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(evalOwerId));
-
-		if (turnOffAcl) {
-			acl = addPublicReadParticipate(acl);
-		}
 
 		final String aclId = aclDAO.create(acl);
 		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
@@ -144,16 +132,9 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
-		try {
-			AccessControlList acl = aclDAO.get(evalId, ObjectType.EVALUATION);
-			return acl;
-		} catch (NotFoundException e) {
-			AccessControlList acl = backfill(userInfo, evalId);
-			if (acl == null) {
-				throw e;
-			}
-			return acl;
-		}
+
+		AccessControlList acl = aclDAO.get(evalId, ObjectType.EVALUATION);
+		return acl;
 	}
 
 	@Override
@@ -217,22 +198,6 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			return true;
 		}
 
-		// A temporary flag to let bypass ACLs before the web portal is ready
-		if (turnOffAcl) {
-			// TODO: To be removed once web ui is in place
-			// Anyone can read
-			if (ACCESS_TYPE.READ.equals(accessType)) {
-				return Boolean.TRUE;
-			}
-			// Any registered user, once logging in, can participate
-			if (!AuthorizationConstants.ANONYMOUS_USER_ID.equals(
-					userInfo.getUser().getId())) {
-				if (ACCESS_TYPE.PARTICIPATE.equals(accessType)) {
-					return Boolean.TRUE;
-				}
-			}
-		}
-
 		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
 		if (canAccess && PARTICIPATE.equals(accessType)) {
 			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
@@ -262,75 +227,5 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			// Rethrow with a more specific message
 			throw new NotFoundException("Evaluation of ID " + evalId + " does not exist yet.");
 		}
-	}
-
-	private AccessControlList backfill(UserInfo userInfo, String evalId)
-			throws NotFoundException {
-
-		// Make sure only the owner and admin can backfill
-		final Evaluation eval = getEvaluation(evalId);
-		if (!userInfo.isAdmin()) {
-			if (!isEvalOwner(userInfo, eval)) {
-				return null;
-			}
-		}
-
-		// Backfill the evaluation owner
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
-		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
-		accessSet.add(ACCESS_TYPE.CREATE);
-		accessSet.add(ACCESS_TYPE.DELETE);
-		accessSet.add(ACCESS_TYPE.PARTICIPATE);
-		accessSet.add(ACCESS_TYPE.READ);
-		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		accessSet.add(ACCESS_TYPE.UPDATE);
-
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(accessSet);
-		String userId = eval.getOwnerId();
-		ra.setPrincipalId(Long.parseLong(userId));
-
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		raSet.add(ra);
-
-		AccessControlList acl = new AccessControlList();
-		acl.setId(evalId);
-		acl.setCreationDate(new Date());
-		acl.setResourceAccess(raSet);
-
-		acl = addPublicReadParticipate(acl);
-
-		final String aclId = aclDAO.create(acl);
-		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
-		return acl;
-	}
-
-	// TODO: This is a temporary method that goes with the 'turnOffAcl' flag
-	private AccessControlList addPublicReadParticipate(final AccessControlList acl) {
-
-		if (turnOffAcl) {
-
-			// The public can read (but not participate)
-			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>();
-			accessSet.add(ACCESS_TYPE.READ);
-			ResourceAccess ra = new ResourceAccess();
-			ra.setAccessType(accessSet);
-			String publicUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC).getId();
-			ra.setPrincipalId(Long.parseLong(publicUserId));
-			final Set<ResourceAccess> raSet = acl.getResourceAccess();
-			raSet.add(ra);
-
-			// Authenticated users can read and participate
-			accessSet = new HashSet<ACCESS_TYPE>();
-			accessSet.add(ACCESS_TYPE.READ);
-			accessSet.add(ACCESS_TYPE.PARTICIPATE);
-			ra = new ResourceAccess();
-			ra.setAccessType(accessSet);
-			String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
-			ra.setPrincipalId(Long.parseLong(userId));
-			raSet.add(ra);
-		}
-
-		return acl;
 	}
 }
