@@ -116,7 +116,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 			);
 	}
 
-
 	@Override
 	@Deprecated
 	public long getEvaluationCount(String userId) throws DatastoreException, NotFoundException {
@@ -216,9 +215,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public SubmissionStatus getSubmissionStatus(String submissionId)
+	public SubmissionStatus getSubmissionStatus(String userName, String submissionId)
 			throws DatastoreException, NotFoundException {
-		return submissionManager.getSubmissionStatus(submissionId);
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getSubmissionStatus(userInfo, submissionId);
 	}
 
 	@Override
@@ -256,10 +256,11 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
-	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId,
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String userName, String evalId,
 			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		QueryResults<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(evalId, status, limit, offset);
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		QueryResults<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(userInfo, evalId, status, limit, offset);
 		return new PaginatedResults<SubmissionStatus>(
 				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, evalId),
 				res.getResults(),
@@ -279,37 +280,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
 		return new PaginatedResults<SubmissionBundle>(
 				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE, evalId),
-				res.getResults(),
-				res.getTotalNumberOfResults(),
-				offset,
-				limit,
-				"",
-				false			
-			);
-	}
-
-	@Override
-	public PaginatedResults<Submission> getAllSubmissionsByUser(String princpalId, long limit, long offset, HttpServletRequest request)
-			throws DatastoreException, NotFoundException {
-		QueryResults<Submission> res = submissionManager.getAllSubmissionsByUser(princpalId, limit, offset);
-		return new PaginatedResults<Submission>(
-				request.getServletPath(),
-				res.getResults(),
-				res.getTotalNumberOfResults(),
-				offset,
-				limit,
-				"",
-				false			
-			);
-	}
-	
-	@Override
-	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByUser(
-			String princpalId, long limit, long offset, HttpServletRequest request)
-			throws DatastoreException, NotFoundException {
-		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundlesByUser(princpalId, limit, offset);
-		return new PaginatedResults<SubmissionBundle>(
-				request.getServletPath(),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -362,9 +332,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public long getSubmissionCount(String evalId) throws DatastoreException,
+	public long getSubmissionCount(String userName, String evalId) throws DatastoreException,
 			NotFoundException {
-		return submissionManager.getSubmissionCount(evalId);
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getSubmissionCount(userInfo, evalId);
 	}
 
 	@Override
