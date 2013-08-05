@@ -263,10 +263,11 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	SubmissionStatus getSubmissionStatus(
 			@PathVariable String subId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getSubmissionStatus(subId);
+		return serviceProvider.getEvaluationService().getSubmissionStatus(userId, subId);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -326,6 +327,7 @@ public class EvaluationController extends BaseController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
@@ -334,7 +336,7 @@ public class EvaluationController extends BaseController {
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}
-		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(evalId, status, limit, offset, request);
+		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(userId, evalId, status, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -413,10 +415,13 @@ public class EvaluationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
-	long getSubmissionCount(@PathVariable String evalId, HttpServletRequest request) 
+	long getSubmissionCount(
+			@PathVariable String evalId, HttpServletRequest request,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) 
 			throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getSubmissionCount(evalId);
+		return serviceProvider.getEvaluationService().getSubmissionCount(userId, evalId);
 	}
 	
 	/**

@@ -3,6 +3,7 @@ package org.sagebionetworks.evaluation.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -44,6 +45,10 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -174,6 +179,7 @@ public class SubmissionManagerTest {
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
         subStatus.setStatus(SubmissionStatusEnum.OPEN);
+        subStatus.setAnnotations(createDummyAnnotations());
         
         folder = new Folder();
         bundle = new EntityBundle();
@@ -231,7 +237,7 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(any(Submission.class));
@@ -256,7 +262,12 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		try {
+			submissionManager.getSubmission(userInfo, SUB_ID);
+			fail();
+		} catch (UnauthorizedException e) {
+			// expected
+		}
 		try {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
 			fail();
@@ -289,7 +300,7 @@ public class SubmissionManagerTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		subStatus.setScore(1.1);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 	}
@@ -314,14 +325,8 @@ public class SubmissionManagerTest {
 	}
 	
 	@Test
-	public void testGetAllSubmissionsByUser() throws DatastoreException, NotFoundException {
-		submissionManager.getAllSubmissionsByUser(USER_ID, 10, 0);
-		verify(mockSubmissionDAO).getAllByUser(eq(USER_ID), eq(10L), eq(0L));
-	}
-	
-	@Test
 	public void testGetSubmissionCount() throws DatastoreException, NotFoundException {
-		submissionManager.getSubmissionCount(EVAL_ID);
+		submissionManager.getSubmissionCount(ownerInfo, EVAL_ID);
 		verify(mockSubmissionDAO).getCountByEvaluation(eq(EVAL_ID));
 	}
 	
@@ -345,6 +350,75 @@ public class SubmissionManagerTest {
 			throws DatastoreException, NotFoundException {
 		// HANDLE_ID_1 is not contained in this Submission
 		submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB2_ID, HANDLE_ID_1);
+	}
+	
+	@Test
+	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
+		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
+		Annotations annos = status.getAnnotations();
+		assertNotNull(annos);
+		
+		// check the single private LongAnno
+		assertNotNull(annos.getLongAnnos());		
+		assertEquals(1, annos.getLongAnnos().size());		
+		LongAnnotation la = annos.getLongAnnos().get(0);
+		assertTrue(la.getIsPrivate());
+		
+		// check the single StringAnno
+		assertNotNull(annos.getStringAnnos());
+		assertEquals(1, annos.getStringAnnos().size());		
+
+		// check the single DoubleAnno
+		assertNotNull(annos.getDoubleAnnos());
+		assertEquals(1, annos.getDoubleAnnos().size());
+	}
+	
+	@Test
+	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
+		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+		Annotations annos = status.getAnnotations();
+		assertNotNull(annos);
+		
+		// check that the single private LongAnno was removed
+		assertNotNull(annos.getLongAnnos());		
+		assertEquals(0, annos.getLongAnnos().size());
+		
+		// check the single StringAnno
+		assertNotNull(annos.getStringAnnos());
+		assertEquals(1, annos.getStringAnnos().size());		
+
+		// check the single DoubleAnno
+		assertNotNull(annos.getDoubleAnnos());
+		assertEquals(1, annos.getDoubleAnnos().size());
+	}
+	
+	private static Annotations createDummyAnnotations() {		
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("sa");
+		sa.setValue("foo");
+		stringAnnos.add(sa);
+		
+		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
+		LongAnnotation la = new LongAnnotation();
+		la.setIsPrivate(true);
+		la.setKey("la");
+		la.setValue(42L);
+		longAnnos.add(la);
+		
+		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+		DoubleAnnotation doa = new DoubleAnnotation();
+		doa.setIsPrivate(false);
+		doa.setKey("doa");
+		doa.setValue(3.14);
+		doubleAnnos.add(doa);
+		
+		Annotations annos = new Annotations();
+		annos.setStringAnnos(stringAnnos);
+		annos.setLongAnnos(longAnnos);
+		annos.setDoubleAnnos(doubleAnnos);
+		return annos;
 	}
 
 }

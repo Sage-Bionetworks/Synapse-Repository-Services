@@ -319,7 +319,7 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
 		
-		long initialCount = entityServletHelper.getSubmissionCount(eval1.getId());
+		long initialCount = entityServletHelper.getSubmissionCount(ownerName, eval1.getId());
 		
 		// create
 		Node node = nodeManager.get(userInfo, nodeId);
@@ -328,12 +328,12 @@ public class EvaluationControllerAutowiredTest {
 		sub1 = entityServletHelper.createSubmission(sub1, userName, node.getETag());
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
-		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(eval1.getId()));
+		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(ownerName, eval1.getId()));
 		
 		// read
-		Submission clone = entityServletHelper.getSubmission(userName, sub1.getId());
+		Submission clone = entityServletHelper.getSubmission(ownerName, sub1.getId());
 		assertEquals(sub1, clone);
-		SubmissionStatus status = entityServletHelper.getSubmissionStatus(sub1.getId());
+		SubmissionStatus status = entityServletHelper.getSubmissionStatus(ownerName, sub1.getId());
 		assertNotNull(status);
 		assertEquals(sub1.getId(), status.getId());
 		assertEquals(SubmissionStatusEnum.OPEN, status.getStatus());
@@ -348,7 +348,7 @@ public class EvaluationControllerAutowiredTest {
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
 		assertEquals(status, statusClone);
-		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(eval1.getId()));
+		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(ownerName, eval1.getId()));
 		
 		// delete
 		entityServletHelper.deleteSubmission(sub1.getId(), ownerName);
@@ -358,7 +358,7 @@ public class EvaluationControllerAutowiredTest {
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getSubmissionCount(eval1.getId()));
+		assertEquals(initialCount, entityServletHelper.getSubmissionCount(ownerName, eval1.getId()));
 	}
 	
 

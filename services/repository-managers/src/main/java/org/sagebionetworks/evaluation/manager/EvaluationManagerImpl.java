@@ -210,11 +210,13 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
 		accessSet.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessSet.add(ACCESS_TYPE.CREATE);
+		accessSet.add(ACCESS_TYPE.READ);
+		accessSet.add(ACCESS_TYPE.UPDATE);
 		accessSet.add(ACCESS_TYPE.DELETE);
 		accessSet.add(ACCESS_TYPE.PARTICIPATE);
-		accessSet.add(ACCESS_TYPE.READ);
 		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		accessSet.add(ACCESS_TYPE.UPDATE);
+		accessSet.add(ACCESS_TYPE.UPDATE_PRIVATE_SUBMISSION);
+		accessSet.add(ACCESS_TYPE.DELETE_SUBMISSION);
 
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);

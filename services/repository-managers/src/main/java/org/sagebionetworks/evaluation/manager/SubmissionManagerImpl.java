@@ -25,6 +25,10 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -61,18 +65,24 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
 		Submission sub = submissionDAO.get(submissionId);
-		boolean isSubmissionOwner = userInfo.getIndividualGroup().getId().equals(sub.getUserId());
-		if (!isSubmissionOwner) {
-			validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);			
-		}
+		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		return sub;
 	}
 
 	@Override
-	public SubmissionStatus getSubmissionStatus(String submissionId) throws DatastoreException, NotFoundException {
+	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
-		// this API is publicly accessible
-		return submissionStatusDAO.get(submissionId);
+		Submission sub = submissionDAO.get(submissionId);
+		Boolean includePrivateAnnos;
+		try {
+			// only authorized users can view private Annotations
+			validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+			includePrivateAnnos = Boolean.TRUE;
+		} catch (UnauthorizedException e) {
+			// anyone can view public Annotations
+			includePrivateAnnos = Boolean.FALSE;
+		}
+		return submissionToSubmissionStatus(sub, includePrivateAnnos); 
 	}
 
 	@Override
@@ -156,10 +166,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
 		
-		// ensure Submission exists and validate admin rights
-		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
+		// ensure Submission exists and validate access rights
+		SubmissionStatus old = getSubmissionStatus(userInfo, submissionStatus.getId());
 		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_PRIVATE_SUBMISSION);
 		
 		if (!old.getEtag().equals(submissionStatus.getEtag()))
 			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 
@@ -184,7 +194,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		Submission sub = submissionDAO.get(submissionId);		
 		String evalId = sub.getEvaluationId();
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
 		submissionDAO.delete(submissionId);
@@ -197,10 +207,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		
-		return getAllSubmissions(evalId, status, limit, offset);
+		return getAllSubmissionsPrivate(evalId, status, limit, offset);
 	}
 
-	private QueryResults<Submission> getAllSubmissions(String evalId, SubmissionStatusEnum status, long limit, long offset)
+	private QueryResults<Submission> getAllSubmissionsPrivate(String evalId,
+			SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, NotFoundException {		
 		List<Submission> submissions;
 		long totalNumberOfResults;
@@ -216,39 +227,36 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, SubmissionStatusEnum status, long limit, long offset) 
+	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
+			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		// note that this request is publicly-accessible; we do not validate userInfo
-		QueryResults<Submission> submissions = getAllSubmissions(evalId, status, limit, offset);
-		return submissionsToSubmissionStatuses(submissions);
-	}
-	
-	@Override
-	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo, String evalId, SubmissionStatusEnum status, long limit, long offset) 
-			throws DatastoreException, UnauthorizedException, NotFoundException {
+		Boolean includePrivateAnnos;
+		try {
+			// only authorized users can view private Annotations
+			validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+			includePrivateAnnos = Boolean.TRUE;
+		} catch (UnauthorizedException e) {
+			// anyone can view public Annotations
+			includePrivateAnnos = Boolean.FALSE;
+		}
 		QueryResults<Submission> submissions = getAllSubmissions(userInfo, evalId, status, limit, offset);
-		return submissionsToSubmissionBundles(submissions);
+		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
 	}
 	
 	@Override
-	public QueryResults<Submission> getAllSubmissionsByUser(String userId, long limit, long offset) throws DatastoreException, NotFoundException {
-		List<Submission> submissions = submissionDAO.getAllByUser(userId, limit, offset);
-		long totalNumberOfResults = submissionDAO.getCountByUser(userId);
-		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
-		return res;
-	}
-	
-	@Override
-	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByUser(String userId, long limit, long offset) 
+	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo, String evalId, 
+			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		QueryResults<Submission> submissions = getAllSubmissionsByUser(userId, limit, offset);
-		return submissionsToSubmissionBundles(submissions);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		QueryResults<Submission> submissions = getAllSubmissions(userInfo, evalId, status, limit, offset);
+		return submissionsToSubmissionBundles(submissions, true);
 	}
 	
 	@Override
-	public QueryResults<Submission> getAllSubmissionsByEvaluationAndUser(UserInfo userInfo, String evalId, long limit, long offset)
+	public QueryResults<Submission> getAllSubmissionsByEvaluationAndUser(UserInfo userInfo,
+			String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		UserInfo.validateUserInfo(userInfo);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		String principalId = userInfo.getIndividualGroup().getId();
 		List<Submission> submissions = submissionDAO.getAllByEvaluationAndUser(evalId, principalId, limit, offset);
 		long totalNumberOfResults = submissionDAO.getCountByEvaluationAndUser(evalId, principalId);
@@ -257,15 +265,20 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(UserInfo userInfo, String evalId, long limit, long offset)
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(
+			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		QueryResults<Submission> submissions = getAllSubmissionsByEvaluationAndUser(userInfo, evalId, limit, offset);
-		return submissionsToSubmissionBundles(submissions);
+		return submissionsToSubmissionBundles(submissions, true);
 	}
 		
 	@Override
-	public long getSubmissionCount(String evalId) throws DatastoreException, NotFoundException {
+	public long getSubmissionCount(UserInfo userInfo, String evalId) 
+			throws DatastoreException, NotFoundException {
+		EvaluationUtils.ensureNotNull(userInfo, "UserInfo");
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		return submissionDAO.getCountByEvaluation(evalId);
 	}
 	
@@ -286,25 +299,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
 	
-	protected QueryResults<SubmissionBundle> submissionsToSubmissionBundles(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
-		List<SubmissionBundle> bundles = new ArrayList<SubmissionBundle>(submissions.getResults().size());
-		for (Submission sub : submissions.getResults()) {
-			SubmissionBundle bun = new SubmissionBundle();
-			bun.setSubmission(sub);
-			bun.setSubmissionStatus(getSubmissionStatus(sub.getId()));
-			bundles.add(bun);
-		}
-		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
-	}
-	
-	protected QueryResults<SubmissionStatus> submissionsToSubmissionStatuses(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
-		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(submissions.getResults().size());
-		for (Submission sub : submissions.getResults()) {
-			statuses.add(getSubmissionStatus(sub.getId()));
-		}
-		return new QueryResults<SubmissionStatus>(statuses, submissions.getTotalNumberOfResults());
-	}
-
+	/**
+	 * Check that a user has the specified permission on an Evaluation
+	 * 
+	 * @param userInfo
+	 * @param evalId
+	 * @param accessType
+	 * @throws NotFoundException
+	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
 		String principalId = userInfo.getIndividualGroup().getId();		
@@ -312,6 +314,107 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throw new UnauthorizedException("User " + principalId + 
 					" is not authorized to perform this operation on Evaluation " + evalId);
 		}
+	}
+
+	/**
+	 * Get the bundled Submissions + SubmissionStatuses for a collection of Submissions.
+	 * 
+	 * @param submissions
+	 * @param includePrivateAnnos
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	protected QueryResults<SubmissionBundle> submissionsToSubmissionBundles(
+			QueryResults<Submission> submissions, boolean includePrivateAnnos)
+			throws DatastoreException, NotFoundException {
+		List<SubmissionBundle> bundles = new ArrayList<SubmissionBundle>(submissions.getResults().size());
+		for (Submission sub : submissions.getResults()) {
+			SubmissionBundle bun = new SubmissionBundle();
+			bun.setSubmission(sub);
+			bun.setSubmissionStatus(submissionToSubmissionStatus(sub, includePrivateAnnos));
+			bundles.add(bun);
+		}
+		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
+	}
+	
+	/**
+	 * Get the SubmissionStatuses for a collection of Submissions.
+	 * 
+	 * @param submissions
+	 * @param includePrivateAnnos
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	protected QueryResults<SubmissionStatus> submissionsToSubmissionStatuses(
+			QueryResults<Submission> submissions, boolean includePrivateAnnos)
+			throws DatastoreException, NotFoundException {
+		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(submissions.getResults().size());
+		for (Submission sub : submissions.getResults()) {
+			statuses.add(submissionToSubmissionStatus(sub, includePrivateAnnos));
+		}
+		return new QueryResults<SubmissionStatus>(statuses, submissions.getTotalNumberOfResults());
+	}
+
+	/**
+	 * Fetch the SubmissionStatus object for a given Submission. 
+	 * 
+	 * @param sub
+	 * @param includePrivateAnnos
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	protected SubmissionStatus submissionToSubmissionStatus(Submission sub, boolean includePrivateAnnos)
+			throws DatastoreException, NotFoundException {
+		SubmissionStatus status = submissionStatusDAO.get(sub.getId());
+		if (!includePrivateAnnos) {
+			Annotations annos = status.getAnnotations();
+			if (annos != null) {
+				status.setAnnotations(removePrivateAnnos(annos));
+			}
+		}
+		return status;
+	}
+
+	/**
+	 * Remove all Annotations with [isPrivate == true] from an Annotations object
+	 * 
+	 * @param annos
+	 * @return
+	 */
+	protected Annotations removePrivateAnnos(Annotations annos) {
+		EvaluationUtils.ensureNotNull(annos, "Annotations");
+
+		List<StringAnnotation> newStringAnnos = new ArrayList<StringAnnotation>();
+		List<StringAnnotation> oldStringAnnos = annos.getStringAnnos();
+		for (StringAnnotation sa : oldStringAnnos) {
+			if (!sa.getIsPrivate()) {
+				newStringAnnos.add(sa);
+			}
+		}
+		annos.setStringAnnos(newStringAnnos);
+		
+		List<DoubleAnnotation> newDoubleAnnos = new ArrayList<DoubleAnnotation>();
+		List<DoubleAnnotation> oldDoubleAnnos = annos.getDoubleAnnos();
+		for (DoubleAnnotation da : oldDoubleAnnos) {
+			if (!da.getIsPrivate()) {
+				newDoubleAnnos.add(da);
+			}
+		}
+		annos.setDoubleAnnos(newDoubleAnnos);
+		
+		List<LongAnnotation> newLongAnnos = new ArrayList<LongAnnotation>();
+		List<LongAnnotation> longAnnos = annos.getLongAnnos();
+		for (LongAnnotation la : longAnnos) {
+			if (!la.getIsPrivate()) {
+				newLongAnnos.add(la);
+			}
+		}
+		annos.setLongAnnos(newLongAnnos);
+		
+		return annos;
 	}
 
 }

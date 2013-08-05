@@ -220,7 +220,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public SubmissionStatus getSubmissionStatus(String submissionId)
+	public SubmissionStatus getSubmissionStatus(String userName, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -273,20 +273,6 @@ public interface EvaluationService {
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 * Get all Submissions by a given Synapse user. These may span multiple
-	 * Evaluations.
-	 * 
-	 * @param principalId
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public PaginatedResults<Submission> getAllSubmissionsByUser(String principalId, long limit, long offset, HttpServletRequest request)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * Get all Submissions by a given Synapse user, for a given Evaluation
 	 * 
 	 * @param evalId
@@ -309,7 +295,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getSubmissionCount(String evalId) throws DatastoreException,
+	public long getSubmissionCount(String userName, String evalId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -326,22 +312,6 @@ public interface EvaluationService {
 	 */
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(
 			String evalId, String userName, long limit, long offset,
-			HttpServletRequest request) throws DatastoreException,
-			NotFoundException;
-
-	/**
-	 * Get bundled Submissions and SubmissionStatuses by user.
-	 * 
-	 * @param princpalId
-	 * @param limit
-	 * @param offset
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByUser(
-			String princpalId, long limit, long offset,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException;
 
@@ -383,9 +353,8 @@ public interface EvaluationService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
-			String evalId, SubmissionStatusEnum status,
-			long limit, long offset, HttpServletRequest request)
+	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String userId, String evalId, 
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
