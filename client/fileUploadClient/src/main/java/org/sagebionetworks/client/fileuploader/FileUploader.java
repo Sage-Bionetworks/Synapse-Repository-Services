@@ -1,6 +1,13 @@
 package org.sagebionetworks.client.fileuploader;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,9 +19,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 import net.sf.jmimemagic.Magic;
 
+import org.apache.pivot.io.FileList;
 import org.apache.pivot.wtk.Window;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -88,61 +97,6 @@ public class FileUploader implements FileUploaderView.Presenter {
 			}
 		}		
 	}
-
-	@Override
-	public void uploadFiles(List<File> files) {		
-		for (int i = 0; i < files.size(); i++) {
-			final File file = files.get(i);
-			if(fileStatus.containsKey(file) && 
-					(fileStatus.get(file) == UploadStatus.WAITING_TO_UPLOAD 
-					|| fileStatus.get(file) == UploadStatus.UPLOADING 
-					|| fileStatus.get(file) == UploadStatus.UPLOADED)) continue; // don't reupload files in the list
-			
-			setFileStatus(file, UploadStatus.WAITING_TO_UPLOAD);
-			final String mimeType = getMimeType(file);
-			// upload file
-			Future<FileEntity> uploadedFuture = uploadPool.submit(new Callable<FileEntity>() {
-				@Override
-				public FileEntity call() throws Exception {
-					// create filehandle via multipart upload (blocking)
-					setFileStatus(file, UploadStatus.UPLOADING);
-					S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
-
-					// create child File entity under parent
-					final FileEntity entity = new FileEntity();
-					entity.setName(file.getName());
-					entity.setParentId(parentId);
-					entity.setDataFileHandleId(fileHandle.getId());													
-					return synapseClient.createEntity(entity);
-				}
-			}); 
-			int id = ++fileIdSequence;
-			idToFile.put(id, file);
-			futureToId.put(uploadedFuture, id);
-			unfinished.add(uploadedFuture);
-		}
-		
-		// check for completed jobs
-		final Timer timer = new Timer();
-		timer.scheduleAtFixedRate(new TimerTask() {			
-			@Override
-			public void run() {
-				for(Future<FileEntity> future : futureToId.keySet()) {
-					if(future.isDone()) {
-						unfinished.remove(future);
-						File file = idToFile.get(futureToId.get(future));
-						try {
-							future.get();
-							setFileStatus(file, UploadStatus.UPLOADED);
-						} catch (Exception e) {
-							setFileStatus(file, UploadStatus.FAILED);
-						}
-					}
-				}
-				if(unfinished.isEmpty()) timer.cancel();
-			}
-		}, 0, 500L); // update every 1/2 second		
-	}
 	
 	@Override
 	public UploadStatus getFileUplaodStatus(File file) {
@@ -150,7 +104,97 @@ public class FileUploader implements FileUploaderView.Presenter {
 		else return fileStatus.get(file);
 	}
 
+	@Override
+	public void addFilesForUpload(List<File> files) {
+		final List<File> filesStagedForUpload = new ArrayList<File>();
+		
+		// flatten the hierarchy of files/folders given into a list
+		final Pattern hiddenFile = Pattern.compile("^\\..*");
+		SimpleFileVisitor<Path> fileVisitor = new SimpleFileVisitor<Path>() {		
+			@Override
+		    public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {		    	
+		    	// ignore hidden files
+		    	if(hiddenFile.matcher(path.getFileName().toString()).matches()) return FileVisitResult.CONTINUE;		    			    	
+		    	
+		    	filesStagedForUpload.add(path.toFile());
+		    	
+		        return FileVisitResult.CONTINUE;
+		    }
 
+		    @Override
+		    public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+		    	failedToVisit.add(file.toFile());
+		        return FileVisitResult.CONTINUE;
+		    }
+		}; 
+		
+		// add user selected files to private list and add all files recursively to display list
+		for (File file : files) {
+		    try {
+				Files.walkFileTree(file.toPath(), fileVisitor);
+			} catch (IOException e) {
+				view.alert("An error occurred. Please try reloading this applicaiton.");
+			}		    
+		}
+		view.showStagedFiles(filesStagedForUpload);
+	}
+
+	@Override
+	public void uploadFiles() {		
+//		for (int i = 0; i < files.size(); i++) {						
+//			final File file = files.get(i);
+//			
+//			if(fileStatus.containsKey(file) && 
+//					(fileStatus.get(file) == UploadStatus.WAITING_TO_UPLOAD 
+//					|| fileStatus.get(file) == UploadStatus.UPLOADING 
+//					|| fileStatus.get(file) == UploadStatus.UPLOADED)) continue; // don't reupload files in the list
+//			
+//			setFileStatus(file, UploadStatus.WAITING_TO_UPLOAD);
+//			final String mimeType = getMimeType(file);
+//			// upload file
+//			Future<FileEntity> uploadedFuture = uploadPool.submit(new Callable<FileEntity>() {
+//				@Override
+//				public FileEntity call() throws Exception {
+//					// create filehandle via multipart upload (blocking)
+//					setFileStatus(file, UploadStatus.UPLOADING);
+//					S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
+//
+//					// create child File entity under parent
+//					final FileEntity entity = new FileEntity();
+//					entity.setName(file.getName());
+//					entity.setParentId(parentId);
+//					entity.setDataFileHandleId(fileHandle.getId());													
+//					return synapseClient.createEntity(entity);
+//				}
+//			}); 
+//			int id = ++fileIdSequence;
+//			idToFile.put(id, file);
+//			futureToId.put(uploadedFuture, id);
+//			unfinished.add(uploadedFuture);
+//		}
+//		
+//		// check for completed jobs
+//		final Timer timer = new Timer();
+//		timer.scheduleAtFixedRate(new TimerTask() {			
+//			@Override
+//			public void run() {
+//				for(Future<FileEntity> future : futureToId.keySet()) {
+//					if(future.isDone()) {
+//						unfinished.remove(future);
+//						File file = idToFile.get(futureToId.get(future));
+//						try {
+//							future.get();
+//							setFileStatus(file, UploadStatus.UPLOADED);
+//						} catch (Exception e) {
+//							setFileStatus(file, UploadStatus.FAILED);
+//						}
+//					}
+//				}
+//				if(unfinished.isEmpty()) timer.cancel();
+//			}
+//		}, 0, 500L); // update every 1/2 second		
+	}
+	
 	/*
 	 * Private Methods
 	 */

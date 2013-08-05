@@ -4,13 +4,7 @@ import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
 
 import org.apache.log4j.Logger;
 import org.apache.pivot.beans.BXML;
@@ -51,7 +45,7 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
     @BXML private Label parentMessage;
         
     private static Presenter presenter;
-    private FileList fileList = null;    
+    private FileList fileList = null;
     
     @Override
     public void setPresenter(Presenter presenter) {
@@ -63,35 +57,11 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
     	fileList = new FileList();
         fileTableView.setTableData(fileList);              
         browseButton.setEnabled(true);
-        
-        fileList.getListListeners().add(new ListListener.Adapter<File>() {
-            @Override
-            public void itemInserted(List<File> list, int index) {
-                uploadButton.setEnabled(list.getLength() > 0);                
-            }
-
-            @Override
-            public void itemsRemoved(List<File> list, int index, Sequence<File> files) {
-                uploadButton.setEnabled(list.getLength() > 0);
-
-                if (fileTableView.isFocused()
-                    && index < list.getLength()) {
-                    fileTableView.setSelectedIndex(index);
-                }
-            }
-        });
 
         setupKeyListeners();
         setupDragAndDrop();
         setupBrowseButton();
-
-        uploadButton.getButtonPressListeners().add(new ButtonPressListener() {
-            @Override
-            public void buttonPressed(Button button) {                
-                uploadFiles();
-            }
-        });
-                
+        setupUploadButton();               
     }
 
 	@Override
@@ -109,6 +79,13 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 		parentMessage.setText(message);
 	}
 	
+	@Override
+	public void showStagedFiles(java.util.List<File> files) {
+		final FileList tableData = (FileList)fileTableView.getTableData();				
+		for (File file : files) {
+	    	tableData.add(file);                            		
+		}		
+	}
 	
 	
 	/*
@@ -126,34 +103,27 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
                     public void sheetClosed(Sheet sheet) {
                         if (sheet.getResult()) {
                             Sequence<File> selectedFiles = fileBrowserSheet.getSelectedFiles();
-                            FileList tableData = (FileList)fileTableView.getTableData(); 
-                            for(int i=0; i<selectedFiles.getLength(); i++) {                            	
-                            	tableData.add(selectedFiles.get(i));
-                            }
+                            java.util.List<File> files = new ArrayList<File>();
+                            for(int i=0; i<selectedFiles.getLength(); i++) 
+                            	files.add(selectedFiles.get(i));                            
+                            presenter.addFilesForUpload(files);
                         } 
                     }
                 });
         	}
         });
 	}
-	
-	private void uploadFiles() {
-		FileList tableData = (FileList)fileTableView.getTableData();		
-		presenter.uploadFiles(tableData.getList());		
-	}
-	
+		
 	private void setupDragAndDrop() {
 		fileTableView.setDropTarget(new DropTarget() {
             @Override
             public DropAction dragEnter(Component component, Manifest dragContent,
                 int supportedDropActions, DropAction userDropAction) {
                 DropAction dropAction = null;
-
                 if (dragContent.containsFileList()
                     && DropAction.COPY.isSelected(supportedDropActions)) {
                     dropAction = DropAction.COPY;
                 }
-
                 return dropAction;
             }
 
@@ -181,27 +151,7 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 
                 if (dragContent.containsFileList()) {
                     try {
-                        final FileList tableData = (FileList)fileTableView.getTableData();
-                        FileList fileListLocal = dragContent.getFileList();
-                        final Pattern hiddenFile = Pattern.compile("^\\..*");
-                        SimpleFileVisitor<Path> fileVisitor = new SimpleFileVisitor<Path>() {
-                            @Override
-                            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                            	// ignore hidden files
-                            	if(!hiddenFile.matcher(file.getFileName().toString()).matches()) {
-                            		tableData.add(file.toFile());                            		
-                            	}
-                                return FileVisitResult.CONTINUE;
-                            }
-
-                            @Override
-                            public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                                return FileVisitResult.CONTINUE;
-                            }
-                        }; 
-                        for (File file : fileListLocal) {                        
-                            Files.walkFileTree(file.toPath(), fileVisitor);
-                        }
+                        presenter.addFilesForUpload(dragContent.getFileList().getList());
                         dropAction = DropAction.COPY;
                     } catch(IOException exception) {
                         System.err.println(exception);
@@ -212,6 +162,7 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 
                 return dropAction;
             }
+
         });
 	}
 	
@@ -236,6 +187,32 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
         });
 	}
 
+	private void setupUploadButton() {
+		uploadButton.getButtonPressListeners().add(new ButtonPressListener() {
+            @Override
+            public void buttonPressed(Button button) {                
+            	presenter.uploadFiles();
+            }
+        });
+        
+        fileList.getListListeners().add(new ListListener.Adapter<File>() {
+            @Override
+            public void itemInserted(List<File> list, int index) {
+                uploadButton.setEnabled(list.getLength() > 0);                
+            }
+
+            @Override
+            public void itemsRemoved(List<File> list, int index, Sequence<File> files) {
+                uploadButton.setEnabled(list.getLength() > 0);
+
+                if (fileTableView.isFocused()
+                    && index < list.getLength()) {
+                    fileTableView.setSelectedIndex(index);
+                }
+            }
+        });
+	}
+	
 	/*
 	 * CellRenderer
 	 */
