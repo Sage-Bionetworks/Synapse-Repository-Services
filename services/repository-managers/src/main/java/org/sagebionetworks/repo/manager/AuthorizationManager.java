@@ -74,14 +74,6 @@ public interface AuthorizationManager {
 	public boolean canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
 
 	/**
-	 * @param n the number of items in the group-id list
-	 * 
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	public String authorizationSQL(int n);
-
-	/**
 	 * Get the user's permissions for an entity.
 	 * @param userInfo
 	 * @param entityId

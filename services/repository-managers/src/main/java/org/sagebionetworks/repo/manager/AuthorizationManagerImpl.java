@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestricableODUtil;
@@ -36,7 +35,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -45,17 +43,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDAO;	
+	private NodeInheritanceDAO nodeInheritanceDAO;
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;	
+	private AccessControlListDAO accessControlListDAO;
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
 	private AccessApprovalDAO  accessApprovalDAO;
 	@Autowired
 	private ActivityDAO activityDAO;
-	@Autowired
-	private NodeQueryDao nodeQueryDao;	
 	@Autowired
 	private NodeDAO nodeDAO;
 	@Autowired
@@ -68,36 +64,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private FileHandleDao fileHandleDao;
-
-	public AuthorizationManagerImpl() {}
-	
-	/**
-	 * For testing only
-	 */
-	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
-			AccessControlListDAO accessControlListDAO,
-			AccessRequirementDAO accessRequirementDAO, 
-			AccessApprovalDAO accessApprovalDAO, 
-			ActivityDAO activityDAO,
-			NodeQueryDao nodeQueryDao, 
-			NodeDAO nodeDAO, 
-			UserManager userManager, 
-			FileHandleDao fileHandleDao, 
-			EvaluationDAO evaluationDAO,
-			UserGroupDAO userGroupDAO) {
-		super();
-		this.nodeInheritanceDAO = nodeInheritanceDAO;
-		this.accessControlListDAO = accessControlListDAO;
-		this.accessRequirementDAO = accessRequirementDAO;
-		this.accessApprovalDAO = accessApprovalDAO;
-		this.activityDAO = activityDAO;
-		this.nodeQueryDao = nodeQueryDao;
-		this.nodeDAO = nodeDAO;
-		this.userManager = userManager;
-		this.fileHandleDao = fileHandleDao;
-		this.evaluationDAO = evaluationDAO;
-		this.userGroupDAO = userGroupDAO;
-	}
 
 	@Override
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -161,17 +127,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		List<Long> accessRequirementIds = 
 			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
-	}
-
-	/**
-	 * @param n the number of items in the group-id list
-	 * 
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	@Override
-	public String authorizationSQL(int n) {
-			return AuthorizationSqlUtil.authorizationSQL(n);
 	}
 	
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {

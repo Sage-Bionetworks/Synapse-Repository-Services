@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -31,7 +30,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -46,57 +44,57 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class AuthorizationManagerImplUnitTest {
-	
-	NodeInheritanceDAO mockNodeInheritanceDAO;	
-	AccessControlListDAO mockAccessControlListDAO;	
-	AccessRequirementDAO  mockAccessRequirementDAO;
-	AccessApprovalDAO mockAccessApprovalDAO;
-	EvaluationManager mockEvaluationManager;
-	ActivityDAO mockActivityDAO;
-	NodeQueryDao mockNodeQueryDao;	
-	NodeDAO mockNodeDAO;
-	UserManager mockUserManager;
-	FileHandleDao mockFileHandleDao;
-	EvaluationDAO mockEvaluationDAO;
-	
-	
+
+	private NodeInheritanceDAO mockNodeInheritanceDAO;
+	private AccessControlListDAO mockAccessControlListDAO;
+	private AccessRequirementDAO  mockAccessRequirementDAO;
+	private AccessApprovalDAO mockAccessApprovalDAO;
+	private ActivityDAO mockActivityDAO;
+	private NodeDAO mockNodeDAO;
+	private UserManager mockUserManager;
+	private FileHandleDao mockFileHandleDao;
+	private EvaluationDAO mockEvaluationDAO;
+
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
 	private static String EVAL_ID = "1234567";
-	
-	private AuthorizationManagerImpl authorizationManager = null;
-	private UserInfo userInfo = null;
-	private UserInfo adminUser = null;
-	
-	private Evaluation evaluation = null;
-	
-	private UserGroup actTeam = null;
-	private UserGroupDAO mockUserGroupDAO = null;
+
+	private AuthorizationManagerImpl authorizationManager;
+	private UserInfo userInfo;
+	private UserInfo adminUser;
+	private Evaluation evaluation;
+	private UserGroup actTeam;
+	private UserGroupDAO mockUserGroupDAO;
 
 	@Before
 	public void setUp() throws Exception {
-		mockNodeInheritanceDAO = mock(NodeInheritanceDAO.class);	
-		mockAccessControlListDAO = mock(AccessControlListDAO.class);	
+
+		mockNodeInheritanceDAO = mock(NodeInheritanceDAO.class);
+		mockAccessControlListDAO = mock(AccessControlListDAO.class);
 		mockAccessRequirementDAO = mock(AccessRequirementDAO.class);
 		mockAccessApprovalDAO = mock(AccessApprovalDAO.class);
 		mockActivityDAO = mock(ActivityDAO.class);
-		mockNodeQueryDao = mock(NodeQueryDao.class);	
 		mockNodeDAO = mock(NodeDAO.class);
 		mockUserManager = mock(UserManager.class);
-		mockEvaluationManager = mock(EvaluationManager.class);
 		mockFileHandleDao = mock(FileHandleDao.class);
 		mockEvaluationDAO = mock(EvaluationDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		
-		authorizationManager = new AuthorizationManagerImpl(
-				mockNodeInheritanceDAO, mockAccessControlListDAO,
-				mockAccessRequirementDAO, mockAccessApprovalDAO, 
-				mockActivityDAO, mockNodeQueryDao,
-				mockNodeDAO, mockUserManager, mockFileHandleDao,
-				mockEvaluationDAO, mockUserGroupDAO);
-		
+
+		authorizationManager = new AuthorizationManagerImpl();
+		ReflectionTestUtils.setField(authorizationManager, "nodeInheritanceDAO", mockNodeInheritanceDAO);
+		ReflectionTestUtils.setField(authorizationManager, "accessControlListDAO", mockAccessControlListDAO);
+		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
+		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
+		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
+		ReflectionTestUtils.setField(authorizationManager, "nodeDAO", mockNodeDAO);
+		ReflectionTestUtils.setField(authorizationManager, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
+		ReflectionTestUtils.setField(authorizationManager, "evaluationDAO", mockEvaluationDAO);
+		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
+
 		actTeam = new UserGroup();
 		actTeam.setId("101");
 		actTeam.setIsIndividual(false);

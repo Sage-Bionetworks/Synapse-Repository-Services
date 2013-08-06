@@ -37,28 +37,26 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class AuthorizationManagerImplTest {
 	
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	@Autowired
 	private UserManager userManager;	
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 	@Autowired
-	ActivityManager activityManager;
+	private ActivityManager activityManager;
 	@Autowired
-	EvaluationManager evaluationManager;
-	
-		
+	private EvaluationManager evaluationManager;
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node nodeCreatedByTestUser = null;
 	private Node childNode = null;
 	private UserInfo userInfo = null;
 	private UserInfo adminUser;
-	private static final String TEST_USER = "test-user";
 	private Random rand = null;
 	
 	private List<String> usersToDelete;
