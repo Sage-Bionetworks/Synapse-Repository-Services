@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -48,6 +50,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class AuthorizationManagerImplUnitTest {
 
+	private EntityBootstrapData mockTrashFolder;
 	private NodeInheritanceDAO mockNodeInheritanceDAO;
 	private AccessControlListDAO mockAccessControlListDAO;
 	private AccessRequirementDAO  mockAccessRequirementDAO;
@@ -72,6 +75,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Before
 	public void setUp() throws Exception {
 
+		mockTrashFolder = mock(EntityBootstrapData.class);
 		mockNodeInheritanceDAO = mock(NodeInheritanceDAO.class);
 		mockAccessControlListDAO = mock(AccessControlListDAO.class);
 		mockAccessRequirementDAO = mock(AccessRequirementDAO.class);
@@ -84,6 +88,7 @@ public class AuthorizationManagerImplUnitTest {
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
+		ReflectionTestUtils.setField(authorizationManager, "trashFolder", mockTrashFolder);
 		ReflectionTestUtils.setField(authorizationManager, "nodeInheritanceDAO", mockNodeInheritanceDAO);
 		ReflectionTestUtils.setField(authorizationManager, "accessControlListDAO", mockAccessControlListDAO);
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -225,6 +230,8 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessWithObjectTypeEntityAllow() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
+		when(mockNodeInheritanceDAO.getBenefactor("syn123")).thenReturn("syn123");
+		when(mockTrashFolder.getEntityId()).thenReturn(389L);
 		// Setup to allow.
 		when(mockAccessControlListDAO.canAccess(any(Collection.class), any(String.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		assertTrue("User should have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
@@ -232,9 +239,19 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessWithObjectTypeEntityDeny() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
+		when(mockNodeInheritanceDAO.getBenefactor("syn123")).thenReturn("syn123");
+		when(mockTrashFolder.getEntityId()).thenReturn(389L);
 		// Setup to deny.
 		when(mockAccessControlListDAO.canAccess(any(Collection.class), any(String.class), any(ACCESS_TYPE.class))).thenReturn(false);
 		assertFalse("User should not have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+	}
+
+	@Test(expected=EntityInTrashCanException.class)
+	public void testCanAccessWithTrashCanException() throws DatastoreException, NotFoundException{
+		String entityId = "syn123";
+		when(mockNodeInheritanceDAO.getBenefactor("syn123")).thenReturn("syn123");
+		when(mockTrashFolder.getEntityId()).thenReturn(123L);
+		authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	@Test
@@ -301,6 +318,7 @@ public class AuthorizationManagerImplUnitTest {
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{createEntitySubjectId()}));
 		ar.setId(1234L);
 		when(mockAccessRequirementDAO.get(ar.getId().toString())).thenReturn(ar);
+		when(mockNodeInheritanceDAO.getBenefactor("101")).thenReturn("101");
 		return ar;
 	}
 	

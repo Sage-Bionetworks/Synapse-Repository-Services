@@ -11,9 +11,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -87,18 +85,14 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.moveToTrash(parent.getId());
 		try {
 			synapse.getEntityById(parent.getId());
-		} catch (SynapseUnauthorizedException e) {
-			assertTrue(true);
-		} catch (SynapseForbiddenException e) {
+		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Exception e) {
 			fail();
 		}
 		try {
 			synapse.getEntityById(child.getId());
-		} catch (SynapseUnauthorizedException e) {
-			assertTrue(true);
-		} catch (SynapseForbiddenException e) {
+		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Exception e) {
 			fail();

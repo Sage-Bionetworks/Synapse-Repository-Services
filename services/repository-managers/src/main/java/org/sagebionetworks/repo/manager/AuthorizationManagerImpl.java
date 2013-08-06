@@ -9,6 +9,7 @@ import java.util.Map;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -34,14 +35,20 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
-	
+
+	@Autowired
+	@Qualifier("trashFolderBootstrapData")
+	private EntityBootstrapData trashFolder;
 	@Autowired
 	private NodeInheritanceDAO nodeInheritanceDAO;
 	@Autowired
@@ -82,9 +89,16 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (accessType == ACCESS_TYPE.DOWNLOAD) {
 					return canDownload(userInfo, objectId);
 				}
-				// refer to ACL
-				String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(objectId);
-				return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
+				final String benefactor = nodeInheritanceDAO.getBenefactor(objectId);
+				// In the case of the trash can, throw the EntityInTrashCanException
+				// The only operation allowed over the trash can is CREATE (i.e. moving
+				// items into the trash can)
+				final Long trashCanId = trashFolder.getEntityId();
+				if (trashCanId.equals(KeyFactory.stringToKey(benefactor))
+						&& !ACCESS_TYPE.CREATE.equals(accessType)) {
+					throw new EntityInTrashCanException(objectType.name() + " " + objectId + " is in trash can.");
+				}
+				return accessControlListDAO.canAccess(userInfo.getGroups(), benefactor, accessType);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:

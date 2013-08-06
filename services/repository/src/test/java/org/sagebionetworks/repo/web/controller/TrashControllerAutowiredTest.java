@@ -295,7 +295,7 @@ public class TrashControllerAutowiredTest {
 		response = new MockHttpServletResponse();
 		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
-		Assert.assertEquals(403, response.getStatus()); // TOD: PLFM-1725
+		Assert.assertEquals(404, response.getStatus());
 
 		// The parent and the child should be in the trash can
 		request = new MockHttpServletRequest();

@@ -118,8 +118,7 @@ public class TrashManagerImplAutowiredTest {
 		try {
 			nodeChildRetrieved = nodeManager.get(testUserInfo, nodeChildId);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: PLFM-1725 We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
@@ -171,8 +170,7 @@ public class TrashManagerImplAutowiredTest {
 		try {
 			nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: PLFM-1725 We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
@@ -345,48 +343,42 @@ public class TrashManagerImplAutowiredTest {
 		try {
 			nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack01 = nodeManager.get(testUserInfo, nodeId01);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack11 = nodeManager.get(testUserInfo, nodeId11);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack12 = nodeManager.get(testUserInfo, nodeId12);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack21 = nodeManager.get(testUserInfo, nodeId21);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
@@ -659,7 +651,7 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeIdB1 = nodeManager.createNewNode(nodeB1, testAdminUserInfo);
 		assertNotNull(nodeIdB1);
 		toClearList.add(nodeIdB1);
-		
+
 		final Node nodeB2 = new Node();
 		final String nodeNameB2 = "TrashManagerImplAutowiredTest.testPurge() B2";
 		nodeB2.setName(nodeNameB2);
