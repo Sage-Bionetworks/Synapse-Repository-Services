@@ -628,6 +628,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// open the evaluation for user 2 to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
 		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.SUBMIT);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);

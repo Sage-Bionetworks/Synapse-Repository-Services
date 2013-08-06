@@ -939,12 +939,13 @@ public class EntityServletTestHelper {
 		return new Submission(joa);
 	}
 	
-	public SubmissionStatus getSubmissionStatus(String subId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public SubmissionStatus getSubmissionStatus(String userId, String subId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.SUBMISSION+"/"+subId+"/status");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1024,13 +1025,14 @@ public class EntityServletTestHelper {
 		return res;
 	}
 	
-	public long getSubmissionCount(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public long getSubmissionCount(String userId, String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/submission/count");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {

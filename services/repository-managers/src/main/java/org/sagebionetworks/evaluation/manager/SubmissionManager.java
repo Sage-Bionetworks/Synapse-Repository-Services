@@ -35,7 +35,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public SubmissionStatus getSubmissionStatus(String submissionId)
+	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	
@@ -100,17 +100,6 @@ public interface SubmissionManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 * Get all Submissions by a given Synapse user.
-	 * 
-	 * @param userId
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public QueryResults<Submission> getAllSubmissionsByUser(String userId, long limit, long offset)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * Get all Submissions by a given Synapse user to a given Evaluation.
 	 * 
 	 * @param evalId
@@ -131,7 +120,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getSubmissionCount(String evalId) throws DatastoreException,
+	public long getSubmissionCount(UserInfo userInfo, String evalId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -148,21 +137,6 @@ public interface SubmissionManager {
 	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get bundled Submissions and SubmissionStatuses by user.
-	 * 
-	 * @param userId
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByUser(String userId,
-			long limit, long offset) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get bundled Submissions and SubmissionStatuses by Evaluation and status.
@@ -194,7 +168,7 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, 
+	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
