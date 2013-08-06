@@ -73,15 +73,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
 		Submission sub = submissionDAO.get(submissionId);
-		Boolean includePrivateAnnos;
-		try {
-			// only authorized users can view private Annotations
-			validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-			includePrivateAnnos = Boolean.TRUE;
-		} catch (UnauthorizedException e) {
-			// anyone can view public Annotations
-			includePrivateAnnos = Boolean.FALSE;
-		}
+		// only authorized users can view private Annotations
+		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
+				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		return submissionToSubmissionStatus(sub, includePrivateAnnos); 
 	}
 
@@ -228,15 +222,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		Boolean includePrivateAnnos;
-		try {
-			// only authorized users can view private Annotations
-			validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-			includePrivateAnnos = Boolean.TRUE;
-		} catch (UnauthorizedException e) {
-			// anyone can view public Annotations
-			includePrivateAnnos = Boolean.FALSE;
-		}
+		// only authorized users can view private Annotations
+		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
+				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		QueryResults<Submission> submissions = getAllSubmissions(userInfo, evalId, status, limit, offset);
 		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
 	}
@@ -307,10 +295,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		String principalId = userInfo.getIndividualGroup().getId();		
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType)) {
-			throw new UnauthorizedException("User " + principalId + 
-					" is not authorized to perform this operation on Evaluation " + evalId);
+			throw new UnauthorizedException("You lack " + accessType + " rights for Evaluation " + evalId);
 		}
 	}
 

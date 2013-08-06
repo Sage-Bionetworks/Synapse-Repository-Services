@@ -416,10 +416,10 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.SUBMISSION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
 	long getSubmissionCount(
-			@PathVariable String evalId, HttpServletRequest request,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
-			) 
-			throws DatastoreException, NotFoundException
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request
+			) throws DatastoreException, NotFoundException
 	{
 		return serviceProvider.getEvaluationService().getSubmissionCount(userId, evalId);
 	}
