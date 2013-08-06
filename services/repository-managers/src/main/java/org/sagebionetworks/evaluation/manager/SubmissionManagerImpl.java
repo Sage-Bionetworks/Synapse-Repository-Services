@@ -106,11 +106,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					" has not joined Evaluation ID: " + evalId);
 		}
 		
-		// 'canParticipate' is checked before someone is allowed to join,
-		// but just in-case authorization changes between the time she joins
-		// and the time she submits, we check authorization again:
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE)) {
-			throw new UnauthorizedException("Not allowed to participate in "+eval.getName());
+		// validate permissions
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT)) {
+			throw new UnauthorizedException("Not allowed to submit to " + eval.getName());
 		}
 		
 		// validate eTag
@@ -169,7 +167,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// ensure Submission exists and validate access rights
 		SubmissionStatus old = getSubmissionStatus(userInfo, submissionStatus.getId());
 		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_PRIVATE_SUBMISSION);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
 		
 		if (!old.getEtag().equals(submissionStatus.getEtag()))
 			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 

@@ -214,8 +214,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		accessSet.add(ACCESS_TYPE.UPDATE);
 		accessSet.add(ACCESS_TYPE.DELETE);
 		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.SUBMIT);
 		accessSet.add(ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		accessSet.add(ACCESS_TYPE.UPDATE_PRIVATE_SUBMISSION);
+		accessSet.add(ACCESS_TYPE.UPDATE_SUBMISSION);
 		accessSet.add(ACCESS_TYPE.DELETE_SUBMISSION);
 
 		ResourceAccess ra = new ResourceAccess();

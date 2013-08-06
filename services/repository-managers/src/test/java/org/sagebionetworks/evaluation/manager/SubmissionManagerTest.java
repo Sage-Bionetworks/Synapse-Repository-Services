@@ -216,6 +216,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
     	when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(new URL(TEST_URL));
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(true);
 
     	// Submission Manager
@@ -253,7 +254,7 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
-				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);
+				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(false);
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	

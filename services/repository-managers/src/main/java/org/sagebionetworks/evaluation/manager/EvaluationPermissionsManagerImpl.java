@@ -1,10 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.*;
 
 import java.util.List;
 
@@ -173,11 +169,15 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		permission.setCanPublicRead(canAccess(anonymousUser, evalId, READ));
 
 		// Other permissions
-		permission.setCanChangePermissions(canAccess(userInfo, evalId, CHANGE_PERMISSIONS));
-		permission.setCanDelete(canAccess(userInfo, evalId, DELETE));
-		permission.setCanEdit(canAccess(userInfo, evalId, UPDATE));
-		permission.setCanParticipate(canAccess(userInfo, evalId, PARTICIPATE));
 		permission.setCanView(canAccess(userInfo, evalId, READ));
+		permission.setCanEdit(canAccess(userInfo, evalId, UPDATE));
+		permission.setCanDelete(canAccess(userInfo, evalId, DELETE));
+		permission.setCanChangePermissions(canAccess(userInfo, evalId, CHANGE_PERMISSIONS));
+		permission.setCanParticipate(canAccess(userInfo, evalId, PARTICIPATE));
+		permission.setCanSubmit(canAccess(userInfo, evalId, SUBMIT));
+		permission.setCanViewPrivateSubmissionStatusAnnotations(canAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION));
+		permission.setCanEditSubmissionStatuses(canAccess(userInfo, evalId, UPDATE_SUBMISSION));
+		permission.setCanDeleteSubmissions(canAccess(userInfo, evalId, DELETE_SUBMISSION));
 
 		return permission;
 	}

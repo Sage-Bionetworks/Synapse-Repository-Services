@@ -299,9 +299,11 @@ public class EvaluationControllerAutowiredTest {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
+		
 		// open the evaluation to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
 		accessSet.add(ACCESS_TYPE.PARTICIPATE);
+		accessSet.add(ACCESS_TYPE.SUBMIT);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
@@ -311,6 +313,7 @@ public class EvaluationControllerAutowiredTest {
 		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
 		assertNotNull(acl);
+		
 		// join
 		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
 		participantsToDelete.add(part1);
@@ -430,15 +433,15 @@ public class EvaluationControllerAutowiredTest {
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(node1);
 		sub1.setVersionNumber(1L);
-		sub1.setUserId(userName);
-		sub1 = entityServletHelper.createSubmission(sub1, userName, etag1);
+		sub1.setUserId(ownerName);
+		sub1 = entityServletHelper.createSubmission(sub1, ownerName, etag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(node2);
 		sub2.setVersionNumber(1L);
-		sub2.setUserId(userName);
-		sub2 = entityServletHelper.createSubmission(sub2, userName, etag2);
+		sub2.setUserId(ownerName);
+		sub2 = entityServletHelper.createSubmission(sub2, ownerName, etag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
