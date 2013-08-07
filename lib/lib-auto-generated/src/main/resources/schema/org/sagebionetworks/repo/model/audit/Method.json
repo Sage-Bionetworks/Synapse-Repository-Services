@@ -1,0 +1,11 @@
+{
+    "description":"The enumeration of possible methods.",
+    "name": "Method",
+    "type":"string",
+    "enum":[
+        "GET",
+        "PUT",
+        "POST",
+        "DELETE"
+    ]
+}

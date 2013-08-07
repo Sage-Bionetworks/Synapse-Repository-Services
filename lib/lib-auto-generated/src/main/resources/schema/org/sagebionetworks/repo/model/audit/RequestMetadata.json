@@ -1,0 +1,35 @@
+{
+	"description": "Audit data captured for an HTTP request.",
+	"properties": {
+		"userId": {
+			"type": "integer",
+			"description": "The ID of the user making the calls"
+		},
+		"timestamp": {
+			"type": "integer",
+			"description": "The timestamp of the request, in UTC milliseconds"
+		},
+		"requestURL": {
+			"type": "string",
+			"description": "The URL of the request"
+		},
+		"method": {
+			"type": "object",
+			"description": "The HTTP method",
+			"name": "Method",
+			"$ref": "org.sagebionetworks.repo.model.audit.Method"
+		},
+		"elapseMS": {
+			"type": "integer",
+			"description": "The elapse time in MS for the call"
+		},
+		"status": {
+			"type": "integer",
+			"description": "The HTTP response status"
+		},
+		"errorMessage": {
+			"type": "string",
+			"description": "If an error message is set on response then the message will be here.  Otherwise it will be null."
+		}
+	}
+}
