@@ -10,10 +10,14 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<!-- Import the stack configuration -->
+	<import resource="stack-configuration.spb.xml" />
+
 	<bean id="rootFolderBootstrapData"
-		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData">
-		<property name="entityPath" value="/root" />
-		<property name="entityId" value="4489" />
+		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData"
+		depends-on="stackConfiguration">
+		<property name="entityPath" ref="stackConfiguration.rootFolderEntityPath" />
+		<property name="entityId" ref="stackConfiguration.rootFolderEntityId" />
 		<property name="entityDescription"
 			value="The root Synapse folder containing all other entities." />
 		<property name="entityType" value="folder" />
@@ -33,9 +37,10 @@
 	</bean>
 
 	<bean id="trashFolderBootstrapData"
-		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData">
-		<property name="entityPath" value="/root/trash" />
-		<property name="entityId" value="1681355" />
+		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData"
+		depends-on="stackConfiguration">
+		<property name="entityPath" ref="stackConfiguration.trashFolderEntityPath" />
+		<property name="entityId" ref="stackConfiguration.trashFolderEntityId" />
 		<property name="entityDescription"
 			value="The trash can folder." />
 		<property name="entityType" value="folder" />

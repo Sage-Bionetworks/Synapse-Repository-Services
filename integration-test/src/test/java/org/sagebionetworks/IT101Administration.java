@@ -72,7 +72,7 @@ public class IT101Administration {
 	public void after() throws Exception {
 		if(synapse != null && toDelete != null){
 			for(Entity e: toDelete){
-				synapse.deleteEntity(e);
+				synapse.deleteAndPurgeEntity(e);
 			}
 		}
 		// always restore the status

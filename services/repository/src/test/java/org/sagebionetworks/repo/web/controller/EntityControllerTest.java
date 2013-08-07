@@ -18,6 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -55,9 +57,11 @@ public class EntityControllerTest {
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	@Autowired
+	private NodeManager nodeManager;
 	
 	private List<String> toDelete = null;
 	S3FileHandle handleOne;
@@ -71,6 +75,10 @@ public class EntityControllerTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		assertNotNull(entityServletHelper);
+		assertNotNull(fileMetadataDao);
+		assertNotNull(userManager);
+		assertNotNull(nodeManager);
 		userName = TestUserDAO.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new ArrayList<String>();
@@ -119,11 +127,12 @@ public class EntityControllerTest {
 	}
 	
 	@After
-	public void after(){
-		if(entityServletHelper != null && toDelete != null){
+	public void after() throws Exception {
+		if(toDelete != null){
+			UserInfo testUserInfo = userManager.getUserInfo(TEST_USER1);
 			for(String id: toDelete){
 				try {
-					entityServletHelper.deleteEntity(id, TEST_USER1);
+					nodeManager.delete(testUserInfo, id);
 				} catch (Exception e) {
 					// Try even if it fails.
 				}

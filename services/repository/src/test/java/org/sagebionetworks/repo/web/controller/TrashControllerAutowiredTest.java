@@ -165,32 +165,14 @@ public class TrashControllerAutowiredTest {
 	@Test
 	public void testPurgeAll() throws Exception {
 
-		// The trash can may not be empty before we put anything there
-		// So we get base numbers first
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
-		long baseTotal = results.getTotalNumberOfResults();
-		long baseCount = results.getResults().size();
-
 		// Move the parent to the trash can
-		request = new MockHttpServletRequest();
+		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.TRASHCAN + "/trash/" + parent.getId());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 		Assert.assertEquals(200, response.getStatus());
 		
@@ -236,12 +218,12 @@ public class TrashControllerAutowiredTest {
 		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
+		String jsonStr = response.getContentAsString();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
+		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
 		results.initializeFromJSONObject(adapter);
-		Assert.assertEquals(baseTotal, results.getTotalNumberOfResults());
-		Assert.assertEquals(baseCount, results.getResults().size());
+		Assert.assertEquals(0, results.getTotalNumberOfResults());
+		Assert.assertEquals(0, results.getResults().size());
 		for (TrashedEntity trash : results.getResults()) {
 			if (parent.getId().equals(trash.getEntityId())
 					|| child.getId().equals(trash.getEntityId())) {
@@ -295,7 +277,7 @@ public class TrashControllerAutowiredTest {
 		response = new MockHttpServletResponse();
 		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
-		Assert.assertEquals(403, response.getStatus()); // TOD: PLFM-1725
+		Assert.assertEquals(404, response.getStatus());
 
 		// The parent and the child should be in the trash can
 		request = new MockHttpServletRequest();
