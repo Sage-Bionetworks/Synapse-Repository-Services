@@ -641,7 +641,7 @@ public abstract class BaseController {
 	@ExceptionHandler(EntityInTrashCanException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleServletException(EntityInTrashCanException ex,
+	ErrorResponse handleEntityInTrashCanException(EntityInTrashCanException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}

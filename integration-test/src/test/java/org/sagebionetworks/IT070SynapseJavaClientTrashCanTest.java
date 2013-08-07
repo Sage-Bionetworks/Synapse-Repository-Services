@@ -72,10 +72,10 @@ public class IT070SynapseJavaClientTrashCanTest {
 	@After
 	public void after() throws SynapseException {
 		if (child != null) {
-			synapse.deleteEntityById(child.getId());
+			synapse.deleteAndPurgeEntityById(child.getId());
 		}
 		if (parent != null) {
-			synapse.deleteEntityById(parent.getId());
+			synapse.deleteAndPurgeEntityById(parent.getId());
 		}
 	}
 
