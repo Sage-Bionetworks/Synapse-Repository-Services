@@ -53,7 +53,7 @@ public class AuditFilter implements Filter {
 		// convert to ms
 		elapse = elapse/NANOSECONDS_PER_MILLISECOND;
 		data.setElapseMS(elapse);
-		data.setResponseCode((long) httpResponse.getStatus());
+		data.setStatus((long) httpResponse.getStatus());
 	}
 
 	@Override
