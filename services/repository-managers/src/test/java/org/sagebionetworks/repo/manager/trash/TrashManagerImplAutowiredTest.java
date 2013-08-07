@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -696,6 +697,19 @@ public class TrashManagerImplAutowiredTest {
 		}
 
 		try {
+			nodeManager.get(testAdminUserInfo, nodeIdA1);
+			fail("Once the entity is in trash can, even admin can't view it.");
+		} catch (EntityInTrashCanException e) {
+			assertTrue(true);
+		}
+		try {
+			nodeManager.get(testAdminUserInfo, nodeIdA2);
+			fail("Once the entity is in trash can, even admin can't view it.");
+		} catch (EntityInTrashCanException e) {
+			assertTrue(true);
+		}
+
+		try {
 			trashManager.purgeTrash(testUserInfo);
 			fail();
 		} catch (UnauthorizedException e) {
@@ -714,7 +728,9 @@ public class TrashManagerImplAutowiredTest {
 
 	private void cleanUp() throws Exception {
 		for (String nodeId : toClearList) {
-			nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
+			try {
+				nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
+			} catch (NotFoundException e) {}
 		}
 		String userGroupId = testUserInfo.getIndividualGroup().getId();
 		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0L, Long.MAX_VALUE);
@@ -723,7 +739,9 @@ public class TrashManagerImplAutowiredTest {
 		}
 		List<String> children = nodeDAO.getChildrenIdsAsList(trashCanId);
 		for (String child : children) {
-			nodeManager.delete(userProvider.getTestAdminUserInfo(), child);
+			try {
+				nodeManager.delete(userProvider.getTestAdminUserInfo(), child);
+			} catch (NotFoundException e) {}
 		}
 	}
 }

@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -72,16 +71,6 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public boolean canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
-
-	/**
-	 * Get the user's permissions for an entity.
-	 * @param userInfo
-	 * @param entityId
-	 * @return 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * 

@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface EntityPermissionsManager {
@@ -97,16 +96,6 @@ public interface EntityPermissionsManager {
 	 */
 	public boolean hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 
-	/**
-	 * Use case:  Need to find out if a user can download a resource.
-	 * 
-	 * @param resourceId the ID of the resource of interest
-	 * @param user
-	 * @param objectType
-	 * @param accessType
-	 * @return
-	 */
-	public boolean hasAccess(String resourceId, ObjectType objectType, ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 	/**
 	 * Get the user permission for an entity.
 	 * @param userInfo
