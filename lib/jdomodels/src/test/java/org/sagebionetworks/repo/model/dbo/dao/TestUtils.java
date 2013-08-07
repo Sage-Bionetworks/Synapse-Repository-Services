@@ -3,13 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.sagebionetworks.repo.model.annotation.Annotations;
-import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
-import org.sagebionetworks.repo.model.annotation.LongAnnotation;
-import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -121,47 +114,6 @@ public class TestUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	/**
-	 * Create a populated Annotations object.
-	 * 
-	 * @return
-	 */
-	public static Annotations createDummyAnnotations() {
-		return createDummyAnnotations(1);
-	}
-
-	public static Annotations createDummyAnnotations(int i) {
-		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
-		StringAnnotation sa = new StringAnnotation();
-		sa.setIsPrivate(false);
-		sa.setKey("string anno");
-		sa.setValue("foo " + i);
-		stringAnnos.add(sa);
-		
-		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
-		LongAnnotation la = new LongAnnotation();
-		la.setIsPrivate(true);
-		la.setKey("long anno");
-		la.setValue(new Long(i*10));
-		longAnnos.add(la);
-		
-		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
-		DoubleAnnotation da = new DoubleAnnotation();
-		da.setIsPrivate(false);
-		da.setKey("double anno");
-		da.setValue(0.5 + i);
-		doubleAnnos.add(da);
-		
-		Annotations annos = new Annotations();
-		annos.setStringAnnos(stringAnnos);
-		annos.setLongAnnos(longAnnos);
-		annos.setDoubleAnnos(doubleAnnos);
-		annos.setOwnerId("" + i);
-		annos.setOwnerParentId("" + 2*i);
-		return annos;
-	}
-	
+	}	
 	
 }

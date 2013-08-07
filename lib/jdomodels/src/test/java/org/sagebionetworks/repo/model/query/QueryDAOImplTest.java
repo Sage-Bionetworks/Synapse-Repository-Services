@@ -14,17 +14,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.sagebionetworks.evaluation.dao.AnnotationsDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +48,13 @@ public class QueryDAOImplTest {
 	@Autowired
 	QueryDAO queryDAO;
 	@Autowired
-	AnnotationsDAO annotationsDAO;
+	private AnnotationsDAO annotationsDAO;
+	@Autowired
+	private SubmissionDAO submissionDAO;
+	@Autowired
+	private SubmissionStatusDAO submissionStatusDAO;	
+
+	SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	
 	private static final String EVAL_ID1 = "42";
 	private static final String EVAL_ID2 = "99";
@@ -53,54 +64,64 @@ public class QueryDAOImplTest {
     private Map<String, Object> annoMap;
 	
 	@Before
-	public void setUp() throws DatastoreException, JSONObjectAdapterException {
+	public void setUp() throws DatastoreException, JSONObjectAdapterException, NotFoundException {
+		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(
+				submissionDAO, submissionStatusDAO, annotationsDAO);
 		// create Annotations
 		Annotations annos;
 		submissionIds = new HashSet<String>();
 		annoMap = new HashMap<String, Object>();
 		
 		for (int i = 0; i < NUM_SUBMISSIONS; i++) {
-	    	annos = TestUtils.createDummyAnnotations(i);
-	    	annos.setOwnerParentId(EVAL_ID1);
-	    	annotationsDAO.replaceAnnotations(annos);
-	    	submissionIds.add(annos.getOwnerId());
+	    	annos = AnnotationsUtils.createDummyAnnotations(i);
+	    	annos.setScopeId(EVAL_ID1);
+	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
+	    	persistAnnos(annos);
 	    	
-	    	annos = TestUtils.createDummyAnnotations(i + NUM_SUBMISSIONS);
-	    	annos.setOwnerParentId(EVAL_ID2);
-	    	annotationsDAO.replaceAnnotations(annos);
-	    	submissionIds.add(annos.getOwnerId());
+	    	annos = AnnotationsUtils.createDummyAnnotations(i + NUM_SUBMISSIONS);
+	    	annos.setScopeId(EVAL_ID2);
+	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
+	    	persistAnnos(annos);
 		}
 		
+		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
 		mockAclDAO = mock(AccessControlListDAO.class);
 		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ_PRIVATE_ANNOTATIONS))).thenReturn(true);
+		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ_PRIVATE_ANNOTATIONS))).thenReturn(false);
+		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	
+	private void persistAnnos(Annotations annos) throws DatastoreException, JSONObjectAdapterException {
+		Submission sub = new Submission();
+		sub.setId(annos.getObjectId());
+		sub.setEvaluationId(annos.getScopeId());
+		
+		SubmissionStatus status = new SubmissionStatus();
+		status.setId(annos.getObjectId());
+		status.setAnnotations(annos);
+
+    	ssAnnoAsyncManager.replaceAnnotations(sub, status);
+	}
+
 	@After
 	public void tearDown() {
 		for (String subId : submissionIds) {
-			annotationsDAO.deleteAnnotationsByOwnerId(Long.parseLong(subId));
+			ssAnnoAsyncManager.deleteSubmission(subId);
 		}
 	}
 
 	@Test
 	public void testBasicQuery() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// build the basic SELECT * query
+		// SELECT * FROM evaluation_1
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);
 		
 		// perform the query
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
@@ -114,16 +135,17 @@ public class QueryDAOImplTest {
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 3 columns for unique attributes
-			assertEquals(4, values.size());
-			assertFalse(values.contains(null));
-			// validate all values
+			// validate expected values
 			String id = "" + i;
-			assertEquals(id, values.get(0));
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
 	}
@@ -131,25 +153,19 @@ public class QueryDAOImplTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testQueryMissingId() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation");
 		queryDAO.executeQuery(query, mockUserInfo);
 	}
 	
 	@Test
 	public void testQueryPaging() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// build the basic SELECT * query
-		// limit 10, offset 10
+		// SELECT * FROM evaluation_1 LIMIT 10 OFFSET 10
 		int limit = 10;
 		int offset = 10;
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(limit);
 		query.setOffset(offset);
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);
 				
 		// perform the query
 		// we expect 10 results (IDs 10 - 19)
@@ -164,33 +180,29 @@ public class QueryDAOImplTest {
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 3 columns for unique attributes
-			assertEquals(4, values.size());
-			assertFalse(values.contains(null));
-			// validate all values
+			// validate expected values
 			String id = "" + (offset + i);
-			assertEquals(id, values.get(0));
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
 	}
 	
 	@Test
 	public void testBasicQueryNoPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// build the basic SELECT * query
-		// this time, use EVAL_ID2, on which we do not have READ_PRIVATE_ANNOTATIONS permission
+		// SELECT * FROM evaluation_2
+		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, EVAL_ID2);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);		
 		
 		// perform the query
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
@@ -204,33 +216,32 @@ public class QueryDAOImplTest {
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 2 columns for unique attributes
-			assertEquals(3, values.size());
-			assertFalse(values.contains(null));
-			// validate all values
+			// validate expected values
 			String id = "" + (NUM_SUBMISSIONS + i);
-			assertEquals(id, values.get(0));
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
 	}
 	
 	@Test
 	public void testQueryFilterByString() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * WHERE "string anno"="foo 3"
+		// SELECT * FROM evaluation_1 WHERE "string anno"="foo 3"
+		String attName = "string anno";
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
-		query.setOffset(0);		
-		Expression exp = new Expression(new CompoundId(null, "string anno"), Comparator.EQUALS, "foo 3");		
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp2 = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
+		query.setOffset(0);	
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.EQUALS, "foo 3");
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(exp);
-		filters.add(exp2);
 		query.setFilters(filters);		
 		
 		// perform the query
@@ -242,36 +253,36 @@ public class QueryDAOImplTest {
 		// examine the results
 		List<Row> rows = results.getRows();
 		List<String> headers = new ArrayList<String>(results.getHeaders());
+		assertTrue(headers.contains(attName));
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 3 columns for unique attributes
-			assertEquals(4, values.size());
-			assertFalse(values.contains(null));
 			// validate all values
 			String id = "3";
-			assertEquals(id, values.get(0));
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
 	}
 	
 	@Test
 	public void testQueryFilterByLong() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * WHERE "long anno"="40"
+		// SELECT * FROM evaluation_1 WHERE "long anno"="40"
+		String attName = "long anno";
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);		
-		Expression exp = new Expression(new CompoundId(null, "long anno"), Comparator.EQUALS, 40);		
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp2 = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.EQUALS, 40);
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(exp);
-		filters.add(exp2);
 		query.setFilters(filters);		
 		
 		// perform the query
@@ -286,33 +297,33 @@ public class QueryDAOImplTest {
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 3 columns for unique attributes
-			assertEquals(4, values.size());
-			assertFalse(values.contains(null));
+			assertTrue(headers.contains(attName));
 			// validate all values
 			String id = "4";
-			assertEquals(id, values.get(0));
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
 	}
 	
 	@Test
-	public void testQueryfilterByDouble() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
-		// SELECT * WHERE "double anno"="5.5"
+	public void testQueryFilterByDouble() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_1 WHERE "double anno"="5.5"
+		String attName = "double anno";
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);		
-		Expression exp = new Expression(new CompoundId(null, "double anno"), Comparator.EQUALS, 5.5);		
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp2 = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.EQUALS, 5.5);
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(exp);
-		filters.add(exp2);
 		query.setFilters(filters);		
 		
 		// perform the query
@@ -324,36 +335,209 @@ public class QueryDAOImplTest {
 		// examine the results
 		List<Row> rows = results.getRows();
 		List<String> headers = new ArrayList<String>(results.getHeaders());
+		assertTrue(headers.contains(attName));
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 3 columns for unique attributes
-			assertEquals(4, values.size());
-			assertFalse(values.contains(null));
 			// validate all values
 			String id = "5";
-			assertEquals(id, values.get(0));
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
+	}
+	
+	@Test
+	public void testQueryGreaterThanEqualToLong() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_1 WHERE "long anno">"150"
+		String attName = "long anno";
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);		
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.GREATER_THAN_OR_EQUALS, 150);
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(exp);
+		query.setFilters(filters);		
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(15, results.getTotalNumberOfResults().longValue());
+		assertEquals(15, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		List<String> headers = new ArrayList<String>(results.getHeaders());
+		assertTrue(headers.contains(attName));
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			List<String> values = row.getValues();
+			// validate all values
+			String id = "" + (15+i);
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
+			for (int j = 1; j < headers.size(); j++) {
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
+				String actual = values.get(j);
+				assertEquals(expected.toString(), actual);
+			}
+		}
+	}
+	
+	@Test
+	public void testQueryLessThanDouble() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_1 WHERE "double anno"<"15.0"
+		String attName = "double anno";
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);		
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.LESS_THAN, 15.0);
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(exp);
+		query.setFilters(filters);		
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(15, results.getTotalNumberOfResults().longValue());
+		assertEquals(15, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		List<String> headers = new ArrayList<String>(results.getHeaders());
+		assertTrue(headers.contains(attName));
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			List<String> values = row.getValues();
+			// validate all values
+			String id = "" + i;
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
+			for (int j = 1; j < headers.size(); j++) {
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
+				String actual = values.get(j);
+				assertEquals(expected.toString(), actual);
+			}
+		}
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testQueryNullAttribute() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 WHERE null="foo 3"
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);	
+		Expression exp = new Expression(new CompoundId(null, null), Comparator.EQUALS, "foo 3");
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(exp);
+		query.setFilters(filters);		
+		
+		queryDAO.executeQuery(query, mockUserInfo);
+	}
+	
+	@Test
+	public void testQueryNullValue() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 WHERE "string anno_null"=null
+		String attName ="string anno_null";
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);	
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.EQUALS, null);
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(exp);
+		query.setFilters(filters);		
+		
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(15, results.getTotalNumberOfResults().longValue());
+		assertEquals(15, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		List<String> headers = new ArrayList<String>(results.getHeaders());
+		assertTrue(headers.contains(attName));
+		int index = headers.indexOf(attName);
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			List<String> values = row.getValues();
+			// validate all values
+			assertNull(values.get(index));
+		}
+	}
+	
+	@Test
+	public void testQueryNotNullValue() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 WHERE "string anno_null"!=null
+		String attName ="string anno_null";
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);	
+		Expression exp = new Expression(new CompoundId(null, attName), Comparator.NOT_EQUALS, null);
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(exp);
+		query.setFilters(filters);		
+		
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(15, results.getTotalNumberOfResults().longValue());
+		assertEquals(15, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		List<String> headers = new ArrayList<String>(results.getHeaders());
+		assertTrue(headers.contains(attName));
+		int index = headers.indexOf(attName);
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			List<String> values = row.getValues();
+			// validate all values
+			assertNotNull(values.get(index));
+		}
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testQueryBadComparator() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 WHERE "string anno"<"foo 3"
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);	
+		Expression exp = new Expression(new CompoundId(null, "string anno"), Comparator.LESS_THAN, "foo 3");
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(exp);
+		query.setFilters(filters);		
+		
+		queryDAO.executeQuery(query, mockUserInfo);
 	}
 	
 	@Test
 	public void testQueryNoResults() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * WHERE "other anno"="does not exist"
+		// SELECT * FROM evaluation_1 WHERE "other anno"="does not exist"
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);		
 		Expression exp = new Expression(new CompoundId(null, "other anno"), Comparator.EQUALS, "does not exist");		
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp2 = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(exp);
-		filters.add(exp2);
 		query.setFilters(filters);		
 		
 		// perform the query
@@ -365,19 +549,15 @@ public class QueryDAOImplTest {
 	
 	@Test
 	public void testQueryWithProjection() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT "string anno"
+		// SELECT "objectId", "string anno" FROM evaluation_1
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
 		List<String> select = new ArrayList<String>();
+		select.add(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
 		select.add("string anno");
 		query.setSelect(select);
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);
 		
 		// perform the query
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
@@ -391,25 +571,26 @@ public class QueryDAOImplTest {
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 1 columns for the selected attribute
-			assertEquals(2, values.size());
-			assertFalse(values.contains(null));
 			// validate all values
 			String id = "" + i;
 			assertEquals(id, values.get(0));
 			for (int j = 1; j < headers.size(); j++) {
-				String expected = annoMap.get(id + headers.get(j)).toString();
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
 				String actual = values.get(j);
-				assertEquals(expected, actual);
+				assertEquals(expected.toString(), actual);
 			}
 		}
 	}
 	
 	@Test
 	public void testQuerySortAscending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// build the basic SELECT * query
+		// SELECT * FROM evaluation_1 ORDER BY "string anno" ASC
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
 		query.setSort("string anno");
@@ -417,11 +598,6 @@ public class QueryDAOImplTest {
 		List<String> select = new ArrayList<String>();
 		select.add("string anno");
 		query.setSelect(select);
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);
 		
 		// perform the query
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
@@ -431,15 +607,13 @@ public class QueryDAOImplTest {
 		
 		// examine the results
 		List<Row> rows = results.getRows();
+		int index = results.getHeaders().indexOf("string anno");
 		String previous = null;
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 1 columns for the selected attribute
-			assertEquals(2, values.size());
-			assertFalse(values.contains(null));
 			// validate ordering
-			String current = values.get(1);
+			String current = values.get(index);
 			if (previous != null) {
 				assertTrue(current.compareTo(previous) > 0);
 			}
@@ -449,9 +623,9 @@ public class QueryDAOImplTest {
 	
 	@Test
 	public void testQuerySortDescending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// build the basic SELECT * query
+		// SELECT * FROM evaluation_1 ORDER BY "string anno" DESC
 		BasicQuery query = new BasicQuery();
-		query.setFrom("submission");
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
 		query.setSort("string anno");
@@ -459,11 +633,6 @@ public class QueryDAOImplTest {
 		List<String> select = new ArrayList<String>();
 		select.add("string anno");
 		query.setSelect(select);
-		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		Expression exp = new Expression(compoundId, Comparator.EQUALS, EVAL_ID1);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);
 		
 		// perform the query
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
@@ -473,15 +642,13 @@ public class QueryDAOImplTest {
 		
 		// examine the results
 		List<Row> rows = results.getRows();
+		int index = results.getHeaders().indexOf("string anno");
 		String previous = null;
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
-			// we expect 1 column for object ID + 1 columns for the selected attribute
-			assertEquals(2, values.size());
-			assertFalse(values.contains(null));
 			// validate ordering
-			String current = values.get(1);
+			String current = values.get(index);
 			if (previous != null) {
 				assertTrue(current.compareTo(previous) < 0);
 			}
@@ -489,20 +656,20 @@ public class QueryDAOImplTest {
 		}
 	}
 	
-	// Flatten an Annotations object to a map. The key is given by [Owner ID] + [attribute name],
+	// Flatten an Annotations object to a map. The key is given by [Object ID] + [attribute name],
 	// and the value is simply the [attribute value]
 	private static void dumpAnnosToMap(Map<String, Object> annoMap, Annotations annos) {
 		List<StringAnnotation> stringAnnos = annos.getStringAnnos();
 		for (StringAnnotation sa : stringAnnos) {
-			annoMap.put(annos.getOwnerId() + sa.getKey(), sa.getValue());
+			annoMap.put(annos.getObjectId() + sa.getKey(), sa.getValue());
 		}
 		List<LongAnnotation> longAnnos = annos.getLongAnnos();
 		for (LongAnnotation la : longAnnos) {
-			annoMap.put(annos.getOwnerId() + la.getKey(), la.getValue());
+			annoMap.put(annos.getObjectId() + la.getKey(), la.getValue());
 		}
 		List<DoubleAnnotation> doubleAnnos = annos.getDoubleAnnos();
 		for (DoubleAnnotation da : doubleAnnos) {
-			annoMap.put(annos.getOwnerId() + da.getKey(), da.getValue());
+			annoMap.put(annos.getObjectId() + da.getKey(), da.getValue());
 		}
 	}
 

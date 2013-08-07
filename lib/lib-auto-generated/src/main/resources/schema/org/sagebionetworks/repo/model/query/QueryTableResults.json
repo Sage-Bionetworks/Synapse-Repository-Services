@@ -5,7 +5,7 @@
 		"headers": {
 			"type": "array",
 			"description": "The ordered list of column headers (attribute names).",
-			"uniqueItems": true,
+			"uniqueItems": false,
 			"items": {
 				"type": "string"
 			}

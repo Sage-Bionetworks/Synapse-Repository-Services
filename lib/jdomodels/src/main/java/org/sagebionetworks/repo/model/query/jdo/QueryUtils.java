@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.ResourceQueryResults;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
@@ -152,7 +152,7 @@ public class QueryUtils {
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public static ResourceQueryResults translateResults(List<Map<String, Object>> fromDB, long totalCount, List<String> select) throws DatastoreException{
+	public static NodeQueryResults translateResults(List<Map<String, Object>> fromDB, long totalCount, List<String> select) throws DatastoreException{
 		// First build up the list of ID
 		List<String> idList = new ArrayList<String>();
 		for(Map<String, Object> row: fromDB){
@@ -186,7 +186,7 @@ public class QueryUtils {
 			//			System.out.println(row);
 		}
 		// Return the results.
-		return new ResourceQueryResults(idList, fromDB, totalCount);
+		return new NodeQueryResults(idList, fromDB, totalCount);
 	}
 	
 	

@@ -25,11 +25,11 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.dbo.dao.AnnotationUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -178,9 +178,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// validate Annotations, if any
 		Annotations annos = submissionStatus.getAnnotations();
 		if (annos != null) {
-			AnnotationUtils.validateAnnotations(annos);
-			annos.setOwnerId(submissionStatus.getId());
-			annos.setOwnerParentId(evalId);
+			AnnotationsUtils.validateAnnotations(annos);
+			annos.setObjectId(submissionStatus.getId());
+			annos.setScopeId(evalId);
 		}
 		
 		// update and return the new Submission
@@ -362,6 +362,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	protected SubmissionStatus submissionToSubmissionStatus(Submission sub, boolean includePrivateAnnos)
 			throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionStatusDAO.get(sub.getId());
+		status.setEntityId(sub.getEntityId());
+		status.setVersionNumber(sub.getVersionNumber());
 		if (!includePrivateAnnos) {
 			Annotations annos = status.getAnnotations();
 			if (annos != null) {
@@ -408,13 +410,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		annos.setLongAnnos(newLongAnnos);
 		
 		return annos;
-	}
-	
-	private SubmissionStatus submissionToSubmissionStatus(Submission sub) throws DatastoreException, NotFoundException {
-		SubmissionStatus status = submissionStatusDAO.get(sub.getId());
-		status.setEntityId(sub.getEntityId());
-		status.setVersionNumber(sub.getVersionNumber());
-		return status;
 	}
 
 }

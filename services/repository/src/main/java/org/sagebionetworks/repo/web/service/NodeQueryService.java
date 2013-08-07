@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface QueryService {
+public interface NodeQueryService {
 
 	QueryResults query(String userId, String query, HttpServletRequest request)
 			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException;

@@ -45,8 +45,8 @@
 	<!-- The Entity Service -->
 	<bean id="entityService" class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
 
-	<!-- The Query Service -->
-	<bean id="queryService" class="org.sagebionetworks.repo.web.service.QueryServiceImpl" />
+	<!-- The Node Query Service -->
+	<bean id="nodeQueryService" class="org.sagebionetworks.repo.web.service.NodeQueryServiceImpl" />
 
 	<!-- The S3Token Service -->
 	<bean id="s3TokenService" class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />

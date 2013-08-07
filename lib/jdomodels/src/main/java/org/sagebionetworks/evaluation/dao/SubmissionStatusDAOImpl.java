@@ -1,12 +1,6 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
-
 import java.io.IOException;
 import java.util.Date;
 
@@ -21,6 +15,7 @@ import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,13 +42,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
 
-	private static final String SELECT_ID_ETAG_PAGINATED = 
-			"SELECT " + COL_SUBMISSION_ID + ", " + COL_SUBSTATUS_ETAG +
-			" FROM "+ TABLE_SUBSTATUS +
-			" ORDER BY " + COL_SUBSTATUS_SUBMISSION_ID +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
-	
 	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
 	
 	@Override
@@ -133,7 +121,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
+		// Send a delete message
+		tagMessenger.sendDeleteMessage(id, ObjectType.SUBMISSION);
 	}
 
 	/**

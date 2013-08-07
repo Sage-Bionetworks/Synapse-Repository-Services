@@ -13,7 +13,7 @@ public interface QueryDAO {
 	 * Execute a user query.
 	 * @throws JSONObjectAdapterException 
 	 */
-	public abstract QueryTableResults executeQuery(BasicQuery query,
+	public QueryTableResults executeQuery(BasicQuery query,
 			UserInfo userInfo) throws DatastoreException, NotFoundException, JSONObjectAdapterException;
 
 	/**

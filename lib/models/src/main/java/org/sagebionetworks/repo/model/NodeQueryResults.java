@@ -8,19 +8,19 @@ import java.util.Map;
  * Container class for result data from a user query.
  *
  */
-public class ResourceQueryResults {
+public class NodeQueryResults {
 	
 	private List<String> resultIds;
 	private List<Map<String, Object>> allSelectedData;
 	private long totalNumberOfResults;
 		
-	public ResourceQueryResults(List<String> resultIds, List<Map<String, Object>> allSelectedData, long totalCount){	
+	public NodeQueryResults(List<String> resultIds, List<Map<String, Object>> allSelectedData, long totalCount){	
 		this.resultIds = resultIds;
 		this.allSelectedData = allSelectedData;
 		this.totalNumberOfResults = totalCount;
 	}
 	
-	public ResourceQueryResults() {
+	public NodeQueryResults() {
 		this.resultIds =  new ArrayList<String>();
 		this.allSelectedData = new ArrayList<Map<String, Object>>();
 		this.totalNumberOfResults = 0;
@@ -66,7 +66,7 @@ public class ResourceQueryResults {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		ResourceQueryResults other = (ResourceQueryResults) obj;
+		NodeQueryResults other = (NodeQueryResults) obj;
 		if (resultIds == null) {
 			if (other.resultIds != null)
 				return false;

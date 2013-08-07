@@ -23,7 +23,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private EntityBundleService entityBundleService;
 	@Autowired
-	private QueryService nodeQueryService;
+	private NodeQueryService nodeQueryService;
 	@Autowired
 	private S3TokenService s3TokenService;
 	@Autowired
@@ -67,7 +67,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public EntityBundleService getEntityBundleService() {
 		return entityBundleService;
 	}
-	public QueryService getNodeQueryService() {
+	public NodeQueryService getNodeQueryService() {
 		return nodeQueryService;
 	}
 	public S3TokenService getS3TokenService() {

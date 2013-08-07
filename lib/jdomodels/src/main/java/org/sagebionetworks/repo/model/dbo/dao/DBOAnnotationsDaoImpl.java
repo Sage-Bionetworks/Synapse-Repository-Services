@@ -18,6 +18,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dbo.AnnotationDBOUtils;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation;
@@ -121,26 +122,26 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		// Create the string.
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
-			List<DBOStringAnnotation> stringBatch = AnnotationUtils.createStringAnnotations(ownerId, stringAnnos);
+			List<DBOStringAnnotation> stringBatch = AnnotationDBOUtils.createStringAnnotations(ownerId, stringAnnos);
 			dboBasicDao.createBatch(stringBatch);
 		}
 		
 		// Create the long.
 		Map<String, List<Long>> longAnnos = annotations.getLongAnnotations();
 		if(longAnnos != null && longAnnos.size() > 0){
-			List<DBOLongAnnotation> batch = AnnotationUtils.createLongAnnotations(ownerId, longAnnos);
+			List<DBOLongAnnotation> batch = AnnotationDBOUtils.createLongAnnotations(ownerId, longAnnos);
 			dboBasicDao.createBatch(batch);
 		}
 		// Create the double
 		Map<String, List<Double>> doubleAnnos = annotations.getDoubleAnnotations();
 		if(doubleAnnos != null && doubleAnnos.size() > 0){
-			List<DBODoubleAnnotation> batch = AnnotationUtils.createDoubleAnnotations(ownerId, doubleAnnos);
+			List<DBODoubleAnnotation> batch = AnnotationDBOUtils.createDoubleAnnotations(ownerId, doubleAnnos);
 			dboBasicDao.createBatch(batch);
 		}
 		// Create the dates
 		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();
 		if(dateAnnos != null && dateAnnos.size() > 0){
-			List<DBODateAnnotation> batch = AnnotationUtils.createDateAnnotations(ownerId, dateAnnos);
+			List<DBODateAnnotation> batch = AnnotationDBOUtils.createDateAnnotations(ownerId, dateAnnos);
 			dboBasicDao.createBatch(batch);
 		}
 	}

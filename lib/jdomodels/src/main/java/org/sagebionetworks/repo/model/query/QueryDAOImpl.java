@@ -2,18 +2,19 @@ package org.sagebionetworks.repo.model.query;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -40,23 +41,25 @@ public class QueryDAOImpl implements QueryDAO {
 	
 	@Override
 	public QueryTableResults executeQuery(BasicQuery userQuery, UserInfo userInfo)
-			throws DatastoreException, NotFoundException, JSONObjectAdapterException, DataAccessException {
+			throws DatastoreException, NotFoundException, JSONObjectAdapterException, 
+			DataAccessException {
 		// Validate incoming query
 		nullCheckQuery(userQuery);
 		
 		// Determine query object type and access rights
+		QueryObjectType objType = QueryTools.getQueryObjectType(userQuery);
 		String objId = QueryTools.getQueryObjectId(userQuery);
 		if (!canAccess(userInfo, objId)) {
 			throw new UnauthorizedException(
 					"Insufficient permissions to read from Synapse object " + objId);
 		}
-		boolean includePrivate = canAccessPrivate(userInfo, objId);
+		boolean includePrivate = canAccessPrivate(userInfo, objId, objType);
 		
 		// Build the SQL queries
 		Map<String, Object> queryParams = new HashMap<String, Object>();
 		StringBuilder countQuery = new StringBuilder();
 		StringBuilder fullQuery = new StringBuilder();
-		buildQueryStrings(userQuery, userInfo, includePrivate, 
+		buildQueryStrings(userQuery, objType, objId, userInfo, includePrivate, 
 				countQuery, fullQuery, queryParams);
 		
 		// Execute the count query
@@ -64,7 +67,7 @@ public class QueryDAOImpl implements QueryDAO {
 		if (count == 0) {
 			// no results
 			QueryTableResults results = new QueryTableResults();
-			results.setHeaders(new LinkedHashSet<String>());
+			results.setHeaders(new ArrayList<String>());
 			results.setRows(new ArrayList<Row>());
 			results.setTotalNumberOfResults(0L);
 			return results;
@@ -80,9 +83,13 @@ public class QueryDAOImpl implements QueryDAO {
 		}
 		
 		// Log query stats
-		log.debug("user: " + userId + " Query: " + fullQuery.toString());
-		log.debug("user: " + userId + " parameters: " + queryParams);
-		log.info("user: " + userId +  " query bytes returned: " + sizeLimitMapper.getBytesUsed());
+		if (log.isDebugEnabled()) {
+			log.debug("user: " + userId + " query: " + fullQuery.toString());
+			log.debug("user: " + userId + " parameters: " + queryParams);
+		}
+		if (log.isInfoEnabled()) {
+			log.info("user: " + userId +  " query bytes returned: " + sizeLimitMapper.getBytesUsed());
+		}
 
 		// Create the results
 		return QueryTools.translateResults(results, count, userQuery.getSelect(), includePrivate);
@@ -91,18 +98,17 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the two query strings and prepare the query parameters.
 	 */
-	private void buildQueryStrings(BasicQuery userQuery, UserInfo userInfo, boolean includePrivate, 
-			StringBuilder countQuery, StringBuilder fullQuery, Map<String, Object> queryParams) 
-			throws DatastoreException {		
+	private void buildQueryStrings(BasicQuery userQuery, QueryObjectType objType, String objId,
+			UserInfo userInfo, boolean includePrivate, StringBuilder countQuery, 
+			StringBuilder fullQuery, Map<String, Object> queryParams) throws DatastoreException {		
 		List<String> aliases = new ArrayList<String>();
-		QueryObjectType objType = QueryTools.getQueryObjectType(userQuery);
 
 		// <select>
-		String selectCount = buildSelect(userQuery.getSelect(), true);
-		String selectId = buildSelect(userQuery.getSelect(), false);
+		String selectCount = buildSelect(true);
+		String selectId = buildSelect(false);
 		
 		// <from>
-		StringBuilder from = buildFrom(objType, aliases, userQuery);
+		StringBuilder from = buildFrom(objType, objId, aliases, userQuery);
 
 		// <where>
 		StringBuilder where = buildWhere(objType, aliases, userQuery, queryParams, includePrivate);
@@ -135,7 +141,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the SELECT clause
 	 */
-	private String buildSelect(List<String> select, boolean isCount) {
+	private String buildSelect(boolean isCount) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
 		if (isCount) {
@@ -153,8 +159,8 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the FROM clause
 	 */
-	private StringBuilder buildFrom(QueryObjectType queryObjType, List<String> aliases,
-			BasicQuery query) {
+	private StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
+			List<String> aliases, BasicQuery query) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("FROM");
 		String tablePrefix = queryObjType.tablePrefix();
@@ -163,19 +169,25 @@ public class QueryDAOImpl implements QueryDAO {
 		appendTable(builder, null, tablePrefix, ANNO_OWNER, ALIAS_ANNO_OWNER, true);
 		appendTable(builder, aliases, tablePrefix, ANNO_BLOB, ALIAS_ANNO_BLOB, false);
 		
+		// Inject the user-defined "FROM" filter
+		CompoundId compoundId = new CompoundId(null, DBOConstants.PARAM_ANNOTATION_SCOPE_ID);
+		Expression exp = new Expression(compoundId, Comparator.EQUALS, KeyFactory.stringToKey(objId));
+		if (query.getFilters() == null) {
+			query.setFilters(new ArrayList<Expression>());
+		}
+		query.getFilters().add(exp);
+		
 		// Add the typed table for each filter
-		if (query.getFilters() != null) {
-			for (int i = 0; i < query.getFilters().size(); i++) {
-				// First look up the column name
-				Expression expression = query.getFilters().get(i);
-				if (expression.getId() == null) {
-					throw new IllegalArgumentException("Expression key cannot be null");
-				}
-				FieldType type = QueryTools.getFieldType(expression.getValue());
-				String tableName = QueryTools.getTableNameForFieldType(type);
-				String alias = ALIAS_EXPRESSION + i;
-				appendTable(builder, aliases, tablePrefix, tableName, alias, false);
+		for (int i = 0; i < query.getFilters().size(); i++) {
+			// First look up the column name
+			Expression expression = query.getFilters().get(i);
+			if (expression.getId() == null) {
+				throw new IllegalArgumentException("Expression key cannot be null");
 			}
+			FieldType type = QueryTools.getFieldType(expression.getValue());
+			String tableName = QueryTools.getTableNameForFieldType(type);
+			String alias = ALIAS_EXPRESSION + i;
+			appendTable(builder, aliases, tablePrefix, tableName, alias, false);
 		}
 		
 		// Add the typed table for the sort
@@ -191,8 +203,8 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the WHERE clause
 	 */
-	private StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases,
-			BasicQuery query, Map<String, Object> queryParams, boolean includePrivate)
+	private StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases, 
+			BasicQuery query, Map<String, Object> queryParams, boolean includePrivate) 
 			throws DatastoreException {
 		StringBuilder builder = new StringBuilder();
 		builder.append("WHERE ");
@@ -201,7 +213,7 @@ public class QueryDAOImpl implements QueryDAO {
 		// Join the tables
 		for (int i = 0; i < aliases.size(); i++) {
 			appendJoin(builder, ALIAS_ANNO_OWNER, aliases.get(i), joinColumn, i == 0);
-		}
+		}		
 		
 		// Add the sort filter
 		if (query.getSort() != null) {
@@ -214,6 +226,8 @@ public class QueryDAOImpl implements QueryDAO {
 		if (query.getFilters() != null) {
 			for (int i = 0; i < query.getFilters().size(); i++) {
 				Expression expression = query.getFilters().get(i);
+				
+				validateExpression(expression);
 
 				String alias = ALIAS_EXPRESSION + i;
 				String paramKey = "att" + i;
@@ -225,9 +239,13 @@ public class QueryDAOImpl implements QueryDAO {
 				queryParams.put(paramKey, expression.getId().getFieldName());
 				
 				// Bind the value
-				String operator = SqlConstants.getSqlForComparator(expression.getCompare());
-				appendFilter(operator, builder, alias, COL_ANNO_VALUE, paramVal, false);				
-				queryParams.put(paramVal, expression.getValue());
+				Comparator comparator = expression.getCompare();
+				if (expression.getValue() == null) {
+					appendNullFilter(comparator, builder, alias, COL_ANNO_VALUE, false);
+				} else {
+					appendFilter(comparator, builder, alias, COL_ANNO_VALUE, paramVal, false);				
+					queryParams.put(paramVal, expression.getValue());
+				}
 				
 				// filter by 'isPrivate', if applicable
 				if (!includePrivate) {
@@ -261,9 +279,9 @@ public class QueryDAOImpl implements QueryDAO {
 		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, ACCESS_TYPE.READ);
 	}
 
-	private boolean canAccessPrivate(UserInfo userInfo, String objectId) {
+	private boolean canAccessPrivate(UserInfo userInfo, String objectId, QueryObjectType objType) {
 		return accessControlListDAO.canAccess(
-				userInfo.getGroups(), objectId, ACCESS_TYPE.READ_PRIVATE_ANNOTATIONS);
+				userInfo.getGroups(), objectId, objType.getPrivateAccessType());
 	}
 
 	/**
@@ -308,14 +326,15 @@ public class QueryDAOImpl implements QueryDAO {
 	private static void appendFilter(StringBuilder builder, String alias, String column, 
 			String paramKey, boolean isFirst) {
 		// default to 'equals'
-		appendFilter(SqlConstants.OPERATOR_SQL_EQUALS, builder, alias, column, paramKey, isFirst);
+		appendFilter(Comparator.EQUALS, builder, alias, column, paramKey, isFirst);
 	}
 
 	/**
 	 * Helper to append a filter to the WHERE clause. Uses the provided operator.
 	 */
-	private static void appendFilter(String operator, StringBuilder builder, String alias, 
+	private static void appendFilter(Comparator comparator, StringBuilder builder, String alias, 
 			String column, String paramKey, boolean isFirst) {
+		String operator = SqlConstants.getSqlForComparator(comparator);
 		if (!isFirst) {
 			builder.append(" and ");
 		}
@@ -328,6 +347,22 @@ public class QueryDAOImpl implements QueryDAO {
 		builder.append(paramKey);
 	}
 	
+	private static void appendNullFilter(Comparator comparator, StringBuilder builder, String alias,
+			String column, boolean isFirst) {
+		if (!isFirst) {
+			builder.append(" and ");
+		}
+		builder.append(alias);
+		builder.append(".");
+		builder.append(column);
+		builder.append(" ");
+		if (comparator.equals(Comparator.EQUALS)) {
+			builder.append("is null");
+		} else if (comparator.equals(Comparator.NOT_EQUALS)) {
+			builder.append("is not null");
+		}
+	}
+
 	private static void nullCheckQuery(BasicQuery userQuery) {
 		if (userQuery == null) {
 			throw new IllegalArgumentException("Query cannot be null");
@@ -335,8 +370,19 @@ public class QueryDAOImpl implements QueryDAO {
 		if (userQuery.getFrom() == null) {
 			throw new IllegalArgumentException("'From' cannot be null");
 		}
-		if (userQuery.getFilters() == null || userQuery.getFilters().isEmpty()) {
-			throw new IllegalArgumentException("At least one filter (object ID) is required.");
+	}
+
+	private static void validateExpression(Expression expression) {
+		CompoundId id = expression.getId();
+		if (id == null || (id.getFieldName() == null && id.getTableName() == null)) {
+			throw new IllegalArgumentException("Invalid query filter: ID cannot be null");
+		}
+		if (expression.getValue() == null || expression.getValue() instanceof String) {
+			Comparator comp = expression.getCompare();
+			if (!comp.equals(Comparator.EQUALS) && !comp.equals(Comparator.NOT_EQUALS)) {
+				throw new IllegalArgumentException("Invalid comparator [" + comp + "] for value [" +
+						expression.getValue() + "]");
+			}
 		}
 	}
 

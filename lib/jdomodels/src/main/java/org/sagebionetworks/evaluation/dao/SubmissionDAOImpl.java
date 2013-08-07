@@ -226,7 +226,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		basicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, param);
 	}
 
 	/**

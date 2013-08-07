@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.ResourceQueryResults;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -113,7 +113,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort("name");
 		query.setAscending(true);
 		long start = System.currentTimeMillis();
-		ResourceQueryResults results = nodeQueryDao.executeQuery(query, adminUser);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, adminUser);
 		long end = System.currentTimeMillis();
 		log.info("testAdminProjectQuery: "+(end-start)+"ms");
 		assertNotNull(results);
@@ -135,7 +135,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort("name");
 		query.setAscending(true);
 		long start = System.currentTimeMillis();
-		ResourceQueryResults results = nodeQueryDao.executeQuery(query, adminUser);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, adminUser);
 		long end = System.currentTimeMillis();
 		log.info("testAdminProjectQuery: "+(end-start)+"ms");
 		assertNotNull(results);
@@ -160,7 +160,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			String name = it.next();
 			UserInfo userInfo = usersInGroupA.get(name);
 			long start = System.currentTimeMillis();
-			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
 			log.info("testUsersGroupAProjectQuery userId: "+name+" : "+(end-start)+"ms");
 			assertNotNull(results);
@@ -190,7 +190,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			String name = it.next();
 			UserInfo userInfo = usersInGroupB.get(name);
 			long start = System.currentTimeMillis();
-			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
 			log.info("testUsersGroupBProjectQuery userId: "+name+" : "+(end-start)+"ms");
 			assertNotNull(results);
@@ -220,7 +220,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			String name = it.next();
 			UserInfo userInfo = usersInGroupA.get(name);
 			long start = System.currentTimeMillis();
-			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
 			log.info("testUsersGroupADatasetQuery userId: "+name+" : "+(end-start)+"ms");
 			assertNotNull(results);
@@ -251,7 +251,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			String name = it.next();
 			UserInfo userInfo = usersInBothGroups.get(name);
 			long start = System.currentTimeMillis();
-			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
 			log.info("testUsersInBothGroupsDatasetQuery userId: "+name+" : "+(end-start)+"ms");
 			assertNotNull(results);
@@ -286,7 +286,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			String name = it.next();
 			UserInfo userInfo = usersInGroupB.get(name);
 			long start = System.currentTimeMillis();
-			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
 			log.info("testQueryWithAnnotations userId: "+name+" : "+(end-start)+"ms");
 			assertNotNull(results);

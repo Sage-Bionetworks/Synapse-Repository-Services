@@ -14,7 +14,7 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_SUBSTATUS_ANNO_ID, true),
-		new FieldColumn("submissionId", COL_SUBSTATUS_ANNO_SUBID),
+		new FieldColumn("ownerId", COL_SUBSTATUS_ANNO_SUBID),
 		new FieldColumn("attribute", COL_SUBSTATUS_ANNO_ATTRIBUTE),
 		new FieldColumn("value", COL_SUBSTATUS_ANNO_VALUE),
 		new FieldColumn("isPrivate", COL_SUBSTATUS_ANNO_IS_PRIVATE)
@@ -27,7 +27,7 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 			public StringAnnotationDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				StringAnnotationDBO result = new StringAnnotationDBO();
 				result.setId(rs.getLong(COL_SUBSTATUS_ANNO_ID));
-				result.setSubmissionId(rs.getLong(COL_SUBSTATUS_ANNO_SUBID));
+				result.setOwnerId(rs.getLong(COL_SUBSTATUS_ANNO_SUBID));
 				result.setAttribute(rs.getString(COL_SUBSTATUS_ANNO_ATTRIBUTE));
 				result.setValue(rs.getString(COL_SUBSTATUS_ANNO_VALUE));
 				result.setIsPrivate(rs.getBoolean(COL_SUBSTATUS_ANNO_IS_PRIVATE));
@@ -56,7 +56,7 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 	}
 	
 	private Long Id;
-	private Long submissionId;
+	private Long ownerId;
 	private String attribute;
 	private String value;
 	private boolean isPrivate;
@@ -67,11 +67,11 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 	public void setId(Long id) {
 		Id = id;
 	}
-	public Long getSubmissionId() {
-		return submissionId;
+	public Long getOwnerId() {
+		return ownerId;
 	}
-	public void setSubmissionId(Long submissionId) {
-		this.submissionId = submissionId;
+	public void setOwnerId(Long ownerId) {
+		this.ownerId = ownerId;
 	}
 	public String getAttribute() {
 		return attribute;
@@ -100,7 +100,7 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 				+ ((attribute == null) ? 0 : attribute.hashCode());
 		result = prime * result + (isPrivate ? 1231 : 1237);
 		result = prime * result
-				+ ((submissionId == null) ? 0 : submissionId.hashCode());
+				+ ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + ((value == null) ? 0 : value.hashCode());
 		return result;
 	}
@@ -125,10 +125,10 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 			return false;
 		if (isPrivate != other.isPrivate)
 			return false;
-		if (submissionId == null) {
-			if (other.submissionId != null)
+		if (ownerId == null) {
+			if (other.ownerId != null)
 				return false;
-		} else if (!submissionId.equals(other.submissionId))
+		} else if (!ownerId.equals(other.ownerId))
 			return false;
 		if (value == null) {
 			if (other.value != null)
@@ -140,7 +140,7 @@ public class StringAnnotationDBO implements DatabaseObject<StringAnnotationDBO>{
 	@Override
 	public String toString() {
 		return "SubmissionStatusStringAnnotationDBO [Id=" + Id
-				+ ", submissionId=" + submissionId + ", attribute=" + attribute
+				+ ", submissionId=" + ownerId + ", attribute=" + attribute
 				+ ", value=" + value + ", isPrivate=" + isPrivate + "]";
 	}
 

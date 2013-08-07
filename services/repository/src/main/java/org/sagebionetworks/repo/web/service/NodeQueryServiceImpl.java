@@ -14,24 +14,18 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.ResourceQueryResults;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.QueryDAO;
-import org.sagebionetworks.repo.model.query.QueryTableResults;
-import org.sagebionetworks.repo.model.query.Row;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.query.QueryStatement;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class QueryServiceImpl implements QueryService {
-
-	private static final String TYPE_SUBMISSION = "submission";
+public class NodeQueryServiceImpl implements NodeQueryService {
 
 	private static final String[] EXCLUDED_DATASET_PROPERTIES = {
 			"uri", "etag", "annotations", "layer"
@@ -56,8 +50,6 @@ public class QueryServiceImpl implements QueryService {
 	@Autowired
 	private NodeQueryDao nodeQueryDao;
 	@Autowired
-	private QueryDAO submissionStatusQueryDAO;
-	@Autowired
 	private UserManager userManager;
 
 	@Override
@@ -76,38 +68,15 @@ public class QueryServiceImpl implements QueryService {
 	@Override
 	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException, ParseException {
-
 		if (query == null) {
 			throw new IllegalArgumentException("Query cannot be null");
 		}
-
-		UserInfo userInfo = userManager.getUserInfo(userId);		
-		String from = query.getFrom().trim().toLowerCase();
-		
-
-		if (from.equals(TYPE_SUBMISSION)) {
-			// Submission query
-			QueryTableResults results;
-			try {
-				results = submissionStatusQueryDAO.executeQuery(query, userInfo);
-			} catch (JSONObjectAdapterException e) {
-				throw new ParseException(e.getMessage());
-			}
-			// inject headers as the first row
-			Row headerRow = new Row();
-			headerRow.setValues(new ArrayList<String>(results.getHeaders()));
-			List<Row> rows = results.getRows();
-			rows.add(0, headerRow);
-			return new QueryResults(rows, results.getTotalNumberOfResults());
-		} else {
-			// Node query
-			ResourceQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
-			return new QueryResults(results.getAllSelectedData(), results.getTotalNumberOfResults());
-		}
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+		return new QueryResults(results.getAllSelectedData(), results.getTotalNumberOfResults());
 	}
 
 	private List<Map<String, Object>> formulateResult(QueryStatement stmt, List<Map<String, Object>> rows) {
-
 		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
 		for (Map<String, Object> row : rows) {
 			results.add(formulateResult(stmt, row));
@@ -117,7 +86,6 @@ public class QueryServiceImpl implements QueryService {
 
 	private Map<String, Object> formulateResult(QueryStatement stmt,
 			Map<String, Object> fields) {
-
 		Map<String, Object> result = new HashMap<String, Object>();
 		for (String field : fields.keySet()) {
 			if (!EXCLUDED_PROPERTIES.get("dataset").contains(field)) {

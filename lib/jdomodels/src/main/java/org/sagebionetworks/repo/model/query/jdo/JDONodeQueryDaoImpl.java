@@ -10,7 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.ResourceQueryResults;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -52,7 +52,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * Execute the actual query
 	 */
 	@Override
-	public ResourceQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException {
+	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException {
 		try {
 			return executeQueryImpl(query, userInfo);
 		} catch (IllegalArgumentException e) {
@@ -66,15 +66,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * Execute a count query.
 	 */
 	@Override
-	public long executeCountQuery(BasicQuery query, UserInfo userInfo)
-			throws DatastoreException {
-		try {
-			return executeCountQueryImpl(query, userInfo);
-		} catch (IllegalArgumentException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
+	public long executeCountQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException {
+		return executeCountQueryImpl(query, userInfo);
 	}
 
 	/**
@@ -96,7 +89,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private ResourceQueryResults executeQueryImpl(BasicQuery in, UserInfo userInfo)
+	private NodeQueryResults executeQueryImpl(BasicQuery in, UserInfo userInfo)
 			throws DatastoreException, NotFoundException {
 		// Prepare the parameters
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -107,7 +100,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		boolean columnsExist = buildQueryStrings(in, userInfo, countQuery, fullQuery, parameters);
 		if(!columnsExist){
 			// For this case there will be no results
-			return new ResourceQueryResults();
+			return new NodeQueryResults();
 		}
 		// Run the count query
 		long count = this.simpleJdbcTemplate.queryForLong(countQuery.toString(), parameters);

@@ -8,7 +8,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -30,7 +29,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class SubmissionStatusAnnotationsDAOImplTest {
+public class AnnotationsDAOImplTest {
 
 	@Autowired
 	AnnotationsDAO subStatusAnnoDAO;
@@ -110,8 +109,8 @@ public class SubmissionStatusAnnotationsDAOImplTest {
         
         // create Annotations
 		annos = new Annotations();
-		annos.setOwnerId(submissionId);
-		annos.setOwnerParentId(evalId);
+		annos.setObjectId(submissionId);
+		annos.setScopeId(evalId);
 		annos.setDoubleAnnos(new ArrayList<DoubleAnnotation>());
 		annos.setLongAnnos(new ArrayList<LongAnnotation>());
 		annos.setStringAnnos(new ArrayList<StringAnnotation>());
@@ -138,6 +137,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertTrue(clone.getStringAnnos().containsAll(annos.getStringAnnos()));
+		assertTrue(annos.getStringAnnos().containsAll(clone.getStringAnnos()));
 		
 		// Update
 		stringAnnos = new ArrayList<StringAnnotation>();
@@ -145,6 +145,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		sa3.setIsPrivate(false);
 		sa3.setKey("keyThree");
 		sa3.setValue("valueThree");
+		sa1.setValue("valueOne_modified");
 		stringAnnos.add(sa1);
 		stringAnnos.add(sa3);
 		annos.setStringAnnos(stringAnnos);
@@ -184,6 +185,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertTrue(clone.getLongAnnos().containsAll(annos.getLongAnnos()));
+		assertFalse(annos.getStringAnnos().containsAll(clone.getStringAnnos()));
 		
 		// Update
 		longAnnos = new ArrayList<LongAnnotation>();
@@ -191,6 +193,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		la3.setIsPrivate(false);
 		la3.setKey("keyThree");
 		la3.setValue(3L);
+		la1.setValue(la1.getValue() + 1);
 		longAnnos.add(la1);
 		longAnnos.add(la3);
 		annos.setLongAnnos(longAnnos);
@@ -230,6 +233,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertTrue(clone.getDoubleAnnos().containsAll(annos.getDoubleAnnos()));
+		assertFalse(annos.getStringAnnos().containsAll(clone.getStringAnnos()));
 		
 		// Update
 		doubleAnnos = new ArrayList<DoubleAnnotation>();
@@ -237,6 +241,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		da3.setIsPrivate(true);
 		da3.setKey("keyThree");
 		da3.setValue(3.3);
+		da1.setValue(da1.getValue() + 3.14);
 		doubleAnnos.add(da1);
 		doubleAnnos.add(da3);
 		annos.setDoubleAnnos(doubleAnnos);
@@ -256,7 +261,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 	}
 	
 	@Test
-	public void testOneOfEachAnnotations() throws DatastoreException, JSONObjectAdapterException{
+	public void testMixedAnnotations() throws DatastoreException, JSONObjectAdapterException{
 		// Create
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa1 = new StringAnnotation();
@@ -289,6 +294,7 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		assertNotNull(clone);
 		assertTrue(clone.getLongAnnos().containsAll(annos.getLongAnnos()));
 		assertTrue(clone.getDoubleAnnos().containsAll(annos.getDoubleAnnos()));
+		assertFalse(annos.getStringAnnos().containsAll(clone.getStringAnnos()));
 		
 		// Read from blob
 		Annotations blobClone = subStatusAnnoDAO.getAnnotationsFromBlob(Long.parseLong(submissionId));
@@ -302,6 +308,10 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		sa2.setKey("keyOne");
 		sa2.setValue("valueTwo");
 		stringAnnos.add(sa2);
+		StringAnnotation sa3 = new StringAnnotation();
+		sa3.setIsPrivate(true);
+		sa3.setKey("keyFour");
+		sa3.setValue(null);
 		annos.setStringAnnos(stringAnnos);
 		
 		longAnnos = new ArrayList<LongAnnotation>();
@@ -339,34 +349,5 @@ public class SubmissionStatusAnnotationsDAOImplTest {
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertEquals(0, clone.getStringAnnos().size());
-	}
-	
-	@Test
-	public void testSystemAnnotations() throws DatastoreException, JSONObjectAdapterException {
-		// Create
-		subStatusAnnoDAO.replaceAnnotations(annos);
-		
-		StringAnnotation sa1 = new StringAnnotation();
-		sa1.setIsPrivate(false);
-		sa1.setKey(DBOConstants.PARAM_ANNOTATION_OWNER_ID);
-		sa1.setValue(submissionId);
-		
-		StringAnnotation sa2 = new StringAnnotation();
-		sa2.setIsPrivate(false);
-		sa2.setKey(DBOConstants.PARAM_ANNOTATION_OWNER_PARENT_ID);
-		sa2.setValue(evalId);
-		
-		List<StringAnnotation> expected = new ArrayList<StringAnnotation>();
-		expected.add(sa1);
-		expected.add(sa2);		
-		
-		// Read
-		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
-		assertNotNull(clone);
-		assertNotNull(clone.getLongAnnos());
-		assertNotNull(clone.getStringAnnos());
-		assertTrue(clone.getStringAnnos().containsAll(expected));
-		assertEquals(2, clone.getLongAnnos().size());
-		assertEquals(2, clone.getStringAnnos().size());		
 	}
 }

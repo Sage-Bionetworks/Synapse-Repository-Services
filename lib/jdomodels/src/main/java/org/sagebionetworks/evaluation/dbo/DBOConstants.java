@@ -44,6 +44,6 @@ public class DBOConstants {
 	public static final String PARAM_SUBFILE_FILE_HANDLE_ID			= "fileHandleId";
 	
 	// Annotation
-	public static final String PARAM_ANNOTATION_OWNER_ID			= "ownerId";
-	public static final String PARAM_ANNOTATION_OWNER_PARENT_ID		= "ownerParentId";
+	public static final String PARAM_ANNOTATION_OBJECT_ID			= "objectId";
+	public static final String PARAM_ANNOTATION_SCOPE_ID			= "scopeId";
 }

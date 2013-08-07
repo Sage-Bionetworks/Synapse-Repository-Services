@@ -16,14 +16,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -398,8 +397,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
-		status.getAnnotations().setOwnerId(sub1.getId());
-		status.getAnnotations().setOwnerParentId(sub1.getEvaluationId());
+		status.getAnnotations().setObjectId(sub1.getId());
+		status.getAnnotations().setScopeId(sub1.getEvaluationId());
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
 		
@@ -857,7 +856,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertFalse(uep2.getCanView());
 	}
 	
-	@Ignore	// TODO: implement once annotations worker is implemented
 	@Test
 	public void testAnnotationsQuery() throws SynapseException, InterruptedException, JSONObjectAdapterException {
 		// set up objects
@@ -895,27 +893,25 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// query for the object
 		// we must wait for the annotations to be populated by a worker
-		String queryString = "SELECT * FROM SUBMISSION WHERE foo=bar";
-		JSONObject jsonObj = synapseOne.query(queryString);
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl(jsonObj);
-		QueryTableResults results = new QueryTableResults(joa);
+		String queryString = "SELECT * FROM evaluation_" + eval1.getId() + " WHERE foo == \"bar\"";
+		QueryTableResults results = synapseOne.queryEvaluation(queryString);
 		assertNotNull(results);
 		long start = System.currentTimeMillis();
 		while (results.getTotalNumberOfResults() < 1) {
-			System.out.println("Waiting for query: " + queryString);
-			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for annotations to be published for query: "+queryString, elapse < RDS_WORKER_TIMEOUT);
-			jsonObj = synapseOne.query(queryString);
-			joa = new JSONObjectAdapterImpl(jsonObj);
-			results = new QueryTableResults(joa);
+			assertTrue("Timed out waiting for annotations to be published for query: " + queryString,
+					elapse < RDS_WORKER_TIMEOUT);
+			System.out.println("Waiting for annotations to be published... " + elapse + "ms");
+			Thread.sleep(1000);
+			results = synapseOne.queryEvaluation(queryString);
 		}
 		
 		// verify the results
-		Set<String> headers = results.getHeaders();
+		List<String> headers = results.getHeaders();
 		List<org.sagebionetworks.repo.model.query.Row> rows = results.getRows();
 		assertEquals(1, rows.size());
 		assertTrue(headers.contains("foo"));
-		assertEquals(sub1.getId(), rows.get(0).getValues().get(0));
+		int index = headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
+		assertEquals(sub1.getId(), rows.get(0).getValues().get(index));
 	}
 }
