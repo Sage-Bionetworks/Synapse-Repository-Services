@@ -376,8 +376,7 @@ public class EntityController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		// Pass it along
-		serviceProvider.getEntityService().deleteEntity(userId, id);
+		serviceProvider.getTrashService().moveToTrash(userId, id);
 	}
 
 	/**

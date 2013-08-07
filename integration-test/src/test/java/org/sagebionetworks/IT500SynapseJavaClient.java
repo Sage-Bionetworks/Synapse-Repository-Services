@@ -141,7 +141,7 @@ public class IT500SynapseJavaClient {
 		if (toDelete != null) {
 			for (String id: toDelete) {
 				try {
-					synapse.deleteEntityById(id);
+					synapse.deleteAndPurgeEntityById(id);
 				} catch (Exception e) {}
 			}
 		}

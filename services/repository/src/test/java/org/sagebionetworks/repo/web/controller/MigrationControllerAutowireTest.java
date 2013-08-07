@@ -5,8 +5,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 
 import javax.servlet.ServletException;
 
@@ -14,17 +12,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +36,13 @@ public class MigrationControllerAutowireTest {
 	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
 	@Autowired
-	UserManager userManager;
-	
+	private UserManager userManager;
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private NodeManager nodeManager;
+	@Autowired
+	private FileHandleDao fileMetadataDao;
 	
 	private String userName;
 	private String adminId;
@@ -86,7 +85,8 @@ public class MigrationControllerAutowireTest {
 	public void after() throws Exception{
 		// Delete the project
 		if(entity != null){
-			entityServletHelper.deleteEntity(entity.getId(), userName);
+			UserInfo userInfo = userManager.getUserInfo(userName);
+			nodeManager.delete(userInfo, entity.getId());
 		}
 		if(handleOne != null && handleOne.getId() != null){
 			fileMetadataDao.delete(handleOne.getId());

@@ -89,7 +89,7 @@ public class IT960TermsOfUse {
 	// make sure that after the test suite is done running the user has signed the Terms of Use
 	@AfterClass
 	public static void afterClass() throws Exception {
-		if (adminSynapse!=null && project!=null) adminSynapse.deleteEntity(project);
+		if (adminSynapse!=null && project!=null) adminSynapse.deleteAndPurgeEntity(project);
 	}
 
 	@Test

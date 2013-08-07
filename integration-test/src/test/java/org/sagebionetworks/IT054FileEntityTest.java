@@ -95,7 +95,7 @@ public class IT054FileEntityTest {
 	@After
 	public void after() throws Exception {
 		if(project != null){
-			synapse.deleteEntity(project);
+			synapse.deleteAndPurgeEntity(project);
 		}
 		if(fileHandle != null){
 			try {
