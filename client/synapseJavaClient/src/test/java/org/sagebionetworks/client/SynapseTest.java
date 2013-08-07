@@ -202,7 +202,7 @@ public class SynapseTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteEntityNull() throws Exception{
-		synapse.deleteAndPurgeEntity((Entity)null);
+		synapse.deleteEntity((Entity)null);
 	}
 
 	@Test

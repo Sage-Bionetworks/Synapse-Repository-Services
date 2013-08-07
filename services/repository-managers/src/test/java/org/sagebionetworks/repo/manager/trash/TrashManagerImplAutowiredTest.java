@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -724,6 +725,19 @@ public class TrashManagerImplAutowiredTest {
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB1)));
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB2)));
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
+	}
+
+	@Test(expected=EntityInTrashCanException.class)
+	public void testCanDownload() throws Exception {
+		final Node node = new Node();
+		final String nodeName = "TrashManagerImplAutowiredTest.testCanDownload()";
+		node.setName(nodeName);
+		node.setNodeType(EntityType.project.name());
+		final String nodeId = nodeManager.createNewNode(node, testAdminUserInfo);
+		assertNotNull(nodeId);
+		toClearList.add(nodeId);
+		trashManager.moveToTrash(testAdminUserInfo, nodeId);
+		entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
 	}
 
 	private void cleanUp() throws Exception {

@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -28,20 +29,18 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapData;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
-	@Autowired
-	@Qualifier("trashFolderBootstrapData")
-	private EntityBootstrapData trashFolder;
+	private static final Long TRASH_FOLDER_ID = Long.parseLong(
+			StackConfiguration.getTrashFolderEntityIdStatic());
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
@@ -193,25 +192,26 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public boolean hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
-		if (accessType == DOWNLOAD) {
-			return canDownload(userInfo, entityId);
-		}
-		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
-		final Long trashCanId = trashFolder.getEntityId();
-		if (trashCanId.equals(KeyFactory.stringToKey(benefactor))
+		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
+		if (TRASH_FOLDER_ID.equals(KeyFactory.stringToKey(benefactor))
 				&& !CREATE.equals(accessType)
 				&& !DELETE.equals(accessType)) {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
 		}
-		// anonymous can at most READ
+		// Can download
+		if (accessType == DOWNLOAD) {
+			return canDownload(userInfo, entityId);
+		}
+		// Anonymous can at most READ
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
 			if (accessType != ACCESS_TYPE.READ) {
 				return false;
 			}
 		}
+		// Admin
 		if (userInfo.isAdmin()) {
 			return true;
 		}
