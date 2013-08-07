@@ -26,6 +26,22 @@
 			"type": "boolean",
 			"description": "Can the user participate in this evaluation?"
 		},
+		"canSubmit": {
+			"type": "boolean",
+			"description": "Can the user submit to this evaluation?"
+		},		
+		"canViewPrivateSubmissionStatusAnnotations": {
+			"type": "boolean",
+			"description": "Can the user view private Annotations on SubmissionStatuses for this evaluation?"
+		},
+		"canEditSubmissionStatuses": {
+			"type": "boolean",
+			"description": "Can the user update SubmissionStatuses for this evaluation?"
+		},
+		"canDeleteSubmissions": {
+			"type": "boolean",
+			"description": "Can the user view delete Submissions from this evaluation?"
+		},
 		"ownerPrincipalId": {
 			"type": "integer",
 			"description": "The principal ID of the evaluation's owner (i.e. the evaluation's 'createdBy')"
