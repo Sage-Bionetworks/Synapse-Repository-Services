@@ -179,21 +179,29 @@ public class MigrationClient {
 			DeltaData dd = calculateDeltaForType(type, batchSize);
 			deltaList.add(dd);
 		}
-		// Now do all adds in the original order
-		for(int i=0; i<deltaList.size(); i++){
-			DeltaData dd = deltaList.get(i);
-			long count = dd.getCounts().getCreate();
-			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+		
+		// If exception in insert/update phase, then do deletes and rethrow so main is aware of problem
+		Exception insUpdException = null;
+		try {
+			// Now do all adds in the original order
+			for(int i=0; i<deltaList.size(); i++){
+				DeltaData dd = deltaList.get(i);
+				long count = dd.getCounts().getCreate();
+				if(count > 0){
+					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+				}
 			}
-		}
-		// Now do all updates in the original order
-		for(int i=0; i<deltaList.size(); i++){
-			DeltaData dd = deltaList.get(i);
-			long count = dd.getCounts().getUpdate();
-			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+			// Now do all updates in the original order
+			for(int i=0; i<deltaList.size(); i++){
+				DeltaData dd = deltaList.get(i);
+				long count = dd.getCounts().getUpdate();
+				if(count > 0){
+					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+				}
 			}
+		} catch (DaemonFailedException e) {
+			insUpdException = e;
+			log.info("Exception thrown during insert/update phases", e);
 		}
 		// Now we need to delete any data in reverse order
 		for(int i=deltaList.size()-1; i >= 0; i--){
@@ -202,6 +210,10 @@ public class MigrationClient {
 			if(count > 0){
 				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
 			}
+		}
+		
+		if (insUpdException != null) {
+			throw insUpdException;
 		}
 	}
 	
