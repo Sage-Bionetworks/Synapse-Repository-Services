@@ -101,7 +101,7 @@ public class IT510SynapseJavaClientSearchTest {
 	@AfterClass
 	public static void afterClass() throws SynapseException{
 		if(synapse != null && project != null){
-			synapse.deleteEntity(project);
+			synapse.deleteAndPurgeEntity(project);
 		}
 	}
 	

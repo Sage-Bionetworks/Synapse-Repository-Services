@@ -59,7 +59,7 @@ public class IT930ActivityController {
 	@After
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
-			synapse.deleteEntityById(id);
+			synapse.deleteAndPurgeEntityById(id);
 		}
 		for(String id : activitiesToDelete) {
 			synapse.deleteActivity(id);

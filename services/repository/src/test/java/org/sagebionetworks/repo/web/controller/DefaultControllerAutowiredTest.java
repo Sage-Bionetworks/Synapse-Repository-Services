@@ -25,8 +25,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -44,9 +46,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,14 +63,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DefaultControllerAutowiredTest {
 
+	@Autowired
+	private EntityService entityService;
 	// Used for cleanup
 	@Autowired
-	EntityService entityController;
-
+	private NodeManager nodeManager;
 	@Autowired
-	public UserManager userManager;
+	private UserManager userManager;
 	@Autowired
-	AsynchronousDAO asynchronousDAO;
+	private AsynchronousDAO asynchronousDAO;
 
 	static private Log log = LogFactory
 			.getLog(DefaultControllerAutowiredTest.class);
@@ -84,7 +85,7 @@ public class DefaultControllerAutowiredTest {
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
-		assertNotNull(entityController);
+		assertNotNull(nodeManager);
 		toDelete = new ArrayList<String>();
 		// Map test objects to their urls
 		// Make sure we have a valid user.
@@ -93,11 +94,12 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@After
-	public void after() throws UnauthorizedException {
-		if (entityController != null && toDelete != null) {
+	public void after() throws Exception {
+		if (nodeManager != null && toDelete != null) {
+			UserInfo userInfo = userManager.getUserInfo(userName);
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(userName, idToDelete);
+					nodeManager.delete(userInfo, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -112,7 +114,7 @@ public class DefaultControllerAutowiredTest {
 		dispatchServlet = DispatchServletSingleton.getInstance();
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test(expected = EntityInTrashCanException.class)
 	public void testDelete() throws Exception {
 		// Create a project
 		Project project = new Project();
@@ -123,7 +125,7 @@ public class DefaultControllerAutowiredTest {
 		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userName);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		entityController.getEntity(userName,	clone.getId(), mockRequest, Project.class);
+		entityService.getEntity(userName, clone.getId(), mockRequest, Project.class);
 	}
 
 	@Test

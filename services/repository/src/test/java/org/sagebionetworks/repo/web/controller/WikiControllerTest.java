@@ -12,10 +12,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -39,12 +41,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class WikiControllerTest {
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
 	@Autowired
-	UserManager userManager;
-	
+	private UserManager userManager;
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private NodeManager nodeManager;
+	@Autowired
+	private FileHandleDao fileMetadataDao;
 	
 	private String userName;
 	private String ownerId;
@@ -95,7 +98,8 @@ public class WikiControllerTest {
 			} catch (Exception e) {}
 		}
 		if(entity != null){
-			entityServletHelper.deleteEntity(entity.getId(), userName);
+			UserInfo userInfo = userManager.getUserInfo(userName);
+			nodeManager.delete(userInfo, entity.getId());
 		}
 		if(handleOne != null && handleOne.getId() != null){
 			fileMetadataDao.delete(handleOne.getId());

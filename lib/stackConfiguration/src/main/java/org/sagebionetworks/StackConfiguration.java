@@ -880,4 +880,60 @@ public class StackConfiguration {
 	 */
 	public static String getJiraUserName() {return configuration.getProperty("org.sagebionetworks.repo.manager.jira.user.name");}
 	public static String getJiraUserPassword() {return configuration.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");}
+
+	/**
+	 * Entity path for the root folder. This is to be bootstrapped.
+	 */
+	public String getRootFolderEntityPath() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.path");
+	}
+
+	/**
+	 * Entity path for the root folder. This is to be bootstrapped.
+	 */
+	public static String getRootFolderEntityPathStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.path");
+	}
+
+	/**
+	 * Entity ID for the root folder. This is to be bootstrapped.
+	 */
+	public String getRootFolderEntityId() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.id");
+	}
+
+	/**
+	 * Entity ID for the root folder. This is to be bootstrapped.
+	 */
+	public static String getRootFolderEntityIdStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.id");
+	}
+
+	/**
+	 * Entity path for the trash folder. This is to be bootstrapped.
+	 */
+	public String getTrashFolderEntityPath() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.path");
+	}
+
+	/**
+	 * Entity path for the trash folder. This is to be bootstrapped.
+	 */
+	public static String getTrashFolderEntityPathStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.path");
+	}
+
+	/**
+	 * Entity ID for the trash folder. This is to be bootstrapped.
+	 */
+	public String getTrashFolderEntityId() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.id");
+	}
+
+	/**
+	 * Entity ID for the trash folder. This is to be bootstrapped.
+	 */
+	public static String getTrashFolderEntityIdStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.id");
+	}
 }

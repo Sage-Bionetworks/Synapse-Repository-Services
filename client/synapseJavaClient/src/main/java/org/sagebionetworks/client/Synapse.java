@@ -1324,7 +1324,9 @@ public class Synapse implements SynapseInt {
 	}
 
 	/**
-	 * Delete a dataset, layer, etc..
+	 * Deletes a dataset, layer, etc.. This only moves the entity
+	 * to the trash can.  To permanently delete the entity, use
+	 * deleteAndPurgeEntity().
 	 * 
 	 * @param <T>
 	 * @param entity
@@ -1345,12 +1347,40 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	public <T extends Entity> void deleteAndPurgeEntity(T entity)
+			throws SynapseException {
+		deleteEntity(entity);
+		purgeTrashForUser(entity.getId());
+	}
+
+	/**
+	 * Delete a dataset, layer, etc.. This only moves the entity
+	 * to the trash can.  To permanently delete the entity, use
+	 * deleteAndPurgeEntity().
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
 	public void deleteEntityById(String entityId)
 			throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("entityId cannot be null");
 		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
 		deleteUri(uri);
+	}
+
+	/**
+	 * Delete a dataset, layer, etc..
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
+	public void deleteAndPurgeEntityById(String entityId)
+			throws SynapseException {
+		deleteEntityById(entityId);
+		purgeTrashForUser(entityId);
 	}
 
 	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
