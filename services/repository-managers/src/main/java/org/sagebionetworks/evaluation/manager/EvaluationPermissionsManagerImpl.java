@@ -1,6 +1,14 @@
 package org.sagebionetworks.evaluation.manager;
 
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.*;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_PERMISSIONS;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE_SUBMISSION;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.PARTICIPATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ_PRIVATE_SUBMISSION;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
 import java.util.List;
 
@@ -11,7 +19,6 @@ import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -121,7 +128,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 	@Override
 	public AccessControlList getAcl(UserInfo userInfo, String evalId)
-			throws NotFoundException, DatastoreException, ACLInheritanceException {
+			throws NotFoundException, DatastoreException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
