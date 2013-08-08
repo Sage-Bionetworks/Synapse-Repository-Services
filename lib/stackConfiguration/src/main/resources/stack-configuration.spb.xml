@@ -69,5 +69,11 @@
 	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	
+
+	<!-- Data of bootstrap entity folders -->
+	<bean id="stackConfiguration.rootFolderEntityPath" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.rootFolderEntityId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.trashFolderEntityPath" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.trashFolderEntityId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 </beans>

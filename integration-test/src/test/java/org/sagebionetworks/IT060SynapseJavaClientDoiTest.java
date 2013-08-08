@@ -72,7 +72,7 @@ public class IT060SynapseJavaClientDoiTest {
 	@After
 	public void after() throws SynapseException {
 		if (entity != null) {
-			synapse.deleteEntityById(entity.getId());
+			synapse.deleteAndPurgeEntityById(entity.getId());
 		}
 		synapseAdmin.clearDoi();
 		try {

@@ -188,7 +188,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// clean up nodes
 		for (String id : entitiesToDelete) {
 			try {
-				synapseOne.deleteEntityById(id);
+				synapseOne.deleteAndPurgeEntityById(id);
 			} catch (Exception e) {}
 		}
 		// clean up FileHandle

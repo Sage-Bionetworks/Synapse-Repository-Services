@@ -35,30 +35,28 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AuthorizationManagerImplTest {
-	
+
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	@Autowired
 	private UserManager userManager;	
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 	@Autowired
-	ActivityManager activityManager;
+	private ActivityManager activityManager;
 	@Autowired
-	EvaluationManager evaluationManager;
-	
-		
+	private EvaluationManager evaluationManager;
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node nodeCreatedByTestUser = null;
 	private Node childNode = null;
 	private UserInfo userInfo = null;
 	private UserInfo adminUser;
-	private static final String TEST_USER = "test-user";
 	private Random rand = null;
 	
 	private List<String> usersToDelete;
@@ -244,7 +242,7 @@ public class AuthorizationManagerImplTest {
 		childNode.setParentId(node.getId());
 		assertFalse(authorizationManager.canCreate(anonInfo, childNode));
 		
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo, node.getId());
 		assertTrue(uep.getCanView());
 		assertTrue(uep.getCanPublicRead());
 		assertFalse(uep.getCanAddChild());
@@ -287,11 +285,11 @@ public class AuthorizationManagerImplTest {
 		assertFalse(b);
 		
 		//so public can't read, no matter who is requesting
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminInfo,  node.getId());
 		assertFalse(uep.getCanPublicRead());
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertFalse(uep.getCanPublicRead());
-		uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo,  node.getId());
 		assertFalse(uep.getCanPublicRead());
 		
 		//update so that public group CAN read
@@ -302,11 +300,11 @@ public class AuthorizationManagerImplTest {
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		//now verify that public can read is true (no matter who requests)
-		uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(adminInfo,  node.getId());
 		assertTrue(uep.getCanPublicRead());
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertTrue(uep.getCanPublicRead());
-		uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo,  node.getId());
 		assertTrue(uep.getCanPublicRead());
 	}
 	
@@ -324,9 +322,9 @@ public class AuthorizationManagerImplTest {
 		// and the child as well
 		assertTrue(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
 		
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanView());
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
 		assertEquals(true, uep.getCanView());
 		assertFalse(uep.getCanEnableInheritance());
 		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
@@ -352,9 +350,9 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
 		
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanView());
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
 		assertEquals(false, uep.getCanView());
 		assertFalse(uep.getCanEnableInheritance());
 		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
@@ -367,9 +365,9 @@ public class AuthorizationManagerImplTest {
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
 		assertFalse(authorizationManager.canAccess(userInfo, childNode.getId(), ACCESS_TYPE.READ));
 		
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanView());
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
 		assertEquals(false, uep.getCanView());
 	}
 	
@@ -421,23 +419,22 @@ public class AuthorizationManagerImplTest {
 
 	@Test
 	public void testCreateNoParent() throws Exception {
-	
+
 		// try to create node with no parent.  should fail
 		Node orphan = createDTO("orphan", 10L, 11L, null, null);
 		assertFalse(authorizationManager.canCreate(userInfo, orphan));
-		
+
 		// admin creates a node with no parent.  should work
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		assertTrue(authorizationManager.canCreate(adminInfo, orphan));
-
 	}
-	
+
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		assertTrue(adminInfo.isAdmin());
 		// the admin user can do it all
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminInfo,  node.getId());
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
@@ -447,7 +444,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanDownload());
 		
 		// the user cannot do anything
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
 		assertEquals(false, uep.getCanDelete());
@@ -463,7 +460,7 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
 		assertEquals(false, uep.getCanDelete());
@@ -477,7 +474,7 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
 		assertEquals(false, uep.getCanDelete());
@@ -491,7 +488,7 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.DELETE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
 		assertEquals(true, uep.getCanDelete());
@@ -505,7 +502,7 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
 		assertEquals(true, uep.getCanDelete());
@@ -519,7 +516,7 @@ public class AuthorizationManagerImplTest {
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
 		assertEquals(true, uep.getCanDelete());
@@ -531,8 +528,8 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testOwnerAdminAccess() throws Exception {
 		// the user can't do anything
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
 		assertEquals(false, uep.getCanDelete());
@@ -546,7 +543,7 @@ public class AuthorizationManagerImplTest {
 		nodeDao.updateNode(node);
 		
 		// the user still cannot do anything..
-		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(false, uep.getCanAddChild());
 		assertEquals(false, uep.getCanChangePermissions());
 		assertEquals(false, uep.getCanDelete());

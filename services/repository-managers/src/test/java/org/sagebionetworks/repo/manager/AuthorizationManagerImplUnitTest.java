@@ -18,20 +18,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -46,57 +41,51 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class AuthorizationManagerImplUnitTest {
-	
-	NodeInheritanceDAO mockNodeInheritanceDAO;	
-	AccessControlListDAO mockAccessControlListDAO;	
-	AccessRequirementDAO  mockAccessRequirementDAO;
-	AccessApprovalDAO mockAccessApprovalDAO;
-	EvaluationManager mockEvaluationManager;
-	ActivityDAO mockActivityDAO;
-	NodeQueryDao mockNodeQueryDao;	
-	NodeDAO mockNodeDAO;
-	UserManager mockUserManager;
-	FileHandleDao mockFileHandleDao;
-	EvaluationDAO mockEvaluationDAO;
-	
-	
+
+	private AccessRequirementDAO  mockAccessRequirementDAO;
+	private AccessApprovalDAO mockAccessApprovalDAO;
+	private ActivityDAO mockActivityDAO;
+	private UserGroupDAO mockUserGroupDAO;
+	private FileHandleDao mockFileHandleDao;
+	private EvaluationDAO mockEvaluationDAO;
+	private UserManager mockUserManager;
+	private EntityPermissionsManager mockEntityPermissionsManager;
+
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
 	private static String EVAL_ID = "1234567";
-	
-	private AuthorizationManagerImpl authorizationManager = null;
-	private UserInfo userInfo = null;
-	private UserInfo adminUser = null;
-	
-	private Evaluation evaluation = null;
-	
-	private UserGroup actTeam = null;
-	private UserGroupDAO mockUserGroupDAO = null;
+
+	private AuthorizationManagerImpl authorizationManager;
+	private UserInfo userInfo;
+	private UserInfo adminUser;
+	private Evaluation evaluation;
+	private UserGroup actTeam;
 
 	@Before
 	public void setUp() throws Exception {
-		mockNodeInheritanceDAO = mock(NodeInheritanceDAO.class);	
-		mockAccessControlListDAO = mock(AccessControlListDAO.class);	
+
 		mockAccessRequirementDAO = mock(AccessRequirementDAO.class);
 		mockAccessApprovalDAO = mock(AccessApprovalDAO.class);
 		mockActivityDAO = mock(ActivityDAO.class);
-		mockNodeQueryDao = mock(NodeQueryDao.class);	
-		mockNodeDAO = mock(NodeDAO.class);
 		mockUserManager = mock(UserManager.class);
-		mockEvaluationManager = mock(EvaluationManager.class);
+		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
 		mockFileHandleDao = mock(FileHandleDao.class);
 		mockEvaluationDAO = mock(EvaluationDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		
-		authorizationManager = new AuthorizationManagerImpl(
-				mockNodeInheritanceDAO, mockAccessControlListDAO,
-				mockAccessRequirementDAO, mockAccessApprovalDAO, 
-				mockActivityDAO, mockNodeQueryDao,
-				mockNodeDAO, mockUserManager, mockFileHandleDao,
-				mockEvaluationDAO, mockUserGroupDAO);
-		
+
+		authorizationManager = new AuthorizationManagerImpl();
+		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
+		ReflectionTestUtils.setField(authorizationManager, "accessApprovalDAO", mockAccessApprovalDAO);
+		ReflectionTestUtils.setField(authorizationManager, "activityDAO", mockActivityDAO);
+		ReflectionTestUtils.setField(authorizationManager, "userManager", mockUserManager);
+		ReflectionTestUtils.setField(authorizationManager, "entityPermissionsManager", mockEntityPermissionsManager);
+		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
+		ReflectionTestUtils.setField(authorizationManager, "evaluationDAO", mockEvaluationDAO);
+		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
+
 		actTeam = new UserGroup();
 		actTeam.setId("101");
 		actTeam.setIsIndividual(false);
@@ -115,16 +104,12 @@ public class AuthorizationManagerImplUnitTest {
 		UserGroup adminInfoGroup = new UserGroup();
 		adminInfoGroup.setId("456");
 		adminUser.setIndividualGroup(adminInfoGroup);	
-		
-		Node mockNode = mock(Node.class);
-		when(mockNode.getCreatedByPrincipalId()).thenReturn(-1l);
-		when(mockNodeDAO.getNode(any(String.class))).thenReturn(mockNode);
-		
+
 		evaluation = new Evaluation();
 		evaluation.setId(EVAL_ID);
 		evaluation.setOwnerId(EVAL_OWNER_PRINCIPAL_ID);
 		when(mockEvaluationDAO.get(EVAL_ID)).thenReturn(evaluation);
-		
+
 		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
 		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
 		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
@@ -146,8 +131,7 @@ public class AuthorizationManagerImplUnitTest {
 		results.setTotalNumberOfResults(total);
 		return results;
 	}
-	
-	
+
 	@Test
 	public void testCanAccessActivityPagination() throws Exception {		 
 		Activity act = new Activity();
@@ -165,7 +149,7 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+limit)).thenReturn(results2);		
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+(2*limit))).thenReturn(results3);
-		
+
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId);
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset+limit);
@@ -185,12 +169,12 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockActivityDAO.get(actId)).thenReturn(act);
 		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
-		
+
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId);
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
 		assertFalse(canAccess);
 	}
-	
+
 	@Test
 	public void testCanAccessRawFileHandleByCreator(){
 		// The admin can access anything
@@ -201,7 +185,7 @@ public class AuthorizationManagerImplUnitTest {
 		creator = adminUser.getIndividualGroup().getId();
 		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleByCreator(userInfo, creator));
 	}
-	
+
 	@Test
 	public void testCanAccessRawFileHandleById() throws NotFoundException{
 		// The admin can access anything
@@ -217,26 +201,25 @@ public class AuthorizationManagerImplUnitTest {
 		notTheCreatoro.setIndividualGroup(userInfoGroup);
 		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId));
 	}
-	
-	@Test
-	public void testCanAccessWithObjectTypeAdmin() throws DatastoreException, NotFoundException{
-		// Admin can always access
-		assertTrue("An admin can access any entity",authorizationManager.canAccess(adminUser, "syn123", ObjectType.ENTITY, ACCESS_TYPE.DELETE));
-	}
-	
+
 	@Test
 	public void testCanAccessWithObjectTypeEntityAllow() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		// Setup to allow.
-		when(mockAccessControlListDAO.canAccess(any(Collection.class), any(String.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(true);
 		assertTrue("User should have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 	}
+
 	@Test
 	public void testCanAccessWithObjectTypeEntityDeny() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		// Setup to deny.
-		when(mockAccessControlListDAO.canAccess(any(Collection.class), any(String.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(false);
 		assertFalse("User should not have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
+	}
+
+	@Test(expected=EntityInTrashCanException.class)
+	public void testCanAccessWithTrashCanException() throws DatastoreException, NotFoundException{
+		when(mockEntityPermissionsManager.hasAccess(eq("syn123"), any(ACCESS_TYPE.class), eq(userInfo))).thenThrow(new EntityInTrashCanException(""));
+		authorizationManager.canAccess(userInfo, "syn123", ObjectType.ENTITY, ACCESS_TYPE.READ);
 	}
 
 	@Test
@@ -278,26 +261,24 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_editAccess() throws Exception {
 		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
-		when(mockNodeInheritanceDAO.getBenefactor("101")).thenReturn("101");
-		when(mockAccessControlListDAO.canAccess(eq(userInfo.getGroups()), eq("101"), any(ACCESS_TYPE.class))).thenReturn(true);
+		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(true);
 		assertTrue(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
 	}
 
 	@Test
 	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_none() throws Exception {
 		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
-		when(mockNodeInheritanceDAO.getBenefactor("101")).thenReturn("101");
-		when(mockAccessControlListDAO.canAccess(eq(userInfo.getGroups()), eq("101"), any(ACCESS_TYPE.class))).thenReturn(false);
+		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(false);
 		assertFalse(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
 	}
-	
+
 	private static RestrictableObjectDescriptor createEntitySubjectId() {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId("101");
 		return subjectId;
 	}
-	
+
 	private AccessRequirement createEntityAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{createEntitySubjectId()}));
@@ -305,7 +286,7 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockAccessRequirementDAO.get(ar.getId().toString())).thenReturn(ar);
 		return ar;
 	}
-	
+
 	private AccessApproval createEntityAccessApproval() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
@@ -322,7 +303,7 @@ public class AuthorizationManagerImplUnitTest {
 		subjectId.setId(EVAL_ID);
 		return subjectId;
 	}
-	
+
 	private AccessRequirement createEvaluationAccessRequirement() throws Exception {
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{createEvaluationSubjectId()}));
@@ -330,7 +311,7 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockAccessRequirementDAO.get(ar.getId().toString())).thenReturn(ar);
 		return ar;
 	}
-	
+
 	private AccessApproval createEvaluationAccessApproval() throws Exception {
 		AccessRequirement ar = createEvaluationAccessRequirement();
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
@@ -348,7 +329,7 @@ public class AuthorizationManagerImplUnitTest {
 		userInfo.getGroups().add(actTeam);
 		assertTrue(authorizationManager.canAccess(userInfo, "1234", ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 	}
-	
+
 	@Test
 	public void testCanAccessEvaluationAccessRequirement() throws Exception {
 		AccessRequirement ar = createEvaluationAccessRequirement();
@@ -356,7 +337,7 @@ public class AuthorizationManagerImplUnitTest {
 		userInfo.getIndividualGroup().setId(EVAL_OWNER_PRINCIPAL_ID);
 		assertTrue(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 	}
-	
+
 	@Test
 	public void testCanAccessEntityAccessApproval() throws Exception {
 		AccessApproval aa = createEntityAccessApproval();
@@ -364,7 +345,7 @@ public class AuthorizationManagerImplUnitTest {
 		userInfo.getGroups().add(actTeam);
 		assertTrue(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
 	}
-	
+
 	@Test
 	public void testCanAccessEvaluationAccessApproval() throws Exception {
 		AccessApproval aa = createEvaluationAccessApproval();
@@ -372,7 +353,7 @@ public class AuthorizationManagerImplUnitTest {
 		userInfo.getIndividualGroup().setId(EVAL_OWNER_PRINCIPAL_ID);
 		assertTrue(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
 	}
-	
+
 	@Test
 	public void testCanCreateEntityAccessRequirement() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
@@ -382,25 +363,21 @@ public class AuthorizationManagerImplUnitTest {
 		userInfo.getGroups().remove(actTeam);
 		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar));
 		// give user edit ability on entity 101
-		when(mockNodeInheritanceDAO.getBenefactor("101")).thenReturn("101");
-		when(mockAccessControlListDAO.canAccess(eq(userInfo.getGroups()), eq("101"), any(ACCESS_TYPE.class))).thenReturn(true);		
+		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(true);
 		assertTrue(authorizationManager.canCreateAccessRequirement(userInfo, ar));
 	}
-	
+
 	@Test
 	public void testCanAccessEntityAccessApprovalsForSubject() throws Exception {
-		AccessApproval aa = createEntityAccessApproval();
 		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ));
 		userInfo.getGroups().add(actTeam);
 		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ));
 	}
-	
+
 	@Test
 	public void testCanAccessEvaluationAccessApprovalsForSubject() throws Exception {
-		AccessApproval aa = createEvaluationAccessApproval();
 		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
 		userInfo.getIndividualGroup().setId(EVAL_OWNER_PRINCIPAL_ID);
 		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
 	}
-	
 }

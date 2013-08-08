@@ -42,7 +42,7 @@ public class ITCreationLoadTest {
 	private void deleteIds() throws Exception {
 		if (idsToDelete==null) return;
 		for (String id : idsToDelete) {
-			synapse.deleteEntityById(id);
+			synapse.deleteAndPurgeEntityById(id);
 		}
 		idsToDelete.clear();
 	}
