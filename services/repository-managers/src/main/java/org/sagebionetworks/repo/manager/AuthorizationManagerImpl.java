@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_AND_COMPLIANCE_TEAM_NAME;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
@@ -13,16 +12,12 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestricableODUtil;
@@ -30,24 +25,17 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
-	
-	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDAO;	
-	@Autowired
-	private AccessControlListDAO accessControlListDAO;	
+
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
@@ -55,76 +43,42 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private ActivityDAO activityDAO;
 	@Autowired
-	private NodeQueryDao nodeQueryDao;	
-	@Autowired
-	private NodeDAO nodeDAO;
-	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
+	private EntityPermissionsManager entityPermissionsManager;
+	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
-	public AuthorizationManagerImpl() {}
-	
-	/**
-	 * For testing only
-	 */
-	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
-			AccessControlListDAO accessControlListDAO,
-			AccessRequirementDAO accessRequirementDAO, 
-			AccessApprovalDAO accessApprovalDAO, 
-			ActivityDAO activityDAO,
-			NodeQueryDao nodeQueryDao, 
-			NodeDAO nodeDAO, 
-			UserManager userManager, 
-			FileHandleDao fileHandleDao, 
-			EvaluationDAO evaluationDAO,
-			UserGroupDAO userGroupDAO) {
-		super();
-		this.nodeInheritanceDAO = nodeInheritanceDAO;
-		this.accessControlListDAO = accessControlListDAO;
-		this.accessRequirementDAO = accessRequirementDAO;
-		this.accessApprovalDAO = accessApprovalDAO;
-		this.activityDAO = activityDAO;
-		this.nodeQueryDao = nodeQueryDao;
-		this.nodeDAO = nodeDAO;
-		this.userManager = userManager;
-		this.fileHandleDao = fileHandleDao;
-		this.evaluationDAO = evaluationDAO;
-		this.userGroupDAO = userGroupDAO;
-	}
-
 	@Override
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
-		// admins can do anything
-		if (userInfo.isAdmin()) {
-			return true;
-		}		
+
 		// anonymous can at most READ
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
 			if (accessType != ACCESS_TYPE.READ) return false;
 		}
-		
+
 		switch (objectType) {
-			case ENTITY:				
-				if (accessType == ACCESS_TYPE.DOWNLOAD) {
-					return canDownload(userInfo, objectId);
-				}
-				// refer to ACL
-				String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(objectId);
-				return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
+			case ENTITY:
+				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
 			case ACCESS_REQUIREMENT:
+				if (userInfo.isAdmin()) {
+					return true;
+				}
 				AccessRequirement accessRequirement = accessRequirementDAO.get(objectId);
 				return canAdminAccessRequirement(userInfo, accessRequirement);
 			case ACCESS_APPROVAL:
+				if (userInfo.isAdmin()) {
+					return true;
+				}
 				AccessApproval accessApproval = accessApprovalDAO.get(objectId);
 				return canAdminAccessApproval(userInfo, accessApproval);
 			default:
@@ -145,71 +99,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
-		String parentId = node.getParentId();
-		if (parentId==null && !userInfo.isAdmin()) return false; // if not an admin, can't do it!
-		return canAccess(userInfo, parentId, ACCESS_TYPE.CREATE);
-	}
-
-	private boolean canDownload(UserInfo userInfo, final String nodeId) throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return true;
-		if (!agreesToTermsOfUse(userInfo)) return false;
-		
-		// if there are any unmet access requirements return false
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(nodeId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<Long> accessRequirementIds = 
-			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, nodeDAO, accessRequirementDAO);
-		return accessRequirementIds.isEmpty();
-	}
-
-	/**
-	 * @param n the number of items in the group-id list
-	 * 
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	@Override
-	public String authorizationSQL(int n) {
-			return AuthorizationSqlUtil.authorizationSQL(n);
-	}
-	
-	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
-		User user = userInfo.getUser();
-		if (user==null) return false;
-		// can't agree if you are anonymous
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(user.getUserId())) return false;
-		return user.isAgreesToTermsOfUse();
-	}
-
-	@Override
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId)
-			throws NotFoundException, DatastoreException {
-
-		final String benefactor = nodeInheritanceDAO.getBenefactor(entityId);
-		UserEntityPermissions permissions = new UserEntityPermissions();
-		permissions.setCanAddChild(canAccess(userInfo, benefactor, ACCESS_TYPE.CREATE));
-		permissions.setCanChangePermissions(canAccess(userInfo, benefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		permissions.setCanDelete(canAccess(userInfo, benefactor, ACCESS_TYPE.DELETE));
-		permissions.setCanEdit(canAccess(userInfo, benefactor, ACCESS_TYPE.UPDATE));
-		permissions.setCanView(canAccess(userInfo, benefactor, ACCESS_TYPE.READ));
-		permissions.setCanDownload(canDownload(userInfo, entityId));
-
-		Node node = nodeDAO.getNode(entityId);
-		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
-
-		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		permissions.setCanPublicRead(canAccess(anonymousUser, benefactor, ACCESS_TYPE.READ));
-
-		final boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
-			permissions.setCanEnableInheritance(!parentIsRoot);
-		} else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
-			permissions.setCanEnableInheritance(false);
-		} else {
-			permissions.setCanEnableInheritance(!parentIsRoot && permissions.getCanChangePermissions());
+			return true;
 		}
-		return permissions;
+		String parentId = node.getParentId();
+		if (parentId == null) {
+			return false;
+		}
+		return canAccess(userInfo, parentId, ACCESS_TYPE.CREATE);
 	}
 
 	@Override

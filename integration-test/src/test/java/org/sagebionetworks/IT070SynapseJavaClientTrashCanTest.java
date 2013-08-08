@@ -11,9 +11,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -60,12 +58,12 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(adminSession.getSessionToken());
 
 		parent = new Project();
-		parent.setName("IT530SynapseJavaClientTrashCanTest.parent");
+		parent.setName("IT070SynapseJavaClientTrashCanTest.parent");
 		parent = synapse.createEntity(parent);
 		assertNotNull(parent);
 
 		child = new Study();
-		child.setName("IT530SynapseJavaClientTrashCanTest.child");
+		child.setName("IT070SynapseJavaClientTrashCanTest.child");
 		child.setParentId(parent.getId());
 		child = synapse.createEntity(child);
 		assertNotNull(child);
@@ -74,10 +72,10 @@ public class IT070SynapseJavaClientTrashCanTest {
 	@After
 	public void after() throws SynapseException {
 		if (child != null) {
-			synapse.deleteEntityById(child.getId());
+			synapse.deleteAndPurgeEntityById(child.getId());
 		}
 		if (parent != null) {
-			synapse.deleteEntityById(parent.getId());
+			synapse.deleteAndPurgeEntityById(parent.getId());
 		}
 	}
 
@@ -87,18 +85,16 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.moveToTrash(parent.getId());
 		try {
 			synapse.getEntityById(parent.getId());
-		} catch (SynapseUnauthorizedException e) {
-			assertTrue(true);
-		} catch (SynapseForbiddenException e) {
+			fail();
+		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Exception e) {
 			fail();
 		}
 		try {
 			synapse.getEntityById(child.getId());
-		} catch (SynapseUnauthorizedException e) {
-			assertTrue(true);
-		} catch (SynapseForbiddenException e) {
+			fail();
+		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Exception e) {
 			fail();
@@ -125,6 +121,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.purgeTrashForUser(child.getId());
 		try {
 			synapse.getEntityById(child.getId());
+			fail();
 		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Throwable e) {
@@ -137,6 +134,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.purgeTrashForUser(parent.getId());
 		try {
 			synapse.getEntityById(parent.getId());
+			fail();
 		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Throwable e) {
@@ -156,6 +154,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapse.purgeTrashForUser();
 		try {
 			synapse.getEntityById(child.getId());
+			fail();
 		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Throwable e) {
@@ -163,6 +162,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		}
 		try {
 			synapse.getEntityById(parent.getId());
+			fail();
 		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Throwable e) {
@@ -178,6 +178,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 	@Test
 	public void testAdmin() throws SynapseException {
+		synapseAdmin.purgeTrash();
 		synapse.moveToTrash(parent.getId());
 		PaginatedResults<TrashedEntity> results = synapseAdmin.viewTrash(0L, Long.MAX_VALUE);
 		assertNotNull(results);
@@ -186,6 +187,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		synapseAdmin.purgeTrash();
 		try {
 			synapse.getEntityById(child.getId());
+			fail();
 		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Throwable e) {
@@ -193,6 +195,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		}
 		try {
 			synapse.getEntityById(parent.getId());
+			fail();
 		} catch (SynapseNotFoundException e) {
 			assertTrue(true);
 		} catch (Throwable e) {

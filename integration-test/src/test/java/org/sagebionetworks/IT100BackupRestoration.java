@@ -63,7 +63,7 @@ public class IT100BackupRestoration {
 	public void after() throws Exception {
 		if(synapse != null && toDelete != null){
 			for(Entity e: toDelete){
-				synapse.deleteEntity(e);
+				synapse.deleteAndPurgeEntity(e);
 			}
 		}
 	}
