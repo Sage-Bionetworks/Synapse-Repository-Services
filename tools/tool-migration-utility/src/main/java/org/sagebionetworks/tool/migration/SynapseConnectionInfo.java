@@ -15,8 +15,8 @@ public class SynapseConnectionInfo {
 	 * @param adminPassword
 	 */
 	public SynapseConnectionInfo(String authenticationEndPoint,
-			String repositoryEndPoint, String adminUsername,
-			String adminPassword,
+			String repositoryEndPoint,
+			String APIKey,
 			// remove after 0.12->0.13 migration
 			String stackIamId,
 			String stackIamKey,
@@ -27,8 +27,7 @@ public class SynapseConnectionInfo {
 		super();
 		this.authenticationEndPoint = authenticationEndPoint;
 		this.repositoryEndPoint = repositoryEndPoint;
-		this.adminUsername = adminUsername;
-		this.adminPassword = adminPassword;
+		this.APIKey = APIKey;
 		
 		// remove after 0.12->0.13 migration
 		this.stackIamId = stackIamId;
@@ -40,8 +39,8 @@ public class SynapseConnectionInfo {
 	
 	private String authenticationEndPoint;
 	private String repositoryEndPoint;
-	private String adminUsername;
-	private String adminPassword;
+	
+	private String APIKey;
 	
 	// remove after 0.12->0.13 migration
 	private String stackIamId;
@@ -56,12 +55,6 @@ public class SynapseConnectionInfo {
 	}
 	public String getRepositoryEndPoint() {
 		return repositoryEndPoint;
-	}
-	public String getAdminUsername() {
-		return adminUsername;
-	}
-	public String getAdminPassword() {
-		return adminPassword;
 	}
 	public String getStackIamId() {
 		return stackIamId;
@@ -78,12 +71,14 @@ public class SynapseConnectionInfo {
 	public String getCrowdApplicationKey() {
 		return crowdApplicationKey;
 	}
+	public String getApiKey() {
+		return APIKey;
+	}
 	@Override
 	public String toString() {
 		return "SynapseConnectionInfo [authenticationEndPoint="
 				+ authenticationEndPoint + ", repositoryEndPoint="
-				+ repositoryEndPoint + ", adminUsername=" + adminUsername
-				+ ", adminPassword=" + adminPassword + ", stackIamId="
+				+ repositoryEndPoint + ", stackIamId="
 				+ stackIamId + ", stackIamKey=" + stackIamKey
 				+ ", sharedS3BackupBucket=" + sharedS3BackupBucket
 				+ ", crowdEndpoint=" + crowdEndpoint + ", crowdApplicationKey="

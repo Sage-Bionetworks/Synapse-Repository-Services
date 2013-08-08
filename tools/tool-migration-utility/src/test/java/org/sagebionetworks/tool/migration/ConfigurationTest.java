@@ -30,16 +30,14 @@ public class ConfigurationTest {
 		assertNotNull(info);
 		assertEquals("sourceAuth", info.getAuthenticationEndPoint());
 		assertEquals("sourceRepo", info.getRepositoryEndPoint());
-		assertEquals("sourceUser", info.getAdminUsername());
-		assertEquals("sourcePassword", info.getAdminPassword());
+		assertEquals("abcde12345fghij", info.getApiKey());
 		
 		// Test the destination
 		info = configuration.getDestinationConnectionInfo();
 		assertNotNull(info);
 		assertEquals("destAuth", info.getAuthenticationEndPoint());
 		assertEquals("destRepo", info.getRepositoryEndPoint());
-		assertEquals("destUser", info.getAdminUsername());
-		assertEquals("destPassword", info.getAdminPassword());
+		assertEquals("abcde12345fghij", info.getApiKey());
 	}
 	
 	@Test
