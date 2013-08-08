@@ -199,7 +199,7 @@ public class MigrationClient {
 					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
 				}
 			}
-		} catch (DaemonFailedException e) {
+		} catch (Exception e) {
 			insUpdException = e;
 			log.info("Exception thrown during insert/update phases", e);
 		}
