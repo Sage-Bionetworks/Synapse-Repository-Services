@@ -66,7 +66,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 
-		trashCanId = nodeDAO.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
+		trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		assertNotNull(trashCanId);
 		Node trashFolder = nodeDAO.getNode(trashCanId);
 		assertNotNull(trashFolder);
