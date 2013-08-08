@@ -1,5 +1,5 @@
 {
-	"description": "Audit data captured for an HTTP request.",
+	"description": "Data recored from a single web-services methods.",
 	"properties": {
 		"userId": {
 			"type": "integer",
@@ -22,10 +22,6 @@
 		"elapseMS": {
 			"type": "integer",
 			"description": "The elapse time in MS for the call"
-		},
-		"status": {
-			"type": "integer",
-			"description": "The HTTP response status"
 		},
 		"errorMessage": {
 			"type": "string",

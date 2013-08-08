@@ -10,10 +10,16 @@
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
-
+	<import resource="classpath:managers-spb.xml" />
+	
 	<!--This bean will intercept all HTTP calls and check the status -->
 	<bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
+	
+	<!-- The recorder saves access records to the database.  -->
+	<bean id="accessRecorder" class="org.sagebionetworks.repo.web.DatabaseAccessRecorder" />
+	<!-- This bean will intercept all HTTP calls and records access records  -->
 	<bean id="accessInterceptor" class="org.sagebionetworks.repo.web.AccessInterceptor" />
+	
 	<!-- To enable @RequestMapping process on type level and method level -->
 	<bean
 		class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
