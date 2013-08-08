@@ -66,7 +66,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 
-		trashCanId = nodeDAO.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
+		trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		assertNotNull(trashCanId);
 		Node trashFolder = nodeDAO.getNode(trashCanId);
 		assertNotNull(trashFolder);
@@ -746,10 +746,9 @@ public class TrashManagerImplAutowiredTest {
 				nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
 			} catch (NotFoundException e) {}
 		}
-		String userGroupId = testUserInfo.getIndividualGroup().getId();
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
 		for (TrashedEntity trash : trashList) {
-			trashCanDao.delete(userGroupId, trash.getEntityId());
+			trashCanDao.delete(trash.getDeletedByPrincipalId(), trash.getEntityId());
 		}
 		List<String> children = nodeDAO.getChildrenIdsAsList(trashCanId);
 		for (String child : children) {
