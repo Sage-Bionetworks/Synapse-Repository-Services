@@ -23,9 +23,9 @@
 			"type": "integer",
 			"description": "The elapse time in MS for the call"
 		},
-		"errorMessage": {
-			"type": "string",
-			"description": "If an error message is set on response then the message will be here.  Otherwise it will be null."
+		"success": {
+			"type": "boolean",
+			"description": "Did the call complete without an error?"
 		}
 	}
 }
