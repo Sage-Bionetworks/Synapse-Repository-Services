@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -486,5 +487,24 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		return serviceProvider.getEvaluationService().getUserPermissionsForEvaluation(userId, evalId);
+	}
+	
+	/**
+	 * Execute a user-defined query over the Submissions of a specific Evaluation.
+	 * 
+	 * @throws JSONObjectAdapterException
+	 * @throws ParseException 
+	 * @throws  
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
+	public @ResponseBody 
+	QueryTableResults query(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, ParseException, 
+			JSONObjectAdapterException {
+		return serviceProvider.getEvaluationService().query(query, userId);
 	}
 }

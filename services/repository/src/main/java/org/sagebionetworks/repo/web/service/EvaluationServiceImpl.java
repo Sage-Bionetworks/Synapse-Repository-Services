@@ -16,7 +16,6 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -31,9 +30,14 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.QueryDAO;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -50,11 +54,11 @@ public class EvaluationServiceImpl implements EvaluationService {
 	@Autowired
 	private SubmissionManager submissionManager;
 	@Autowired
-	private EntityPermissionsManager entityPermissionsManager; // TODO: To be replaced by evaluationPermissionsManager
-	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private QueryDAO queryDAO;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -388,6 +392,18 @@ public class EvaluationServiceImpl implements EvaluationService {
 			DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		return evaluationPermissionsManager.getUserPermissionsForEvaluation(userInfo, evalId);
+	}
+	
+	@Override
+	public QueryTableResults query(String userQuery, String userName) 
+			throws DatastoreException, NotFoundException, JSONObjectAdapterException,
+			ParseException {
+		// Parse and validate the query
+		QueryStatement stmt = new QueryStatement(userQuery);
+		// Convert from a query statement to a basic query
+		BasicQuery basicQuery = QueryTranslator.createBasicQuery(stmt);
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return queryDAO.executeQuery(basicQuery, userInfo);
 	}
 	
 	/**

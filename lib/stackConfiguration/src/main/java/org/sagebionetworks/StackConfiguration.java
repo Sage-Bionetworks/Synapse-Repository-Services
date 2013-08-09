@@ -682,6 +682,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The name of the AWS SQS where file updates are pushed.
+	 * @return
+	 */
+	public String getAnnotationsUpdateQueueName(){
+		return String.format(StackConstants.ANNOTATIONS_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
+
+	
+	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a multi-part upload
 	 * this value cannot be less 5 MB.  Currently defaults to 5 MB.

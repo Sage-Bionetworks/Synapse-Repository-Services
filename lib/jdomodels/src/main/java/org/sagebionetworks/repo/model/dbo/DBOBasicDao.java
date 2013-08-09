@@ -16,7 +16,7 @@ public interface DBOBasicDao {
 	
 
 	/**
-	 * Create a new Databaes object.
+	 * Create a new Database object.
 	 * @param <T>
 	 * @param toCreate
 	 * @return

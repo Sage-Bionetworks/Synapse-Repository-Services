@@ -27,8 +27,7 @@
 			"type": "number",
 			"description": "The score for this Submission.",
 			"transient": true
-		}
-		,
+		},
 		"report": {
 			"type": "string",
 			"description": "A textual report describing this Submission. May contain additional scoring information, error logs, etc.",
@@ -39,6 +38,15 @@
 			"description": "Annotations on this Submission.",
 			"name": "Annotations",
 			"$ref": "org.sagebionetworks.repo.model.annotation.Annotations"
-		}
+		},
+		"entityId": {
+			"type": "string",
+			"description": "The Synapse ID of the Entity in this Submission.",
+			"transient": true
+		},
+		"versionNumber":{
+            "type":"integer",
+            "description":"The version number of the Entity."            
+        }
 	}
 }

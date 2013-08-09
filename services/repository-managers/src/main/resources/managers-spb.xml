@@ -283,7 +283,10 @@
 	</bean>
 
 	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
-		scope="singleton" />
+		scope="singleton" />		
+		
+	<bean id="subStatusAnnoAsyncManager"
+		class="org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"

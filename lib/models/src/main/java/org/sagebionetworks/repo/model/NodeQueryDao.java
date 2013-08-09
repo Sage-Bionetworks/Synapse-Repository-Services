@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.query.BasicQuery;
 
 /**

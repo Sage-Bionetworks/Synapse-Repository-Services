@@ -557,6 +557,8 @@ public class UrlHelpers {
 	public static final String EVALUATION_ACL = EVALUATION + ACL;
 	public static final String EVALUATION_ID_ACL = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + ACL;
 	public static final String EVALUATION_ID_PERMISSIONS = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + PERMISSIONS;
+	
+	public static final String EVALUATION_QUERY = SUBMISSION + QUERY;
 
 	// Wiki URL
 	public static final String WIKI = "/wiki";

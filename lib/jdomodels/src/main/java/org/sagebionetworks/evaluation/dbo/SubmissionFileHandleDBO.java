@@ -2,10 +2,10 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBFILE_FILE_HANDLE_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBFILE_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBFILE_FILE_HANDLE_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBFILE_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBFILE;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBFILE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBFILE_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBFILE_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBFILE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBFILE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
