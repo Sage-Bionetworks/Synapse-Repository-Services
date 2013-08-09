@@ -812,7 +812,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process RDS index data
+	 * The maximum number of workers in the cluster that will process RDS index data
 	 * @return
 	 */
 	public Long getSemaphoreGatedLockTimeoutMS(){
@@ -820,7 +820,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process RDS index data
+	 * The maximum number of workers in the cluster that will process RDS index data
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersRds(){
@@ -828,7 +828,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process search index data
+	 * The maximum number of workers in the cluster that will process search index data
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersSearch(){
@@ -836,7 +836,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process file previews
+	 * The maximum number of workers in the cluster that will process file previews
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersFilePreview(){
@@ -844,7 +844,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process Dynamo index data
+	 * The maximum number of workers in the cluster that will process Dynamo index data
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersDynamoIndex(){
@@ -852,11 +852,19 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * The maxiumn number of worker in the cluster that will synchronize Dynamo with RDS
+	 * The maximum number of workers in the cluster that will synchronize Dynamo with RDS
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersDynamoSynchronize(){
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
+	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will process Annotations
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersAnnotations(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.annotations"));
 	}
 		
 	/**

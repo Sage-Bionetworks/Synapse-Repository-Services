@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -117,7 +117,7 @@ public class SubmissionStatusDAOImplTest {
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);
         status.setScore(0.1);
-        status.setAnnotations(AnnotationsUtils.createDummyAnnotations());
+        status.setAnnotations(TestUtils.createDummyAnnotations());
         long initialCount = submissionStatusDAO.getCount();
         
         // Create it

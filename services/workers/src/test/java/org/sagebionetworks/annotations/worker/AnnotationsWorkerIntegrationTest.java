@@ -3,7 +3,10 @@ package org.sagebionetworks.annotations.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,8 +28,9 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
-import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,7 +43,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AnnotationsIntegrationTest {
+public class AnnotationsWorkerIntegrationTest {
 
 	public static final long MAX_WAIT = 30*1000; // 30 seconds	
 	
@@ -123,7 +127,7 @@ public class AnnotationsIntegrationTest {
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);
         status.setScore(0.1);
-        status.setAnnotations(AnnotationsUtils.createDummyAnnotations());
+        status.setAnnotations(createDummyAnnotations());
         submissionStatusDAO.create(status);
 	}
 	
@@ -189,5 +193,47 @@ public class AnnotationsIntegrationTest {
 			assertTrue("Timed out waiting for Annotations to be deleted", elapse < MAX_WAIT);
 			annos = annotationsDAO.getAnnotationsFromBlob(submissionIdLong);
 		}		
+	}
+	
+	/**
+	 * Create a populated Annotations object.
+	 * 
+	 * @return
+	 */
+	public static Annotations createDummyAnnotations() {
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("string anno");
+		sa.setValue("foo ");
+		stringAnnos.add(sa);
+		
+		StringAnnotation sa2 = new StringAnnotation();
+		sa2.setIsPrivate(false);
+		sa2.setKey("string anno_null");
+		sa2.setValue(null);
+		stringAnnos.add(sa2);
+		
+		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
+		LongAnnotation la = new LongAnnotation();
+		la.setIsPrivate(true);
+		la.setKey("long anno");
+		la.setValue(10L);
+		longAnnos.add(la);
+		
+		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+		DoubleAnnotation da = new DoubleAnnotation();
+		da.setIsPrivate(false);
+		da.setKey("double anno");
+		da.setValue(0.5);
+		doubleAnnos.add(da);
+		
+		Annotations annos = new Annotations();
+		annos.setStringAnnos(stringAnnos);
+		annos.setLongAnnos(longAnnos);
+		annos.setDoubleAnnos(doubleAnnos);
+		annos.setObjectId("1");
+		annos.setScopeId("2");
+		return annos;
 	}
 }
