@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -57,8 +58,16 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 					}
 					// This message was processed.
 					processedMessages.add(message);
-				} catch(NotFoundException e) {
+				} catch (NotFoundException e) {
 					log.info("NotFound: "+e.getMessage()+". The message will be returend as processed and removed from the queue");
+					// If a Submission does not exist anymore then we want the message to be deleted from the queue
+					processedMessages.add(message);
+				} catch (JSONObjectAdapterException e) {
+					log.info("Parse error: "+e.getMessage()+". The message will be returend as processed and removed from the queue");
+					// If a Submission does not exist anymore then we want the message to be deleted from the queue
+					processedMessages.add(message);
+				} catch (IllegalArgumentException e) {
+					log.info("Processing error: "+e.getMessage()+". The message will be returend as processed and removed from the queue");
 					// If a Submission does not exist anymore then we want the message to be deleted from the queue
 					processedMessages.add(message);
 				} catch (Throwable e) {
