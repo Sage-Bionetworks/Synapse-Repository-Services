@@ -80,7 +80,7 @@ public class AccessInterceptorTest {
 		assertNotNull(result);
 		assertTrue(result.getTimestamp() >= start);
 		assertTrue(result.getElapseMS() > 99);
-		assertEquals(null, result.getErrorMessage());
+		assertTrue(result.getSuccess());
 		assertEquals("/entity/syn789", result.getRequestURL());
 		assertEquals(Method.DELETE, result.getMethod());
 	}
@@ -103,7 +103,6 @@ public class AccessInterceptorTest {
 		assertNotNull(result);
 		assertTrue(result.getTimestamp() >= start);
 		assertTrue(result.getElapseMS() > 99);
-		assertNotNull(result.getErrorMessage());
-		assertTrue(result.getErrorMessage().indexOf(error) > 0);
+		assertFalse(result.getSuccess());
 	}
 }

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -80,13 +78,8 @@ public class AccessInterceptor implements HandlerInterceptor {
 		if(data == null) throw new IllegalStateException("Failed to get the access record for this thread: "+Thread.currentThread().getId());
 		// Calculate the elapse time
 		data.setElapseMS(System.currentTimeMillis()-data.getTimestamp());
-		// Record the exception if there is one.
-		if(exception != null){
-			StringWriter stringWriter = new StringWriter();
-			PrintWriter writer = new PrintWriter(stringWriter);
-			exception.printStackTrace(writer);
-			data.setErrorMessage(stringWriter.toString());
-		}
+		// If there is an exception then it failed.
+		data.setSuccess(exception == null);
 		// Save this record
 		accessRecorder.save(data);
 	}

@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -28,7 +27,7 @@ import au.com.bytecode.opencsv.CSVWriter;
  * @author jmhill
  * 
  */
-public class AccessRecordUtils {
+public class AccessRecordCSVUtils {
 
 	/**
 	 * Capture the schema once for use in this class.
@@ -227,77 +226,5 @@ public class AccessRecordUtils {
 
 	}
 
-	/**
-	 * This Comparator compares AccessRecord based on the time stamp.
-	 * 
-	 * @author jmhill
-	 * 
-	 */
-	public static class AccessRecordComparator implements
-			Comparator<AccessRecord> {
-		@Override
-		public int compare(AccessRecord one, AccessRecord two) {
-			if (one == null)
-				throw new IllegalArgumentException("One cannot be null");
-			if (one.getTimestamp() == null)
-				throw new IllegalArgumentException(
-						"One.timestamp cannot be null");
-			if (two == null)
-				throw new IllegalArgumentException("Two cannot be null");
-			if (two.getTimestamp() == null)
-				throw new IllegalArgumentException(
-						"Two.timestamp cannot be null");
-			return one.getTimestamp().compareTo(two.getTimestamp());
-		}
 
-	}
-
-	/**
-	 * Given a list of CSV files, each sorted on timeStamp, create an output
-	 * collated file. The resulting file will contain all row from all of the
-	 * input files and will be sorted by timeStamp.
-	 * 
-	 * Note: If the input file are not already sorted the resulting output file
-	 * will not be collated or sorted.
-	 * 
-	 * This method collates the files by comparing one row at a time from each
-	 * file. Only one row from each file is ever loaded into memory. Therefore,
-	 * file size does not impact on the memory requirements of this algorithm.
-	 * 
-	 * @param one
-	 *            - This file must already be sorted on timestamp.
-	 * @param two
-	 * @param out
-	 */
-	public static void collateSortedCSVFiles(List<Reader> input, Writer out) {
-		// Get an iterator from each file.
-		List<Iterator<AccessRecord>> iterators = new ArrayList<Iterator<AccessRecord>>();
-		for(Reader reader: input){
-			iterators.add(readFromCSV(reader));
-		}
-		// This will contain the current time stamps
-		AccessRecord[] current = new AccessRecord[iterators.size()];
-		// Prime the pump
-		for(int i=0; i<current.length; i++){
-			Iterator<AccessRecord> it = iterators.get(i);
-			if(it.hasNext()){
-				current[i] = it.next();
-			}else{
-				current[i] = null;
-			}
-		}
-	}
-
-	/**
-	 * Convert a stack trace into a string
-	 * 
-	 * @param e
-	 * @return
-	 */
-	public static String createStackTraceString(Exception e) {
-		StringWriter writer = new StringWriter();
-		PrintWriter pw = new PrintWriter(writer);
-		e.printStackTrace(pw);
-		return writer.toString();
-	}
 }

@@ -14,16 +14,14 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.Method;
 
-public class AccessRecordUtilsTest {
+public class AccessRecordCSVUtilsTest {
 	
 	List<AccessRecord> input;
-	String errorStringOne;
 	
 	@Before
 	public void before(){
 		// Build up a small stack trace
 		Exception error = new Exception(new RuntimeException(new IllegalArgumentException("Small error")));
-		errorStringOne = AccessRecordUtils.createStackTraceString(error);
 		
 		input  = new LinkedList<AccessRecord>();
 		// First one has a null elapse and error
@@ -60,13 +58,13 @@ public class AccessRecordUtilsTest {
 	public void testCSVRoundTrip() throws Exception{
 		// Write the input to a CSV
 		StringWriter writer = new StringWriter();
-		AccessRecordUtils.writeBatchToCSV(input, writer);
+		AccessRecordCSVUtils.writeBatchToCSV(input, writer);
 		String csv = writer.toString();
 		System.out.println(csv);
 		// Now back to a list
 		List<AccessRecord> results = new LinkedList<AccessRecord>();
 		StringReader reader = new StringReader(csv);
-		Iterator<AccessRecord> it =  AccessRecordUtils.readFromCSV(reader);
+		Iterator<AccessRecord> it =  AccessRecordCSVUtils.readFromCSV(reader);
 		assertNotNull(it);
 		while(it.hasNext()){
 			results.add(it.next());
