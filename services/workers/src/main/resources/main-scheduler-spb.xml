@@ -15,7 +15,8 @@
 	<import resource="classpath:dynamo-spb.xml" />
 	<import resource="classpath:rds-sqs-manager-spb.xml" />
 	<import resource="classpath:search-sqs-spb.xml" />
-	<import resource="classpath:file-sqs-spb.xml" />
+	<import resource="classpath:file-sqs-spb.xml" />	
+	<import resource="classpath:annotations-sqs-spb.xml" />
 	
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -27,6 +28,7 @@
 				<ref bean="rdsQueueMessageReveiverTrigger" />
 				<ref bean="searchQueueMessageReveiverTrigger" />
 				<ref bean="fileQueueMessageReveiverTrigger" />
+				<ref bean="annotationsQueueMessageReceiverTrigger" />
 			</list>
 		</property>
 	</bean>

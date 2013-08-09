@@ -18,5 +18,5 @@ public interface NodeQueryService {
 	 * Executes a query and includes the annotations for each entity.
 	 */
 	QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, UnauthorizedException;
+			throws DatastoreException, NotFoundException, UnauthorizedException, ParseException;
 }

@@ -56,4 +56,10 @@ public class StackConstants {
 	 */
 	public static final String FILE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue";
 
+
+	/**
+	 * Template used for the name of the AWS SQS where annotations updates are pushed.
+	 */
+	public static final String ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-annotations-update-queue";
+
 }

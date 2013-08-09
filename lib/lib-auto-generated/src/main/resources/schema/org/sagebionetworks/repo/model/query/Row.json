@@ -1,0 +1,14 @@
+{
+	"description": "A simple list of Strings to store query results about a single object.",
+	"name": "Row",
+	"properties": {
+		"values": {
+			"type": "array",
+			"description": "The ordered list of annotation values for this object.",
+			"uniqueItems": false,
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

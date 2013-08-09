@@ -3,11 +3,7 @@ package org.sagebionetworks.evaluation.dbo;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_PARTICIPANT_EVAL_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_EVAL_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_PARTICIPANT;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_PARTICIPANT;
+import static org.sagebionetworks.repo.model.query.SQLConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

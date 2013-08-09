@@ -1,7 +1,7 @@
 package org.sagebionetworks.evaluation.dbo;
 
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.repo.model.query.SQLConstants.*;
 
 import java.sql.Blob;
 import java.sql.ResultSet;

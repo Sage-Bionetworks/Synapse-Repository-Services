@@ -10,11 +10,11 @@ import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -223,10 +223,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(String id) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		basicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, param);
 	}
 
 	/**

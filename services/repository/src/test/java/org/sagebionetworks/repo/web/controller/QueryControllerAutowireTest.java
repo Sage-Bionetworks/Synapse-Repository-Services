@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -75,7 +76,7 @@ public class QueryControllerAutowireTest {
 	}
 	
 	@Test
-	public void testPLFM_1272() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException{
+	public void testPLFM_1272() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
 		// Create a project
 		Project p = new Project();
 		p.setEntityType(Project.class.getName());
@@ -103,7 +104,7 @@ public class QueryControllerAutowireTest {
 	}
 	
 	@Test
-	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException{
+	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException, JSONObjectAdapterException{
 		// Create a project
 		Project p = new Project();
 		p.setEntityType(Project.class.getName());

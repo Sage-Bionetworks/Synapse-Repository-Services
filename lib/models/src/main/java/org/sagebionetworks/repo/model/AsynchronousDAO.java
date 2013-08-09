@@ -32,4 +32,5 @@ public interface AsynchronousDAO {
 	 * @param id
 	 */
 	public boolean deleteEntity(String id);
+
 }

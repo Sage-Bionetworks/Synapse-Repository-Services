@@ -27,20 +27,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class NodeQueryServiceImpl implements NodeQueryService {
 
-	private static final String[] excludedDatasetProperties = {
+	private static final String[] EXCLUDED_DATASET_PROPERTIES = {
 			"uri", "etag", "annotations", "layer"
 		};
 
-	private static final String[] excludedLayerProperties = {
+	private static final String[] EXCLUDED_LAYER_PROPERTIES = {
 			"uri", "etag", "annotations", "preview", "locations"
 		};
 
-	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;
+	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;	
 	static {
 		Set<String> datasetProperties = new HashSet<String>();
-		datasetProperties.addAll(Arrays.asList(excludedDatasetProperties));
+		datasetProperties.addAll(Arrays.asList(EXCLUDED_DATASET_PROPERTIES));
 		Set<String> layerProperties = new HashSet<String>();
-		layerProperties.addAll(Arrays.asList(excludedLayerProperties));
+		layerProperties.addAll(Arrays.asList(EXCLUDED_LAYER_PROPERTIES));
 		Map<String, Set<String>> excludedProperties = new HashMap<String, Set<String>>();
 		excludedProperties.put("dataset", datasetProperties);
 		excludedProperties.put("layer", layerProperties);
@@ -49,7 +49,6 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 
 	@Autowired
 	private NodeQueryDao nodeQueryDao;
-
 	@Autowired
 	private UserManager userManager;
 
@@ -68,19 +67,16 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 
 	@Override
 	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-
+			throws DatastoreException, NotFoundException, UnauthorizedException, ParseException {
 		if (query == null) {
 			throw new IllegalArgumentException("Query cannot be null");
 		}
-
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
+		return new QueryResults(results.getAllSelectedData(), results.getTotalNumberOfResults());
 	}
 
 	private List<Map<String, Object>> formulateResult(QueryStatement stmt, List<Map<String, Object>> rows) {
-
 		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
 		for (Map<String, Object> row : rows) {
 			results.add(formulateResult(stmt, row));
@@ -90,7 +86,6 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 
 	private Map<String, Object> formulateResult(QueryStatement stmt,
 			Map<String, Object> fields) {
-
 		Map<String, Object> result = new HashMap<String, Object>();
 		for (String field : fields.keySet()) {
 			if (!EXCLUDED_PROPERTIES.get("dataset").contains(field)) {

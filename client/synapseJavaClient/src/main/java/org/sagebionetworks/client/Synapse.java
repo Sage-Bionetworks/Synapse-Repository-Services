@@ -92,6 +92,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -113,6 +114,7 @@ import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -198,7 +200,8 @@ public class Synapse implements SynapseInt {
 	protected static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
 	protected static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
 	protected static final String STATUS_SUFFIX = "?status=";
-	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
+	protected static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
+	protected static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -3759,7 +3762,12 @@ public class Synapse implements SynapseInt {
 	}
 	
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
-		if (status == null) throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		if (status == null) {
+			throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		}
+		if (status.getAnnotations() != null) {
+			AnnotationsUtils.validateAnnotations(status.getAnnotations());
+		}
 		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + STATUS;			
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		JSONObject obj;
@@ -3961,6 +3969,33 @@ public class Synapse implements SynapseInt {
 		return returnState;
 	}
 	
+	/**
+	 * Execute a user query over the Submissions of a specified Evaluation.
+	 * 
+	 * @param query
+	 * @return
+	 * @throws SynapseException
+	 */
+	public QueryTableResults queryEvaluation(String query) throws SynapseException {
+		try {
+			if (null == query) {
+				throw new IllegalArgumentException("must provide a query");
+			}
+			String queryUri;
+			queryUri = EVALUATION_QUERY_URI_PATH + URLEncoder.encode(query, "UTF-8");
+	
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			requestHeaders.putAll(defaultGETDELETEHeaders);
+	
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, queryUri, "GET", null,
+					requestHeaders);
+			JSONObjectAdapter joa = new JSONObjectAdapterImpl(jsonObj);
+			return new QueryTableResults(joa);
+		} catch (Exception e) {
+			throw new SynapseException(e);
+		}
+	}
+
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 *
