@@ -24,12 +24,12 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,13 +73,13 @@ public class QueryDAOImplTest {
 		annoMap = new HashMap<String, Object>();
 		
 		for (int i = 0; i < NUM_SUBMISSIONS; i++) {
-	    	annos = AnnotationsUtils.createDummyAnnotations(i);
+	    	annos = TestUtils.createDummyAnnotations(i);
 	    	annos.setScopeId(EVAL_ID1);
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
 	    	persistAnnos(annos);
 	    	
-	    	annos = AnnotationsUtils.createDummyAnnotations(i + NUM_SUBMISSIONS);
+	    	annos = TestUtils.createDummyAnnotations(i + NUM_SUBMISSIONS);
 	    	annos.setScopeId(EVAL_ID2);
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);

@@ -54,7 +54,7 @@
 	<bean id="annotationsSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
-		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersRds" />
+		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" />
 		<property name="semaphoreKey" value="annotationsIndexWorker" />		
 		<property name="runner" ref="annotationsQueueMessageReceiver" />
 	</bean>
