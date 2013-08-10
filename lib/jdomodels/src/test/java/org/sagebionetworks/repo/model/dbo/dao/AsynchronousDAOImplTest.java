@@ -31,10 +31,10 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  *
  */
 public class AsynchronousDAOImplTest {
-	
+
 	Long nodeId = new Long(123);
 	String nodeIdString = KeyFactory.keyToString(nodeId);
-	
+
 	NodeDAO mockNodeDao;
 	DBOReferenceDao mockReferenceDao;
 	DBOAnnotationsDao mockAnnotationsDao;
@@ -55,7 +55,7 @@ public class AsynchronousDAOImplTest {
 		mockStorageLocationDao = Mockito.mock(StorageUsageQueryDao.class);
 		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
 		mockWikiPageDao = Mockito.mock(WikiPageDao.class);
-		
+
 		// Setup the references
 		references = new HashMap<String, Set<Reference>>();
 		Set<Reference> set = new HashSet<Reference>();
@@ -76,16 +76,16 @@ public class AsynchronousDAOImplTest {
 		// Mock the node dao.
 		when(mockNodeDao.getNodeReferences(nodeIdString)).thenReturn(references);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
-		
+
 		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao,mockFileMetadataDao, mockWikiPageDao );
 	}
-	
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testReplaceAllNull() throws NotFoundException{
 		// Test replace add
 		testDao.replaceAll(null);
 	}
-	
+
 	@Test
 	public void testReplaceAll() throws NotFoundException{
 		// Make the call

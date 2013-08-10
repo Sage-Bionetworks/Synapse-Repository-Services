@@ -5,8 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,10 +32,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -78,9 +86,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertNotNull(nodeManager);
 		assertNotNull(testUserProvider);
 
-		assertTrue((Boolean)ReflectionTestUtils.getField(evaluationPermissionsManager, "turnOffAcl"));
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", false);
-
 		adminUser = testUserProvider.getTestAdminUserInfo();
 		assertNotNull(adminUser);
 		user = testUserProvider.getTestUserInfo();
@@ -102,7 +107,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (String id : nodesToDelete) {
 			nodeManager.delete(adminUser, id);
 		}
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
 	}
 
 	@Test
@@ -420,40 +424,50 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
-	public void testTurnOffAcl() throws Exception {
+	public void testCanParticipate() throws Exception {
 
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
-
-		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testTurnOffAcl";
-		String nodeId = createNode(nodeName, EntityType.project, user);
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCanParticipate";
+		String nodeId = createNode(nodeName, EntityType.project, adminUser);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, adminUser);
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUser, evalId);
 		assertNotNull(acl);
-		aclsToDelete.add(acl.getId());
-		assertEquals(evalId, acl.getId());
-		validatePublicReadParticipate(acl);
 
-		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.READ));
+		// Admin can participate but user cannot
+		assertTrue(evaluationPermissionsManager.hasAccess(adminUser, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
+
+		// Update the ACL to add ('user', PARTICIPATE)
+		Long principalId = Long.parseLong(user.getIndividualGroup().getId());
+		Iterator<UserGroup> iterator = user.getGroups().iterator();
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		while (iterator.hasNext()) {
+			ResourceAccess ra = new ResourceAccess();
+			ra.setPrincipalId(principalId);
+			String groupName = iterator.next().getName();
+			ra.setGroupName(groupName);
+			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+			accessType.add(ACCESS_TYPE.PARTICIPATE);
+			ra.setAccessType(accessType);
+			raSet.add(ra);
+		}
+		acl.setResourceAccess(raSet);
+		acl = evaluationPermissionsManager.updateAcl(adminUser, acl);
+		assertNotNull(acl);
 		assertTrue(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
-		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		assertTrue(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.READ));
-		assertFalse(evaluationPermissionsManager.hasAccess(anonymous, evalId, ACCESS_TYPE.PARTICIPATE));
-	}
 
-	@Test
-	public void testBackfill() throws Exception {
-
-		ReflectionTestUtils.setField(evaluationPermissionsManager, "turnOffAcl", true);
-
-		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testBackfill";
-		String nodeId = createNode(nodeName, EntityType.project, user);
-		String evalName = nodeName;
-		String evalId = createEval(evalName, nodeId, user);
-		// Even if we delete the ACL, backfill() should create one for use
-		evaluationPermissionsManager.deleteAcl(user, evalId);
-		AccessControlList acl = evaluationPermissionsManager.getAcl(user, evalId);
-		validatePublicReadParticipate(acl);
+		// Now if we have unmet requirements, adding just the ACL is not enough
+		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
+		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
+		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
+		AccessRequirementDAO mockAccessRequirementDao = mock(AccessRequirementDAO.class);
+		when(mockAccessRequirementDao.unmetAccessRequirements(
+				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(participateAndDownload))).
+				thenReturn(Arrays.asList(new Long[]{101L}));
+		AccessRequirementDAO original = (AccessRequirementDAO) ReflectionTestUtils.getField(evaluationPermissionsManager, "accessRequirementDAO");
+		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", mockAccessRequirementDao);
+		assertFalse(evaluationPermissionsManager.hasAccess(user, evalId, ACCESS_TYPE.PARTICIPATE));
+		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", original);
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {

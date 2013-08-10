@@ -47,6 +47,7 @@
 	<bean id="stackConfiguration.dynamoUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.rdsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.fileUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.annotationsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.maxFileTransferMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.maxFilePreviewMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -64,10 +65,17 @@
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersFilePreview" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	
 	<!-- Configuration for multi-part upload daemons. -->
 	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.fileMultipartUploadDaemonMainMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	
+
+	<!-- Data of bootstrap entity folders -->
+	<bean id="stackConfiguration.rootFolderEntityPath" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.rootFolderEntityId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.trashFolderEntityPath" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.trashFolderEntityId" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 </beans>

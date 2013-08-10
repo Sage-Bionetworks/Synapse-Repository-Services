@@ -108,7 +108,7 @@ public class IT055WikiPageTest {
 			} catch (Exception e) {}
 		}
 		if(project != null){
-			synapse.deleteEntity(project);
+			synapse.deleteAndPurgeEntity(project);
 		}
 		for(WikiPageKey key: toDelete){
 			synapse.deleteWikiPage(key);

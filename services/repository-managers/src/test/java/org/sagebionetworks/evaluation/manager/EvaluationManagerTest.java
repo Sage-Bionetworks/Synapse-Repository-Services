@@ -116,6 +116,7 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(true);
     }
 
 	@Test
@@ -129,7 +130,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testGetEvaluation() throws DatastoreException, NotFoundException, UnauthorizedException {
-		Evaluation eval2 = evaluationManager.getEvaluation(EVALUATION_ID);
+		Evaluation eval2 = evaluationManager.getEvaluation(ownerInfo, EVALUATION_ID);
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
 	}
@@ -154,7 +155,7 @@ public class EvaluationManagerTest {
 
 	@Test
 	public void testFind() throws DatastoreException, UnauthorizedException, NotFoundException {
-		Evaluation eval2 = evaluationManager.findEvaluation(EVALUATION_NAME);
+		Evaluation eval2 = evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME);
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).lookupByName(eq(EVALUATION_NAME));
 	}
@@ -168,7 +169,7 @@ public class EvaluationManagerTest {
 	
 	@Test(expected=NotFoundException.class)
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
-		evaluationManager.findEvaluation(EVALUATION_NAME +  "2");
+		evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME +  "2");
 	}
 	
 	@Test

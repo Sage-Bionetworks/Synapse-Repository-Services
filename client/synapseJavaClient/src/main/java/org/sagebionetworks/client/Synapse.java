@@ -92,6 +92,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -113,6 +114,7 @@ import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -198,7 +200,8 @@ public class Synapse implements SynapseInt {
 	protected static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
 	protected static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
 	protected static final String STATUS_SUFFIX = "?status=";
-	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
+	protected static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
+	protected static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -1324,7 +1327,9 @@ public class Synapse implements SynapseInt {
 	}
 
 	/**
-	 * Delete a dataset, layer, etc..
+	 * Deletes a dataset, layer, etc.. This only moves the entity
+	 * to the trash can.  To permanently delete the entity, use
+	 * deleteAndPurgeEntity().
 	 * 
 	 * @param <T>
 	 * @param entity
@@ -1345,12 +1350,40 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	public <T extends Entity> void deleteAndPurgeEntity(T entity)
+			throws SynapseException {
+		deleteEntity(entity);
+		purgeTrashForUser(entity.getId());
+	}
+
+	/**
+	 * Delete a dataset, layer, etc.. This only moves the entity
+	 * to the trash can.  To permanently delete the entity, use
+	 * deleteAndPurgeEntity().
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
 	public void deleteEntityById(String entityId)
 			throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("entityId cannot be null");
 		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
 		deleteUri(uri);
+	}
+
+	/**
+	 * Delete a dataset, layer, etc..
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
+	public void deleteAndPurgeEntityById(String entityId)
+			throws SynapseException {
+		deleteEntityById(entityId);
+		purgeTrashForUser(entityId);
 	}
 
 	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
@@ -3553,6 +3586,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
@@ -3567,6 +3601,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
 		String url = null;
 		if (null==status) {
@@ -3586,6 +3621,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public Long getEvaluationCount() throws SynapseException {
 		PaginatedResults<Evaluation> res = getEvaluationsPaginated(0,0);
 		return res.getTotalNumberOfResults();
@@ -3636,21 +3672,16 @@ public class Synapse implements SynapseInt {
 		JSONObject jsonObj = postUri(uri);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
-	
-	/**
-	 * Adds a separate user as a Participant in Evaluation evalId.
-	 */
-	public Participant createParticipantAsAdmin(String evalId, String participantPrincipalId) throws SynapseException {
-		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT
-				+ "/" + participantPrincipalId;
-		JSONObject jsonObj = postUri(uri);
-		return initializeFromJSONObject(jsonObj, Participant.class);
-	}
-	
+
 	public Participant getParticipant(String evalId, String principalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
+		// Make sure we are passing in the ID, not the user name
+		try {
+			Long.parseLong(principalId);
+		} catch (NumberFormatException e) {
+			throw new SynapseException("Please pass in the pricipal ID, not the user name.", e);
+		}
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT
 				+ "/" + principalId;		
 		JSONObject jsonObj = getEntity(uri);
@@ -3731,7 +3762,12 @@ public class Synapse implements SynapseInt {
 	}
 	
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
-		if (status == null) throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		if (status == null) {
+			throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		}
+		if (status.getAnnotations() != null) {
+			AnnotationsUtils.validateAnnotations(status.getAnnotations());
+		}
 		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + STATUS;			
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		JSONObject obj;
@@ -3933,6 +3969,33 @@ public class Synapse implements SynapseInt {
 		return returnState;
 	}
 	
+	/**
+	 * Execute a user query over the Submissions of a specified Evaluation.
+	 * 
+	 * @param query
+	 * @return
+	 * @throws SynapseException
+	 */
+	public QueryTableResults queryEvaluation(String query) throws SynapseException {
+		try {
+			if (null == query) {
+				throw new IllegalArgumentException("must provide a query");
+			}
+			String queryUri;
+			queryUri = EVALUATION_QUERY_URI_PATH + URLEncoder.encode(query, "UTF-8");
+	
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			requestHeaders.putAll(defaultGETDELETEHeaders);
+	
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, queryUri, "GET", null,
+					requestHeaders);
+			JSONObjectAdapter joa = new JSONObjectAdapterImpl(jsonObj);
+			return new QueryTableResults(joa);
+		} catch (Exception e) {
+			throw new SynapseException(e);
+		}
+	}
+
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 *

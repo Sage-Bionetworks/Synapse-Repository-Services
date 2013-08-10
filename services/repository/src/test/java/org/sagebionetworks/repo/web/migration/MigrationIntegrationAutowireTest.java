@@ -243,7 +243,7 @@ public class MigrationIntegrationAutowireTest {
 		submission.setUserId(userName);
 		submission.setEvaluationId(evaluation.getId());
 		submission = entityServletHelper.createSubmission(submission, userName, fileEntity.getEtag());
-		submissionStatus = serviceProvider.getEvaluationService().getSubmissionStatus(submission.getId());
+		submissionStatus = serviceProvider.getEvaluationService().getSubmissionStatus(userName, submission.getId());
 	}
 
 

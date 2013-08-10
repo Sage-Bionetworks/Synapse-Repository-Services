@@ -86,7 +86,7 @@ public class IT102MigrationTest {
 	public void after() throws Exception {
 		if(conn != null && toDelete != null){
 			for(Entity e: toDelete){
-				conn.deleteEntity(e);
+				conn.deleteAndPurgeEntity(e);
 			}
 		}
 	}
@@ -147,7 +147,7 @@ public class IT102MigrationTest {
 		System.out.println("Backing up...");
 		BackupRestoreStatus brStatus = conn.startBackup(MigrationType.NODE, idList);
 		brStatus = waitForDaemonCompletion(brStatus);
-		conn.deleteEntity(project);
+		conn.deleteAndPurgeEntity(project);
 		System.out.println("Restoring " + brStatus.getBackupUrl() + "...");
 		String fName = getFileNameFromUrl(brStatus.getBackupUrl());
 		RestoreSubmission rReq = new RestoreSubmission();

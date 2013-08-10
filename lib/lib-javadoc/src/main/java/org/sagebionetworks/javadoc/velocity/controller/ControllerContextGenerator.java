@@ -26,6 +26,7 @@ public class ControllerContextGenerator implements ClassContextGenerator {
 	@Override
 	public List<ClassContext> generateContext(ContextFactory factory, RootDoc root) throws Exception {
 		// Iterate over all of the controllers.
+		String authControllerName = getAuthControllerName(root.options());
         Iterator<ClassDoc> contollers = FilterUtils.controllerIterator(root.classes());
         List<ClassContext> results = new LinkedList<ClassContext>();
         Controllers controllers = new Controllers();
@@ -43,6 +44,7 @@ public class ControllerContextGenerator implements ClassContextGenerator {
                 	// Add this to the controller's model
                 	velocityContext.put("method", method);
                 	velocityContext.put("controllerPath", model.getPath());
+                	velocityContext.put("authControllerName", "${"+authControllerName+"}");
                 	ClassContext classContext = new ClassContext(method.getFullMethodName(), "methodHtmlTemplate.html", velocityContext);
                 	results.add(classContext);
         		}
@@ -61,6 +63,21 @@ public class ControllerContextGenerator implements ClassContextGenerator {
     	ClassContext classContext = new ClassContext("index", "controllersHtmlTemplate.html", velocityContext);
     	results.add(classContext);
         return results;
+	}
+	
+	/**
+	 * Extract the name of the controller from the options.
+	 * @param options
+	 * @return
+	 */
+	public static String getAuthControllerName(String[][] options){
+		if(options == null) return null;
+		for(int key=0; key <options.length; key++){
+			if("-authControllerName".equals(options[key][0])){
+				return options[key][1];
+			}
+		}
+		throw new IllegalArgumentException("Cannot find the -authControllerName option");
 	}
 
 }

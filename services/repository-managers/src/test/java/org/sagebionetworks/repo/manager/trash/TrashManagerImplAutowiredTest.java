@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -64,7 +66,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 
-		trashCanId = nodeDAO.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
+		trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		assertNotNull(trashCanId);
 		Node trashFolder = nodeDAO.getNode(trashCanId);
 		assertNotNull(trashFolder);
@@ -118,8 +120,7 @@ public class TrashManagerImplAutowiredTest {
 		try {
 			nodeChildRetrieved = nodeManager.get(testUserInfo, nodeChildId);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: PLFM-1725 We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
@@ -171,8 +172,7 @@ public class TrashManagerImplAutowiredTest {
 		try {
 			nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: PLFM-1725 We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
@@ -345,48 +345,42 @@ public class TrashManagerImplAutowiredTest {
 		try {
 			nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack01 = nodeManager.get(testUserInfo, nodeId01);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack11 = nodeManager.get(testUserInfo, nodeId11);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack12 = nodeManager.get(testUserInfo, nodeId12);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack21 = nodeManager.get(testUserInfo, nodeId21);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
 		try {
 			nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
 			fail();
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
+		} catch (EntityInTrashCanException e) {
 			assertTrue(true);
 		}
 
@@ -659,7 +653,7 @@ public class TrashManagerImplAutowiredTest {
 		final String nodeIdB1 = nodeManager.createNewNode(nodeB1, testAdminUserInfo);
 		assertNotNull(nodeIdB1);
 		toClearList.add(nodeIdB1);
-		
+
 		final Node nodeB2 = new Node();
 		final String nodeNameB2 = "TrashManagerImplAutowiredTest.testPurge() B2";
 		nodeB2.setName(nodeNameB2);
@@ -704,6 +698,19 @@ public class TrashManagerImplAutowiredTest {
 		}
 
 		try {
+			nodeManager.get(testAdminUserInfo, nodeIdA1);
+			fail("Once the entity is in trash can, even admin can't view it.");
+		} catch (EntityInTrashCanException e) {
+			assertTrue(true);
+		}
+		try {
+			nodeManager.get(testAdminUserInfo, nodeIdA2);
+			fail("Once the entity is in trash can, even admin can't view it.");
+		} catch (EntityInTrashCanException e) {
+			assertTrue(true);
+		}
+
+		try {
 			trashManager.purgeTrash(testUserInfo);
 			fail();
 		} catch (UnauthorizedException e) {
@@ -720,18 +727,34 @@ public class TrashManagerImplAutowiredTest {
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
 	}
 
+	@Test(expected=EntityInTrashCanException.class)
+	public void testCanDownload() throws Exception {
+		final Node node = new Node();
+		final String nodeName = "TrashManagerImplAutowiredTest.testCanDownload()";
+		node.setName(nodeName);
+		node.setNodeType(EntityType.project.name());
+		final String nodeId = nodeManager.createNewNode(node, testAdminUserInfo);
+		assertNotNull(nodeId);
+		toClearList.add(nodeId);
+		trashManager.moveToTrash(testAdminUserInfo, nodeId);
+		entityPermissionsManager.hasAccess(nodeId, ACCESS_TYPE.DOWNLOAD, testAdminUserInfo);
+	}
+
 	private void cleanUp() throws Exception {
 		for (String nodeId : toClearList) {
-			nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
+			try {
+				nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
+			} catch (NotFoundException e) {}
 		}
-		String userGroupId = testUserInfo.getIndividualGroup().getId();
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
 		for (TrashedEntity trash : trashList) {
-			trashCanDao.delete(userGroupId, trash.getEntityId());
+			trashCanDao.delete(trash.getDeletedByPrincipalId(), trash.getEntityId());
 		}
 		List<String> children = nodeDAO.getChildrenIdsAsList(trashCanId);
 		for (String child : children) {
-			nodeManager.delete(userProvider.getTestAdminUserInfo(), child);
+			try {
+				nodeManager.delete(userProvider.getTestAdminUserInfo(), child);
+			} catch (NotFoundException e) {}
 		}
 	}
 }

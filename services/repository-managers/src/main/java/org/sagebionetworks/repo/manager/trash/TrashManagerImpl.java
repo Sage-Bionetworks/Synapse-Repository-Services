@@ -87,10 +87,7 @@ public class TrashManagerImpl implements TrashManager {
 		final String oldParentId = node.getParentId();
 		// Set the name to its ID to guarantee the entities in the trash folder all have unique names (PLFM-1760)
 		node.setName(node.getId());
-		final String trashCanId = this.nodeDao.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
-		if (trashCanId == null) {
-			throw new DatastoreException("Trash can folder does not exist.");
-		}
+		final String trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		node.setParentId(trashCanId);
 		this.nodeManager.updateForTrashCan(currentUser, node, ChangeType.DELETE);
 

@@ -4,15 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Container class for result data from a user query.
+ *
+ */
 public class NodeQueryResults {
 	
-
 	private List<String> resultIds;
 	private List<Map<String, Object>> allSelectedData;
 	private long totalNumberOfResults;
-	
-
-	
+		
 	public NodeQueryResults(List<String> resultIds, List<Map<String, Object>> allSelectedData, long totalCount){	
 		this.resultIds = resultIds;
 		this.allSelectedData = allSelectedData;

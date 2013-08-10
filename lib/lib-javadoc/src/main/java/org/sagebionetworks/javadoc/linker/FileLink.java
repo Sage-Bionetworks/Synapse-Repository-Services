@@ -12,6 +12,7 @@ public class FileLink {
 
 	File file;
 	String name;
+	boolean isHashTagId = false;
 	
 	public FileLink(File file, String name) {
 		super();
@@ -31,11 +32,18 @@ public class FileLink {
 		this.name = name;
 	}
 	
+	public boolean isHashTagId() {
+		return isHashTagId;
+	}
+	public void setHashTagId(boolean isHashTagId) {
+		this.isHashTagId = isHashTagId;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((file == null) ? 0 : file.hashCode());
+		result = prime * result + (isHashTagId ? 1231 : 1237);
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		return result;
 	}
@@ -53,6 +61,8 @@ public class FileLink {
 				return false;
 		} else if (!file.equals(other.file))
 			return false;
+		if (isHashTagId != other.isHashTagId)
+			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
@@ -62,7 +72,8 @@ public class FileLink {
 	}
 	@Override
 	public String toString() {
-		return "FileLink [file=" + file + ", name=" + name + "]";
+		return "FileLink [file=" + file + ", name=" + name + ", isHashTagId="
+				+ isHashTagId + "]";
 	}
 
 }
