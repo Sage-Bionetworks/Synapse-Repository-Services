@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.model.audit;
 
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 

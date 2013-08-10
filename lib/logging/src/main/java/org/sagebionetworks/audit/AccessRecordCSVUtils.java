@@ -1,15 +1,20 @@
 package org.sagebionetworks.audit;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
-import java.io.StringWriter;
 import java.io.Writer;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
@@ -46,11 +51,46 @@ public class AccessRecordCSVUtils {
 	 */
 	public static final String[] DEFAULT_HEADERS;
 	static {
-		List<String> headerList = new LinkedList<String>(SCHEMA.getProperties()
-				.keySet());
-		Collections.sort(headerList);
-		DEFAULT_HEADERS = headerList.toArray(new String[headerList.size()]);
+		Set<String> keySet = SCHEMA.getProperties().keySet();
+		DEFAULT_HEADERS = keySet.toArray(new String[keySet.size()]);
 	}
+	
+	/**
+	 * Write all of the data from the given iterator to the given .
+	 * @param batch
+	 * @return The GZip bytes
+	 */
+	public static void writeCSVGZip(Iterator<AccessRecord> batch, OutputStream out){
+		try{
+			BufferedOutputStream buff = new BufferedOutputStream(out);
+			GZIPOutputStream zipOut = new GZIPOutputStream(buff);
+			OutputStreamWriter writer = new OutputStreamWriter(zipOut);
+			writeBatchToCSV(batch, writer);
+			writer.close();
+			zipOut.finish();
+		}catch(Exception e){
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param in
+	 * @return
+	 */
+	public static Iterator<AccessRecord> readFromCSVGZip(InputStream in){
+		try{
+			// Wrap the stream in
+			BufferedInputStream buffIn = new BufferedInputStream(in);
+			GZIPInputStream zins = new GZIPInputStream(buffIn);
+			InputStreamReader reader = new InputStreamReader(zins);
+			return readFromCSV(reader);
+		}catch(Exception e){
+			throw new RuntimeException(e);
+		}
+	}
+	
+	
 
 	/**
 	 * Write a batch of AccessRecords to the passed Writer as a CSV.
@@ -61,17 +101,25 @@ public class AccessRecordCSVUtils {
 	 * @param writer
 	 * @throws Exception
 	 */
-	public static void writeBatchToCSV(List<AccessRecord> batch, Writer writer) {
+	public static void writeBatchToCSV(Iterator<AccessRecord> batch, Writer writer) {
 		if (batch == null)
 			throw new IllegalArgumentException("Batch cannot be null");
 		if (writer == null)
 			throw new IllegalArgumentException("Writer cannot be null");
-		// Use the full key set for the headers
-		CSVWriter csv = new CSVWriter(writer);
-		// the first row is always the header
-		csv.writeNext(DEFAULT_HEADERS);
-		for (AccessRecord record : batch) {
-			appendToCSV(record, csv, DEFAULT_HEADERS);
+		try{
+			// Use the full key set for the headers
+			CSVWriter csv = new CSVWriter(writer);
+			// the first row is always the header
+			csv.writeNext(DEFAULT_HEADERS);
+			while(batch.hasNext()){
+				AccessRecord record = batch.next();
+				appendToCSV(record, csv, DEFAULT_HEADERS);
+			}
+			csv.flush();
+			csv.close();
+		}catch(Exception e){
+			// convert to runtime
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -108,6 +156,20 @@ public class AccessRecordCSVUtils {
 			throw new RuntimeException(e);
 		}
 
+	}
+	
+	/**
+	 * Read all of the data from the given CSV file into a list.
+	 * @param reader
+	 * @return
+	 */
+	public static List<AccessRecord> readAllFromCSV(Reader reader){
+		List<AccessRecord> results = new LinkedList<AccessRecord>();
+		Iterator<AccessRecord> it = readFromCSV(reader);
+		while(it.hasNext()){
+			results.add(it.next());
+		}
+		return results;
 	}
 
 	/**

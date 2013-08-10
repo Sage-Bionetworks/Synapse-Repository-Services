@@ -1,21 +1,20 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.manager.audit;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.zip.GZIPOutputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.audit.AccessRecordCSVUtils;
+import org.sagebionetworks.audit.AccessRecordCollateUtils;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -64,33 +63,28 @@ public class S3AccessRecorder implements AccessRecorder {
 	public void timerFired() throws IOException {
 		// Get the current batch and replace it with a new empty list as an atomic operation.
 		List<AccessRecord> currentBatch = recordBatch.getAndSet(Collections.synchronizedList(new LinkedList<AccessRecord>()));
+		// There is nothing to do if the batch is empty.
+		if(currentBatch.isEmpty()) return;
 		try{
 			// We are now free to process the current batch with out synchronization or data loss. 
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();;
-			GZIPOutputStream zos = new GZIPOutputStream(baos);
-			PrintWriter print = new PrintWriter(zos);
-			print.println("[ ");
-			int count = 0;
-			for(AccessRecord record: currentBatch){
-				if(count > 0){
-					print.print(",");
-				}
-				print.print(EntityFactory.createJSONStringForEntity(record));
-				print.println();
-				count++;
-			}
-			print.println("]");
-			print.flush();
-			zos.close();
-			byte[] batchBytes = baos.toByteArray();
-			ByteArrayInputStream bais = new ByteArrayInputStream(batchBytes);
+			// Order the batch by timestamp
+			AccessRecordCollateUtils.sortByTimestamp(currentBatch);
+			// Write the data to a gzip
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			AccessRecordCSVUtils.writeCSVGZip(currentBatch.iterator(), out);
+			// Create an input stream
+			byte[] bytes = out.toByteArray();
+			ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+			String fileName = UUID.randomUUID().toString()+".csv.gz";
 			ObjectMetadata om = new ObjectMetadata();
-			om.setContentType("application/json");
-			s3Client.putObject("test", "test", bais, om);
+			om.setContentEncoding("application/x-gzip");
+			om.setContentEncoding("gzip");
+			om.setContentDisposition("attachment; filename="+fileName+";");
+			om.setContentLength(bytes.length);
+			s3Client.putObject("dev.hill.rest.doc.sagebase.org", fileName, in, om);
 		}catch(Exception e){
 			log.error("Failed to write batch", e);
 		}
-
 	}
 
 }

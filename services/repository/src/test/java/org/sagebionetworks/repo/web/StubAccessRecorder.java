@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.model.audit.AccessRecorder;
 
 /**
  * A simple stub implementation of the AccessRecorder.

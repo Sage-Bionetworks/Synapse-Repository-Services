@@ -3,62 +3,29 @@ package org.sagebionetworks.audit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.Method;
 
 public class AccessRecordCSVUtilsTest {
-	
-	List<AccessRecord> input;
-	
-	@Before
-	public void before(){
-		// Build up a small stack trace
-		Exception error = new Exception(new RuntimeException(new IllegalArgumentException("Small error")));
-		
-		input  = new LinkedList<AccessRecord>();
-		// First one has a null elapse and error
-		AccessRecord ar = new AccessRecord();
-		ar.setTimestamp(100L);
-		ar.setUserId(456L);
-		ar.setMethod(Method.GET);
-		ar.setRequestURL("/entity/987");
-		ar.setSuccess(false);
-		input.add(ar);
-		// Next has an error
-		ar = new AccessRecord();
-		ar.setTimestamp(101L);
-		ar.setUserId(1L);
-		ar.setMethod(Method.POST);
-		ar.setRequestURL("/foot/cow/ball");
-		ar.setElapseMS(10L);
-		ar.setSuccess(true);
-		input.add(ar);
-		// Add a Third
-		ar = new AccessRecord();
-		ar.setTimestamp(102L);
-		ar.setUserId(null);
-		ar.setMethod(Method.PUT);
-		ar.setRequestURL("/foot/where/mouth/is");
-		ar.setElapseMS(1000001L);
-		ar.setSuccess(null);
-		input.add(ar);
-
-	}
 
 	
 	@Test
 	public void testCSVRoundTrip() throws Exception{
+		List<AccessRecord> input = AuditTestUtils.createList(10, 100);
 		// Write the input to a CSV
 		StringWriter writer = new StringWriter();
-		AccessRecordCSVUtils.writeBatchToCSV(input, writer);
+		AccessRecordCSVUtils.writeBatchToCSV(input.iterator(), writer);
 		String csv = writer.toString();
 		System.out.println(csv);
 		// Now back to a list
@@ -72,6 +39,30 @@ public class AccessRecordCSVUtilsTest {
 		// The results should be the same as the input
 		assertEquals(input, results);
 	
+	}
+	
+	@Test
+	public void testGZipRoundTrip() throws IOException{
+		List<AccessRecord> input = AuditTestUtils.createList(1000, 100);
+		// Write to a GZip
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		AccessRecordCSVUtils.writeCSVGZip(input.iterator(), out);
+		// Now convert the 
+		byte[] zippedBytes = out.toByteArray();
+		ByteArrayInputStream in = new ByteArrayInputStream(zippedBytes);
+//		File temp = File.createTempFile("sample", ".gz");
+//		System.out.println(temp.getAbsolutePath());
+//		FileOutputStream fos = new FileOutputStream(temp);
+//		fos.write(zippedBytes);
+//		fos.close();
+		// Now read it in
+		Iterator<AccessRecord> it = AccessRecordCSVUtils.readFromCSVGZip(in);
+		List<AccessRecord> results  = new LinkedList<AccessRecord>();
+		while(it.hasNext()){
+			results.add(it.next());
+		}
+		// It should be the same as the input
+		assertEquals(input, results);
 	}
 	
 

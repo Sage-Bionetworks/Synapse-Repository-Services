@@ -53,14 +53,13 @@ public class AccessInterceptorTest {
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userName);
 		when(mockRequest.getRequestURI()).thenReturn("/entity/syn789");
 		when(mockRequest.getMethod()).thenReturn("DELETE");
+		when(mockRequest.getHeader("Host")).thenReturn("localhost8080");
+		when(mockRequest.getHeader("User-Agent")).thenReturn("HAL 2000");
+		when(mockRequest.getHeader("X-Forwarded-For")).thenReturn("moon.org");
+		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
+		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testMissingUserId() throws Exception{
-		// return null for the userId
-		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(null);
-		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
-	}
 	
 	
 	@Test
@@ -81,8 +80,15 @@ public class AccessInterceptorTest {
 		assertTrue(result.getTimestamp() >= start);
 		assertTrue(result.getElapseMS() > 99);
 		assertTrue(result.getSuccess());
+		assertNotNull(result.getSessionId());
 		assertEquals("/entity/syn789", result.getRequestURL());
 		assertEquals(Method.DELETE, result.getMethod());
+		assertEquals("localhost8080", result.getHost());
+		assertEquals("HAL 2000", result.getUserAgent());
+		assertEquals("moon.org", result.getXForwardedFor());
+		assertEquals("http://www.example-social-network.com", result.getOrigin());
+		assertEquals("1.0 fred, 1.1 example.com", result.getVia());
+		assertEquals(new Long(Thread.currentThread().getId()), result.getThreadId());
 	}
 	
 	@Test

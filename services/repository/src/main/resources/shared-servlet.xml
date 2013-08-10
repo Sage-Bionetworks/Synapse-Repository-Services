@@ -15,8 +15,6 @@
 	<!--This bean will intercept all HTTP calls and check the status -->
 	<bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
 	
-	<!-- The recorder saves access records to the database.  -->
-	<bean id="accessRecorder" class="org.sagebionetworks.repo.web.DatabaseAccessRecorder" />
 	<!-- This bean will intercept all HTTP calls and records access records  -->
 	<bean id="accessInterceptor" class="org.sagebionetworks.repo.web.AccessInterceptor" />
 	
