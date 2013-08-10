@@ -682,6 +682,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The name of the AWS SQS where file updates are pushed.
+	 * @return
+	 */
+	public String getAnnotationsUpdateQueueName(){
+		return String.format(StackConstants.ANNOTATIONS_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
+
+	
+	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a multi-part upload
 	 * this value cannot be less 5 MB.  Currently defaults to 5 MB.
@@ -803,7 +812,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process RDS index data
+	 * The maximum number of workers in the cluster that will process RDS index data
 	 * @return
 	 */
 	public Long getSemaphoreGatedLockTimeoutMS(){
@@ -811,7 +820,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process RDS index data
+	 * The maximum number of workers in the cluster that will process RDS index data
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersRds(){
@@ -819,7 +828,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process search index data
+	 * The maximum number of workers in the cluster that will process search index data
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersSearch(){
@@ -827,7 +836,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process file previews
+	 * The maximum number of workers in the cluster that will process file previews
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersFilePreview(){
@@ -835,7 +844,7 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The maxiumn number of worker in the cluster that will process Dynamo index data
+	 * The maximum number of workers in the cluster that will process Dynamo index data
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersDynamoIndex(){
@@ -843,11 +852,19 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * The maxiumn number of worker in the cluster that will synchronize Dynamo with RDS
+	 * The maximum number of workers in the cluster that will synchronize Dynamo with RDS
 	 * @return
 	 */
 	public Integer getSemaphoreGatedMaxRunnersDynamoSynchronize(){
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
+	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will process Annotations
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersAnnotations(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.semaphore.gated.max.runners.annotations"));
 	}
 		
 	/**
@@ -880,4 +897,60 @@ public class StackConfiguration {
 	 */
 	public static String getJiraUserName() {return configuration.getProperty("org.sagebionetworks.repo.manager.jira.user.name");}
 	public static String getJiraUserPassword() {return configuration.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");}
+
+	/**
+	 * Entity path for the root folder. This is to be bootstrapped.
+	 */
+	public String getRootFolderEntityPath() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.path");
+	}
+
+	/**
+	 * Entity path for the root folder. This is to be bootstrapped.
+	 */
+	public static String getRootFolderEntityPathStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.path");
+	}
+
+	/**
+	 * Entity ID for the root folder. This is to be bootstrapped.
+	 */
+	public String getRootFolderEntityId() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.id");
+	}
+
+	/**
+	 * Entity ID for the root folder. This is to be bootstrapped.
+	 */
+	public static String getRootFolderEntityIdStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.root.folder.entity.id");
+	}
+
+	/**
+	 * Entity path for the trash folder. This is to be bootstrapped.
+	 */
+	public String getTrashFolderEntityPath() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.path");
+	}
+
+	/**
+	 * Entity path for the trash folder. This is to be bootstrapped.
+	 */
+	public static String getTrashFolderEntityPathStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.path");
+	}
+
+	/**
+	 * Entity ID for the trash folder. This is to be bootstrapped.
+	 */
+	public String getTrashFolderEntityId() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.id");
+	}
+
+	/**
+	 * Entity ID for the trash folder. This is to be bootstrapped.
+	 */
+	public static String getTrashFolderEntityIdStatic() {
+		return configuration.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.id");
+	}
 }

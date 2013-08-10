@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -421,4 +422,18 @@ public interface EvaluationService {
 	 */
 	public UserEvaluationPermissions getUserPermissionsForEvaluation(String userName, String evalId)
 			throws NotFoundException, DatastoreException;
+
+	/**
+	 * Executes a user query against Submissions of a specified Evaluation.
+	 * 
+	 * @param userQuery
+	 * @param userName
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws ParseException 
+	 */
+	public QueryTableResults query(String userQuery, String userName)
+			throws DatastoreException, NotFoundException, JSONObjectAdapterException, ParseException;
 }

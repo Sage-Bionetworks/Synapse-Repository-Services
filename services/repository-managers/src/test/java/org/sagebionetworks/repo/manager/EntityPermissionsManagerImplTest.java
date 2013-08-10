@@ -48,8 +48,7 @@ public class EntityPermissionsManagerImplTest {
 	private UserManager userManager;	
 	@Autowired
 	EntityPermissionsManager entityPermissionsManager;
-	
-		
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
 	private Node childNode = null;
@@ -107,12 +106,16 @@ public class EntityPermissionsManagerImplTest {
 	public void tearDown() throws Exception {
 		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		for (Node n : nodeList) {
-			nodeManager.delete(adminUser, n.getId());
+			try {
+				nodeManager.delete(adminUser, n.getId());
+			} catch (NotFoundException e) {}
 		}
 		this.project=null;
 		if(userManager != null && usersToDelete != null){
 			for(String idToDelete: usersToDelete){
-				userManager.deleteUser(idToDelete);
+				try {
+					userManager.deleteUser(idToDelete);
+				} catch (NotFoundException e) {}
 			}
 		}
 	}

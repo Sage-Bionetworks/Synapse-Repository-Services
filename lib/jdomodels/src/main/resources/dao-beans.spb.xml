@@ -195,6 +195,9 @@
 	<bean id="nodeQueryDao"
 		class="org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl"
 		depends-on="entityBootstrapper" />
+		
+	<bean id="queryDAO"
+		class="org.sagebionetworks.repo.model.query.QueryDAOImpl" />
 
 	<bean id="backupRestoreStatusDao"
 		class="org.sagebionetworks.repo.model.jdo.BackupRestoreStatusDAOImpl"
@@ -207,7 +210,7 @@
 	<bean id="asynchronousDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.AsynchronousDAOImpl" />
 
-	<!-- DAO for Competition objects -->
+	<!-- DAO for Evaluation objects -->
 	<bean id="evaluationDAO" class="org.sagebionetworks.evaluation.dao.EvaluationDAOImpl"
 		depends-on="idGenerator" />
 	<bean id="participatnDAO" class="org.sagebionetworks.evaluation.dao.ParticipantDAOImpl" />
@@ -217,6 +220,8 @@
 		class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
 	<bean id="submissionFileHandleDAO"
 		class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
+	<bean id="annotationsDAO"
+		class="org.sagebionetworks.evaluation.dao.AnnotationsDAOImpl" />
 	
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"

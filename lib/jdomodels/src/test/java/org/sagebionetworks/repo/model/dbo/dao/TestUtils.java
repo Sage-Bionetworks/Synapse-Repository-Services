@@ -121,7 +121,7 @@ public class TestUtils {
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
-	}
+	}	
 	
 	/**
 	 * Create a populated Annotations object.
@@ -129,32 +129,49 @@ public class TestUtils {
 	 * @return
 	 */
 	public static Annotations createDummyAnnotations() {
-		
+		return createDummyAnnotations(1);
+	}
+
+	public static Annotations createDummyAnnotations(int i) {
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
 		sa.setIsPrivate(false);
-		sa.setKey("sa");
-		sa.setValue("foo");
+		sa.setKey("string anno");
+		sa.setValue("foo " + i);
 		stringAnnos.add(sa);
+		
+		StringAnnotation sa2 = new StringAnnotation();
+		sa2.setIsPrivate(false);
+		sa2.setKey("string anno_null");
+		if (i % 2 == 1) {
+			sa2.setValue(null);
+		} else {
+			sa2.setValue("not null");
+		}
+		stringAnnos.add(sa2);
 		
 		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
 		LongAnnotation la = new LongAnnotation();
 		la.setIsPrivate(true);
-		la.setKey("la");
-		la.setValue(42L);
+		la.setKey("long anno");
+		la.setValue(new Long(i*10));
 		longAnnos.add(la);
 		
 		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
-		DoubleAnnotation doa = new DoubleAnnotation();
-		doa.setIsPrivate(false);
-		doa.setKey("doa");
-		doa.setValue(3.14);
-		doubleAnnos.add(doa);
+		DoubleAnnotation da = new DoubleAnnotation();
+		da.setIsPrivate(false);
+		da.setKey("double anno");
+		da.setValue(0.5 + i);
+		doubleAnnos.add(da);
 		
 		Annotations annos = new Annotations();
 		annos.setStringAnnos(stringAnnos);
 		annos.setLongAnnos(longAnnos);
 		annos.setDoubleAnnos(doubleAnnos);
+		annos.setObjectId("" + i);
+		annos.setScopeId("" + 2*i);
 		return annos;
 	}
+
+	
 }

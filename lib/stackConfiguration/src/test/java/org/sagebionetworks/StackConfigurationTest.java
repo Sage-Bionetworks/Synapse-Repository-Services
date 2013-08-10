@@ -49,4 +49,16 @@ public class StackConfigurationTest {
 		assertTrue("The maxTransferBytes + maxPreviewByes must be less than or equal to 90% of the max memory",(maxTransferBytes + maxPreviewByes) <= ((long)maxtBytes*0.9d) );
 	}
 
+	@Test
+	public void testBootstrapData() {
+		assertEquals("/root", StackConfiguration.getRootFolderEntityPathStatic());
+		assertEquals("4489", StackConfiguration.getRootFolderEntityIdStatic());
+		assertEquals("/root/trash", StackConfiguration.getTrashFolderEntityPathStatic());
+		assertEquals("1681355", StackConfiguration.getTrashFolderEntityIdStatic());
+		StackConfiguration config = new StackConfiguration();
+		assertEquals("/root", config.getRootFolderEntityPath());
+		assertEquals("4489", config.getRootFolderEntityId());
+		assertEquals("/root/trash", config.getTrashFolderEntityPath());
+		assertEquals("1681355", config.getTrashFolderEntityId());
+	}
 }

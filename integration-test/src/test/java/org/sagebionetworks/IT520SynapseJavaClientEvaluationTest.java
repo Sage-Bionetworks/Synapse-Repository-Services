@@ -22,6 +22,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -52,6 +53,7 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -86,8 +88,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static List<String> entitiesToDelete;
 	private static List<Long> accessRequirementsToDelete;
 	
+
+	public static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	public static final long MAX_WAIT_MS = 1000*10; // 10 sec	
-	private static String FILE_NAME = "LittleImage.png";
+	private static final String FILE_NAME = "LittleImage.png";
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -188,7 +192,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// clean up nodes
 		for (String id : entitiesToDelete) {
 			try {
-				synapseOne.deleteEntityById(id);
+				synapseOne.deleteAndPurgeEntityById(id);
 			} catch (Exception e) {}
 		}
 		// clean up FileHandle
@@ -367,6 +371,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
 		assertNotNull(status);
 		assertEquals(sub1.getId(), status.getId());
+		assertEquals(sub1.getEntityId(), status.getEntityId());
+		assertEquals(sub1.getVersionNumber(), status.getVersionNumber());
 		assertEquals(SubmissionStatusEnum.OPEN, status.getStatus());
 		
 		// update
@@ -391,6 +397,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
+		status.getAnnotations().setObjectId(sub1.getId());
+		status.getAnnotations().setScopeId(sub1.getEvaluationId());
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
 		
@@ -846,5 +854,64 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertFalse(uep2.getCanParticipate());
 		assertFalse(uep2.getCanPublicRead());
 		assertFalse(uep2.getCanView());
+	}
+	
+	@Test
+	public void testAnnotationsQuery() throws SynapseException, InterruptedException, JSONObjectAdapterException {
+		// set up objects
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+		part1 = synapseOne.createParticipant(eval1.getId());
+		participantsToDelete.add(part1);
+		String entityId = project.getId();
+		String entityEtag = project.getEtag();
+		entitiesToDelete.add(entityId);
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		sub1 = synapseOne.createSubmission(sub1, entityEtag);
+		submissionsToDelete.add(sub1.getId());
+		
+		// add annotations
+		SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
+		Thread.sleep(1L);		
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(true);
+		sa.setKey("foo");
+		sa.setValue("bar");
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		stringAnnos.add(sa);
+		Annotations annos = new Annotations();
+		annos.setStringAnnos(stringAnnos);		
+		status.setScore(0.5);
+		status.setStatus(SubmissionStatusEnum.SCORED);
+		status.setReport("Lorem ipsum");
+		status.setAnnotations(annos);
+		synapseOne.updateSubmissionStatus(status);
+		
+		// query for the object
+		// we must wait for the annotations to be populated by a worker
+		String queryString = "SELECT * FROM evaluation_" + eval1.getId() + " WHERE foo == \"bar\"";
+		QueryTableResults results = synapseOne.queryEvaluation(queryString);
+		assertNotNull(results);
+		long start = System.currentTimeMillis();
+		while (results.getTotalNumberOfResults() < 1) {
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for annotations to be published for query: " + queryString,
+					elapse < RDS_WORKER_TIMEOUT);
+			System.out.println("Waiting for annotations to be published... " + elapse + "ms");
+			Thread.sleep(1000);
+			results = synapseOne.queryEvaluation(queryString);
+		}
+		
+		// verify the results
+		List<String> headers = results.getHeaders();
+		List<org.sagebionetworks.repo.model.query.Row> rows = results.getRows();
+		assertEquals(1, rows.size());
+		assertTrue(headers.contains("foo"));
+		int index = headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
+		assertEquals(sub1.getId(), rows.get(0).getValues().get(index));
 	}
 }

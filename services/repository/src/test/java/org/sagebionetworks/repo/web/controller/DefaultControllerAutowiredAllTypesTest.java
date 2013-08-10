@@ -18,8 +18,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
@@ -29,6 +27,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -78,22 +77,22 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DefaultControllerAutowiredAllTypesTest {
 
 	@Autowired
-	ServletTestHelper testHelper;
+	private ServletTestHelper testHelper;
 
 	// Used for cleanup
 	@Autowired
-	EntityService entityController;
+	private EntityService entityController;
 	
 	@Autowired
-	public UserManager userManager;
+	private UserManager userManager;
 	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private NodeManager nodeManager;
+	
 	@Autowired
-	FileHandleDao fileMetadataDao;
-
-	static private Log log = LogFactory
-			.getLog(DefaultControllerAutowiredAllTypesTest.class);
+	private UserGroupDAO userGroupDAO;
+	@Autowired
+	private FileHandleDao fileMetadataDao;
 
 	private static HttpServlet dispatchServlet;
 	
@@ -122,11 +121,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 
 	@After
-	public void after() throws UnauthorizedException {
+	public void after() throws Exception {
 		if (entityController != null && toDelete != null) {
+			UserInfo userInfo = userManager.getUserInfo(userName);
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(userName, idToDelete);
+					nodeManager.delete(userInfo, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

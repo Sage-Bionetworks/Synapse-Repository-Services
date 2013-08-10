@@ -1,15 +1,15 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ETAG;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_EVAL_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_EVALUATION;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_PARTICIPANT;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_PARTICIPANT;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
