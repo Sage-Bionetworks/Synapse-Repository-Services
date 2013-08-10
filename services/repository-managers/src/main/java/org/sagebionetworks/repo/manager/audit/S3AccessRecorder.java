@@ -77,7 +77,7 @@ public class S3AccessRecorder implements AccessRecorder {
 			ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 			String fileName = UUID.randomUUID().toString()+".csv.gz";
 			ObjectMetadata om = new ObjectMetadata();
-			om.setContentEncoding("application/x-gzip");
+			om.setContentType("application/x-gzip");
 			om.setContentEncoding("gzip");
 			om.setContentDisposition("attachment; filename="+fileName+";");
 			om.setContentLength(bytes.length);
