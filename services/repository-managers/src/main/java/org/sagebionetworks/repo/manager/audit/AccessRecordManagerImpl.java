@@ -3,81 +3,67 @@ package org.sagebionetworks.repo.manager.audit;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.audit.ObjectCSVReader;
 import org.sagebionetworks.audit.ObjectCSVWriter;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.AccessRecorder;
+import org.sagebionetworks.repo.model.audit.BatchListing;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 
 /**
- * This implementation writes the records to S3
+ * S3 implementation of the AccessRecordManager.
  * 
  * @author jmhill
- * 
+ *
  */
-public class S3AccessRecorder implements AccessRecorder {
-
+public class AccessRecordManagerImpl implements AccessRecordManager {
+	
 	static private Log log = LogFactory.getLog(S3AccessRecorder.class);
 	
 	@Autowired
-	AmazonS3Client s3Client;
-
+	private AmazonS3Client s3Client;
+	@Autowired
+	private String bucketName;
+	
 	/**
-	 * At any given time, there are multiple threads creating new AccessRecords
-	 * as new web services request come in. These AccessRecords are added to
-	 * this batch from the threads where they originated. The batch is then
-	 * processed from a separate timer thread. To ensure no data is lost in this
-	 * multiple thread scenario, we use AtomicReference.getAndSet() method. This
-	 * allows the processing thread to get the current batch for processing and
-	 * replace it with a new empty list as an atomic operation. That way if 
-	 * new records come in during processing no data is lost.
-	 */
-	private AtomicReference<List<AccessRecord>> recordBatch = new AtomicReference<List<AccessRecord>>(
-			Collections.synchronizedList(new LinkedList<AccessRecord>()));
-
-	/**
-	 * New AccessRecords will come in from 
-	 */
-	@Override
-	public void save(AccessRecord record) {
-		// add the messages to the queue;
-		recordBatch.get().add(record);
-	}
-
-	/**
-	 * When the timer fires we send the messages to S3.
-	 * @throws IOException 
+	 * Initialize is called when this bean is first created.
 	 * 
 	 */
-	public String timerFired() throws IOException {
-		// Get the current batch and replace it with a new empty list as an atomic operation.
-		List<AccessRecord> currentBatch = recordBatch.getAndSet(Collections.synchronizedList(new LinkedList<AccessRecord>()));
-		// There is nothing to do if the batch is empty.
-		if(currentBatch.isEmpty()) return null;
+	public void initialize(){
+		if(bucketName == null) throw new IllegalArgumentException("bucketName has not been set and cannot be null");
+		// Create the bucket if it does not exist
+		s3Client.createBucket(bucketName);
+	}
+
+	@Override
+	public String saveBatch(List<AccessRecord> batch) {
 		try{
 			// We are now free to process the current batch with out synchronization or data loss. 
 			// Order the batch by timestamp
-			sortByTimestamp(currentBatch);
+			sortByTimestamp(batch);
 			// Write the data to a gzip
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
 			GZIPOutputStream zipOut = new GZIPOutputStream(out);
 			OutputStreamWriter osw = new OutputStreamWriter(zipOut);
 			ObjectCSVWriter<AccessRecord>  writer = new ObjectCSVWriter<AccessRecord>(osw, AccessRecord.class);
 			// Write all of the data
-			for(AccessRecord ar: currentBatch){
+			for(AccessRecord ar: batch){
 				writer.append(ar);
 			}
 			writer.close();
@@ -90,13 +76,39 @@ public class S3AccessRecorder implements AccessRecorder {
 			om.setContentEncoding("gzip");
 			om.setContentDisposition("attachment; filename="+key+";");
 			om.setContentLength(bytes.length);
-			s3Client.putObject("dev.hill.rest.doc.sagebase.org", key, in, om);
+			s3Client.putObject(bucketName, key, in, om);
 			return key;
 		}catch(Exception e){
 			log.error("Failed to write batch", e);
 			return null;
 		}
 	}
+	
+	@Override
+	public List<AccessRecord> getSavedBatch(String key) throws IOException {
+		// Attempt to download the object
+		S3Object object = s3Client.getObject(bucketName, key);
+		InputStream input = object.getObjectContent();
+		try{
+			// Read the data
+			GZIPInputStream zipIn = new GZIPInputStream(input);
+			InputStreamReader isr = new InputStreamReader(zipIn);
+			ObjectCSVReader<AccessRecord> reader = new ObjectCSVReader<AccessRecord>(isr, AccessRecord.class);
+			List<AccessRecord> results = new LinkedList<AccessRecord>();
+			AccessRecord record = null;
+			while((record = reader.next()) != null){
+				results.add(record);
+			}
+			reader.close();
+			return results;
+		}finally{
+			if(input != null){
+				input.close();
+			}
+		}
+	}
+	
+
 	
 	/**
 	 * This Comparator compares AccessRecord based on the time stamp.
@@ -128,6 +140,12 @@ public class S3AccessRecorder implements AccessRecorder {
 	 */
 	public static void sortByTimestamp(List<AccessRecord> toSort){
 		Collections.sort(toSort, new AccessRecordComparator());
+	}
+
+	@Override
+	public BatchListing listBatchKeys(String marker) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

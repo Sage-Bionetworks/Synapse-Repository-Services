@@ -14,6 +14,11 @@
 	<!-- Information need to connect to AWS -->
 	<import resource="aws-spb.xml" />
 
+	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
+		scope="singleton">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
+
 	<!-- Records access events to S3 -->
 	<bean id="accessRecorder" class="org.sagebionetworks.repo.manager.audit.S3AccessRecorder" />
 

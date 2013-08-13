@@ -22,6 +22,7 @@
 	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
 		<constructor-arg index="0"><ref bean="userID"/></constructor-arg>
 		<constructor-arg index="1"><ref bean="userKey"/></constructor-arg>
-	</bean>	
+	</bean>
+	
 	
 </beans>

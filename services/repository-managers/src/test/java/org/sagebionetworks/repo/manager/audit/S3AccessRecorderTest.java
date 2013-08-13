@@ -13,11 +13,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
+@ContextConfiguration(locations = { "classpath:audit.spb.xml" })
 public class S3AccessRecorderTest {
 	
 	@Autowired
-	S3AccessRecorder recorder;
+	private S3AccessRecorder recorder;
 	
 	@Before
 	public void before(){
@@ -34,6 +34,7 @@ public class S3AccessRecorderTest {
 			recorder.save(ar);
 		}
 		// Now fire the timer
-		recorder.timerFired();
+		String fileName = recorder.timerFired();
+		System.out.println(fileName);
 	}
 }
