@@ -16,6 +16,7 @@ public class SynapseConnectionInfo {
 	 */
 	public SynapseConnectionInfo(String authenticationEndPoint,
 			String repositoryEndPoint,
+			String userName,
 			String APIKey,
 			// remove after 0.12->0.13 migration
 			String stackIamId,
@@ -28,6 +29,7 @@ public class SynapseConnectionInfo {
 		this.authenticationEndPoint = authenticationEndPoint;
 		this.repositoryEndPoint = repositoryEndPoint;
 		this.APIKey = APIKey;
+		this.userName = userName;
 		
 		// remove after 0.12->0.13 migration
 		this.stackIamId = stackIamId;
@@ -41,6 +43,7 @@ public class SynapseConnectionInfo {
 	private String repositoryEndPoint;
 	
 	private String APIKey;
+	private String userName;
 	
 	// remove after 0.12->0.13 migration
 	private String stackIamId;
@@ -74,11 +77,16 @@ public class SynapseConnectionInfo {
 	public String getApiKey() {
 		return APIKey;
 	}
+	
+	public String getUserName() {
+		return userName;
+	}
+	
 	@Override
 	public String toString() {
 		return "SynapseConnectionInfo [authenticationEndPoint="
 				+ authenticationEndPoint + ", repositoryEndPoint="
-				+ repositoryEndPoint + ", stackIamId="
+				+ repositoryEndPoint + ", userName=" + userName + ", stackIamId="
 				+ stackIamId + ", stackIamKey=" + stackIamKey
 				+ ", sharedS3BackupBucket=" + sharedS3BackupBucket
 				+ ", crowdEndpoint=" + crowdEndpoint + ", crowdApplicationKey="
