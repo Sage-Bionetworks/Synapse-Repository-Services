@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.*;
 
+import java.math.BigInteger;
 import java.net.URL;
 
 import org.junit.Test;
@@ -61,4 +62,34 @@ public class StackConfigurationTest {
 		assertEquals("/root/trash", config.getTrashFolderEntityPath());
 		assertEquals("1681355", config.getTrashFolderEntityId());
 	}
+	
+	@Test
+	public void testIsProd(){
+		assertFalse("Tests are never run against the prod stack!!!!!",StackConfiguration.isProductionStack());
+		assertTrue(StackConfiguration.isProduction("prod"));
+		assertFalse(StackConfiguration.isProduction("dev"));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetStackInstanceNumberProdNotNumeric(){
+		// Prod stacks must have a numeric instance
+		StackConfiguration.getStackInstanceNumber("abc", true);
+	}
+	
+	@Test
+	public void testGetStackInstanceNumberProd(){
+		// Prod stacks must have a numeric instance
+		assertEquals(12, StackConfiguration.getStackInstanceNumber("12", true));
+	}
+	
+	@Test
+	public void testGetStackInstanceNumberDev(){
+		// Dave stacks have names as stack-instance values. 
+		//These name must be converted to their numeric representation (base 256 chars string to base 10)
+		assertEquals(new BigInteger("hoff".getBytes()).intValue(), StackConfiguration.getStackInstanceNumber("hoff", false));
+		assertEquals(new BigInteger("hill".getBytes()).intValue(), StackConfiguration.getStackInstanceNumber("hill", false));
+		assertEquals(new BigInteger("wu".getBytes()).intValue(), StackConfiguration.getStackInstanceNumber("wu", false));
+	}
+	
+	
 }

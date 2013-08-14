@@ -168,7 +168,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void timerFired(){
 		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
 		// processed the next time the timer fires.
-		List<ChangeMessage> currentQueue = messageQueue.getAndSet(new LinkedList<ChangeMessage>());
+		List<ChangeMessage> currentQueue = messageQueue.getAndSet(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
 		if(!shouldMessagesBePublishedToTopic){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){

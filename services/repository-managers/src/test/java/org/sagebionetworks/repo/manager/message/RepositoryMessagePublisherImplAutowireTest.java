@@ -37,7 +37,7 @@ import com.amazonaws.services.sns.model.PublishRequest;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:aws-topic-publisher.spb.xml" })
+@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml" })
 public class RepositoryMessagePublisherImplAutowireTest {
 
 	public static long MAX_WAIT = 1000*15; // 15 seconds

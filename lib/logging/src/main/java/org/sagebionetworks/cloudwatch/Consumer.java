@@ -71,7 +71,7 @@ public class Consumer {
 	public List<String> executeCloudWatchPut() {
 		try {
 			// collect the ProfileData from synchronized list
-			List<ProfileData> nextBunch = listProfileData.getAndSet(new LinkedList<ProfileData>());
+			List<ProfileData> nextBunch = listProfileData.getAndSet(Collections.synchronizedList(new LinkedList<ProfileData>()));
 
 			//here I have a list of potentially different namespaces
 			//convert to a map (key is namespace, value is list of metricDatums)
