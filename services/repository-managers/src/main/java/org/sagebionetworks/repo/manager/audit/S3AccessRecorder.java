@@ -37,7 +37,19 @@ public class S3AccessRecorder implements AccessRecorder {
 	
 	@Autowired
 	AccessRecordManager accessRecordManager;
-	
+
+	boolean shouldAccessRecordsBePushedToS3 = true;
+
+
+	/**
+	 * This allows us to turn off pushing access data to S3 during build and test.
+	 * This value is injected via Spring
+	 * @param shouldAccessMessagesBePushedToS3
+	 */
+	public void setShouldAccessRecordsBePushedToS3(
+			boolean shouldAccessMessagesBePushedToS3) {
+		this.shouldAccessRecordsBePushedToS3 = shouldAccessMessagesBePushedToS3;
+	}
 
 	/**
 	 * New AccessRecords will come in from 
@@ -58,6 +70,13 @@ public class S3AccessRecorder implements AccessRecorder {
 		List<AccessRecord> currentBatch = recordBatch.getAndSet(Collections.synchronizedList(new LinkedList<AccessRecord>()));
 		// There is nothing to do if the batch is empty.
 		if(currentBatch.isEmpty()) return null;
+		// Check to see if the data should be sent to S3
+		if(!shouldAccessRecordsBePushedToS3){
+			if(log.isDebugEnabled() && currentBatch.size() > 0){
+				log.debug("S3AccessRecorder.shouldAccessMessagesBePushedToS3 = false.  So "+currentBatch.size()+" AccessRecords will be thrown away.");
+			}
+			return null;
+		}
 		try{
 			// We are now free to process the current batch with out synchronization or data loss
 			return accessRecordManager.saveBatch(currentBatch);
@@ -67,5 +86,4 @@ public class S3AccessRecorder implements AccessRecorder {
 		}
 	}
 	
-
 }

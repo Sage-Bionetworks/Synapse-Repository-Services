@@ -13,8 +13,16 @@ public class KeyGeneratorUtilTest {
 	@Test
 	public void testPadding(){
 		// Since S3 does alpha-numeric sorting on key names, we must pad all numbers
-		String expected = "000000008/2020-01-01/01/uuid.csv.gz";
-		String resultsString = KeyGeneratorUtil.createKey(8, 2020, 1, 1, 1, "uuid");
+		String expected = "000000008/2020-01-01/01/09-04-003-uuid.csv.gz";
+		String resultsString = KeyGeneratorUtil.createKey(8, 2020, 1, 1, 1,9,4,3, "uuid");
+		assertEquals(expected, resultsString);
+	}
+	
+	@Test
+	public void testPadding2(){
+		// Since S3 does alpha-numeric sorting on key names, we must pad all numbers
+		String expected = "000000900/2020-12-25/59/58-57-999-uuid.csv.gz";
+		String resultsString = KeyGeneratorUtil.createKey(900, 2020, 12, 25, 59,58,57,999, "uuid");
 		assertEquals(expected, resultsString);
 	}
 	

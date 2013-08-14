@@ -11,13 +11,13 @@
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
 	<import resource="classpath:managers-spb.xml" />
-	
+
 	<!--This bean will intercept all HTTP calls and check the status -->
 	<bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
-	
-	<!-- This bean will intercept all HTTP calls and records access records  -->
+
+	<!-- This bean will intercept all HTTP calls and records access records -->
 	<bean id="accessInterceptor" class="org.sagebionetworks.repo.web.AccessInterceptor" />
-	
+
 	<!-- To enable @RequestMapping process on type level and method level -->
 	<bean
 		class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
@@ -29,19 +29,15 @@
 		</property>
 	</bean>
 
-	<!-- Used to Serialize object types -->
-	<bean id="jsonEntityConverter"
-		class="org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverter">
-		<!-- Force all responses to JSON -->
-		<property name="convertAnyRequestToJson" value="true" />
-	</bean>
+	<bean id="objectTypeSerializer"
+		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
 
 	<!-- Setup our own JSON processing. -->
 	<bean
 		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
 		<property name="messageConverters">
 			<list>
-				<ref bean="jsonEntityConverter" />
+				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>
 		<property name="customModelAndViewResolvers">
@@ -55,7 +51,7 @@
 		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
 		<property name="messageConverters">
 			<list>
-				<ref bean="jsonEntityConverter" />
+				<ref bean="objectTypeSerializer" />
 			</list>
 		</property>
 	</bean>

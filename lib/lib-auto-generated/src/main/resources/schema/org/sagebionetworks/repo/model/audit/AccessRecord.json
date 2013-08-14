@@ -15,7 +15,7 @@
 		},
 		"method": {
 			"type": "string",
-			"description": "The HTTP method",
+			"description": "The HTTP method"
 		},
 		"requestURL": {
 			"type": "string",

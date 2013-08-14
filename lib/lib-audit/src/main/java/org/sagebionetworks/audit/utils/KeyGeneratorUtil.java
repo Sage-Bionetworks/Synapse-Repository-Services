@@ -19,7 +19,7 @@ public class KeyGeneratorUtil {
 	 * <stack_instance>/<year><month><day>/<hour>/<uuid>.csv.gz
 	 */
 	static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
-	static final String KEY_TEMPLATE = INSTANCE_PREFIX_TEMPLATE+"/%2$04d-%3$02d-%4$02d/%5$02d/%6$s.csv.gz";
+	static final String KEY_TEMPLATE = INSTANCE_PREFIX_TEMPLATE+"/%2$04d-%3$02d-%4$02d/%5$02d/%6$02d-%7$02d-%8$03d-%9$s.csv.gz";
 
 	/**
 	 * Create a new Key.
@@ -32,7 +32,10 @@ public class KeyGeneratorUtil {
 	    int month = cal.get(Calendar.MONTH);
 	    int day = cal.get(Calendar.DAY_OF_MONTH);
 		int hour = cal.get(Calendar.HOUR_OF_DAY);
-	    return createKey(stackInstanceNumber, year, month, day, hour, UUID.randomUUID().toString());
+		int mins = cal.get(Calendar.MINUTE);
+		int sec = cal.get(Calendar.SECOND);
+		int milli = cal.get(Calendar.MILLISECOND);
+	    return createKey(stackInstanceNumber, year, month, day, hour, mins, sec, milli, UUID.randomUUID().toString());
 	}
 	
 	
@@ -46,8 +49,8 @@ public class KeyGeneratorUtil {
 	 * @param uuid
 	 * @return
 	 */
-	public static String createKey(int instance, int year, int month, int day, int hour, String uuid){
-		return String.format(KEY_TEMPLATE, instance, year, month, day, hour, uuid);
+	public static String createKey(int instance, int year, int month, int day, int hour, int min, int sec, int milli, String uuid){
+		return String.format(KEY_TEMPLATE, instance, year, month, day, hour, min, sec, milli, uuid);
 	}
 	
 	/**

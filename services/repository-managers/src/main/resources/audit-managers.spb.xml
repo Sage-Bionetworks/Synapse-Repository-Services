@@ -18,7 +18,10 @@
 		class="org.sagebionetworks.repo.manager.audit.AccessRecordManagerImpl" />
 
 	<!-- Records access events to S3 -->
-	<bean id="accessRecorder" class="org.sagebionetworks.repo.manager.audit.S3AccessRecorder" />
+	<bean id="accessRecorder" class="org.sagebionetworks.repo.manager.audit.S3AccessRecorder">
+		<property name="shouldAccessRecordsBePushedToS3"
+			ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
+	</bean>
 
 
 </beans>
