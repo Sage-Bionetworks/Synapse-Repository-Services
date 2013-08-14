@@ -1,4 +1,4 @@
-package org.sagebionetworks.audit;
+package org.sagebionetworks.audit.utils;
 
 
 import static org.junit.Assert.*;
@@ -11,6 +11,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.audit.utils.ObjectCSVReader;
+import org.sagebionetworks.audit.utils.ObjectCSVWriter;
 
 /**
  * Tests for both ObjectCSVReader and the ObjectCSVWriter.

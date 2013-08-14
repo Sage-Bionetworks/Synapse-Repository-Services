@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
-import org.sagebionetworks.repo.model.audit.Method;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -58,7 +57,7 @@ public class AccessInterceptor implements HandlerInterceptor {
 		}
 		data.setTimestamp(System.currentTimeMillis());
 		data.setRequestURL(request.getRequestURI());
-		data.setMethod(Method.valueOf(request.getMethod()));
+		data.setMethod(request.getMethod());
 		data.setThreadId(Thread.currentThread().getId());
 		String sessionId = UUID.randomUUID().toString();
 		data.setSessionId(sessionId);

@@ -1,4 +1,4 @@
-package org.sagebionetworks.audit;
+package org.sagebionetworks.audit.utils;
 
 import java.io.IOException;
 import java.io.Writer;

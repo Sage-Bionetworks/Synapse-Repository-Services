@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.audit;
+package org.sagebionetworks.audit;
 
 import java.util.LinkedList;
 import java.util.List;

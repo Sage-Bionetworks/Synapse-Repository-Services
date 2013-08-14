@@ -1,4 +1,4 @@
-package org.sagebionetworks.audit;
+package org.sagebionetworks.audit.utils;
 
 /**
  * A simple test class for ObjectCSV reading and writing.

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.audit;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -7,25 +9,29 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.audit.utils.AccessRecordUtils;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:audit.spb.xml" })
+@ContextConfiguration(locations = { "classpath:audit-managers.spb.xml" })
 public class S3AccessRecorderTest {
 	
 	@Autowired
 	private S3AccessRecorder recorder;
 	
+	@Autowired
+	private AccessRecordManager accessManager;
+	
 	@Before
 	public void before(){
-//		recorder = new S3AccessRecorder();
+
 	}
 
 	@Test
-	public void test() throws IOException{
+	public void testSaveAndFire() throws IOException{
 		List<AccessRecord> toTest = AuditTestUtils.createList(5, 100);
 		// Shuffle to simulate a real scenario
 		Collections.shuffle(toTest);
@@ -35,6 +41,12 @@ public class S3AccessRecorderTest {
 		}
 		// Now fire the timer
 		String fileName = recorder.timerFired();
-		System.out.println(fileName);
+		assertNotNull(fileName);
+		// Get the saved record and check it
+		List<AccessRecord> fetched = accessManager.getBatch(fileName);
+		assertNotNull(fetched);
+		// The fetched list should match the input sorted on time stamp
+		AccessRecordUtils.sortByTimestamp(toTest);
+		assertEquals(toTest, fetched);
 	}
 }

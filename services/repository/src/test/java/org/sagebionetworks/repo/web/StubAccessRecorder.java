@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -27,6 +28,12 @@ public class StubAccessRecorder  implements AccessRecorder{
 	 */
 	public List<AccessRecord> getSavedRecords() {
 		return savedRecords;
+	}
+
+	@Override
+	public String timerFired() throws IOException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 

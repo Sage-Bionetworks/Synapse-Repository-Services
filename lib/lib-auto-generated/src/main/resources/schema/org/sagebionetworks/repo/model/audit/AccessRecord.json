@@ -14,10 +14,8 @@
 			"description": "The ID of the user making the calls"
 		},
 		"method": {
-			"type": "object",
+			"type": "string",
 			"description": "The HTTP method",
-			"name": "Method",
-			"$ref": "org.sagebionetworks.repo.model.audit.Method"
 		},
 		"requestURL": {
 			"type": "string",

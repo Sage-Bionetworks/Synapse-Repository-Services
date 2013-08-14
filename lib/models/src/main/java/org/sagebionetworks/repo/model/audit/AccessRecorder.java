@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.audit;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 
 /**
@@ -14,5 +16,12 @@ public interface AccessRecorder {
 	 * @param record
 	 */
 	public void save(AccessRecord record);
+	
+	/**
+	 * Called when the timer is fired
+	 * @return
+	 * @throws IOException
+	 */
+	public String timerFired() throws IOException;
 
 }

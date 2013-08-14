@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.Method;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -82,7 +81,7 @@ public class AccessInterceptorTest {
 		assertTrue(result.getSuccess());
 		assertNotNull(result.getSessionId());
 		assertEquals("/entity/syn789", result.getRequestURL());
-		assertEquals(Method.DELETE, result.getMethod());
+		assertEquals("DELETE", result.getMethod());
 		assertEquals("localhost8080", result.getHost());
 		assertEquals("HAL 2000", result.getUserAgent());
 		assertEquals("moon.org", result.getXForwardedFor());

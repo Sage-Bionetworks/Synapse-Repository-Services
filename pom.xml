@@ -382,7 +382,11 @@
 				<artifactId>lib-concepts</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-audit</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-doi</artifactId>
