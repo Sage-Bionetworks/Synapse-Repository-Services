@@ -31,30 +31,40 @@ public class BatchUtility {
 
 			if(ids.size() < 2){
 				// We cannot further divide the batch
-				throw e;
+				String msg = "Failed ids in batch retry:\t" + ids;
+				log.warn(msg);
+				throw new DaemonFailedException(msg, e);
 			}
 			// Break up the batch and attempt one at a time
-			int subBatchSize = 1;
-			log.warn("Daemon job failed: "+e.getMessage()+".  Will divide the batch into sub-batches of size: "+subBatchSize+" and re-try", e);
-			List<Long> subBatch = new LinkedList<Long>();
-			List<Long> failedIds = new LinkedList<Long>();
-			DaemonFailedException lastException = null;
+			int subBatchSize = Math.max(1, (ids.size()+1)/2);
+			log.warn("Daemon job failed: "+e.getMessage()+".  Will divide the batch into two sub-batches of size: "+subBatchSize+" and re-try", e);
+			
+			List<Long> subBatch1 = new LinkedList<Long>();
+			List<Long> subBatch2 = new LinkedList<Long>();
+			
 			for(Long id: ids){
-				subBatch.add(id);
-				try{
-					worker.attemptBatch(subBatch);
-				}catch(DaemonFailedException e2){
-					failedIds.add(id);
-					lastException = e2;
+				if (subBatch1.size() < subBatchSize) {
+					subBatch1.add(id);
+				} else {
+					subBatch2.add(id);
 				}
-				subBatch.clear();
 			}
-			// Throw the last exception found
-			if(lastException != null){
-				String msg = "Failed ids in batch retry:\t" + failedIds;
-				log.warn(msg);
-				throw new DaemonFailedException(msg, lastException.getCause());
+
+			// Catch exception on 1st sub-batch
+			Exception firstBatchException = null;
+			try {
+				attemptBatchWithRetry(worker, subBatch1);
+			} catch (DaemonFailedException e2) {
+				firstBatchException = e2;
 			}
+			
+			// Try second batch regardless
+			attemptBatchWithRetry(worker, subBatch2);
+			
+			if (firstBatchException != null) {
+				throw firstBatchException;
+			}
+
 		}
 		return c;
 	}
