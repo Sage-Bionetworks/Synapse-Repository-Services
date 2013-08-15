@@ -55,7 +55,7 @@ public class BatchUtilityTest {
 			// expected
 			assertEquals("Failed ids in batch retry:	[3]", e.getMessage());
 		}
-		verify(mockWorker).attemptBatch(Arrays.asList(1l,2l,3l,4l));
+		verify(mockWorker).attemptBatch(batch);
 	}
 	
 	@Test
@@ -99,6 +99,9 @@ public class BatchUtilityTest {
 			// expected
 			assertEquals("Failed ids in batch retry:	[5]", e.getMessage());
 		}
+		verify(mockWorker).attemptBatch(Arrays.asList(5l));
+		verify(mockWorker).attemptBatch(Arrays.asList(4l));
+		
 
 	}
 
@@ -128,6 +131,10 @@ public class BatchUtilityTest {
 			// expected
 			assertEquals("Failed ids in batch retry:	[6]", e.getMessage());
 		}
+		verify(mockWorker).attemptBatch(Arrays.asList(1l,2l,3l));
+		verify(mockWorker).attemptBatch(Arrays.asList(4l));
+		verify(mockWorker).attemptBatch(Arrays.asList(5l));
+		verify(mockWorker).attemptBatch(Arrays.asList(6l));
 
 	}
 	@Test
@@ -160,6 +167,10 @@ public class BatchUtilityTest {
 			// expected
 			assertEquals("Failed ids in batch retry:	[6]", e.getMessage());
 		}
-
+		verify(mockWorker).attemptBatch(Arrays.asList(4l, 5l));
+		verify(mockWorker).attemptBatch(Arrays.asList(1l));
+		verify(mockWorker).attemptBatch(Arrays.asList(2l));
+		verify(mockWorker).attemptBatch(Arrays.asList(3l));
+		verify(mockWorker).attemptBatch(Arrays.asList(6l));
 	}
 }
