@@ -45,6 +45,7 @@ public class SynapseClientFactoryImpl implements SynapseClientFactory {
 		SynapseAdministration synapse = new SynapseAdministration();
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
+		synapse.setUserName(info.getUserName());
 		synapse.setApiKey(info.getApiKey());
 		return synapse;
 	}

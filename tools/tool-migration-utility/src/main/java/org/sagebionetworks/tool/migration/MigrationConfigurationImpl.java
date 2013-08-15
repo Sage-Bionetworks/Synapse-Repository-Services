@@ -105,6 +105,7 @@ public class MigrationConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 					System.getProperty("org.sagebionetworks.source.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.source.repository.endpoint"),
+					System.getProperty("org.sagebionetworks.username"),
 					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
@@ -120,6 +121,7 @@ public class MigrationConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 					System.getProperty("org.sagebionetworks.destination.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.destination.repository.endpoint"),
+					System.getProperty("org.sagebionetworks.username"),
 					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
