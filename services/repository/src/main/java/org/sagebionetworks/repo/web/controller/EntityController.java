@@ -197,13 +197,15 @@ public class EntityController extends BaseController {
 	 *            - The user that is doing the create.
 	 * @param header
 	 *            - Used to get content type information.
-	 * @param activityId
-	 *            To track the Provenance of an Entity create, include the ID of
-	 *            the <a
+	 * @param generatedBy
+	 *            To track the Provenance of an
+	 *            Entity create, include the ID of the <a
 	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
 	 *            >Activity</a> that was created to track the change. For more
 	 *            information see: <a href="${POST.activity}">POST
-	 *            /activity</a>.
+	 *            /activity</a>. You must be the creator of the <a
+	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
+	 *            >Activity</a> used here. 
 	 * @return The new entity with an etag, id, and type specific metadata.
 	 * @throws DatastoreException
 	 *             - Thrown when an there is a server failure.
@@ -223,14 +225,14 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Entity createEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody Entity entity, @RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,
 			IOException, JSONObjectAdapterException {
 		// Now create the entity
 		Entity createdEntity = serviceProvider.getEntityService().createEntity(
-				userId, entity, activityId, request);
+				userId, entity, generatedBy, request);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -302,13 +304,15 @@ public class EntityController extends BaseController {
 	 *            To force the creation of a new version for a versionable
 	 *            entity such as a FileEntity, include this optional parameter
 	 *            with a value set to true (i.e. newVersion=true).
-	 * @param activityId
+	 * @param generatedBy
 	 *            To track the Provenance of an Entity update, include the ID of
 	 *            the <a
 	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
 	 *            >Activity</a> that was created to track the change. For more
 	 *            information see: <a href="${POST.activity}">POST
-	 *            /activity</a>.
+	 *            /activity</a>. You must be the creator of the <a
+	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
+	 *            >Activity</a> used here.
 	 * @throws NotFoundException
 	 *             - Thrown if the given entity does not exist.
 	 * @throws ConflictingUpdateException
@@ -331,7 +335,7 @@ public class EntityController extends BaseController {
 	Entity updateEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestParam(value = "newVersion", required = false) String newVersion,
 			@RequestBody Entity entity, @RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws NotFoundException,
@@ -344,7 +348,7 @@ public class EntityController extends BaseController {
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId,
-				entity, newVersionBoolean, activityId, request);
+				entity, newVersionBoolean, generatedBy, request);
 		// Return the result
 		return entity;
 	}
@@ -463,7 +467,7 @@ public class EntityController extends BaseController {
 	 * This is a duplicate method to update.
 	 * 
 	 * @param userId
-	 * @param activityId
+	 * @param generatedBy
 	 * @param header
 	 * @param request
 	 * @return
@@ -481,14 +485,14 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Versionable createNewVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestHeader HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException,
 			ConflictingUpdateException, JSONObjectAdapterException {
 
 		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(userId, header, true, activityId,
+		return (Versionable) updateEntityImpl(userId, header, true, generatedBy,
 				request);
 	}
 
@@ -1378,8 +1382,11 @@ public class EntityController extends BaseController {
 	 * 
 	 * @param id
 	 *            The ID of the entity to update.
-	 * @param activityId
-	 *            The id of the activity to connect to the entity.
+	 * @param generatedBy
+	 *            The id of the activity to connect to the entity. You must be
+	 *            the creator of the <a
+	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
+	 *            >Activity</a> used here.
 	 * @param userId
 	 *            The user that is doing the get.
 	 * @param request
@@ -1398,11 +1405,11 @@ public class EntityController extends BaseController {
 	Activity updateActivityForEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM) String activityId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM) String generatedBy,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().setActivityForEntity(userId,
-				id, activityId, request);
+				id, generatedBy, request);
 	}
 
 	/**
