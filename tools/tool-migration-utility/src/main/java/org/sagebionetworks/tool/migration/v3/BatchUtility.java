@@ -37,7 +37,7 @@ public class BatchUtility {
 			}
 			// Break up the batch and attempt one at a time
 			int subBatchSize = Math.max(1, (ids.size()+1)/2);
-			log.warn("Daemon job failed: "+e.getMessage()+".  Will divide the batch into two sub-batches of size: "+subBatchSize+" and re-try", e);
+			log.warn("Daemon job failed.  Will divide the batch into two sub-batches of size: "+subBatchSize+" and re-try", e);
 			
 			List<Long> subBatch1 = new LinkedList<Long>();
 			List<Long> subBatch2 = new LinkedList<Long>();
