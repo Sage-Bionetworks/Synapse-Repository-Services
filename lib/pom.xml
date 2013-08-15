@@ -29,6 +29,7 @@
 		<module>lib-worker</module>
 		<module>lib-doi</module>
 		<module>lib-javadoc</module>
+		<module>lib-audit</module>
 	</modules>
 
 </project>

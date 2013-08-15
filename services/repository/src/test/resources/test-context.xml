@@ -30,4 +30,8 @@
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">
 	    <constructor-arg value="false" />
 	</bean>
+	
+		<!-- Used to Serialize object types -->
+	<bean id="objectTypeSerializer"
+		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
 </beans>

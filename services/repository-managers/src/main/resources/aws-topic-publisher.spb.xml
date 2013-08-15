@@ -21,62 +21,61 @@
 		scope="prototype">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
-	
+
 	<!-- The AmazonSQSClient -->
 	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
-	<!-- The RepositoryMessagePublisher publish repository change messages to an AWS topic -->
+	<!-- The RepositoryMessagePublisher publish repository change messages to 
+		an AWS topic -->
 	<bean id="messagePublisher"
 		class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"
 		init-method="initialize">
 		<constructor-arg type="java.lang.String">
 			<ref bean="stackConfiguration.repositoryChangeTopicName" />
 		</constructor-arg>
-		<property name="shouldMessagesBePublishedToTopic" ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
-		<property name="listUnsentMessagePageSize" value="25000"/>
-		<!-- This will determine how long the worker can hold the semaphore lock while processing un-sent messages
-			 We want to give the worker plenty of time to do its job before attempting a forced lock release
-			 so this is currently set to 30 Minutes (1000*60*30).
-		 -->
-		<property name="lockTimeoutMS" value="1800000"/>
+		<property name="shouldMessagesBePublishedToTopic"
+			ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
+		<property name="listUnsentMessagePageSize" value="25000" />
+		<!-- This will determine how long the worker can hold the semaphore lock 
+			while processing un-sent messages We want to give the worker plenty of time 
+			to do its job before attempting a forced lock release so this is currently 
+			set to 30 Minutes (1000*60*30). -->
+		<property name="lockTimeoutMS" value="1800000" />
 	</bean>
-	
-	<!-- This is how messages get rebroadcast -->
-	<bean id="messageSyndication" class="org.sagebionetworks.repo.manager.message.MessageSyndicationImpl" />
 
-	<!-- This timer is used to fire publish events.  This is where messages get published to the AWS topic -->
-	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
-		<property name="triggers">
-			<list>
-				<!--  This trigger will fire changes messages pushed to the queue -->
-				<bean class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-					<property name="jobDetail">
-						<bean
-							class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-							<property name="targetObject" ref="messagePublisher" />
-							<property name="targetMethod" value="timerFired" />
-						</bean>
-					</property>
-					<property name="startDelay" value="0" />
-					<property name="repeatInterval" value="100" />
-				</bean>
-				<!-- This trigger is used to find any unsent messages. It is fired once every 10 seconds -->
-				<bean class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-					<property name="jobDetail">
-						<bean
-							class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-							<property name="targetObject" ref="messagePublisher" />
-							<property name="targetMethod" value="timerFiredFindUnsentMessages" />
-						</bean>
-					</property>
-					<property name="startDelay" value="10000" />
-					<property name="repeatInterval" value="10000" />
-				</bean>
-			</list>
+	<!-- This is how messages get rebroadcast -->
+	<bean id="messageSyndication"
+		class="org.sagebionetworks.repo.manager.message.MessageSyndicationImpl" />
+
+	<!-- This trigger will fire changes messages pushed to the queue -->
+	<bean id="messagePublisherTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="messagePublisher" />
+				<property name="targetMethod" value="timerFired" />
+			</bean>
 		</property>
+		<property name="startDelay" value="0" />
+		<property name="repeatInterval" value="100" />
 	</bean>
+
+	<!-- This trigger is used to find any unsent messages. It is fired once 
+		every 10 seconds -->
+	<bean id="unsentMessagesTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="messagePublisher" />
+				<property name="targetMethod" value="timerFiredFindUnsentMessages" />
+			</bean>
+		</property>
+		<property name="startDelay" value="10000" />
+		<property name="repeatInterval" value="10000" />
+	</bean>
+
 
 </beans>

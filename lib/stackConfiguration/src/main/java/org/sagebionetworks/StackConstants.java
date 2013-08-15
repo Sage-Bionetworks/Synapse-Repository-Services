@@ -61,5 +61,10 @@ public class StackConstants {
 	 * Template used for the name of the AWS SQS where annotations updates are pushed.
 	 */
 	public static final String ANNOTATIONS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-annotations-update-queue";
+	
+	/**
+	 * The bucket containing all access record data.
+	 */
+	public static final String ACCESS_RECORD_BUCKET = "%1$s.access.record.sagebase.org";
 
 }

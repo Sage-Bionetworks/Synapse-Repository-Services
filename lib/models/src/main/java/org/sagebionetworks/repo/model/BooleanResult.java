@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model;
 
-public class BooleanResult {
+public class BooleanResult  {
 	private boolean result;
 	
 	public BooleanResult() {}
