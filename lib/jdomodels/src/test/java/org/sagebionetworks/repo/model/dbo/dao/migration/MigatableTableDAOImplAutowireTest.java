@@ -85,6 +85,9 @@ public class MigatableTableDAOImplAutowireTest {
 		preview2 = fileHandleDao.createFile(preview2);
 		assertNotNull(preview2);
 		toDelete.add(preview2.getId());
+		
+		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMax());
+		
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		fileHandleDao.setPreviewId(withPreview2.getId(), preview2.getId());
