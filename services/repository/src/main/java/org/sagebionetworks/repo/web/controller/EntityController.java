@@ -198,12 +198,12 @@ public class EntityController extends BaseController {
 	 * @param header
 	 *            - Used to get content type information.
 	 * @param activityId
-	 *            To track the Provenance of an Entity create, include the ID of
-	 *            the <a
+	 *            To track the Provenance of an
+	 *            Entity create, include the ID of the <a
 	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
 	 *            >Activity</a> that was created to track the change. For more
 	 *            information see: <a href="${POST.activity}">POST
-	 *            /activity</a>.
+	 *            /activity</a>. <p>Use: ?generatedBy={activityId}</p>
 	 * @return The new entity with an etag, id, and type specific metadata.
 	 * @throws DatastoreException
 	 *             - Thrown when an there is a server failure.
@@ -308,7 +308,7 @@ public class EntityController extends BaseController {
 	 *            href="${org.sagebionetworks.repo.model.provenance.Activity}"
 	 *            >Activity</a> that was created to track the change. For more
 	 *            information see: <a href="${POST.activity}">POST
-	 *            /activity</a>.
+	 *            /activity</a>. <p>Use: ?generatedBy={activityId}</p>
 	 * @throws NotFoundException
 	 *             - Thrown if the given entity does not exist.
 	 * @throws ConflictingUpdateException
@@ -1379,7 +1379,7 @@ public class EntityController extends BaseController {
 	 * @param id
 	 *            The ID of the entity to update.
 	 * @param activityId
-	 *            The id of the activity to connect to the entity.
+	 *            The id of the activity to connect to the entity. <p>Use: ?generatedBy={activityId}</p>
 	 * @param userId
 	 *            The user that is doing the get.
 	 * @param request
