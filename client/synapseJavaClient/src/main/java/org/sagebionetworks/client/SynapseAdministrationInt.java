@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -52,15 +51,6 @@ public interface SynapseAdministrationInt extends SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException;
-	
-	/**
-	 * Get the max(id) for all types
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	public MigrationTypeMaxIds getTypeMaxIds() throws SynapseException, JSONObjectAdapterException;
-	
 	
 	/**
 	 * Get the primary migration types

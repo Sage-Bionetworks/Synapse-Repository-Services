@@ -24,8 +24,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxId;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,27 +105,14 @@ public class MigrationControllerAutowireTest {
 		assertEquals(MigrationType.values().length, counts.getList().size());
 		System.out.println(counts);
 		long fileCount = 0;
+		long fileMaxId = 0;
 		for(MigrationTypeCount type: counts.getList()){
 			if(type.getType() == MigrationType.FILE_HANDLE){
 				fileCount = type.getCount();
+				fileMaxId = type.getMaxid();
 			}
 		}
 		assertEquals(startFileCount+2, fileCount);
-	}
-	
-	@Test
-	public void testGetMaxIds() throws Exception {
-		MigrationTypeMaxIds maxIds = entityServletHelper.getMigrationTypeMaxIds(userName);
-		assertNotNull(maxIds);
-		assertNotNull(maxIds.getList());
-		assertEquals(MigrationType.values().length, maxIds.getList().size());
-		System.out.println(maxIds);
-		long fileMaxId = 0;
-		for(MigrationTypeMaxId type: maxIds.getList()){
-			if(type.getType() == MigrationType.FILE_HANDLE){
-				fileMaxId = type.getMaxId();
-			}
-		}
 		assertEquals(Long.parseLong(preview.getId()), fileMaxId);
 	}
 	

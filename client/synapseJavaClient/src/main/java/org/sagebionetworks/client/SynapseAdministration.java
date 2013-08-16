@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -164,19 +163,6 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 		MigrationTypeCounts mtc = new MigrationTypeCounts();
 		mtc.initializeFromJSONObject(adapter);
 		return mtc;
-	}
-	
-	/*
-	 * 
-	 * 
-	 */
-	public MigrationTypeMaxIds getTypeMaxIds() throws SynapseException, JSONObjectAdapterException {
-		String uri = MIGRATION_MAX_IDS;
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		MigrationTypeMaxIds mtm = new MigrationTypeMaxIds();
-		mtm.initializeFromJSONObject(adapter);
-		return mtm;
 	}
 	
 	/*

@@ -12,8 +12,6 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxId;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -39,37 +37,16 @@ public class MigrationServiceImpl implements MigrationService {
 		List<MigrationTypeCount> list = new LinkedList<MigrationTypeCount>();
 		for(MigrationType type: MigrationType.values()){
 			long count = migrationManager.getCount(user, type);
+			long maxId = migrationManager.getMaxId(user, type);
 			MigrationTypeCount tc = new MigrationTypeCount();
 			tc.setCount(count);
+			tc.setMaxid(maxId);
 			tc.setType(type);
 			list.add(tc);
 		}
 		MigrationTypeCounts counts = new MigrationTypeCounts();
 		counts.setList(list);
 		return counts;
-	}
-	
-	/**
-	 * Get the max(pk) for each migration type
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	@Override
-	public MigrationTypeMaxIds getTypeMaxIds(String userId) throws DatastoreException, NotFoundException {
-		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
-		UserInfo user = userManager.getUserInfo(userId);
-		// Get the counts for each.
-		List<MigrationTypeMaxId> list = new LinkedList<MigrationTypeMaxId>();
-		for(MigrationType type: MigrationType.values()){
-			long mPK = migrationManager.getMaxId(user, type);
-			MigrationTypeMaxId tm = new MigrationTypeMaxId();
-			tm.setMaxId(mPK);
-			tm.setType(type);
-			list.add(tm);
-		}
-		MigrationTypeMaxIds maxIds = new MigrationTypeMaxIds();
-		maxIds.setList(list);
-		return maxIds;
 	}
 	
 	@Override

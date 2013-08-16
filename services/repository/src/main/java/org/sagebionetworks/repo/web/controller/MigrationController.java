@@ -15,8 +15,6 @@ import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxId;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -65,18 +63,6 @@ public class MigrationController extends BaseController {
 		return serviceProvider.getMigrationService().getTypeCounts(userId);
 	}
 	
-	/**
-	 * Get the max(pk) for each migration type.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MIGRATION_MAX_IDS, method = RequestMethod.GET)
-	public @ResponseBody
-	MigrationTypeMaxIds getTypeMaxIds(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
-			throws DatastoreException, NotFoundException {
-		return serviceProvider.getMigrationService().getTypeMaxIds(userId);
-	}
-
 	/**
 	 * This method is used to query a source stack for all of its metadata.
 	 * 

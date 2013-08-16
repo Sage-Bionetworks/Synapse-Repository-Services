@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -103,14 +102,5 @@ public interface MigrationService {
 	 * @throws DatastoreException 
 	 */
 	MigrationTypeList getPrimaryTypes(String userId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * The list of maximum primary keys for each migratable type.
-	 * @param userId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	MigrationTypeMaxIds getTypeMaxIds(String userId) throws DatastoreException, NotFoundException;
 
 }
