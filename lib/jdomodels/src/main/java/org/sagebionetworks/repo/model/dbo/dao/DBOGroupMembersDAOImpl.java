@@ -53,10 +53,6 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	private static final String SELECT_GROUPS_OF_MEMBER = 
 			"SELECT DISTINCT "+SqlConstants.COL_GROUP_MEMBERS_GROUP_ID+" FROM "+SqlConstants.TABLE_GROUP_MEMBERS+
 			" WHERE "+SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+MEMBER_ID_PARAM_NAME+")";
-	
-	private static final String SELECT_USER_GROUP_BY_PRINCIPAL_IDS = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
-			" WHERE "+SqlConstants.COL_USER_GROUP_ID+" IN (:"+GROUP_ID_PARAM_NAME+")";
 			
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
 	
@@ -90,6 +86,10 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void addMembers(GroupMembers dto) throws DatastoreException {
+		if (dto.getMembers().isEmpty()) {
+			return;
+		}
+		
 		Set<String> parents = getParentGroupIds(dto.getId());
 		List<String> updatedIds = new ArrayList<String>();
 		updatedIds.add(dto.getId());
@@ -127,6 +127,10 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void removeMembers(GroupMembers dto) throws DatastoreException {
+		if (dto.getMembers().isEmpty()) {
+			return;
+		}
+		
 		Set<String> parents = getParentGroupIds(dto.getId());
 		List<String> updatedIds = new ArrayList<String>();
 		updatedIds.add(dto.getId());
@@ -149,18 +153,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException {
 		List<String> parentGroupIds = new ArrayList<String>(getParentGroupIds(principalId));
-		
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(GROUP_ID_PARAM_NAME, parentGroupIds);
-		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_USER_GROUP_BY_PRINCIPAL_IDS, userGroupRowMapper, param);
-		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		
-		for (DBOUserGroup dbo : dbos) {
-			UserGroup dto = new UserGroup();
-			UserGroupUtils.copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
-		return dtos;
+		return userGroupDAO.get(parentGroupIds);
 	}
 	
 	/**

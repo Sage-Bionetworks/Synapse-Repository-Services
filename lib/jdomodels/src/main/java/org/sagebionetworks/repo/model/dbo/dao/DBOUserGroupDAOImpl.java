@@ -63,6 +63,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String SELECT_MULTI_BY_NAME_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_NAME+" IN (:"+NAME_PARAM_NAME+")";
+
+	private static final String SELECT_MULTI_BY_PRINCIPAL_IDS = 
+			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
+			" WHERE "+SqlConstants.COL_USER_GROUP_ID+" IN (:"+ID_PARAM_NAME+")";
 	
 	private static final String SELECT_BY_IS_INDIVID_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -319,6 +323,21 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto);
 		return dto;
+	}
+	
+	@Override
+	public List<UserGroup> get(List<String> ids) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, ids);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_MULTI_BY_PRINCIPAL_IDS, userGroupRowMapper, param);
+		List<UserGroup> dtos = new ArrayList<UserGroup>();
+
+		for (DBOUserGroup dbo : dbos) {
+			UserGroup dto = new UserGroup();
+			UserGroupUtils.copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+		return dtos;
 	}
 
 	@Override

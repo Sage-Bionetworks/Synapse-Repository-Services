@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class CrowdGroupMembersDAO implements GroupMembersDAO {
-
-	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;

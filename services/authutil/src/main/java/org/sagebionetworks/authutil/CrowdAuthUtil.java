@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERM
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -318,20 +319,20 @@ public class CrowdAuthUtil {
 	}
 	
 	public static void deleteGroup(String name) throws AuthenticationException, IOException {
-		executeRequestNoResponseBody(urlPrefix()+"/group?groupname="+name, 
+		executeRequestNoResponseBody(urlPrefix()+"/group?groupname="+URLEncoder.encode(name, "UTF-8"), 
 				"DELETE", "", 
 				HttpStatus.NO_CONTENT, "Unable to delete group");
 	}
 		
 	// Note, this seems to be 'idempotent', i.e. you CAN add a user to a group which the user is already in
 	public static void addUserToGroup(String group, String userId) throws AuthenticationException, IOException {
-		executeRequest(urlPrefix()+"/group/user/direct?groupname="+group, "POST", 
+		executeRequest(urlPrefix()+"/group/user/direct?groupname="+URLEncoder.encode(group, "UTF-8"), "POST", 
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?> <user name=\""+userId+"\"/>\n",
 				HttpStatus.CREATED, "Unable to add user "+userId+" to group "+group+".");
 	}
 	
 	public static void removeUserFromGroup(String group, String userId) throws AuthenticationException, IOException {
-		executeRequestNoResponseBody(urlPrefix()+"/group/user/direct?groupname="+group+"&username="+userId,
+		executeRequestNoResponseBody(urlPrefix()+"/group/user/direct?groupname="+URLEncoder.encode(group, "UTF-8")+"&username="+userId,
 				"DELETE",
 				"",
 				HttpStatus.NO_CONTENT, "Unable to remove user "+userId+" from group "+group+".");
@@ -341,7 +342,7 @@ public class CrowdAuthUtil {
 	 * Don't use this method.  The feature is disabled on Crowd.
 	 */
 	public static void addGroupToGroup(String parent, String child) throws AuthenticationException, IOException {
-		executeRequest(urlPrefix()+"/group/child-group/direct?groupname="+parent, "POST", 
+		executeRequest(urlPrefix()+"/group/child-group/direct?groupname="+URLEncoder.encode(parent, "UTF-8"), "POST", 
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?> <group name=\""+child+"\"/>\n",
 				HttpStatus.CREATED, "Unable to add group "+child+" to group "+parent+".");
 	}
@@ -359,7 +360,7 @@ public class CrowdAuthUtil {
 	 * @throws IOException
 	 */
 	public static List<String> getAllUsersInGroup(String group, boolean nested) throws AuthenticationException, IOException {
-		byte[] sessionXML =	executeRequest(urlPrefix()+"/group/user/"+(nested ? "nested" : "direct")+"?groupname="+group,
+		byte[] sessionXML =	executeRequest(urlPrefix()+"/group/user/"+(nested ? "nested" : "direct")+"?groupname="+URLEncoder.encode(group, "UTF-8"),
 				"GET", "",
 				HttpStatus.OK, "Unable to get users in "+group+".");
 		try {
