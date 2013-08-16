@@ -14,7 +14,7 @@ public class UserGroupUtils {
 		dbo.setCreationDate(dto.getCreationDate());
 		dbo.setIsIndividual(dto.getIsIndividual());
 		dbo.setName(dto.getName());
-
+		dbo.setEtag(dto.getEtag());
 	}
 	
 	public static void copyDboToDto(DBOUserGroup dbo, UserGroup dto) {
@@ -26,6 +26,7 @@ public class UserGroupUtils {
 		dto.setCreationDate(dbo.getCreationDate());
 		dto.setIsIndividual(dbo.getIsIndividual());
 		dto.setName(dbo.getName());
+		dto.setEtag(dbo.getEtag());
 	}
 	
 

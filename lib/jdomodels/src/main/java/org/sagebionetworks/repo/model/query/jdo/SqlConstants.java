@@ -188,9 +188,15 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_ID			= "ID";
 	public static final String COL_USER_GROUP_NAME 			= "NAME";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
-	// public static final String COL_USER_GROUP_E_TAG = "ETAG";
+	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
+    
+    // The group members table
+    public static final String TABLE_GROUP_MEMBERS         = "GROUP_MEMBERS";
+    public static final String COL_GROUP_MEMBERS_GROUP_ID  = "GROUP_ID";
+    public static final String COL_GROUP_MEMBERS_MEMBER_ID = "MEMBER_ID";
+    public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID                 = "ID";

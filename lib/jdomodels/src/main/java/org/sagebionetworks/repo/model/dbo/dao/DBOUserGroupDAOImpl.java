@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -48,6 +49,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
+	private static final String ETAG_PARAM_NAME = "etag";
 	
 	private static final String SELECT_BY_NAME_AND_IS_INDIVID_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -82,6 +84,16 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	private static final String SELECT_ALL = 
 		"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
+	
+	private static final String UPDATE_ETAG_LIST = 
+			"UPDATE "+SqlConstants.TABLE_USER_GROUP+
+			" SET "+SqlConstants.COL_USER_GROUP_E_TAG+"=:"+ETAG_PARAM_NAME+
+			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
+	
+	private static final String SQL_COUNT_UNMODIFIED_USER_GROUPS = 
+			"SELECT COUNT(*) FROM "+SqlConstants.TABLE_USER_GROUP+
+			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME+
+			" AND "+SqlConstants.COL_USER_GROUP_E_TAG+"=:"+ETAG_PARAM_NAME;
 
 	// the pattern is: select x.id, y.etag from g x LEFT OUTER JOIN p y on x.id=y.owner order by x.id
 	// the query is: select g.id, p.etag from user_group g LEFT OUTER JOIN user_profile p on g.id=p.owner_id order by g.id limit l offset o 
@@ -266,6 +278,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			InvalidModelException {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
+		
+		// If the create is successful, it should have a new etag
+		dbo.setEtag(UUID.randomUUID().toString());
+		
 		if(dbo.getId() == null){
 			dbo.setId(idGenerator.generateNewId());
 		}else{
@@ -326,6 +342,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			ConflictingUpdateException {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
+		
+		// If the update is successful, it should have a new etag
+		dbo.setEtag(UUID.randomUUID().toString());
+
 		basicDao.update(dbo);
 	}
 
@@ -358,5 +378,28 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				idGenerator.reserveId(id, TYPE.DOMAIN_IDS);
 			}
 		}
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void touchList(List<String> ids) {
+		MapSqlParameterSource params[] = new MapSqlParameterSource[ids.size()];
+		for (int i = 0; i < params.length; i++) {
+			params[i] = new MapSqlParameterSource();
+			params[i].addValue(ID_PARAM_NAME, ids.get(i));
+			params[i].addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
+		}
+		simpleJdbcTemplate.batchUpdate(UPDATE_ETAG_LIST, params);
+	}
+
+	@Override
+	public boolean hasChanged(UserGroup dto) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, dto.getId());
+		param.addValue(ETAG_PARAM_NAME, dto.getEtag());
+		Long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_UNMODIFIED_USER_GROUPS, param);
+		
+		// No results -> etag has changed
+		return count == 0;
 	}
 }
