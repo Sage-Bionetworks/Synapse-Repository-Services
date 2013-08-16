@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -35,6 +33,11 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  * 
  */
 public class AccessRecordDAOImpl implements AccessRecordDAO {
+	
+	/**
+	 * This is the schema. If it changes we will not be able to read old data.
+	 */
+	private final static String[] HEADERS = new String[]{"elapseMS","timestamp","via","host","threadId","userAgent","sessionId","xForwardedFor","requestURL","userId","origin","method","success"};
 
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -88,7 +91,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		GZIPOutputStream zipOut = new GZIPOutputStream(out);
 		OutputStreamWriter osw = new OutputStreamWriter(zipOut);
 		ObjectCSVWriter<AccessRecord> writer = new ObjectCSVWriter<AccessRecord>(
-				osw, AccessRecord.class);
+				osw, AccessRecord.class, HEADERS);
 		// Write all of the data
 		for (AccessRecord ar : batch) {
 			writer.append(ar);
@@ -121,7 +124,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 			GZIPInputStream zipIn = new GZIPInputStream(input);
 			InputStreamReader isr = new InputStreamReader(zipIn);
 			ObjectCSVReader<AccessRecord> reader = new ObjectCSVReader<AccessRecord>(
-					isr, AccessRecord.class);
+					isr, AccessRecord.class, HEADERS);
 			List<AccessRecord> results = new LinkedList<AccessRecord>();
 			AccessRecord record = null;
 			while ((record = reader.next()) != null) {

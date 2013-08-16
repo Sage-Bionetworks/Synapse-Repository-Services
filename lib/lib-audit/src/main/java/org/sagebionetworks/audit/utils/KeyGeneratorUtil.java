@@ -4,8 +4,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
 
-import org.sagebionetworks.StackConfiguration;
-
 /**
  * Utility for generating key for AccessRecords batches.
  * 
@@ -19,7 +17,7 @@ public class KeyGeneratorUtil {
 	 * <stack_instance>/<year><month><day>/<hour>/<uuid>.csv.gz
 	 */
 	static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
-	static final String KEY_TEMPLATE = INSTANCE_PREFIX_TEMPLATE+"/%2$04d-%3$02d-%4$02d/%5$02d/%6$02d-%7$02d-%8$03d-%9$s.csv.gz";
+	static final String KEY_TEMPLATE = INSTANCE_PREFIX_TEMPLATE+"/%2$04d-%3$02d-%4$02d/%5$02d-%6$02d-%7$02d-%8$03d-%9$s.csv.gz";
 
 	/**
 	 * Create a new Key.
