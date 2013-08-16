@@ -44,11 +44,33 @@
 	<!-- enable the configuration of transactional behavior based on annotations -->
 	<tx:annotation-driven transaction-manager="txManager" />
 
+	<!-- The default behavior of Spring is to only roll-back on RuntimeExceptions 
+		not Exceptions. In the past that is has caused us to commit on IOException 
+		and InterruptedException See PLFM-2108. Currently there is only one exceptions 
+		that we do not want to rollback for and that is NotFoundException. This advice 
+		will ensure that we rollback for all other exceptions -->
+	<tx:advice id="defaultTxRollbackAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" rollback-for="Throwable"
+				no-rollback-for="org.sagebionetworks.repo.web.NotFoundException" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- This advisor will be applied to any method with the @Transactional 
+		annotation. This allows us to change the default rollback exception types 
+		for all of our transactional methods -->
+	<aop:config>
+		<aop:pointcut id="defaultDao"
+			expression="@annotation(org.springframework.transaction.annotation.Transactional)" />
+		<aop:advisor pointcut-ref="defaultDao" advice-ref="defaultTxRollbackAdvice" />
+	</aop:config>
+
 	<!-- Transaction Manager for PMF -->
 	<bean id="txManager"
 		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="dataSourcePool" />
 	</bean>
+
 
 	<bean id="simpleJdbcTempalte" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
