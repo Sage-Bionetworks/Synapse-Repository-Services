@@ -17,7 +17,8 @@ public class KeyGeneratorUtil {
 	 * <stack_instance>/<year><month><day>/<hour>/<uuid>.csv.gz
 	 */
 	static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
-	static final String KEY_TEMPLATE = INSTANCE_PREFIX_TEMPLATE+"/%2$04d-%3$02d-%4$02d/%5$02d-%6$02d-%7$02d-%8$03d-%9$s.csv.gz";
+	static final String DATE_TEMPLATE = "%1$04d-%2$02d-%3$02d";
+	static final String KEY_TEMPLATE = "%1$S/%2$S/%3$02d-%4$02d-%5$02d-%6$03d-%7$s.csv.gz";
 
 	/**
 	 * Create a new Key.
@@ -48,7 +49,7 @@ public class KeyGeneratorUtil {
 	 * @return
 	 */
 	public static String createKey(int instance, int year, int month, int day, int hour, int min, int sec, int milli, String uuid){
-		return String.format(KEY_TEMPLATE, instance, year, month, day, hour, min, sec, milli, uuid);
+		return String.format(KEY_TEMPLATE, getInstancePrefix(instance), getDateString(year, month, day), hour, min, sec, milli, uuid);
 	}
 	
 	/**
@@ -58,5 +59,30 @@ public class KeyGeneratorUtil {
 	 */
 	public static String getInstancePrefix(int instance){
 		return String.format(INSTANCE_PREFIX_TEMPLATE, instance);
+	}
+	
+	/**
+	 * Get the date string
+	 * @param timeMS
+	 * @return
+	 */
+	public static String getDateString(long timeMS){
+	    Calendar cal = Calendar.getInstance();
+	    cal.setTime(new Date(timeMS));
+	    int year = cal.get(Calendar.YEAR);
+	    int month = cal.get(Calendar.MONTH);
+	    int day = cal.get(Calendar.DAY_OF_MONTH);
+		return getDateString(year, month, day);
+	}
+	
+	/**
+	 * Get the date String
+	 * @param year
+	 * @param month
+	 * @param day
+	 * @return
+	 */
+	public static String getDateString(int year, int month, int day){
+		return String.format(DATE_TEMPLATE, year, month, day);
 	}
 }

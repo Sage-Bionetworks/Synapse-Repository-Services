@@ -52,6 +52,18 @@
 		"success": {
 			"type": "boolean",
 			"description": "Did the call complete without an error?"
+		},			
+		"stack": {
+			"type": "string",
+			"description": "This string identifies the stack where the request originated"
+		},			
+		"instance": {
+			"type": "string",
+			"description": "This string identifies the stack instance where the request originated.  This is used for partitioning."
+		},			
+		"date": {
+			"type": "string",
+			"description": "This string identifies the stack instance where the request originated. This is used for partitioning."
 		}
 
 	}

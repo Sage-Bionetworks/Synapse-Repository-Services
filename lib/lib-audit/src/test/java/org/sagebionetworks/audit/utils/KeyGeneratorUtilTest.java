@@ -55,4 +55,20 @@ public class KeyGeneratorUtilTest {
 		assertEquals(expected, results);
 	}
 	
+	@Test
+	public void testGetDateString(){
+		String expected = "2020-01-02";
+		String results = KeyGeneratorUtil.getDateString(2020, 1, 2);
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetDateStringTimeMS(){
+	    Calendar cal = Calendar.getInstance();
+		cal.set(2012, 11, 30, 22, 49);
+		String expected = "2012-11-30";
+		String results = KeyGeneratorUtil.getDateString(cal.getTimeInMillis());
+		assertEquals(expected, results);
+	}
+	
 }
