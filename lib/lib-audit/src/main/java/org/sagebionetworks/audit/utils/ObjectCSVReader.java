@@ -69,6 +69,39 @@ public class ObjectCSVReader<T> {
 			}
 		}
 	}
+	
+	/**
+	 * This version takes the headers as input.
+	 * @param reader
+	 * @param clazz
+	 * @param headers
+	 * @throws IOException
+	 */
+	public ObjectCSVReader(Reader reader, Class<T> clazz, String[] headers) throws IOException {
+		this.clazz = clazz;
+		this.csv = new CSVReader(reader);
+		// Build up the fields in the same order as the header
+		fields = new Field[headers.length];
+		buffer = new String[headers.length];
+		for (int i = 0; i < headers.length; i++) {
+			try {
+				fields[i] = clazz.getDeclaredField(headers[i]);
+				fields[i].setAccessible(true);
+			} catch (NoSuchFieldException e) {
+				// This field will be skipped
+				fields[i] = null;
+				if(logger.isDebugEnabled()){
+					logger.debug("The csv file contains the following header: "
+							+ buffer[i]
+							+ " but the class: "
+							+ clazz.getName()
+							+ " does not have a field by that name.  Data from this column will be ignored");
+				}
+			} catch (SecurityException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
 
 	/**
 	 * Read a single object from the stream. Reflection is used to create the
