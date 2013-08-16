@@ -97,6 +97,12 @@
 		depends-on="userGroupDAO" init-method="bootstrapProfiles">
 		<property name="bootstrapUsers" ref="bootstrapUsers" />
 	</bean>
+	
+	<bean id="crowdGroupMembersDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
+	
+	<bean id="groupMembersDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" />
 
 	<bean id="accessRequirementDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />

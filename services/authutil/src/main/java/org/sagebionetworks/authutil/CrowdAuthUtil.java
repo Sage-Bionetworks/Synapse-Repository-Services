@@ -305,6 +305,23 @@ public class CrowdAuthUtil {
 				"",
 				HttpStatus.NO_CONTENT, "Unable to send reset-password message.");
 	}
+	
+	public static void createGroup(String name) throws AuthenticationException, IOException {
+		executeRequest(urlPrefix()+"/group", 
+				"POST", "<?xml version=\"1.0\" encoding=\"UTF-8\"?> "+
+						"<group name=\""+name+"\" expand=\"attributes\">"+
+						"\t<type>GROUP</type>"+
+						"\t<description>Group made from a temporary method</description>"+
+						"\t<active>true</active>"+
+						"</group>", 
+				HttpStatus.CREATED, "Unable to create group");
+	}
+	
+	public static void deleteGroup(String name) throws AuthenticationException, IOException {
+		executeRequestNoResponseBody(urlPrefix()+"/group?groupname="+name, 
+				"DELETE", "", 
+				HttpStatus.NO_CONTENT, "Unable to delete group");
+	}
 		
 	// Note, this seems to be 'idempotent', i.e. you CAN add a user to a group which the user is already in
 	public static void addUserToGroup(String group, String userId) throws AuthenticationException, IOException {
@@ -313,8 +330,36 @@ public class CrowdAuthUtil {
 				HttpStatus.CREATED, "Unable to add user "+userId+" to group "+group+".");
 	}
 	
+	public static void removeUserFromGroup(String group, String userId) throws AuthenticationException, IOException {
+		executeRequestNoResponseBody(urlPrefix()+"/group/user/direct?groupname="+group+"&username="+userId,
+				"DELETE",
+				"",
+				HttpStatus.NO_CONTENT, "Unable to remove user "+userId+" from group "+group+".");
+	}
+	
+	/**
+	 * Don't use this method.  The feature is disabled on Crowd.
+	 */
+	public static void addGroupToGroup(String parent, String child) throws AuthenticationException, IOException {
+		executeRequest(urlPrefix()+"/group/child-group/direct?groupname="+parent, "POST", 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?> <group name=\""+child+"\"/>\n",
+				HttpStatus.CREATED, "Unable to add group "+child+" to group "+parent+".");
+	}
+	
 	public static Collection<String> getUsersInGroup(String group) throws AuthenticationException, IOException {
-		byte[] sessionXML =	executeRequest(urlPrefix()+"/group/user/direct?groupname="+group,
+		return getAllUsersInGroup(group, false);
+	}
+	
+	/**
+	 * Returns a list of all usernames that are members of the group
+	 * @param group
+	 * @param nested Determines if the search should go one or all levels down the group hierarchy
+	 * @return
+	 * @throws AuthenticationException
+	 * @throws IOException
+	 */
+	public static List<String> getAllUsersInGroup(String group, boolean nested) throws AuthenticationException, IOException {
+		byte[] sessionXML =	executeRequest(urlPrefix()+"/group/user/"+(nested ? "nested" : "direct")+"?groupname="+group,
 				"GET", "",
 				HttpStatus.OK, "Unable to get users in "+group+".");
 		try {
@@ -402,9 +447,14 @@ public class CrowdAuthUtil {
 	
 	
 	public static Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {
+		return getAllUsersGroups(userId, false);
+	}
+	
+	
+	public static List<String> getAllUsersGroups(String userId, boolean nested) throws IOException, NotFoundException {
 		byte[] sessionXML = null;
 		try {
-			sessionXML = executeRequest(urlPrefix()+"/user/group/direct?username="+userId,
+			sessionXML = executeRequest(urlPrefix()+"/user/group/"+(nested ? "nested" : "direct")+"?username="+userId,
 					"GET", "",
 					HttpStatus.OK, "Unable to get groups for "+userId+".");
 		} catch (AuthenticationException e) {
@@ -412,7 +462,7 @@ public class CrowdAuthUtil {
 		}
 
 		try {
-			Collection<String> ans = getMultiFromXML("/groups/group/@name", sessionXML);
+			List<String> ans = getMultiFromXML("/groups/group/@name", sessionXML);
 			return ans;
 		} catch (XPathExpressionException xee) {
 			throw new RuntimeException(xee);
