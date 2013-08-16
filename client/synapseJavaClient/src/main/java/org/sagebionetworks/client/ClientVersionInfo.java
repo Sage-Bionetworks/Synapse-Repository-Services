@@ -20,7 +20,7 @@ public class ClientVersionInfo {
 		private static String versionInfo = "";
 
 		static {
-			String fileName = "/version-info.properties";
+			String fileName = "/java-client-version-info.properties";
 			InputStream in = ClientVersionInfo.class
 					.getResourceAsStream(fileName);
 			if(in == null) throw new RuntimeException("Cannot find file on classpath: "+fileName);
