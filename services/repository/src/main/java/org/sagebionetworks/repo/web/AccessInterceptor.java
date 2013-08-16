@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web;
 
+import java.rmi.dgc.VMID;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,6 +9,9 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
+import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,6 +39,9 @@ public class AccessInterceptor implements HandlerInterceptor {
 	AccessRecorder accessRecorder;
 	@Autowired
 	UserManager userManager;
+	
+	private String instancePrefix = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
+	private String stack = StackConfiguration.getStack();
 
 	/**
 	 * This is called before a controller runs.
@@ -67,6 +74,10 @@ public class AccessInterceptor implements HandlerInterceptor {
 		data.setUserAgent(request.getHeader("User-Agent"));
 		data.setXForwardedFor(request.getHeader("X-Forwarded-For"));
 		data.setVia(request.getHeader("Via"));
+		data.setDate(KeyGeneratorUtil.getDateString(data.getTimestamp()));
+		data.setStack(this.stack);
+		data.setInstance(this.instancePrefix);
+		data.setVmId(VirtualMachineIdProvider.getVMID());
 		// Bind this record to this thread.
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;
