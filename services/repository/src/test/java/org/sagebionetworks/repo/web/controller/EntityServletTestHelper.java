@@ -1140,7 +1140,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		String uri = "/migration/maxpks";
+		String uri = "/migration/maxids";
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");

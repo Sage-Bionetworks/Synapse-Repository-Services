@@ -55,7 +55,7 @@ public class MigrationManagerImplAutowireTest {
 		creatorUserGroupId = adminUser.getIndividualGroup().getId();
 		assertNotNull(creatorUserGroupId);
 		startCount = fileHandleDao.getCount();
-		startMax = fileHandleDao.getMax();
+		startMax = fileHandleDao.getMaxId();
 		
 		// The one will have a preview
 		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);

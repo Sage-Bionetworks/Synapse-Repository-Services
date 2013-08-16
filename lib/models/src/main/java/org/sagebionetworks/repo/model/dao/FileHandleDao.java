@@ -107,5 +107,5 @@ public interface FileHandleDao {
 
 	long getCount() throws DatastoreException;
 
-	long getMax() throws DatastoreException;
+	long getMaxId() throws DatastoreException;
 }

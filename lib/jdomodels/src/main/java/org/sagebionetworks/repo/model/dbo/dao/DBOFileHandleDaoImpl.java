@@ -230,7 +230,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	}
 	
 	@Override
-	public long getMax() throws DatastoreException {
+	public long getMaxId() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
 	}
 

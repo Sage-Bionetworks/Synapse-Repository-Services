@@ -87,7 +87,7 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 	
 	@Override
-	public long getMax() throws DatastoreException {
+	public long getMaxId() throws DatastoreException {
 		return map.size();
 	}
 

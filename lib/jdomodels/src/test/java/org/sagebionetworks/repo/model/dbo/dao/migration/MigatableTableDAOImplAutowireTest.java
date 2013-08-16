@@ -62,7 +62,7 @@ public class MigatableTableDAOImplAutowireTest {
 		long startCount = fileHandleDao.getCount();
 		long migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
 		assertEquals(startCount, migrationCount);
-		long startMax = fileHandleDao.getMax();
+		long startMax = fileHandleDao.getMaxId();
 		// The one will have a preview
 		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
@@ -87,7 +87,7 @@ public class MigatableTableDAOImplAutowireTest {
 		assertNotNull(preview2);
 		toDelete.add(preview2.getId());
 		
-		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMax());
+		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
 		
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());

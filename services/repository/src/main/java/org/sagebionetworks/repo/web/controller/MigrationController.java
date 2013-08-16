@@ -71,7 +71,7 @@ public class MigrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MIGRATION_MAX_IDS, method = RequestMethod.GET)
 	public @ResponseBody
-	MigrationTypeMaxIds getTypeMaxPKs(
+	MigrationTypeMaxIds getTypeMaxIds(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getTypeMaxIds(userId);
