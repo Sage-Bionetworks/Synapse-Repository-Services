@@ -159,7 +159,7 @@ public class MigatableTableDAOImplAutowireTest {
 		count = migatableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup2);
 		assertEquals(2, count);
 		assertEquals(startCount, migatableTableDAO.getCount(MigrationType.FILE_HANDLE));
-		assertEquals(startMax, migatableTableDAO.getMaxPK(MigrationType.FILE_HANDLE));
+		assertEquals(startMax, migatableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
 		// Now restore the data
 		List<Long> results = migatableTableDAO.createOrUpdateBatch(backupList1);
 		assertNotNull(results);

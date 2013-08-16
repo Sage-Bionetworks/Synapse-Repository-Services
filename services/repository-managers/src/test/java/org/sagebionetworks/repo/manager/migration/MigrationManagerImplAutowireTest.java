@@ -95,8 +95,8 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetMaxPK() {
-		long mx = migrationManager.getMaxPK(adminUser, MigrationType.FILE_HANDLE);
+	public void testGetMaxId() {
+		long mx = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(Long.parseLong(preview.getId()), mx);
 	}
 	

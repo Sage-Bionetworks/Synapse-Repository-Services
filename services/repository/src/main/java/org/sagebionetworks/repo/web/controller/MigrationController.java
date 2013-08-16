@@ -15,8 +15,8 @@ import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxPK;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxPKs;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxId;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,7 +59,7 @@ public class MigrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MIGRATION_COUNTS, method = RequestMethod.GET)
 	public @ResponseBody
-	MigrationTypeCounts getMaxPKs(
+	MigrationTypeCounts getTypeCounts(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getTypeCounts(userId);
@@ -69,12 +69,12 @@ public class MigrationController extends BaseController {
 	 * Get the max(pk) for each migration type.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MIGRATION_MAX_PKS, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.MIGRATION_MAX_IDS, method = RequestMethod.GET)
 	public @ResponseBody
-	MigrationTypeMaxPKs getTypeMaxPKs(
+	MigrationTypeMaxIds getTypeMaxPKs(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
 			throws DatastoreException, NotFoundException {
-		return serviceProvider.getMigrationService().getMaxPKs(userId);
+		return serviceProvider.getMigrationService().getTypeMaxIds(userId);
 	}
 
 	/**

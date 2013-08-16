@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -51,6 +52,7 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 	
 	public static final String MIGRATION = "/migration";
 	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
+	public static final String MIGRATION_MAX_IDS = MIGRATION+"/maxpks";
 	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
 	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
 	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";
@@ -162,6 +164,19 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 		MigrationTypeCounts mtc = new MigrationTypeCounts();
 		mtc.initializeFromJSONObject(adapter);
 		return mtc;
+	}
+	
+	/*
+	 * 
+	 * 
+	 */
+	public MigrationTypeMaxIds getTypeMaxIds() throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_MAX_IDS;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeMaxIds mtm = new MigrationTypeMaxIds();
+		mtm.initializeFromJSONObject(adapter);
+		return mtm;
 	}
 	
 	/*
@@ -367,4 +382,5 @@ public class SynapseAdministration extends Synapse implements SynapseAdministrat
 			throw new SynapseException(e);
 		}
 	}
+
 }

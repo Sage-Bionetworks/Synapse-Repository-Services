@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.MigrationTypeMaxPKs;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -111,6 +111,6 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	MigrationTypeMaxPKs getMaxPKs(String userId) throws DatastoreException, NotFoundException;
+	MigrationTypeMaxIds getTypeMaxIds(String userId) throws DatastoreException, NotFoundException;
 
 }

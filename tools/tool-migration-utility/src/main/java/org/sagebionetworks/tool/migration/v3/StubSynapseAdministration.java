@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxId;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxIds;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -227,6 +229,37 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		MigrationTypeCounts result = new MigrationTypeCounts();
 		result.setList(list);
 		return result;
+	}
+
+	@Override
+	public MigrationTypeMaxIds getTypeMaxIds() throws SynapseException,
+			JSONObjectAdapterException {
+		// Get the max ids for each type
+		List<MigrationTypeMaxId> list = new LinkedList<MigrationTypeMaxId>();
+		Iterator<Entry<MigrationType, List<RowMetadata>>> it = this.metadata
+				.entrySet().iterator();
+		while (it.hasNext()) {
+			Entry<MigrationType, List<RowMetadata>> entry = it.next();
+			MigrationType type = entry.getKey();
+			List<RowMetadata> values = entry.getValue();
+			MigrationTypeMaxId maxId = new MigrationTypeMaxId();
+			maxId.setMaxId(new Long(maxId(values)));
+			maxId.setType(type);
+			list.add(maxId);
+		}
+		MigrationTypeMaxIds result = new MigrationTypeMaxIds();
+		result.setList(list);
+		return result;
+	}
+	
+	private Long maxId(List<RowMetadata> vals) {
+		Long m = vals.get(0).getId();
+		for (RowMetadata v: vals) {
+			if (v.getId() > m) {
+				m = v.getId();
+			}
+		}
+		return m;
 	}
 
 	@Override

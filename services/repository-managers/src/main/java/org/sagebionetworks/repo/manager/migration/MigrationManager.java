@@ -23,10 +23,10 @@ public interface MigrationManager {
 	public long getCount(UserInfo user, MigrationType type);
 	
 	/**
-	 * The current max(primary_key) in the table
+	 * The max(id) of the table
 	 * @return
 	 */
-	public long getMaxPK(UserInfo user, MigrationType type);
+	public long getMaxId(UserInfo user, MigrationType type);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.

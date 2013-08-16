@@ -173,7 +173,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	}
 	
 	@Override
-	public long getMaxPK(MigrationType type) {
+	public long getMaxId(MigrationType type) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String maxSql = this.maxSqlMap.get(type);
 		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
