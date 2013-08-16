@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxPK;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxPKs;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,6 +112,22 @@ public class MigrationControllerAutowireTest {
 			}
 		}
 		assertEquals(startFileCount+2, fileCount);
+	}
+	
+	@Test
+	public void testGetMaxPKs() throws Exception {
+		MigrationTypeMaxPKs maxPKs = entityServletHelper.getMigrationTypeMaxPKs(userName);
+		assertNotNull(maxPKs);
+		assertNotNull(maxPKs.getList());
+		assertEquals(MigrationType.values().length, maxPKs.getList().size());
+		System.out.println(maxPKs);
+		long fileMaxPK = 0;
+		for(MigrationTypeMaxPK type: maxPKs.getList()){
+			if(type.getType() == MigrationType.FILE_HANDLE){
+				fileMaxPK = type.getMaxPK();
+			}
+		}
+		assertEquals(Long.parseLong(preview.getId()), fileMaxPK);
 	}
 	
 	@Test

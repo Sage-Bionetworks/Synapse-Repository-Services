@@ -511,6 +511,7 @@ public class UrlHelpers {
 	
 	public static final String MIGRATION = "/migration";
 	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
+	public static final String MIGRATION_MAX_PKS = MIGRATION+"/maxpks";
 	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
 	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
 	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";

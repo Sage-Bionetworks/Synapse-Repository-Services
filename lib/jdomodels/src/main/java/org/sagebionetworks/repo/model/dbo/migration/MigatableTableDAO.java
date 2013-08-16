@@ -28,7 +28,7 @@ public interface MigatableTableDAO {
 	/**
 	 * The current max(primary_key) for a table
 	 */
-	public long getCurrentMaxPK(MigrationType type);
+	public long getMaxPK(MigrationType type);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.

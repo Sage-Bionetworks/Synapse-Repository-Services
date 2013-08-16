@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationTypeMaxPKs;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -1124,6 +1125,31 @@ public class EntityServletTestHelper {
 		}
 		String resultString = response.getContentAsString();
 		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeCounts.class);
+	}
+	
+	/**
+	 * Get the migration max pks
+	 * @param userId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeMaxPKs getMigrationTypeMaxPKs(String userId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/maxpks";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeMaxPKs.class);
 	}
 	
 	/**

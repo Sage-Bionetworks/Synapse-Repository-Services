@@ -71,7 +71,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Override
 	public long getMaxPK(UserInfo user, MigrationType type) {
 		validateUser(user);
-		return migratableTableDao.getCurrentMaxPK(type);
+		return migratableTableDao.getMaxPK(type);
 	}
 
 	@Override
