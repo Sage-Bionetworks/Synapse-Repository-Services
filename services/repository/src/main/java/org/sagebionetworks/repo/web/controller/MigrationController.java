@@ -62,7 +62,7 @@ public class MigrationController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getTypeCounts(userId);
 	}
-
+	
 	/**
 	 * This method is used to query a source stack for all of its metadata.
 	 * 

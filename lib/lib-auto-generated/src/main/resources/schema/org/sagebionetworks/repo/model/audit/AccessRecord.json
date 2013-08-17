@@ -1,0 +1,74 @@
+{
+	"description": "Data recored from a single web-services methods.",
+	"properties": {
+		"sessionId": {
+			"type": "string",
+			"description": "The distinct ID assigned to this call."
+		},
+		"timestamp": {
+			"type": "integer",
+			"description": "The timestamp of the request, in UTC milliseconds"
+		},	
+		"userId": {
+			"type": "integer",
+			"description": "The ID of the user making the calls"
+		},
+		"method": {
+			"type": "string",
+			"description": "The HTTP method"
+		},
+		"requestURL": {
+			"type": "string",
+			"description": "The URL of the request"
+		},
+		"userAgent": {
+			"type": "string",
+			"description": "Identifies the software agent that made the call. Extracted from the User-Agent header"
+		},
+		"host": {
+			"type": "string",
+			"description": "The domain name of the server (for virtual hosting), and the TCP port number on which the server is listening"
+		},
+		"origin": {
+			"type": "string",
+			"description": "Initiates a request for cross-origin resource sharing (asks server for an 'Access-Control-Allow-Origin' response header)"
+		},
+		"xForwardedFor": {
+			"type": "string",
+			"description": "The X-Forwarded-For (XFF) HTTP header field is a de facto standard for identifying the originating IP address of a client connecting to a web server through an HTTP proxy or load balancer."
+		},
+		"via": {
+			"type": "string",
+			"description": "Informs the server of proxies through which the request was sent"
+		},										
+		"threadId": {
+			"type": "integer",
+			"description": "The ID of the thread that accepted this call"
+		},
+		"elapseMS": {
+			"type": "integer",
+			"description": "The elapse time in MS for the call"
+		},			
+		"success": {
+			"type": "boolean",
+			"description": "Did the call complete without an error?"
+		},			
+		"stack": {
+			"type": "string",
+			"description": "This string identifies the stack where the request originated"
+		},			
+		"instance": {
+			"type": "string",
+			"description": "This string identifies the stack instance where the request originated.  This is used for partitioning."
+		},			
+		"date": {
+			"type": "string",
+			"description": "This string identifies the stack instance where the request originated. This is used for partitioning."
+		},			
+		"vmId": {
+			"type": "string",
+			"description": "The VMID of the JVM that processed this request. A VMID is a identifier that is unique across all Java virtual machines."
+		}
+
+	}
+}

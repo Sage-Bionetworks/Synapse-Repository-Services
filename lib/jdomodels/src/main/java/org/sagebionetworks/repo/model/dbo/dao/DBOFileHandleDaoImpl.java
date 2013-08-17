@@ -48,6 +48,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	private static final String SQL_GET_MIGRATION_OBJECT_DATA_PAGE = "SELECT "+COL_FILES_ID+", "+COL_FILES_ETAG+", "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" ORDER BY "+COL_FILES_ID+" DESC LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
+	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
@@ -226,6 +227,11 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public long getCount() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_FILES);
+	}
+	
+	@Override
+	public long getMaxId() throws DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
 	}
 
 	@Override

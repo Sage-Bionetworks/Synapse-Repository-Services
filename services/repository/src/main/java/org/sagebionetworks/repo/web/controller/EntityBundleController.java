@@ -118,13 +118,13 @@ public class EntityBundleController extends BaseController {
 	public @ResponseBody
 	EntityBundle createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
 			)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, activityId, request);
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy, request);
 	}
 	
 	/**
@@ -152,14 +152,14 @@ public class EntityBundleController extends BaseController {
 	public @ResponseBody
 	EntityBundle updateEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
 			)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, activityId, request);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy, request);
 	}
 
 }

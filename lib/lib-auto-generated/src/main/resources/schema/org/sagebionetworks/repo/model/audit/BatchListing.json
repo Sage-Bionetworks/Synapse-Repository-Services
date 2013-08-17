@@ -1,0 +1,17 @@
+{
+	"description": "Response object for listing AccessRecord batch keys.",
+	"properties": {
+		"marker": {
+			"type": "string",
+			"description": "The marker is used to get the next batch. When null there are no more batches to list."
+		},
+		"keys": {
+			"type": "array",
+			"description": "List of keys for this batch.",
+			"items": {
+				"type": "string"
+			}
+		}
+
+	}
+}
