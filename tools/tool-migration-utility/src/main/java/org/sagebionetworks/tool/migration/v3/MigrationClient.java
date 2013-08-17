@@ -180,7 +180,23 @@ public class MigrationClient {
 			deltaList.add(dd);
 		}
 		
-		// If exception in insert/update phase, then do deletes and rethrow so main is aware of problem
+		// First attempt to delete, catching any exception (for case like fileHandles)
+		Exception firstDeleteException = null;
+		try {
+			// Delete any data in reverse order
+			for(int i=deltaList.size()-1; i >= 0; i--){
+				DeltaData dd = deltaList.get(i);
+				long count =  dd.getCounts().getDelete();
+				if(count > 0){
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			firstDeleteException = e;
+			log.info("Exception thrown during first delete phase.", e);
+		}
+		
+		// If exception in insert/update phase, then rethrow at end so main is aware of problem
 		Exception insUpdException = null;
 		try {
 			// Now do all adds in the original order
@@ -203,12 +219,16 @@ public class MigrationClient {
 			insUpdException = e;
 			log.info("Exception thrown during insert/update phases", e);
 		}
-		// Now we need to delete any data in reverse order
-		for(int i=deltaList.size()-1; i >= 0; i--){
-			DeltaData dd = deltaList.get(i);
-			long count =  dd.getCounts().getDelete();
-			if(count > 0){
-				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+
+		// Only do the post-deletes if the initial ones raised an exception
+		if (firstDeleteException != null) {
+			// Now we need to delete any data in reverse order
+			for(int i=deltaList.size()-1; i >= 0; i--){
+				DeltaData dd = deltaList.get(i);
+				long count =  dd.getCounts().getDelete();
+				if(count > 0){
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+				}
 			}
 		}
 		
