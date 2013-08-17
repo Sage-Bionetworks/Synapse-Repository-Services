@@ -229,6 +229,16 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		return result;
 	}
 
+	private Long maxId(List<RowMetadata> vals) {
+		Long m = vals.get(0).getId();
+		for (RowMetadata v: vals) {
+			if (v.getId() > m) {
+				m = v.getId();
+			}
+		}
+		return m;
+	}
+
 	@Override
 	public MigrationTypeList getPrimaryTypes() throws SynapseException,
 			JSONObjectAdapterException {
