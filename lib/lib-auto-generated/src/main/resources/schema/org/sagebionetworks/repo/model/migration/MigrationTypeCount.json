@@ -6,6 +6,9 @@
 		},
          "count":{
         	"type":"integer"
+         },
+         "maxid":{
+        	"type":"integer"
          }
 	}
 }

@@ -23,6 +23,12 @@ public interface MigrationManager {
 	public long getCount(UserInfo user, MigrationType type);
 	
 	/**
+	 * The max(id) of the table
+	 * @return
+	 */
+	public long getMaxId(UserInfo user, MigrationType type);
+	
+	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
 	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
 	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.

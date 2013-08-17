@@ -85,6 +85,11 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		return 0;
 	}
+	
+	@Override
+	public long getMaxId() throws DatastoreException {
+		return map.size();
+	}
 
 	@Override
 	public FileHandleBackup getFileHandleBackup(String idToBackup)

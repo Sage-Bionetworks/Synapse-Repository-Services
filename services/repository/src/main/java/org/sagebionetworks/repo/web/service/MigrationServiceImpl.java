@@ -37,8 +37,10 @@ public class MigrationServiceImpl implements MigrationService {
 		List<MigrationTypeCount> list = new LinkedList<MigrationTypeCount>();
 		for(MigrationType type: MigrationType.values()){
 			long count = migrationManager.getCount(user, type);
+			long maxId = migrationManager.getMaxId(user, type);
 			MigrationTypeCount tc = new MigrationTypeCount();
 			tc.setCount(count);
+			tc.setMaxid(maxId);
 			tc.setType(type);
 			list.add(tc);
 		}
@@ -46,7 +48,7 @@ public class MigrationServiceImpl implements MigrationService {
 		counts.setList(list);
 		return counts;
 	}
-
+	
 	@Override
 	public RowMetadataResult getRowMetadaForType(String userId,	MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
