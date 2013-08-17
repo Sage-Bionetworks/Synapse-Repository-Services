@@ -67,6 +67,12 @@ public class MigrationManagerImpl implements MigrationManager {
 		// pass this to the dao.
 		return migratableTableDao.getCount(type);
 	}
+	
+	@Override
+	public long getMaxId(UserInfo user, MigrationType type) {
+		validateUser(user);
+		return migratableTableDao.getMaxId(type);
+	}
 
 	@Override
 	public RowMetadataResult getRowMetadaForType(UserInfo user,  MigrationType type, long limit, long offset) {

@@ -136,6 +136,14 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateGetMaxStatement() {
+		String dml = DMLUtils.createGetMaxStatement(mapping);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("SELECT MAX(ID) FROM SOME_TABLE", dml);
+	}
+	
+	@Test
 	public void testCreateUpdateStatmentTwoKeys(){
 		// Here is our simple mapping.
 		String dml = DMLUtils.createUpdateStatment(mappingTwoKeys);

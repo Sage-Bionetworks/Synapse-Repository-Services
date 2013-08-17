@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,12 +105,15 @@ public class MigrationControllerAutowireTest {
 		assertEquals(MigrationType.values().length, counts.getList().size());
 		System.out.println(counts);
 		long fileCount = 0;
+		long fileMaxId = 0;
 		for(MigrationTypeCount type: counts.getList()){
 			if(type.getType() == MigrationType.FILE_HANDLE){
 				fileCount = type.getCount();
+				fileMaxId = type.getMaxid();
 			}
 		}
 		assertEquals(startFileCount+2, fileCount);
+		assertEquals(Long.parseLong(preview.getId()), fileMaxId);
 	}
 	
 	@Test
