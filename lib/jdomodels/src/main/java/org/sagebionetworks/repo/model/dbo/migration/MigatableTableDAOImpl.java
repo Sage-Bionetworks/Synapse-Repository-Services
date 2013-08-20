@@ -81,6 +81,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	// SQL
 	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> maxSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
@@ -127,6 +128,8 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		deleteSqlMap.put(type, delete);
 		String count = DMLUtils.createGetCountStatement(mapping);
 		countSqlMap.put(type, count);
+		String mx = DMLUtils.createGetMaxStatement(mapping);
+		maxSqlMap.put(type, mx);
 		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
 		listSqlMap.put(type, listRowMetadataSQL);
 		String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
@@ -167,6 +170,14 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		String countSql = this.countSqlMap.get(type);
 		if(countSql == null) throw new IllegalArgumentException("Cannot find count SQL for "+type);
 		return simpleJdbcTemplate.queryForLong(countSql);
+	}
+	
+	@Override
+	public long getMaxId(MigrationType type) {
+		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		String maxSql = this.maxSqlMap.get(type);
+		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
+		return simpleJdbcTemplate.queryForLong(maxSql);
 	}
 
 	@Override

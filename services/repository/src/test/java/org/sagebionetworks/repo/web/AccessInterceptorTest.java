@@ -9,6 +9,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
+import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -88,6 +91,10 @@ public class AccessInterceptorTest {
 		assertEquals("http://www.example-social-network.com", result.getOrigin());
 		assertEquals("1.0 fred, 1.1 example.com", result.getVia());
 		assertEquals(new Long(Thread.currentThread().getId()), result.getThreadId());
+		String stackInstanceNumber = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
+		assertEquals(stackInstanceNumber, result.getInstance());
+		assertEquals(StackConfiguration.getStack(), result.getStack());
+		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
 	}
 	
 	@Test

@@ -35,6 +35,9 @@ public class AuditTestUtils {
 			ar.setUserAgent("The bat-mobile OS");
 			ar.setThreadId(Thread.currentThread().getId());
 			ar.setVia("1 then two");
+			ar.setStack("stack");
+			ar.setInstance("0001");
+			ar.setVmId("vmId");
 			list.add(ar);
 		}
 		return list;

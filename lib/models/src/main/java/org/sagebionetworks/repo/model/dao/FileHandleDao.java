@@ -106,4 +106,6 @@ public interface FileHandleDao {
 	public List<String> findFileHandleWithKeyAndMD5(String key, String md5);
 
 	long getCount() throws DatastoreException;
+
+	long getMaxId() throws DatastoreException;
 }
