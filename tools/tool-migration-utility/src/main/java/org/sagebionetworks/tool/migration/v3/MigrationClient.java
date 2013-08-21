@@ -41,7 +41,7 @@ public class MigrationClient {
 	SynapseClientFactory factory;
 	ExecutorService threadPool;
 	List<Exception> deferredExceptions;
-	final int MAX_DEFERRED_EXCEPTIONS = 10;
+	final int MAX_DEFERRED_EXCEPTIONS_PER_TYPE = 100;
 	
 	/**
 	 * New migration client.
@@ -181,22 +181,30 @@ public class MigrationClient {
 		}
 		
 		// First attempt to delete, catching any exception (for case like fileHandles)
-		Exception firstDeleteException = null;
+		Exception deletePhase1Exception = null;
 		try {
 			// Delete any data in reverse order
 			for(int i=deltaList.size()-1; i >= 0; i--){
 				DeltaData dd = deltaList.get(i);
 				long count =  dd.getCounts().getDelete();
 				if(count > 0){
-					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Delete phase 1: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 		} catch (Exception e) {
-			firstDeleteException = e;
+			deletePhase1Exception = e;
 			log.info("Exception thrown during first delete phase.", e);
 		}
 		
-		// If exception in insert/update phase, then rethrow at end so main is aware of problem
+		// If exception in insert/update phase, then re-throw at end so main is aware of problem
 		Exception insUpdException = null;
 		try {
 			// Now do all adds in the original order
@@ -204,7 +212,15 @@ public class MigrationClient {
 				DeltaData dd = deltaList.get(i);
 				long count = dd.getCounts().getCreate();
 				if(count > 0){
-					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Insert phase: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 			// Now do all updates in the original order
@@ -212,7 +228,15 @@ public class MigrationClient {
 				DeltaData dd = deltaList.get(i);
 				long count = dd.getCounts().getUpdate();
 				if(count > 0){
-					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Update phase: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -221,13 +245,21 @@ public class MigrationClient {
 		}
 
 		// Only do the post-deletes if the initial ones raised an exception
-		if (firstDeleteException != null) {
+		if (deletePhase1Exception != null) {
 			// Now we need to delete any data in reverse order
 			for(int i=deltaList.size()-1; i >= 0; i--){
 				DeltaData dd = deltaList.get(i);
 				long count =  dd.getCounts().getDelete();
 				if(count > 0){
-					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Delete phase 2: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 		}
@@ -391,11 +423,11 @@ public class MigrationClient {
 	}
 
 	private void deferException(ExecutionException e) throws ExecutionException {
-		if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS) {
+		if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS_PER_TYPE) {
 			log.debug("Deferring execution exception in MigrationClient.createUpdateInDestination()");
 			deferredExceptions.add(e);
 		} else {
-			log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS + " execution exceptions in the worker threads. Dumping deferred first");
+			log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS_PER_TYPE + " execution exceptions in the worker threads. Dumping deferred first");
 			this.dumpDeferredExceptions();
 			throw e;
 		}
