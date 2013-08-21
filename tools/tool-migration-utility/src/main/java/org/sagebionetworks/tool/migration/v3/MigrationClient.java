@@ -70,7 +70,7 @@ public class MigrationClient {
 			setSourceStatus(StatusEnum.READ_ONLY, "Synapse is in read-only mode for maintenance");
 		}
 		try{
-			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator, deferExceptions);
+			this.migrateAllTypes(batchSize, timeoutMS, deferExceptions);
 			// After migration is complete, re-enable staging
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
 		}catch (Exception e){
@@ -139,7 +139,7 @@ public class MigrationClient {
 	 * @param retryDenominator - how to divide a batch into sub-batches when errors occur.
 	 * @throws Exception
 	 */
-	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
+	public void migrateAllTypes(long batchSize, long timeoutMS, boolean deferExceptions) throws Exception {
 		SynapseAdministrationInt source = factory.createNewSourceClient();
 		SynapseAdministrationInt destination = factory.createNewDestinationClient();
 		// Get the counts for all type from both the source and destination
@@ -150,7 +150,7 @@ public class MigrationClient {
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(batchSize, timeoutMS, primaryTypes, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -172,7 +172,7 @@ public class MigrationClient {
 	 * @param primaryTypes
 	 * @throws Exception
 	 */
-	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes, boolean deferExceptions)
+	private void migrateAll(long batchSize, long timeoutMS, List<MigrationType> primaryTypes, boolean deferExceptions)
 			throws Exception {
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
 		for(MigrationType type: primaryTypes){
@@ -215,7 +215,7 @@ public class MigrationClient {
 					// PLFM-2129
 					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
 					int numDeferredExceptionsBefore = this.deferredExceptions.size();
-					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, true);
+					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, true);
 					int numDeferredExceptionsAfter = this.deferredExceptions.size();
 					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
 						log.info("Insert phase: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
@@ -231,7 +231,7 @@ public class MigrationClient {
 					// PLFM-2129
 					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
 					int numDeferredExceptionsBefore = this.deferredExceptions.size();
-					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, true);
+					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, true);
 					int numDeferredExceptionsAfter = this.deferredExceptions.size();
 					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
 						log.info("Update phase: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
@@ -277,11 +277,11 @@ public class MigrationClient {
 	 * @param batchSize
 	 * @throws Exception
 	 */
-	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, int retryDenominator, boolean deferExceptions) throws Exception {
+	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, boolean deferExceptions) throws Exception {
 		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(createUpdateTemp));
 		try{
 			BasicProgress progress = new BasicProgress();
-			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout, retryDenominator);
+			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout);
 			Future<Long> future = this.threadPool.submit(worker);
 			while(!future.isDone()){
 				// Log the progress

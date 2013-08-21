@@ -34,7 +34,7 @@ public class MigrationClientMain {
 		boolean failed = false;
 		for (int i = 0; i < configuration.getMaxRetries(); i++) {
 			try{
-				client.migrateAllTypes(configuration.getMaximumBatchSize(), configuration.getWorkerTimeoutMs(), configuration.getRetryDenominator(), configuration.getDeferExceptions());
+				client.migrateAllTypes(configuration.getMaximumBatchSize(), configuration.getWorkerTimeoutMs(), configuration.getDeferExceptions());
 			}catch (Throwable e){
 				failed = true;
 				log.error("Failed at attempt: " + i + " with error " + e.getMessage(), e);

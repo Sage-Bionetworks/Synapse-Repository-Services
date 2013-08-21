@@ -147,11 +147,6 @@ public class MigrationConfigurationImpl implements Configuration {
 	}
 
 	@Override
-	public int getRetryDenominator() {
-		return Integer.parseInt(System.getProperty("org.sagebionetworks.worker.retry.denominator"));
-	}
-
-	@Override
 	public int getMaxRetries() {
 		return Integer.parseInt(System.getProperty("org.sagebionetworks.max.retries"));
 	}
