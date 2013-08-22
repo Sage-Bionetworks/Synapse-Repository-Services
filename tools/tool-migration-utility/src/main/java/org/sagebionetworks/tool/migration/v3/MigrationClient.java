@@ -41,7 +41,7 @@ public class MigrationClient {
 	SynapseClientFactory factory;
 	ExecutorService threadPool;
 	List<Exception> deferredExceptions;
-	final int MAX_DEFERRED_EXCEPTIONS = 10;
+	final int MAX_DEFERRED_EXCEPTIONS_PER_TYPE = 100;
 	
 	/**
 	 * New migration client.
@@ -70,7 +70,7 @@ public class MigrationClient {
 			setSourceStatus(StatusEnum.READ_ONLY, "Synapse is in read-only mode for maintenance");
 		}
 		try{
-			this.migrateAllTypes(batchSize, timeoutMS, retryDenominator, deferExceptions);
+			this.migrateAllTypes(batchSize, timeoutMS, deferExceptions);
 			// After migration is complete, re-enable staging
 			setDestinationStatus(StatusEnum.READ_WRITE, "Synapse is ready for read/write");
 		}catch (Exception e){
@@ -139,7 +139,7 @@ public class MigrationClient {
 	 * @param retryDenominator - how to divide a batch into sub-batches when errors occur.
 	 * @throws Exception
 	 */
-	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
+	public void migrateAllTypes(long batchSize, long timeoutMS, boolean deferExceptions) throws Exception {
 		SynapseAdministrationInt source = factory.createNewSourceClient();
 		SynapseAdministrationInt destination = factory.createNewDestinationClient();
 		// Get the counts for all type from both the source and destination
@@ -150,7 +150,7 @@ public class MigrationClient {
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(batchSize, timeoutMS, primaryTypes, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -172,7 +172,7 @@ public class MigrationClient {
 	 * @param primaryTypes
 	 * @throws Exception
 	 */
-	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes, boolean deferExceptions)
+	private void migrateAll(long batchSize, long timeoutMS, List<MigrationType> primaryTypes, boolean deferExceptions)
 			throws Exception {
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
 		for(MigrationType type: primaryTypes){
@@ -181,22 +181,30 @@ public class MigrationClient {
 		}
 		
 		// First attempt to delete, catching any exception (for case like fileHandles)
-		Exception firstDeleteException = null;
+		Exception deletePhase1Exception = null;
 		try {
 			// Delete any data in reverse order
 			for(int i=deltaList.size()-1; i >= 0; i--){
 				DeltaData dd = deltaList.get(i);
 				long count =  dd.getCounts().getDelete();
 				if(count > 0){
-					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Delete phase 1: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 		} catch (Exception e) {
-			firstDeleteException = e;
+			deletePhase1Exception = e;
 			log.info("Exception thrown during first delete phase.", e);
 		}
 		
-		// If exception in insert/update phase, then rethrow at end so main is aware of problem
+		// If exception in insert/update phase, then re-throw at end so main is aware of problem
 		Exception insUpdException = null;
 		try {
 			// Now do all adds in the original order
@@ -204,7 +212,15 @@ public class MigrationClient {
 				DeltaData dd = deltaList.get(i);
 				long count = dd.getCounts().getCreate();
 				if(count > 0){
-					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Insert phase: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 			// Now do all updates in the original order
@@ -212,7 +228,15 @@ public class MigrationClient {
 				DeltaData dd = deltaList.get(i);
 				long count = dd.getCounts().getUpdate();
 				if(count > 0){
-					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Update phase: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -221,13 +245,21 @@ public class MigrationClient {
 		}
 
 		// Only do the post-deletes if the initial ones raised an exception
-		if (firstDeleteException != null) {
+		if (deletePhase1Exception != null) {
 			// Now we need to delete any data in reverse order
 			for(int i=deltaList.size()-1; i >= 0; i--){
 				DeltaData dd = deltaList.get(i);
 				long count =  dd.getCounts().getDelete();
 				if(count > 0){
-					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+					// PLFM-2129
+					// Defer exceptions, if there have been deferred exceptions then raise last one so we don't start another type.
+					int numDeferredExceptionsBefore = this.deferredExceptions.size();
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, true);
+					int numDeferredExceptionsAfter = this.deferredExceptions.size();
+					if (numDeferredExceptionsBefore != numDeferredExceptionsAfter) {
+						log.info("Delete phase 2: encountered " + Integer.toString(numDeferredExceptionsAfter - numDeferredExceptionsBefore) + " exceptions");
+						throw this.deferredExceptions.get(this.deferredExceptions.size()-1);
+					}
 				}
 			}
 		}
@@ -245,11 +277,11 @@ public class MigrationClient {
 	 * @param batchSize
 	 * @throws Exception
 	 */
-	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, int retryDenominator, boolean deferExceptions) throws Exception {
+	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout, boolean deferExceptions) throws Exception {
 		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(createUpdateTemp));
 		try{
 			BasicProgress progress = new BasicProgress();
-			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout, retryDenominator);
+			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout);
 			Future<Long> future = this.threadPool.submit(worker);
 			while(!future.isDone()){
 				// Log the progress
@@ -391,11 +423,11 @@ public class MigrationClient {
 	}
 
 	private void deferException(ExecutionException e) throws ExecutionException {
-		if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS) {
+		if (deferredExceptions.size() <= this.MAX_DEFERRED_EXCEPTIONS_PER_TYPE) {
 			log.debug("Deferring execution exception in MigrationClient.createUpdateInDestination()");
 			deferredExceptions.add(e);
 		} else {
-			log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS + " execution exceptions in the worker threads. Dumping deferred first");
+			log.debug("Encountered more than " + this.MAX_DEFERRED_EXCEPTIONS_PER_TYPE + " execution exceptions in the worker threads. Dumping deferred first");
 			this.dumpDeferredExceptions();
 			throw e;
 		}

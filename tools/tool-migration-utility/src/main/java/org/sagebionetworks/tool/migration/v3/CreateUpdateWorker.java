@@ -56,7 +56,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	 */
 	public CreateUpdateWorker(MigrationType type, long count, Iterator<RowMetadata> iterator, BasicProgress progress,
 			SynapseAdministrationInt destClient,
-			SynapseAdministrationInt sourceClient, long batchSize, long timeoutMS, int retryDenominator) {
+			SynapseAdministrationInt sourceClient, long batchSize, long timeoutMS) {
 		super();
 		this.type = type;
 		this.count = count;
@@ -68,7 +68,6 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		this.sourceClient = sourceClient;
 		this.batchSize = batchSize;
 		this.timeoutMS = timeoutMS;
-		this.retryDenominator = retryDenominator;
 	}
 
 	@Override
