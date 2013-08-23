@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web;
 
-import java.rmi.dgc.VMID;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +26,7 @@ import org.springframework.web.servlet.ModelAndView;
  * @author John
  * 
  */
-public class AccessInterceptor implements HandlerInterceptor {
+public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 
 	/**
 	 * This map keeps track of the current record for each thread.
@@ -78,6 +77,7 @@ public class AccessInterceptor implements HandlerInterceptor {
 		data.setStack(this.stack);
 		data.setInstance(this.instancePrefix);
 		data.setVmId(VirtualMachineIdProvider.getVMID());
+		data.setQueryString(request.getQueryString());
 		// Bind this record to this thread.
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;
@@ -110,6 +110,24 @@ public class AccessInterceptor implements HandlerInterceptor {
 		data.setSuccess(exception == null);
 		// Save this record
 		accessRecorder.save(data);
+	}
+
+	@Override
+	public void setReturnObjectId(String returneObjectId) {
+		// Set this value on the current thread's access
+		getCurrentThreadAccessRecord().setReturnObjectId(returneObjectId);
+	}
+	
+	/**
+	 * Get the current AccessRecord for this thread.
+	 * @return
+	 */
+	private AccessRecord getCurrentThreadAccessRecord(){
+		AccessRecord ar = threadToRecordMap.get(Thread.currentThread().getId());
+		if(ar == null) 	throw new IllegalStateException(
+				"Failed to get the access record for this thread: "
+						+ Thread.currentThread().getId());
+		return ar;
 	}
 
 }
