@@ -60,6 +60,7 @@ public class AccessInterceptorTest {
 		when(mockRequest.getHeader("X-Forwarded-For")).thenReturn("moon.org");
 		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
 		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
+		when(mockRequest.getQueryString()).thenReturn("?param1=foo");
 	}
 	
 	
@@ -69,6 +70,7 @@ public class AccessInterceptorTest {
 		long start = System.currentTimeMillis();
 		// Start
 		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		interceptor.setReturnObjectId("returnId");
 		// Wait to add some elapse time
 		Thread.sleep(100);
 		// finish the call
@@ -95,6 +97,8 @@ public class AccessInterceptorTest {
 		assertEquals(stackInstanceNumber, result.getInstance());
 		assertEquals(StackConfiguration.getStack(), result.getStack());
 		assertEquals(VirtualMachineIdProvider.getVMID(), result.getVmId());
+		assertEquals("?param1=foo", result.getQueryString());
+		assertEquals("returnId", result.getReturnObjectId());
 	}
 	
 	@Test
