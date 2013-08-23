@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,11 +16,10 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembers;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,14 +43,54 @@ public class CrowdGroupMembersDAOTest {
 	private static final String TEST_GROUP_NAME = "testGroupOfDOOOOM";
 	private static final Integer NUM_USERS = 3; // Need at least 2 for testgetUserGroups()
 	
-	// Group name and ID, respectively
-	List<Pair<String, String> > groupsToDelete;
+	UserGroup testGroup;
+	List<UserGroup> testUsers;
+	
+	// Cleanup
+	List<Pair<String, String> > groupsToDelete; // Group name and ID, respectively
 	List<String> usersToDeleteFromCrowd;
 
 	@Before
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<Pair<String, String> >();
 		usersToDeleteFromCrowd = new ArrayList<String>();
+		
+		testGroup = createTestGroup(TEST_GROUP_NAME);
+		
+		// Make some users
+		testUsers = new ArrayList<UserGroup>();
+		for (int i = 0; i < NUM_USERS; i++) {
+			String username = "Bogus@email.com"+i;
+			// Add some users to the DB
+			UserGroup user = new UserGroup();
+			user.setName(username);
+			user.setIsIndividual(true);
+			try {
+				user.setId(userGroupDAO.create(user)); 
+			} catch (DatastoreException e) {
+				user.setId(userGroupDAO.findGroup(username, true).getId());
+			}
+			testUsers.add(user);
+			groupsToDelete.add(new Pair<String, String>(user.getName(), user.getId()));
+			
+			// Add those users to Crowd
+			User crowdUser = new User();
+			crowdUser.setFirstName("bogus");
+			crowdUser.setLastName("bogus");
+			crowdUser.setDisplayName(username);
+			crowdUser.setEmail(username);
+			crowdUser.setPassword("super secure password");
+			try {
+				CrowdAuthUtil.createUser(crowdUser);
+			} catch (AuthenticationException e) {
+				if (e.getRespStatus() == 400) {
+					// User already present
+				} else {
+					throw e;
+				}
+			}
+			usersToDeleteFromCrowd.add(crowdUser.getEmail());
+		}
 	}
 
 	@After
@@ -122,149 +163,91 @@ public class CrowdGroupMembersDAOTest {
 	}
 	
 	@Test
-	public void testgetMembers() throws Exception {
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
+	public void testGetMembers() throws Exception {
+		List<UserGroup> members = crowdGroupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("No members initially", 0, members.size());
 		
-		GroupMembers members = crowdGroupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), members.getId());
-		assertEquals("No members initially", 0, members.getMembers().size());
+		members = crowdGroupMembersDAO.getMembers(testGroup.getId(), true);
+		assertEquals("No members initially", 0, members.size());
 	}
 	
 	@Test
-	public void testaddMembers() throws Exception {
-		GroupMembers members = initGroupMembers();
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
-		members.setId(testGroup.getId());
-		
+	public void testAddMembers() throws Exception {
 		// Put users into Crowd then retrieve them
-		crowdGroupMembersDAO.addMembers(members);
-		GroupMembers newMembers = crowdGroupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), newMembers.getId());
-		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.getMembers().size());
+		List<String> adder = new ArrayList<String>();
+		adder.add(testUsers.get(0).getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		adder.set(0, testUsers.get(1).getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		adder.set(0, testUsers.get(2).getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		List<UserGroup> newMembers = crowdGroupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.size());
 		
 		// A few fields are not filled in when creating the users, so an array comparison must be done with caution
 		// Also, the ordering is not guaranteed
 		for (int i = 0; i < NUM_USERS; i++) {
-			newMembers.getMembers().get(i).setCreationDate(null);
-			newMembers.getMembers().get(i).setUri(null);
-			newMembers.getMembers().get(i).setEtag(null);
-			assertTrue("All fetched members should be in the original set", members.getMembers().contains(newMembers.getMembers().get(i)));
+			newMembers.get(i).setCreationDate(null);
+			newMembers.get(i).setUri(null);
+			newMembers.get(i).setEtag(null);
+			assertTrue("All fetched members should be in the original set", testUsers.contains(newMembers.get(i)));
 		}
-		
-		// Verify that the parent group's etag has changed
-		UserGroup updatedTestGroup = userGroupDAO.get(testGroup.getId());
-		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
-	}
-	
-	private GroupMembers initGroupMembers() throws Exception {
-		List<UserGroup> users = new ArrayList<UserGroup>();
-		for (int i = 0; i < NUM_USERS; i++) {
-			String username = "Bogus@email.com"+i;
-			// Add some users to the DB
-			UserGroup user = new UserGroup();
-			user.setName(username);
-			user.setIsIndividual(true);
-			try {
-				user.setId(userGroupDAO.create(user)); 
-			} catch (DatastoreException e) {
-				user.setId(userGroupDAO.findGroup(username, true).getId());
-			}
-			users.add(user);
-			groupsToDelete.add(new Pair<String, String>(user.getName(), user.getId()));
-			
-			// Add those users to Crowd
-			User crowdUser = new User();
-			crowdUser.setFirstName("bogus");
-			crowdUser.setLastName("bogus");
-			crowdUser.setDisplayName(username);
-			crowdUser.setEmail(username);
-			crowdUser.setPassword("super secure password");
-			try {
-				CrowdAuthUtil.createUser(crowdUser);
-			} catch (AuthenticationException e) {
-				if (e.getRespStatus() == 400) {
-					// User already present
-				} else {
-					throw e;
-				}
-			}
-			usersToDeleteFromCrowd.add(crowdUser.getEmail());
-		}
-		GroupMembers members = new GroupMembers();
-		members.setMembers(users);
-		return members;
 	}
 	
 	@Test
-	public void testremoveMembers() throws Exception {
-		GroupMembers members = initGroupMembers();
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
-		members.setId(testGroup.getId());
-		
+	public void testRemoveMembers() throws Exception {
 		// Put users into Crowd then retrieve them
-		crowdGroupMembersDAO.addMembers(members);
-		GroupMembers newMembers = crowdGroupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), newMembers.getId());
-		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.getMembers().size());
-		
-		// Verify that the parent group's etag has changed
-		UserGroup updatedTestGroup = userGroupDAO.get(testGroup.getId());
-		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+		List<String> adder = new ArrayList<String>();
+		adder.add(testUsers.get(0).getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		adder.set(0, testUsers.get(1).getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		adder.set(0, testUsers.get(2).getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		List<UserGroup> newMembers = crowdGroupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.size());
 		
 		// Remove all but one of the users from the group
-		UserGroup antisocial = members.getMembers().remove(NUM_USERS -1);
-		crowdGroupMembersDAO.removeMembers(members);
-		GroupMembers fewerMembers = crowdGroupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), fewerMembers.getId());
-		assertEquals("Number of users should match", 1, fewerMembers.getMembers().size());
-		fewerMembers.getMembers().get(0).setCreationDate(null);
-		fewerMembers.getMembers().get(0).setUri(null);
-		fewerMembers.getMembers().get(0).setEtag(null);
-		assertEquals("Last member should match the one removed from the DTO", antisocial, fewerMembers.getMembers().get(0));
-		
-		// Verify that the parent group's etag has changed
-		updatedTestGroup = userGroupDAO.get(testGroup.getId());
-		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+		List<String> remover = new ArrayList<String>();
+		remover.add(testUsers.get(0).getId());
+		crowdGroupMembersDAO.removeMembers(testGroup.getId(), remover);
+		remover.set(0, testUsers.get(1).getId());
+		crowdGroupMembersDAO.removeMembers(testGroup.getId(), remover);
+		List<UserGroup> fewerMembers = crowdGroupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", 1, fewerMembers.size());
+		fewerMembers.get(0).setCreationDate(null);
+		fewerMembers.get(0).setUri(null);
+		fewerMembers.get(0).setEtag(null);
+		assertEquals("Last member should match the one removed from the DTO", testUsers.get(2), fewerMembers.get(0));
 		
 		// Remove the last guy from the group
-		members.getMembers().clear();
-		members.getMembers().add(antisocial);
-		crowdGroupMembersDAO.removeMembers(members);
-		GroupMembers emptyGroup = crowdGroupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), emptyGroup.getId());
-		assertEquals("Number of users should match", 0, emptyGroup.getMembers().size());
-		
-		// Verify that the parent group's etag has changed
-		updatedTestGroup = userGroupDAO.get(testGroup.getId());
-		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+		remover.set(0, testUsers.get(2).getId());
+		crowdGroupMembersDAO.removeMembers(testGroup.getId(), remover);
+		List<UserGroup> emptyGroup = crowdGroupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", 0, emptyGroup.size());
 	}
 	
 	@Test
-	public void testgetUserGroups() throws Exception {
+	public void testGetUserGroups() throws Exception {
 		// Setup two groups
 		String childGroupName = TEST_GROUP_NAME + "Two";
 		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
 		UserGroup otherGroup = createTestGroup(childGroupName);
+		List<String> adder = new ArrayList<String>();
 		
 		// Get some users
-		GroupMembers members = initGroupMembers();
-		UserGroup oneMember = members.getMembers().get(0);
-		UserGroup bothMember = members.getMembers().get(1);
+		UserGroup oneMember = testUsers.get(0);
+		UserGroup bothMember = testUsers.get(1);
 		
 		// Add one member to one group
-		GroupMembers adder = new GroupMembers();
-		adder.setMembers(new ArrayList<UserGroup>());
-		adder.setId(testGroup.getId());
-		adder.getMembers().add(oneMember);
-		crowdGroupMembersDAO.addMembers(adder);
+		adder.add(oneMember.getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
 		
 		// Add one member to both groups
-		adder.setId(testGroup.getId());
-		adder.getMembers().clear();
-		adder.getMembers().add(bothMember);
-		crowdGroupMembersDAO.addMembers(adder);
-		adder.setId(otherGroup.getId());
-		crowdGroupMembersDAO.addMembers(adder);
+		adder.clear();
+		adder.add(bothMember.getId());
+		crowdGroupMembersDAO.addMembers(testGroup.getId(), adder);
+		crowdGroupMembersDAO.addMembers(otherGroup.getId(), adder);
 		
 		// The first user should now ONLY belong in the parent group
 		// PUBLIC and AUTH_USERS are managed the level above the DAO

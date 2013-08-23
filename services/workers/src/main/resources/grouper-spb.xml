@@ -35,8 +35,8 @@
 				<property name="targetMethod" value="attemptToRun" />
 			</bean>
 		</property>
-		<!-- We stagger the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="567" />
+		<!-- Same as the values found in controller-spb.xml (bean refreshUserGroupCacheTrigger) -->
+		<property name="startDelay" value="0" />
 		<property name="repeatInterval" value="300000" />
 	</bean>
 

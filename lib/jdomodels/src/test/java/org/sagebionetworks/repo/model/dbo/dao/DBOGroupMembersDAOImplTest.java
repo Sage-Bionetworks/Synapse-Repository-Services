@@ -12,7 +12,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembers;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -36,11 +35,34 @@ public class DBOGroupMembersDAOImplTest {
 	private static final String TEST_GROUP_NAME = "testGroupOfDOOOOM";
 	private static final Integer NUM_USERS = 3; // Need at least 2 for testgetUserGroups()
 	
+	UserGroup testGroup;
+	List<UserGroup> testUsers;
+	
+	// Cleanup
 	List<String> groupsToDelete;
 
 	@Before
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
+		
+		testGroup = createTestGroup(TEST_GROUP_NAME);
+		
+		// Make some users
+		testUsers = new ArrayList<UserGroup>();
+		for (int i = 0; i < NUM_USERS; i++) {
+			String username = "Bogus@email.com"+i;
+			// Add some users to the DB
+			UserGroup user = new UserGroup();
+			user.setName(username);
+			user.setIsIndividual(true);
+			try {
+				user.setId(userGroupDAO.create(user)); 
+			} catch (DatastoreException e) {
+				user.setId(userGroupDAO.findGroup(username, true).getId());
+			}
+			testUsers.add(user);
+			groupsToDelete.add(user.getId());
+		}
 	}
 
 	@After
@@ -72,56 +94,34 @@ public class DBOGroupMembersDAOImplTest {
 		return userGroupDAO.get(id);
 	}
 	
-	private GroupMembers initGroupMembers() throws Exception {
-		List<UserGroup> users = new ArrayList<UserGroup>();
-		for (int i = 0; i < NUM_USERS; i++) {
-			String username = "Bogus@email.com"+i;
-			// Add some users to the DB
-			UserGroup user = new UserGroup();
-			user.setName(username);
-			user.setIsIndividual(true);
-			try {
-				user.setId(userGroupDAO.create(user)); 
-			} catch (DatastoreException e) {
-				user.setId(userGroupDAO.findGroup(username, true).getId());
-			}
-			users.add(user);
-			groupsToDelete.add(user.getId());
-		}
-		GroupMembers members = new GroupMembers();
-		members.setMembers(users);
-		return members;
+	@Test
+	public void testGetMembers() throws Exception {
+		List<UserGroup> members = groupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("No members initially", 0, members.size());
+		
+		members = groupMembersDAO.getMembers(testGroup.getId(), true);
+		assertEquals("No nested members initially", 0, members.size());
 	}
 	
 	@Test
-	public void testgetMembers() throws Exception {
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
-		
-		GroupMembers members = groupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), members.getId());
-		assertEquals("No members initially", 0, members.getMembers().size());
-	}
-	
-	@Test
-	public void testaddMembers() throws Exception {
-		GroupMembers members = initGroupMembers();
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
-		members.setId(testGroup.getId());
-		
+	public void testAddMembers() throws Exception {
 		// Put users in then retrieve them
-		groupMembersDAO.addMembers(members);
-		groupMembersDAO.addMembers(members); // This should be a no-op
-		GroupMembers newMembers = groupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), newMembers.getId());
-		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.getMembers().size());
+		List<String> adder = new ArrayList<String>();
+		for (UserGroup user : testUsers) {
+			adder.add(user.getId());
+		}
+		groupMembersDAO.addMembers(testGroup.getId(), adder);
+		groupMembersDAO.addMembers(testGroup.getId(), adder); // This should be a no-op
+		List<UserGroup> newMembers = groupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.size());
 		
 		// A few fields are not filled in when creating the users, so an array comparison must be done with caution
 		// Also, the ordering is not guaranteed
 		for (int i = 0; i < NUM_USERS; i++) {
-			newMembers.getMembers().get(i).setCreationDate(null);
-			newMembers.getMembers().get(i).setUri(null);
-			newMembers.getMembers().get(i).setEtag(null);
-			assertTrue("All fetched members should be in the original set", members.getMembers().contains(newMembers.getMembers().get(i)));
+			newMembers.get(i).setCreationDate(null);
+			newMembers.get(i).setUri(null);
+			newMembers.get(i).setEtag(null);
+			assertTrue("All fetched members should be in the original set", testUsers.contains(newMembers.get(i)));
 		}
 		
 		// Verify that the parent group's etag has changed
@@ -134,96 +134,84 @@ public class DBOGroupMembersDAOImplTest {
 		// Setup three groups
 		String paradoxChildGroupName = TEST_GROUP_NAME + "Two";
 		String paradoxGrandchildGroupName = TEST_GROUP_NAME + "Three";
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
+		// UserGroup 'testGroup' is created in setup
 		UserGroup childGroup = createTestGroup(paradoxChildGroupName);
 		UserGroup grandchildGroup = createTestGroup(paradoxGrandchildGroupName);
-		GroupMembers nesting = new GroupMembers();
-		nesting.setMembers(new ArrayList<UserGroup>());
-		nesting.getMembers().add(new UserGroup());
+		
+		List<String> adder = new ArrayList<String>();
 		
 		// Add the parent group as a child to itself, which should fail
-		nesting.setId(testGroup.getId());
-		nesting.getMembers().get(0).setId(testGroup.getId());
+		adder.add(testGroup.getId());
 		try {
-			groupMembersDAO.addMembers(nesting);
+			groupMembersDAO.addMembers(testGroup.getId(), adder);
 			assertTrue(false);
-		} catch (DatastoreException e) {
+		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("member of itself"));
 		}
 		
 		// Add the child group to the parent group
-		nesting.setId(testGroup.getId());
-		nesting.getMembers().get(0).setId(childGroup.getId());
-		groupMembersDAO.addMembers(nesting);
+		adder.set(0, childGroup.getId());
+		groupMembersDAO.addMembers(testGroup.getId(), adder);
 		
 		// Add the parent group as the child of the child group, which should fail
-		nesting.setId(childGroup.getId());
-		nesting.getMembers().get(0).setId(testGroup.getId());
+		adder.set(0, testGroup.getId());
 		try {
-			groupMembersDAO.addMembers(nesting);
+			groupMembersDAO.addMembers(childGroup.getId(), adder);
 			assertTrue(false);
-		} catch (DatastoreException e) {
-			assertTrue(e.getMessage().contains("already a parent"));
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("already a child"));
 		}
 		
 		// Add the grandchild to the child group
-		nesting.setId(childGroup.getId());
-		nesting.getMembers().get(0).setId(grandchildGroup.getId());
-		groupMembersDAO.addMembers(nesting);
-		
-		// Verify that the parent group's etag has changed
-		UserGroup updatedTestGroup = userGroupDAO.get(testGroup.getId());
-		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
+		adder.set(0, grandchildGroup.getId());
+		groupMembersDAO.addMembers(childGroup.getId(), adder);
 		
 		// Add the parent group as the child of the grandchild group, which should fail
-		nesting.setId(grandchildGroup.getId());
-		nesting.getMembers().get(0).setId(testGroup.getId());
+		adder.set(0, testGroup.getId());
 		try {
-			groupMembersDAO.addMembers(nesting);
+			groupMembersDAO.addMembers(grandchildGroup.getId(), adder);
 			assertTrue(false);
-		} catch (DatastoreException e) {
-			assertTrue(e.getMessage().contains("already a parent"));
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("already a child"));
 		}
 	}
 	
 	@Test
-	public void testremoveMembers() throws Exception {
-		GroupMembers members = initGroupMembers();
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
-		members.setId(testGroup.getId());
-		
+	public void testRemoveMembers() throws Exception {
 		// Put users in then retrieve them
-		groupMembersDAO.addMembers(members);
-		GroupMembers newMembers = groupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), newMembers.getId());
-		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.getMembers().size());
+		List<String> adder = new ArrayList<String>();
+		for (UserGroup user : testUsers) {
+			adder.add(user.getId());
+		}
+		groupMembersDAO.addMembers(testGroup.getId(), adder);
+		List<UserGroup> newMembers = groupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", NUM_USERS.longValue(), newMembers.size());
 		
 		// Verify that the parent group's etag has changed
 		UserGroup updatedTestGroup = userGroupDAO.get(testGroup.getId());
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 		
 		// Remove all but one of the users from the group
-		UserGroup antisocial = members.getMembers().remove(NUM_USERS -1);
-		groupMembersDAO.removeMembers(members);
-		GroupMembers fewerMembers = groupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), fewerMembers.getId());
-		assertEquals("Number of users should match", 1, fewerMembers.getMembers().size());
-		fewerMembers.getMembers().get(0).setCreationDate(null);
-		fewerMembers.getMembers().get(0).setUri(null);
-		fewerMembers.getMembers().get(0).setEtag(null);
-		assertEquals("Last member should match the one removed from the DTO", antisocial, fewerMembers.getMembers().get(0));
+		List<String> remover = new ArrayList<String>(adder);
+		String antisocial = remover.remove(0);
+		groupMembersDAO.removeMembers(testGroup.getId(), remover);
+		List<UserGroup> fewerMembers = groupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", 1, fewerMembers.size());
+		fewerMembers.get(0).setCreationDate(null);
+		fewerMembers.get(0).setUri(null);
+		fewerMembers.get(0).setEtag(null);
+		assertEquals("Last member should match the one removed from the DTO", antisocial, fewerMembers.get(0).getId());
 		
 		// Verify that the parent group's etag has changed
 		updatedTestGroup = userGroupDAO.get(testGroup.getId());
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 		
 		// Remove the last guy from the group
-		members.getMembers().clear();
-		members.getMembers().add(antisocial);
-		groupMembersDAO.removeMembers(members);
-		GroupMembers emptyGroup = groupMembersDAO.getMembers(testGroup.getId());
-		assertEquals("ID must match the ID passed in", testGroup.getId(), emptyGroup.getId());
-		assertEquals("Number of users should match", 0, emptyGroup.getMembers().size());
+		remover.clear();
+		remover.add(antisocial);
+		groupMembersDAO.removeMembers(testGroup.getId(), remover);
+		List<UserGroup> emptyGroup = groupMembersDAO.getMembers(testGroup.getId());
+		assertEquals("Number of users should match", 0, emptyGroup.size());
 		
 		// Verify that the parent group's etag has changed
 		updatedTestGroup = userGroupDAO.get(testGroup.getId());
@@ -231,46 +219,52 @@ public class DBOGroupMembersDAOImplTest {
 	}
 	
 	@Test
-	public void testgetUserGroups() throws Exception {
+	public void testZipUnzip() throws Exception {
+		List<String> original = new ArrayList<String>();
+		original.add("1");
+		original.add("2");
+		original.add("34");
+		original.add("567");
+		original.add("8901");
+		original.add("23456789");
+		original.add(Long.toString(Long.MIN_VALUE));
+		original.add(Long.toString(Long.MAX_VALUE));
+		
+		List<String> processed = DBOGroupMembersDAOImpl.unzipParents(DBOGroupMembersDAOImpl.zipParents(original));
+		assertTrue(original.containsAll(processed));
+		assertTrue(processed.containsAll(original));
+	}
+	
+	@Test
+	public void testGetUserGroups() throws Exception {
 		// Setup two groups
 		String childGroupName = TEST_GROUP_NAME + "Two";
-		UserGroup testGroup = createTestGroup(TEST_GROUP_NAME);
+		// UserGroup 'testGroup' is created in setup
 		UserGroup otherGroup = createTestGroup(childGroupName);
 		
+		List<String> adder = new ArrayList<String>();
+		
 		// Add one group as the child to the other
-		GroupMembers nesting = new GroupMembers();
-		nesting.setId(testGroup.getId());
-		nesting.setMembers(new ArrayList<UserGroup>());
-		nesting.getMembers().add(new UserGroup());
-		nesting.getMembers().get(0).setId(otherGroup.getId());
-		groupMembersDAO.addMembers(nesting);
+		adder.add(otherGroup.getId());
+		groupMembersDAO.addMembers(testGroup.getId(), adder);
 		
 		// Get some users
-		GroupMembers members = initGroupMembers();
-		UserGroup oneMember = members.getMembers().get(0);
-		UserGroup bothMember = members.getMembers().get(1);
-		UserGroup childMember = members.getMembers().get(2);
+		UserGroup oneMember   = testUsers.get(0);
+		UserGroup bothMember  = testUsers.get(1);
+		UserGroup childMember = testUsers.get(2);
 		
 		// Add one member to one group
-		GroupMembers adder = new GroupMembers();
-		adder.setMembers(new ArrayList<UserGroup>());
-		adder.setId(testGroup.getId());
-		adder.getMembers().add(oneMember);
-		groupMembersDAO.addMembers(adder);
+		adder.set(0, oneMember.getId());
+		groupMembersDAO.addMembers(testGroup.getId(), adder);
 		
 		// Add one member to both groups
-		adder.setId(testGroup.getId());
-		adder.getMembers().clear();
-		adder.getMembers().add(bothMember);
-		groupMembersDAO.addMembers(adder);
-		adder.setId(otherGroup.getId());
-		groupMembersDAO.addMembers(adder);
+		adder.set(0, bothMember.getId());
+		groupMembersDAO.addMembers(testGroup.getId(), adder);
+		groupMembersDAO.addMembers(otherGroup.getId(), adder);
 		
 		// Add one member to just the child group
-		adder.setId(otherGroup.getId());
-		adder.getMembers().clear();
-		adder.getMembers().add(childMember);
-		groupMembersDAO.addMembers(adder);
+		adder.set(0, childMember.getId());
+		groupMembersDAO.addMembers(otherGroup.getId(), adder);
 		
 		// The first user should now ONLY belong in the parent group
 		// PUBLIC and AUTH_USERS are managed the level above the DAO

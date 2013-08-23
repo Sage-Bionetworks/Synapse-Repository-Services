@@ -3,11 +3,12 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembers;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -28,64 +29,61 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 	private UserGroupDAO userGroupDAO;
 	
 	@Override
-	public GroupMembers getMembers(String principalId)
-			throws DatastoreException {
-		
-		GroupMembers members = new GroupMembers();
-		members.setId(principalId);
-		UserGroup group;
-		try {
-			group = userGroupDAO.get(principalId);
-		} catch (NotFoundException e) {
-			throw new DatastoreException(e);
-		}
+	public List<UserGroup> getMembers(String principalId)
+			throws DatastoreException, NotFoundException {
+		return getMembers(principalId, false);
+	}
+	
+	@Override
+	public List<UserGroup> getMembers(String principalId, boolean nested)
+			throws DatastoreException, NotFoundException {
+		UserGroup group = userGroupDAO.get(principalId);
 
 		// Fetch all the members (users) of the group from Crowd
 		List<String> usernames;
 		try {
-			usernames = CrowdAuthUtil.getAllUsersInGroup(group.getName(), true);
+			// Since Crowd's groups aren't nested, the boolean does not change the results of the query
+			usernames = CrowdAuthUtil.getAllUsersInGroup(group.getName(), nested);
 			
 		} catch (IOException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		} catch (AuthenticationException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		}
-		
+
 		// Convert the usernames back into userGroups
-		members.setMembers(new ArrayList<UserGroup>());
+		List<UserGroup> members = new ArrayList<UserGroup>();
 		if (usernames.size() > 0) {
-			members.getMembers().addAll(userGroupDAO.getGroupsByNames(usernames).values());
+			members.addAll(userGroupDAO.getGroupsByNames(usernames).values());
 		}
 		return members;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addMembers(GroupMembers dto) throws DatastoreException {
-		// Make sure the DTO holds a group, not an individual
-		UserGroup group;
-		try {
-			group = userGroupDAO.get(dto.getId());
-			if (group.getIsIndividual()) {
-				throw new DatastoreException("Members cannot be added to an individual");
-			}
-		} catch (NotFoundException e) {
-			throw new DatastoreException("The group "+dto.getId()+" does not exist");
+	public void addMembers(String groupId, List<String> memberIds) 
+			throws DatastoreException, NotFoundException, IllegalArgumentException {
+		UserGroup group = userGroupDAO.get(groupId);
+		
+		// Make sure the group is a group, not an individual
+		if (group.getIsIndividual()) {
+			throw new IllegalArgumentException("Members cannot be added to an individual");
+		}
+		
+		// Only the case for this DAO, due to its non-transaction-ality otherwise
+		if (memberIds.size() > 1) {
+			throw new IllegalArgumentException("Only one member can be added at a time");
+		}
+		
+		if (memberIds.size() <= 0) {
+			return;
 		}
 		
 		try {
-			// This isn't transactional... which is one reason we're migrating away from this
-			for (UserGroup ug : dto.getMembers()) {
-				CrowdAuthUtil.addUserToGroup(group.getName(), ug.getName());
-			}
+			UserGroup member = userGroupDAO.get(memberIds.get(0));
+			CrowdAuthUtil.addUserToGroup(group.getName(), member.getName());
+			// Note: Updating the etags of all affected group is the job of the caller for this DAO
 			
-			// Update the etags of all affected items
-			List<String> ids = new ArrayList<String>();
-			ids.add(group.getId());
-			for (UserGroup added : dto.getMembers()) {
-				ids.add(added.getId());
-			}
-			userGroupDAO.touchList(ids);
 		} catch (AuthenticationException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		} catch (IOException e) {
@@ -94,27 +92,29 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 	}
 
 	@Override
-	public void removeMembers(GroupMembers dto) throws DatastoreException {
-		UserGroup group;
-		try {
-			group = userGroupDAO.get(dto.getId());
-		} catch (NotFoundException e) {
-			throw new DatastoreException(e);
+	public void removeMembers(String groupId, List<String> memberIds) 
+			throws DatastoreException, NotFoundException {
+		UserGroup group = userGroupDAO.get(groupId);
+		
+		// Make sure the group is a group, not an individual
+		if (group.getIsIndividual()) {
+			throw new IllegalArgumentException("Members cannot be removed from an individual");
+		}
+		
+		// Only the case for this DAO, due to its non-transaction-ality otherwise
+		if (memberIds.size() > 1) {
+			throw new IllegalArgumentException("Only one member can be removed at a time");
+		}
+		
+		if (memberIds.size() <= 0) {
+			return;
 		}
 		
 		try {
-			// This isn't transactional either...
-			for (UserGroup ug : dto.getMembers()) {
-				CrowdAuthUtil.removeUserFromGroup(group.getName(), ug.getName());
-			}
-			
-			// Update the etags of all affected items
-			List<String> ids = new ArrayList<String>();
-			ids.add(group.getId());
-			for (UserGroup removed : dto.getMembers()) {
-				ids.add(removed.getId());
-			}
-			userGroupDAO.touchList(ids);
+			UserGroup member = userGroupDAO.get(memberIds.get(0));
+			CrowdAuthUtil.removeUserFromGroup(group.getName(), member.getName());
+			// Note: Updating the etags of all affected group is the job of the caller for this DAO
+
 		} catch (AuthenticationException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		} catch (IOException e) {
@@ -123,15 +123,10 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 	}
 
 	@Override
-	public List<UserGroup> getUsersGroups(String principalId)
-			throws DatastoreException {
+	public List<UserGroup> getUsersGroups(String principalId) 
+			throws DatastoreException, NotFoundException {
 		try {
-			UserGroup group;
-			try {
-				group = userGroupDAO.get(principalId);
-			} catch (NotFoundException e) {
-				throw new DatastoreException(e);
-			}
+			UserGroup group = userGroupDAO.get(principalId);
 			List<String> groupNames = CrowdAuthUtil.getAllUsersGroups(group.getName(), true);
 			
 			// Convert group names back into principal IDs
@@ -146,6 +141,12 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 		} catch (IOException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		}
+	}
+
+	@Override
+	public Set<String> markAsUpdated(String groupId, List<String> memberIds)
+			throws DatastoreException {
+		throw new NotImplementedException("This method should not be used on this DAO");
 	}
 	
 }

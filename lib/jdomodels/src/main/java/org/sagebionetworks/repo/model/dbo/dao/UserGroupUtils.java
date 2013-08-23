@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 
@@ -29,5 +31,13 @@ public class UserGroupUtils {
 		dto.setEtag(dbo.getEtag());
 	}
 	
+	public static void copyDboToDto(List<DBOUserGroup> dbos, List<UserGroup> dtos) {
+		dtos.clear();
+		for (DBOUserGroup dbo : dbos) {
+			UserGroup dto = new UserGroup();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+	}
 
 }

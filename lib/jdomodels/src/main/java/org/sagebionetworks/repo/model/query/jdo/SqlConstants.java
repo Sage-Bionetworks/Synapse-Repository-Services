@@ -197,6 +197,12 @@ public class SqlConstants {
     public static final String COL_GROUP_MEMBERS_GROUP_ID  = "GROUP_ID";
     public static final String COL_GROUP_MEMBERS_MEMBER_ID = "MEMBER_ID";
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
+    
+    // The group parents cache table
+    public static final String TABLE_GROUP_PARENTS_CACHE        = "GROUP_PARENTS_CACHE";
+    public static final String COL_GROUP_PARENTS_CACHE_GROUP_ID = "GROUP_ID";
+    public static final String COL_GROUP_PARENTS_CACHE_PARENTS  = "PARENTS";
+    public static final String DDL_FILE_GROUP_PARENTS_CACHE     = "schema/GroupParentsCache-ddl.sql";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID                 = "ID";

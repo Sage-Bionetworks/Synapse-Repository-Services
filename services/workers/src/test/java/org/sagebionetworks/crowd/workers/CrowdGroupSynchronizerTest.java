@@ -16,7 +16,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembers;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -195,9 +194,9 @@ public class CrowdGroupSynchronizerTest {
 		assertTrue(userGroupDAO.doesPrincipalExist(leGenericVIP));
 		groupsToDeleteFromRDS.add(userGroupDAO.findGroup(leGenericVIP, true).getId());
 		
-		GroupMembers clubby = groupMembersDAO.getMembers(notSoExclusiveAnymore.getId());
-		assertEquals("There should be one member", 1, clubby.getMembers().size());
-		assertEquals("The one member should be the Spanlish one", elGenericVIP, clubby.getMembers().get(0).getName());
+		List<UserGroup> clubby = groupMembersDAO.getMembers(notSoExclusiveAnymore.getId());
+		assertEquals("There should be one member", 1, clubby.size());
+		assertEquals("The one member should be the Spanlish one", elGenericVIP, clubby.get(0).getName());
 	}
 	
 	@Test
@@ -205,11 +204,9 @@ public class CrowdGroupSynchronizerTest {
 		UserGroup untouchable = createRDSTestGroup("Dalit test group");
 		UserGroup untouchableMember = initRDSGroupMember("discriminated@gainst");
 		
-		GroupMembers dto = new GroupMembers();
-		dto.setId(untouchable.getId());
-		dto.setMembers(new ArrayList<UserGroup>());
-		dto.getMembers().add(untouchableMember);
-		groupMembersDAO.addMembers(dto);
+		List<String> adder = new ArrayList<String>();
+		adder.add(untouchableMember.getId());
+		groupMembersDAO.addMembers(untouchable.getId(), adder);
 		
 		// Etags have changed due to group membership
 		untouchable = userGroupDAO.get(untouchable.getId());
@@ -219,7 +216,7 @@ public class CrowdGroupSynchronizerTest {
 		
 		assertEquals("Etag should be the same", untouchable.getEtag(), userGroupDAO.get(untouchable.getId()).getEtag());
 		assertEquals("Etag should be the same", untouchableMember.getEtag(), userGroupDAO.get(untouchableMember.getId()).getEtag());
-		assertEquals("Member should still be there", 1, groupMembersDAO.getMembers(untouchable.getId()).getMembers().size());
+		assertEquals("Member should still be there", 1, groupMembersDAO.getMembers(untouchable.getId()).size());
 	}
 	
 	@Test
@@ -228,11 +225,9 @@ public class CrowdGroupSynchronizerTest {
 		
 		UserGroup stompedUpon = createRDSTestGroup(stompy);
 		UserGroup squishy = initRDSGroupMember("IgetSquishedSoon");
-		GroupMembers dto = new GroupMembers();
-		dto.setId(stompedUpon.getId());
-		dto.setMembers(new ArrayList<UserGroup>());
-		dto.getMembers().add(squishy);
-		groupMembersDAO.addMembers(dto);
+		List<String> adder = new ArrayList<String>();
+		adder.add(squishy.getId());
+		groupMembersDAO.addMembers(stompedUpon.getId(), adder);
 		
 		String evilMember = "MeStompOnOtherGroups";
 		createCrowdTestGroup(stompy);
@@ -244,9 +239,9 @@ public class CrowdGroupSynchronizerTest {
 		assertTrue(userGroupDAO.doesPrincipalExist(evilMember));
 		groupsToDeleteFromRDS.add(userGroupDAO.findGroup(evilMember, true).getId());
 		
-		GroupMembers stomped = groupMembersDAO.getMembers(stompedUpon.getId());
-		assertEquals("Stomped group should only have one member", 1, stomped.getMembers().size());
-		assertEquals("Stomped group should have the evil member", evilMember, stomped.getMembers().get(0).getName());
+		List<UserGroup> stomped = groupMembersDAO.getMembers(stompedUpon.getId());
+		assertEquals("Stomped group should only have one member", 1, stomped.size());
+		assertEquals("Stomped group should have the evil member", evilMember, stomped.get(0).getName());
 		assertTrue("Squished user should still exist", userGroupDAO.get(squishy.getId()) != null);
 	}
 }

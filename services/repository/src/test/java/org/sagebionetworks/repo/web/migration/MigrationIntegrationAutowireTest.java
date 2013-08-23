@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.GroupMembers;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -171,8 +170,6 @@ public class MigrationIntegrationAutowireTest {
 	
 	// UserGroups 
 	List<UserGroup> tempUserAndGroups;
-	GroupMembers groupMembers;
-	GroupMembers subGroupMembers;
 	
 	HttpServletRequest mockRequest;
 	
@@ -392,13 +389,10 @@ public class MigrationIntegrationAutowireTest {
 		storageQuotaManager.setQuotaForUser(userInfo, userInfo, 3000);
 	}
 	
-	private void createUserGroups() {
-		groupMembers = new GroupMembers();
-		groupMembers.setMembers(new ArrayList<UserGroup>());
-		subGroupMembers = new GroupMembers();
-		subGroupMembers.setMembers(new ArrayList<UserGroup>());
+	private void createUserGroups() throws NotFoundException {
 		String groupNamePrefix = "Caravan-";
 		String userNamePrefix = "GoinOnTheOregonTrail@";
+		List<String> adder = new ArrayList<String>();
 		
 		// Make two groups
 		UserGroup parentGroup = new UserGroup();
@@ -428,17 +422,16 @@ public class MigrationIntegrationAutowireTest {
 		childUser.setId(userGroupDAO.create(childUser));
 		
 		// Nest one group and two users within the parent group
-		groupMembers.setId(parentGroup.getId());
-		groupMembers.getMembers().add(nestedGroup);
-		groupMembers.getMembers().add(parentUser);
-		groupMembers.getMembers().add(siblingUser);
-		groupMembersDAO.addMembers(groupMembers);
+		adder.add(nestedGroup.getId());
+		adder.add(parentUser.getId());
+		adder.add(siblingUser.getId());
+		groupMembersDAO.addMembers(parentGroup.getId(), adder);
 		
 		// Nest two users within the child group
-		subGroupMembers.setId(nestedGroup.getId());
-		subGroupMembers.getMembers().add(siblingUser);
-		subGroupMembers.getMembers().add(childUser);
-		groupMembersDAO.addMembers(subGroupMembers);
+		adder.clear();
+		adder.add(siblingUser.getId());
+		adder.add(childUser.getId());
+		groupMembersDAO.addMembers(nestedGroup.getId(), adder);
 		
 		// Since the migrator does not delete users by default...
 		tempUserAndGroups = new ArrayList<UserGroup>();

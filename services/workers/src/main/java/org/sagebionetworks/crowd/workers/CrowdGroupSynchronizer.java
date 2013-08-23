@@ -13,10 +13,17 @@ import javax.xml.xpath.XPathFactory;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.repo.model.GroupMembers;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
@@ -37,6 +44,13 @@ public class CrowdGroupSynchronizer implements Runnable {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private UserDAO userDAO;
+	
+	
 	@Override
 	public void run() {
 		List<String> crowdGroups = getCrowdGroups("group");
@@ -56,6 +70,31 @@ public class CrowdGroupSynchronizer implements Runnable {
 				ug.setIsIndividual(isIndividual);
 				ug.setName(name);
 				principalId = userGroupDAO.create(ug);
+				
+				if (isIndividual) {
+					// Each migrated individual needs to have a profile moved over
+					ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+					try {
+						userProfileDAO.get(principalId, schema);
+						// The profile already exists
+						
+					} catch (NotFoundException e) {
+						// Must make a new profile
+						try {
+							User user = userDAO.getUser(name);
+							UserProfile userProfile = new UserProfile();
+							userProfile.setOwnerId(principalId);
+							userProfile.setFirstName(user.getFname());
+							userProfile.setLastName(user.getLname());
+							userProfile.setDisplayName(user.getDisplayName());
+							userProfileDAO.create(userProfile, schema);
+						} catch (NotFoundException nfe) {
+							throw new RuntimeException(nfe);
+						} catch (InvalidModelException ime) {
+							throw new RuntimeException(ime);
+						}
+					}
+				}
 			}
 			principalIds.add(principalId);
 		}
@@ -65,25 +104,33 @@ public class CrowdGroupSynchronizer implements Runnable {
 		//   we can delete/create entries with impunity
 		for (int i = 0; i < principalIds.size(); i++) {
 			boolean isIndividual = i >= crowdGroups.size();
-			if (!isIndividual) {
-				// Add/remove the minimal number of elements from each group
-				String principalId = principalIds.get(i);
-				GroupMembers existing = groupMembersDAO.getMembers(principalId);
-				GroupMembers newbies = crowdGroupMembersDAO.getMembers(principalId);
-				
-				Set<UserGroup> toDelete = new HashSet<UserGroup>(existing.getMembers());
-				toDelete.removeAll(newbies.getMembers());
-				
-				Set<UserGroup> toAdd = new HashSet<UserGroup>(newbies.getMembers());
-				toAdd.removeAll(existing.getMembers());
-				
-				GroupMembers operator = new GroupMembers();
-				operator.setId(principalId);
-				operator.setMembers(new ArrayList<UserGroup>(toDelete));
-				groupMembersDAO.removeMembers(operator);
-				
-				operator.setMembers(new ArrayList<UserGroup>(toAdd));
-				groupMembersDAO.addMembers(operator);
+			try {
+				if (!isIndividual) {
+					// Add/remove the minimal number of elements from each group
+					String principalId = principalIds.get(i);
+					List<UserGroup> existing = groupMembersDAO.getMembers(principalId);
+					List<UserGroup> newbies = crowdGroupMembersDAO.getMembers(principalId);
+					
+					Set<UserGroup> toDelete = new HashSet<UserGroup>(existing);
+					toDelete.removeAll(newbies);
+					
+					Set<UserGroup> toAdd = new HashSet<UserGroup>(newbies);
+					toAdd.removeAll(existing);
+					
+					List<String> operator = new ArrayList<String>();
+					for (UserGroup ug : toDelete) {
+						operator.add(ug.getId());
+					}
+					groupMembersDAO.removeMembers(principalId, operator);
+	
+					operator.clear();
+					for (UserGroup ug : toAdd) {
+						operator.add(ug.getId());
+					}
+					groupMembersDAO.addMembers(principalId, operator);
+				}
+			} catch (NotFoundException e) {
+				// A group was deleted before the worker could finish processing it
 			}
 		}
 	}
