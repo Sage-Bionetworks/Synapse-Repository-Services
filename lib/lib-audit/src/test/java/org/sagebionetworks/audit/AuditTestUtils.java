@@ -38,6 +38,8 @@ public class AuditTestUtils {
 			ar.setStack("stack");
 			ar.setInstance("0001");
 			ar.setVmId("vmId");
+			ar.setQueryString("value=bar");
+			ar.setReturnObjectId("syn123");
 			list.add(ar);
 		}
 		return list;
