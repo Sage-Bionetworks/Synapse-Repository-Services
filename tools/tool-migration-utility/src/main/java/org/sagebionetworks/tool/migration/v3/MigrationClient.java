@@ -197,7 +197,7 @@ public class MigrationClient {
 		}
 		
 		// If exception in insert/update phase, then rethrow at end so main is aware of problem
-		Exception insUpdException = null;
+		Exception insException = null;
 		try {
 			// Now do all adds in the original order
 			for(int i=0; i<deltaList.size(); i++){
@@ -207,6 +207,12 @@ public class MigrationClient {
 					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
 				}
 			}
+		} catch (Exception e) {
+			insException = e;
+			log.info("Exception thrown during insert phase", e);
+		}
+		Exception updException = null;
+		try {
 			// Now do all updates in the original order
 			for(int i=0; i<deltaList.size(); i++){
 				DeltaData dd = deltaList.get(i);
@@ -216,8 +222,8 @@ public class MigrationClient {
 				}
 			}
 		} catch (Exception e) {
-			insUpdException = e;
-			log.info("Exception thrown during insert/update phases", e);
+			updException = e;
+			log.info("Exception thrown during update phases", e);
 		}
 
 		// Only do the post-deletes if the initial ones raised an exception
@@ -232,8 +238,11 @@ public class MigrationClient {
 			}
 		}
 		
-		if (insUpdException != null) {
-			throw insUpdException;
+		if (insException != null) {
+			throw insException;
+		}
+		if (updException != null) {
+			throw updException;
 		}
 	}
 	
