@@ -71,4 +71,13 @@ public class KeyGeneratorUtilTest {
 		assertEquals(expected, results);
 	}
 	
+	@Test
+	public void testExtractDateFromKey(){
+	    Calendar cal = Calendar.getInstance();
+		cal.set(1982, 0, 1, 22, 49);
+		String expected = "1982-01-01";
+		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());
+		String resultDateString = KeyGeneratorUtil.getDateStringFromKey(resultsString);
+		assertEquals(expected, resultDateString);
+	}
 }

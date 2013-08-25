@@ -2,6 +2,7 @@ package org.sagebionetworks.audit.utils;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -11,6 +12,8 @@ import java.util.UUID;
  *
  */
 public class KeyGeneratorUtil {
+	
+	public static TimeZone TIME_ZONE_UTC = TimeZone.getTimeZone("UTC");
 	
 	/**
 	 * This template is used to generated a key for a batch of AccessRecords:
@@ -25,8 +28,7 @@ public class KeyGeneratorUtil {
 	 * @return
 	 */
 	public static String createNewKey(int stackInstanceNumber, long timeMS){
-	    Calendar cal = Calendar.getInstance();
-	    cal.setTime(new Date(timeMS));
+	    Calendar cal = getCalendarUTC(timeMS);
 	    int year = cal.get(Calendar.YEAR);
 	    // We do a +1 because JANUARY=0 
 	    int month = cal.get(Calendar.MONTH) +1;
@@ -36,6 +38,14 @@ public class KeyGeneratorUtil {
 		int sec = cal.get(Calendar.SECOND);
 		int milli = cal.get(Calendar.MILLISECOND);
 	    return createKey(stackInstanceNumber, year, month, day, hour, mins, sec, milli, UUID.randomUUID().toString());
+	}
+
+
+	private static Calendar getCalendarUTC(long timeMS) {
+		Calendar cal = Calendar.getInstance();
+	    cal.setTime(new Date(timeMS));
+	    cal.setTimeZone(TIME_ZONE_UTC);
+		return cal;
 	}
 	
 	
@@ -68,8 +78,7 @@ public class KeyGeneratorUtil {
 	 * @return
 	 */
 	public static String getDateString(long timeMS){
-	    Calendar cal = Calendar.getInstance();
-	    cal.setTime(new Date(timeMS));
+	    Calendar cal = getCalendarUTC(timeMS);
 	    int year = cal.get(Calendar.YEAR);
 	    // We do a +1 because JANUARY=0 
 	    int month = cal.get(Calendar.MONTH) + 1;
@@ -86,5 +95,15 @@ public class KeyGeneratorUtil {
 	 */
 	public static String getDateString(int year, int month, int day){
 		return String.format(DATE_TEMPLATE, year, month, day);
+	}
+	
+	/**
+	 * Extract the date string from a key
+	 * @param key
+	 * @return
+	 */
+	public static String getDateStringFromKey(String key){
+		String[] split = key.split("/");
+		return split[1];
 	}
 }
