@@ -12,9 +12,14 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>{
 	public UserGroup findGroup(String name, boolean isIndividual) throws DatastoreException;
 
 	/**
-	 * @return the NON-individual groups for the given group names
+	 * @return the user groups for the given group names
 	 */
 	public Map<String, UserGroup> getGroupsByNames(Collection<String> groupName) throws DatastoreException;
+	
+	/**
+	 * @return the list of user groups for the given principal IDs
+	 */
+	public List<UserGroup> get(List<String> ids) throws DatastoreException;
 
 	/**
 	 * a variant of the generic 'getAll' query, this allows the caller to
@@ -69,5 +74,11 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>{
 	 * @throws Exception 
 	 */
 	public void bootstrapUsers() throws Exception;
+
+	/**
+	 * Updates the etags of all groups with the given IDs
+	 * @param ids
+	 */
+	public void touchList(List<String> ids);
 
 }

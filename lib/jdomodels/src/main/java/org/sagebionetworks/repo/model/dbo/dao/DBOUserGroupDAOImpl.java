@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
@@ -48,6 +47,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
+	private static final String ETAG_PARAM_NAME = "etag";
 	
 	private static final String SELECT_BY_NAME_AND_IS_INDIVID_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -61,6 +61,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String SELECT_MULTI_BY_NAME_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_NAME+" IN (:"+NAME_PARAM_NAME+")";
+
+	private static final String SELECT_MULTI_BY_PRINCIPAL_IDS = 
+			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
+			" WHERE "+SqlConstants.COL_USER_GROUP_ID+" IN (:"+ID_PARAM_NAME+")";
 	
 	private static final String SELECT_BY_IS_INDIVID_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -82,15 +86,20 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	private static final String SELECT_ALL = 
 		"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
+	
+	private static final String UPDATE_ETAG_LIST = 
+			"UPDATE "+SqlConstants.TABLE_USER_GROUP+
+			" SET "+SqlConstants.COL_USER_GROUP_E_TAG+"=:"+ETAG_PARAM_NAME+
+			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
 	// the pattern is: select x.id, y.etag from g x LEFT OUTER JOIN p y on x.id=y.owner order by x.id
 	// the query is: select g.id, p.etag from user_group g LEFT OUTER JOIN user_profile p on g.id=p.owner_id order by g.id limit l offset o 
-	private static final String SELECT_ALL_PAGINATED_WITH_ETAG = 
-		"SELECT g."+COL_USER_GROUP_ID+", p."+COL_USER_PROFILE_ETAG+" FROM "+
-		TABLE_USER_GROUP+" g LEFT OUTER JOIN "+TABLE_USER_PROFILE+
-		" p ON g."+COL_USER_GROUP_ID+" = p."+COL_USER_PROFILE_ID+
-		" ORDER BY g."+COL_USER_GROUP_ID+" LIMIT :"+LIMIT_PARAM_NAME+
-		" OFFSET :"+OFFSET_PARAM_NAME;
+	// private static final String SELECT_ALL_PAGINATED_WITH_ETAG = 
+	// 	"SELECT g."+COL_USER_GROUP_ID+", p."+COL_USER_PROFILE_ETAG+" FROM "+
+	// 	TABLE_USER_GROUP+" g LEFT OUTER JOIN "+TABLE_USER_PROFILE+
+	// 	" p ON g."+COL_USER_GROUP_ID+" = p."+COL_USER_PROFILE_ID+
+	// 	" ORDER BY g."+COL_USER_GROUP_ID+" LIMIT :"+LIMIT_PARAM_NAME+
+	// 	" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	// the query above is an outer join. For non-individual groups there is no UserProfile and
 	// hence no etag.  The group is immutable and so it's Etag should always be 0.  The following
@@ -138,9 +147,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(NAME_PARAM_NAME, groupName);	
 		try {
 			List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_MULTI_BY_NAME_SQL, userGroupRowMapper, param);
-			for (DBOUserGroup dbo : dbos) {
-				UserGroup dto = new UserGroup();
-				UserGroupUtils.copyDboToDto(dbo, dto);
+			
+			List<UserGroup> listDtos = new ArrayList<UserGroup>();
+			UserGroupUtils.copyDboToDto(dbos, listDtos);
+			for (UserGroup dto : listDtos) {
 				dtos.put(dto.getName(), dto);
 			}
 			return dtos;
@@ -156,11 +166,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
 		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		for (DBOUserGroup dbo : dbos) {
-			UserGroup dto = new UserGroup();
-			UserGroupUtils.copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
 	}
 	
@@ -179,11 +185,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(NAME_PARAM_NAME, groupNamesToOmit);
 		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_OMITTING_SQL, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		for (DBOUserGroup dbo : dbos) {
-			UserGroup dto = new UserGroup();
-			UserGroupUtils.copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
 	}
 	
@@ -198,11 +200,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL_PAGINATED, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		for (DBOUserGroup dbo : dbos) {
-			UserGroup dto = new UserGroup();
-			UserGroupUtils.copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
 	}
 
@@ -221,11 +219,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(NAME_PARAM_NAME, groupNamesToOmit);
 		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_OMITTING_SQL_PAGINATED, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		for (DBOUserGroup dbo : dbos) {
-			UserGroup dto = new UserGroup();
-			UserGroupUtils.copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
 	}
 
@@ -266,6 +260,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			InvalidModelException {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
+		
+		// If the create is successful, it should have a new etag
+		dbo.setEtag(UUID.randomUUID().toString());
+		
 		if(dbo.getId() == null){
 			dbo.setId(idGenerator.generateNewId());
 		}else{
@@ -304,17 +302,27 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		UserGroupUtils.copyDboToDto(dbo, dto);
 		return dto;
 	}
+	
+	@Override
+	public List<UserGroup> get(List<String> ids) throws DatastoreException {
+		List<UserGroup> dtos = new ArrayList<UserGroup>();
+		if (ids.isEmpty()) {
+			return dtos;
+		}
+		
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, ids);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_MULTI_BY_PRINCIPAL_IDS, userGroupRowMapper, param);
+		UserGroupUtils.copyDboToDto(dbos, dtos);
+		return dtos;
+	}
 
 	@Override
 	public Collection<UserGroup> getAll() throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_ALL, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		for (DBOUserGroup dbo : dbos) {
-			UserGroup dto = new UserGroup();
-			UserGroupUtils.copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
 
 	}
@@ -326,6 +334,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			ConflictingUpdateException {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
+		
+		// If the update is successful, it should have a new etag
+		dbo.setEtag(UUID.randomUUID().toString());
+
 		basicDao.update(dbo);
 	}
 
@@ -358,5 +370,24 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				idGenerator.reserveId(id, TYPE.DOMAIN_IDS);
 			}
 		}
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void touchList(List<String> ids) {
+		// Convert all IDs to Longs and sort them to prevent deadlock
+		List<Long> livelocks = new ArrayList<Long>();
+		for (String id : ids) {
+			livelocks.add(Long.parseLong(id));
+		}
+		Collections.sort(livelocks);
+		
+		MapSqlParameterSource params[] = new MapSqlParameterSource[livelocks.size()];
+		for (int i = 0; i < params.length; i++) {
+			params[i] = new MapSqlParameterSource();
+			params[i].addValue(ID_PARAM_NAME, livelocks.get(i));
+			params[i].addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
+		}
+		simpleJdbcTemplate.batchUpdate(UPDATE_ETAG_LIST, params);
 	}
 }

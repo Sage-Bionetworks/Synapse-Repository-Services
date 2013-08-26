@@ -39,12 +39,15 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -120,6 +123,10 @@ public class MigrationIntegrationAutowireTest {
 	StorageQuotaManager storageQuotaManager;
 	@Autowired
 	StorageQuotaAdminDao storageQuotaAdminDao;
+	@Autowired
+	UserGroupDAO userGroupDAO;
+	@Autowired
+	GroupMembersDAO groupMembersDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -161,6 +168,9 @@ public class MigrationIntegrationAutowireTest {
 	// Favorite
 	Favorite favorite;
 	
+	// UserGroups 
+	List<UserGroup> tempUserAndGroups;
+	
 	HttpServletRequest mockRequest;
 	
 	@Before
@@ -182,11 +192,12 @@ public class MigrationIntegrationAutowireTest {
 		creatWikiPages();
 		createDoi();
 		createStorageQuota();
+		createUserGroups();
 	}
 
 
 	private void resetDatabase() throws Exception {
-		// Before we start this test we want to start with a clena database
+		// Before we start this test we want to start with a clean database
 		migrationManager.deleteAllData(userInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
@@ -377,6 +388,59 @@ public class MigrationIntegrationAutowireTest {
 	private void createStorageQuota() {
 		storageQuotaManager.setQuotaForUser(userInfo, userInfo, 3000);
 	}
+	
+	private void createUserGroups() throws NotFoundException {
+		String groupNamePrefix = "Caravan-";
+		String userNamePrefix = "GoinOnTheOregonTrail@";
+		List<String> adder = new ArrayList<String>();
+		
+		// Make two groups
+		UserGroup parentGroup = new UserGroup();
+		parentGroup.setIsIndividual(false);
+		parentGroup.setName(groupNamePrefix+"1");
+		parentGroup.setId(userGroupDAO.create(parentGroup));
+		
+		UserGroup nestedGroup = new UserGroup();
+		nestedGroup.setIsIndividual(false);
+		nestedGroup.setName(groupNamePrefix+"2");
+		nestedGroup.setId(userGroupDAO.create(nestedGroup));
+		
+		// Make three users
+		UserGroup parentUser = new UserGroup();
+		parentUser.setIsIndividual(true);
+		parentUser.setName(userNamePrefix+"1");
+		parentUser.setId(userGroupDAO.create(parentUser));
+		
+		UserGroup siblingUser = new UserGroup();
+		siblingUser.setIsIndividual(true);
+		siblingUser.setName(userNamePrefix+"2");
+		siblingUser.setId(userGroupDAO.create(siblingUser));
+		
+		UserGroup childUser = new UserGroup();
+		childUser.setIsIndividual(true);
+		childUser.setName(userNamePrefix+"3");
+		childUser.setId(userGroupDAO.create(childUser));
+		
+		// Nest one group and two users within the parent group
+		adder.add(nestedGroup.getId());
+		adder.add(parentUser.getId());
+		adder.add(siblingUser.getId());
+		groupMembersDAO.addMembers(parentGroup.getId(), adder);
+		
+		// Nest two users within the child group
+		adder.clear();
+		adder.add(siblingUser.getId());
+		adder.add(childUser.getId());
+		groupMembersDAO.addMembers(nestedGroup.getId(), adder);
+		
+		// Since the migrator does not delete users by default...
+		tempUserAndGroups = new ArrayList<UserGroup>();
+		tempUserAndGroups.add(parentGroup);
+		tempUserAndGroups.add(nestedGroup);
+		tempUserAndGroups.add(parentUser);
+		tempUserAndGroups.add(siblingUser);
+		tempUserAndGroups.add(childUser);
+	}
 
 	@After
 	public void after() throws Exception{
@@ -413,6 +477,12 @@ public class MigrationIntegrationAutowireTest {
 			MigrationType type = primaryTypesList.getList().get(i);
 			deleteAllOfType(type);
 		}
+		
+		// Delete the temp UserGroups manually
+		for (UserGroup tempUser : tempUserAndGroups) {
+			userGroupDAO.delete(tempUser.getId());
+		}
+		
 		// after deleting, the counts should be null
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
@@ -526,7 +596,7 @@ public class MigrationIntegrationAutowireTest {
 		IdList idList = getIdListOfAllOfType(type);
 		if(idList == null) return;
 		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
-		System.out.print("Deleted: "+result);
+		System.out.println("Deleted: "+result);
 	}
 	
 	/**
