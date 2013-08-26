@@ -266,6 +266,20 @@ public class UploadController extends BaseController {
 		// Get the user ID
 		fileService.deleteFileHandle(handleId, userId);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/fileHandle/{handleId}/filepreview", method = RequestMethod.DELETE)
+	public @ResponseBody
+	void clearPreview(
+			@PathVariable String handleId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			HttpServletRequest request) throws FileUploadException,
+			IOException, DatastoreException, NotFoundException,
+			ServiceUnavailableException, JSONObjectAdapterException {
+		// clear the preview
+		fileService.clearPreview(handleId, userId);
+	}
+
 
 	/**
 	 * Create an ExternalFileHandle to represent an external URL. Synapse will

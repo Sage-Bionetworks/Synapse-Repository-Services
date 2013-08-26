@@ -1927,6 +1927,16 @@ public class Synapse implements SynapseInt {
 	public void deleteFileHandle(String fileHandleId) throws SynapseException{
 		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "DELETE", null, defaultGETDELETEHeaders);
 	}
+	
+	/**
+	 * Delete the preview associated with the given file handle.
+	 * Note: Only the creator of a the file handle can delete the preview.
+	 * @param fileHandleId
+	 * @throws SynapseException 
+	 */
+	public void clearPreview(String fileHandleId) throws SynapseException{
+		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId+FILE_PREVIEW, "DELETE", null, defaultGETDELETEHeaders);
+	}
 
 	/**
 	 * Guess the content type of a file by reading the start of the file stream using

@@ -62,6 +62,15 @@ public interface FileUploadService {
 	void deleteFileHandle(String handleId, String userId) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Delete the preview associated with the given file handle (causes the preview generator worker to recreate).
+	 * @param handleId
+	 * @param userId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void clearPreview(String handleId, String userId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Create an external file Handle.
 	 * @param userId
 	 * @param fileHandle

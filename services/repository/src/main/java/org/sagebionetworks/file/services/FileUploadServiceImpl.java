@@ -76,6 +76,15 @@ public class FileUploadServiceImpl implements FileUploadService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		fileUploadManager.deleteFileHandle(userInfo, handleId);
 	}
+	
+	@Override
+	public void clearPreview(String handleId, String userId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		fileUploadManager.clearPreview(userInfo, handleId);
+	}
 
 	@Override
 	public ExternalFileHandle createExternalFileHandle(String userId,
