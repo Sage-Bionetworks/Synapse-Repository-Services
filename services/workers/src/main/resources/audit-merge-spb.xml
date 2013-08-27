@@ -22,9 +22,9 @@
 		<property name="timeoutMS" value="3600000" />
 		<!-- There must never be more than one instances of this worker running at a time! 
 		 If more than one worker is run then the workers will duplicate the audit data!!!! -->
-		<property name="maxNumberRunners" ref="1" />
+		<property name="maxNumberRunners" value="1" />
 		<property name="semaphoreKey" value="auditMergeWorkerFactory" />		
-		<property name="runner" ref="mergeWorkerFactory" />
+		<property name="runner" ref="auditMergeWorkerFactory" />
 	</bean>
 
 	<!-- This is the trigger used to fire this worker -->
@@ -39,8 +39,8 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="31" />
-		<!-- This is a slow worker and does not need to be run more than once every minutes. -->
-		<property name="repeatInterval" value="60000" />
+		<!-- This is a slow worker and does not need to be run more than once every 30 seconds. -->
+		<property name="repeatInterval" value="10000" />
 	</bean>
 
 </beans>
