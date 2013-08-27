@@ -12,9 +12,7 @@ import java.util.UUID;
  *
  */
 public class KeyGeneratorUtil {
-	
-	public static TimeZone TIME_ZONE_UTC = TimeZone.getTimeZone("UTC");
-	
+		
 	/**
 	 * This template is used to generated a key for a batch of AccessRecords:
 	 * <stack_instance>/<year><month><day>/<hour>/<uuid>.csv.gz
@@ -44,7 +42,6 @@ public class KeyGeneratorUtil {
 	private static Calendar getCalendarUTC(long timeMS) {
 		Calendar cal = Calendar.getInstance();
 	    cal.setTime(new Date(timeMS));
-	    cal.setTimeZone(TIME_ZONE_UTC);
 		return cal;
 	}
 	
@@ -105,5 +102,19 @@ public class KeyGeneratorUtil {
 	public static String getDateStringFromKey(String key){
 		String[] split = key.split("/");
 		return split[1];
+	}
+	
+	/**
+	 * Extract the date and hour from the key
+	 * @param key
+	 * @return
+	 */
+	public static String getDateAndHourFromKey(String key){
+		String[] split = key.split("/");
+		StringBuilder builder = new StringBuilder();
+		builder.append(split[1]);
+		builder.append("/");
+		builder.append(split[2].substring(0, 2));
+		return builder.toString();
 	}
 }

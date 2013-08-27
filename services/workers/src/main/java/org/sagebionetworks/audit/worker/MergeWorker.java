@@ -19,26 +19,27 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  * @author John
  *
  */
-public class MergeWorker implements Runnable {
-	
+public class MergeWorker {
+		
 	static private Log log = LogFactory.getLog(MergeWorker.class);
 	private AccessRecordDAO accessRecordDAO;
-	long minFileSizeBytes;
 
 	/**
 	 * All dependencies are provide at construction time.
 	 * @param accessRecordDAO
 	 * @param minFileSize
 	 */
-	public MergeWorker(AccessRecordDAO accessRecordDAO, long minFileSizeBytes) {
+	public MergeWorker(AccessRecordDAO accessRecordDAO) {
 		super();
 		this.accessRecordDAO = accessRecordDAO;
-		this.minFileSizeBytes = minFileSizeBytes;
 	}
 
-	@Override
-	public void run() {
-		
+	/**
+	 * Merge one batch of files.
+	 * 
+	 * @return True if there are more files to be merged, else False.
+	 */
+	public boolean mergeOneBatch() {
 		try {
 			// Walk all files for this stack looking for files that are under the minimum
 			String marker = null;
@@ -48,79 +49,93 @@ public class MergeWorker implements Runnable {
 				marker = listing.getNextMarker();
 				if(listing.getObjectSummaries() != null){
 					for(S3ObjectSummary summ: listing.getObjectSummaries()){
-						// We only merge files that are under the minimum size.
-						if(summ.getSize() < minFileSizeBytes){
-							// We found a file that needs to be merged. Read in the data from the file.
-							// We do not want to merge files from different days, so when we
-							// encounter a new date we complete the current batch and start a new one.
-							String fileDate = KeyGeneratorUtil.getDateStringFromKey(summ.getKey());
-							if(batchData != null && !batchData.batchDateString.equals(fileDate)){
-								// We are done with the current batch since the next does not have the same date.
-								completeBatch(batchData);
-								// Clear the batch data.
-								batchData = null;
+						// Bucket by date/hour
+						String fileDateHour = KeyGeneratorUtil.getDateAndHourFromKey(summ.getKey());
+						// Do we have a complete batch?
+						if (batchData != null) {
+							// The current batch is completed if the next file
+							// does not have the same date/hout as the current
+							// batch.
+							if (!batchData.batchDateString.equals(fileDateHour)) {
+								// This method will save the current batch and
+								// delete all of the original files.
+								if (mergeBatch(batchData)) {
+									// The batch was merged to completion and we
+									// are done for this round
+									return true;
+								} else {
+									// The batch was not merged. This occurs if
+									// where there was nothing in the batch to
+									// merged. For this case we want to start
+									// with a new batch.
+									batchData = null;
+								}
 							}
-							// Complete the batch if the size is exceeded
-							if(batchData != null && batchData.batchSizeBytes > minFileSizeBytes){
-								// we now have a file that is large enough.
-								completeBatch(batchData);
-								// Clear the batch data.
-								batchData = null;
-							}
-							
-							// If the batchData is null then this is the start
-							// of a new batch.
-							if (batchData == null) {
-								batchData = new BatchData(
-										new LinkedList<AccessRecord>(),
-										new LinkedList<String>(), fileDate);
-							}
-							// Download the batch data for this key.
-							List<AccessRecord> subBatch = accessRecordDAO.getBatch(summ.getKey());
-							// Add this sub-batch to the current batch.
-							batchData.batch.addAll(subBatch);
-							// We also will need to delete this sub-file after
-							// we are done saving the larger batch.
-							batchData.mergedKeys.add(summ.getKey());
-							batchData.batchSizeBytes += summ.getSize();
 						}
+							
+						// If the batchData is null then this is the start
+						// of a new batch.
+						if (batchData == null) {
+							batchData = new BatchData(new LinkedList<String>(),	fileDateHour);
+						}
+						// This is a file we would like to merge
+						batchData.mergedKeys.add(summ.getKey());
 					}
 				}
 			}while(marker != null);
 			// If there is any batch data left then complete it.
 			if(batchData != null){
-				completeBatch(batchData);
+				mergeBatch(batchData);
 			}
+			// If we made it this far then there is no more data.
+			return false;
 		} catch (Exception e) {
 			log.error("Worker failed", e);
+			throw new RuntimeException(e);
 		}
 	}
+	
 	
 	/**
 	 * This will save the new batch file and delete all of the sub files that were merged.
 	 * @param data
+	 * @return True if the batch was merged.  False if there was nothing to merge or the batch was empty.
 	 */
-	private void completeBatch(BatchData data) {
+	private boolean mergeBatch(BatchData data) {
 		if(data != null){
-			if(data.batch.size() > 0){
-				// Create a new key using the timestamp of the first row in this batch.
-				long timestamp = data.batch.get(0).getTimestamp();
+			if(data.mergedKeys.size() > 0){
+				// If this batch only contains one file there is nothing to do.
+				if(data.mergedKeys.size() < 2){
+					log.info("A batch only contains data from one file so there is nothing to merge for file: "+data.mergedKeys.get(0));
+					return false;
+				}
 				try {
-					// Save the batch use the timestamp from the first row for the key.
-					String newfileKey = accessRecordDAO.saveBatch(data.batch, timestamp);
+					// Load the data from each file to merge
+					List<AccessRecord> mergedBatches = new LinkedList<AccessRecord>();
+					for(String key: data.mergedKeys){
+						List<AccessRecord> subBatch = accessRecordDAO.getBatch(key);
+						mergedBatches.addAll(subBatch);
+					}
+					// Use the time stamp from the first record as the time stamp for the new batch.
+					long timestamp = mergedBatches.get(0).getTimestamp();
+					// Save the merged batches
+					String newfileKey = accessRecordDAO.saveBatch(mergedBatches, timestamp);
 					
 					// Now delete all of the files that were merged.
 					for(String key: data.mergedKeys){
 						accessRecordDAO.deleteBactch(key);
 					}
 					long elapse = System.currentTimeMillis()-data.startMs;
-					long msPerfile = elapse/data.batch.size();
+					long msPerfile = elapse/data.mergedKeys.size();
 					log.info("Merged: "+data.mergedKeys.size()+" files into new file: "+newfileKey+" in "+elapse+" ms rate of: "+msPerfile+" ms/file");
+					// We merged this batch successfully
+					return true;
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
 			}
-		}		
+		}
+		return false;
 	}
 	
 	/**
@@ -129,14 +144,11 @@ public class MergeWorker implements Runnable {
 	 *
 	 */
 	private static class BatchData {
-		List<AccessRecord> batch = null;
 		List<String> mergedKeys = null;
 		String batchDateString;
-		long batchSizeBytes;
 		long startMs;
-		public BatchData(List<AccessRecord> batch, List<String> mergedKeys, String batchDateString) {
+		public BatchData(List<String> mergedKeys, String batchDateString) {
 			super();
-			this.batch = batch;
 			this.mergedKeys = mergedKeys;
 			this.batchDateString = batchDateString;
 			this.startMs = System.currentTimeMillis();
