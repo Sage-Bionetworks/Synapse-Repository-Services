@@ -292,7 +292,7 @@ public class EntityController extends BaseController {
 	 * other users before applying their own changes.
 	 * </p>
 	 * <p>
-	 * Note: To udpate an Entity the caller must be granted the <a
+	 * Note: To update an Entity the caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the Entity.
 	 * </p>
