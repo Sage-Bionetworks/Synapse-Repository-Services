@@ -1,5 +1,5 @@
 {
-    "description":"JSON schema for the possible states of a Synapse Submission.",
+    "description":"The possible states of a Synapse Submission.",
     "name": "SubmissionStatusEnum",
     "type":"string",
     "enum":[

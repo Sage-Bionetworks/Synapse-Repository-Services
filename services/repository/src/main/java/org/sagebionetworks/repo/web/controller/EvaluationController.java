@@ -48,11 +48,48 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-/**
- * Provides access to all services related to Synapse Evaluations. Evaluations are designed to
- * support open, collaborative data analysis challenges in Synapse.
+/** 
+ * <p>
+ * The Evaluation API is designed to support open-access data analysis and modeling challenges in
+ * Synapse. This framework provides tools for administrators to collect and analyze data models
+ * from Synapse users created for a specific goal or purpose.
+ * </p>
+ *  
+ * <p>
+ * The data model of the Evaluation API is built around around three primary objects:
+ * <ul>
+ * <li> <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>: The primary
+ * object representing a Synapse Evaluation. Access to Evaluations is governed by an <a
+ * href="${org.sagebionetworks.repo.model.AccessControlList}">Access Control
+ * List (ACL)</a>.
+ * </li> 
+ * <li> <a href="${org.sagebionetworks.evaluation.model.Participant}">Participant</a>: 
+ * Given proper permissions, a Synapse user can register as a Participant in an Evaluation. Being a
+ * Participant is a prerequisite for accessing Evaluation resources.
+ * </li>
+ * <li> <a href="${org.sagebionetworks.evaluation.model.Submission}">Submission</a>: A Participant
+ * in a Synapse Evaluation can submit a Synapse Entity as Submission to that Evaluation. Submission
+ * data is owned by the parent Evaluation, and is immutable.
+ * </ul>
+ * </p>
  * 
- * @author bkng
+ * <p>
+ * The data model includes additional objects to support scoring of Submissions and convenient data 
+ * access:
+ * <ul>
+ * <li> <a href="${org.sagebionetworks.evaluation.model.SubmissionStatus}">SubmissionStatus</a>: An
+ * object used to track scoring information for a single Submission. This object is intended to be
+ * modified by the users (or test harnesses) managing the Evaluation.
+ * </li> 
+ * <li> <a href="${org.sagebionetworks.evaluation.model.SubmissionBundle}">SubmissionBundle</a>: 
+ * A convenience object to transport a Submission and its accompanying SubmissionStatus in a single
+ * web service call.
+ * </li>
+ * </ul>
+ * </p>
+ * 
+ * The Evaluation API supports data access mechanisms to monitor Evaluation activity for on-demand 
+ * scoring and leaderboarding.
  */
 @ControllerInfo(displayName="Evaluation Services", path="repo/v1")
 @Controller
@@ -62,7 +99,18 @@ public class EvaluationController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Create a new Evaluation.
+	 * Create a new Evaluation. The passed request body should contain the following fields:
+	 * <ul>
+	 * <li>name - Give your new Evaluation a name.</li>
+	 * <li>contentSource - The ID of the parent Entity, such as a Folder or Project.</li>
+	 * <li>status - The initial state of the Evaluation, an 
+	 * <a href="${org.sagebionetworks.evaluation.model.EvaluationStatus}">EvaluationStatus</a></li>
+	 * </ul>
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.CREATE</a> on the contentSource Entity.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param header
@@ -90,7 +138,14 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get an Evaluation.
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param evalId - the ID of the desired Evaluation
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -112,13 +167,29 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get a collection of Evaluations, within a given range.
 	 * 
+	 * <p>
+	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
+	 * granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.READ</a>
+	 * permission.
+	 * </p> 
+	 * 
+	 * <b>Note:</b> This method is deprecated and should not be used.
+	 * </p>
+	 * 
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -135,8 +206,24 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get a collection of Evaluations in which the user may participate, within a given range.
 	 * 
+	 * <p>
+	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
+	 * granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.PARTICIPATE</a>
+	 * permission.
+	 * </p>
+	 * 
+	 * 
+	 * <b>Note:</b> This method is deprecated and should not be used.
+	 * </p>
+	 * 
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param statusString
 	 * @param request
@@ -146,6 +233,7 @@ public class EvaluationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
+	@Deprecated
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
@@ -165,11 +253,15 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get the total number of Evaluations in Synapse.
 	 * 
+	 * <b>Note:</b> This method is deprecated and should not be used.
+	 * </p>
+	 * 
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -183,7 +275,13 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Find an Evaluation by name.
 	 * 
-	 * @param name
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param name - the name of the desired Evaluation.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -206,8 +304,25 @@ public class EvaluationController extends BaseController {
 	
 	/**
 	 * Update an Evaluation.
+	 *  
+	 * <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time an Evaluation is updated a new etag will be
+	 * issued to the Evaluation. When an update is requested, Synapse will compare the
+	 * etag of the passed Evaluation with the current etag of the Evaluation. If the
+	 * etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs, the caller should
+	 * fetch the latest copy of the Evaluation and re-apply any changes, then re-attempt
+	 * the Evaluation update.
+	 * </p>
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the Evaluation being updated
 	 * @param userId
 	 * @param header
 	 * @param request
@@ -238,7 +353,13 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Delete an Evaluation.
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.DELETE</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the requested Evaluation
 	 * @param userId
 	 * @param header
 	 * @param request
@@ -261,7 +382,14 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Join as a Participant in a specified Evaluation.
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.PARTICIPATE</a> on the specified Evaluation, and must have satisfied all
+	 * access requirements on the Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation
 	 * @param userId
 	 * @param header
 	 * @param request
@@ -284,10 +412,16 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a Participant.
+	 * Get a Participant. 
 	 * 
-	 * @param evalId
-	 * @param partId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
+	 * @param partId - the ID of the Synapse user whose participation is to be deleted
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -308,10 +442,16 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Delete a Participant. Requires admin rights on the Evaluation.
+	 * Delete a Participant.
 	 * 
-	 * @param evalId
-	 * @param partId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.DELETE</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
+	 * @param partId - the ID of the Synapse user whose participation is to be deleted
 	 * @param userId
 	 * @param header
 	 * @param request
@@ -334,10 +474,22 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get all Participants for a specified Evaluation.
+	 * Get all Participants for a specified Evaluation. 
+	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
+	 * </p>
 	 * 
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param evalId
 	 * @param request
 	 * @return
@@ -362,6 +514,12 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get the number of Participants in a specified Evaluation.
 	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
+	 * </p>
+	 * 
 	 * @param evalId
 	 * @param request
 	 * @return
@@ -381,7 +539,17 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Create a Submission.
+	 * Create a Submission. The passed request body should contain the following fields:
+	 * <ul>
+	 * <li>evaluationId - The ID of the Evaluation to which this Submission belongs.</li>
+	 * <li>entityId - The ID of the Entity being submitted.</li>
+	 * <li>versionNumber - The specific version of the Entity being submitted.</li>
+	 * </ul>
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.SUBMIT</a> and must be registered as a Participant on the specified Evaluation.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param entityEtag - the current eTag of the Entity being submitted
@@ -414,6 +582,12 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get a Submission.
 	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
 	 * @param subId
 	 * @param userId
 	 * @param request
@@ -435,10 +609,19 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the SubmissionStatus object associated with a specified Submission. This object includes
-	 * scoring information.
+	 * Get the SubmissionStatus object associated with a specified Submission.
 	 * 
-	 * @param subId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the specified Evaluation. 
+	 * Furthermore, the caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> to see all 
+	 * data marked as "private" in the SubmissionStatus.	 * 
+	 * </p>
+	 * 
+	 * @param subId - the ID of the requested SubmissionStatus.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -460,7 +643,24 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Update a SubmissionStatus object.
 	 *  
-	 * @param subId
+	 * <p>
+	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
+	 * concurrent updates. Each time an SubmissionStatus is updated a new etag will be
+	 * issued to the SubmissionStatus. When an update is requested, Synapse will compare the
+	 * etag of the passed SubmissionStatus with the current etag of the SubmissionStatus. If the
+	 * etags do not match, then the update will be rejected with a
+	 * PRECONDITION_FAILED (412) response. When this occurs, the caller should
+	 * fetch the latest copy of the SubmissionStatus and re-apply any changes, then re-attempt
+	 * the SubmissionStatus update.
+	 * </p>
+	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param subId - the ID of the SubmissionStatus being updated.
 	 * @param userId
 	 * @param header
 	 * @param request
@@ -491,11 +691,16 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**	
-	 * Delete a Submission. Requires admin rights on the Evaluation.
-	 * 
+	 * Delete a Submission and its accompanying SubmissionStatus.
 	 * Use of this service is discouraged, since Submissions should be immutable.
 	 * 
-	 * @param subId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.DELETE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param subId - the ID of the Submission to be deleted.
 	 * @param userId
 	 * @param header
 	 * @param request
@@ -517,12 +722,23 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Submissions to a given Evaluation. Requires admin rights on the
-	 * Evaluation.
+	 * Get a collection of Submissions to a specified Evaluation.
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param statusString
 	 * @param request
@@ -551,12 +767,27 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of SubmissionStatuses to a given Evaluation. Requires admin rights on the
-	 * Evaluation.
+	 * Get a collection of SubmissionStatuses to a specified Evaluation.
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the specified Evaluation. 
+	 * Furthermore, the caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> to see all 
+	 * data marked as "private" in the SubmissionStatuses.
+	 * </p> 
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param statusString
 	 * @param request
 	 * @return
@@ -585,11 +816,22 @@ public class EvaluationController extends BaseController {
 	
 	/**
 	 * Get a collection of bundled Submissions and SubmissionStatuses to a given Evaluation. 
-	 * Requires admin rights on the Evaluation.
 	 * 
-	 * @param evalId
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param statusString
 	 * @param request
@@ -620,9 +862,20 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get the requesting user's Submissions to a specified Evaluation.
 	 * 
-	 * @param evalId
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param request
 	 * @return
@@ -648,9 +901,20 @@ public class EvaluationController extends BaseController {
 	 * Get the requesting user's bundled Submissions and SubmissionStatuses to a specified
 	 * Evaluation.
 	 * 
-	 * @param evalId
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
+	 *            The offset index determines where this page will start from.
+	 *            An index of 1 is the first entity. When null it will default
+	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
+	 *            changed to 0 in future versions of Synapse.
 	 * @param limit
+	 *            Limits the number of entities that will be fetched for this
+	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param request
 	 * @return
@@ -673,12 +937,16 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a pre-signed URL to access a requested File contained within a
-	 * specified Submission.
+	 * Get a pre-signed URL to access a requested File contained within a specified Submission.
+	 * 
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
 	 * 
 	 * @param userInfo
-	 * @param submissionId
-	 * @param fileHandleId
+	 * @param submissionId - the ID of the specified Submission.
+	 * @param fileHandleId - the ID of the requested FileHandle contained in the Submission.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -701,7 +969,12 @@ public class EvaluationController extends BaseController {
 	/**
 	 * Get the number of Submissions to a specified Evaluation.
 	 * 
-	 * @param evalId
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId - the ID of the specified Evaluation.
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -720,6 +993,11 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
+	 * Determine whether a specified Synapse user has a certain 
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE</a> 
+	 * on the specified Evaluation.
+	 * </p>
+	 * 
 	 * @param id 
 	 * @param userId 
 	 * @param accessType 
@@ -741,9 +1019,6 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-<<<<<<< HEAD
-	 * Updates the given ACL.
-=======
 	 * Create a new ACL.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
@@ -816,12 +1091,23 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Execute a user-defined query over the Submissions of a specific Evaluation.
+	 * Execute a user-defined query over the Submissions of a specific Evaluation. Queries may be of
+	 * the following form:
+	 * 
+	 * <p>
+	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "bar";
+	 * </p>
+	 * 
+	 * <p>
+	 * <b>Note:</b> This service is still under construction. Query syntax and behavior are subject 
+	 * to change.
+	 * </p>
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
 	 * @throws  
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
 	public @ResponseBody 
