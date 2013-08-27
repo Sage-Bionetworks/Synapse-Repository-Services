@@ -1,21 +1,21 @@
 {
-	"description": "Schema defining a Participant object in a Synapse Evaluation.",
+	"description": "To access the resources of an Evaluation, a user must join the Evaluation as a Participant.",
 	"name": "Participant",
 	"properties": {
 		"userId": {
 			"type": "string",
-			"description": "The Synapse ID of this Participant.",
+			"description": "The Synapse user ID of this Participant.",
 			"transient": true
 		},
 		"evaluationId": {
 			"type": "string",
-			"description": "The ID of the Evaluation in which this Participant is partaking.",
+			"description": "The ID of the Evaluation in which this Participant is registered.",
 			"transient": true
 		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date on which this Participant was created.",
+			"description": "The date on which this Participant joined.",
 			"title": "Created On",
 			"transient": true
 		}
