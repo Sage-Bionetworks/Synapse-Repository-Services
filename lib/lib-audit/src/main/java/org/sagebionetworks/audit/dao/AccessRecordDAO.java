@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.BatchListing;
+
+import com.amazonaws.services.s3.model.ObjectListing;
 
 /**
  * This Data Access Object is used for the permanent persistence and retrieval of access records.
@@ -15,13 +16,22 @@ import org.sagebionetworks.repo.model.audit.BatchListing;
 public interface AccessRecordDAO {
 
 	/**
-	 * Save a batch of AccessRecord to the permanent store.
+	 * Save a batch of AccessRecord to the permanent store using the current time as the timestamp.
 	 * 
 	 * @param batch
 	 * @return The key
 	 * @throws IOException 
 	 */
 	public String saveBatch(List<AccessRecord> batch) throws IOException;
+	
+	/**
+	 * Save a batch of AccessRecord to the permanent store using the the given timestamp
+	 * @param batch
+	 * @param timestamp
+	 * @return
+	 * @throws IOException
+	 */
+	public String saveBatch(List<AccessRecord> batch, long timestamp) throws IOException;
 
 	/**
 	 * Get a batch of AccessRecords from the permanent store using its key (see:  {@link #saveBatch(List)})
@@ -49,7 +59,7 @@ public interface AccessRecordDAO {
 	 *            marker to get the next page.
 	 * @return
 	 */
-	public BatchListing listBatchKeys(String marker);
+	public ObjectListing listBatchKeys(String marker);
 	
 	/**
 	 * Delete all stack instance batches from the bucket.  This should never be called on a production system.
