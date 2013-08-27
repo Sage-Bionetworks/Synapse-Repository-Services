@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_G
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +14,6 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -27,6 +25,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -85,26 +84,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_ALL = 
-		"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
+			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
 	
 	private static final String UPDATE_ETAG_LIST = 
 			"UPDATE "+SqlConstants.TABLE_USER_GROUP+
 			" SET "+SqlConstants.COL_USER_GROUP_E_TAG+"=:"+ETAG_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
-
-	// the pattern is: select x.id, y.etag from g x LEFT OUTER JOIN p y on x.id=y.owner order by x.id
-	// the query is: select g.id, p.etag from user_group g LEFT OUTER JOIN user_profile p on g.id=p.owner_id order by g.id limit l offset o 
-	// private static final String SELECT_ALL_PAGINATED_WITH_ETAG = 
-	// 	"SELECT g."+COL_USER_GROUP_ID+", p."+COL_USER_PROFILE_ETAG+" FROM "+
-	// 	TABLE_USER_GROUP+" g LEFT OUTER JOIN "+TABLE_USER_PROFILE+
-	// 	" p ON g."+COL_USER_GROUP_ID+" = p."+COL_USER_PROFILE_ID+
-	// 	" ORDER BY g."+COL_USER_GROUP_ID+" LIMIT :"+LIMIT_PARAM_NAME+
-	// 	" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	// the query above is an outer join. For non-individual groups there is no UserProfile and
-	// hence no etag.  The group is immutable and so it's Etag should always be 0.  The following
-	// is the default etag used in such a case.
-	public static final String DEFAULT_ETAG = UuidETagGenerator.ZERO_E_TAG;
 
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
@@ -374,20 +359,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void touchList(List<String> ids) {
-		// Convert all IDs to Longs and sort them to prevent deadlock
-		List<Long> livelocks = new ArrayList<Long>();
-		for (String id : ids) {
-			livelocks.add(Long.parseLong(id));
+	public void touch(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
+		try {
+			simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
+		} catch (DeadlockLoserDataAccessException e) {
+			// Deadlock is unavoidable here (?)
 		}
-		Collections.sort(livelocks);
-		
-		MapSqlParameterSource params[] = new MapSqlParameterSource[livelocks.size()];
-		for (int i = 0; i < params.length; i++) {
-			params[i] = new MapSqlParameterSource();
-			params[i].addValue(ID_PARAM_NAME, livelocks.get(i));
-			params[i].addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
-		}
-		simpleJdbcTemplate.batchUpdate(UPDATE_ETAG_LIST, params);
 	}
 }

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -38,13 +37,5 @@ public interface GroupMembersDAO {
 	 */
 	public List<UserGroup> getUsersGroups(String principalId) 
 			throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Changes the etag of the parent group (for migration purposes)
-	 * and nullifies cached parents of all children and their children
-	 * @return All IDs where the cache has been cleared
-	 */
-	public Set<String> markAsUpdated(String groupId, List<String> memberIds)
-			throws DatastoreException;
 
 }
