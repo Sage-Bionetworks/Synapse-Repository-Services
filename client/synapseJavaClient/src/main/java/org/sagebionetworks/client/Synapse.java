@@ -210,6 +210,8 @@ public class Synapse implements SynapseInt {
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
 	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
+	
+	protected static final String USER_GROUP_HEADER_PREFIX_PATH = "/userGroupHeaders?prefix=";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -949,6 +951,11 @@ public class Synapse implements SynapseInt {
 		// Remove the trailing comma
 		sb.deleteCharAt(sb.length() - 1);
 		return sb.toString();
+	}
+	
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException {
+		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+prefix);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
 	}
 	
 	/**
