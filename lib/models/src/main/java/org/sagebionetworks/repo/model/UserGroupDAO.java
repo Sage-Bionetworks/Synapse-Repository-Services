@@ -78,7 +78,7 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>{
 	/**
 	 * Gets and locks a row of the table
 	 */
-	public UserGroup getForUpdate(String id);
+	public String getEtagForUpdate(String id);
 
 	/**
 	 * Updates the etag the group with the given ID
