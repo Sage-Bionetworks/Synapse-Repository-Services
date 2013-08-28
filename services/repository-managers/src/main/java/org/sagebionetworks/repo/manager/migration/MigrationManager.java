@@ -37,7 +37,7 @@ public interface MigrationManager {
 	 * @param offset
 	 * @return
 	 */
-	public RowMetadataResult getRowMetadaForType(UserInfo user, MigrationType type, long limit, long offset);
+	public RowMetadataResult getRowMetadaForType(UserInfo user, MigrationType type, long maxId, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.

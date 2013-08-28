@@ -169,19 +169,20 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
-	public void testListWithSelfForeignKey(){
-		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
-		assertNotNull(batchDelete);
-		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
-	}
-
-	@Test
 	public void testListWithNoEtagNoSelfForeignKey(){
 		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` <= :BVMAXID ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+	}
+	
+	@Test
+	public void testListWithSelfForeignKey() {
+		Long maxId = 1075L;
+		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT `ID`, `ETAG`, `PARENT_ID` FROM SOME_TABLE WHERE `ID` <= :BVMAXID ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
 	}
 	
 	@Test

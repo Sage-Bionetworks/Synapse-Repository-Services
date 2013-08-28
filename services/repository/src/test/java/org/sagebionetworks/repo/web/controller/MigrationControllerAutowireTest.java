@@ -119,7 +119,7 @@ public class MigrationControllerAutowireTest {
 	@Test
 	public void testRowMetadata() throws ServletException, IOException, JSONObjectAdapterException{
 		// First list the values for files
-		RowMetadataResult results = entityServletHelper.getRowMetadata(userName, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startFileCount);
+		RowMetadataResult results = entityServletHelper.getRowMetadata(userName, MigrationType.FILE_HANDLE, Long.parseLong(preview.getId()), Long.MAX_VALUE, startFileCount);
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(new Long(startFileCount+2), results.getTotalCount());

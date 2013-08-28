@@ -38,7 +38,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	 * @param client - The Synapse client used to get the real data.
 	 * @param batchSize - The batch size is the page size of data fetched from a stack.
 	 */
-	public MetadataIterator(MigrationType type,	SynapseAdministrationInt client, long batchSize, BasicProgress progress) {
+	public MetadataIterator(MigrationType type,	Long maxIdForType, SynapseAdministrationInt client, long batchSize, BasicProgress progress) {
 		super();
 		this.type = type;
 		this.client = client;

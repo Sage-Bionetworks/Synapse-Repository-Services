@@ -101,8 +101,9 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testListRowMetadata(){
-		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
+	public void testListRowMetadataAll(){
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, maxId, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		assertEquals(new Long(startCount+2), result.getTotalCount());
 		assertNotNull(result.getList());
@@ -119,8 +120,36 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws Exception{
-		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
+	public void testListRowMetaDataSome() {
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		// Add one more file
+		// The one without preview
+		S3FileHandle withoutPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withoutPreview.setFileName("withoutPreview.txt");
+		withoutPreview = fileHandleDao.createFile(withoutPreview);
+		assertNotNull(withoutPreview);
+		toDelete.add(withoutPreview.getId());
+		
+		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, maxId, Long.MAX_VALUE, startCount);
+		assertNotNull(result);
+		assertEquals(new Long(startCount+3), result.getTotalCount());
+		assertNotNull(result.getList());
+		assertEquals(2, result.getList().size());
+		// List the delta
+		List<Long> ids = new LinkedList<Long>();
+		for(RowMetadata rm: result.getList()){
+			ids.add(rm.getId());
+		}
+		RowMetadataResult delta = migrationManager.getRowMetadataDeltaForType(adminUser, MigrationType.FILE_HANDLE, ids);
+		assertNotNull(delta);
+		assertNotNull(delta.getList());
+		assertEquals(result.getList(), delta.getList());
+	}
+	
+	@Test
+	public void testRoundTripAll() throws Exception{
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, maxId, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		// List the delta
 		List<Long> ids1 = new LinkedList<Long>();
@@ -153,11 +182,60 @@ public class MigrationManagerImplAutowireTest {
 		in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
 		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
 		// Now get the data
-		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
+		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, maxId, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		assertEquals(result.getList(), afterResult.getList());
 	}
 	
+	@Test
+	public void testRoundTripSome() throws Exception{
+		long maxId = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		// Add one more file
+		// The one without preview
+		S3FileHandle withoutPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withoutPreview.setFileName("withoutPreview.txt");
+		withoutPreview = fileHandleDao.createFile(withoutPreview);
+		assertNotNull(withoutPreview);
+		toDelete.add(withoutPreview.getId());
+		
+		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, maxId, Long.MAX_VALUE, startCount);
+		assertNotNull(result);
+		// List the delta
+		List<Long> ids1 = new LinkedList<Long>();
+		ids1.add(Long.parseLong(preview.getId()));
+		List<Long> ids2 = new LinkedList<Long>();
+		ids2.add(Long.parseLong(withPreview.getId()));
+		// Write the backup data
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, out);
+		String xml1 = new String(out.toByteArray(), "UTF-8");
+		System.out.println(xml1);
+		out = new ByteArrayOutputStream();
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, out);
+		String xml2 = new String(out.toByteArray(), "UTF-8");
+		System.out.println(xml2);
+		// Now delete the rows
+		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids1);
+		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids2);
+		// The count should be the same as start + 1 that we added
+		assertEquals(startCount+1, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		// Now restore them from the xml
+		ByteArrayInputStream in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
+		List<Long> ids = migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		assertEquals(ids1, ids);
+		in = new ByteArrayInputStream(xml2.getBytes("UTF-8"));
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		// The count should be backup
+		assertEquals(startCount+3, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
+		// Calling again should not fail
+		in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		// Now get the data
+		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, maxId, Long.MAX_VALUE, startCount);
+		assertNotNull(result);
+		assertEquals(result.getList(), afterResult.getList());
+	}
+
 	@Test
 	public void testGetSecondaryTypes(){
 		// Node should have revision as a secondary.
