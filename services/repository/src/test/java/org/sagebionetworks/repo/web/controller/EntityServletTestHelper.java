@@ -1139,7 +1139,7 @@ public class EntityServletTestHelper {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	public RowMetadataResult getRowMetadata(String userId, MigrationType type, long maxId, long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException{
+	public RowMetadataResult getRowMetadata(String userId, MigrationType type, Long maxId, long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1148,7 +1148,9 @@ public class EntityServletTestHelper {
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setParameter("type", type.name());
-		request.setParameter("maxId", ""+maxId);
+		if (maxId != null) {
+			request.setParameter("maxId", ""+maxId);
+		}
 		request.setParameter("limit", ""+limit);
 		request.setParameter("offset", ""+offset);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");

@@ -129,6 +129,19 @@ public class MigrationControllerAutowireTest {
 		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
 	}
 	
+	@Test
+	public void testRowMetadataNoMaxId() throws ServletException, IOException, JSONObjectAdapterException{
+		// First list the values for files
+		Long nullMaxId = null;
+		RowMetadataResult results = entityServletHelper.getRowMetadata(userName, MigrationType.FILE_HANDLE, nullMaxId, Long.MAX_VALUE, startFileCount);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(new Long(startFileCount+2), results.getTotalCount());
+		assertEquals(2, results.getList().size());
+		// They should be ordered by ID
+		assertEquals(handleOne.getId(), ""+results.getList().get(0).getId());
+		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
+	}
 
 	/**
 	 * Extract the filename from the full url.
