@@ -93,7 +93,6 @@ public class EntityPermissionsManagerImplTest {
 		grandchildNode1 = createNode("foo4", 7L, 8L, childNode.getId());
 		
 		// userInfo
-		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
 		userInfo = userManager.getUserInfo(TEST_USER);
 		usersToDelete = new ArrayList<String>();
 		System.out.println("USER NAME: " + userInfo.getIndividualGroup().getName());

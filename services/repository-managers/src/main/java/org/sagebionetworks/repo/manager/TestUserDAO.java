@@ -2,10 +2,9 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -91,17 +90,7 @@ public class TestUserDAO implements UserDAO {
 	
 	@Override
 	public Collection<String> getUserGroupNames(String userName) {
-		Collection<String> ans = new HashSet<String>();
-		if (ADMIN_USER_NAME.equals(userName)) {
-			ans.add(AuthorizationConstants.ADMIN_GROUP_NAME);
-		} else if (MIGRATION_USER_NAME.equals(userName)) {
-			ans.add(AuthorizationConstants.ADMIN_GROUP_NAME);
-		}  else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
-			// not in any group
-		} else {
-			ans.add(TEST_GROUP_NAME);
-		}
-		return ans;
+		throw new NotImplementedException("Replaced with calls to TestGroupMembersDAO");
 	}
 
 	@Override
