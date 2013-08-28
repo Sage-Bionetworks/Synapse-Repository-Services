@@ -146,7 +146,7 @@ public class DBOGroupMembersDAOImplTest {
 			groupMembersDAO.addMembers(testGroup.getId(), adder);
 			assertTrue(false);
 		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("member of itself"));
+			assertTrue(e.getMessage().contains("already a child"));
 		}
 		
 		// Add the child group to the parent group
@@ -216,23 +216,6 @@ public class DBOGroupMembersDAOImplTest {
 		// Verify that the parent group's etag has changed
 		updatedTestGroup = userGroupDAO.get(testGroup.getId());
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
-	}
-	
-	@Test
-	public void testZipUnzip() throws Exception {
-		List<String> original = new ArrayList<String>();
-		original.add("1");
-		original.add("2");
-		original.add("34");
-		original.add("567");
-		original.add("8901");
-		original.add("23456789");
-		original.add(Long.toString(Long.MIN_VALUE));
-		original.add(Long.toString(Long.MAX_VALUE));
-		
-		List<String> processed = DBOGroupMembersDAOImpl.unzipParents(DBOGroupMembersDAOImpl.zipParents(original));
-		assertTrue(original.containsAll(processed));
-		assertTrue(processed.containsAll(original));
 	}
 	
 	@Test

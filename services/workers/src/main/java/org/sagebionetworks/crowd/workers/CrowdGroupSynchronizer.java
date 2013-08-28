@@ -1,6 +1,8 @@
 package org.sagebionetworks.crowd.workers;
 
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -81,7 +83,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 					} catch (NotFoundException e) {
 						// Must make a new profile
 						try {
-							User user = userDAO.getUser(name);
+							User user = userDAO.getUser(URLEncoder.encode(name, "UTF-8"));
 							UserProfile userProfile = new UserProfile();
 							userProfile.setOwnerId(principalId);
 							userProfile.setFirstName(user.getFname());
@@ -92,6 +94,8 @@ public class CrowdGroupSynchronizer implements Runnable {
 							throw new RuntimeException(nfe);
 						} catch (InvalidModelException ime) {
 							throw new RuntimeException(ime);
+						} catch (UnsupportedEncodingException uee) {
+							throw new RuntimeException(uee);
 						}
 					}
 				}

@@ -74,11 +74,15 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>{
 	 * @throws Exception 
 	 */
 	public void bootstrapUsers() throws Exception;
+	
+	/**
+	 * Gets and locks a row of the table
+	 */
+	public UserGroup getForUpdate(String id);
 
 	/**
-	 * Updates the etags of all groups with the given IDs
-	 * @param ids
+	 * Updates the etag the group with the given ID
 	 */
-	public void touchList(List<String> ids);
+	public void touch(String id);
 
 }
