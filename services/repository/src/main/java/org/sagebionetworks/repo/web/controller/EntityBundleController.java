@@ -43,12 +43,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li> Annotations <i>(Annotations)</i> = 0x2 </li>
  * <li> Permissions <i>(UserEntityPermissions)</i> = 0x4 </li>
  * <li> Entity Path <i>(EntityPath)</i> = 0x8 </li>
- * <li> Entity References <i>(List\<EntityHeader\>)</i> = 0x10 </li>
+ * <li> Entity References <i>(List&lt;EntityHeader&gt;)</i> = 0x10 </li>
  * <li> HasChildren <i>(Boolean)</i> = 0x20 </li>
  * <li> ACL <i>(AccessControlList)</i> = 0x40 </li>
- * <li> Access Requirements <i>(List\<AccessRequirement\>) = 0x200 </li>
- * <li> Unmet Access Requirements <i>(List\<AccessRequirement\>) = 0x400 </li>
- * <li> File Handles <i>(List\<FileHandle\>) = 0x800 </li>
+ * <li> Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x200 </li>
+ * <li> Unmet Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x400 </li>
+ * <li> File Handles <i>(List&lt;FileHandle&gt;)</i> = 0x800 </li>
+ * </ul>
+ * </p>
+ * <p>
  * For example, if the Entity and its Annotations are desired, the request mask value should be
  * 0x1 + 0x2 = 0x3.
  * </p>
