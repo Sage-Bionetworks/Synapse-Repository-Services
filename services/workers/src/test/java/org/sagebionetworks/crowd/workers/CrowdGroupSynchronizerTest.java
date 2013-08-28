@@ -5,7 +5,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,12 +48,18 @@ public class CrowdGroupSynchronizerTest {
 	
 	private static final Log log = LogFactory.getLog(CrowdGroupSynchronizerTest.class);
 	
+	Set<String> originalGroupsInRDS;
 	List<String> groupsToDeleteFromRDS;
 	List<String> groupsToDeleteFromCrowd;
 	List<String> usersToDeleteFromCrowd;
 	
 	@Before
 	public void setUp() throws Exception {
+		originalGroupsInRDS = new HashSet<String>();
+		Collection<UserGroup> originals = userGroupDAO.getAll();
+		for (UserGroup ug : originals) {
+			originalGroupsInRDS.add(ug.getId());
+		}
 		groupsToDeleteFromRDS = new ArrayList<String>();
 		groupsToDeleteFromCrowd = new ArrayList<String>();
 		usersToDeleteFromCrowd = new ArrayList<String>();
@@ -58,6 +67,13 @@ public class CrowdGroupSynchronizerTest {
 
 	@After
 	public void tearDown() throws Exception {
+		Collection<UserGroup> polluted = userGroupDAO.getAll();
+		for (UserGroup ug : polluted) {
+			if (!originalGroupsInRDS.contains(ug.getId())) {
+				groupsToDeleteFromRDS.add(ug.getId());
+			}
+		}
+		
 		if(groupsToDeleteFromRDS != null) {
 			for(String todelete: groupsToDeleteFromRDS){
 				deleteTestGroupFromRDS(todelete);

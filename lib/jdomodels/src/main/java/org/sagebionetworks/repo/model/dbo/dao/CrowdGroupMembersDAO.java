@@ -3,9 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -141,12 +139,6 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 		} catch (IOException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		}
-	}
-
-	@Override
-	public Set<String> markAsUpdated(String groupId, List<String> memberIds)
-			throws DatastoreException {
-		throw new NotImplementedException("This method should not be used on this DAO");
 	}
 	
 }

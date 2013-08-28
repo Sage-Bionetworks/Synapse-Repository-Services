@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -12,8 +8,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -64,10 +58,10 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" FOR UPDATE";
 	
-	private static final String INSERT_BLOB_INTO_PARENTS_CACHE = 
-			"INSERT INTO "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
-			" VALUES (:"+GROUP_ID_PARAM_NAME+",:"+PARENT_BLOB_PARAM_NAME+")"+
-			" ON DUPLICATE KEY UPDATE "+SqlConstants.COL_GROUP_PARENTS_CACHE_PARENTS+"=:"+PARENT_BLOB_PARAM_NAME;
+	private static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
+			"UPDATE "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
+			" SET "+SqlConstants.COL_GROUP_PARENTS_CACHE_PARENTS+"=:"+PARENT_BLOB_PARAM_NAME+
+			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+GROUP_ID_PARAM_NAME;
 			
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
 	private static final RowMapper<DBOGroupParentsCache> parentsCacheRowMapper =  (new DBOGroupParentsCache()).getTableMapping();
@@ -162,33 +156,40 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			return;
 		}
 		
-		// Make sure the DTO holds a group, not an individual
+		// The insertion into GroupMembers requires a read lock many rows of the UserGroup table
+		// So fetch a write lock on all necessary rows
+		List<String> locks = new ArrayList<String>(memberIds);
+		locks.add(groupId);
+		for (Long id : sortIds(locks)) {
+			userGroupDAO.getForUpdate(id.toString());
+		}
+		
+		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
 		if (userGroupDAO.get(groupId).getIsIndividual()) {
 			throw new IllegalArgumentException("Members cannot be added to an individual");
 		}
 		
+		// Mark all affected children of this operation as updated
+		Set<String> updatedIds = markAsUpdated(memberIds);
+		
+		// Check to see if the insert results in a circular membership graph
+		if (updatedIds.contains(groupId)) {
+			// The search found the root node within the search, meaning the insert would result in a cycle
+			throw new IllegalArgumentException("Group "+groupId+" is already a child of the member(s) specified");
+		}
+
+		// Insert all the new members
+		List<Long> sortedMemberIds = sortIds(memberIds);
 		MapSqlParameterSource params[] = new MapSqlParameterSource[memberIds.size()];
 		for (int i = 0; i < params.length; i++) {
-			String memberId = memberIds.get(i);
 			params[i] = new MapSqlParameterSource();
 			params[i].addValue(GROUP_ID_PARAM_NAME, groupId);
-			params[i].addValue(MEMBER_ID_PARAM_NAME, memberId);
-			
-			// Check for circularity
-			if (groupId.equals(memberId)) {
-				throw new IllegalArgumentException("A group may not be a member of itself");
-			}
+			params[i].addValue(MEMBER_ID_PARAM_NAME, sortedMemberIds.get(i));
 		}
 		simpleJdbcTemplate.batchUpdate(INSERT_NEW_MEMBERS_OF_GROUP, params);
 		
-		// Mark each of the children as modified
-		Set<String> updatedIds = markAsUpdated(groupId, memberIds);
-		
-		// Check for circularity
-		if (updatedIds.contains(groupId)) {
-			// The search found the root node within the search, meaning the insert results in a cycle
-			throw new IllegalArgumentException("Group "+groupId+" is already a child of the member(s) specified");
-		}
+		// Update the etag on the parent group
+		userGroupDAO.touch(groupId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -199,73 +200,48 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			return;
 		}
 		
+		// Use the affected UserGroup row as a lock 
+		userGroupDAO.getForUpdate(groupId);
+		
+		// Mark each of the children as modified
+		markAsUpdated(memberIds);
+
+		// Delete some members
+		List<Long> sortedMemberIds = sortIds(memberIds);
 		MapSqlParameterSource params[] = new MapSqlParameterSource[memberIds.size()];
 		for (int i = 0; i < params.length; i++) {
-			String memberId = memberIds.get(i);
 			params[i] = new MapSqlParameterSource();
 			params[i].addValue(GROUP_ID_PARAM_NAME, groupId);
-			params[i].addValue(MEMBER_ID_PARAM_NAME, memberId);
+			params[i].addValue(MEMBER_ID_PARAM_NAME, sortedMemberIds.get(i));
 		}
 		simpleJdbcTemplate.batchUpdate(DELETE_MEMBERS_OF_GROUP, params);
 		
-		// Mark each of the children as modified
-		markAsUpdated(groupId, memberIds);
-	}
-	
-	public static byte[] zipParents(List<String> parents) throws IOException {
-		// Convert the Strings into Longs into Bytes
-		ByteBuffer converter = ByteBuffer.allocate(Long.SIZE / 8 * parents.size());
-		for (int i = 0; i < parents.size(); i++) {
-			converter.putLong(Long.parseLong(parents.get(i)));
-		}
-		
-		// Zip up the bytes
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		GZIPOutputStream zipped = new GZIPOutputStream(out);
-		zipped.write(converter.array());
-		zipped.flush();
-		zipped.close();
-		return out.toByteArray();
-	}
-	
-	public static List<String> unzipParents(byte[] parents) throws IOException {
-		// Unzip the bytes
-		ByteArrayInputStream in = new ByteArrayInputStream(parents);
-		GZIPInputStream unzip = new GZIPInputStream(in);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		while (unzip.available() > 0) {
-			out.write(unzip.read());
-		}
-		
-		// Convert to bytes
-		ByteBuffer converter = ByteBuffer.wrap(out.toByteArray());
-		LongBuffer converted = converter.asLongBuffer();
-		List<String> verbose = new ArrayList<String>();
-		while (converted.hasRemaining()) {
-			verbose.add(Long.toString(converted.get()));
-		}
-		return verbose;
+		// Update the etag on the parent group
+		userGroupDAO.touch(groupId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException, NotFoundException {
-		// Check the cache for the parents
+		// Use the affected UserGroup row as a lock 
+		userGroupDAO.getForUpdate(principalId);
+		
+		// Check the cache for the parents, this also locks the row
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		List<DBOGroupParentsCache> dbo = simpleJdbcTemplate.query(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
+		DBOGroupParentsCache dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
 
 		// Use the zipped up parents
-		if (dbo.size() >= 1 && dbo.get(0).getParents() != null) {
+		if (dbo.getParents() != null) {
 			try {
-				return userGroupDAO.get(unzipParents(dbo.get(0).getParents()));
+			return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}
 		}
 		
-		// No cached parents
+		// No cached parents, so perform the search
 		List<String> id = new ArrayList<String>();
 		id.add(principalId);
 		Set<String> parentGroupIds = breadthFirstSearch(SearchDirection.PARENTS, id);
@@ -274,46 +250,52 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		// Cache the parents
 		byte[] cache;
 		try {
-			cache = zipParents(parents);
+			cache = GroupMembersUtils.zip(parents);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
 		param = new MapSqlParameterSource();
 		param.addValue(GROUP_ID_PARAM_NAME, principalId);
 		param.addValue(PARENT_BLOB_PARAM_NAME, cache);
-		simpleJdbcTemplate.update(INSERT_BLOB_INTO_PARENTS_CACHE, param);
+		simpleJdbcTemplate.update(UPDATE_BLOB_IN_PARENTS_CACHE, param);
 		
 		return userGroupDAO.get(parents);
 	}
-
-	@Override
-	public Set<String> markAsUpdated(String groupId, List<String> memberIds)
+	
+	/**
+	 * Nullifies cached parents of all children and their children
+	 * @return All IDs where the cache has been cleared
+	 */
+	private Set<String> markAsUpdated(List<String> memberIds)
 			throws DatastoreException {
-		// Update the etag on the parent group
-		List<String> etagUpdate = new ArrayList<String>();
-		etagUpdate.add(groupId);
-		userGroupDAO.touchList(etagUpdate);
-
 		// Clear the group-parent cache of all children
 		Set<String> descendents = breadthFirstSearch(SearchDirection.CHILDREN, memberIds);
 		descendents.addAll(memberIds);
 		
 		// Sort the rows to prevent deadlock
-		List<Long> ascendents = new ArrayList<Long>();
-		for (String descendent : descendents) {
-			ascendents.add(Long.parseLong(descendent));
-		}
-		Collections.sort(ascendents);
+		List<Long> ascendents = sortIds(memberIds);
 		
-		// Fill the affected caches with nulls
+		// Delete all the affected caches
 		MapSqlParameterSource params[] = new MapSqlParameterSource[ascendents.size()];
 		for (int i = 0; i < params.length; i++) {
 			params[i] = new MapSqlParameterSource();
 			params[i].addValue(GROUP_ID_PARAM_NAME, ascendents.get(i));
 			params[i].addValue(PARENT_BLOB_PARAM_NAME, null);
 		}
-		simpleJdbcTemplate.batchUpdate(INSERT_BLOB_INTO_PARENTS_CACHE, params);
+		simpleJdbcTemplate.batchUpdate(UPDATE_BLOB_IN_PARENTS_CACHE, params);
 		
 		return descendents;
+	}
+	
+	/**
+	 * Parses a list of strings into Longs and returns the sorted list of longs
+	 */
+	private List<Long> sortIds(List<String> ids) {
+		List<Long> ascendents = new ArrayList<Long>();
+		for (String id : ids) {
+			ascendents.add(Long.parseLong(id));
+		}
+		Collections.sort(ascendents);
+		return ascendents;
 	}
 }
