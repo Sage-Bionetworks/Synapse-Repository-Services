@@ -21,11 +21,11 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupParentsCache;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -85,6 +85,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	private static final String SELECT_ALL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
+	
+	private static final String SELECT_AND_LOCK_ROW_BY_ID = 
+			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
+			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME+
+			" FOR UPDATE";
 	
 	private static final String UPDATE_ETAG_LIST = 
 			"UPDATE "+SqlConstants.TABLE_USER_GROUP+
@@ -259,6 +264,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		}
 		try {
 			dbo = basicDao.createNew(dbo);
+			
+			// Also create a row for the parents cache
+			DBOGroupParentsCache cacheDBO = new DBOGroupParentsCache();
+			cacheDBO.setGroupId(dbo.getId());
+			basicDao.createNew(cacheDBO);
 			return dbo.getId().toString();
 		} catch (Exception e) {
 			throw new DatastoreException("id="+dbo.getId()+" name="+dto.getName(), e);
@@ -356,6 +366,18 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			}
 		}
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserGroup getForUpdate(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, id);
+		DBOUserGroup dbo = simpleJdbcTemplate.queryForObject(SELECT_AND_LOCK_ROW_BY_ID, userGroupRowMapper, param);
+		
+		UserGroup dto = new UserGroup();
+		UserGroupUtils.copyDboToDto(dbo, dto);
+		return dto;
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -363,10 +385,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
-		try {
-			simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
-		} catch (DeadlockLoserDataAccessException e) {
-			// Deadlock is unavoidable here (?)
-		}
+		simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
 	}
 }

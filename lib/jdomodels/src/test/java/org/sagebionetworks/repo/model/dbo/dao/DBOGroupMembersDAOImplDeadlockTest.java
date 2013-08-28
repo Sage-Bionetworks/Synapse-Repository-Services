@@ -120,7 +120,7 @@ public class DBOGroupMembersDAOImplDeadlockTest {
         JOIN,
         LEAVE, 
         ANNEX, 
-        SUCCEED
+        SECEDE
     }
     
     private class SocialMonkey extends Thread {
@@ -195,7 +195,7 @@ public class DBOGroupMembersDAOImplDeadlockTest {
                             }
                             break;
                             
-                        case SUCCEED:
+                        case SECEDE:
                             barrel = barrelIds.get(rand.nextInt(barrelIds.size()));
                             List<UserGroup> monkeySardines = groupMembersDAO.getMembers(barrel);
                             if (monkeySardines.size() > 0) {

@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -59,12 +58,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" FOR UPDATE";
 	
-	private static final String INSERT_BLOB_INTO_PARENTS_CACHE = 
-			"INSERT IGNORE INTO "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
-			" VALUES (:"+GROUP_ID_PARAM_NAME+",:"+PARENT_BLOB_PARAM_NAME+")";
-	
-	private static final String DELETE_FROM_PARENT_CACHE = 
-			"DELETE FROM "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
+	private static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
+			"UPDATE "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
+			" SET "+SqlConstants.COL_GROUP_PARENTS_CACHE_PARENTS+"=:"+PARENT_BLOB_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+GROUP_ID_PARAM_NAME;
 			
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper =  (new DBOUserGroup()).getTableMapping();
@@ -160,6 +156,19 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			return;
 		}
 		
+		// The insertion into GroupMembers requires a read lock many rows of the UserGroup table
+		// So fetch a write lock on all necessary rows
+		List<String> locks = new ArrayList<String>(memberIds);
+		locks.add(groupId);
+		for (Long id : sortIds(locks)) {
+			userGroupDAO.getForUpdate(id.toString());
+		}
+		
+		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
+		if (userGroupDAO.get(groupId).getIsIndividual()) {
+			throw new IllegalArgumentException("Members cannot be added to an individual");
+		}
+		
 		// Mark all affected children of this operation as updated
 		Set<String> updatedIds = markAsUpdated(memberIds);
 		
@@ -181,13 +190,6 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		
 		// Update the etag on the parent group
 		userGroupDAO.touch(groupId);
-		
-		// Make sure the DTO holds a group, not an individual
-		// Note: this cannot be done before the etag update due to 
-		//   possible deadlock with other calls to addMembers
-		if (userGroupDAO.get(groupId).getIsIndividual()) {
-			throw new IllegalArgumentException("Members cannot be added to an individual");
-		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -197,6 +199,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		if (memberIds.isEmpty()) {
 			return;
 		}
+		
+		// Use the affected UserGroup row as a lock 
+		userGroupDAO.getForUpdate(groupId);
 		
 		// Mark each of the children as modified
 		markAsUpdated(memberIds);
@@ -219,15 +224,18 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Override
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException, NotFoundException {
-		// Check the cache for the parents
+		// Use the affected UserGroup row as a lock 
+		userGroupDAO.getForUpdate(principalId);
+		
+		// Check the cache for the parents, this also locks the row
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		List<DBOGroupParentsCache> dbo = simpleJdbcTemplate.query(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
+		DBOGroupParentsCache dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
 
 		// Use the zipped up parents
-		if (dbo.size() >= 1) {
+		if (dbo.getParents() != null) {
 			try {
-				return userGroupDAO.get(GroupMembersUtils.unzip(dbo.get(0).getParents()));
+			return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}
@@ -249,11 +257,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		param = new MapSqlParameterSource();
 		param.addValue(GROUP_ID_PARAM_NAME, principalId);
 		param.addValue(PARENT_BLOB_PARAM_NAME, cache);
-		try {
-			simpleJdbcTemplate.update(INSERT_BLOB_INTO_PARENTS_CACHE, param);
-		} catch (DeadlockLoserDataAccessException e) {
-			// Deadlock is unavoidable here (?)
-		}
+		simpleJdbcTemplate.update(UPDATE_BLOB_IN_PARENTS_CACHE, param);
 		
 		return userGroupDAO.get(parents);
 	}
@@ -276,8 +280,9 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		for (int i = 0; i < params.length; i++) {
 			params[i] = new MapSqlParameterSource();
 			params[i].addValue(GROUP_ID_PARAM_NAME, ascendents.get(i));
+			params[i].addValue(PARENT_BLOB_PARAM_NAME, null);
 		}
-		simpleJdbcTemplate.batchUpdate(DELETE_FROM_PARENT_CACHE, params);
+		simpleJdbcTemplate.batchUpdate(UPDATE_BLOB_IN_PARENTS_CACHE, params);
 		
 		return descendents;
 	}
