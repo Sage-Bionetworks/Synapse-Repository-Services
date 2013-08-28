@@ -99,6 +99,19 @@ public class UploadControllerTest {
 				S3FileHandle.class);
 		assertEquals(handleOne.getId(), handle.getId());
 	}
+	
+	@Test
+	public void testClearPreview() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		// Request the real object
+		request.setRequestURI("/fileHandle/" + handleOne.getId() + "/filepreview");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		DispatchServletSingleton.getInstance().service(request, response);
+		assertEquals(HttpStatus.OK.value(), response.getStatus());
+	}
 
 	@Test
 	public void testExternalFileHandle() throws Exception {

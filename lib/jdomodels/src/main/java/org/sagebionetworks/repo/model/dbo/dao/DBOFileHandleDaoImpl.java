@@ -136,11 +136,11 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public void setPreviewId(String fileId, String previewId) throws NotFoundException {
 		if(fileId == null) throw new IllegalArgumentException("FileId cannot be null");
-		if(previewId == null) throw new IllegalArgumentException("PreviewId cannot be null");
 		if(!doesExist(fileId)){
 			throw new NotFoundException("The fileId: "+fileId+" does not exist");
 		}
-		if(!doesExist(previewId)){
+		//if preview ID is set, then it must exist to continue update
+		if(previewId != null && !doesExist(previewId)){
 			throw new NotFoundException("The previewId: "+previewId+" does not exist");
 		}
 		try{

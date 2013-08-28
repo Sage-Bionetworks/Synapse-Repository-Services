@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -300,6 +300,29 @@ public class FileHandleManagerImplTest {
 		// The database handle should be deleted.
 		verify(mockfileMetadataDao, times(1)).delete(handleId);
 	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testClearPreviewUnauthroized() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// denied!
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		manager.clearPreview(mockUser, handleId);
+	}
+	
+	@Test
+	public void testClearPreviewAuthorzied() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// allow!
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		manager.clearPreview(mockUser, handleId);
+		// The database reference to the preview handle should be cleared
+		verify(mockfileMetadataDao, times(1)).setPreviewId(eq(handleId), eq((String)null));
+	}
+	
 	
 	@Test
 	public void testDeleteWithPreview() throws DatastoreException, NotFoundException{
