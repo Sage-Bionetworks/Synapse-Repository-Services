@@ -26,7 +26,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class UserManagerImplTest {
 	
 	@Autowired
@@ -43,7 +43,6 @@ public class UserManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
-		userManager.setUserDAO(new TestUserDAO());
 		userManager.deletePrincipal(TEST_USER);
 	}
 
@@ -59,13 +58,18 @@ public class UserManagerImplTest {
 	
 	@Test
 	public void testFilterInvalidGroupNames(){
-		ArrayList<String> list = new ArrayList<String>();
-		list.add("badGroupName@someplace.com");
-		list.add("GOOD_GROUP_NAME");
-		Collection<String> results = UserManagerImpl.filterInvalidGroupNames(list);
+		ArrayList<UserGroup> list = new ArrayList<UserGroup>();
+		UserGroup bad = new UserGroup();
+		bad.setName("badGroupName@someplace.com");
+		list.add(bad);
+		UserGroup good = new UserGroup();
+		good.setName("GOOD_GROUP_NAME");
+		list.add(good);
+		
+		Collection<UserGroup> results = UserManagerImpl.filterInvalidGroupNames(list);
 		assertNotNull(results);
 		assertEquals("The group name that is an email addresss should have been filter out", 1,results.size());
-		assertEquals("GOOD_GROUP_NAME",results.iterator().next());
+		assertEquals("GOOD_GROUP_NAME",results.iterator().next().getName());
 	}
 	
 	@Test
@@ -99,23 +103,28 @@ public class UserManagerImplTest {
 		System.out.println("Groups in the system: "+userGroupDAO.getAll());
 		// call for a user in the User system but not the Permissions system.  
 		assertNull(userGroupDAO.findGroup(TEST_USER, true));
+		
 		// This will create the user if they do not exist
 		UserInfo ui = userManager.getUserInfo(TEST_USER);
 		assertNotNull(ui.getIndividualGroup());
 		assertNotNull(ui.getIndividualGroup().getId());
 		groupsToDelete.add(ui.getIndividualGroup().getId());
+		
 		// also delete the group
 		UserGroup testGroup = userGroupDAO.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
 		assertNotNull(testGroup);
 		groupsToDelete.add(testGroup.getId());
-		//		check the returned userInfo
-		//		verify the user gets created
+		
+		// check the returned userInfo
+		// verify the user gets created
 		assertNotNull(userGroupDAO.findGroup(TEST_USER, true));
-		//		should include Public and authenticated users' group.
+		
+		// should include Public and authenticated users' group.
 		assertTrue(ui.getGroups().contains(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name(), false)));
 		assertTrue(ui.getGroups().contains(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false)));
+		
 		// call for a user in a Group not in the Permissions system
-		//		verify the group is created in the Permissions system
+		// verify the group is created in the Permissions system
 		assertTrue("Missing "+testGroup+"  Has "+ui.getGroups(), ui.getGroups().contains(testGroup));
 	}
 		

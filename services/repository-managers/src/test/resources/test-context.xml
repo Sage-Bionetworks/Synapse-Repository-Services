@@ -13,6 +13,7 @@
   <import resource="classpath:managers-spb.xml" />
                     
     <bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
+    <bean id="groupMembersDAO" class="org.sagebionetworks.repo.manager.TestGroupMembersDAO" scope="singleton"/>
 
 <!-- 	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.MockAmazonClientFactory"  scope="singleton"/> -->
         

@@ -18,6 +18,7 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
@@ -41,6 +42,8 @@ public class UserManagerImpl implements UserManager {
 	UserGroupDAO userGroupDAO;	
 	@Autowired
 	UserProfileDAO userProfileDAO;
+	@Autowired
+	GroupMembersDAO groupMembersDAO;
 	
 	private static Map<String, UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
@@ -59,47 +62,29 @@ public class UserManagerImpl implements UserManager {
 		}
 	}
 
-	// for testing
-	public void setUserDAO(UserDAO userDAO) {
-		this.userDAO = userDAO;
-	}
-
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
 	}
 	
 	// adds the existing groups to the 'groups' collection passed in
 	// returns true iff the user 'userName' is an administrator
-	private  boolean addGroups(String userName, Collection<UserGroup> groups) throws NotFoundException, DatastoreException {
-		Collection<String> groupNames = userDAO.getUserGroupNames(userName);
+	private boolean addGroups(String userName, Collection<UserGroup> groups) throws NotFoundException, DatastoreException {
+		UserGroup user = userGroupDAO.findGroup(userName, true);
+		if (user == null) {
+			// Non-existent user cannot be an admin
+			return false;
+		}
+		
+		Collection<UserGroup> usersGroups = groupMembersDAO.getUsersGroups(user.getId());
 		// Filter out bad group names
-		groupNames = filterInvalidGroupNames(groupNames);
-		// these groups omit the individual group
-		Map<String, UserGroup> existingGroups = userGroupDAO
-				.getGroupsByNames(groupNames);
+		usersGroups = filterInvalidGroupNames(usersGroups);
+		groups.addAll(usersGroups);
+		
 		boolean isAdmin = false;
-		for (String groupName : groupNames) {
-			if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(groupName)) {
+		for (UserGroup group : usersGroups) {
+			if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(group.getName())) {
 				isAdmin = true;
 				continue;
-			}
-			UserGroup group = existingGroups.get(groupName);
-			if (group != null) {
-				groups.add(group);
-			} else {
-				// the group needs to be created
-				group = new UserGroup();
-				group.setName(groupName);
-				group.setIsIndividual(false);
-				group.setCreationDate(new Date());
-				try {
-					String id = userGroupDAO.create(group);
-					group = userGroupDAO.get(id);
-				} catch (InvalidModelException ime) {
-					// should not happen if our code is written correctly
-					throw new RuntimeException(ime);
-				}
-				groups.add(group);
 			}
 		}
 		return isAdmin;
@@ -153,15 +138,16 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public UserInfo getUserInfo(String userName) throws DatastoreException,
 			NotFoundException {
+		UserInfo ui = null; 
 		if (cacheTimeout > 0) { // then use cache
 			Date now = new Date();
 			if (lastCacheDump.getTime() + cacheTimeout < now.getTime()) {
 				clearCache();
 			}
-			UserInfo ui = userInfoCache.get(userName);
-			if (ui != null)
-				return ui;
+			ui = userInfoCache.get(userName);
 		}
+		
+		// Always fetch current info on Groups
 		User user = userDAO.getUser(userName);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		UserGroup individualGroup = null;
@@ -179,25 +165,32 @@ public class UserManagerImpl implements UserManager {
 			if (user == null)
 				throw new NullPointerException("No user named " + userName
 						+ ". Users: " + userDAO.getAll());
-			isAdmin = addGroups(userName, groups);
 			individualGroup = userGroupDAO.findGroup(userName, true);
 			if (individualGroup == null) {
 				individualGroup = createIndividualGroup(userName, user);
 			}
+			isAdmin = addGroups(userName, groups);
 			// All authenticated users belong to the public group and the
 			// authenticated user group.
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS));
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		}
 		groups.add(individualGroup);
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setIndividualGroup(individualGroup);
-		userInfo.setUser(user);
-		userInfo.setGroups(groups);
-		if (cacheTimeout > 0) { // then use cache
-			userInfoCache.put(userName, userInfo);
+		
+		// If a cached UserInfo is not available, make a new one
+		if (ui == null) {
+			ui = new UserInfo(isAdmin);
+			ui.setIndividualGroup(individualGroup);
+			ui.setUser(user);
 		}
-		return userInfo;
+		
+		// Always refresh the groups
+		ui.setGroups(groups);
+		
+		if (cacheTimeout > 0) { // then use cache
+			userInfoCache.put(userName, ui);
+		}
+		return ui;
 	}
 	
 	/**
@@ -205,14 +198,14 @@ public class UserManagerImpl implements UserManager {
 	 * @param groupNames
 	 * @return
 	 */
-	public static Collection<String> filterInvalidGroupNames(Collection<String> groupNames){
-		ArrayList<String> newList = new ArrayList<String>();
-		Iterator<String> it = groupNames.iterator();
+	public static Collection<UserGroup> filterInvalidGroupNames(Collection<UserGroup> groupNames){
+		ArrayList<UserGroup> newList = new ArrayList<UserGroup>();
+		Iterator<UserGroup> it = groupNames.iterator();
 		while(it.hasNext()){
-			String name = it.next();
+			UserGroup group = it.next();
 			// Filter out any name that is an email address.
-			if(!UserGroupUtil.isEmailAddress(name)){
-				newList.add(name);
+			if(!UserGroupUtil.isEmailAddress(group.getName())){
+				newList.add(group);
 			}
 		}
 		return newList;
