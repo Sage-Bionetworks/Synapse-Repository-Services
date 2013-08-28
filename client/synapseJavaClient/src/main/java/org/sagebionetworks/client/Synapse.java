@@ -953,8 +953,9 @@ public class Synapse implements SynapseInt {
 		return sb.toString();
 	}
 	
-	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException {
-		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+prefix);
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException, UnsupportedEncodingException {
+		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
+		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix);
 		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
 	}
 	

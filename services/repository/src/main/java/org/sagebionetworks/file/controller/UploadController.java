@@ -267,6 +267,20 @@ public class UploadController extends BaseController {
 		fileService.deleteFileHandle(handleId, userId);
 	}
 	
+	/**
+	 * Delete the preview associated with the given FileHandle.  
+	 * This will cause Synapse to automatically generate a new <a href="${org.sagebionetworks.repo.model.file.PreviewFileHandle}">PreviewFileHandle</a>.
+	 * @param handleId
+	 *     The ID of the FileHandle whose preview should be cleared.
+	 * @param userId
+	 * @param request
+	 * @throws FileUploadException
+	 * @throws IOException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
+	 * @throws JSONObjectAdapterException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/fileHandle/{handleId}/filepreview", method = RequestMethod.DELETE)
 	public @ResponseBody
