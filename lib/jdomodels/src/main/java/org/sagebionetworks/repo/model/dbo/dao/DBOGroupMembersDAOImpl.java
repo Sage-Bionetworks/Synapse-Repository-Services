@@ -161,7 +161,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		List<String> locks = new ArrayList<String>(memberIds);
 		locks.add(groupId);
 		for (Long id : sortIds(locks)) {
-			userGroupDAO.getForUpdate(id.toString());
+			userGroupDAO.getEtagForUpdate(id.toString());
 		}
 		
 		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
@@ -201,7 +201,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		}
 		
 		// Use the affected UserGroup row as a lock 
-		userGroupDAO.getForUpdate(groupId);
+		userGroupDAO.getEtagForUpdate(groupId);
 		
 		// Mark each of the children as modified
 		markAsUpdated(memberIds);
@@ -225,7 +225,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException, NotFoundException {
 		// Use the affected UserGroup row as a lock 
-		userGroupDAO.getForUpdate(principalId);
+		userGroupDAO.getEtagForUpdate(principalId);
 		
 		// Check the cache for the parents, this also locks the row
 		MapSqlParameterSource param = new MapSqlParameterSource();
