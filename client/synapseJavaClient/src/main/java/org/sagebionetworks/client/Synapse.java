@@ -210,6 +210,8 @@ public class Synapse implements SynapseInt {
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
 	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
+	
+	protected static final String USER_GROUP_HEADER_PREFIX_PATH = "/userGroupHeaders?prefix=";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -949,6 +951,12 @@ public class Synapse implements SynapseInt {
 		// Remove the trailing comma
 		sb.deleteCharAt(sb.length() - 1);
 		return sb.toString();
+	}
+	
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException, UnsupportedEncodingException {
+		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
+		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
 	}
 	
 	/**
@@ -1926,6 +1934,16 @@ public class Synapse implements SynapseInt {
 	 */
 	public void deleteFileHandle(String fileHandleId) throws SynapseException{
 		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "DELETE", null, defaultGETDELETEHeaders);
+	}
+	
+	/**
+	 * Delete the preview associated with the given file handle.
+	 * Note: Only the creator of a the file handle can delete the preview.
+	 * @param fileHandleId
+	 * @throws SynapseException 
+	 */
+	public void clearPreview(String fileHandleId) throws SynapseException{
+		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId+FILE_PREVIEW, "DELETE", null, defaultGETDELETEHeaders);
 	}
 
 	/**

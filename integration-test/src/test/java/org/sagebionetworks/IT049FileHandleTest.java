@@ -127,6 +127,19 @@ public class IT049FileHandleTest {
 		PreviewFileHandle preview = (PreviewFileHandle) synapse.getRawFileHandle(handle.getPreviewId());
 		assertNotNull(preview);
 		System.out.println(preview);
+		
+		//clear the preview and wait for it to be recreated
+		synapse.clearPreview(handle.getId());
+		handle = (S3FileHandle) synapse.getRawFileHandle(handle.getId());
+		while(handle.getPreviewId() == null){
+			System.out.println("Waiting for a preview to be recreated...");
+			Thread.sleep(1000);
+			assertTrue("Timed out waiting for a preview image to be created.", (System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			handle = (S3FileHandle) synapse.getRawFileHandle(handle.getId());
+		}
+		preview = (PreviewFileHandle) synapse.getRawFileHandle(handle.getPreviewId());
+		assertNotNull(preview);
+		
 		// Now delete the root file handle.
 		synapse.deleteFileHandle(handle.getId());
 		// The main handle and the preview should get deleted.

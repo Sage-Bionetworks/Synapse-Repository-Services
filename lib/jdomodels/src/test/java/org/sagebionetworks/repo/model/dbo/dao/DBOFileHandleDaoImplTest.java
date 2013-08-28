@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -89,11 +86,6 @@ public class DBOFileHandleDaoImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetPreviewIdNullFirst() throws DatastoreException, NotFoundException{
 		fileHandleDao.setPreviewId(null, "1");
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testSetPreviewIdNullSecond() throws DatastoreException, NotFoundException{
-		fileHandleDao.setPreviewId("1", null);
 	}
 	
 	@Test
@@ -242,6 +234,17 @@ public class DBOFileHandleDaoImplTest {
 		// Lookup the preview id
 		String previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
 		assertEquals(previewId, previewIdLookup);
+		
+		//now try clearing the preview
+		// Now set the preview for this file
+		fileHandleDao.setPreviewId(fileId, null);
+		clone = fileHandleDao.get(fileId);
+		assertNotNull(clone);
+		assertTrue(clone instanceof S3FileHandle);
+		s3Clone = (S3FileHandle) clone;
+		// The preview ID should not be set
+		assertNull(s3Clone.getPreviewId());
+		
 	}
 	
 	@Test
