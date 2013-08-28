@@ -59,6 +59,7 @@ public class UserManagerImpl implements UserManager {
 		} else {
 			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
 		}
+		cacheTimeout = new Long(-1); // Disable caching
 	}
 
 	// for testing
