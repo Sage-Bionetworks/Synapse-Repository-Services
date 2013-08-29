@@ -88,6 +88,12 @@ public class AuthorizationConstants {
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
 	public static final String TERMS_OF_USE_AGREEMENT_URI = "/termsOfUseAgreement";
 	
+	/**
+	 * Epoch time since the Terms of Use were updated
+	 * Note: Hasn't been changed yet, so it is just some time in the past
+	 *   Sat, 01 Jan 2000 00:00:00 GMT
+	 */
+	public static final long MOST_RECENT_TERMS_OF_USE = 946684800L;
 	public static final String ACCEPTS_TERMS_OF_USE_ATTRIBUTE = "org.sagebionetworks.termsOfUseAgreement.AcceptsTermsOfUse";
 
 

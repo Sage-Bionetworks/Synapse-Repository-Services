@@ -17,7 +17,6 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -25,7 +24,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
@@ -65,6 +63,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 			String name = isIndividual ? crowdUsers.get(i - crowdGroups.size()) : crowdGroups.get(i);
 			String principalId;
 			
+			// Make sure a UserGroup exists for each user/group 
 			if (userGroupDAO.doesPrincipalExist(name)) {
 				principalId = userGroupDAO.findGroup(name, isIndividual).getId();
 			} else {
@@ -72,33 +71,48 @@ public class CrowdGroupSynchronizer implements Runnable {
 				ug.setIsIndividual(isIndividual);
 				ug.setName(name);
 				principalId = userGroupDAO.create(ug);
-				
-				if (isIndividual) {
-					// Each migrated individual needs to have a profile moved over
-					ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-					try {
-						userProfileDAO.get(principalId, schema);
-						// The profile already exists
-						
-					} catch (NotFoundException e) {
-						// Must make a new profile
-						try {
-							User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
-							UserProfile userProfile = new UserProfile();
-							userProfile.setOwnerId(principalId);
-							userProfile.setFirstName(user.getFname());
-							userProfile.setLastName(user.getLname());
-							userProfile.setDisplayName(user.getDisplayName());
-							userProfile.setAgreesToTermsOfUse(Boolean.toString(user.isAgreesToTermsOfUse()));
-							userProfileDAO.create(userProfile, schema);
-						} catch (NotFoundException nfe) {
-							throw new RuntimeException(nfe);
-						} catch (InvalidModelException ime) {
-							throw new RuntimeException(ime);
-						} catch (UnsupportedEncodingException uee) {
-							throw new RuntimeException(uee);
+			}
+			
+			// Make sure a profile exists for each user
+			if (isIndividual) {
+				try {
+					UserProfile userProfile = userProfileDAO.get(principalId);
+					
+					// For profiles that already exist, migrate the boolean for the termsOfUse over
+					if (userProfile.getAgreesToTermsOfUse() == null) {
+						User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
+						if (user.isAgreesToTermsOfUse()) {
+							userProfile.setAgreesToTermsOfUse(System.currentTimeMillis() / 1000);
+						} else {
+							userProfile.setAgreesToTermsOfUse(0L);
 						}
+						userProfileDAO.update(userProfile);
 					}
+					
+				} catch (NotFoundException e) {
+					// Must make a new profile
+					try {
+						User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
+						UserProfile userProfile = new UserProfile();
+						userProfile.setOwnerId(principalId);
+						userProfile.setFirstName(user.getFname());
+						userProfile.setLastName(user.getLname());
+						userProfile.setDisplayName(user.getDisplayName());
+						if (user.isAgreesToTermsOfUse()) {
+							userProfile.setAgreesToTermsOfUse(System.currentTimeMillis() / 1000);
+						} else {
+							userProfile.setAgreesToTermsOfUse(0L);
+						}
+						userProfileDAO.create(userProfile);
+					} catch (NotFoundException nfe) {
+						throw new RuntimeException(nfe);
+					} catch (InvalidModelException ime) {
+						throw new RuntimeException(ime);
+					} catch (UnsupportedEncodingException uee) {
+						throw new RuntimeException(uee);
+					}
+				} catch (UnsupportedEncodingException uee) {
+					throw new RuntimeException(uee);
 				}
 			}
 			principalIds.add(principalId);

@@ -71,5 +71,10 @@ public class CrowdUserDAO implements UserDAO {
 		user.setDisplayName(authUser.getDisplayName());
 		return user;
 	}
+
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		throw new UnsupportedOperationException();
+	}
 	
 }

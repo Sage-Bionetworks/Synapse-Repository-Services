@@ -7,5 +7,11 @@ public interface UserDAO {
 	/**
 	 * Fetches info on the user based off the username
 	 */
-	User getUser(String userName) throws DatastoreException, NotFoundException;
+	public User getUser(String userName) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Throws an UnsupportedOperationException
+	 * OR allows a test DAO to cleanup
+	 */
+	public void delete(String id) throws DatastoreException, NotFoundException;
 }

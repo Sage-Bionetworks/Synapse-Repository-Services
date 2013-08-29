@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -10,7 +9,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -38,14 +36,18 @@ public class DBOUserDAOImpl implements UserDAO {
 		UserGroup ug = userGroupDAO.findGroup(userName, true);
 		user.setCreationDate(ug.getCreationDate());
 		
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		UserProfile up = userProfileDAO.get(ug.getId(), schema);
+		UserProfile up = userProfileDAO.get(ug.getId());
 		user.setFname(up.getFirstName());
 		user.setLname(up.getLastName());
 		user.setDisplayName(up.getDisplayName());
-		user.setAgreesToTermsOfUse(Boolean.parseBoolean(up.getAgreesToTermsOfUse()));
+		user.setAgreesToTermsOfUse(up.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
 		
 		return user;
+	}
+
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		throw new UnsupportedOperationException();
 	}
 	
 }

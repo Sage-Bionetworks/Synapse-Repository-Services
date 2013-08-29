@@ -33,6 +33,7 @@ public class UserProfileUtilsTest {
 		dto.setSummary("My summary");
 		dto.setTeamName("Team A");
 		dto.setUrl("http://link.to.my.page/");
+		dto.setAgreesToTermsOfUse(new Long(123456));
 		AttachmentData picData = new AttachmentData();
 		picData.setName("Fake name");
 		picData.setTokenId("Fake token ID");
@@ -40,11 +41,50 @@ public class UserProfileUtilsTest {
 		dto.setPic(picData);
 		
 		DBOUserProfile dbo = new DBOUserProfile();
+		UserProfileUtils.copyDtoToDbo(dto, dbo);
+		UserProfile dto2 = new UserProfile();
+		UserProfileUtils.copyDboToDto(dbo, dto2);
+		assertEquals(dto, dto2);
+	}
+	
+	/**
+	 * Make sure the conversion schema does not fail when the UserProfile blob holds a NamedAnnotations blob
+	 * This test can be removed when the older serialization method is removed
+	 */
+	@Test
+	public void testRoundTripSchemaToJDO() throws Exception {
+		UserProfile dto = new UserProfile();
+		dto.setOwnerId("101");
+		dto.setFirstName("foo");
+		dto.setLastName("bar");
+		dto.setRStudioUrl("http://rstudio.com");
+		dto.setDisplayName("foo bar");
+		dto.setEtag("0");
+		dto.setCompany("my company");
+		dto.setIndustry("my industry");
+		dto.setLocation("Seattle area");
+		dto.setSummary("My summary");
+		dto.setTeamName("Team A");
+		dto.setUrl("http://link.to.my.page/");
+		dto.setAgreesToTermsOfUse(new Long(123456));
+		AttachmentData picData = new AttachmentData();
+		picData.setName("Fake name");
+		picData.setTokenId("Fake token ID");
+		picData.setMd5("Fake MD5");
+		dto.setPic(picData);
+		
+		DBOUserProfile dbo = new DBOUserProfile();
+		UserProfileUtils.copyDtoToDbo(dto, dbo);
+		
+		// Replace the blob with the older serialization method
 		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
+		dbo.setProperties(SchemaSerializationUtils.mapDtoFieldsToAnnotations(dto, schema));
+		
 		UserProfile dto2 = new UserProfile();
-		UserProfileUtils.copyDboToDto(dbo, dto2, schema);
+		UserProfileUtils.copyDboToDto(dbo, dto2);
+		
+		dto.setAgreesToTermsOfUse(null); // Unsupported type
 		assertEquals(dto, dto2);
 	}
 
@@ -58,11 +98,9 @@ public class UserProfileUtilsTest {
 		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		DBOUserProfile dbo = new DBOUserProfile();
-		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
+		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		UserProfile dto2 = new UserProfile();
-		UserProfileUtils.copyDboToDto(dbo, dto2, schema);
+		UserProfileUtils.copyDboToDto(dbo, dto2);
 		assertEquals(dto, dto2);
 	}
 	

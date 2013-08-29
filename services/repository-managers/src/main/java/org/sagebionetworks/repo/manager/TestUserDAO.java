@@ -46,4 +46,9 @@ public class TestUserDAO implements UserDAO {
 		}
 		return user;
 	}
+	
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		map.remove(id);
+	}
 }

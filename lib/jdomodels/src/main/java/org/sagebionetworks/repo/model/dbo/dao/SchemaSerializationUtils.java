@@ -9,10 +9,6 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -32,7 +28,8 @@ public class SchemaSerializationUtils {
 					Map<String, List<String>> stringAnnots = a.getStringAnnotations();
 					Class fieldType = field.getType();
 					if (!(fieldType.equals(String.class) || fieldType.equals(AttachmentData.class))) {
-						throw new RuntimeException("Unsupported field type "+fieldType);
+						// throw new RuntimeException("Unsupported field type "+fieldType);
+						continue; // Skip fields that are not supported
 					}
 					if (fieldType.equals(AttachmentData.class))
 					{
@@ -81,7 +78,8 @@ public class SchemaSerializationUtils {
 				field.setAccessible(true);
 				Class fieldType = field.getType();
 				if (!(fieldType.equals(String.class) || fieldType.equals(AttachmentData.class))) {
-					throw new RuntimeException("Unsupported field type "+fieldType);
+					// throw new RuntimeException("Unsupported field type "+fieldType);
+					continue; // Skip fields that are not supported
 				}
 				List<String> values = stringAnnots.get(propertyName);
 				if (values!=null && values.size()>0) {

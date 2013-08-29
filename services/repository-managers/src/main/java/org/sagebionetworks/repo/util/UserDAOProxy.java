@@ -28,4 +28,9 @@ public class UserDAOProxy implements UserDAO, InitializingBean {
 		return userDAOImpl.getUser(userName);
 	}
 
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		userDAOImpl.delete(id);
+	}
+
 }
