@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -124,10 +122,9 @@ public class UserManagerImpl implements UserManager {
 			throw new DatastoreException(ime);
 		}
 		// we also make a user profile for this individual
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = null;
 		try {
-			userProfile = userProfileDAO.get(individualGroup.getId(), schema);
+			userProfile = userProfileDAO.get(individualGroup.getId());
 		} catch (NotFoundException nfe) {
 			userProfile = null;
 		}
@@ -138,7 +135,7 @@ public class UserManagerImpl implements UserManager {
 			userProfile.setLastName(user.getLname());
 			userProfile.setDisplayName(user.getDisplayName());
 			try {
-				userProfileDAO.create(userProfile, schema);
+				userProfileDAO.create(userProfile);
 			} catch (InvalidModelException e) {
 				throw new RuntimeException(e);
 			}
@@ -298,8 +295,7 @@ public class UserManagerImpl implements UserManager {
 	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException {
 		UserGroup userGroup = userGroupDAO.get(principalId.toString());
 		if (userGroup.getIsIndividual()) {
-			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-			UserProfile userProfile = userProfileDAO.get(principalId.toString(), schema);
+			UserProfile userProfile = userProfileDAO.get(principalId.toString());
 			return userProfile.getDisplayName();
 		} else {
 			return userGroup.getName();
