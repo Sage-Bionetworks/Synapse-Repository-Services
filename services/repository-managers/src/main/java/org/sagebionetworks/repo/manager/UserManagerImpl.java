@@ -3,13 +3,10 @@ package org.sagebionetworks.repo.manager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.xml.xpath.XPathExpressionException;
@@ -46,24 +43,6 @@ public class UserManagerImpl implements UserManager {
 	UserProfileDAO userProfileDAO;
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
-	
-	private static Map<String, UserInfo> userInfoCache = null;
-	private static Long cacheTimeout = null;
-	private static Date lastCacheDump = null;
-	
-	public UserManagerImpl() {
-		userInfoCache = Collections
-				.synchronizedMap(new HashMap<String, UserInfo>());
-		lastCacheDump = new Date();
-		String s = System
-				.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
-		if (s != null && s.length() > 0) {
-			cacheTimeout = Long.parseLong(s);
-		} else {
-			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
-		}
-		cacheTimeout = new Long(-1); // Disable caching
-	}
 
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
@@ -141,16 +120,7 @@ public class UserManagerImpl implements UserManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(String userName) throws DatastoreException,
-			NotFoundException {
-		UserInfo ui = null; 
-		if (cacheTimeout > 0) { // then use cache
-			Date now = new Date();
-			if (lastCacheDump.getTime() + cacheTimeout < now.getTime()) {
-				clearCache();
-			}
-			ui = userInfoCache.get(userName);
-		}
-		
+			NotFoundException {		
 		// Always fetch current info on Groups
 		User user = userDAO.getUser(userName);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
@@ -166,9 +136,9 @@ public class UserManagerImpl implements UserManager {
 			// Anonymous belongs to the public group
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		} else {
-			if (user == null)
-				throw new NullPointerException("No user named " + userName
-						+ ". Users: " + userDAO.getAll());
+			if (user == null) {
+				throw new NullPointerException("No user named " + userName);
+			}
 			individualGroup = userGroupDAO.findGroup(userName, true);
 			if (individualGroup == null) {
 				individualGroup = createIndividualGroup(userName, user);
@@ -181,19 +151,11 @@ public class UserManagerImpl implements UserManager {
 		}
 		groups.add(individualGroup);
 		
-		// If a cached UserInfo is not available, make a new one
-		if (ui == null) {
-			ui = new UserInfo(isAdmin);
-			ui.setIndividualGroup(individualGroup);
-			ui.setUser(user);
-		}
-		
-		// Always refresh the groups
+		// Put all the pieces together
+		UserInfo ui = new UserInfo(isAdmin);
+		ui.setIndividualGroup(individualGroup);
+		ui.setUser(user);
 		ui.setGroups(groups);
-		
-		if (cacheTimeout > 0) { // then use cache
-			userInfoCache.put(userName, ui);
-		}
 		return ui;
 	}
 	
@@ -216,15 +178,6 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	/**
-	 * Clear the user cache.
-	 */
-	@Override
-	public void clearCache() {
-		userInfoCache.clear();
-		lastCacheDump = new Date();
-	}
-
-	/**
 	 * Lazy fetch of the default groups.
 	 * 
 	 * @param group
@@ -243,10 +196,7 @@ public class UserManagerImpl implements UserManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteUser(String id) throws DatastoreException, NotFoundException {
-		// Clear the cache when we delete a users.
-		clearCache();
-		userDAO.delete(id);
-
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -279,7 +229,6 @@ public class UserManagerImpl implements UserManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean deletePrincipal(String name) {
-		clearCache();
 		return userGroupDAO.deletePrincipal(name);
 	}
 	

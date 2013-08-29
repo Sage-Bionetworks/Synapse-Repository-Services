@@ -11,7 +11,6 @@ import javax.xml.xpath.XPathExpressionException;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -88,21 +87,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			userProfile.setUserName(userGroup.getName());
 		}
 		return userProfile;
-	}
-
-	/**
-	 * Returns the anonymous user's profile - essentially an empty profile that points to the correct principle id
-	 * @param principleId
-	 * @return
-	 */
-	private UserProfile getAnonymousUserProfile(String principleId){
-		UserProfile anonymousUserProfile = new UserProfile();
-		anonymousUserProfile.setOwnerId(principleId);
-		anonymousUserProfile.setEmail(AuthorizationConstants.ANONYMOUS_USER_ID);
-		anonymousUserProfile.setDisplayName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
-		anonymousUserProfile.setFirstName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
-		anonymousUserProfile.setLastName("");
-		return anonymousUserProfile;
 	}
 	
 	@Override

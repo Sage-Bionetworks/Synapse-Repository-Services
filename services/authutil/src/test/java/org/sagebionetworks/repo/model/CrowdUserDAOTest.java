@@ -4,11 +4,7 @@ package org.sagebionetworks.repo.model;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.junit.BeforeClass;
@@ -54,32 +50,5 @@ public class CrowdUserDAOTest {
 		}
 		fail("exception expected");
 	}
-	
-	@Test
-	public void testGetUserGroups() throws Exception {
-		if (!isIntegrationTest()) return;
-		CrowdUserDAO userDAO = new CrowdUserDAO();
-		Collection<String> groups = userDAO.getUserGroupNames(TEST_USER);
-		Set<String> expected = new HashSet<String>(
-				Arrays.asList(new String[]{"platform"})
-		);
-		Set<String> actual = new HashSet<String>(groups);
-		assertEquals(expected, actual);
-	}
-	
-	@Test
-	public void testGetGroupsForNonexistentUser() throws Exception {
-		if (!isIntegrationTest()) return;
-		CrowdUserDAO userDAO = new CrowdUserDAO();
-		Collection<String> groupNames = null;
-		try {
-			groupNames = userDAO.getUserGroupNames("foo");
-		} catch (NotFoundException nfe) {
-			// as expected
-			return;
-		}
-		assertEquals(0, groupNames.size());
-	}
-	
 
 }

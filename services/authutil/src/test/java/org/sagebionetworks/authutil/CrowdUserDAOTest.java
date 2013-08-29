@@ -3,12 +3,6 @@ package org.sagebionetworks.authutil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -43,23 +37,5 @@ public class CrowdUserDAOTest {
 		org.sagebionetworks.repo.model.User user = userDAO.getUser(TEST_USER);
 		assertEquals(TEST_USER, user.getUserId());
 		assertNotNull(user.getCreationDate());
-	}
-	
-	@Test 
-	public void testUpdate() throws Exception {
-		if (!isIntegrationTest()) return;
-		org.sagebionetworks.repo.model.User user = userDAO.getUser(TEST_USER);
-		userDAO.update(user);
-		user = userDAO.getUser(TEST_USER);
-		Map<String, Collection<String>> attributes = new HashMap<String, Collection<String>>();
-		attributes.put("foo", Arrays.asList(new String[] {"bar", "XYZ"}));
-		CrowdAuthUtil.setUserAttributes(TEST_USER, attributes);
-	}
-
-	@Test 
-	public void testGetUserGroupNames() throws Exception {
-		if (!isIntegrationTest()) return;
-		Collection<String> groups = userDAO.getUserGroupNames(TEST_USER);
-		assertTrue(groups.contains("platform"));
 	}
 }
