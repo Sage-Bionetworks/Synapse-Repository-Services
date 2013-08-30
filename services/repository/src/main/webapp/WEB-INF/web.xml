@@ -16,6 +16,25 @@
 		<param-value>/WEB-INF/shared-context.xml</param-value>
 	</context-param>
 
+	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
+	<listener>
+		<listener-class>org.apache.logging.log4j.core.web.Log4jServletContextListener</listener-class>
+	</listener>
+	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
+	<filter>
+		<filter-name>log4jServletFilter</filter-name>
+		<filter-class>org.apache.logging.log4j.core.web.Log4jServletFilter</filter-class>
+	</filter>
+	<!-- This is required for logging: see http://logging.apache.org/log4j/2.x/manual/webapp.html -->
+	<filter-mapping>
+		<filter-name>log4jServletFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+		<dispatcher>REQUEST</dispatcher>
+		<dispatcher>FORWARD</dispatcher>
+		<dispatcher>INCLUDE</dispatcher>
+		<dispatcher>ERROR</dispatcher>
+	</filter-mapping>
+
 
 	<!-- This listener will load other application context file in addition 
 		to springweb-servlet.xml -->
@@ -34,9 +53,9 @@
 		<filter-name>httpMethodFilter</filter-name>
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
-	
-	<!-- 	This filter will look for the session token as a cookie, 
-			if it finds it, the token will be added to the header of the request  -->
+
+	<!-- This filter will look for the session token as a cookie, if it finds 
+		it, the token will be added to the header of the request -->
 	<filter>
 		<filter-name>cookieFilter</filter-name>
 		<filter-class>org.sagebionetworks.authutil.CookieSessionTokenFilter</filter-class>
@@ -58,15 +77,15 @@
 
 	<filter-mapping>
 		<filter-name>CrowdAuth</filter-name>
-         <url-pattern>/auth/v1/user</url-pattern>  
-         <url-pattern>/auth/v1/userPassword</url-pattern>
-         <url-pattern>/auth/v1/changeEmail</url-pattern>
-         <url-pattern>/auth/v1/apiPasswordEmail</url-pattern>
-         <url-pattern>/auth/v1/secretKey</url-pattern>  
-         <url-pattern>/auth/v1/resourceAccess/*</url-pattern>  
-         <url-pattern>/auth/v1/resourceSession/*</url-pattern>
-         <url-pattern>/repo/v1/*</url-pattern>
-         <url-pattern>/file/v1/*</url-pattern>    
+		<url-pattern>/auth/v1/user</url-pattern>
+		<url-pattern>/auth/v1/userPassword</url-pattern>
+		<url-pattern>/auth/v1/changeEmail</url-pattern>
+		<url-pattern>/auth/v1/apiPasswordEmail</url-pattern>
+		<url-pattern>/auth/v1/secretKey</url-pattern>
+		<url-pattern>/auth/v1/resourceAccess/*</url-pattern>
+		<url-pattern>/auth/v1/resourceSession/*</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
 
 
@@ -102,7 +121,7 @@
 			Only add patterns that are public! -->
 		<url-pattern>/repo/v1/concept/*</url-pattern>
 	</filter-mapping>
-	
+
 	<filter-mapping>
 		<filter-name>jsonpCallbackFilter</filter-name>
 		<!-- This filter should only be used on publicly accessible methods to 
@@ -110,7 +129,7 @@
 			Only add patterns that are public! -->
 		<url-pattern>/repo/v1/userGroupHeaders/*</url-pattern>
 	</filter-mapping>
-	
+
 	<servlet>
 		<servlet-name>repository</servlet-name>
 		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
@@ -128,33 +147,33 @@
 		<servlet-name>repository</servlet-name>
 		<url-pattern>/repo/v1/*</url-pattern>
 	</servlet-mapping>
-	
+
 	<servlet>
-    	<servlet-name>authentication</servlet-name>
-    	<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-    	<load-on-startup>1</load-on-startup>
-    </servlet>
-  
-  
+		<servlet-name>authentication</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+
 	<servlet>
-	  <servlet-name>tomcatDefaultServlet</servlet-name>
-	  <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+		<servlet-name>tomcatDefaultServlet</servlet-name>
+		<servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
 	</servlet>
 
 
 	<servlet-mapping>
-	  <servlet-name>tomcatDefaultServlet</servlet-name>
-	  <url-pattern>/auth/v1/termsOfUse.html</url-pattern>
-	</servlet-mapping> 
+		<servlet-name>tomcatDefaultServlet</servlet-name>
+		<url-pattern>/auth/v1/termsOfUse.html</url-pattern>
+	</servlet-mapping>
 
 
-  <servlet-mapping>
-    <servlet-name>authentication</servlet-name>
-    <url-pattern>/auth/v1/*</url-pattern>
-  </servlet-mapping>
-  
-  		<!-- 	This filter will look for the session token as a cookie, 
-			if it finds it, the token will be added to the header of the request  -->
+	<servlet-mapping>
+		<servlet-name>authentication</servlet-name>
+		<url-pattern>/auth/v1/*</url-pattern>
+	</servlet-mapping>
+
+	<!-- This filter will look for the session token as a cookie, if it finds 
+		it, the token will be added to the header of the request -->
 	<filter>
 		<filter-name>CORSFilter</filter-name>
 		<filter-class>org.sagebionetworks.authutil.SimpleCORSFilter</filter-class>
@@ -164,7 +183,7 @@
 		<filter-name>CORSFilter</filter-name>
 		<url-pattern>*</url-pattern>
 	</filter-mapping>
-	
+
 	<servlet>
 		<servlet-name>login</servlet-name>
 		<servlet-class>org.sagebionetworks.file.servlet.SimpleLoginServlet</servlet-class>
@@ -175,7 +194,7 @@
 		<servlet-name>login</servlet-name>
 		<url-pattern>/login/v1/*</url-pattern>
 	</servlet-mapping>
-	
+
 	<servlet>
 		<servlet-name>file</servlet-name>
 		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>

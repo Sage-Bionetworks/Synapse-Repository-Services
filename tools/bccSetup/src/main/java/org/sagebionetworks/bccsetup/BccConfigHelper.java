@@ -2,7 +2,8 @@ package org.sagebionetworks.bccsetup;
 
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.TemplatedConfiguration;
 import org.sagebionetworks.TemplatedConfigurationImpl;
 
@@ -18,7 +19,7 @@ public class BccConfigHelper {
 	private static final String TEMPLATE_PROPERTIES = "/bccsetupTemplate.properties";
 	private static final String BCC_ABBREVIATION_PREFIX = "abbrev_";
 
-	private static final Logger log = Logger.getLogger(BccConfigHelper.class
+	private static final Logger log = LogManager.getLogger(BccConfigHelper.class
 			.getName());
 
 	private static TemplatedConfiguration configuration = null;

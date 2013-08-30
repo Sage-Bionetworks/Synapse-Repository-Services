@@ -39,7 +39,7 @@ public class KeyGeneratorUtilTest {
 	
 	@Test
 	public void testCreateKeyBigInstanceNumber(){
-	    Calendar cal = Calendar.getInstance();
+	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(2012, 11, 30, 22, 49);
 		String resultsString = KeyGeneratorUtil.createNewKey(999999999, cal.getTimeInMillis());
 		assertNotNull(resultsString);
@@ -64,7 +64,7 @@ public class KeyGeneratorUtilTest {
 	
 	@Test
 	public void testGetDateStringTimeMS(){
-	    Calendar cal = Calendar.getInstance();
+	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(2012, 11, 30, 22, 49);
 		String expected = "2012-12-30";
 		String results = KeyGeneratorUtil.getDateString(cal.getTimeInMillis());
@@ -73,7 +73,7 @@ public class KeyGeneratorUtilTest {
 	
 	@Test
 	public void testExtractDateFromKey(){
-	    Calendar cal = Calendar.getInstance();
+	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(1982, 0, 1, 22, 49);
 		String expected = "1982-01-01";
 		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());

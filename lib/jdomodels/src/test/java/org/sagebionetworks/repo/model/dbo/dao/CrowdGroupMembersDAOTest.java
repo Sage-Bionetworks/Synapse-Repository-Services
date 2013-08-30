@@ -7,8 +7,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class CrowdGroupMembersDAOTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 
-	private static final Log log = LogFactory.getLog(CrowdGroupMembersDAOTest.class);
+	private static final Logger log = LogManager.getLogger(CrowdGroupMembersDAOTest.class);
 	private static final String TEST_GROUP_NAME = "testGroupOfDOOOOM";
 	private static final Integer NUM_USERS = 3; // Need at least 2 for testgetUserGroups()
 	

@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.query.FieldType;
  */
 public class JDONodeQueryUnitTest {
 
-	Log log = LogFactory.getLog(JDONodeQueryUnitTest.class);
+	Logger log = LogManager.getLogger(JDONodeQueryUnitTest.class);
 	
 	@Test
 	public void testAuthorizationSqlAdminUser() throws Exception {
