@@ -16,11 +16,9 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class LogSweeperFactoryImpl implements LogSweeperFactory {
 	
 	@Autowired
-	private AmazonS3Client s3Client;
+	private LogDAO logDAO;
 	private File logDirectory;
 	private long lockExpiresMs;
-	private int stackInstanceNumber;
-	private String bucketName;
 
 	/**
 	 * Injected via Spring
@@ -38,21 +36,6 @@ public class LogSweeperFactoryImpl implements LogSweeperFactory {
 		this.lockExpiresMs = lockExpiresMs;
 	}
 
-	/**
-	 * Injected via Spring
-	 * @param instanceNumber
-	 */
-	public void setStackInstanceNumber(int stackInstanceNumber) {
-		this.stackInstanceNumber = stackInstanceNumber;
-	}
-
-	/**
-	 * Injected via Spring
-	 * @param bucketName
-	 */
-	public void setBucketName(String bucketName) {
-		this.bucketName = bucketName;
-	}
 
 	/**
 	 * This method can be called from a timer.
@@ -60,24 +43,10 @@ public class LogSweeperFactoryImpl implements LogSweeperFactory {
 	@Override
 	public List<String> sweepLogs() {
 		// Create the sweeper and run it.
-		LogSweeper sweeper =  new LogSweeper(logDirectory, lockExpiresMs, s3Client, stackInstanceNumber, bucketName);
+		LogSweeper sweeper =  new LogSweeper(logDirectory, lockExpiresMs, logDAO);
 		return sweeper.sweepAllfiles();
 	}
-	
-	/**
-	 * Called when the bean is initialized.
-	 */
-	public void initialize() {
-		if (bucketName == null)
-			throw new IllegalArgumentException("bucketName has not been set and cannot be null");
-		// Create the bucket if it does not exist
-		s3Client.createBucket(bucketName);
-	}
 
-	@Override
-	public String getLogBucketName() {
-		return this.bucketName;
-	}
 
 	@Override
 	public File getLoggingDirectory() {

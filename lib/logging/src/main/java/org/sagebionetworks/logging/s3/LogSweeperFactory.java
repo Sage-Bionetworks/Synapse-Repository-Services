@@ -16,12 +16,7 @@ public interface LogSweeperFactory {
 	 * @return
 	 */
 	public List<String> sweepLogs();
-	
-	/**
-	 * Get the name of the bucket.
-	 * @return
-	 */
-	public String getLogBucketName();
+
 	
 	/**
 	 * The directory where the log files are expected to be found

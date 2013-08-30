@@ -1,12 +1,11 @@
 package org.sagebionetworks.logging.s3;
 
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.UUID;
 
-public class LogSweepUtils {
+public class LogKeyUtils {
 
 	static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
 	static final String DATE_TEMPLATE = "%1$04d-%2$02d-%3$02d";

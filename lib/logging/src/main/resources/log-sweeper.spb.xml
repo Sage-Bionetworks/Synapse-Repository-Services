@@ -32,10 +32,13 @@
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
-
-	<bean id="logSweeperFactory" class="org.sagebionetworks.logging.s3.LogSweeperFactoryImpl" scope="singleton" init-method="initialize">
+	
+	<bean id="logDAO" class="org.sagebionetworks.logging.s3.LogDAOImpl" scope="singleton" init-method="initialize">
 		<property name="bucketName" ref="stackConfiguration.logBucketName" />
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
+	</bean>
+
+	<bean id="logSweeperFactory" class="org.sagebionetworks.logging.s3.LogSweeperFactoryImpl" scope="singleton">
 		<property name="lockExpiresMs" value="300000" />
 		<property name="logDirectory" ref="stackConfiguration.localLoggingDirectory" />
 	</bean>

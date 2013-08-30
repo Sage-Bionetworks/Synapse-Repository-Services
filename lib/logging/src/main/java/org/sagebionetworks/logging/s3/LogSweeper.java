@@ -20,9 +20,7 @@ public class LogSweeper {
 
 	private File logDir;
 	private long lockExpiresMs;
-	private AmazonS3Client s3Client;
-	private int instanceNumber;
-	private String bucketName;
+	private LogDAO logDAO;
 
 	/**
 	 * Create a new sweeper each time.
@@ -34,18 +32,13 @@ public class LogSweeper {
 	 *            directory. When a lock already exists on the logging
 	 *            directory, the lock will expire when this amount of time has
 	 *            elapsed since the file was created.
-	 * @param s3Client The Amazon S3 Client
-	 * @param instanceNumber The stack instance number.
-	 * @param bucketName The destination buck.
+	 * @param logDAO The log DAO.
 	 */
-	public LogSweeper(File logDir, long lockExpiresMs, AmazonS3Client s3Client,
-			int instanceNumber, String bucketName) {
+	public LogSweeper(File logDir, long lockExpiresMs, LogDAO logDAO) {
 		super();
 		this.logDir = logDir;
 		this.lockExpiresMs = lockExpiresMs;
-		this.s3Client = s3Client;
-		this.instanceNumber = instanceNumber;
-		this.bucketName = bucketName;
+		this.logDAO = logDAO;
 	}
 
 	/**
@@ -110,15 +103,8 @@ public class LogSweeper {
 	private String sweepFile(File toSweep) {
 		if (toSweep == null)
 			throw new IllegalArgumentException("toSweep cannot be null");
-		// Create the S3 key for this file
-		String key = LogSweepUtils.createKeyForFile(instanceNumber,
-				toSweep.getName(), toSweep.lastModified());
-		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("application/x-gzip");
-		om.setContentEncoding("gzip");
-		om.setContentDisposition("attachment; filename=" + key + ";");
-		s3Client.putObject(new PutObjectRequest(bucketName, key, toSweep)
-				.withMetadata(om));
+		// Save this file to S3 using its last modified by date as the timestamp
+		String key = logDAO.saveLogFile(toSweep, toSweep.lastModified());
 		// Delete the local file.
 		toSweep.delete();
 		return key;
