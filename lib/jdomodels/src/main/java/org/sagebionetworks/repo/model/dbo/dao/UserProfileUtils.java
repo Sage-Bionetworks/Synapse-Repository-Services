@@ -5,6 +5,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
@@ -29,36 +30,24 @@ public class UserProfileUtils {
 		}
 	}
 	
-	public static void copyDboToDto(DBOUserProfile dbo, UserProfile dto) throws DatastoreException {
+	public static UserProfile convertDboToDto(DBOUserProfile dbo) throws DatastoreException {
 		Object decompressed = null;
 		try {
 			decompressed = JDOSecondaryPropertyUtils.decompressedObject(dbo.getProperties());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		try {
-			UserProfile copy = (UserProfile) decompressed;
-			dto.setAgreesToTermsOfUse(copy.getAgreesToTermsOfUse());
-			dto.setCompany(copy.getCompany());
-			dto.setDisplayName(copy.getDisplayName());
-			dto.setEmail(copy.getEmail());
-			dto.setEtag(copy.getEtag());
-			dto.setLocation(copy.getLocation());
-			dto.setFirstName(copy.getFirstName());
-			dto.setIndustry(copy.getIndustry());
-			dto.setLastName(copy.getLastName());
-			dto.setOwnerId(copy.getOwnerId());
-			dto.setPic(copy.getPic());
-			dto.setPosition(copy.getPosition());
-			dto.setRStudioUrl(copy.getRStudioUrl());
-			dto.setSummary(copy.getSummary());
-			dto.setTeamName(copy.getTeamName());
-			dto.setUri(copy.getUri());
-			dto.setUrl(copy.getUrl());
-			dto.setUserName(copy.getUserName());
-		} catch (ClassCastException cce) {
+		
+		UserProfile dto = null;
+		if (decompressed instanceof UserProfile) {
+			dto = (UserProfile) decompressed;
+		} else if (decompressed instanceof NamedAnnotations) {
+			// Support the old way of serializing the UserProfile
 			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+			dto = new UserProfile();
 			SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getProperties(), dto, schema);
+		} else {
+			throw new RuntimeException("Unsupported object type " + decompressed.getClass());
 		}
 		
 		if (dbo.getOwnerId()==null) {
@@ -67,6 +56,7 @@ public class UserProfileUtils {
 			dto.setOwnerId(dbo.getOwnerId().toString());
 		}
 		dto.setEtag(dbo.geteTag());
+		return dto;
 	}
 	
 	

@@ -89,9 +89,8 @@ public class UserProfileManagerImplUnitTest {
 			@Override
 			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
 				DBOUserProfile intermediate = new DBOUserProfile();
-				UserProfile copy = new UserProfile();
 				UserProfileUtils.copyDtoToDbo(userProfile, intermediate);
-				UserProfileUtils.copyDboToDto(intermediate, copy);
+				UserProfile copy = UserProfileUtils.convertDboToDto(intermediate);
 				return copy;
 			}
 		}).when(mockProfileDAO).get(Mockito.anyString());
@@ -105,7 +104,7 @@ public class UserProfileManagerImplUnitTest {
 				
 				DBOUserProfile intermediate = new DBOUserProfile();
 				UserProfileUtils.copyDtoToDbo(copy, intermediate);
-				UserProfileUtils.copyDboToDto(intermediate, copy);
+				copy = UserProfileUtils.convertDboToDto(intermediate);
 				return copy;
 			}
 		}).when(mockProfileDAO).update((UserProfile) Mockito.any());

@@ -164,7 +164,7 @@
 		}, 
 		"agreesToTermsOfUse": {
 			"type": "integer", 
-			"description": "When, in epoch time, this person last agreed to Synapse's terms of use"
+			"description": "When, in epoch time (seconds), this person last agreed to Synapse's terms of use"
 		}
 	}
 }

@@ -85,8 +85,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
 		DBOUserProfile jdo = basicDao.getObjectByPrimaryKey(DBOUserProfile.class, param);
-		UserProfile dto = new UserProfile();
-		UserProfileUtils.copyDboToDto(jdo, dto);
+		UserProfile dto = UserProfileUtils.convertDboToDto(jdo);
 		return dto;
 	}
 
@@ -101,8 +100,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, userProfileRowMapper, param);
 		List<UserProfile> dtos = new ArrayList<UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
-			UserProfile dto = new UserProfile();
-			UserProfileUtils.copyDboToDto(dbo, dto);
+			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -167,8 +165,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
 
-		UserProfile resultantDto = new UserProfile();
-		UserProfileUtils.copyDboToDto(dbo, resultantDto);
+		UserProfile resultantDto = UserProfileUtils.convertDboToDto(dbo);
 
 		return resultantDto;
 	}

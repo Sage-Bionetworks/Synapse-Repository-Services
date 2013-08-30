@@ -89,11 +89,12 @@ public class AuthorizationConstants {
 	public static final String TERMS_OF_USE_AGREEMENT_URI = "/termsOfUseAgreement";
 	
 	/**
-	 * Epoch time since the Terms of Use were last updated
-	 * https://sagebionetworks.jira.com/browse/PLFM-1812
-	 *   27 Feb 2013 23:44:00 GMT
+	 * Epoch time in seconds since the Terms of Use were last updated
+	 * See: https://sagebionetworks.jira.com/browse/PLFM-1812
+	 * A value of 1 ensures that all users have accepted the terms of use once
+	 *   as long as the user has a creation date (enforced by migration from Crowd)
 	 */
-	public static final long MOST_RECENT_TERMS_OF_USE = 1362012240L;
+	public static final long MOST_RECENT_TERMS_OF_USE = 1L;
 	public static final String ACCEPTS_TERMS_OF_USE_ATTRIBUTE = "org.sagebionetworks.termsOfUseAgreement.AcceptsTermsOfUse";
 
 
