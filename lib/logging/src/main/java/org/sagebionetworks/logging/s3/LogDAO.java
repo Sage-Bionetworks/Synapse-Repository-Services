@@ -18,4 +18,9 @@ public interface LogDAO {
 	 * @param key
 	 */
 	public void deleteLogFile(String key);
+
+	/**
+	 * Delete all logs for this Stack Instances.
+	 */
+	public void deleteAllStackInstanceLogs();
 }
