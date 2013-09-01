@@ -14,6 +14,8 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
+import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -37,7 +39,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private IdGenerator idGenerator;	
+	private NamedIdGenerator idGenerator;	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
@@ -253,15 +255,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		
 		// If the create is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
-		
-		if(dbo.getId() == null){
-			dbo.setId(idGenerator.generateNewId());
-		}else{
-			// If an id was provided then it must not exist
-			if(doesIdExist(dbo.getId())) throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a UserGroup cannot be created using that id.");
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(dbo.getId(), TYPE.DOMAIN_IDS);
-		}
+		dbo.setId(idGenerator.generateNewId(dto.getName(), NamedType.USER_GROUP_ID));
 		try {
 			dbo = basicDao.createNew(dbo);
 			
@@ -362,7 +356,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				newUg.setIsIndividual(ug.getIsIndividual());
 				this.create(newUg);
 				// Make sure the ID generator has reserved this ID.
-				idGenerator.reserveId(id, TYPE.DOMAIN_IDS);
+				idGenerator.unconditionallyAssignIdToName(id, ug.getName(), NamedType.USER_GROUP_ID);
 			}
 		}
 	}
