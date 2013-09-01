@@ -34,4 +34,13 @@ public class LogKeyUtilsTest {
 		assertTrue(results.startsWith("000000123/repo-trace-profile/1999-01-15/22-49-12"));
 		assertTrue(results.endsWith(".log.gz"));
 	}
+	
+	@Test
+	public void testCreateISO8601GMTLogString(){
+		long time = 1327532399842l;
+		String results = LogKeyUtils.createISO8601GMTLogString(time);
+		System.out.println(time+"="+results);
+		String expected = "2012-01-25 22:59:59,842";
+		assertEquals(expected, results);
+	}
 }

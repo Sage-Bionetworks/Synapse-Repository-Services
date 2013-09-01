@@ -1,6 +1,7 @@
 package org.sagebionetworks.logging.s3;
 
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -15,6 +16,15 @@ public class LogDAOImplTest {
 
 	@Before
 	public void before(){
+		// Clear all log data
+		logDAO.deleteAllStackInstanceLogs();
+	}
+	
+	@Test
+	public void testSave(){
+		// Create a small log
 		
 	}
+	
+	
 }
