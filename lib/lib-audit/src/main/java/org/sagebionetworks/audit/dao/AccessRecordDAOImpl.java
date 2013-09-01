@@ -16,10 +16,10 @@ import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.ObjectCSVReader;
 import org.sagebionetworks.audit.utils.ObjectCSVWriter;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
-import org.sagebionetworks.repo.model.audit.BatchListing;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
@@ -37,7 +37,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	/**
 	 * This is the schema. If it changes we will not be able to read old data.
 	 */
-	private final static String[] HEADERS = new String[]{"elapseMS","timestamp","via","host","threadId","userAgent","sessionId","xForwardedFor","requestURL","userId","origin", "date","method","vmId","instance","stack","success"};
+	private final static String[] HEADERS = new String[]{"returnObjectId", "elapseMS","timestamp","via","host","threadId","userAgent","queryString","sessionId","xForwardedFor","requestURL","userId","origin", "date","method","vmId","instance","stack","success"};
 
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -50,6 +50,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 * Injected via Spring
 	 */
 	int stackInstanceNumber;
+	String stackInstancePrefixString;
 
 	/**
 	 * Injected via Spring
@@ -67,6 +68,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	 */
 	public void setStackInstanceNumber(int stackInstanceNumber) {
 		this.stackInstanceNumber = stackInstanceNumber;
+		this.stackInstancePrefixString = KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber);
 	}
 
 	/**
@@ -80,9 +82,15 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		// Create the bucket if it does not exist
 		s3Client.createBucket(auditRecordBucketName);
 	}
-
+	
 	@Override
 	public String saveBatch(List<AccessRecord> batch) throws IOException {
+		// Save with the current timesamp
+		return saveBatch(batch, System.currentTimeMillis());
+	}
+	
+	@Override
+	public String saveBatch(List<AccessRecord> batch, long timestamp) throws IOException {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// Order the batch by timestamp
 		AccessRecordUtils.sortByTimestamp(batch);
@@ -102,7 +110,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 		// Build a new key
 		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber,
-				System.currentTimeMillis());
+				timestamp);
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType("application/x-gzip");
 		om.setContentEncoding("gzip");
@@ -148,10 +156,9 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	@Override
 	public void deleteAllStackInstanceBatches() {
 		// List all object with the prefix
-		String prefix = KeyGeneratorUtil.getInstancePrefix(stackInstanceNumber);
 		boolean done = false;
 		while(!done){
-			ObjectListing listing = s3Client.listObjects(auditRecordBucketName, prefix);
+			ObjectListing listing = s3Client.listObjects(auditRecordBucketName, this.stackInstancePrefixString);
 			done = !listing.isTruncated();
 			// Delete all
 			if(listing.getObjectSummaries() != null){
@@ -163,12 +170,9 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	}
 	
 	@Override
-	public BatchListing listBatchKeys(String marker) {
-		// TODO Auto-generated method stub
-		return null;
+	public ObjectListing listBatchKeys(String marker) {
+		// List all of the objects in this bucket with the stack instance prefix string and the provided marker.
+		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.auditRecordBucketName).withPrefix(this.stackInstancePrefixString).withMarker(marker));
 	}
-
-
-
 
 }

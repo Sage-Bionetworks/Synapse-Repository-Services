@@ -21,6 +21,8 @@
 			<list>
 				<!-- DBOUserGroup must be declared before tables that have a foreign key to it -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupParentsCache" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />

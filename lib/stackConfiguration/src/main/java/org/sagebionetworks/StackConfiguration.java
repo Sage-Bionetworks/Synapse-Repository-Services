@@ -998,6 +998,17 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
 	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will synchronize Crowd with RDS
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreGatedMaxRunnersCrowdGroupSynchronize() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.crowd.synchronize"));
+	}
 
 	/**
 	 * The maximum number of workers in the cluster that will process

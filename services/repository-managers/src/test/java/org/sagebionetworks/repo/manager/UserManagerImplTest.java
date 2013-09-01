@@ -13,22 +13,11 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Comparator;
-import org.sagebionetworks.repo.model.query.CompoundId;
-import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -45,12 +34,6 @@ public class UserManagerImplTest {
 	
 	@Autowired
 	UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	NodeDAO nodeDao;
-	
-	@Autowired
-	NodeQueryDao nodeQueryDao;
 	
 	private static final String TEST_USER = "test-user";
 	

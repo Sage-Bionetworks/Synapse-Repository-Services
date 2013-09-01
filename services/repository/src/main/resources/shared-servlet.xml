@@ -15,8 +15,12 @@
 	<!--This bean will intercept all HTTP calls and check the status -->
 	<bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
 
+
 	<!-- This bean will intercept all HTTP calls and records access records -->
 	<bean id="accessInterceptor" class="org.sagebionetworks.repo.web.AccessInterceptor" />
+	
+	<!-- This bean will intercept gather extra data from controller methods for auditing. -->
+	<bean id="controllerAuditAspect" class="org.sagebionetworks.repo.web.ControllerAuditAspect" />
 
 	<!-- To enable @RequestMapping process on type level and method level -->
 	<bean

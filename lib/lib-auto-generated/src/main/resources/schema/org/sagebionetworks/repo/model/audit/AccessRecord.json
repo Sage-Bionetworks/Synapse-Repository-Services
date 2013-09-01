@@ -68,6 +68,14 @@
 		"vmId": {
 			"type": "string",
 			"description": "The VMID of the JVM that processed this request. A VMID is a identifier that is unique across all Java virtual machines."
+		},			
+		"returnObjectId": {
+			"type": "string",
+			"description": "The ID of the returned object when it exits."
+		},			
+		"queryString": {
+			"type": "string",
+			"description": "The query string of the request."
 		}
 
 	}

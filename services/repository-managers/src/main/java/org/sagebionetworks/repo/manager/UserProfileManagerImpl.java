@@ -48,7 +48,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Autowired
 	private S3TokenManager s3TokenManager;
 	@Autowired
-	AttachmentManager attachmentManager;
+	private AttachmentManager attachmentManager;
 	@Autowired
 	private FavoriteDAO favoriteDAO;
 	@Autowired 
@@ -65,12 +65,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param s3TokenManager
 	 */
 	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO,
-			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO) {
+			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO, AttachmentManager attachmentManager) {
 		super();
 		this.userProfileDAO = userProfileDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
+		this.attachmentManager = attachmentManager;
 	}
 
 	@Override
@@ -82,10 +83,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		UserGroup userGroup = userGroupDAO.get(ownerId);
-		if (userInfo != null && userInfo.getUser() != null) {
-			userProfile.setUserName(userInfo.getUser().getUserId());
-			if (userGroup != null)
-				userProfile.setEmail(userGroup.getName());
+		if (userGroup != null) {
+			userProfile.setEmail(userGroup.getName());
+			userProfile.setUserName(userGroup.getName());
 		}
 		return userProfile;
 	}
