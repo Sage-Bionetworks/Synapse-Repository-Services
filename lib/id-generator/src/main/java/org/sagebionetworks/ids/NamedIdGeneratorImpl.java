@@ -73,6 +73,7 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 	@Override
 	public void unconditionallyAssignIdToName(final Long idToLock, String name, NamedType type) {
 		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
+		if(idToLock < 1) throw new IllegalArgumentException("ID cannot be less than one because the database will treat it the same as a null and assign a new value from the auto-increment");
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// First we need to determine if this name has already been assigned a number?
@@ -82,11 +83,9 @@ public class NamedIdGeneratorImpl implements NamedIdGenerator {
 				// This name is already assigned to the given ID so there is nothing to do.
 				return;
 			}
-			// If this name has already been assigned to another ID then we delete that ID
-			if(namesId > 0){
-				// Delete the row that is currently holding this name.
-				idGeneratorJdbcTemplate.update(String.format("DELETE FROM %1$s WHERE ID = ?", type.name()), namesId);
-			}
+			// Delete the row that is currently holding this name.
+			int count =idGeneratorJdbcTemplate.update(String.format("DELETE FROM %1$s WHERE ID = ?", type.name()), namesId);
+			System.out.println(count);
 		}catch(EmptyResultDataAccessException e){
 			// This just means the name is not already assigned.
 		}

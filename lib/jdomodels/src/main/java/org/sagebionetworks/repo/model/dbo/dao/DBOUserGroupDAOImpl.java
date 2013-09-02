@@ -12,10 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
 import org.sagebionetworks.ids.NamedIdGenerator;
+import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -255,7 +254,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		
 		// If the create is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
-		dbo.setId(idGenerator.generateNewId(dto.getName(), NamedType.USER_GROUP_ID));
+		if(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(dto.getName())){
+			// This is a special hack since the auto-generated ID column cannot
+			// start at zero yet the BOOTSTRAP_USER_GROUP_NAME was assigned to zero long ago.
+			dbo.setId(0l);
+		}else{
+			// we allow the ID generator to create all other IDs
+			dbo.setId(idGenerator.generateNewId(dto.getName(), NamedType.USER_GROUP_ID));
+		}
 		try {
 			dbo = basicDao.createNew(dbo);
 			
@@ -354,9 +360,13 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				newUg.setId(ug.getId());
 				newUg.setName(ug.getName());
 				newUg.setIsIndividual(ug.getIsIndividual());
-				this.create(newUg);
 				// Make sure the ID generator has reserved this ID.
-				idGenerator.unconditionallyAssignIdToName(id, ug.getName(), NamedType.USER_GROUP_ID);
+				if(!AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(ug.getName())){
+					// We cannot do this for the BOOTSTRAP_USER_GROUP because its ID is zero which is
+					// the same a null for MySQL auto-increment columns
+					idGenerator.unconditionallyAssignIdToName(id, ug.getName(), NamedType.USER_GROUP_ID);
+				}
+				this.create(newUg);
 			}
 		}
 	}
