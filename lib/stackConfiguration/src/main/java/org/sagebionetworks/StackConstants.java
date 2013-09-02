@@ -75,6 +75,6 @@ public class StackConstants {
 	/**
 	 * The local logging directory
 	 */
-	public static final String LOCAL_LOG_DIRECTORY = "%1$s/logsweep";
+	public static final String LOCAL_LOG_DIRECTORY = "%1$s/synapse/logs/";
 
 }

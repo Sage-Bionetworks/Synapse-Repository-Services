@@ -1,5 +1,6 @@
 package org.sagebionetworks.logging.s3;
 
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -7,6 +8,7 @@ import java.util.UUID;
 
 public class LogKeyUtils {
 
+	private static final int ISO08601_MIN_LENGTH = 23;
 	static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
 	static final String DATE_TEMPLATE = "%1$04d-%2$02d-%3$02d";
 	static final String KEY_TEMPLATE = "%1$s/%2$s/%3$s/%4$02d-%5$02d-%6$02d-%7$03d-%8$s.log.gz";
@@ -121,5 +123,29 @@ public class LogKeyUtils {
 	public static String createISO8601GMTLogString(long timestamp){
 		int[] parts = extractDataParts(timestamp);
 		return String.format(ISO8601_TEMPLATE, parts[0], parts[1], parts[2], parts[3], parts[4], parts[5],parts[6]);
+	}
+	/**
+	 * Read the time stamp in MS from a string that starts with ISO8601GMT string.
+	 * @param input
+	 * @return
+	 * @throws ParseException When the passed string does not start with a valid ISO8601GMT string
+	 */
+	public static long readISO8601GMTFromString(String input) throws ParseException {
+		if(input == null) throw new ParseException("Input string is null", 0);
+		if(input.length() < ISO08601_MIN_LENGTH) throw new ParseException("Input does not start with a ISO8601 as it is less than "+ISO08601_MIN_LENGTH+" characters", ISO08601_MIN_LENGTH);
+		String prefix = input.substring(0, ISO08601_MIN_LENGTH);
+		Calendar cal = getClaendarUTC();
+		try {
+			cal.set(Calendar.YEAR, Integer.parseInt(prefix.substring(0, 4)));
+			cal.set(Calendar.MONTH, Integer.parseInt(prefix.substring(5, 7))-1);
+			cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(prefix.substring(8, 10)));
+			cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(prefix.substring(11, 13)));
+			cal.set(Calendar.MINUTE, Integer.parseInt(prefix.substring(14, 16)));
+			cal.set(Calendar.SECOND, Integer.parseInt(prefix.substring(17, 19)));
+			cal.set(Calendar.MILLISECOND, Integer.parseInt(prefix.substring(20, 23)));
+			return cal.getTimeInMillis();
+		} catch (NumberFormatException e) {
+			throw new ParseException("Not a ISO8601 string: "+e.getMessage(), 0);
+		}
 	}
 }
