@@ -36,4 +36,5 @@ public interface IdGenerator {
 	 * @param idToLock
 	 */
 	public void reserveId(Long idToLock, TYPE type);
+	
 }
