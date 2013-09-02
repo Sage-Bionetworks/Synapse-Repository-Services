@@ -17,13 +17,17 @@
 	<bean id="crowdGroupSynchronizer"
 			class="org.sagebionetworks.crowd.workers.CrowdGroupSynchronizer"
 			scope="singleton" />
+			
+	<bean id="nameToIdSynchronizer"
+			class="org.sagebionetworks.crowd.workers.NameToIdSynchronizer"
+			scope="singleton" />
 
 	<bean id="crowdGroupSynchronizerSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
 		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersCrowdGroupSynchronize" />
-		<property name="semaphoreKey" value="crowdGroupSynchronizerWorker" />		
-		<property name="runner" ref="crowdGroupSynchronizer" />
+		<property name="semaphoreKey" value="nameToIdSynchronizer" />		
+		<property name="runner" ref="nameToIdSynchronizer" />
 	</bean>
 
 	<bean id="crowdGroupSynchronizerTrigger"
@@ -36,7 +40,7 @@
 			</bean>
 		</property>
 		<!-- Same as the values found in controller-spb.xml (bean refreshUserGroupCacheTrigger) -->
-		<property name="startDelay" value="0" />
+		<property name="startDelay" value="133" />
 		<property name="repeatInterval" value="300000" />
 	</bean>
 
