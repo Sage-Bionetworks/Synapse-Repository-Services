@@ -28,7 +28,7 @@ public class KeyGeneratorUtilTest {
 	
 	@Test
 	public void testCreateKey(){
-	    Calendar cal = Calendar.getInstance();
+	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(2012, 11, 30, 22, 49);
 		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());
 		assertNotNull(resultsString);
@@ -83,7 +83,7 @@ public class KeyGeneratorUtilTest {
 	
 	@Test
 	public void testExtractDateHourFromKey(){
-	    Calendar cal = Calendar.getInstance();
+	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(1982, 0, 1, 22, 49);
 		String expected = "1982-01-01/22";
 		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());
