@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.ids.NamedIdGenerator;
+import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -37,7 +38,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private IdGenerator idGenerator;	
+	private NamedIdGenerator idGenerator;	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
@@ -253,14 +254,13 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		
 		// If the create is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
-		
-		if(dbo.getId() == null){
-			dbo.setId(idGenerator.generateNewId());
+		if(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(dto.getName())){
+			// This is a special hack since the auto-generated ID column cannot
+			// start at zero yet the BOOTSTRAP_USER_GROUP_NAME was assigned to zero long ago.
+			dbo.setId(0l);
 		}else{
-			// If an id was provided then it must not exist
-			if(doesIdExist(dbo.getId())) throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a UserGroup cannot be created using that id.");
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(dbo.getId(), TYPE.DOMAIN_IDS);
+			// we allow the ID generator to create all other IDs
+			dbo.setId(idGenerator.generateNewId(dto.getName(), NamedType.USER_GROUP_ID));
 		}
 		try {
 			dbo = basicDao.createNew(dbo);
@@ -360,9 +360,13 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				newUg.setId(ug.getId());
 				newUg.setName(ug.getName());
 				newUg.setIsIndividual(ug.getIsIndividual());
-				this.create(newUg);
 				// Make sure the ID generator has reserved this ID.
-				idGenerator.reserveId(id, TYPE.DOMAIN_IDS);
+				if(!AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(ug.getName())){
+					// We cannot do this for the BOOTSTRAP_USER_GROUP because its ID is zero which is
+					// the same a null for MySQL auto-increment columns
+					idGenerator.unconditionallyAssignIdToName(id, ug.getName(), NamedType.USER_GROUP_ID);
+				}
+				this.create(newUg);
 			}
 		}
 	}

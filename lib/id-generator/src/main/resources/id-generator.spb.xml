@@ -46,6 +46,8 @@
 	</bean>
 
 	<bean id="idGenerator" class="org.sagebionetworks.ids.IdGeneratorImpl"></bean>
+	
+	<bean id="namedIdGenerator" class="org.sagebionetworks.ids.NamedIdGeneratorImpl" init-method="initialize"/>
 
 	<bean id="eTagGenerator" class="org.sagebionetworks.ids.UuidETagGenerator"></bean>
 
