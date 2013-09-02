@@ -177,6 +177,9 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 			@Override
 			public DBOUserGroup createDatabaseObjectFromBackup(
 					DBOUserGroup backup) {
+				if(backup.getEtag() == null){
+					backup.setEtag("0");
+				}
 				return backup;
 			}
 
