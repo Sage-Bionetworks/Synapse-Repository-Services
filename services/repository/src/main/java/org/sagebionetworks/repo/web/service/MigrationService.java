@@ -32,13 +32,14 @@ public interface MigrationService {
 	 * Get the pagainated row metadta for one type.
 	 * @param userId
 	 * @param type
+	 * @param maxId
 	 * @param limit
 	 * @param offset
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	RowMetadataResult getRowMetadaForType(String userId, MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException;
+	RowMetadataResult getRowMetadaForType(String userId, MigrationType type, long maxId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * This method is called on the destination stack to compare compare its metadata with the source stack metadata

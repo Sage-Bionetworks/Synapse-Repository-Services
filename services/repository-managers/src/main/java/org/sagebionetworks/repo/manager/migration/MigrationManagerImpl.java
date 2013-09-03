@@ -75,11 +75,11 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public RowMetadataResult getRowMetadaForType(UserInfo user,  MigrationType type, long limit, long offset) {
+	public RowMetadataResult getRowMetadaForType(UserInfo user,  MigrationType type, long maxId, long limit, long offset) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// pass this to the dao.
-		return migratableTableDao.listRowMetadata(type, limit, offset);
+		return migratableTableDao.listRowMetadata(type, maxId, limit, offset);
 	}
 
 	@Override
@@ -260,7 +260,8 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	private void deleteAllForType(UserInfo user, MigrationType type){
 		// First get all data for this type.
-		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, Long.MAX_VALUE, 0);
+		long maxId = migratableTableDao.getMaxId(type);
+		RowMetadataResult result =  migratableTableDao.listRowMetadata(type, maxId, Long.MAX_VALUE, 0);
 		List<RowMetadata> list =result.getList();
 		if(list.size() > 0){
 			// Create the list of IDs to delete

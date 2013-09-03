@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -58,7 +59,7 @@ public class MigatableTableDAOImplAutowireTest {
 	}
 	
 	@Test
-	public void testMigrationRoundTrip() throws Exception {
+	public void testMigrationRoundTripAll() throws Exception {
 		long startCount = fileHandleDao.getCount();
 		long migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
 		assertEquals(startCount, migrationCount);
@@ -88,7 +89,7 @@ public class MigatableTableDAOImplAutowireTest {
 		toDelete.add(preview2.getId());
 		
 		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
-		
+
 		// Assign it as a preview
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		fileHandleDao.setPreviewId(withPreview2.getId(), preview2.getId());
@@ -97,7 +98,7 @@ public class MigatableTableDAOImplAutowireTest {
 		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
 		
 		// Now list all of the objects
-		RowMetadataResult totalList = migatableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, 1000, startCount);
+		RowMetadataResult totalList = migatableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, fileHandleDao.getMaxId(), 1000, startCount);
 		assertNotNull(totalList);
 		assertEquals(new Long(startCount+4),  totalList.getTotalCount());
 		assertNotNull(totalList.getList());
@@ -173,6 +174,135 @@ public class MigatableTableDAOImplAutowireTest {
 		assertNotNull(results);
 		assertEquals(idsToBackup1, results);
 	}
+	
+	@Test
+	public void testMigrationRoundTripSome() throws Exception {
+		long startCount = fileHandleDao.getCount();
+		long migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
+		assertEquals(startCount, migrationCount);
+		// The one will have a preview
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview.setFileName("withPreview.txt");
+		withPreview = fileHandleDao.createFile(withPreview);
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		S3FileHandle withPreview2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview2.setFileName("withPreview2.txt");
+		withPreview2 = fileHandleDao.createFile(withPreview2);
+		assertNotNull(withPreview2);
+		toDelete.add(withPreview2.getId());
+
+		// Preview 1
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		preview.setFileName("preview.txt");
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		toDelete.add(preview.getId());
+		// Preview 2
+		PreviewFileHandle preview2 = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		preview2.setFileName("preview.txt");
+		preview2 = fileHandleDao.createFile(preview2);
+		assertNotNull(preview2);
+		toDelete.add(preview2.getId());
+		
+		assertEquals(Long.parseLong(preview2.getId()), fileHandleDao.getMaxId());
+
+		// Assign it as a preview
+		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
+		fileHandleDao.setPreviewId(withPreview2.getId(), preview2.getId());
+		// The etag should have changed
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
+		
+		// Assume I'm getting the count/max before this last one gets created
+		long curMaxPreviewId = fileHandleDao.getMaxId();
+		long curPreviewCount = fileHandleDao.getCount();
+		
+		S3FileHandle withoutPreview1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withoutPreview1.setFileName("withoutPreview1.txt");
+		withoutPreview1 = fileHandleDao.createFile(withoutPreview1);
+		assertNotNull(withoutPreview1);
+		toDelete.add(withoutPreview1.getId());
+
+		// Now list all of the objects
+		RowMetadataResult curList = migatableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, curMaxPreviewId, 1000, startCount);
+		assertNotNull(curList);
+		assertEquals(new Long(5),  curList.getTotalCount());	// Total number of files is 5
+		assertNotNull(curList.getList());
+		assertEquals(4, curList.getList().size());
+		System.out.println(curList.getList());
+		
+		// The withPreview should be first.
+		RowMetadata row = curList.getList().get(0);
+		assertEquals(withPreview.getId(), ""+row.getId());
+		assertEquals(withPreview.getEtag(), row.getEtag());
+		assertEquals(preview.getId(), ""+row.getParentId());
+		// 2
+		row = curList.getList().get(1);
+		assertEquals(withPreview2.getId(), ""+row.getId());
+		assertEquals(withPreview2.getEtag(), row.getEtag());
+		assertEquals(preview2.getId(), ""+row.getParentId());
+		// previews
+		row = curList.getList().get(2);
+		assertEquals(preview.getId(), ""+row.getId());
+		assertEquals(preview.getEtag(), row.getEtag());
+		assertEquals(null, row.getParentId());
+		// 2
+		row = curList.getList().get(3);
+		assertEquals(preview2.getId(), ""+row.getId());
+		assertEquals(preview2.getEtag(), row.getEtag());
+		assertEquals(null, row.getParentId());
+		
+		// Get the full back object
+		List<Long> idsToBackup1 = new LinkedList<Long>();
+		idsToBackup1.add(Long.parseLong(preview.getId()));
+		idsToBackup1.add(Long.parseLong(preview2.getId()));
+		List<DBOFileHandle> backupList1 = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup1);
+		assertNotNull(backupList1);
+		assertEquals(2, backupList1.size());
+		//with preview.
+		DBOFileHandle dbfh = backupList1.get(0);
+		assertEquals(preview.getId(), ""+dbfh.getId());
+		// preview.
+		dbfh = backupList1.get(1);
+		assertEquals(preview2.getId(), ""+dbfh.getId());
+		
+		// Second backup
+		List<Long> idsToBackup2 = new LinkedList<Long>();
+		idsToBackup2.add(Long.parseLong(withPreview.getId()));
+		idsToBackup2.add(Long.parseLong(withPreview2.getId()));
+		List<DBOFileHandle> backupList2 = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup2);
+		assertNotNull(backupList2);
+		assertEquals(2, backupList2.size());
+		// withPreview.
+		dbfh = backupList2.get(0);
+		assertEquals(withPreview.getId(), ""+dbfh.getId());
+		// withPreview2.
+		dbfh = backupList2.get(1);
+		assertEquals(withPreview2.getId(), ""+dbfh.getId());
+		
+		// Now delete all of the data
+		int count = migatableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup1);
+		assertEquals(2, count);
+		count = migatableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup2);
+		assertEquals(2, count);
+		assertEquals(1, migatableTableDAO.getCount(MigrationType.FILE_HANDLE)); // Should be 1 left
+		assertTrue(curMaxPreviewId < migatableTableDAO.getMaxId(MigrationType.FILE_HANDLE)); // The max(id) did not change
+		// Now restore the data
+		List<Long> results = migatableTableDAO.createOrUpdateBatch(backupList1);
+		assertNotNull(results);
+		assertEquals(idsToBackup1, results);
+		results = migatableTableDAO.createOrUpdateBatch(backupList2);
+		assertNotNull(results);
+		assertEquals(idsToBackup2, results);
+		// Now make sure if we update again it works
+		backupList1.get(0).setBucketName("updateBucketName");
+		results = migatableTableDAO.createOrUpdateBatch(backupList1);
+		assertNotNull(results);
+		assertEquals(idsToBackup1, results);
+		assertTrue(curMaxPreviewId < migatableTableDAO.getMaxId(MigrationType.FILE_HANDLE)); // The max(id) did not change
+	}
+		
 	
 	@Test
 	public void testPLFM_1978_listDeltaRowMetadata(){

@@ -57,7 +57,7 @@ public class MetadataIteratorTest {
 	public void testHappyCase(){
 		// Iterate over all data
 		BasicProgress progress = new BasicProgress();
-		MetadataIterator iterator = new MetadataIterator(type, stubSynapse, 7 , progress);
+		MetadataIterator iterator = new MetadataIterator(type, (long) rowCount, stubSynapse, 7 , progress);
 		// We should be able to iterate over all of the data and end up with list
 		// the same as used by the stub
 		List<RowMetadata> results = new LinkedList<RowMetadata>();
@@ -78,7 +78,7 @@ public class MetadataIteratorTest {
 		// Throw exceptions
 		BasicProgress progress = new BasicProgress();
 		when(mockSynapse.getRowMetadata(any(MigrationType.class), any(Long.class), any(Long.class))).thenThrow(new IllegalStateException("one"));
-		MetadataIterator iterator = new MetadataIterator(type, mockSynapse, 7, progress);
+		MetadataIterator iterator = new MetadataIterator(type, (long) rowCount, mockSynapse, 7, progress);
 		iterator.next();
 	}
 }

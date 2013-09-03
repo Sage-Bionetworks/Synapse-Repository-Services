@@ -150,7 +150,7 @@ public class MigrationClient {
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(startSourceCounts, batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -172,11 +172,11 @@ public class MigrationClient {
 	 * @param primaryTypes
 	 * @throws Exception
 	 */
-	private void migrateAll(long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes, boolean deferExceptions)
+	private void migrateAll(MigrationTypeCounts srcMigrationTypeCounts, long batchSize, long timeoutMS,	int retryDenominator, List<MigrationType> primaryTypes, boolean deferExceptions)
 			throws Exception {
 		List<DeltaData> deltaList = new LinkedList<DeltaData>();
 		for(MigrationType type: primaryTypes){
-			DeltaData dd = calculateDeltaForType(type, batchSize);
+			DeltaData dd = calculateDeltaForType(this.getMaxIdForType(srcMigrationTypeCounts, type), type, batchSize);
 			deltaList.add(dd);
 		}
 		
@@ -246,6 +246,17 @@ public class MigrationClient {
 		}
 	}
 	
+	private long getMaxIdForType(MigrationTypeCounts migTypeCounts, MigrationType type) {
+		Long l = -1L;
+		for (MigrationTypeCount mtc: migTypeCounts.getList()) {
+			if (mtc.getType() == type) {
+				l = mtc.getMaxid();
+				break;
+			}
+		}
+		return l;
+	}
+	
 	/**
 	 * Create or update
 	 * @param type
@@ -295,20 +306,31 @@ public class MigrationClient {
 		}
 	}
 	
+	private void printMaxIds(List<MigrationTypeCount> srcCounts, List<MigrationTypeCount> destCounts) {
+		Map<MigrationType, Long> mapSrcCounts = new HashMap<MigrationType, Long>();
+		for (MigrationTypeCount sMtc: srcCounts) {
+			mapSrcCounts.put(sMtc.getType(), sMtc.getMaxid());
+		}
+		// All migration types of source should be at destination
+		for (MigrationTypeCount mtc: destCounts) {
+			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getMaxid());
+		}
+	}
+	
 	/**
 	 * Migrate one type.
 	 * @param type
 	 * @param progress
 	 * @throws Exception 
 	 */
-	public DeltaData calculateDeltaForType(MigrationType type, long batchSize) throws Exception{
+	public DeltaData calculateDeltaForType(Long maxIdForType, MigrationType type, long batchSize) throws Exception{
 		// the first thing we need to do is calculate the what needs to be created, updated, or deleted.
 		// We need three temp file to keep track of the deltas
 		File createTemp = File.createTempFile("create", ".tmp");
 		File updateTemp = File.createTempFile("update", ".tmp");
 		File deleteTemp = File.createTempFile("delete", ".tmp");
 		// Calculate the deltas
-		DeltaCounts counts = calcualteDeltas(type, batchSize, createTemp, updateTemp, deleteTemp);
+		DeltaCounts counts = calcualteDeltas(type, maxIdForType, batchSize, createTemp, updateTemp, deleteTemp);
 		return new DeltaData(type, createTemp, updateTemp, deleteTemp, counts);
 		
 	}
@@ -324,7 +346,7 @@ public class MigrationClient {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private DeltaCounts calcualteDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
+	private DeltaCounts calcualteDeltas(MigrationType type, long maxIdForType, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
 		BasicProgress sourceProgress = new BasicProgress();
 		BasicProgress destProgress = new BasicProgress();
 		BufferedRowMetadataWriter createOut = null;
@@ -334,8 +356,8 @@ public class MigrationClient {
 			createOut = new BufferedRowMetadataWriter(new FileWriter(createTemp));
 			updateOut = new BufferedRowMetadataWriter(new FileWriter(updateTemp));
 			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
-			MetadataIterator sourceIt = new MetadataIterator(type, factory.createNewSourceClient(), batchSize, sourceProgress);
-			MetadataIterator destIt = new MetadataIterator(type, factory.createNewDestinationClient(), batchSize, destProgress);
+			MetadataIterator sourceIt = new MetadataIterator(type, maxIdForType, factory.createNewSourceClient(), batchSize, sourceProgress);
+			MetadataIterator destIt = new MetadataIterator(type, Long.valueOf(Integer.MAX_VALUE), factory.createNewDestinationClient(), batchSize, destProgress);
 			DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut);
 			// Do the work on a separate thread
 			Future<DeltaCounts> future = this.threadPool.submit(builder);
