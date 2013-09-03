@@ -3,6 +3,8 @@ package org.sagebionetworks.logging.s3;
 import java.io.File;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -12,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class LogSweeperFactoryImpl implements LogSweeperFactory {
+	
+	Logger log = LogManager.getLogger(LogSweeperFactoryImpl.class);
 	
 	@Autowired
 	private LogDAO logDAO;
@@ -23,7 +27,12 @@ public class LogSweeperFactoryImpl implements LogSweeperFactory {
 	 * @param logDirectory
 	 */
 	public void setLogDirectory(String logDirectory) {
+		log.debug("Setting logging directory to: "+logDirectory);
 		this.logDirectory = new File(logDirectory);
+		this.logDirectory.mkdirs();
+		if(!this.logDirectory.isDirectory()){
+			throw new IllegalArgumentException("The logging directory must be a directory");
+		}
 	}
 
 	/**

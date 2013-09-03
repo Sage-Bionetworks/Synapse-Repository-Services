@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -22,6 +24,8 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  *
  */
 public class LogDAOImpl implements LogDAO {
+	
+	Logger log = LogManager.getLogger(LogDAOImpl.class);
 	
 	@Autowired
 	private AmazonS3Client s3Client;
@@ -86,6 +90,7 @@ public class LogDAOImpl implements LogDAO {
 			// Delete all
 			if(listing.getObjectSummaries() != null){
 				for(S3ObjectSummary summary: listing.getObjectSummaries()){
+					log.debug("Deleting log from S3: "+summary.getKey());
 					s3Client.deleteObject(bucketName, summary.getKey());
 				}
 			}
