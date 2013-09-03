@@ -40,12 +40,14 @@ public class LogSweeperTest {
 	}
 	
 	@Test
-	public void testSweep() throws IOException{
+	public void testSweep() throws IOException, InterruptedException{
 		// Create a sample log in the logging directory
 		String[] entries = new String[]{"entry one", "this is the second entry"};
 		String type = "logsweeptest";
 		File sampleLog = LogWriterUtil.createSampleLogFile(config.getLocalLoggingDirectory(), type, entries);
 		try{
+			// We only sweep file that have not been modified in the past 10 seconds
+			Thread.sleep(LogSweeper.MIN_FILE_AGE_MS+10);
 			// Sweeping the logs should catch our new log
 			List<String> keys = logSweeperFactory.sweepLogs();
 			System.out.println(keys);

@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * This class sweeps file from a local directory to S3.
  * 
@@ -13,7 +16,11 @@ import java.util.List;
  * 
  */
 public class LogSweeper {
-
+	Logger log = LogManager.getLogger(LogSweeper.class);
+	/**
+	 * Only file that have not been modified for the past 10 seconds will be swept.
+	 */
+	public static final long MIN_FILE_AGE_MS = 1000*10;
 	private File logDir;
 	private long lockExpiresMs;
 	private LogDAO logDAO;
@@ -47,6 +54,7 @@ public class LogSweeper {
 		File lock = new File(logDir, ".sweep.lock");
 		try {
 			if (lock.createNewFile()) {
+				log.debug("Acquired directory lock...");
 				// we are the lock holder.
 				try {
 					// we can now sweep.
@@ -56,11 +64,12 @@ public class LogSweeper {
 					lock.delete();
 				}
 			} else {
+				log.debug("Directory lock already held");
 				// If here then the lock file already exists. Has the lock
 				// expired?
-				long heldForMS = System.currentTimeMillis()
-						- lock.lastModified();
+				long heldForMS = System.currentTimeMillis()	- lock.lastModified();
 				if (heldForMS > lockExpiresMs) {
+					log.debug("Directory lock already held but has expired so will be deleted.");
 					// release the lock as it is expired.
 					lock.delete();
 				}
@@ -74,19 +83,29 @@ public class LogSweeper {
 
 	/**
 	 * There is where the actual log sweeping occurs.
+	 * @throws IOException 
 	 */
-	private List<String> sweepAllGZipFiles() {
+	private List<String> sweepAllGZipFiles() throws IOException {
 		File[] toSweep = logDir.listFiles(new FileFilter() {
 			@Override
-			public boolean accept(File pathname) {
+			public boolean accept(File file) {
 				// We only care about GZIP files.
-				return pathname.getName().toLowerCase().trim().endsWith(".gz");
+				return file.getName().toLowerCase().trim().endsWith(".gz");
 			}
 		});
 		List<String> keys = new LinkedList<String>();
 		for (File file : toSweep) {
-			String key = sweepFile(file);
-			keys.add(key);
+			// Only sweep a file if we can lock it
+			long now = System.currentTimeMillis();
+			// Only sweep a file that is done being modified
+			if(file.lastModified() + MIN_FILE_AGE_MS < now){
+				log.debug("Sweeping file: "+file.getAbsolutePath());
+				// Now sweep the file
+				String key = sweepFile(file);
+				keys.add(key);
+			}else{
+				log.debug("File has been recently modified so it will not be swept yet: "+file.getAbsolutePath());
+			}
 		}
 		return keys;
 	}

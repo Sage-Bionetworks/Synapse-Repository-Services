@@ -211,7 +211,7 @@
 	    <!-- build cache immediately -->
     	<property name="startDelay" value="91" />
 	    <!-- repeat every 1 minutes -->
-	    <property name="repeatInterval" value="60000" />
+	    <property name="repeatInterval" value="30000" />
 	</bean>
 
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">

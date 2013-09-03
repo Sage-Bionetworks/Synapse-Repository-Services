@@ -8,7 +8,7 @@
 			<PatternLayout
 				pattern="%d{ISO8601}{GMT+0} %X{sessionId} [%t] %-5level %logger{36} - %msg%n" />
 		</Console>
-		<FastRollingFile name="traceProfiling"
+		<RollingFile name="traceProfiling"
 			fileName="${org.sagebionetworks.local.logging.dir}/repo-trace-profile.log"
 			filePattern="${org.sagebionetworks.local.logging.dir}/repo-trace-profile.%d{yyyy-MM-dd-hh-mm}.log.gz">
 			<PatternLayout>
@@ -18,8 +18,8 @@
 				<TimeBasedTriggeringPolicy interval="1" />
 				<SizeBasedTriggeringPolicy size="250 MB" />
 			</Policies>
-		</FastRollingFile>
-		<FastRollingFile name="repository"
+		</RollingFile>
+		<RollingFile name="repository"
 			fileName="${org.sagebionetworks.local.logging.dir}/repo-services.log"
 			filePattern="${org.sagebionetworks.local.logging.dir}/repo-services.%d{yyyy-MM-dd-hh-mm}.log.gz">
 			<PatternLayout>
@@ -29,7 +29,7 @@
 				<TimeBasedTriggeringPolicy interval="1" />
 				<SizeBasedTriggeringPolicy size="250 MB" />
 			</Policies>
-		</FastRollingFile>
+		</RollingFile>
 	</appenders>
 	<loggers>
 		<logger name="org.sagebionetworks.profiler.LoggingProfiler"
