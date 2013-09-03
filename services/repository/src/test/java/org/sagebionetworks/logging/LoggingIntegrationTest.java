@@ -32,7 +32,10 @@ public class LoggingIntegrationTest {
 
 	private static Logger log = LogManager.getLogger(LoggingIntegrationTest.class);
 	
-	public static final int MAX_WAIT_MS = 1000*120;
+	/**
+	 * This test has a long wait time as log rolling only occurs once a minute.
+	 */
+	public static final int MAX_WAIT_MS = 1000*60*3;
 	
 	
 	@Autowired
