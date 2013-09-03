@@ -357,7 +357,7 @@ public class MigrationClient {
 			updateOut = new BufferedRowMetadataWriter(new FileWriter(updateTemp));
 			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
 			MetadataIterator sourceIt = new MetadataIterator(type, maxIdForType, factory.createNewSourceClient(), batchSize, sourceProgress);
-			MetadataIterator destIt = new MetadataIterator(type, maxIdForType, factory.createNewDestinationClient(), batchSize, destProgress);
+			MetadataIterator destIt = new MetadataIterator(type, Long.valueOf(Integer.MAX_VALUE), factory.createNewDestinationClient(), batchSize, destProgress);
 			DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut);
 			// Do the work on a separate thread
 			Future<DeltaCounts> future = this.threadPool.submit(builder);
