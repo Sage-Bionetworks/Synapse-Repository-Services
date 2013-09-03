@@ -161,6 +161,10 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
+		}, 
+		"agreesToTermsOfUse": {
+			"type": "string", 
+			"description": "Whether this person has agreed to Synapse's terms of use"
 		}
 	}
 }

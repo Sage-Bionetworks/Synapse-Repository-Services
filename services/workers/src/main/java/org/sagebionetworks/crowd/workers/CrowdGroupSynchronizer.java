@@ -50,7 +50,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
-	private UserDAO userDAO;
+	private UserDAO userDAOImpl; // the CrowdUserDAO
 	
 	
 	@Override
@@ -83,12 +83,13 @@ public class CrowdGroupSynchronizer implements Runnable {
 					} catch (NotFoundException e) {
 						// Must make a new profile
 						try {
-							User user = userDAO.getUser(URLEncoder.encode(name, "UTF-8"));
+							User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
 							UserProfile userProfile = new UserProfile();
 							userProfile.setOwnerId(principalId);
 							userProfile.setFirstName(user.getFname());
 							userProfile.setLastName(user.getLname());
 							userProfile.setDisplayName(user.getDisplayName());
+							userProfile.setAgreesToTermsOfUse(Boolean.toString(user.isAgreesToTermsOfUse()));
 							userProfileDAO.create(userProfile, schema);
 						} catch (NotFoundException nfe) {
 							throw new RuntimeException(nfe);
