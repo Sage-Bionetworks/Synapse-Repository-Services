@@ -79,8 +79,6 @@ public interface UserManager {
 	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException;
 
 	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException;
-	
-	public void clearCache();
 
 	/**
 	 * Get all non-individual user groups, including Public.
