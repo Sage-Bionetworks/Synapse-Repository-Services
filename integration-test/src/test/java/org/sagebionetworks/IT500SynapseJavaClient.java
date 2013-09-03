@@ -806,15 +806,8 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testGetUserGroupHeadersByPrefix() throws Exception {
-		UserProfile profile = synapse.getMyProfile();
-		String email = profile.getEmail();
-		
-		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(email);
-		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren())
-			headers.put(ugh.getOwnerId(), ugh);
-		assertTrue(headers.containsKey(profile.getOwnerId()));
-		
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneEmail());
+		assertTrue(response.getChildren().size() > 0);
 		
 		String dummyPrefix = "INVALIDPREFIX12345@INVALID.COM.WRONG";
 		response = synapse.getUserGroupHeadersByPrefix(dummyPrefix);
