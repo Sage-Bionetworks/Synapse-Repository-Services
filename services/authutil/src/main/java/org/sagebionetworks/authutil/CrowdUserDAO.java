@@ -12,7 +12,6 @@ import java.util.Map;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -26,36 +25,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public class CrowdUserDAO implements UserDAO {
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.BaseDAO#create(org.sagebionetworks.repo.model.Base)
-	 */
-	@Override
-	public String create(User dto) throws DatastoreException,
-			InvalidModelException {
-		throw new UnsupportedOperationException();
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.BaseDAO#get(java.lang.String)
-	 */
-	@Override
-	public User get(String id) throws DatastoreException, NotFoundException {
-		
-		return getUser(id); //  i.e. user name == user id
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.BaseDAO#getAll()
-	 */
-	@Override
-	public Collection<User> getAll() throws DatastoreException {
-		throw new UnsupportedOperationException();
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.BaseDAO#update(org.sagebionetworks.repo.model.Base)
-	 */
-	@Override
 	public void update(User dto) throws DatastoreException {
 		Map<String,Collection<String>> userAttributes = new HashMap<String,Collection<String>>();
 		if (dto.getCreationDate()!=null) userAttributes.put(AuthorizationConstants.CREATION_DATE_FIELD, 
@@ -65,14 +34,6 @@ public class CrowdUserDAO implements UserDAO {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-	}
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.BaseDAO#delete(java.lang.String)
-	 */
-	@Override
-	public void delete(String id) throws DatastoreException, NotFoundException {
-		throw new UnsupportedOperationException();
 	}
 	
 	/* (non-Javadoc)
@@ -110,20 +71,10 @@ public class CrowdUserDAO implements UserDAO {
 		user.setDisplayName(authUser.getDisplayName());
 		return user;
 	}
-	
-	@Override
-	public Collection<String> getUserGroupNames(String userName) throws NotFoundException, DatastoreException {
-		try {
-			return CrowdAuthUtil.getUsersGroups(userName);
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
 
 	@Override
-	public long getCount() throws DatastoreException {
+	public void delete(String id) throws DatastoreException, NotFoundException {
 		throw new UnsupportedOperationException();
 	}
-
 	
 }
