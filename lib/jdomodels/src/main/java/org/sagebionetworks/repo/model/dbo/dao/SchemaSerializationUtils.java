@@ -34,7 +34,6 @@ public class SchemaSerializationUtils {
 				field.setAccessible(true);
 				Class fieldType = field.getType();
 				if (!(fieldType.equals(String.class) || fieldType.equals(AttachmentData.class))) {
-					// throw new RuntimeException("Unsupported field type "+fieldType);
 					continue; // Skip fields that are not supported
 				}
 				List<String> values = stringAnnots.get(propertyName);

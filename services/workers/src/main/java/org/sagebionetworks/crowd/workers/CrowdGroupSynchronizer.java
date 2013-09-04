@@ -79,13 +79,17 @@ public class CrowdGroupSynchronizer implements Runnable {
 					UserProfile userProfile = userProfileDAO.get(principalId);
 					
 					// For profiles that already exist, migrate the boolean for the termsOfUse over
-					if (userProfile.getAgreesToTermsOfUse() == null) {
-						User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
-						if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
-							userProfile.setAgreesToTermsOfUse(user.getCreationDate().getTime());
-						} else {
-							userProfile.setAgreesToTermsOfUse(0L);
-						}
+					User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
+					long termsTimeStamp;
+					if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
+						termsTimeStamp = user.getCreationDate().getTime() / 1000;
+					} else {
+						termsTimeStamp = 0L;
+					}
+					
+					// Don't needlessly re-update the profile with the same data
+					if (userProfile.getAgreesToTermsOfUse().longValue() != termsTimeStamp) {
+						userProfile.setAgreesToTermsOfUse(termsTimeStamp);
 						userProfileDAO.update(userProfile);
 					}
 					
