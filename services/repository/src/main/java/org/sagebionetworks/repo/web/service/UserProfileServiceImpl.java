@@ -15,7 +15,8 @@ import java.util.SortedMap;
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.xpath.XPathExpressionException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
@@ -53,7 +54,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class UserProfileServiceImpl implements UserProfileService {
 
-	private final Logger logger =  Logger.getLogger(UserProfileServiceImpl.class);
+	private final Logger logger = LogManager.getLogger(UserProfileServiceImpl.class);
 
 	@Autowired
 	UserProfileManager userProfileManager;	

@@ -9,15 +9,9 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Filter to determine if a user wants to capture profile data for a single
@@ -28,7 +22,7 @@ import org.json.JSONObject;
  */
 public class ProfileFilter implements Filter {
 
-	static private Log log = LogFactory.getLog(ProfileFilter.class);
+	static private Logger log = LogManager.getLogger(ProfileFilter.class);
 
 	public static final String KEY_PROFILE_REQUEST = "profile_request";
 	// The JSON object for the profile results

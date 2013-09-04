@@ -38,11 +38,23 @@ public class KeyGeneratorUtil {
 	    return createKey(stackInstanceNumber, year, month, day, hour, mins, sec, milli, UUID.randomUUID().toString());
 	}
 
-
-	private static Calendar getCalendarUTC(long timeMS) {
-		Calendar cal = Calendar.getInstance();
+	/**
+	 * Get a new UTC calendar set to the given time.
+	 * @param timeMS
+	 * @return
+	 */
+	public static Calendar getCalendarUTC(long timeMS) {
+		Calendar cal = getClaendarUTC();
 	    cal.setTime(new Date(timeMS));
 		return cal;
+	}
+	
+	/**
+	 * Get a new Calendar Set to UTC time zone.
+	 * @return
+	 */
+	public static Calendar getClaendarUTC(){
+		return Calendar.getInstance(TimeZone.getTimeZone("GMT+0:00"));
 	}
 	
 	

@@ -7,7 +7,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -21,7 +22,7 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
  * 
  */
 public class S3PropertyFileLoader {
-	private static final Logger log = Logger.getLogger(S3PropertyFileLoader.class
+	private static final Logger log = LogManager.getLogger(S3PropertyFileLoader.class
 			.getName());
 	/**
 	 * 

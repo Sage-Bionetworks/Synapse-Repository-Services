@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.manager.doi;
 
 import java.util.Calendar;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.doi.DoiAsyncClient;
 import org.sagebionetworks.doi.DxAsyncCallback;
 import org.sagebionetworks.doi.DxAsyncClient;
@@ -28,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class EntityDoiManagerImpl implements EntityDoiManager {
 
-	private final Logger logger = Logger.getLogger(EntityDoiManagerImpl.class);
+	private final Logger logger = LogManager.getLogger(EntityDoiManagerImpl.class);
 
 	@Autowired private UserManager userManager;
 	@Autowired private AuthorizationManager authorizationManager;

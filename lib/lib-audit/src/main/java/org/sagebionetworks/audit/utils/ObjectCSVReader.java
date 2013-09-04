@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Field;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -26,7 +27,7 @@ import au.com.bytecode.opencsv.CSVReader;
  */
 public class ObjectCSVReader<T> {
 
-	private static final Logger logger = Logger
+	private static final Logger logger = LogManager
 			.getLogger(ObjectCSVReader.class);
 
 	CSVReader csv;

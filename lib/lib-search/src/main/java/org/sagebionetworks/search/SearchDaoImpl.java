@@ -12,8 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -51,7 +51,7 @@ public class SearchDaoImpl implements SearchDao {
 	
 	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "bq="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
 
-	static private Log log = LogFactory.getLog(SearchDaoImpl.class);
+	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 	
 	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
 	
