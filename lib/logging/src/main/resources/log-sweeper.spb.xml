@@ -11,7 +11,7 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="stack-configuration.spb.xml" />
+	<import resource="classpath:stack-configuration.spb.xml" />
 
 	<bean id="userID" class="org.sagebionetworks.StackConfiguration"
 		factory-method="getIAMUserId" />
@@ -37,11 +37,5 @@
 		<property name="bucketName" ref="stackConfiguration.logBucketName" />
 		<property name="stackInstanceNumber" ref="stackConfiguration.stackInstanceNumber" />
 	</bean>
-
-	<bean id="logSweeperFactory" class="org.sagebionetworks.logging.s3.LogSweeperFactoryImpl" scope="singleton">
-		<property name="lockExpiresMs" value="300000" />
-		<property name="logDirectory" ref="stackConfiguration.localLoggingDirectory" />
-	</bean>
-
 
 </beans>

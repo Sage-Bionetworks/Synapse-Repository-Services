@@ -14,7 +14,7 @@
 	<import resource="classpath:search-dao.spb.xml" />
 	<import resource="classpath:managers-spb.xml" />
 	<import resource="classpath:cloudwatch-spb.xml" />
-	<import resource="classpath:log-sweeper.spb.xml" />
+	<import resource="classpath:repo-log-sweep-spb.xml" />
 
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
 		Controller -->
@@ -200,25 +200,11 @@
 	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
 	</bean>
 	
-	<!-- Setup the log sweeping to S3 -->
-	<bean id="logSweeperJobDetails" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-		<property name="targetObject" ref="logSweeperFactory" />
-		<property name="targetMethod" value="sweepLogs" />		
-	    <property name="concurrent" value="false" />
-	</bean>
-	<bean id="logSweeperTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-	    <property name="jobDetail" ref="logSweeperJobDetails" />
-	    <!-- build cache immediately -->
-    	<property name="startDelay" value="91" />
-	    <!-- repeat every 1 minutes -->
-	    <property name="repeatInterval" value="30000" />
-	</bean>
-
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 	    <property name="triggers">
 	        <list>
 	            <ref bean="refreshUserGroupCacheTrigger" />
-	           	<ref bean="logSweeperTrigger" />
+	           	<ref bean="repoLogSweeperTrigger" />
 	        </list>
 	    </property>
     </bean>
