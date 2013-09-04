@@ -51,7 +51,6 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.stackInstanceNumber",
 			
 			"stackConfiguration.logBucketName",
-			"stackConfiguration.localLoggingDirectory"
 	};
 	
 	@Before

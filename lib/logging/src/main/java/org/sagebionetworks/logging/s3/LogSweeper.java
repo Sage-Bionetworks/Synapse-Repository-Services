@@ -54,7 +54,7 @@ public class LogSweeper {
 		File lock = new File(logDir, ".sweep.lock");
 		try {
 			if (lock.createNewFile()) {
-				log.debug("Acquired directory lock...");
+				log.debug("Acquired directory lock: "+lock.getAbsolutePath());
 				// we are the lock holder.
 				try {
 					// we can now sweep.
