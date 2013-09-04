@@ -5,8 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -33,7 +33,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 @SuppressWarnings("rawtypes")
 public class JDONodeQueryDaoImpl implements NodeQueryDao {
 
-	static private Log log = LogFactory.getLog(JDONodeQueryDaoImpl.class);
+	static private Logger log = LogManager.getLogger(JDONodeQueryDaoImpl.class);
 	
 	// This is better suited for simple JDBC query.
 	@Autowired

@@ -8,8 +8,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -27,7 +27,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 public class MessageReceiverImpl implements MessageReceiver {
 	
 
-	static private Log log = LogFactory.getLog(MessageReceiverImpl.class);
+	static private Logger log = LogManager.getLogger(MessageReceiverImpl.class);
 	
 	@Autowired
 	AmazonSQSClient awsSQSClient;

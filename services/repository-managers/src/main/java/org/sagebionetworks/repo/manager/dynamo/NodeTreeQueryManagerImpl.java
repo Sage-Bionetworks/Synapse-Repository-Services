@@ -3,7 +3,8 @@ package org.sagebionetworks.repo.manager.dynamo;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -20,7 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
-	private final Logger logger = Logger.getLogger(NodeTreeQueryManagerImpl.class);
+	private final Logger logger = LogManager.getLogger(NodeTreeQueryManagerImpl.class);
 
 	@Autowired
 	private UserManager userManager;

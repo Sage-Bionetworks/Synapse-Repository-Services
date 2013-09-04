@@ -1,12 +1,22 @@
 package org.sagebionetworks.repo.model.query;
 
+import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_ANNO_OWNER;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_EXPRESSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_SORT;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_OWNER;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_ATTRIBUTE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_IS_PRIVATE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_VALUE;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -15,9 +25,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Expression;
-import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.SizeLimitRowMapper;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -25,8 +32,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
 
 public class QueryDAOImpl implements QueryDAO {
 	
@@ -37,7 +42,7 @@ public class QueryDAOImpl implements QueryDAO {
 
 	private static final long MAX_BYTES_PER_QUERY = 
 			StackConfiguration.getMaximumBytesPerQueryResult();
-	private static Log log = LogFactory.getLog(QueryDAOImpl.class);
+	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
 	
 	@Override
 	public QueryTableResults executeQuery(BasicQuery userQuery, UserInfo userInfo)

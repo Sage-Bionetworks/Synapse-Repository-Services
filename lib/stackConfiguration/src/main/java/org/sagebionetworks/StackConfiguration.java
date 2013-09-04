@@ -6,7 +6,8 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * StackConfiguration wraps all configuration needed for a Synapse service stack
@@ -23,7 +24,7 @@ public class StackConfiguration {
 	static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
 	static final String TEMPLATE_PROPERTIES = "/template.properties";
 
-	private static final Logger log = Logger.getLogger(StackConfiguration.class
+	private static final Logger log = LogManager.getLogger(StackConfiguration.class
 			.getName());
 
 	private static TemplatedConfiguration configuration = null;
@@ -1144,5 +1145,23 @@ public class StackConfiguration {
 	 */
 	public String getAuditRecordBucketName() {
 		return String.format(StackConstants.ACCESS_RECORD_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the name of the stack log bucket.
+	 * 
+	 * @return
+	 */
+	public String getLogBucketName() {
+		return String.format(StackConstants.STACK_LOG_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the full path of the local logging directory
+	 * 
+	 * @return
+	 */
+	public String getLocalLoggingDirectory() {
+		return String.format(StackConstants.LOCAL_LOG_DIRECTORY, System.getProperty("java.io.tmpdir"));
 	}
 }

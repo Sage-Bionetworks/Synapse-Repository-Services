@@ -6,8 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ import org.springframework.transaction.support.TransactionSynchronizationAdapter
  */
 public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
-	static private Log log = LogFactory.getLog(TransactionalMessengerImpl.class);
+	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
 	
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
 	@Autowired

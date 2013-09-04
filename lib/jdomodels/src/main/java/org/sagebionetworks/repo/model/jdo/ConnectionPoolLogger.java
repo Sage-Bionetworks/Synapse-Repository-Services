@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 
@@ -12,7 +13,7 @@ import org.aspectj.lang.annotation.Aspect;
 @Aspect
 public class ConnectionPoolLogger {
 	
-	private static final Logger log = Logger.getLogger(ConnectionPoolLogger.class
+	private static final Logger log = LogManager.getLogger(ConnectionPoolLogger.class
 			.getName());
 
 	/**
