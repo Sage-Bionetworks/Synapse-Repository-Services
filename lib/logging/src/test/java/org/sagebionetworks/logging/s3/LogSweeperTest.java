@@ -23,15 +23,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:log-sweeper.spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.spb.xml" })
 public class LogSweeperTest {
 
 	@Autowired
 	LogSweeperFactory logSweeperFactory;
 	@Autowired
 	private LogDAO logDAO;
-	@Autowired
-	StackConfiguration config;
+
 	
 	@Before
 	public void before(){
@@ -44,7 +43,14 @@ public class LogSweeperTest {
 		// Create a sample log in the logging directory
 		String[] entries = new String[]{"entry one", "this is the second entry"};
 		String type = "logsweeptest";
-		File sampleLog = LogWriterUtil.createSampleLogFile(config.getLocalLoggingDirectory(), type, entries);
+		List<File> directories = logSweeperFactory.getLogDirectories();
+		assertNotNull(directories);
+		assertEquals(1, directories.size());
+		String logPath = directories.get(0).getAbsolutePath();
+		String tempDir = System.getProperty("java.io.tmpdir");
+		assertNotNull(tempDir);
+		assertEquals(new File(tempDir+"/synapse/test/logs").getAbsolutePath(), logPath);
+		File sampleLog = LogWriterUtil.createSampleLogFile(logPath, type, entries);
 		try{
 			// We only sweep file that have not been modified in the past 10 seconds
 			Thread.sleep(LogSweeper.MIN_FILE_AGE_MS+10);
