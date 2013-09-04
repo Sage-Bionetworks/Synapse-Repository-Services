@@ -46,6 +46,9 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
         
     private static Presenter presenter;
     private FileList fileList = null;
+    private boolean enabled = true;
+    private boolean singleFileMode = true;
+    private FileBrowserSheet fileBrowserSheet;
     
     @Override
     public void setPresenter(Presenter presenter) {
@@ -61,7 +64,7 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
         setupKeyListeners();
         setupDragAndDrop();
         setupBrowseButton();
-        setupUploadButton();               
+        setupUploadButton();      
     }
 
 	@Override
@@ -87,7 +90,20 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 		}		
 	}
 	
+	@Override
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+		applyEnabled();
+	}
 	
+	@Override
+	public void setSingleFileMode(boolean singleFileMode) {
+		this.singleFileMode = singleFileMode;
+		
+		if(fileBrowserSheet != null) 
+			setBrowserSheetMode();		
+	}
+
 	/*
 	 * Private Methods
 	 */
@@ -95,9 +111,8 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 		browseButton.getButtonPressListeners().add(new ButtonPressListener() {			
         	@Override
         	public void buttonPressed(Button arg0) {
-        		final FileBrowserSheet fileBrowserSheet = new FileBrowserSheet();
-        		  
-                fileBrowserSheet.setMode(Mode.OPEN_MULTIPLE);
+        		fileBrowserSheet = new FileBrowserSheet();        		  
+                setBrowserSheetMode();
                 fileBrowserSheet.open(FileUploaderViewImpl.this, new SheetCloseListener() {
                     @Override
                     public void sheetClosed(Sheet sheet) {
@@ -111,9 +126,17 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
                     }
                 });
         	}
+
         });
 	}
-		
+
+	private void setBrowserSheetMode() {
+		if(singleFileMode)
+        	fileBrowserSheet.setMode(Mode.OPEN);
+        else 
+        	fileBrowserSheet.setMode(Mode.OPEN_MULTIPLE);
+	}
+
 	private void setupDragAndDrop() {
 		fileTableView.setDropTarget(new DropTarget() {
             @Override
@@ -178,7 +201,16 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
                         Span range = selectedRanges.get(i);
                         int index = range.start;
                         int count = range.end - index + 1;
-                        fileList.remove(index, count);
+                        
+                        // retrieve files to be removed and send to presenter
+                        java.util.List<File> filesToRemove = new ArrayList<File>();
+                        for(int num=range.start; num<=range.end; num++) {
+                            filesToRemove.add(fileList.get(num));
+                        }
+                        presenter.removeFilesFromUpload(filesToRemove);
+
+                        // remove from view
+                        fileList.remove(index, count);                                                	
                     }
                 }
 
@@ -211,6 +243,18 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
                 }
             }
         });
+	}
+
+	private void applyEnabled() {		
+		if(uploadButton != null) {
+			uploadButton.setEnabled(enabled);
+		}
+		if(browseButton != null) {
+			browseButton.setEnabled(enabled);
+		}
+		if(fileTableView != null) {
+			fileTableView.setEnabled(enabled);
+		}
 	}
 	
 	/*

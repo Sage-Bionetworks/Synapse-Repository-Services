@@ -14,6 +14,8 @@ public interface FileUploaderView {
 		UploadStatus getFileUplaodStatus(File file);
 
 		void addFilesForUpload(List<File> files);
+
+		void removeFilesFromUpload(List<File> files);
 	}
 
 	public void showStagedFiles(List<File> files);
@@ -25,5 +27,9 @@ public interface FileUploaderView {
 	public void updateFileStatus();
 	
 	public void setUploadingIntoMessage(String message);
+
+	public void setEnabled(boolean enabled);
+
+	public void setSingleFileMode(boolean singleFileMode);
 	
 }

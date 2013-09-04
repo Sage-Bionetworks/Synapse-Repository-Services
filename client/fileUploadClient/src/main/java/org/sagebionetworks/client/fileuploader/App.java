@@ -21,25 +21,24 @@ public class App implements Application {
 	
 	private Window window = null;
 	private static String sessionToken;
-	private static String parentId;
+	private static String entityId;
 	private static Boolean isUpdate;
 	
 	public static void main(String[] args) {
 		logger.info("starting app");
-		if(args != null && args.length >= 3) {
+		if(args != null && args.length >= 2) {
 			for(String arg : args) {
 				if(arg.startsWith("--sessionToken=")) sessionToken = arg.replace("--sessionToken=", "");
-				if(arg.startsWith("--entityId=")) parentId = arg.replace("--entityId=", "");
-				if(arg.startsWith("--isUpdate=")) isUpdate = Boolean.parseBoolean(arg.replace("--isUpdate=", ""));
+				if(arg.startsWith("--entityId=")) entityId = arg.replace("--entityId=", "");
 			}
-			logger.info("sessiontoken: "+ sessionToken + ", parentId: "+ parentId + ", isUpdate: "+ isUpdate);
+			logger.info("sessiontoken: "+ sessionToken + ", parentId: "+ entityId + ", isUpdate: "+ isUpdate);
 		}
 		DesktopApplicationContext.main(App.class, args);				
 	}
 
 	@Override
     public void startup(Display display, Map<String, String> properties) throws Exception {
-		if(sessionToken == null || parentId == null ) {
+		if(sessionToken == null || entityId == null ) {
 			showUsage(display);
 			return;
 		}
@@ -48,7 +47,7 @@ public class App implements Application {
 		window = fileUploader.asWidget();		
         window.open(display);
 
-        fileUploader.configure(createSynapseClient(), parentId);       
+        fileUploader.configure(createSynapseClient(), entityId);       
     }
 
 	@Override
