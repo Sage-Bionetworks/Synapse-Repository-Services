@@ -12,8 +12,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * This is a very simple filter to allow Cross-Origin Resource Sharing (CORS).
@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SimpleCORSFilter implements Filter {
 
-	static private Log log = LogFactory.getLog(SimpleCORSFilter.class);
+	static private Logger log = LogManager.getLogger(SimpleCORSFilter.class);
 	
 	@Override
 	public void destroy() {

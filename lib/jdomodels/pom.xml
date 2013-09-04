@@ -19,7 +19,11 @@
 	<name>Platform Repository Model Objects - JDO Implementation</name>
 
 	<dependencies>
-
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+		</dependency>
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>

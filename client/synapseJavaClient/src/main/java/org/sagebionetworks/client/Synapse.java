@@ -39,7 +39,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -142,7 +143,7 @@ public class Synapse implements SynapseInt {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
+	protected static final Logger log = LogManager.getLogger(Synapse.class.getName());
 	
 	protected static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
 

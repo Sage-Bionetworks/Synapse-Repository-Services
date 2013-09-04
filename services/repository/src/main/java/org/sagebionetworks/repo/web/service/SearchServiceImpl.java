@@ -8,7 +8,8 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.client.ClientProtocolException;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
@@ -40,7 +41,7 @@ import org.springframework.web.servlet.ModelAndView;
  * 
  */
 public class SearchServiceImpl implements SearchService {
-	private static final Logger log = Logger.getLogger(SearchServiceImpl.class
+	private static final Logger log = LogManager.getLogger(SearchServiceImpl.class
 			.getName());
 	
 	@Autowired

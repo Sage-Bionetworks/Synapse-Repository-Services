@@ -8,7 +8,8 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author deflaux
@@ -16,8 +17,7 @@ import org.apache.log4j.Logger;
  */
 public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 
-	private static final Logger log = Logger
-			.getLogger(TemplatedConfigurationImpl.class.getName());
+	private static final Logger log = LogManager.getLogger(TemplatedConfigurationImpl.class.getName());
 
 	private String defaultPropertiesFilename;
 	private String templatePropertiesFilename;
@@ -98,11 +98,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue
+			log.debug(propertyName + "=" + propertyValue
 					+ " from stack property overrides " + propertyFileUrl);
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue
+			log.debug(propertyName + "=" + propertyValue
 					+ " from default stack properties "
 					+ defaultPropertiesFilename);
 		}

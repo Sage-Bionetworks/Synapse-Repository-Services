@@ -6,8 +6,8 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -20,7 +20,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
  */
 public class DDLUtilsImpl implements DDLUtils{
 	
-	static private Log log = LogFactory.getLog(DDLUtilsImpl.class);
+	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
 	
 	// Determine if the table exists
 	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$s'";

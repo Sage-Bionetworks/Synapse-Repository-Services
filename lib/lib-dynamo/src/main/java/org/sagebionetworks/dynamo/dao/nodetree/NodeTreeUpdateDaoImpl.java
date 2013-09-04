@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteExecutor;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
@@ -18,7 +20,7 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
  */
 public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 
-	private final Logger logger = Logger.getLogger(NodeTreeUpdateDaoImpl.class);
+	private final Logger logger = LogManager.getLogger(NodeTreeUpdateDaoImpl.class);
 
 	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper writeMapper;
