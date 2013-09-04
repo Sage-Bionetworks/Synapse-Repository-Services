@@ -22,12 +22,14 @@ import java.util.regex.Pattern;
 
 import net.sf.jmimemagic.Magic;
 
+import org.apache.log4j.Logger;
 import org.apache.pivot.wtk.Window;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -35,6 +37,8 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserSessionData;
 
 public class FileUploader implements FileUploaderView.Presenter {
+	private static final Logger log = Logger.getLogger(FileUploader.class); 
+	
 	private static final int MAX_NAME_CHARS = 40;
 
 	private static int fileIdSequence = 0;
@@ -53,7 +57,6 @@ public class FileUploader implements FileUploaderView.Presenter {
 	private boolean singleFileMode;
 	private boolean enabled;
 	private Entity targetEntity;
-	private FileEntity targetFileEntity;
 	
 	public FileUploader(FileUploaderView view, UploadFuturesFactory uploadFuturesFactory) {
 		this.view = view;
@@ -67,6 +70,11 @@ public class FileUploader implements FileUploaderView.Presenter {
 		return (Window)view;
 	}
 
+	/**
+	 * Configure Uploader with either a container entity or an entity to update (single file mode)
+	 * @param synapseClient
+	 * @param targetEntityId
+	 */
 	public void configure(Synapse synapseClient, String targetEntityId) {
 		this.synapseClient = synapseClient;
 		this.targetEntityId = targetEntityId;
@@ -76,78 +84,34 @@ public class FileUploader implements FileUploaderView.Presenter {
 		getTargetEntity(synapseClient, targetEntityId);		
 	}
 
-	private void getTargetEntity(Synapse synapseClient, String targetEntityId) {
-		try {
-			targetEntity = synapseClient.getEntityById(targetEntityId);
-			if(targetEntity != null) {
-				// check if container
-				if(targetEntity instanceof Project || targetEntity instanceof Folder) {
-					singleFileMode = false;				
-				}
-				view.setSingleFileMode(singleFileMode);
-				
-				// Don't support old entity types that require repo upload proxy
-				if(singleFileMode) {
-					if(!(targetEntity instanceof FileEntity)) {
-						setEnabled(false);
-						String entityType = targetEntity.getConcreteType().replaceAll(".+\\.", "");					
-						view.alert("The File Uploader does not support upload to deprecated Entity type: "
-								+ entityType
-								+ ". Please recreate your entity as a FileEntity.");
-					} else {
-						targetFileEntity = (FileEntity) targetEntity;
-					}			
-				}
-				
-				// show entity in view
-				String message = targetEntity.getName();
-				if(message.length() > MAX_NAME_CHARS) message = message.substring(0, MAX_NAME_CHARS) + "...";
-				message += " ("+ targetEntityId +")";
-				view.setUploadingIntoMessage(message);
-			} else {
-				view.alert("Upload to is null. Please reload.");
-			}
-		} catch (SynapseException e) {
-			if(e instanceof SynapseNotFoundException) {
-				view.alert("Upload target Not Found: " + targetEntityId);				
-			} else if(e instanceof SynapseForbiddenException) {
-				String userName = "(undefined)";
-				if(userSessionData != null && userSessionData.getProfile() != null) 
-					userName = userSessionData.getProfile().getDisplayName();
-				view.alert("Access Denied to " + targetEntityId + "for user " + userName + ". Please gain access and then reload.");
-			} else {
-				view.alert("An Error Occured. Please reload.");
-			}
-			setEnabled(false);
-		}
-	}
-
-	private boolean getUserSessionData(Synapse synapseClient) {
-		try {
-			userSessionData = synapseClient.getUserSessionData();
-		} catch (SynapseException e) {
-			if(e instanceof SynapseUnauthorizedException) {
-				view.alert("Your Synapse session has expired. Please reload.");				
-			} else {
-				view.alert("An Error Occured. Please reload.");
-			}
-			setEnabled(false);
-			return false;
-		}
-		return true;
+	/**
+	 * Mainly for testing
+	 * @return
+	 */
+	public Set<File> getStagedFilesForUpload() {
+		return filesStagedForUpload;
 	}
 	
-	private void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-		view.setEnabled(enabled);
+	/**
+	 * Mainly for testing
+	 * @return
+	 */
+	public Map<File, UploadStatus> getFileStatus() {
+		return fileStatus;
 	}
-
+	
+	/**
+	 * Retrieve the upload status of a file
+	 */
 	@Override
 	public UploadStatus getFileUplaodStatus(File file) {
 		if(!fileStatus.containsKey(file)) return UploadStatus.NOT_UPLOADED;
 		else return fileStatus.get(file);
 	}
 
+	/**
+	 * Add files to be staged for uploading
+	 */
 	@Override
 	public void addFilesForUpload(List<File> files) {				
 		// flatten the hierarchy of files/folders given into a list
@@ -175,12 +139,27 @@ public class FileUploader implements FileUploaderView.Presenter {
 		    try {
 				Files.walkFileTree(file.toPath(), fileVisitor);
 			} catch (IOException e) {
+				log.error(e);
 				view.alert("An error occurred. Please try reloading this applicaiton.");
 			}		    
 		}
 		view.showStagedFiles(new ArrayList<File>(filesStagedForUpload));
 	}
 
+	/**
+	 * Remove files from those staged to be uploaded
+	 */
+	@Override
+	public void removeFilesFromUpload(List<File> files) {
+		for(File file : files) {
+			filesStagedForUpload.remove(file);
+			fileStatus.remove(file);
+		}
+	}
+	
+	/**
+	 * Upload staged files
+	 */
 	@Override
 	public void uploadFiles() {
 		// preconditions
@@ -208,9 +187,9 @@ public class FileUploader implements FileUploaderView.Presenter {
 			
 			Future<Entity> uploadedFuture;
 			if(singleFileMode) {
-				uploadedFuture = uploadFuturesFactory.createNewVersionFileEntityFuture(file, mimeType, uploadPool, synapseClient, targetFileEntity, statusCallback);
+				uploadedFuture = uploadFuturesFactory.createNewVersionFileEntityFuture(file, mimeType, uploadPool, synapseClient, (FileEntity)targetEntity, statusCallback);
 			} else {				
-				uploadedFuture = uploadFuturesFactory.createChildFileEntityFuture(file, mimeType, uploadPool, synapseClient, mimeType, statusCallback);  
+				uploadedFuture = uploadFuturesFactory.createChildFileEntityFuture(file, mimeType, uploadPool, synapseClient, targetEntityId, statusCallback);  
 			}
 			int id = ++fileIdSequence;
 			idToFile.put(id, file);
@@ -228,10 +207,16 @@ public class FileUploader implements FileUploaderView.Presenter {
 						unfinished.remove(future);
 						File file = idToFile.get(futureToId.get(future));
 						try {
-							future.get();
+							Entity entity = future.get();
+							if(singleFileMode) targetEntity = entity;
 							setFileStatus(file, UploadStatus.UPLOADED);
 						} catch (Exception e) {
-							setFileStatus(file, UploadStatus.FAILED);
+							log.error(e);
+							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseUserException && e.getMessage().contains("(409)")) {
+								setFileStatus(file, UploadStatus.ALREADY_EXISTS);
+							} else {
+								setFileStatus(file, UploadStatus.FAILED);
+							}
 						}
 					}
 				}
@@ -240,23 +225,80 @@ public class FileUploader implements FileUploaderView.Presenter {
 		}, 0, 500L); // update every 1/2 second		
 	}
 	
-	@Override
-	public void removeFilesFromUpload(List<File> files) {
-		for(File file : files) {
-			filesStagedForUpload.remove(file);
-			fileStatus.remove(file);
-		}
-	}
 	
 	/*
 	 * Private Methods
 	 */
+	private boolean getUserSessionData(Synapse synapseClient) {
+		try {
+			userSessionData = synapseClient.getUserSessionData();
+		} catch (SynapseException e) {
+			log.error(e);
+			if(e instanceof SynapseUnauthorizedException) {
+				view.alert("Your Synapse session has expired. Please reload.");				
+			} else {
+				view.alert("An Error Occured. Please reload.");
+			}
+			setEnabled(false);
+			return false;
+		}
+		return true;
+	}
+	
+	private void getTargetEntity(Synapse synapseClient, String targetEntityId) {
+		try {
+			targetEntity = synapseClient.getEntityById(targetEntityId);
+			if(targetEntity != null) {
+				// check if container
+				if(targetEntity instanceof Project || targetEntity instanceof Folder) {
+					singleFileMode = false;				
+				}
+				view.setSingleFileMode(singleFileMode);
+				
+				// Don't support old entity types that require repo upload proxy
+				if(singleFileMode && !(targetEntity instanceof FileEntity)) {
+					setEnabled(false);
+					String entityType = targetEntity.getConcreteType().replaceAll(".+\\.", "");					
+					view.alert("The File Uploader does not support upload to deprecated Entity type: "
+							+ entityType
+							+ ". Please recreate your entity as a FileEntity.");
+				}
+				
+				// show entity in view
+				String message = targetEntity.getName();
+				if(message.length() > MAX_NAME_CHARS) message = message.substring(0, MAX_NAME_CHARS) + "...";
+				message += " ("+ targetEntityId +")";
+				view.setUploadingIntoMessage(message);
+			} else {
+				view.alert("Upload to is null. Please reload.");
+			}
+		} catch (SynapseException e) {
+			log.error(e);
+			if(e instanceof SynapseNotFoundException) {
+				view.alert("Upload target Not Found: " + targetEntityId);				
+			} else if(e instanceof SynapseForbiddenException) {
+				String userName = "(undefined)";
+				if(userSessionData != null && userSessionData.getProfile() != null) 
+					userName = userSessionData.getProfile().getDisplayName();
+				view.alert("Access Denied to " + targetEntityId + "for user " + userName + ". Please gain access and then reload.");
+			} else {
+				view.alert("An Error Occured. Please reload.");
+			}
+			setEnabled(false);
+		}
+	}
+	
+	private void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+		view.setEnabled(enabled);
+	}
+
 	private String getMimeType(File file) {
 		String mimeType = null;
 		try {
 			mimeType = Magic.getMagicMatch(file, false).getMimeType();
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error(e);
 		}
 
 		if(mimeType == null) mimeType = "text/plain";

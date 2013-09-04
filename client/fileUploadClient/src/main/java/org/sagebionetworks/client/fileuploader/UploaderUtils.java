@@ -5,6 +5,8 @@ import java.io.IOException;
 
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 
@@ -18,12 +20,11 @@ public class UploaderUtils {
 		statusCallback.setStatus(UploadStatus.UPLOADING);
 		S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
 
-		// upload child
+		// upload child under target entity (parent)
 		final FileEntity newEntity = new FileEntity();
+		newEntity.setParentId(targetEntityId);
 		newEntity.setName(file.getName());
 		newEntity.setDataFileHandleId(fileHandle.getId());
-		// create child File entity under parent
-		newEntity.setParentId(targetEntityId);
 		return synapseClient.createEntity(newEntity);			
 	}
 
@@ -35,10 +36,14 @@ public class UploaderUtils {
 		statusCallback.setStatus(UploadStatus.UPLOADING);
 		S3FileHandle fileHandle = synapseClient.createFileHandle(file, mimeType);
 		
-		// create new version
-		// TODO : NYI
+		// update entity and create new version
+		targetEntity.setDataFileHandleId(fileHandle.getId());
+		targetEntity.setName(file.getName());
+		EntityBundleCreate ebc = new EntityBundleCreate();		
+		ebc.setEntity(targetEntity);
+		EntityBundle eb = synapseClient.updateEntityBundle(targetEntity.getId(), ebc);
 		
-		return null;
+		return (FileEntity) eb.getEntity();
 	}
 
 }

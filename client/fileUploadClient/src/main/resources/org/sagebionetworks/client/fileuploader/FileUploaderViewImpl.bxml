@@ -21,8 +21,8 @@
 			        	<ImageView image="@Synapse-File-Uploader.png"/>        
 			        </BoxPane>
 		            <BoxPane styles="{horizontalAlignment:'right', verticalAlignment:'bottom', padding:7}">
-		                <Label text="upload to:" styles="{font:'Arial 14', color:'#878888', horizontalAlignment:'left', verticalAlignment:'top'}"/>
-		                <Label bxml:id="parentMessage" styles="{font:'Arial 14', color:'#000000', horizontalAlignment:'left', verticalAlignment:'top'}"/>
+		                <Label bxml:id="actionMessage" styles="{font:'Arial 14', color:'#878888', horizontalAlignment:'left', verticalAlignment:'top'}"/>
+		                <Label bxml:id="entityMessage" styles="{font:'Arial 14', color:'#000000', horizontalAlignment:'left', verticalAlignment:'top'}"/>
 		            </BoxPane>
         		</TablePane.Row>
     		</TablePane>                		

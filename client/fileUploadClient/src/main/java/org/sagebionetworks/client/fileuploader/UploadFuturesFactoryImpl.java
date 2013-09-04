@@ -11,6 +11,19 @@ import org.sagebionetworks.repo.model.FileEntity;
 
 public class UploadFuturesFactoryImpl implements UploadFuturesFactory {
 
+	static UploadFuturesFactoryImpl instance;
+	
+	static {
+		instance = new UploadFuturesFactoryImpl();
+	}
+	
+	private UploadFuturesFactoryImpl() {
+	}
+
+	public static UploadFuturesFactory getInstance() { 
+		return instance;
+	}
+	
 	@Override
 	public Future<Entity> createChildFileEntityFuture(final File file,
 			final String mimeType, final ExecutorService threadPool,

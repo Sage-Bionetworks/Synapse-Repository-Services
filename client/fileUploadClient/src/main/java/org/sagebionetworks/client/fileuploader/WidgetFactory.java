@@ -11,7 +11,7 @@ public class WidgetFactory {
 	public static final FileUploader createFileUploader() throws IOException, SerializationException {
 		BXMLSerializer bxmlSerializer = new BXMLSerializer();
         Window window = (Window)bxmlSerializer.readObject(FileUploaderViewImpl.class, "FileUploaderViewImpl.bxml");
-        FileUploader fileUploader = new FileUploader((FileUploaderViewImpl) window);        
+        FileUploader fileUploader = new FileUploader((FileUploaderViewImpl) window, UploadFuturesFactoryImpl.getInstance());        
         return fileUploader;
 	}
 	

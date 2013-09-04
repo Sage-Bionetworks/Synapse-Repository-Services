@@ -42,7 +42,8 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 	@BXML private TableView fileTableView;
     @BXML private PushButton uploadButton;
     @BXML private PushButton browseButton;
-    @BXML private Label parentMessage;
+    @BXML private Label actionMessage;
+    @BXML private Label entityMessage;
         
     private static Presenter presenter;
     private FileList fileList = null;
@@ -79,7 +80,9 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 
 	@Override
 	public void setUploadingIntoMessage(String message) {
-		parentMessage.setText(message);
+		if(singleFileMode) actionMessage.setText("update file:");
+		else actionMessage.setText("upload to:");
+		entityMessage.setText(message);
 	}
 	
 	@Override
@@ -296,6 +299,10 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 					statusDisplay = "Failed";
 					color = ERROR;
 					break;
+				case ALREADY_EXISTS:
+					statusDisplay = "Already Exists";
+					color = ERROR;
+					break;					
 				default:
 					statusDisplay = "Unknown";
 				}
