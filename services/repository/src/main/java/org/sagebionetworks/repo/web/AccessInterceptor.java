@@ -8,6 +8,7 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
@@ -27,6 +28,8 @@ import org.springframework.web.servlet.ModelAndView;
  * 
  */
 public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
+
+	public static final String SESSION_ID = "sessionId";
 
 	/**
 	 * This map keeps track of the current record for each thread.
@@ -78,6 +81,8 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setInstance(this.instancePrefix);
 		data.setVmId(VirtualMachineIdProvider.getVMID());
 		data.setQueryString(request.getQueryString());
+		// push the session id to the logging thread context
+		ThreadContext.put(SESSION_ID, data.getSessionId());
 		// Bind this record to this thread.
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;
@@ -110,6 +115,8 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		data.setSuccess(exception == null);
 		// Save this record
 		accessRecorder.save(data);
+		// Clear the logging thread context
+		ThreadContext.clear();
 	}
 
 	@Override

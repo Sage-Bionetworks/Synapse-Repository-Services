@@ -17,10 +17,11 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-auto-generated</artifactId>
 		</dependency>
-
+		
+		<!-- Logging -->
 		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
 		</dependency>
 
 		<dependency>

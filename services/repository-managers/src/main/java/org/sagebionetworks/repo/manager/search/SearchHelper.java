@@ -6,7 +6,8 @@ import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -19,7 +20,7 @@ import org.sagebionetworks.repo.model.UserInfo;
  */
 public class SearchHelper {
 
-	private static final Logger log = Logger.getLogger(SearchHelper.class
+	private static final Logger log = LogManager.getLogger(SearchHelper.class
 			.getName());
 	private static final Pattern facetFieldConstraintPattern = Pattern.compile("facet-\\w-constraints");
 

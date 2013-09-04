@@ -4,7 +4,8 @@ import java.io.File;
 import java.net.URL;
 import java.util.concurrent.Callable;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 
@@ -18,7 +19,7 @@ import org.sagebionetworks.repo.model.file.ChunkRequest;
  */
 public class FileChunkUploadWorker implements Callable<Long> {
 	
-	protected static final Logger log = Logger.getLogger(FileChunkUploadWorker.class.getName());
+	protected static final Logger log = LogManager.getLogger(FileChunkUploadWorker.class.getName());
 
 	Synapse client;
 	ChunkRequest request;

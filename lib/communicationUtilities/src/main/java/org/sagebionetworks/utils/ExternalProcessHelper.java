@@ -6,7 +6,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Helper utility class for running processes externally and capturing their exit code and output.
@@ -16,7 +17,7 @@ import org.apache.log4j.Logger;
  */
 public class ExternalProcessHelper {
 
-	private static final Logger log = Logger.getLogger(ExternalProcessHelper.class.getName());
+	private static final Logger log = LogManager.getLogger(ExternalProcessHelper.class.getName());
 
 	/**
 	 * This class is used to hold all relevant state we can capture about an

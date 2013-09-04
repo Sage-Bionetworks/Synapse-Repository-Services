@@ -1,6 +1,7 @@
 package org.sagebionetworks.dynamo.dao.nodetree;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
@@ -10,7 +11,7 @@ import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
  */
 class LineagePairDelete extends LineagePairWriteOperation {
 
-	private final Logger logger = Logger.getLogger(LineagePairDelete.class);
+	private final Logger logger = LogManager.getLogger(LineagePairDelete.class);
 
 	private final DynamoDBMapper dynamoMapper;
 	private final NodeLineagePair toDelete;
