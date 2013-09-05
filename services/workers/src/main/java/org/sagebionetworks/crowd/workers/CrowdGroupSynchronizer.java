@@ -13,8 +13,12 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
@@ -50,6 +54,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 	@Autowired
 	private UserDAO userDAOImpl; // the CrowdUserDAO
 	
+	private static Log log = LogFactory.getLog(CrowdGroupSynchronizer.class); 
 	
 	@Override
 	public void run() {
@@ -75,48 +80,58 @@ public class CrowdGroupSynchronizer implements Runnable {
 			
 			// Make sure a profile exists for each user
 			if (isIndividual) {
+				User user;
 				try {
-					UserProfile userProfile = userProfileDAO.get(principalId);
-					
-					// For profiles that already exist, migrate the boolean for the termsOfUse over
-					User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
-					long termsTimeStamp;
-					if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
-						termsTimeStamp = user.getCreationDate().getTime() / 1000;
-					} else {
-						termsTimeStamp = 0L;
-					}
-					
-					// Don't needlessly re-update the profile with the same data
-					if (userProfile.getAgreesToTermsOfUse().longValue() != termsTimeStamp) {
-						userProfile.setAgreesToTermsOfUse(termsTimeStamp);
-						userProfileDAO.update(userProfile);
-					}
+					user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
+				} catch (DatastoreException e) {
+					throw new RuntimeException(e);
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				} catch (NotFoundException e) {
+					throw new RuntimeException(e);
+				}
+
+				UserProfile userProfile;
+				try {
+					userProfile = userProfileDAO.get(principalId);
 					
 				} catch (NotFoundException e) {
 					// Must make a new profile
 					try {
-						User user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
-						UserProfile userProfile = new UserProfile();
+						userProfile = new UserProfile();
 						userProfile.setOwnerId(principalId);
 						userProfile.setFirstName(user.getFname());
 						userProfile.setLastName(user.getLname());
 						userProfile.setDisplayName(user.getDisplayName());
-						if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
-							userProfile.setAgreesToTermsOfUse(user.getCreationDate().getTime());
-						} else {
-							userProfile.setAgreesToTermsOfUse(0L);
-						}
 						userProfileDAO.create(userProfile);
-					} catch (NotFoundException nfe) {
-						throw new RuntimeException(nfe);
 					} catch (InvalidModelException ime) {
 						throw new RuntimeException(ime);
-					} catch (UnsupportedEncodingException uee) {
-						throw new RuntimeException(uee);
 					}
-				} catch (UnsupportedEncodingException uee) {
-					throw new RuntimeException(uee);
+				}
+				
+				// For profiles that already exist, migrate the boolean for the termsOfUse over
+				long termsTimeStamp;
+				if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
+					termsTimeStamp = user.getCreationDate().getTime() / 1000;
+				} else {
+					termsTimeStamp = 0L;
+				}
+				
+				// Don't needlessly re-update the profile with the same data
+				if (userProfile.getAgreesToTermsOfUse() == null 
+						|| userProfile.getAgreesToTermsOfUse().longValue() != termsTimeStamp) {
+					userProfile.setAgreesToTermsOfUse(termsTimeStamp);
+					try {
+						userProfileDAO.update(userProfile);
+					} catch (DatastoreException e) {
+						throw new RuntimeException(e);
+					} catch (InvalidModelException e) {
+						throw new RuntimeException(e);
+					} catch (ConflictingUpdateException e) {
+						throw new RuntimeException(e);
+					} catch (NotFoundException e) {
+						throw new RuntimeException(e);
+					}
 				}
 			}
 			principalIds.add(principalId);
@@ -153,7 +168,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 					groupMembersDAO.addMembers(principalId, operator);
 				}
 			} catch (NotFoundException e) {
-				// A group was deleted before the worker could finish processing it
+				log.warn("A group was deleted before the worker could finish processing it", e);
 			}
 		}
 	}
@@ -181,7 +196,9 @@ public class CrowdGroupSynchronizer implements Runnable {
 			}
 			return groups;
 		} catch (AuthenticationException e) {
-		} catch (XPathExpressionException e) { }
-		return new ArrayList<String>();
+			throw new RuntimeException(e);
+		} catch (XPathExpressionException e) { 
+			throw new RuntimeException(e);
+		}
 	}
 }
