@@ -5,6 +5,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -87,8 +89,8 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String SELECT_ALL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
 	
-	private static final String SELECT_AND_LOCK_ROW_BY_ID = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
+	private static final String SELECT_ETAG_AND_LOCK_ROW_BY_ID = 
+			"SELECT "+SqlConstants.COL_USER_GROUP_E_TAG+" FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME+
 			" FOR UPDATE";
 	
@@ -373,14 +375,17 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserGroup getForUpdate(String id) {
+	public String getEtagForUpdate(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		DBOUserGroup dbo = simpleJdbcTemplate.queryForObject(SELECT_AND_LOCK_ROW_BY_ID, userGroupRowMapper, param);
-		
-		UserGroup dto = new UserGroup();
-		UserGroupUtils.copyDboToDto(dbo, dto);
-		return dto;
+		return simpleJdbcTemplate.queryForObject(SELECT_ETAG_AND_LOCK_ROW_BY_ID, 
+				new RowMapper<String>() {
+					@Override
+					public String mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						return rs.getString(SqlConstants.COL_USER_GROUP_E_TAG);
+					}
+				}, param);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
