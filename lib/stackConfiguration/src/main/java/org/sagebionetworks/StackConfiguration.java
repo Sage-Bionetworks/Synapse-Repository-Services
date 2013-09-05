@@ -1155,13 +1155,5 @@ public class StackConfiguration {
 	public String getLogBucketName() {
 		return String.format(StackConstants.STACK_LOG_BUCKET, StackConfiguration.getStack());
 	}
-	
-	/**
-	 * Get the full path of the local logging directory
-	 * 
-	 * @return
-	 */
-	public String getLocalLoggingDirectory() {
-		return String.format(StackConstants.LOCAL_LOG_DIRECTORY, System.getProperty("java.io.tmpdir"));
-	}
+
 }

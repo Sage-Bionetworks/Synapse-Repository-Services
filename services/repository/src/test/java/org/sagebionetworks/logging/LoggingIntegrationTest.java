@@ -40,8 +40,6 @@ public class LoggingIntegrationTest {
 	
 	@Autowired
 	LogDAO logDAO;
-	@Autowired
-	StackConfiguration config;
 	
 	@Before
 	public void before(){
@@ -67,7 +65,6 @@ public class LoggingIntegrationTest {
 		log.info("This is an info message");
 		log.error("An Error!!!", new RuntimeException(new IllegalArgumentException("Bad mojo!")));
 		// Now we need to keep writing to the log to trigger a rolloever into a GZip.
-		log.info("Log dir: "+config.getLocalLoggingDirectory());
 		// Now we need to wait for the logs to appear in S3
 		long start = System.currentTimeMillis();
 		String key = null;
