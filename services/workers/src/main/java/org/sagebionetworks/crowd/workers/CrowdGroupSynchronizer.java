@@ -94,7 +94,6 @@ public class CrowdGroupSynchronizer implements Runnable {
 				UserProfile userProfile;
 				try {
 					userProfile = userProfileDAO.get(principalId);
-					
 				} catch (NotFoundException e) {
 					// Must make a new profile
 					try {
@@ -106,6 +105,13 @@ public class CrowdGroupSynchronizer implements Runnable {
 						userProfileDAO.create(userProfile);
 					} catch (InvalidModelException ime) {
 						throw new RuntimeException(ime);
+					}
+					
+					// Re-fetch the profile after making it
+					try {
+						userProfile = userProfileDAO.get(principalId);
+					} catch (NotFoundException nfe) {
+						throw new RuntimeException(nfe);
 					}
 				}
 				
