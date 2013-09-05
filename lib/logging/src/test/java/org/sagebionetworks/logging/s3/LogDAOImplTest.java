@@ -112,7 +112,8 @@ public class LogDAOImplTest {
 	public void testFindLogContainingUUID() throws IOException, InterruptedException{
 		String uuid = UUID.randomUUID().toString();
 		String type = "findTest";
-		File sampleLog = LogWriterUtil.createSampleLogFile(config.getLocalLoggingDirectory(), type, new String[]{uuid});
+		String tempDir = System.getProperty("java.io.tmpdir");
+		File sampleLog = LogWriterUtil.createSampleLogFile(new File(tempDir).getAbsolutePath(), type, new String[]{uuid});
 		// Save the file to s3
 		String key = this.logDAO.saveLogFile(sampleLog, System.currentTimeMillis());
 		// Now make sure we can find this file again using this key

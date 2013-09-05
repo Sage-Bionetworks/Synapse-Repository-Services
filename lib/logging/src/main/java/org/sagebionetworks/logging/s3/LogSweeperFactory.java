@@ -16,11 +16,11 @@ public interface LogSweeperFactory {
 	 * @return
 	 */
 	public List<String> sweepLogs();
-
 	
 	/**
-	 * The directory where the log files are expected to be found
+	 * Get the directories that will be swept by this factory.
 	 * @return
 	 */
-	public File getLoggingDirectory();
+	List<File> getLogDirectories();
+
 }

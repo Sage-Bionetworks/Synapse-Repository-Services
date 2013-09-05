@@ -71,10 +71,5 @@ public class StackConstants {
 	 * The bucket containing all access record data.
 	 */
 	public static final String STACK_LOG_BUCKET = "%1$s.log.sagebase.org";
-	
-	/**
-	 * The local logging directory
-	 */
-	public static final String LOCAL_LOG_DIRECTORY = "%1$s/synapse/logs/";
 
 }
