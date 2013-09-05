@@ -15,16 +15,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -43,8 +39,6 @@ public class DBOUserProfileDAOImplTest {
 	
 	private UserGroup individualGroup = null;
 	
-	private ObjectSchema schema = null;
-	
 	@Before
 	public void setUp() throws Exception {
 		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
@@ -55,9 +49,6 @@ public class DBOUserProfileDAOImplTest {
 			individualGroup.setCreationDate(new Date());
 			individualGroup.setId(userGroupDAO.create(individualGroup));
 		}
-		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-
 	}
 		
 	
@@ -83,25 +74,25 @@ public class DBOUserProfileDAOImplTest {
 		
 		long initialCount = userProfileDAO.getCount();
 		// Create it
-		String id = userProfileDAO.create(userProfile, schema);
+		String id = userProfileDAO.create(userProfile);
 		assertNotNull(id);
 		
 		assertEquals(1+initialCount, userProfileDAO.getCount());
 		
 		// Fetch it
-		UserProfile clone = userProfileDAO.get(id, schema);
+		UserProfile clone = userProfileDAO.get(id);
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
 
 		// Update it
 		clone.setDisplayName("Mr. Foo Bar");
-		UserProfile updatedProfile = userProfileDAO.update(clone, schema);
+		UserProfile updatedProfile = userProfileDAO.update(clone);
 		assertEquals(clone.getDisplayName(), updatedProfile.getDisplayName());
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
 
 		try {
 			clone.setDisplayName("This Should Fail");
-			userProfileDAO.update(clone, schema);
+			userProfileDAO.update(clone);
 			fail("conflicting update exception not thrown");
 		}
 		catch(ConflictingUpdateException e) {
@@ -110,7 +101,7 @@ public class DBOUserProfileDAOImplTest {
 
 		try {
 			// Update from a backup.
-			updatedProfile = userProfileDAO.updateFromBackup(clone, schema);
+			updatedProfile = userProfileDAO.updateFromBackup(clone);
 			assertEquals(clone.getEtag(), updatedProfile.getEtag());
 		}
 		catch(ConflictingUpdateException e) {
@@ -129,11 +120,10 @@ public class DBOUserProfileDAOImplTest {
 		assertNotNull(boots);
 		assertTrue(boots.size() >0);
 		// Each should exist
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		for(UserGroupInt bootUg: boots){
 			if(bootUg.getIsIndividual()){
-				UserProfile profile = userProfileDAO.get(bootUg.getId(), schema);
-				UserGroup ug = userGroupDAO.get(bootUg.getId());
+				UserProfile profile = userProfileDAO.get(bootUg.getId());
+				userGroupDAO.get(bootUg.getId());
 				assertEquals(bootUg.getId(), profile.getOwnerId());
 			}
 		}

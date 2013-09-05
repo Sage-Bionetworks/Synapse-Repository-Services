@@ -1,20 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.ids.ETagGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -23,7 +20,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -74,29 +70,28 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String create(UserProfile dto, ObjectSchema schema) throws DatastoreException,
+	public String create(UserProfile dto) throws DatastoreException,
 			InvalidModelException {
 		DBOUserProfile jdo = new DBOUserProfile();
-		UserProfileUtils.copyDtoToDbo(dto, jdo, schema);
+		UserProfileUtils.copyDtoToDbo(dto, jdo);
 		if (jdo.geteTag()==null) jdo.seteTag(eTagGenerator.generateETag());
 		jdo = basicDao.createNew(jdo);
 		return jdo.getOwnerId().toString();
 	}
 
 	@Override
-	public UserProfile get(String id, ObjectSchema schema) throws DatastoreException,
+	public UserProfile get(String id) throws DatastoreException,
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
 		DBOUserProfile jdo = basicDao.getObjectByPrimaryKey(DBOUserProfile.class, param);
-		UserProfile dto = new UserProfile();
-		UserProfileUtils.copyDboToDto(jdo, dto, schema);
+		UserProfile dto = UserProfileUtils.convertDboToDto(jdo);
 		return dto;
 	}
 
 
 	@Override
-	public List<UserProfile> getInRange(long fromIncl, long toExcl, ObjectSchema schema) throws DatastoreException {
+	public List<UserProfile> getInRange(long fromIncl, long toExcl) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();		
 		param.addValue(OFFSET_PARAM_NAME, fromIncl);
 		long limit = toExcl - fromIncl;
@@ -105,8 +100,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, userProfileRowMapper, param);
 		List<UserProfile> dtos = new ArrayList<UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
-			UserProfile dto = new UserProfile();
-			UserProfileUtils.copyDboToDto(dbo, dto, schema);
+			UserProfile dto = UserProfileUtils.convertDboToDto(dbo);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -123,9 +117,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserProfile update(UserProfile dto, ObjectSchema schema) throws DatastoreException,
+	public UserProfile update(UserProfile dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		return update(dto, schema, false);
+		return update(dto, false);
 	}
 
 	/*
@@ -134,16 +128,16 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserProfile updateFromBackup(UserProfile dto, ObjectSchema schema) throws DatastoreException,
+	public UserProfile updateFromBackup(UserProfile dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		return update(dto, schema, true);
+		return update(dto, true);
 	}
 
 	/**
 	 * @param fromBackup Whether we are updating from backup.
 	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
 	 */
-	private UserProfile update(UserProfile dto, ObjectSchema schema, boolean fromBackup) throws
+	private UserProfile update(UserProfile dto, boolean fromBackup) throws
 			DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
 
 		DBOUserProfile dbo = null;
@@ -162,7 +156,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 				throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
 			}
 		}
-		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
+		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		if (!fromBackup) {
 			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
 			dbo.seteTag(eTagGenerator.generateETag());
@@ -171,8 +165,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
 
-		UserProfile resultantDto = new UserProfile();
-		UserProfileUtils.copyDboToDto(dbo,  resultantDto, schema);
+		UserProfile resultantDto = UserProfileUtils.convertDboToDto(dbo);
 
 		return resultantDto;
 	}
@@ -190,22 +183,21 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		// Boot strap all users and groups
 		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
 		// For each one determine if it exists, if not create it
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		for(UserGroupInt ug: this.bootstrapUsers){
 			if(ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
 			if(ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
 			if(ug.getIsIndividual()){
-				Long id = Long.parseLong(ug.getId());
+				Long.parseLong(ug.getId());
 				UserProfile userProfile = null;
 				try {
-					userProfile = this.get(ug.getId(), schema);
+					userProfile = this.get(ug.getId());
 				} catch (NotFoundException nfe) {
 					userProfile = new UserProfile();
 					userProfile.setOwnerId(ug.getId());
 					userProfile.setFirstName(ug.getName());
 					userProfile.setLastName(ug.getName());
 					userProfile.setDisplayName(ug.getName());
-					this.create(userProfile, schema);
+					this.create(userProfile);
 				}
 			}
 		}
