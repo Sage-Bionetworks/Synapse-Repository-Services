@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.migration;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;

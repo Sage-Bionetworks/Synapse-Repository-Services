@@ -223,7 +223,6 @@ public class JDOSecondaryPropertyUtils {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static NamedAnnotations fromXml(String xml) throws IOException{
 		StringReader reader = new StringReader(xml);
 		try{
@@ -247,7 +246,6 @@ public class JDOSecondaryPropertyUtils {
 	 * @return the resurrected Annotations
 	 * @throws IOException 
 	 */
-	@SuppressWarnings("unchecked")
 	public static NamedAnnotations decompressedAnnotations(byte[] zippedByes) throws IOException{
 		Object o = decompressedObject(zippedByes);
 		if (o==null) return new NamedAnnotations();

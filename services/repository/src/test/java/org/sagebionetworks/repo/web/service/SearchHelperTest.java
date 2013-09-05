@@ -6,12 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringEscapeUtils;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.search.SearchHelper;
 

@@ -2,20 +2,11 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Comparator;
-import org.sagebionetworks.repo.model.query.CompoundId;
-import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Study>{
 	

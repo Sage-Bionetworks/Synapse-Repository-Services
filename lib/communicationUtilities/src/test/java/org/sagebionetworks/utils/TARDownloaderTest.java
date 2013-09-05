@@ -4,10 +4,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.FileInputStream;
 import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.downloadtools.TARDownloader;
 

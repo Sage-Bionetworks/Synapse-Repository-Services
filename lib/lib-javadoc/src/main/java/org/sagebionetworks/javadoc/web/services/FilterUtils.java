@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.sun.javadoc.AnnotationDesc;

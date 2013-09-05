@@ -9,10 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 /**
  * Unit test for the NodeDAO

@@ -1,15 +1,11 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.Hit;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
