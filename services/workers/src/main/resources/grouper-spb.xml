@@ -26,8 +26,8 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
 		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersCrowdGroupSynchronize" />
-		<property name="semaphoreKey" value="nameToIdSynchronizer" />		
-		<property name="runner" ref="nameToIdSynchronizer" />
+		<property name="semaphoreKey" value="crowdGroupSynchronizer" />		
+		<property name="runner" ref="crowdGroupSynchronizer" />
 	</bean>
 
 	<bean id="crowdGroupSynchronizerTrigger"
