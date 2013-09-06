@@ -148,4 +148,48 @@ public class LogKeyUtils {
 			throw new ParseException("Not a ISO8601 string: "+e.getMessage(), 0);
 		}
 	}
+	
+	/**
+	 * Extract the type/date/hour from the key
+	 * @param key
+	 * @return
+	 */
+	public static String getTypeDateAndHourFromKey(String key){
+		String[] split = key.split("/");
+		StringBuilder builder = new StringBuilder();
+		builder.append(split[1]);
+		builder.append("/");
+		builder.append(split[2]);
+		builder.append("/");
+		builder.append(split[3].substring(0, 2));
+		return builder.toString();
+	}
+	/**
+	 * Extract the type/date/hour from the key
+	 * @param key
+	 * @return
+	 */
+	public static String getTypeFromTypeDateHour(String typeDateHour){
+		String[] split = typeDateHour.split("/");
+		return split[0];
+	}
+	
+	/**
+	 * Extract the timestamp from the type/date/hour string
+	 * @param key
+	 * @return
+	 */
+	public static long getTimestampFromTypeDateHour(String typeDateHour){
+		String[] split = typeDateHour.split("/");
+		String[] dateSplit = split[1].split("-");
+		Calendar cal = getClaendarUTC();
+		cal.set(Calendar.YEAR, Integer.parseInt(dateSplit[0]));
+		cal.set(Calendar.MONTH, Integer.parseInt(dateSplit[1])-1);
+		cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(dateSplit[2]));
+		cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(split[2]));
+		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		return cal.getTimeInMillis();
+	}
 }
