@@ -22,7 +22,6 @@ public class App implements Application {
 	private Window window = null;
 	private static String sessionToken;
 	private static String entityId;
-	private static Boolean isUpdate;
 	
 	public static void main(String[] args) {
 		logger.info("starting app");
@@ -31,7 +30,7 @@ public class App implements Application {
 				if(arg.startsWith("--sessionToken=")) sessionToken = arg.replace("--sessionToken=", "");
 				if(arg.startsWith("--entityId=")) entityId = arg.replace("--entityId=", "");
 			}
-			logger.info("sessiontoken: "+ sessionToken + ", parentId: "+ entityId + ", isUpdate: "+ isUpdate);
+			logger.info("sessiontoken: "+ sessionToken + ", parentId: "+ entityId);
 		}
 		DesktopApplicationContext.main(App.class, args);				
 	}
@@ -39,8 +38,8 @@ public class App implements Application {
 	@Override
     public void startup(Display display, Map<String, String> properties) throws Exception {
 		if(sessionToken == null || entityId == null ) {
-			showUsage(display);
-			return;
+			showImproperConfig(display);
+			throw new IllegalArgumentException("Both sessionToken and entityId must be defined");
 		}
 		
 		FileUploader fileUploader = WidgetFactory.createFileUploader();
@@ -80,7 +79,7 @@ public class App implements Application {
 		return synapseClient;
 	}
 
-	private static void showUsage(Display display) {
+	private static void showImproperConfig(Display display) {
 			Window window = new Window();
 			
 	        Label label = new Label();

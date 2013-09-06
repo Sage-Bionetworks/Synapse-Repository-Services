@@ -499,6 +499,19 @@
 				<scope>system</scope>
 				<systemPath>${java.home}/../lib/tools.jar</systemPath>
 			</dependency>
+
+			<!-- File Uploader Client -->			
+			<dependency>
+				<groupId>org.apache.pivot</groupId>
+				<artifactId>pivot-core</artifactId>
+				<version>${org.apache.pivot.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.pivot</groupId>
+				<artifactId>pivot-wtk-terra</artifactId>
+				<version>${org.apache.pivot.version}</version>
+			</dependency>					
+						
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->
@@ -763,6 +776,7 @@
 		<org.apache.httpcomponents.version>4.2.5
 		</org.apache.httpcomponents.version>
 		<com.sun.tools.version>1.7</com.sun.tools.version>
+		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
 	</properties>
 
 	<distributionManagement>

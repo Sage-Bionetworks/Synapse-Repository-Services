@@ -16,6 +16,7 @@ import org.apache.pivot.collections.Sequence;
 import org.apache.pivot.io.FileList;
 import org.apache.pivot.util.Resources;
 import org.apache.pivot.wtk.Alert;
+import org.apache.pivot.wtk.ApplicationContext;
 import org.apache.pivot.wtk.Button;
 import org.apache.pivot.wtk.ButtonPressListener;
 import org.apache.pivot.wtk.Component;
@@ -50,7 +51,7 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
     private boolean enabled = true;
     private boolean singleFileMode = true;
     private FileBrowserSheet fileBrowserSheet;
-    
+
     @Override
     public void setPresenter(Presenter presenter) {
     	this.presenter = presenter;
@@ -61,21 +62,26 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
     	fileList = new FileList();
         fileTableView.setTableData(fileList);              
         browseButton.setEnabled(true);
-
+        
         setupKeyListeners();
         setupDragAndDrop();
         setupBrowseButton();
         setupUploadButton();      
     }
-
+    
 	@Override
 	public void alert(String message) {
 		Alert.alert(message, this);
-	}
-
+	}	
+	
 	@Override
 	public void updateFileStatus() {
-		fileTableView.repaint();
+		ApplicationContext.queueCallback(new Runnable() {
+			@Override
+			public void run() {				
+				fileTableView.repaint();
+			}
+		});
 	}	
 
 	@Override
@@ -176,7 +182,18 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
                 DropAction dropAction = null;
 
                 if (dragContent.containsFileList()) {
-                    try {
+                    try {                    	
+                    	// don't allow illegal drops in single file mode
+						if (singleFileMode) {
+							if((!fileList.isEmpty() && dragContent.getFileList().getList().size() > 0)	// already a file in the list?
+									|| (dragContent.getFileList().getList().size() > 1) // dropping too many files?
+									|| (dragContent.getFileList().getList().size() == 1 && dragContent.getFileList().getList().get(0).isDirectory()) // dropping a directory?
+									) {
+	                    		alert("You may only have one file when uploading a new version of a File");
+	                    		dragExit(component);
+	                    		return null;
+	                    	}							
+						}
                         presenter.addFilesForUpload(dragContent.getFileList().getList());
                         dropAction = DropAction.COPY;
                     } catch(IOException exception) {
@@ -259,6 +276,7 @@ public class FileUploaderViewImpl extends Window implements Bindable, FileUpload
 			fileTableView.setEnabled(enabled);
 		}
 	}
+	
 	
 	/*
 	 * CellRenderer

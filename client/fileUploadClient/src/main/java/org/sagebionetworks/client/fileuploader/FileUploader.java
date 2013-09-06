@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,8 +20,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
-
-import net.sf.jmimemagic.Magic;
 
 import org.apache.log4j.Logger;
 import org.apache.pivot.wtk.Window;
@@ -48,9 +47,9 @@ public class FileUploader implements FileUploaderView.Presenter {
     private Synapse synapseClient;
     private String targetEntityId;
     private final ExecutorService uploadPool = Executors.newFixedThreadPool(2);
-	private Map<Integer,File> idToFile = new HashMap<Integer, File>();
-	private Map<Future<Entity>,Integer> futureToId = new HashMap<Future<Entity>, Integer>();
-	private Map<File, UploadStatus> fileStatus = new HashMap<File, UploadStatus>();
+	private Map<Integer,File> idToFile = Collections.synchronizedMap(new HashMap<Integer, File>());
+	private Map<Future<Entity>,Integer> futureToId = Collections.synchronizedMap(new HashMap<Future<Entity>, Integer>());
+	private Map<File, UploadStatus> fileStatus = Collections.synchronizedMap(new HashMap<File, UploadStatus>());
 	private Set<Future<Entity>> unfinished = new HashSet<Future<Entity>>();
 	UserSessionData userSessionData;
 	final Set<File> filesStagedForUpload = new HashSet<File>();
@@ -173,7 +172,8 @@ public class FileUploader implements FileUploaderView.Presenter {
 			if(fileStatus.containsKey(file) && 
 					(fileStatus.get(file) == UploadStatus.WAITING_TO_UPLOAD 
 					|| fileStatus.get(file) == UploadStatus.UPLOADING 
-					|| fileStatus.get(file) == UploadStatus.UPLOADED)) continue; // don't reupload files in the list
+					|| fileStatus.get(file) == UploadStatus.UPLOADED
+					|| fileStatus.get(file) == UploadStatus.ALREADY_EXISTS)) continue; // don't reupload files in the list
 			
 			setFileStatus(file, UploadStatus.WAITING_TO_UPLOAD);
 			final String mimeType = getMimeType(file);
@@ -296,7 +296,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 	private String getMimeType(File file) {
 		String mimeType = null;
 		try {
-			mimeType = Magic.getMagicMatch(file, false).getMimeType();
+			mimeType = Files.probeContentType(file.toPath());
 		} catch (Exception e) {
 			log.error(e);
 		}
