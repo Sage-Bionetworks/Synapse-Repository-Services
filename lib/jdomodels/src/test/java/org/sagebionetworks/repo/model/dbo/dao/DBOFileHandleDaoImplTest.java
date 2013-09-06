@@ -169,8 +169,8 @@ public class DBOFileHandleDaoImplTest {
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("fileName");
-		// Create a URL that is is 2K chars long
-		char[] chars = new char[2000-9];
+		// Create a URL that is is 500 chars long
+		char[] chars = new char[500-9];
 		Arrays.fill(chars, 'a');
 		meta.setExternalURL("http://"+new String(chars));
 		// Save it
