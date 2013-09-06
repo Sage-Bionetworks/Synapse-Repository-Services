@@ -13,6 +13,10 @@
 		"isIndividual": {
 			"type": "boolean",
 			"description": "True if this is a user, false if it is a group"
+		}, 
+		"etag": {
+			"type": "string", 
+			"description": "Used to detect when a client's current representation of a user or group is out-of-date."
 		}
 	}
 }

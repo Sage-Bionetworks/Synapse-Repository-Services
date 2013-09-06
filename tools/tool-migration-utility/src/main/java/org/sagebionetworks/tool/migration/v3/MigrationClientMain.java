@@ -26,6 +26,7 @@ public class MigrationClientMain {
 	public static void main(String[] args) throws Exception {
 		// First load the configuration
 		MigrationConfigurationImpl configuration = new MigrationConfigurationImpl();
+		loadCredentials(configuration, args);
 		loadConfigUsingArgs(configuration, args);		
 		// Create the client factory
 		SynapseClientFactory factory = new SynapseClientFactoryImpl(configuration);
@@ -37,6 +38,9 @@ public class MigrationClientMain {
 			}catch (Throwable e){
 				failed = true;
 				log.error("Failed at attempt: " + i + " with error " + e.getMessage(), e);
+			}
+			if (! failed) {
+				break;
 			}
 		}
 		if (failed) {
@@ -53,13 +57,21 @@ public class MigrationClientMain {
 	 * @throws IOException
 	 */
 	public static void loadConfigUsingArgs(MigrationConfigurationImpl configuration, String[] args) throws IOException {
-		if (args != null && args.length == 1) {
+		if (args != null && args.length == 2) {
 			// Load and validate from file
-			String path = args[0];
+			String path = args[1];
 			configuration.loadConfigurationFile(path);
+		}
+		// Validate System properties
+		configuration.validateConfigurationProperties();
+	}
+	
+	public static void loadCredentials(MigrationConfigurationImpl configuration, String[] args) throws IOException {
+		if (args != null && args.length >= 1) {
+			String path = args[0];
+			configuration.loadApiKey(path);
 		} else {
-			// Validate System properties
-			configuration.validateConfigurationProperties();
+			throw new IllegalArgumentException("Path to API Key file must be specified as first argument.");
 		}
 	}
 }

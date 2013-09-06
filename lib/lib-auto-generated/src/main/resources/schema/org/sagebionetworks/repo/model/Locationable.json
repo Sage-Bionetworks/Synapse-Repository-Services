@@ -1,5 +1,5 @@
 {
-	"description": "A Versionable interface for any entity that has multiple locations",
+	"description": "This object is deprecated and will be removed in future versions of Synapse.",
 	"type": "interface",
 	"implements": [
 		{

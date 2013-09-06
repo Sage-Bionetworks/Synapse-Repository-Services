@@ -39,7 +39,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -58,6 +59,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -91,6 +93,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -112,6 +115,7 @@ import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -133,9 +137,13 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  */
 public class Synapse implements SynapseInt {
 
+	public static final String SYNPASE_JAVA_CLIENT = "Synpase-Java-Client/";
+
+	public static final String USER_AGENT = "User-Agent";
+
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
+	protected static final Logger log = LogManager.getLogger(Synapse.class.getName());
 	
 	protected static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
 
@@ -182,7 +190,7 @@ public class Synapse implements SynapseInt {
 	protected static final String REDIRECT_PARAMETER = "redirect=";
 	protected static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	protected static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
-	
+
 	protected static final String EVALUATION_URI_PATH = "/evaluation";
 	protected static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
 	protected static final String COUNT = "count";
@@ -197,10 +205,14 @@ public class Synapse implements SynapseInt {
 	protected static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
 	protected static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
 	protected static final String STATUS_SUFFIX = "?status=";
+	protected static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
+	protected static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
 	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
+	
+	protected static final String USER_GROUP_HEADER_PREFIX_PATH = "/userGroupHeaders?prefix=";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -297,6 +309,8 @@ public class Synapse implements SynapseInt {
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 		setFileEndpoint(DEFAULT_FILE_ENDPOINT);
+		
+
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
 		defaultGETDELETEHeaders.put("Accept", "application/json");
@@ -304,7 +318,11 @@ public class Synapse implements SynapseInt {
 		defaultPOSTPUTHeaders = new HashMap<String, String>();
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
-
+		
+		// Setup the user agent
+		String userAgent = SYNPASE_JAVA_CLIENT+ClientVersionInfo.getClientVersionInfo();
+		setUserAgent(userAgent);
+		
 		this.clientProvider = clientProvider;
 		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
 		clientProvider.setGlobalSocketTimeout(ServiceConstants.DEFAULT_SOCKET_TIMEOUT_MSEC);
@@ -312,6 +330,36 @@ public class Synapse implements SynapseInt {
 		this.dataUploader = dataUploader;
 		
 		requestProfile = false;
+	}
+	
+	/**
+	 * Each request includes the 'User-Agent' header. This is set to:
+	 * 'User-Agent':'Synpase-Java-Client/<version_number>'
+	 * Addition User-Agent information can be appended to this string by calling this method.
+	 * @param toAppend
+	 */
+	public void appendUserAgent(String toAppend){
+		String currentUserAgent = defaultGETDELETEHeaders.get(USER_AGENT);
+		if(currentUserAgent == null) throw new RuntimeException("User-Agent header is missing");
+		// Only append if it is not already there
+		if(currentUserAgent.indexOf(toAppend) < 0){
+			StringBuilder builder = new StringBuilder();
+			builder.append(currentUserAgent);
+			builder.append("  ");
+			builder.append(toAppend);
+			setUserAgent(builder.toString());
+		}
+	}
+	
+	/**
+	 * Set the User-Agent header. See http://en.wikipedia.org/wiki/List_of_HTTP_header_fields
+	 * This should not be public. The caller can append to User-Agent (see {@link#appendUserAgent(toAppend)})
+	 * but they cannot override it.
+	 * @param userAgent
+	 */
+	private void setUserAgent(String userAgent){
+		defaultGETDELETEHeaders.put(USER_AGENT, userAgent);
+		defaultPOSTPUTHeaders.put(USER_AGENT, userAgent);
 	}
 
 	/**
@@ -906,6 +954,12 @@ public class Synapse implements SynapseInt {
 		return sb.toString();
 	}
 	
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException, UnsupportedEncodingException {
+		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
+		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
+	}
+	
 	/**
 	 * Update an ACL. Default to non-recursive application.
 	 */
@@ -1322,7 +1376,9 @@ public class Synapse implements SynapseInt {
 	}
 
 	/**
-	 * Delete a dataset, layer, etc..
+	 * Deletes a dataset, layer, etc.. This only moves the entity
+	 * to the trash can.  To permanently delete the entity, use
+	 * deleteAndPurgeEntity().
 	 * 
 	 * @param <T>
 	 * @param entity
@@ -1343,12 +1399,40 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	public <T extends Entity> void deleteAndPurgeEntity(T entity)
+			throws SynapseException {
+		deleteEntity(entity);
+		purgeTrashForUser(entity.getId());
+	}
+
+	/**
+	 * Delete a dataset, layer, etc.. This only moves the entity
+	 * to the trash can.  To permanently delete the entity, use
+	 * deleteAndPurgeEntity().
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
 	public void deleteEntityById(String entityId)
 			throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("entityId cannot be null");
 		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
 		deleteUri(uri);
+	}
+
+	/**
+	 * Delete a dataset, layer, etc..
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
+	public void deleteAndPurgeEntityById(String entityId)
+			throws SynapseException {
+		deleteEntityById(entityId);
+		purgeTrashForUser(entityId);
 	}
 
 	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
@@ -1851,6 +1935,16 @@ public class Synapse implements SynapseInt {
 	 */
 	public void deleteFileHandle(String fileHandleId) throws SynapseException{
 		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "DELETE", null, defaultGETDELETEHeaders);
+	}
+	
+	/**
+	 * Delete the preview associated with the given file handle.
+	 * Note: Only the creator of a the file handle can delete the preview.
+	 * @param fileHandleId
+	 * @throws SynapseException 
+	 */
+	public void clearPreview(String fileHandleId) throws SynapseException{
+		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId+FILE_PREVIEW, "DELETE", null, defaultGETDELETEHeaders);
 	}
 
 	/**
@@ -3551,6 +3645,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
@@ -3565,6 +3660,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
 		String url = null;
 		if (null==status) {
@@ -3584,6 +3680,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Deprecated
 	public Long getEvaluationCount() throws SynapseException {
 		PaginatedResults<Evaluation> res = getEvaluationsPaginated(0,0);
 		return res.getTotalNumberOfResults();
@@ -3634,21 +3731,16 @@ public class Synapse implements SynapseInt {
 		JSONObject jsonObj = postUri(uri);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
-	
-	/**
-	 * Adds a separate user as a Participant in Evaluation evalId.
-	 */
-	public Participant createParticipantAsAdmin(String evalId, String participantPrincipalId) throws SynapseException {
-		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT
-				+ "/" + participantPrincipalId;
-		JSONObject jsonObj = postUri(uri);
-		return initializeFromJSONObject(jsonObj, Participant.class);
-	}
-	
+
 	public Participant getParticipant(String evalId, String principalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
+		// Make sure we are passing in the ID, not the user name
+		try {
+			Long.parseLong(principalId);
+		} catch (NumberFormatException e) {
+			throw new SynapseException("Please pass in the pricipal ID, not the user name.", e);
+		}
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT
 				+ "/" + principalId;		
 		JSONObject jsonObj = getEntity(uri);
@@ -3729,7 +3821,12 @@ public class Synapse implements SynapseInt {
 	}
 	
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
-		if (status == null) throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		if (status == null) {
+			throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		}
+		if (status.getAnnotations() != null) {
+			AnnotationsUtils.validateAnnotations(status.getAnnotations());
+		}
 		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + STATUS;			
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		JSONObject obj;
@@ -3931,6 +4028,33 @@ public class Synapse implements SynapseInt {
 		return returnState;
 	}
 	
+	/**
+	 * Execute a user query over the Submissions of a specified Evaluation.
+	 * 
+	 * @param query
+	 * @return
+	 * @throws SynapseException
+	 */
+	public QueryTableResults queryEvaluation(String query) throws SynapseException {
+		try {
+			if (null == query) {
+				throw new IllegalArgumentException("must provide a query");
+			}
+			String queryUri;
+			queryUri = EVALUATION_QUERY_URI_PATH + URLEncoder.encode(query, "UTF-8");
+	
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			requestHeaders.putAll(defaultGETDELETEHeaders);
+	
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, queryUri, "GET", null,
+					requestHeaders);
+			JSONObjectAdapter joa = new JSONObjectAdapterImpl(jsonObj);
+			return new QueryTableResults(joa);
+		} catch (Exception e) {
+			throw new SynapseException(e);
+		}
+	}
+
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 *
@@ -4142,6 +4266,57 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
-	
+
+	public AccessControlList updateEvaluationAcl(AccessControlList acl) throws SynapseException {
+
+		if (acl == null) {
+			throw new IllegalArgumentException("ACL can not be null.");
+		}
+
+		String url = EVALUATION_ACL_URI_PATH;	
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(acl.writeToJSONObject(toUpdateAdapter).toJSONString());
+			JSONObject jsonObj = putJSONObject(url, obj, new HashMap<String,String>());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new AccessControlList(adapter);
+		} catch (JSONException e) {
+			throw new SynapseException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	public AccessControlList getEvaluationAcl(String evalId) throws SynapseException {
+
+		if (evalId == null) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null.");
+		}
+
+		String url = EVALUATION_URI_PATH + "/" + evalId + "/acl";		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new AccessControlList(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId) throws SynapseException {
+
+		if (evalId == null) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null.");
+		}
+
+		String url = EVALUATION_URI_PATH + "/" + evalId + "/permissions";
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new UserEvaluationPermissions(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 }

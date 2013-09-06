@@ -46,6 +46,11 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.fileMultipartUploadDaemonTimeoutMS",
 			"stackConfiguration.fileMultipartUploadDaemonMainMaxThreads",
 			"stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads",
+			
+			"stackConfiguration.auditRecordBucketName",
+			"stackConfiguration.stackInstanceNumber",
+			
+			"stackConfiguration.logBucketName",
 	};
 	
 	@Before

@@ -59,6 +59,8 @@ public class EvaluationTranslationUtilTest {
 		backup.setName("name");
 		backup.setOwnerId(999l);
 		backup.setStatus(EvaluationStatus.COMPLETED.ordinal());
+		backup.setSubmissionInstructions("foo".getBytes("UTF-8"));
+		backup.setSubmissionReceiptMessage("bar".getBytes("UTF-8"));
 		// Create the dbo
 		EvaluationDBO dbo = EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
 		assertNotNull(dbo);

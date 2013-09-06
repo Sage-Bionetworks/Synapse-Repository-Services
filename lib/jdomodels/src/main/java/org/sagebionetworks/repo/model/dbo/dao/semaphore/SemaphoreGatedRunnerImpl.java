@@ -4,8 +4,9 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	
-	static private Log log = LogFactory.getLog(SemaphoreGatedRunnerImpl.class);
+	static private Logger log = LogManager.getLogger(SemaphoreGatedRunnerImpl.class);
 	
 	/**
 	 * This set ensures that the same key is not used by two separate runners

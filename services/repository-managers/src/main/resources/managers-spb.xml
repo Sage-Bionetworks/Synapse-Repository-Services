@@ -19,8 +19,9 @@
 
 	<import resource="classpath:concept-dao-beans.spb.xml" />
 	<import resource="classpath:dao-beans.spb.xml" />
-	<import resource="classpath:aws-topic-publisher.spb.xml" />
+	<import resource="classpath:shared-scheduler-spb.xml" />
 	<import resource="classpath:dynamo-dao-spb.xml" />
+	<import resource="classpath:audit-managers.spb.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
@@ -94,6 +95,36 @@
 	    <property name="generatorList">
 	        <list>
 	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	            <bean
+					class="org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator">
+					<constructor-arg>
+						<bean
+							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+							<property name="targetClass">
+								<value>org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator
+								</value>
+							</property>
+							<property name="targetMethod">
+								<value>getComma</value>
+							</property>
+						</bean>
+					</constructor-arg>
+				</bean>
+	            <bean
+					class="org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator">
+					<constructor-arg>
+						<bean
+							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+							<property name="targetClass">
+								<value>org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator
+								</value>
+							</property>
+							<property name="targetMethod">
+								<value>getTab</value>
+							</property>
+						</bean>
+					</constructor-arg>
+				</bean>
 	            <bean id="textPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
 	            <bean id="zipPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
 	        </list>
@@ -253,7 +284,10 @@
 	</bean>
 
 	<bean id="storageQuotaManager" class="org.sagebionetworks.repo.manager.StorageQuotaManagerImpl"
-		scope="singleton" />
+		scope="singleton" />		
+		
+	<bean id="subStatusAnnoAsyncManager"
+		class="org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"

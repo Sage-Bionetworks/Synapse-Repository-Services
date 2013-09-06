@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.query.FieldType;
  */
 public class JDONodeQueryUnitTest {
 
-	Log log = LogFactory.getLog(JDONodeQueryUnitTest.class);
+	Logger log = LogManager.getLogger(JDONodeQueryUnitTest.class);
 	
 	@Test
 	public void testAuthorizationSqlAdminUser() throws Exception {
@@ -94,30 +94,30 @@ public class JDONodeQueryUnitTest {
 	
 	@Test
 	public void testDetermineTypeFromValueNull(){
-		assertEquals(null, JDONodeQueryDaoImpl.determineTypeFromValue(null));
+		assertEquals(null, QueryUtils.determineTypeFromValue(null));
 	}
 	
 	@Test
 	public void testDetermineTypeFromValueString(){
-		assertEquals(FieldType.STRING_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("StringValue"));
+		assertEquals(FieldType.STRING_ATTRIBUTE, QueryUtils.determineTypeFromValue("StringValue"));
 	}
 	
 	@Test
 	public void testDetermineTypeFromValueLong(){
-		assertEquals(FieldType.LONG_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue(new Long(123)));
+		assertEquals(FieldType.LONG_ATTRIBUTE, QueryUtils.determineTypeFromValue(new Long(123)));
 	}
 	
 	@Test
 	public void testDetermineTypeFromValueDouble(){
-		assertEquals(FieldType.DOUBLE_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue(new Double(123.99)));
+		assertEquals(FieldType.DOUBLE_ATTRIBUTE, QueryUtils.determineTypeFromValue(new Double(123.99)));
 	}
 	@Test
 	public void testDetermineTypeFromValueLongAsString(){
-		assertEquals(FieldType.LONG_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("435"));
+		assertEquals(FieldType.LONG_ATTRIBUTE, QueryUtils.determineTypeFromValue("435"));
 	}
 	@Test
 	public void testDetermineTypeFromValueDoubleAsString(){
-		assertEquals(FieldType.DOUBLE_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("435.99"));
+		assertEquals(FieldType.DOUBLE_ATTRIBUTE, QueryUtils.determineTypeFromValue("435.99"));
 	}
 	
 	@Test
@@ -133,7 +133,7 @@ public class JDONodeQueryUnitTest {
 		List<String> select = new ArrayList<String>();
 		select.add("id");
 		select.add(annoKey);
-		JDONodeQueryDaoImpl.addNewOnly(map, toAdd, select);
+		QueryUtils.addNewOnly(map, toAdd, select);
 		assertEquals("one", map.get(annoKey));
 		assertEquals("123", map.get("id"));
 	}

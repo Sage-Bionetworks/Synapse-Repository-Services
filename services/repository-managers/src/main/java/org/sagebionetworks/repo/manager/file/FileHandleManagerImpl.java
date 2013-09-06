@@ -330,6 +330,22 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public String getPreviewFileHandleId(String handleId) throws DatastoreException, NotFoundException {
 		return fileHandleDao.getPreviewFileHandleId(handleId);
 	}
+	
+	@Override
+	public void clearPreview(UserInfo userInfo, String handleId) throws DatastoreException, NotFoundException  {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		
+		// Get the file handle
+		FileHandle handle = fileHandleDao.get(handleId);
+		// Is the user authorized?
+		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handle.getCreatedBy())){
+			throw new UnauthorizedException("Only the creator of a FileHandle can clear the preview");
+		}
+		
+		//clear the preview id
+		fileHandleDao.setPreviewId(handleId, null);
+	}
 
 	@Override
 	public FileHandleResults getAllFileHandles(List<String> idList, boolean includePreviews) throws DatastoreException, NotFoundException {

@@ -11,7 +11,6 @@ import javax.xml.xpath.XPathExpressionException;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -20,7 +19,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -30,7 +28,6 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +45,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Autowired
 	private S3TokenManager s3TokenManager;
 	@Autowired
-	AttachmentManager attachmentManager;
+	private AttachmentManager attachmentManager;
 	@Autowired
 	private FavoriteDAO favoriteDAO;
 	@Autowired 
@@ -65,12 +62,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param s3TokenManager
 	 */
 	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO,
-			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO) {
+			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO, AttachmentManager attachmentManager) {
 		super();
 		this.userProfileDAO = userProfileDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
+		this.attachmentManager = attachmentManager;
 	}
 
 	@Override
@@ -79,36 +77,18 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		if(userInfo == null) throw new IllegalArgumentException("userInfo can not be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId can not be null");
 		
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
+		UserProfile userProfile = userProfileDAO.get(ownerId);
 		UserGroup userGroup = userGroupDAO.get(ownerId);
-		if (userInfo != null && userInfo.getUser() != null) {
-			userProfile.setUserName(userInfo.getUser().getUserId());
-			if (userGroup != null)
-				userProfile.setEmail(userGroup.getName());
+		if (userGroup != null) {
+			userProfile.setEmail(userGroup.getName());
+			userProfile.setUserName(userGroup.getName());
 		}
 		return userProfile;
-	}
-
-	/**
-	 * Returns the anonymous user's profile - essentially an empty profile that points to the correct principle id
-	 * @param principleId
-	 * @return
-	 */
-	private UserProfile getAnonymousUserProfile(String principleId){
-		UserProfile anonymousUserProfile = new UserProfile();
-		anonymousUserProfile.setOwnerId(principleId);
-		anonymousUserProfile.setEmail(AuthorizationConstants.ANONYMOUS_USER_ID);
-		anonymousUserProfile.setDisplayName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
-		anonymousUserProfile.setFirstName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
-		anonymousUserProfile.setLastName("");
-		return anonymousUserProfile;
 	}
 	
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl, boolean includeEmail) throws DatastoreException, NotFoundException{
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
+		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		for (UserProfile userProfile : userProfiles) {
 			if (includeEmail) {
@@ -139,13 +119,12 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException, AuthenticationException, IOException, XPathExpressionException {
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId(), schema);
+		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId());
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
 		String oldEmail = userInfo.getIndividualGroup().getName();
 		attachmentManager.checkAttachmentsForPreviews(updated);
-		UserProfile returnProfile = userProfileDAO.update(updated, schema);
+		UserProfile returnProfile = userProfileDAO.update(updated);
 		
 		//and update email if it is also set (and is different)
 		if (updated.getEmail() != null && !updated.getEmail().equals(oldEmail)) {

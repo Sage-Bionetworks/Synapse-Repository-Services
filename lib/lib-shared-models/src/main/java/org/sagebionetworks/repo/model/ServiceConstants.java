@@ -177,20 +177,6 @@ public class ServiceConstants {
 	public static final String LOCATION_HEADER = "Location";
 	
 	/**
-	 * name of a web request parameter indicating that the user accepts the terms of use.
-	 * Passed at the initiation of OpenID authentication.
-	 * 
-	 */
-	public static final String ACCEPTS_TERMS_OF_USE_PARAM = "acceptsTermsOfUse";
-
-	/**
-	 * A token built into the redirect URL by the authentication controller at the end of OpenID
-	 * authentication to indicate the the Synapse Terms of Use have not been signed.
-	 * 
-	 */
-	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
-
-	/**
 	 * The generatedBy provenance parameter
 	 */
 	public static final String GENERATED_BY_PARAM = "generatedBy";

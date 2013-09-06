@@ -20,7 +20,7 @@ public class ControllerEntityClassHelper {
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = Arrays
 			.asList(new MediaType[] { MediaType.APPLICATION_JSON, });
 
-	public static boolean isSupported(MediaType mt) {
+	private static boolean isSupported(MediaType mt) {
 		for (MediaType supported : SUPPORTED_MEDIA_TYPES) {
 			if (supported.getType().equals(mt.getType())
 					&& supported.getSubtype().equals(mt.getSubtype()))
@@ -29,7 +29,7 @@ public class ControllerEntityClassHelper {
 		return false;
 	}
 
-	public static JSONEntity deserialize(HttpServletRequest request,
+	private static JSONEntity deserialize(HttpServletRequest request,
 			HttpHeaders header) throws DatastoreException {
 		try {
 			String requestBody = ControllerUtil.getRequestBodyAsString(request);
@@ -39,7 +39,7 @@ public class ControllerEntityClassHelper {
 		}
 	}
 
-	public static JSONEntity deserialize(String httpRequestBody,
+	private static JSONEntity deserialize(String httpRequestBody,
 			MediaType mediaType) throws JSONObjectAdapterException {
 		if (!isSupported(mediaType))
 			throw new IllegalArgumentException("Unsupported media type: "

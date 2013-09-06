@@ -6,15 +6,15 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_MO
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SCORE;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SERIALIZED_ENTITY;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_ETAG;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SCORE;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBSTATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SCORE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -222,6 +222,7 @@ public class ExampleController {
 
 	/**
 	 * Get getting an object that is an interface
+	 * Link to this controller <a href="${org.sagebionetworks.samples.ExampleController}">Example Controller</a>
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -230,4 +231,17 @@ public class ExampleController {
 	FileHandle getInterface(@RequestBody Annotations annos) {
 		return null;
 	}
+	
+	/**
+	 * This method is depricated and should not be included.
+	 * @return
+	 */
+	@Deprecated
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/some/depricated", method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandle someDepricated(@RequestBody Annotations annos) {
+		return null;
+	}
+	
 }

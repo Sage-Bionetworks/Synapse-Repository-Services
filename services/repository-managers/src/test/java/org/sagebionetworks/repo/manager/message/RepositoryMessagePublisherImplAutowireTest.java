@@ -37,7 +37,7 @@ import com.amazonaws.services.sns.model.PublishRequest;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:aws-topic-publisher.spb.xml" })
+@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml" })
 public class RepositoryMessagePublisherImplAutowireTest {
 
 	public static long MAX_WAIT = 1000*15; // 15 seconds
@@ -106,7 +106,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		assertEquals(1, unsent.size());
 		messagePublisher.fireChangeMessage(message);
 		// The message will be published on a timer, so we wait for that to occur.
-		Thread.sleep(200);
+		Thread.sleep(2000);
 		// Validate that our message was fired.
 		String json = EntityFactory.createJSONStringForEntity(message);
 		// The message should be published once and only once.
@@ -139,7 +139,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		}
 
 		// The message will be published on a timer, so we wait for that to occur.
-		Thread.sleep(200);
+		Thread.sleep(2000);
 		// Validate that all of the messages were fired.
 		for(String messageBody: messageBodyList){
 			System.out.println("Checking for message body: "+messageBody);

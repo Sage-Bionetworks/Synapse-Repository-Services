@@ -1,0 +1,5 @@
+CREATE TABLE `TRANS_TEST` (
+  `ID` bigint(20) NOT NULL,
+  `NAME` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin DEFAULT NULL,
+  PRIMARY KEY (`ID`)
+)

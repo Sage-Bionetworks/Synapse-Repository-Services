@@ -168,7 +168,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void timerFired(){
 		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
 		// processed the next time the timer fires.
-		List<ChangeMessage> currentQueue = messageQueue.getAndSet(new LinkedList<ChangeMessage>());
+		List<ChangeMessage> currentQueue = messageQueue.getAndSet(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
 		if(!shouldMessagesBePublishedToTopic){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){
@@ -216,27 +216,32 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 */
 	@Override
 	public void timerFiredFindUnsentMessages(){
-		// Do nothing if the messages should not be published.
-		if(!shouldMessagesBePublishedToTopic) return;
-		// We use a semaphore to ensure only one worker per stack does this task at a time.
-		String lockToken = semaphoreDao.attemptToAcquireLock(SEMAPHORE_KEY, lockTimeoutMS);
-		if(lockToken != null){
-			log.debug("Acquire the lock with token: "+lockToken);
-			try{
-				// Add all messages to the queue.
-				List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
-				for(ChangeMessage message: unSentMessages){
-					publishMessage(message);
+		try {
+			// Do nothing if the messages should not be published.
+			if(!shouldMessagesBePublishedToTopic) return;
+			// We use a semaphore to ensure only one worker per stack does this task at a time.
+			String lockToken = semaphoreDao.attemptToAcquireLock(SEMAPHORE_KEY, lockTimeoutMS);
+			if(lockToken != null){
+				log.debug("Acquire the lock with token: "+lockToken);
+				try{
+					// Add all messages to the queue.
+					List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
+					for(ChangeMessage message: unSentMessages){
+						publishMessage(message);
+					}
+				}finally{
+					// Release the lock
+					boolean released = semaphoreDao.releaseLock(SEMAPHORE_KEY, lockToken);
+					if(!released){
+						log.warn("Failed to release the lock with token: "+lockToken);
+					}
 				}
-			}finally{
-				// Release the lock
-				boolean released = semaphoreDao.releaseLock(SEMAPHORE_KEY, lockToken);
-				if(!released){
-					log.warn("Failed to release the lock with token: "+lockToken);
-				}
+			}else{
+				log.debug("Did not acquire the lock.");
 			}
-		}else{
-			log.debug("Did not acquire the lock.");
+		} catch (Throwable e) {
+			// Only print one line of the error
+			log.error("Error: "+e.getMessage());
 		}
 	}
 }

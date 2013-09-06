@@ -52,6 +52,7 @@ public class FilterUtilsTest {
 				createMockMethodDoc("two", new String[]{"not.a.controller"}),
 				createMockMethodDoc("three", new String[]{RequestMapping.class.getName()}),
 				createMockMethodDoc("four", null),
+				createMockMethodDoc("five", new String[]{RequestMapping.class.getName(), Deprecated.class.getName()}),
 		};
 		// Create our iterator
 		Iterator<MethodDoc> it = FilterUtils.requestMappingIterator(testDocs);
@@ -60,7 +61,7 @@ public class FilterUtilsTest {
 		while(it.hasNext()){
 			MethodDoc cd = it.next();
 			assertNotNull(cd);
-			assertTrue("Two and Four should have been filtered out: "+cd.qualifiedName(), "one".equals(cd.qualifiedName()) || "three".equals(cd.qualifiedName()));
+			assertTrue("Two, Four, and Five should have been filtered out: "+cd.qualifiedName(), "one".equals(cd.qualifiedName()) || "three".equals(cd.qualifiedName()));
 			count++;
 		}
 		assertEquals(2, count);

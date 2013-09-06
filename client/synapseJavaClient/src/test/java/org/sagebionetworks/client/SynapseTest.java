@@ -451,6 +451,47 @@ public class SynapseTest {
 		verify(mockResponse, atLeast(1)).getEntity();
 	}
 	
+	@Test
+	public void testUserAgent() throws SynapseException, JSONObjectAdapterException, UnsupportedEncodingException{
+		// The user agent 
+		SynapseVersionInfo info = new SynapseVersionInfo();
+		info.setVersion("someversion");
+		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
+		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
+		synapse = new Synapse(stubProvider, mockUploader);
+		// Make a call and ensure 
+		synapse.getVersionInfo();
+		// Validate that the User-Agent was sent
+		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
+		String value = sentHeaders.get("User-Agent");
+		assertNotNull(value);
+		assertTrue(value.startsWith(Synapse.SYNPASE_JAVA_CLIENT));
+ 	}
+	
+	@Test
+	public void testAppendUserAgent() throws SynapseException, JSONObjectAdapterException, UnsupportedEncodingException{
+		// The user agent 
+		SynapseVersionInfo info = new SynapseVersionInfo();
+		info.setVersion("someversion");
+		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
+		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
+		synapse = new Synapse(stubProvider, mockUploader);
+		// Append some user agent data
+		String appended = "Appended to the User-Agent";
+		synapse.appendUserAgent(appended);
+		// Make a call and ensure 
+		synapse.getVersionInfo();
+		// Validate that the User-Agent was sent
+		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
+		String value = sentHeaders.get("User-Agent");
+		System.out.println(value);
+		assertNotNull(value);
+		assertTrue(value.startsWith(Synapse.SYNPASE_JAVA_CLIENT));
+		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
+ 	}
+	
+	
+	
 	/*
 	 * Private methods
 	 */

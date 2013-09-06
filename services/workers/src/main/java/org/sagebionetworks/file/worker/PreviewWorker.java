@@ -55,7 +55,8 @@ public class PreviewWorker implements Callable<List<Message>> {
 			try{
 				ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 				// Ignore all non-file messages.
-				if (ObjectType.FILE == changeMessage.getObjectType() && ChangeType.CREATE == changeMessage.getChangeType()) {
+				if (ObjectType.FILE == changeMessage.getObjectType()
+						&& (ChangeType.CREATE == changeMessage.getChangeType() || ChangeType.UPDATE == changeMessage.getChangeType())) {
 					// This is a file message so look up the file
 					FileHandle metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
 					if (metadata instanceof PreviewFileHandle) {

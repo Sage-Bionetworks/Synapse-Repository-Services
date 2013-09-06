@@ -13,6 +13,8 @@ import javax.servlet.ServletContext;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.User;
 
 /**
  *

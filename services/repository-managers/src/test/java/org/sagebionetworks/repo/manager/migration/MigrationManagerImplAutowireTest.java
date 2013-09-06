@@ -46,7 +46,7 @@ public class MigrationManagerImplAutowireTest {
 	String creatorUserGroupId;
 	S3FileHandle withPreview;
 	PreviewFileHandle preview;
-	long startCount;
+	long startCount, startMax;
 	
 	@Before
 	public void before() throws Exception {
@@ -55,6 +55,8 @@ public class MigrationManagerImplAutowireTest {
 		creatorUserGroupId = adminUser.getIndividualGroup().getId();
 		assertNotNull(creatorUserGroupId);
 		startCount = fileHandleDao.getCount();
+		startMax = fileHandleDao.getMaxId();
+		
 		// The one will have a preview
 		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
@@ -90,6 +92,12 @@ public class MigrationManagerImplAutowireTest {
 	public void testGetCount(){
 		long count = migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(startCount+2, count);
+	}
+	
+	@Test
+	public void testGetMaxId() {
+		long mx = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		assertEquals(Long.parseLong(preview.getId()), mx);
 	}
 	
 	@Test

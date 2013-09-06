@@ -24,6 +24,8 @@ public class EvaluationTranslationUtil {
 		dbo.setName(backup.getName());
 		dbo.setOwnerId(backup.getOwnerId());
 		dbo.setStatusEnum(EvaluationStatus.values()[backup.getStatus()]);
+		dbo.setSubmissionInstructionsMessage(backup.getSubmissionInstructions());
+		dbo.setSubmissionReceiptMessage(backup.getSubmissionReceiptMessage());
 		return dbo;
 	}
 
@@ -37,6 +39,8 @@ public class EvaluationTranslationUtil {
 		backup.setName(dbo.getName());
 		backup.setOwnerId(dbo.getOwnerId());
 		backup.setStatus(dbo.getStatus());
+		backup.setSubmissionInstructions(dbo.getSubmissionInstructionsMessage());
+		backup.setSubmissionReceiptMessage(dbo.getSubmissionReceiptMessage());
 		return backup;
 	}
 	

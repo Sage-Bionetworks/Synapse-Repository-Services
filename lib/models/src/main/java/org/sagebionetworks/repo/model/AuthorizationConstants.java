@@ -40,7 +40,7 @@ public class AuthorizationConstants {
 	 * BOOTSTRAP group must always have the same ID to allow stack migration
 	 * 
 	 */
-	public static final String BOOTSTRAP_USER_GROUP_ID = "0";
+//	public static final String BOOTSTRAP_USER_GROUP_ID = "0";
 	
 	/**
 	 * A scheme that describes how an ACL should be applied to an entity.
@@ -88,6 +88,13 @@ public class AuthorizationConstants {
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
 	public static final String TERMS_OF_USE_AGREEMENT_URI = "/termsOfUseAgreement";
 	
+	/**
+	 * Epoch time in seconds since the Terms of Use were last updated
+	 * See: https://sagebionetworks.jira.com/browse/PLFM-1812
+	 * A value of 1 ensures that all users have accepted the terms of use once
+	 *   as long as the user has a creation date (enforced by migration from Crowd)
+	 */
+	public static final long MOST_RECENT_TERMS_OF_USE = 1L;
 	public static final String ACCEPTS_TERMS_OF_USE_ATTRIBUTE = "org.sagebionetworks.termsOfUseAgreement.AcceptsTermsOfUse";
 
 

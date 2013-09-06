@@ -1,16 +1,17 @@
 {
-	"description": "JSON schema for FileHandle.",
+	"description": "The FileHandle interface defines all of the fields that are common to all implementations.",
 	"type": "interface",
 	"properties": {
 		"id": {
-			"description": "The id of the file.",
+			"description": "The ID of this FileHandle.  All references to this FileHandle will use this ID.  Synapse will generate this ID when the FileHandle is created.",
 			"type": "string"
 		},
 		"etag": {
-			"type": "string"
+			"type": "string",
+			"description": "FileHandles are immutable from the perspective of the API.  The only field that can be change is the preivewId.  When a new previewId is set, the etag will change."
 		},
 		"createdBy": {
-			"description": "The ID Of the use that created this file.",
+			"description": "The ID Of the user that created this file.",
 			"type": "string"
 		},
 		"createdOn": {
@@ -19,7 +20,8 @@
 			"format":"date-time"
 		},
         "concreteType":{
-            "type":"string"
+            "type":"string",
+            "description":"This is used to indicate the implementation of this interface. For example, an S3FileHandle should be set to: org.sagebionetworks.repo.model.file.S3FileHandle"
         },
 		"contentType": {
 			"description": "Must be: http://en.wikipedia.org/wiki/Internet_media_type",

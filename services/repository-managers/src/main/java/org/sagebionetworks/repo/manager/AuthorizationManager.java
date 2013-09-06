@@ -7,13 +7,27 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
 	
 	/**
+	 * Check user access to an object
+	 * 
+	 * @param userInfo
+	 * @param objectId
+	 * @param objectType
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Check user access to a Node (default type)
+	 * 
 	 * @param userInfo
 	 * @param nodeId
 	 * @param accessType
@@ -26,19 +40,8 @@ public interface AuthorizationManager {
 	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 	throws NotFoundException, DatastoreException;
 	
 	/**
-	 * Can a user access an Object?
-	 * @param userInfo
-	 * @param objectId
-	 * @param objectType
-	 * @param accessType
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
-
-	/**
-    *
+     * Checks whether the given user can create the given node.
+     *
 	 * @param nodeId
 	 * @param accessType
 	 * 
@@ -68,24 +71,6 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public boolean canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
-
-	/**
-	 * @param n the number of items in the group-id list
-	 * 
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	public String authorizationSQL(int n);
-
-	/**
-	 * Get the user's permissions for an entity.
-	 * @param userInfo
-	 * @param entityId
-	 * @return 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * 

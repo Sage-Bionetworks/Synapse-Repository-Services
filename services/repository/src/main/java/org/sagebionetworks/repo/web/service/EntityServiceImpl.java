@@ -702,7 +702,7 @@ public class EntityServiceImpl implements EntityService {
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(previewId);
 	}
-
+	
 	@Override
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");

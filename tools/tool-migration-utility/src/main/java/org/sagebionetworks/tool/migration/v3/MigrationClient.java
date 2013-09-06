@@ -179,29 +179,70 @@ public class MigrationClient {
 			DeltaData dd = calculateDeltaForType(type, batchSize);
 			deltaList.add(dd);
 		}
-		// Now we need to delete any data in reverse order
-		for(int i=deltaList.size()-1; i >= 0; i--){
-			DeltaData dd = deltaList.get(i);
-			long count =  dd.getCounts().getDelete();
-			if(count > 0){
-				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+		
+		// First attempt to delete, catching any exception (for case like fileHandles)
+		Exception firstDeleteException = null;
+		try {
+			// Delete any data in reverse order
+			for(int i=deltaList.size()-1; i >= 0; i--){
+				DeltaData dd = deltaList.get(i);
+				long count =  dd.getCounts().getDelete();
+				if(count > 0){
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			firstDeleteException = e;
+			log.info("Exception thrown during first delete phase.", e);
+		}
+		
+		// If exception in insert/update phase, then rethrow at end so main is aware of problem
+		Exception insException = null;
+		try {
+			// Now do all adds in the original order
+			for(int i=0; i<deltaList.size(); i++){
+				DeltaData dd = deltaList.get(i);
+				long count = dd.getCounts().getCreate();
+				if(count > 0){
+					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			insException = e;
+			log.info("Exception thrown during insert phase", e);
+		}
+		Exception updException = null;
+		try {
+			// Now do all updates in the original order
+			for(int i=0; i<deltaList.size(); i++){
+				DeltaData dd = deltaList.get(i);
+				long count = dd.getCounts().getUpdate();
+				if(count > 0){
+					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			updException = e;
+			log.info("Exception thrown during update phases", e);
+		}
+
+		// Only do the post-deletes if the initial ones raised an exception
+		if (firstDeleteException != null) {
+			// Now we need to delete any data in reverse order
+			for(int i=deltaList.size()-1; i >= 0; i--){
+				DeltaData dd = deltaList.get(i);
+				long count =  dd.getCounts().getDelete();
+				if(count > 0){
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+				}
 			}
 		}
-		// Now do all adds in the original order
-		for(int i=0; i<deltaList.size(); i++){
-			DeltaData dd = deltaList.get(i);
-			long count = dd.getCounts().getCreate();
-			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
-			}
+		
+		if (insException != null) {
+			throw insException;
 		}
-		// Now do all updates in the original order
-		for(int i=0; i<deltaList.size(); i++){
-			DeltaData dd = deltaList.get(i);
-			long count = dd.getCounts().getUpdate();
-			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
-			}
+		if (updException != null) {
+			throw updException;
 		}
 	}
 	

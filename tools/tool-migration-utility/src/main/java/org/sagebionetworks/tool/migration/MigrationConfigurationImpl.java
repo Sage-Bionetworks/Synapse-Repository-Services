@@ -29,10 +29,10 @@ public class MigrationConfigurationImpl implements Configuration {
 	 * @throws IOException
 	 */
 	public void loadConfigurationFile(String path) throws IOException{
-		log.debug("Using configuation file: "+path);
+		log.debug("Using configuration file: "+path);
 		File file = new File(path);
 		if(!file.exists()){
-			throw new IllegalArgumentException("The configuartion file: "+path+" does not exist");
+			throw new IllegalArgumentException("The configurartion file: "+path+" does not exist");
 		}
 		FileInputStream fis = null;
 		try{
@@ -48,7 +48,10 @@ public class MigrationConfigurationImpl implements Configuration {
 		props.load(inputStream);
 		// Add all of these properties to the system properties.
 		System.getProperties().putAll(props);
-		validateConfigurationProperties();
+	}
+	
+	public void loadApiKey(String path) throws IOException {
+		loadConfigurationFile(path);
 	}
 	
 	/**
@@ -102,8 +105,8 @@ public class MigrationConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 					System.getProperty("org.sagebionetworks.source.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.source.repository.endpoint"),
-					System.getProperty("org.sagebionetworks.source.admin.username"),
-					System.getProperty("org.sagebionetworks.source.admin.password"),
+					System.getProperty("org.sagebionetworks.username"),
+					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
 					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
@@ -118,8 +121,8 @@ public class MigrationConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 					System.getProperty("org.sagebionetworks.destination.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.destination.repository.endpoint"),
-					System.getProperty("org.sagebionetworks.destination.admin.username"),
-					System.getProperty("org.sagebionetworks.destination.admin.password"),
+					System.getProperty("org.sagebionetworks.username"),
+					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
 					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),

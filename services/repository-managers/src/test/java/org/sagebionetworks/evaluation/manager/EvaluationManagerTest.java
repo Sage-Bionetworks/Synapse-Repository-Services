@@ -1,13 +1,14 @@
 package org.sagebionetworks.evaluation.manager;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,30 +33,31 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class EvaluationManagerTest {
 		
-	private static EvaluationManager evaluationManager;
-	private static Evaluation eval;
-	private static Evaluation evalWithId;
-	private static List<Evaluation> evaluations;
+	private EvaluationManager evaluationManager;
+	private Evaluation eval;
+	private Evaluation evalWithId;
+	private List<Evaluation> evaluations;
+
+	private AuthorizationManager mockAuthorizationManager;
+	private EvaluationPermissionsManager mockPermissionsManager;
+	private IdGenerator mockIdGenerator;
+	private EvaluationDAO mockEvaluationDAO;
 	
-	private static AuthorizationManager mockAuthorizationManager;
-	private static IdGenerator mockIdGenerator;
-	private static EvaluationDAO mockEvaluationDAO;
+	private final Long OWNER_ID = 123L;
+	private final Long USER_ID = 456L;
+	private UserInfo ownerInfo;
+	private UserInfo userInfo;
 	
-	private static final Long OWNER_ID = 123L;
-	private static final Long USER_ID = 456L;
-	private static UserInfo ownerInfo;
-	private static UserInfo userInfo;
-	
-	private static final String EVALUATION_NAME = "test-evaluation";
-    private static final String EVALUATION_ID = "1234";
-    private static final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
-    private static final String EVALUATION_ETAG = "etag";
+	private final String EVALUATION_NAME = "test-evaluation";
+    private final String EVALUATION_ID = "1234";
+    private final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
+    private final String EVALUATION_ETAG = "etag";
     
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
@@ -63,11 +65,14 @@ public class EvaluationManagerTest {
     	mockIdGenerator = mock(IdGenerator.class);
     	
     	// Evaluation DAO
-    	mockEvaluationDAO = mock(EvaluationDAO.class);    
-    	
-    	// Authorization Manager
+    	mockEvaluationDAO = mock(EvaluationDAO.class);
+
+    	// Permissions manager
+    	mockPermissionsManager = mock(EvaluationPermissionsManager.class);
+
+    	// Authorization manager
     	mockAuthorizationManager = mock(AuthorizationManager.class);
-    	
+
     	// UserInfo
     	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID.toString());
@@ -92,10 +97,14 @@ public class EvaluationManagerTest {
 		evalWithId.setContentSource(EVALUATION_CONTENT_SOURCE);
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);
-        
+
         // Evaluation Manager
-    	evaluationManager = new EvaluationManagerImpl(mockAuthorizationManager, mockEvaluationDAO, mockIdGenerator);
-    	
+    	evaluationManager = new EvaluationManagerImpl();
+    	ReflectionTestUtils.setField(evaluationManager, "evaluationDAO", mockEvaluationDAO);
+    	ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
+    	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
+    	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
+
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
@@ -105,9 +114,11 @@ public class EvaluationManagerTest {
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
     	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), (EvaluationStatus)any(), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
-       	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVALUATION_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-            }
-	
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(true);
+    }
+
 	@Test
 	public void testCreateEvaluation() throws Exception {		
 		Evaluation clone = evaluationManager.createEvaluation(ownerInfo, eval);
@@ -119,7 +130,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testGetEvaluation() throws DatastoreException, NotFoundException, UnauthorizedException {
-		Evaluation eval2 = evaluationManager.getEvaluation(EVALUATION_ID);
+		Evaluation eval2 = evaluationManager.getEvaluation(ownerInfo, EVALUATION_ID);
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
 	}
@@ -144,7 +155,7 @@ public class EvaluationManagerTest {
 
 	@Test
 	public void testFind() throws DatastoreException, UnauthorizedException, NotFoundException {
-		Evaluation eval2 = evaluationManager.findEvaluation(EVALUATION_NAME);
+		Evaluation eval2 = evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME);
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).lookupByName(eq(EVALUATION_NAME));
 	}
@@ -158,7 +169,7 @@ public class EvaluationManagerTest {
 	
 	@Test(expected=NotFoundException.class)
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
-		evaluationManager.findEvaluation(EVALUATION_NAME +  "2");
+		evaluationManager.findEvaluation(ownerInfo, EVALUATION_NAME +  "2");
 	}
 	
 	@Test

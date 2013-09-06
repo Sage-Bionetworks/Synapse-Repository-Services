@@ -59,6 +59,8 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 	Stack<Long> currentChangeNumberStack = new Stack<Long>();
 	Long maxChangeNumber = 100l;
 	List<Long> replayChangeNumbersHistory = new LinkedList<Long>();
+	List<Set<Long>> deleteRequestsHistory = new LinkedList<Set<Long>>();
+	Set<Long> exceptionNodes = new HashSet<Long>();
 
 	/**
 	 * Create a new stub
@@ -148,6 +150,18 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 			LinkedHashMap<MigrationType, List<RowMetadata>> metadata) {
 		this.metadata = metadata;
 	}
+	
+	public List<Set<Long>> getDeleteRequestsHistory() {
+		return this.deleteRequestsHistory;
+	}
+	
+	public Set<Long> getExceptionNodes() {
+		return this.exceptionNodes;
+	}
+	
+	public void setExceptionNodes(Set<Long> exceptionNodes) {
+		this.exceptionNodes = exceptionNodes;
+	}
 
 	/*
 	 * Methods that are part of the interface.
@@ -215,6 +229,16 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		return result;
 	}
 
+	private Long maxId(List<RowMetadata> vals) {
+		Long m = vals.get(0).getId();
+		for (RowMetadata v: vals) {
+			if (v.getId() > m) {
+				m = v.getId();
+			}
+		}
+		return m;
+	}
+
 	@Override
 	public MigrationTypeList getPrimaryTypes() throws SynapseException,
 			JSONObjectAdapterException {
@@ -239,7 +263,8 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		// Get the type
 		Set<Long> toDelete = new HashSet<Long>();
 		toDelete.addAll(ids.getList());
-
+		deleteRequestsHistory.add(toDelete);
+		
 		List<RowMetadata> newList = new LinkedList<RowMetadata>();
 		List<RowMetadata> current = this.metadata.get(migrationType);
 		long count = 0;
@@ -247,6 +272,10 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 			if (!toDelete.contains(row.getId())) {
 				newList.add(row);
 			} else {
+				// Row should be deleted, should it raise an exception?
+				if (exceptionNodes.contains(row.getId())) {
+					throw new SynapseException("SynapseException on node " + row.getId());
+				}
 				count++;
 			}
 		}

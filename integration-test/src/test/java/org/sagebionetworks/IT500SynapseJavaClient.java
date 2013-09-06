@@ -141,7 +141,7 @@ public class IT500SynapseJavaClient {
 		if (toDelete != null) {
 			for (String id: toDelete) {
 				try {
-					synapse.deleteEntityById(id);
+					synapse.deleteAndPurgeEntityById(id);
 				} catch (Exception e) {}
 			}
 		}
@@ -802,6 +802,22 @@ public class IT500SynapseJavaClient {
 		for (String id : ids)
 			if (!id.equals(dummyId))
 				assertTrue(headers.containsKey(id));
+	}
+	
+	/**
+	 * Backend cache (see UserProfileServiceImpl.getUserGroupHeadersByPrefix) may or may not have integration test user (Spring trigger populates periodically).
+	 * This prefix method is unit tested, so ignoring this integration test.
+	 * @throws Exception
+	 */
+	@Ignore
+	@Test
+	public void testGetUserGroupHeadersByPrefix() throws Exception {
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneEmail());
+		assertTrue(response.getChildren().size() > 0);
+		
+		String dummyPrefix = "INVALIDPREFIX12345@INVALID.COM.WRONG";
+		response = synapse.getUserGroupHeadersByPrefix(dummyPrefix);
+		assertTrue(response.getChildren().size()==0);
 	}
 	
 	@Test

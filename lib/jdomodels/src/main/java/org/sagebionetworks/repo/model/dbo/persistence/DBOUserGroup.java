@@ -8,12 +8,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_E_TAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -31,15 +33,17 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	private String name;
 	private Date creationDate;
 	private Boolean isIndividual = false;
+	private String etag;
 
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_USER_GROUP_ID, true).withIsBackupId(true),
 		// we treat the user name like an etag, so if the name assigned to an
 		// ID across stacks does not match, the destination stack user will be replaced with the source user.
-		new FieldColumn("name", COL_USER_GROUP_NAME).withIsEtag(true),
+		new FieldColumn("name", COL_USER_GROUP_NAME),
 		new FieldColumn("creationDate", COL_USER_GROUP_CREATION_DATE),
-		new FieldColumn("isIndividual", COL_USER_GROUP_IS_INDIVIDUAL)
+		new FieldColumn("isIndividual", COL_USER_GROUP_IS_INDIVIDUAL), 
+		new FieldColumn("etag", COL_USER_GROUP_E_TAG).withIsEtag(true)
 		};
 
 
@@ -55,6 +59,7 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 				Timestamp ts = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
 				ug.setCreationDate(ts==null ? null : new Date(ts.getTime()));
 				ug.setIsIndividual(rs.getBoolean(COL_USER_GROUP_IS_INDIVIDUAL));
+				ug.setEtag(rs.getString(COL_USER_GROUP_E_TAG));
 				return ug;
 			}
 
@@ -142,6 +147,20 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	public void setIsIndividual(Boolean isIndividual) {
 		this.isIndividual = isIndividual;
 	}
+	
+	/**
+	 * @return the etag
+	 */
+	public String getEtag() {
+		return etag;
+	}
+	
+	/**
+	 * @param etag the etag to set
+	 */
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
 
 
 	@Override
@@ -158,6 +177,9 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 			@Override
 			public DBOUserGroup createDatabaseObjectFromBackup(
 					DBOUserGroup backup) {
+				if(backup.getEtag() == null){
+					backup.setEtag("0");
+				}
 				return backup;
 			}
 
@@ -182,7 +204,9 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBOGroupMembers());
+		return list;
 	}
 
 

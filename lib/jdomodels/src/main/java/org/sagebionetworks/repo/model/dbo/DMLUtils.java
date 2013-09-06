@@ -112,6 +112,19 @@ public class DMLUtils {
 		main.append(mapping.getTableName());
 		return main.toString();		
 	}
+	
+	/**
+	 * Create a MAX statement for a given mapping
+	 * @param mapping
+	 * @return the MAX statement
+	 */
+	public static String createGetMaxStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		StringBuilder main = new StringBuilder();
+		main.append("SELECT MAX("+getPrimaryFieldColumnName(mapping)+") FROM ");
+		main.append(mapping.getTableName());
+		return main.toString();		
+	}
 
 	public static String getPrimaryFieldColumnName(TableMapping mapping) {
 		for(int i=0; i<mapping.getFieldColumns().length; i++){

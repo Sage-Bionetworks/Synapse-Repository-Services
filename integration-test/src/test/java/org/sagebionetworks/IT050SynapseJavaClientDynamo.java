@@ -62,10 +62,10 @@ public class IT050SynapseJavaClientDynamo {
 	public static void afterClass() throws SynapseException{
 		if (synapse != null) {
 			if (child != null) {
-				synapse.deleteEntity(child);
+				synapse.deleteAndPurgeEntity(child);
 			}
 			if (parent != null) {
-				synapse.deleteEntity(parent);
+				synapse.deleteAndPurgeEntity(parent);
 			}
 		}
 	}

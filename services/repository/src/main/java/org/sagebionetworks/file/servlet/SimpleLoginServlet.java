@@ -14,9 +14,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.Session;
-import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.User;
 
 /**
  * This is a simple servlet that will login

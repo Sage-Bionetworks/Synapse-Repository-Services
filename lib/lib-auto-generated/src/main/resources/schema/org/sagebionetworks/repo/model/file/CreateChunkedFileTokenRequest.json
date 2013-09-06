@@ -1,16 +1,16 @@
 {
-	"description": "JSON schema for CreateChunkedFileTokenRequest",
+	"description": "A request object used to create a ChunkedFileToken.",
 	"properties": {
 		"fileName": {
-			"description": "The name of the file",
+			"description": "The short name of the file.  This should include the appropriate file prefix.",
 			"type": "string"
 		},
 		"contentType": {
-			"description": "The content type of the file",
+			"description": "The content type of the file. Must be: http://en.wikipedia.org/wiki/Internet_media_type",
 			"type": "string"
 		},
 		"contentMD5": {
-			"description": "The content MD5 of the file",
+			"description": "The file's content MD5 (should be a HEX encoded string).",
 			"type": "string"
 		}
 	}

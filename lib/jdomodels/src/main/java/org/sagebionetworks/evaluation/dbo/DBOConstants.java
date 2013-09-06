@@ -11,7 +11,8 @@ public class DBOConstants {
 	public static final String PARAM_EVALUATION_CREATED_ON 			= "createdOn";
 	public static final String PARAM_EVALUATION_CONTENT_SOURCE 		= "contentSource";
 	public static final String PARAM_EVALUATION_STATUS				= "status";
-	public static final String PARAM_EVALUATION_SERIALIZED_OBJECT 	= "serializedObject";
+	public static final String PARAM_EVALUATION_SUB_INSTRUCT_MSG 	= "submissionInstructionsMessage";
+	public static final String PARAM_EVALUATION_SUB_RECEPIT_MSG		= "submissionReceiptMessage";
 	
 	// Participant
 	public static final String PARAM_PARTICIPANT_ID 				= "id";
@@ -41,4 +42,8 @@ public class DBOConstants {
 	// SubmissionFile
 	public static final String PARAM_SUBFILE_SUBMISSION_ID 			= "submissionId";
 	public static final String PARAM_SUBFILE_FILE_HANDLE_ID			= "fileHandleId";
+	
+	// Annotation
+	public static final String PARAM_ANNOTATION_OBJECT_ID			= "objectId";
+	public static final String PARAM_ANNOTATION_SCOPE_ID			= "scopeId";
 }

@@ -1,18 +1,25 @@
 package org.sagebionetworks.evaluation.manager;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -25,12 +32,7 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.manager.EvaluationManager;
-import org.sagebionetworks.evaluation.manager.ParticipantManager;
-import org.sagebionetworks.evaluation.manager.SubmissionManager;
-import org.sagebionetworks.evaluation.manager.SubmissionManagerImpl;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -43,38 +45,42 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.Annotations;
+import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
+import org.sagebionetworks.repo.model.annotation.LongAnnotation;
+import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class SubmissionManagerTest {
 		
-	private static SubmissionManager submissionManager;	
-	private static Evaluation eval;
-	private static Participant part;
-	private static Submission sub;
-	private static Submission sub2;
-	private static Submission subWithId;
-	private static Submission sub2WithId;
-	private static SubmissionStatus subStatus;
+	private SubmissionManager submissionManager;	
+	private Evaluation eval;
+	private Participant part;
+	private Submission sub;
+	private Submission sub2;
+	private Submission subWithId;
+	private Submission sub2WithId;
+	private SubmissionStatus subStatus;
 	
-	private static IdGenerator mockIdGenerator;
-	private static SubmissionDAO mockSubmissionDAO;
-	private static SubmissionStatusDAO mockSubmissionStatusDAO;
-	private static SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
-	private static EvaluationManager mockEvaluationManager;
-	private static ParticipantManager mockParticipantManager;
-	private static EntityManager mockEntityManager;
-	private static NodeManager mockNodeManager;
-	private static AuthorizationManager mockAuthorizationManager;
-	private static FileHandleManager mockFileHandleManager;
-	private static Node mockNode;
-	private static Folder folder;
-	private static EntityBundle bundle;
+	private IdGenerator mockIdGenerator;
+	private SubmissionDAO mockSubmissionDAO;
+	private SubmissionStatusDAO mockSubmissionStatusDAO;
+	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
+	private EvaluationManager mockEvaluationManager;
+	private ParticipantManager mockParticipantManager;
+	private EntityManager mockEntityManager;
+	private NodeManager mockNodeManager;
+	private FileHandleManager mockFileHandleManager;
+	private EvaluationPermissionsManager mockEvalPermissionsManager;
+	private Node mockNode;
+	private Folder folder;
+	private EntityBundle bundle;
 	
     private FileHandle fileHandle1;
     private FileHandle fileHandle2;
@@ -173,6 +179,7 @@ public class SubmissionManagerTest {
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
         subStatus.setStatus(SubmissionStatusEnum.OPEN);
+        subStatus.setAnnotations(createDummyAnnotations());
         
         folder = new Folder();
         bundle = new EntityBundle();
@@ -189,12 +196,12 @@ public class SubmissionManagerTest {
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
-      	mockAuthorizationManager = mock(AuthorizationManager.class);
       	mockFileHandleManager = mock(FileHandleManager.class);
-      	     	
+      	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
+
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
-    	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
-    	when(mockEvaluationManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
+    	when(mockParticipantManager.getParticipant(eq(userInfo), eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
+    	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
@@ -206,16 +213,24 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
-    	when(mockAuthorizationManager.canAccess(eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
     	when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(new URL(TEST_URL));
-    	
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(true);
+
     	// Submission Manager
-    	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockEvaluationManager, 
-    			mockParticipantManager, mockEntityManager, mockNodeManager, 
-    			mockAuthorizationManager, mockFileHandleManager);
+    	submissionManager = new SubmissionManagerImpl();
+    	ReflectionTestUtils.setField(submissionManager, "idGenerator", mockIdGenerator);
+    	ReflectionTestUtils.setField(submissionManager, "submissionDAO", mockSubmissionDAO);
+    	ReflectionTestUtils.setField(submissionManager, "submissionStatusDAO", mockSubmissionStatusDAO);
+    	ReflectionTestUtils.setField(submissionManager, "submissionFileHandleDAO", mockSubmissionFileHandleDAO);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationManager", mockEvaluationManager);
+    	ReflectionTestUtils.setField(submissionManager, "participantManager", mockParticipantManager);
+    	ReflectionTestUtils.setField(submissionManager, "entityManager", mockEntityManager);
+    	ReflectionTestUtils.setField(submissionManager, "nodeManager", mockNodeManager);
+    	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationPermissionsManager", mockEvalPermissionsManager);
     }
 	
 	@Test
@@ -223,7 +238,7 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(any(Submission.class));
@@ -238,9 +253,8 @@ public class SubmissionManagerTest {
 	public void testCAsUser_NotAuthorized() throws Exception {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-    	when(mockAuthorizationManager.canAccess(
-    			eq(userInfo), eq(EVAL_ID), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.PARTICIPATE)))
-    			.thenReturn(false);
+		when(mockEvalPermissionsManager.hasAccess(
+				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(false);
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	
@@ -249,7 +263,12 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		try {
+			submissionManager.getSubmission(userInfo, SUB_ID);
+			fail();
+		} catch (UnauthorizedException e) {
+			// expected
+		}
 		try {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
 			fail();
@@ -270,10 +289,7 @@ public class SubmissionManagerTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testUnauthorizedGet() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-		assertNull(sub.getId());
-		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(ownerInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		submissionManager.getSubmission(userInfo, SUB2_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -285,7 +301,7 @@ public class SubmissionManagerTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(userInfo, SUB_ID);
+		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		subStatus.setScore(1.1);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 	}
@@ -310,14 +326,8 @@ public class SubmissionManagerTest {
 	}
 	
 	@Test
-	public void testGetAllSubmissionsByUser() throws DatastoreException, NotFoundException {
-		submissionManager.getAllSubmissionsByUser(USER_ID, 10, 0);
-		verify(mockSubmissionDAO).getAllByUser(eq(USER_ID), eq(10L), eq(0L));
-	}
-	
-	@Test
 	public void testGetSubmissionCount() throws DatastoreException, NotFoundException {
-		submissionManager.getSubmissionCount(EVAL_ID);
+		submissionManager.getSubmissionCount(ownerInfo, EVAL_ID);
 		verify(mockSubmissionDAO).getCountByEvaluation(eq(EVAL_ID));
 	}
 	
@@ -341,6 +351,75 @@ public class SubmissionManagerTest {
 			throws DatastoreException, NotFoundException {
 		// HANDLE_ID_1 is not contained in this Submission
 		submissionManager.getRedirectURLForFileHandle(ownerInfo, SUB2_ID, HANDLE_ID_1);
+	}
+	
+	@Test
+	public void testGetSubmissionStatus() throws DatastoreException, NotFoundException {
+		SubmissionStatus status = submissionManager.getSubmissionStatus(ownerInfo, SUB_ID);
+		Annotations annos = status.getAnnotations();
+		assertNotNull(annos);
+		
+		// check the single private LongAnno
+		assertNotNull(annos.getLongAnnos());		
+		assertEquals(1, annos.getLongAnnos().size());		
+		LongAnnotation la = annos.getLongAnnos().get(0);
+		assertTrue(la.getIsPrivate());
+		
+		// check the single StringAnno
+		assertNotNull(annos.getStringAnnos());
+		assertEquals(1, annos.getStringAnnos().size());		
+
+		// check the single DoubleAnno
+		assertNotNull(annos.getDoubleAnnos());
+		assertEquals(1, annos.getDoubleAnnos().size());
+	}
+	
+	@Test
+	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
+		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+		Annotations annos = status.getAnnotations();
+		assertNotNull(annos);
+		
+		// check that the single private LongAnno was removed
+		assertNotNull(annos.getLongAnnos());		
+		assertEquals(0, annos.getLongAnnos().size());
+		
+		// check the single StringAnno
+		assertNotNull(annos.getStringAnnos());
+		assertEquals(1, annos.getStringAnnos().size());		
+
+		// check the single DoubleAnno
+		assertNotNull(annos.getDoubleAnnos());
+		assertEquals(1, annos.getDoubleAnnos().size());
+	}
+	
+	private static Annotations createDummyAnnotations() {		
+		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+		StringAnnotation sa = new StringAnnotation();
+		sa.setIsPrivate(false);
+		sa.setKey("sa");
+		sa.setValue("foo");
+		stringAnnos.add(sa);
+		
+		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
+		LongAnnotation la = new LongAnnotation();
+		la.setIsPrivate(true);
+		la.setKey("la");
+		la.setValue(42L);
+		longAnnos.add(la);
+		
+		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
+		DoubleAnnotation doa = new DoubleAnnotation();
+		doa.setIsPrivate(false);
+		doa.setKey("doa");
+		doa.setValue(3.14);
+		doubleAnnos.add(doa);
+		
+		Annotations annos = new Annotations();
+		annos.setStringAnnos(stringAnnos);
+		annos.setLongAnnos(longAnnos);
+		annos.setDoubleAnnos(doubleAnnos);
+		return annos;
 	}
 
 }

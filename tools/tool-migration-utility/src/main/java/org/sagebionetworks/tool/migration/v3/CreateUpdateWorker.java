@@ -83,8 +83,16 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		List<List<Long>> listOfBuckets = provider.getListOfBuckets();
 		// Send each bucket batched.
 		long updateCount = 0;
+		Exception backupBucketException = null;
 		for(List<Long> bucket: listOfBuckets){
-			updateCount += backupBucketAsBatch(bucket.iterator());
+			try {
+				updateCount += backupBucketAsBatch(bucket.iterator());
+			} catch (Exception e ) {
+				backupBucketException = e;
+			}
+		}
+		if (backupBucketException != null) {
+			throw backupBucketException;
 		}
 		progress.setDone();
 		return updateCount;
@@ -100,13 +108,18 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		// Iterate and create batches.
 		Long id = null;
 		List<Long> batch = new LinkedList<Long>();
+		Exception migrateBatchException = null;
 		long updateCount = 0;
 		while(bucketIt.hasNext()){
 			id = bucketIt.next();
 			if(id != null){
 				batch.add(id);
 				if(batch.size() >= batchSize){
-					migrateBatch(batch);
+					try {
+						migrateBatch(batch);
+					} catch (Exception e) {
+						migrateBatchException = e;
+					}
 					updateCount += batch.size();
 					batch.clear();
 				}
@@ -114,9 +127,16 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		}
 		// If there is any data left in the batch send it
 		if(batch.size() > 0){
-			migrateBatch(batch);
+			try {
+				migrateBatch(batch);
+			}  catch (Exception e) {
+				migrateBatchException = e;
+			}
 			updateCount += batch.size();
 			batch.clear();
+		}
+		if (migrateBatchException != null) {
+			throw migrateBatchException;
 		}
 		return updateCount;
 	}
@@ -129,7 +149,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	protected void migrateBatch(List<Long> ids) throws Exception {
 		// This utility will first attempt to execute the batch.
 		// If there are failures it will break the batch into sub-batches and attempt to execute eatch sub-batch.
-		BatchUtility.attemptBatchWithRetry(this.retryDenominator, this, ids);
+		BatchUtility.attemptBatchWithRetry(this, ids);
 	}
 
 	/**
@@ -139,7 +159,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	 * @throws SynapseException
 	 * @throws InterruptedException
 	 */
-	public boolean attemptBatch(List<Long> ids) throws JSONObjectAdapterException, SynapseException, InterruptedException {
+	public Long attemptBatch(List<Long> ids) throws JSONObjectAdapterException, SynapseException, InterruptedException {
 		int listSize = ids.size();
 		progress.setMessage("Starting backup daemon for "+listSize+" objects");
 		// Start a backup.
@@ -158,7 +178,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 		// Update the progress
 		progress.setMessage("Finished restore for "+listSize+" objects");
 		progress.setCurrent(progress.getCurrent()+listSize);
-		return true;
+		return (long) (listSize);
 	}
 	
 	/**

@@ -52,7 +52,6 @@ public interface SynapseAdministrationInt extends SynapseInt {
 	 */
 	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException;
 	
-	
 	/**
 	 * Get the primary migration types
 	 * @return

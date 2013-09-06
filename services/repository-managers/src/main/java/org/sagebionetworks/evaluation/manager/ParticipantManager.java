@@ -17,7 +17,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Participant getParticipant(String userId, String evalId)
+	public Participant getParticipant(UserInfo userInfo, String participantId, String evalId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -29,20 +29,6 @@ public interface ParticipantManager {
 	 * @throws NotFoundException
 	 */
 	Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException;
-
-	/**
-	 * Add a different user as a Participant to a Evaluation.
-	 * 'userInfo' is the requesting user, 'evalId' is of the target Evaluation,
-	 * and 'idToAdd' is of the user to be added as a Participant.
-	 * 
-	 * @param userInfo
-	 * @param evalId
-	 * @param idToAdd
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public Participant addParticipantAsAdmin(UserInfo userInfo, String evalId,
-			String idToAdd) throws NotFoundException;
 
 	/**
 	 * Remove a Participant from a Evaluation.
@@ -65,7 +51,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Participant> getAllParticipants(String evalId, long limit, long offset)
+	public QueryResults<Participant> getAllParticipants(UserInfo userInfo, String evalId, long limit, long offset)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -76,7 +62,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public long getNumberofParticipants(String evalId)
+	public long getNumberofParticipants(UserInfo userInfo, String evalId)
 			throws DatastoreException, NotFoundException;
 
 }

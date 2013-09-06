@@ -11,11 +11,18 @@ import java.util.List;
 public class ControllerModel {
 
 	String displayName;
+	String fullClassName;
 	String path;
 	String name;
 	String classDescription;
 	List<MethodModel> methods;
 	
+	public String getFullClassName() {
+		return fullClassName;
+	}
+	public void setFullClassName(String fullClassName) {
+		this.fullClassName = fullClassName;
+	}
 	public List<MethodModel> getMethods() {
 		return methods;
 	}
@@ -55,6 +62,8 @@ public class ControllerModel {
 				+ ((classDescription == null) ? 0 : classDescription.hashCode());
 		result = prime * result
 				+ ((displayName == null) ? 0 : displayName.hashCode());
+		result = prime * result
+				+ ((fullClassName == null) ? 0 : fullClassName.hashCode());
 		result = prime * result + ((methods == null) ? 0 : methods.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
@@ -79,6 +88,11 @@ public class ControllerModel {
 				return false;
 		} else if (!displayName.equals(other.displayName))
 			return false;
+		if (fullClassName == null) {
+			if (other.fullClassName != null)
+				return false;
+		} else if (!fullClassName.equals(other.fullClassName))
+			return false;
 		if (methods == null) {
 			if (other.methods != null)
 				return false;
@@ -98,7 +112,8 @@ public class ControllerModel {
 	}
 	@Override
 	public String toString() {
-		return "ControllerModel [displayName=" + displayName + ", path=" + path
+		return "ControllerModel [displayName=" + displayName
+				+ ", fullClassName=" + fullClassName + ", path=" + path
 				+ ", name=" + name + ", classDescription=" + classDescription
 				+ ", methods=" + methods + "]";
 	}

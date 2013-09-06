@@ -19,6 +19,7 @@ public class UserGroupUtilsTest {
 		dto.setCreationDate(new Date());
 		dto.setIsIndividual(true);
 		dto.setUri("/userGroup");
+		dto.setEtag("Bloop");
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
 		UserGroup dto2 = new UserGroup();
