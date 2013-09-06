@@ -181,13 +181,14 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	}
 
 	@Override
-	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset) {
+	public RowMetadataResult listRowMetadata(MigrationType type, long maxId, long limit, long offset) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getListSql(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DMLUtils.BIND_VAR_LIMIT, limit);
 		params.addValue(DMLUtils.BIND_VAR_OFFSET, offset);
+		params.addValue(DMLUtils.BIND_VAR_MAX_ID, maxId);
 		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
 		long count = this.getCount(type);
 		RowMetadataResult result = new RowMetadataResult();

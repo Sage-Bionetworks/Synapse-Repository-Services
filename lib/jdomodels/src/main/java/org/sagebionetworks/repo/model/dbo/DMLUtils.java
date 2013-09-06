@@ -20,6 +20,7 @@ public class DMLUtils {
 	public static final String BIND_VAR_ID_lIST = "BVIDLIST";
 	public static final String BIND_VAR_OFFSET = "BVOFFSET";
 	public static final String BIND_VAR_LIMIT = "BCLIMIT";
+	public static final String BIND_VAR_MAX_ID = "BVMAXID";
 
 	/**
 	 * Create an INSERT statement for a given mapping.
@@ -296,6 +297,7 @@ public class DMLUtils {
 		buildSelectIdAndEtag(mapping, builder);
 		builder.append(" FROM ");
 		builder.append(mapping.getTableName());
+		buildBackupWhere(mapping, builder);
 		buildBackupOrderBy(mapping, builder, true);
 		builder.append(" LIMIT :");
 		builder.append(BIND_VAR_LIMIT);
@@ -377,6 +379,20 @@ public class DMLUtils {
 		}else{
 			builder.append("DESC");
 		}
+	}
+	
+	/**
+	 * build - "WHERE 'BACKUP_ID' <= 'MAX_ID'"
+	 * @param builder
+	 * @param mapping
+	 * @param maxId
+	 */
+	private static void buildBackupWhere(TableMapping mapping, StringBuilder builder) {
+		builder.append(" WHERE `");
+		FieldColumn backupId = getBackupIdColumnName(mapping);
+		builder.append(backupId.getColumnName());
+		builder.append("` <= :");
+		builder.append(BIND_VAR_MAX_ID);
 	}
 	
 	/**

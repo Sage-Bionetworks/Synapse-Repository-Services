@@ -31,7 +31,7 @@ public interface MigatableTableDAO {
 	public long getMaxId(MigrationType type);
 	
 	/**
-	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
+	 * List all row metadata up to max(id) in a paginated format. All rows will be migrated in the order listed by this method.
 	 * This means metadata must be listed in dependency order.  For example, if row 'b' depends on row 'a' 
 	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
 	 *    
@@ -39,7 +39,7 @@ public interface MigatableTableDAO {
 	 * @param offset
 	 * @return
 	 */
-	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset);
+	public RowMetadataResult listRowMetadata(MigrationType type, long maxId, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.

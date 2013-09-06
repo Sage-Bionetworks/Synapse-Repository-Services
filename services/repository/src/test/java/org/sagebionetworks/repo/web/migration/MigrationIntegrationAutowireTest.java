@@ -549,7 +549,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws Exception
 	 */
 	private List<BackupInfo> backupAllOfType(MigrationType type) throws Exception {
-		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
+		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, Long.MAX_VALUE, 0);
 		if(list == null) return null;
 		// Backup batches by their level in the tree
 		ListBucketProvider provider = new ListBucketProvider();
@@ -608,7 +608,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws JSONObjectAdapterException
 	 */
 	private IdList getIdListOfAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
-		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
+		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, Long.MAX_VALUE, 0);
 		if(list.getTotalCount() < 1) return null;
 		// Create the backup list
 		List<Long> toBackup = new LinkedList<Long>();

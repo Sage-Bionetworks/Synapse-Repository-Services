@@ -213,14 +213,14 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 			JSONObjectAdapterException {
 		// Get the counts for each type
 		List<MigrationTypeCount> list = new LinkedList<MigrationTypeCount>();
-		Iterator<Entry<MigrationType, List<RowMetadata>>> it = this.metadata
-				.entrySet().iterator();
+		Iterator<Entry<MigrationType, List<RowMetadata>>> it = this.metadata.entrySet().iterator();
 		while (it.hasNext()) {
 			Entry<MigrationType, List<RowMetadata>> entry = it.next();
 			MigrationType type = entry.getKey();
 			List<RowMetadata> values = entry.getValue();
 			MigrationTypeCount count = new MigrationTypeCount();
 			count.setCount(new Long(values.size()));
+			count.setMaxid(maxId(values));
 			count.setType(type);
 			list.add(count);
 		}
@@ -230,10 +230,13 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 	}
 
 	private Long maxId(List<RowMetadata> vals) {
-		Long m = vals.get(0).getId();
-		for (RowMetadata v: vals) {
-			if (v.getId() > m) {
-				m = v.getId();
+		Long m = null;
+		if ((vals != null) && (vals.size() > 0)) {
+			m = vals.get(0).getId();
+			for (RowMetadata v: vals) {
+				if (v.getId() > m) {
+					m = v.getId();
+				}
 			}
 		}
 		return m;
