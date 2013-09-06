@@ -21,7 +21,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.pivot.wtk.Window;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -36,7 +37,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserSessionData;
 
 public class FileUploader implements FileUploaderView.Presenter {
-	private static final Logger log = Logger.getLogger(FileUploader.class); 
+	protected static final Logger log = LogManager.getLogger(FileUploader.class.getName()); 
 	
 	private static final int MAX_NAME_CHARS = 40;
 
