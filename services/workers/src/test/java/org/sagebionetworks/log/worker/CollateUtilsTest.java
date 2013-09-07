@@ -26,16 +26,16 @@ public class CollateUtilsTest {
 	@Test
 	public void testCollateNoOverLap() throws IOException{
 		// For this simple test collate two logs with no overlap
-		LogReader one = createTestLogReader(new String[]{"one", "two","three"}, 0);
-		LogReader two = createTestLogReader(new String[]{"four", "five","six"}, 1000);
+		LogReader one = LogTestUtils.createTestLogReader(new String[]{"one", "two","three"}, 0);
+		LogReader two = LogTestUtils.createTestLogReader(new String[]{"four", "five","six"}, 1000);
 		LogReader[] toCollate = new LogReader[]{two, one};
 		StringWriter strWriter = new StringWriter();
 		BufferedWriter buffered = new BufferedWriter(strWriter);
 		CollateUtils.collateLogs(toCollate, buffered);
 		buffered.flush();
-		System.out.println(strWriter.toString());
+//		System.out.println(strWriter.toString());
 		// Validate the results;
-		List<LogEntry> results = readLogEntries(strWriter.toString());
+		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
 		assertNotNull(results);
 		assertEquals(6, results.size());
 		assertTrue(results.get(0).getEntryString().contains("one"));
@@ -49,16 +49,16 @@ public class CollateUtilsTest {
 	@Test
 	public void testCollateOverLap() throws IOException{
 		// For this simple test collate two logs with no overlap
-		LogReader one = createTestLogReader(new String[]{"one.1", "two.1","three.1"}, 0);
-		LogReader two = createTestLogReader(new String[]{"one.2", "two.2","three.2"}, 1);
+		LogReader one = LogTestUtils.createTestLogReader(new String[]{"one.1", "two.1","three.1"}, 0);
+		LogReader two = LogTestUtils.createTestLogReader(new String[]{"one.2", "two.2","three.2"}, 1);
 		LogReader[] toCollate = new LogReader[]{two, one};
 		StringWriter strWriter = new StringWriter();
 		BufferedWriter buffered = new BufferedWriter(strWriter);
 		CollateUtils.collateLogs(toCollate, buffered);
 		buffered.flush();
-		System.out.println(strWriter.toString());
+//		System.out.println(strWriter.toString());
 		// Validate the results;
-		List<LogEntry> results = readLogEntries(strWriter.toString());
+		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
 		assertNotNull(results);
 		assertEquals(6, results.size());
 		assertTrue(results.get(0).getEntryString().contains("one.1"));
@@ -69,41 +69,25 @@ public class CollateUtilsTest {
 		assertTrue(results.get(5).getEntryString().contains("three.2"));
 	}
 	
-	/**
-	 * Extract all of the {@link LogEntry} from the passed string.
-	 * @param raw
-	 * @return
-	 * @throws IOException
-	 */
-	public static List<LogEntry> readLogEntries(String raw) throws IOException{
-		LogReader results = new LogReader(new BufferedReader(new StringReader(raw)));
-		List<LogEntry> list= new LinkedList<LogEntry>();
-		LogEntry entry = null;
-		do{
-			entry = results.read();
-			if(entry != null){
-				list.add(entry);
-			}
-		}while(entry != null);
-		return list;
+	@Test
+	public void testUneveneOverLap() throws IOException{
+		// For this simple test collate two logs with no overlap
+		LogReader one = LogTestUtils.createTestLogReader(new String[]{"one.0", "two.1","three.2"}, 0);
+		LogReader two = LogTestUtils.createTestLogReader(new String[]{"one.1"}, 1);
+		LogReader three = LogTestUtils.createTestLogReader(new String[]{"one.2", "two.3","three.4", "four.5"}, 2);
+		LogReader[] toCollate = new LogReader[]{two, one, three};
+		StringWriter strWriter = new StringWriter();
+		BufferedWriter buffered = new BufferedWriter(strWriter);
+		CollateUtils.collateLogs(toCollate, buffered);
+		buffered.flush();
+		System.out.println(strWriter.toString());
+		// Validate the results;
+		List<LogEntry> results = LogTestUtils.readLogEntries(strWriter.toString());
+		assertNotNull(results);
+		assertEquals(8, results.size());
+		assertTrue(results.get(0).getEntryString().contains("one.0"));
+		assertTrue(results.get(2).getEntryString().contains("two.1"));
+		assertTrue(results.get(7).getEntryString().contains("four.5"));
 	}
-
-	/**
-	 * Helper to create a log reader for some sample log data
-	 * @param data
-	 * @param timestamp
-	 * @return
-	 */
-	public static LogReader createTestLogReader(String[] data, long timestamp){
-		// Add each value to the log
-		StringBuilder builder = new StringBuilder();
-		for(int i=0; i<data.length; i++){
-			builder.append(LogKeyUtils.createISO8601GMTLogString(timestamp+i));
-			builder.append(" ");
-			builder.append(data[i]);
-			builder.append("\n");
-		}
-		BufferedReader reader = new BufferedReader(new StringReader(builder.toString()));
-		return new LogReader(reader);
-	}
+	
 }

@@ -1,13 +1,10 @@
 package org.sagebionetworks.log.worker;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
@@ -119,15 +116,16 @@ public class LogCollateWorker {
 				try {
 					// Create the file that will contain the collated data.
 					String type = LogKeyUtils.getTypeFromTypeDateHour(data.batchDateString);
+					// This timestamp will be used to create the key of the resulting output file.
 					long timestamp = LogKeyUtils.getTimestampFromTypeDateHour(data.batchDateString);
 					String newFileKey = null;
-					File temp = File.createTempFile(type+".", "log.gz");
+					File temp = File.createTempFile(type+".", ".log.gz");
 					BufferedWriter outWriter = null;
 					LogReader[] toCollate = new LogReader[data.mergedKeys.size()];
 					try{
 						// Now setup the writer
 						outWriter = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(temp))));
-						// Get the log reader for each file
+						// Get the log reader for each file to collate
 						int index = 0;
 						for(String key: data.mergedKeys){
 							toCollate[index] = logDAO.getLogFileReader(key);
@@ -135,6 +133,9 @@ public class LogCollateWorker {
 						}
 						// Now collate all of the files
 						CollateUtils.collateLogs(toCollate, outWriter);
+						// Flush and close the outupt files before we save it
+						outWriter.flush();
+						outWriter.close();
 						// Save the results back to s3
 						newFileKey = logDAO.saveLogFile(temp, timestamp);
 					}finally{
