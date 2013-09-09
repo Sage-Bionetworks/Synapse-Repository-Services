@@ -5,6 +5,12 @@ import java.io.IOException;
 
 import com.amazonaws.services.s3.model.ObjectListing;
 
+/**
+ * An abstraction for the log Data Access Object.
+ * 
+ * @author jmhill
+ *
+ */
 public interface LogDAO {
 
 	/**

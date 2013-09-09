@@ -69,6 +69,7 @@
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="dynamoIndexSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
@@ -100,6 +101,7 @@
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="dynamoRdsSynchronizerSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->

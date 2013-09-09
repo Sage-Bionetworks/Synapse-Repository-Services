@@ -37,6 +37,7 @@
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="crowdGroupSynchronizerSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- Same as the values found in controller-spb.xml (bean refreshUserGroupCacheTrigger) -->

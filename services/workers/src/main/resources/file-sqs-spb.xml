@@ -67,6 +67,7 @@
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="fileSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->

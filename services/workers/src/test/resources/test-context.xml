@@ -40,6 +40,7 @@
 			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="dynamoQueueMessageRetriever" />
 				<property name="targetMethod" value="triggerFired" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<property name="startDelay" value="0" />
