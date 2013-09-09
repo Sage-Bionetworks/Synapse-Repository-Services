@@ -6,6 +6,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -61,7 +62,7 @@ public class ControllerProfiler {
 		//get signature of current thread that is at the ProceedingJoinPoint
 		//signature will give us the methodName and information
 		Signature signature = pjp.getSignature();
-		String methodName = signature.getName();
+		
 		//want the package information for the namespace
 		Class declaring = signature.getDeclaringType();
 		
@@ -70,10 +71,11 @@ public class ControllerProfiler {
 		long end = System.nanoTime();	//collect method end time
 		//converting from nanoseconds to milliseconds
 		long timeMS = (end - start) /NANOSECOND_PER_MILLISECOND;
-		
+
+		final String metricName = signature.getName() + "-" + StackConfiguration.getStackInstance();
 		//use our latency time to make a MetricDatum, and
 		//add to synchronized list
-		ProfileData profileData = makeProfileDataDTO(declaring.getName(), methodName, timeMS);
+		ProfileData profileData = makeProfileDataDTO(declaring.getName(), metricName, timeMS);
 		consumer.addProfileData(profileData);
 		
 		//in configuration file log is set to ERROR to turn off and
