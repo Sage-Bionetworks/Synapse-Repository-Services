@@ -14,7 +14,6 @@ public class TestUserDAO implements UserDAO {
 	public static final String TEST_GROUP_NAME = "test-group";
 	public static final String TEST_USER_NAME = "test-user@sagebase.org";
 	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
-	public static final String MIGRATION_USER_NAME = "migrationAdmin@sagebase.org";
 	
 	private Map<String,User> map = new HashMap<String,User>(); // maps userId to User
 

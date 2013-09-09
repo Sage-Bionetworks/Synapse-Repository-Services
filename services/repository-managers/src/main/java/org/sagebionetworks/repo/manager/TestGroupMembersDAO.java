@@ -34,7 +34,7 @@ public class TestGroupMembersDAO extends DBOGroupMembersDAOImpl {
 		
 		if (TestUserDAO.ADMIN_USER_NAME.equals(user.getName())) {
 			groups.add(getOrCreateGroup(AuthorizationConstants.ADMIN_GROUP_NAME));
-		} else if (TestUserDAO.MIGRATION_USER_NAME.equals(user.getName())) {
+		} else if (AuthorizationConstants.MIGRATION_USER_NAME.equals(user.getName())) {
 			groups.add(getOrCreateGroup(AuthorizationConstants.ADMIN_GROUP_NAME));
 		}  else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(user.getName())) {
 			// not in any group

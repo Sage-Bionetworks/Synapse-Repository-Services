@@ -108,11 +108,9 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	/**
-	 * NOTE: This method has the side effect of creating in the 'permissions'
-	 * representation of groups any groups that the UserDAO knows the user to
-	 * belong to. That is, the 'truth' about groups is assumed to be in the
-	 * system managing 'group memberships' and is mirrored in the system
-	 * managing group permissions.
+	 * NOTE: This method has the side effect of creating the user's individual group
+	 * and the user's profile iff the user has authenticated and the two entities do 
+	 * not already exist.  
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override

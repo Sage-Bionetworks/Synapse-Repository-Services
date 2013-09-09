@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -297,5 +299,37 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		}
 		Collections.sort(ascendents);
 		return ascendents;
+	}
+
+	@Override
+	public void bootstrapGroups() throws Exception {
+		if (!StackConfiguration.isProductionStack()) {
+			// Boot strap some additional users for testing
+			String adminGroupId;
+			if (!userGroupDAO.doesPrincipalExist(AuthorizationConstants.ADMIN_GROUP_NAME)) {
+				UserGroup administrators = new UserGroup();
+				administrators.setName(AuthorizationConstants.ADMIN_GROUP_NAME);
+				administrators.setIsIndividual(false);
+				adminGroupId = userGroupDAO.create(administrators);
+			} else {
+				adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+			}
+			
+			String devAdminUsername = StackConfiguration.getIntegrationTestUserAdminName();
+			String devAdminUserId;
+			if (!userGroupDAO.doesPrincipalExist(devAdminUsername)) {
+				UserGroup devUG = new UserGroup();
+				devUG.setName(devAdminUsername);
+				devUG.setIsIndividual(true);
+				devAdminUserId = userGroupDAO.create(devUG);
+			} else {
+				devAdminUserId = userGroupDAO.findGroup(devAdminUsername, true).getId();
+			}
+			
+			List<String> adminUserIdList = new ArrayList<String>();
+			adminUserIdList.add(devAdminUserId);
+			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId());
+			this.addMembers(adminGroupId, adminUserIdList);
+		}
 	}
 }

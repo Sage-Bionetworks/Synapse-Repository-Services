@@ -5,12 +5,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -268,6 +272,21 @@ public class DBOGroupMembersDAOImplTest {
 		assertTrue("List should contain both groups", 
 				(childGroup.get(0).getName().equals(TEST_GROUP_NAME) && childGroup.get(1).getName().equals(childGroupName))
 				^ (childGroup.get(0).getName().equals(childGroupName) && childGroup.get(1).getName().equals(TEST_GROUP_NAME)));
+	}
+	
+	@Test
+	public void testBootstrapGroups() throws Exception{
+		if (!StackConfiguration.isProductionStack()) {
+			String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+			List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);
+			Set<String> adminNames = new HashSet<String>();
+			for (UserGroup ug : admins) {
+				adminNames.add(ug.getName());
+			}
+			
+			assertTrue(adminNames.contains(AuthorizationConstants.ADMIN_GROUP_NAME));
+			assertTrue(adminNames.contains(StackConfiguration.getIntegrationTestUserAdminName()));
+		}
 	}
 
 }
