@@ -388,7 +388,13 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 					ug.setName(username);
 					ug.setIsIndividual(!username.equals(AuthorizationConstants.ADMIN_GROUP_NAME));
 					ug.setId(this.create(ug));
-					
+				}
+				UserGroup ug = new UserGroup();
+				UserGroupUtils.copyDboToDto(this.findGroup(username), ug);
+				ug.setCreationDate(null);
+				ug.setEtag(null);
+				ug.setUri(null);
+				if (!this.bootstrapUsers.contains(ug)) {
 					this.bootstrapUsers.add(ug);
 				}
 			}

@@ -94,15 +94,15 @@
 
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
-		depends-on="userGroupDAO" init-method="bootstrapProfiles">
-		<property name="bootstrapUsers" ref="bootstrapUsers" />
-	</bean>
+		depends-on="userGroupDAO" 
+		init-method="bootstrapProfiles" />
 	
 	<bean id="crowdGroupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
 	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" 
+		depends-on="userGroupDAO" 
 		init-method="bootstrapGroups" />
 
 	<bean id="accessRequirementDAO"

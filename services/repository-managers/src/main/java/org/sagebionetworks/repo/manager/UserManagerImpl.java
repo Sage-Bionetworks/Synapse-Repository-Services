@@ -116,7 +116,6 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public UserInfo getUserInfo(String userName) throws DatastoreException,
 			NotFoundException {		
-		// Always fetch current info on Groups
 		User user = userDAO.getUser(userName);
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		UserGroup individualGroup = null;
@@ -128,7 +127,6 @@ public class UserManagerImpl implements UserManager {
 				throw new DatastoreException(
 						AuthorizationConstants.ANONYMOUS_USER_ID
 								+ " user should exist.");
-			// Anonymous belongs to the public group
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		} else {
 			if (user == null) {
@@ -139,11 +137,11 @@ public class UserManagerImpl implements UserManager {
 				individualGroup = createIndividualGroup(userName, user);
 			}
 			isAdmin = addGroups(userName, groups);
-			// All authenticated users belong to the public group and the
-			// authenticated user group.
+			// All authenticated users belong to the authenticated user group
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS));
-			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		}
+		// Everyone, including anonymous, belongs to the public group
+		groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
 		groups.add(individualGroup);
 		
 		// Put all the pieces together

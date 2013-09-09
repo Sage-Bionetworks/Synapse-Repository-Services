@@ -40,7 +40,8 @@ public class DBOUserDAOImpl implements UserDAO {
 		user.setFname(up.getFirstName());
 		user.setLname(up.getLastName());
 		user.setDisplayName(up.getDisplayName());
-		user.setAgreesToTermsOfUse(up.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+		user.setAgreesToTermsOfUse(up.getAgreesToTermsOfUse() != null && 
+				up.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
 		
 		return user;
 	}
