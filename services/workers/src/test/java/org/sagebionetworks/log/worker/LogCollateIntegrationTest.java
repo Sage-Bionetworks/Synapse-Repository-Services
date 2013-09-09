@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -20,6 +21,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -44,7 +46,7 @@ public class LogCollateIntegrationTest {
 		logDAO.deleteAllStackInstanceLogs();
 		
 		long now = 1;
-		String type = "logCollateIntegrationTest";
+		String type = "logCollateIntegrationTest".toLowerCase();
 		String tempDir = System.getProperty("java.io.tmpdir");
 		// Create three simple log files
 		File[] localFiles = new File[3];
@@ -71,11 +73,18 @@ public class LogCollateIntegrationTest {
 		long start = System.currentTimeMillis();
 		do{
 			ObjectListing listing = logDAO.listAllStackInstanceLogs(null);
-			if(listing.getObjectSummaries().size() == 1){
-				singleKey = listing.getObjectSummaries().get(0).getKey();
+			// Find all the keys for this test
+			List<String> allKeys = new LinkedList<String>();
+			for(S3ObjectSummary sum: listing.getObjectSummaries()){
+				if(sum.getKey().contains(type)){
+					allKeys.add(sum.getKey());
+				}
+			}
+			if(allKeys.size() == 1){
+				singleKey = allKeys.get(0);
 			}
 			if(singleKey == null){
-				log.debug("Waiting for logs to be collated.  There are currently : "+listing.getObjectSummaries().size()+" log files...");
+				log.debug("Waiting for logs to be collated.  There are currently : "+allKeys.size()+" log files...");
 				Thread.sleep(1000);
 				long elpase = System.currentTimeMillis()-start;
 				assertTrue("Timed out waiting for the LogCollateWorker to collate all of the logs into a single file.",elpase < MAX_WAIT_MS);
