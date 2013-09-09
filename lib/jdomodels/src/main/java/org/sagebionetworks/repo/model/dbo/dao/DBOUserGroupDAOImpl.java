@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -369,6 +370,27 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 					idGenerator.unconditionallyAssignIdToName(id, ug.getName(), NamedType.USER_GROUP_ID);
 				}
 				this.create(newUg);
+			}
+		}
+
+		// A few additional users are required for testing
+		if (!StackConfiguration.isProductionStack()) {
+			String testUsers[] = new String[]{ 
+					AuthorizationConstants.ADMIN_GROUP_NAME, 
+					StackConfiguration.getIntegrationTestUserAdminName(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
+					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestUserTwoName(), 
+					StackConfiguration.getIntegrationTestUserThreeEmail() };
+			for (String username : testUsers) {
+				if (!this.doesPrincipalExist(username)) {
+					UserGroup ug = new UserGroup();
+					ug.setName(username);
+					ug.setIsIndividual(!username.equals(AuthorizationConstants.ADMIN_GROUP_NAME));
+					ug.setId(this.create(ug));
+					
+					this.bootstrapUsers.add(ug);
+				}
 			}
 		}
 	}

@@ -303,31 +303,12 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Override
 	public void bootstrapGroups() throws Exception {
+		// Add the boot strap admins to the appropriate admin group
 		if (!StackConfiguration.isProductionStack()) {
-			// Boot strap some additional users for testing
-			String adminGroupId;
-			if (!userGroupDAO.doesPrincipalExist(AuthorizationConstants.ADMIN_GROUP_NAME)) {
-				UserGroup administrators = new UserGroup();
-				administrators.setName(AuthorizationConstants.ADMIN_GROUP_NAME);
-				administrators.setIsIndividual(false);
-				adminGroupId = userGroupDAO.create(administrators);
-			} else {
-				adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
-			}
-			
-			String devAdminUsername = StackConfiguration.getIntegrationTestUserAdminName();
-			String devAdminUserId;
-			if (!userGroupDAO.doesPrincipalExist(devAdminUsername)) {
-				UserGroup devUG = new UserGroup();
-				devUG.setName(devAdminUsername);
-				devUG.setIsIndividual(true);
-				devAdminUserId = userGroupDAO.create(devUG);
-			} else {
-				devAdminUserId = userGroupDAO.findGroup(devAdminUsername, true).getId();
-			}
+			String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
 			
 			List<String> adminUserIdList = new ArrayList<String>();
-			adminUserIdList.add(devAdminUserId);
+			adminUserIdList.add(userGroupDAO.findGroup(StackConfiguration.getIntegrationTestUserAdminName(), true).getId());
 			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId());
 			this.addMembers(adminGroupId, adminUserIdList);
 		}

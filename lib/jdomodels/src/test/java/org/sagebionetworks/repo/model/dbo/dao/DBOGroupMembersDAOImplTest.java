@@ -284,8 +284,8 @@ public class DBOGroupMembersDAOImplTest {
 				adminNames.add(ug.getName());
 			}
 			
-			assertTrue(adminNames.contains(AuthorizationConstants.ADMIN_GROUP_NAME));
 			assertTrue(adminNames.contains(StackConfiguration.getIntegrationTestUserAdminName()));
+			assertTrue(adminNames.contains(AuthorizationConstants.MIGRATION_USER_NAME));
 		}
 	}
 
