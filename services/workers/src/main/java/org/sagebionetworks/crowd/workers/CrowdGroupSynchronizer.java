@@ -13,11 +13,14 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -25,7 +28,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.w3c.dom.NodeList;
@@ -50,8 +52,9 @@ public class CrowdGroupSynchronizer implements Runnable {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
-	private UserDAO userDAO;
+	private UserDAO userDAOImpl; // the CrowdUserDAO
 	
+	private static Log log = LogFactory.getLog(CrowdGroupSynchronizer.class); 
 	
 	@Override
 	public void run() {
@@ -65,6 +68,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 			String name = isIndividual ? crowdUsers.get(i - crowdGroups.size()) : crowdGroups.get(i);
 			String principalId;
 			
+			// Make sure a UserGroup exists for each user/group 
 			if (userGroupDAO.doesPrincipalExist(name)) {
 				principalId = userGroupDAO.findGroup(name, isIndividual).getId();
 			} else {
@@ -72,31 +76,67 @@ public class CrowdGroupSynchronizer implements Runnable {
 				ug.setIsIndividual(isIndividual);
 				ug.setName(name);
 				principalId = userGroupDAO.create(ug);
-				
-				if (isIndividual) {
-					// Each migrated individual needs to have a profile moved over
-					ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+			}
+			
+			// Make sure a profile exists for each user
+			if (isIndividual) {
+				User user;
+				try {
+					user = userDAOImpl.getUser(URLEncoder.encode(name, "UTF-8"));
+				} catch (DatastoreException e) {
+					throw new RuntimeException(e);
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				} catch (NotFoundException e) {
+					throw new RuntimeException(e);
+				}
+
+				UserProfile userProfile;
+				try {
+					userProfile = userProfileDAO.get(principalId);
+				} catch (NotFoundException e) {
+					// Must make a new profile
 					try {
-						userProfileDAO.get(principalId, schema);
-						// The profile already exists
-						
+						userProfile = new UserProfile();
+						userProfile.setOwnerId(principalId);
+						userProfile.setFirstName(user.getFname());
+						userProfile.setLastName(user.getLname());
+						userProfile.setDisplayName(user.getDisplayName());
+						userProfileDAO.create(userProfile);
+					} catch (InvalidModelException ime) {
+						throw new RuntimeException(ime);
+					}
+					
+					// Re-fetch the profile after making it
+					try {
+						userProfile = userProfileDAO.get(principalId);
+					} catch (NotFoundException nfe) {
+						throw new RuntimeException(nfe);
+					}
+				}
+				
+				// For profiles that already exist, migrate the boolean for the termsOfUse over
+				long termsTimeStamp;
+				if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
+					termsTimeStamp = user.getCreationDate().getTime() / 1000;
+				} else {
+					termsTimeStamp = 0L;
+				}
+				
+				// Don't needlessly re-update the profile with the same data
+				if (userProfile.getAgreesToTermsOfUse() == null 
+						|| userProfile.getAgreesToTermsOfUse().longValue() != termsTimeStamp) {
+					userProfile.setAgreesToTermsOfUse(termsTimeStamp);
+					try {
+						userProfileDAO.update(userProfile);
+					} catch (DatastoreException e) {
+						throw new RuntimeException(e);
+					} catch (InvalidModelException e) {
+						throw new RuntimeException(e);
+					} catch (ConflictingUpdateException e) {
+						throw new RuntimeException(e);
 					} catch (NotFoundException e) {
-						// Must make a new profile
-						try {
-							User user = userDAO.getUser(URLEncoder.encode(name, "UTF-8"));
-							UserProfile userProfile = new UserProfile();
-							userProfile.setOwnerId(principalId);
-							userProfile.setFirstName(user.getFname());
-							userProfile.setLastName(user.getLname());
-							userProfile.setDisplayName(user.getDisplayName());
-							userProfileDAO.create(userProfile, schema);
-						} catch (NotFoundException nfe) {
-							throw new RuntimeException(nfe);
-						} catch (InvalidModelException ime) {
-							throw new RuntimeException(ime);
-						} catch (UnsupportedEncodingException uee) {
-							throw new RuntimeException(uee);
-						}
+						throw new RuntimeException(e);
 					}
 				}
 			}
@@ -134,7 +174,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 					groupMembersDAO.addMembers(principalId, operator);
 				}
 			} catch (NotFoundException e) {
-				// A group was deleted before the worker could finish processing it
+				log.warn("A group was deleted before the worker could finish processing it", e);
 			}
 		}
 	}
@@ -162,7 +202,9 @@ public class CrowdGroupSynchronizer implements Runnable {
 			}
 			return groups;
 		} catch (AuthenticationException e) {
-		} catch (XPathExpressionException e) { }
-		return new ArrayList<String>();
+			throw new RuntimeException(e);
+		} catch (XPathExpressionException e) { 
+			throw new RuntimeException(e);
+		}
 	}
 }

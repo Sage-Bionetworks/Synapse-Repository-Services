@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 
 public class UserProfileManagerImplUnitTest {
 
@@ -89,16 +88,12 @@ public class UserProfileManagerImplUnitTest {
 		Mockito.doAnswer(new Answer<UserProfile>() {
 			@Override
 			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
-				Object[] args = invocation.getArguments();
-				ObjectSchema schema = (ObjectSchema) args[1];
-				
 				DBOUserProfile intermediate = new DBOUserProfile();
-				UserProfile copy = new UserProfile();
-				UserProfileUtils.copyDtoToDbo(userProfile, intermediate, schema);
-				UserProfileUtils.copyDboToDto(intermediate, copy, schema);
+				UserProfileUtils.copyDtoToDbo(userProfile, intermediate);
+				UserProfile copy = UserProfileUtils.convertDboToDto(intermediate);
 				return copy;
 			}
-		}).when(mockProfileDAO).get(Mockito.anyString(), (ObjectSchema) Mockito.any());
+		}).when(mockProfileDAO).get(Mockito.anyString());
 		
 		// UserProfileDAO should return a copy of the argument when updating
 		Mockito.doAnswer(new Answer<UserProfile>() {
@@ -106,14 +101,13 @@ public class UserProfileManagerImplUnitTest {
 			public UserProfile answer(InvocationOnMock invocation) throws Throwable {
 				Object[] args = invocation.getArguments();
 				UserProfile copy = (UserProfile) args[0];
-				ObjectSchema schema = (ObjectSchema) args[1];
 				
 				DBOUserProfile intermediate = new DBOUserProfile();
-				UserProfileUtils.copyDtoToDbo(copy, intermediate, schema);
-				UserProfileUtils.copyDboToDto(intermediate, copy, schema);
+				UserProfileUtils.copyDtoToDbo(copy, intermediate);
+				copy = UserProfileUtils.convertDboToDto(intermediate);
 				return copy;
 			}
-		}).when(mockProfileDAO).update((UserProfile) Mockito.any(), (ObjectSchema) Mockito.any());
+		}).when(mockProfileDAO).update((UserProfile) Mockito.any());
 		
 		testToken = new S3AttachmentToken();
 		testToken.setFileName("testonly.jpg");
