@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
+import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -42,7 +42,7 @@ public class TrashManagerImplAutowiredTest {
 	@Autowired private NodeManager nodeManager;
 	@Autowired private NodeInheritanceManager nodeInheritanceManager;
 	@Autowired private EntityPermissionsManager entityPermissionsManager;
-	@Autowired private DBOTrashCanDao trashCanDao;
+	@Autowired private TrashCanDao trashCanDao;
 	@Autowired private NodeDAO nodeDAO;
 	@Autowired private UserProvider userProvider;
 	private UserInfo testAdminUserInfo;

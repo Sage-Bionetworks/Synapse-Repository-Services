@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOTrashCanDaoImplAutowiredTest {
 
 	@Autowired
-	private DBOTrashCanDao trashCanDao;
+	private TrashCanDao trashCanDao;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;

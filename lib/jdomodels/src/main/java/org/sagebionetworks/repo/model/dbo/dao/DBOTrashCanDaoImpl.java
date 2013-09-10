@@ -1,17 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -23,7 +26,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
+public class DBOTrashCanDaoImpl implements TrashCanDao {
 
 	private static final String SELECT_COUNT =
 			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN;
@@ -45,6 +48,10 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
+
+	private static final String SELECT_TRASCH_BEFORE_TIMESTAMP =
+			"SELECT * FROM " + TABLE_TRASH_CAN +
+			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON;
 
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 
@@ -171,6 +178,20 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH, rowMapper, paramMap);
+		return TrashedEntityUtils.convertDboToDto(trashList);
+	}
+
+	@Override
+	public List<TrashedEntity> getTrashBefore(Date timestamp) throws DatastoreException {
+
+		if (timestamp == null) {
+			throw new IllegalArgumentException("Time stamp cannot be null.");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH, rowMapper, paramMap);
+
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 

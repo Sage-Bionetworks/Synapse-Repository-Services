@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
+import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -47,7 +47,7 @@ public class TrashManagerImpl implements TrashManager {
 	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Autowired
-	private DBOTrashCanDao trashCanDao;
+	private TrashCanDao trashCanDao;
 
 	@Autowired
 	private TagMessenger tagMessenger;
