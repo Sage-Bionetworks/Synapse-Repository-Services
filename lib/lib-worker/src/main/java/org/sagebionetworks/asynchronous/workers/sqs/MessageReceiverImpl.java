@@ -170,15 +170,9 @@ public class MessageReceiverImpl implements MessageReceiver {
 	@Override
 	public int triggerFired() throws InterruptedException{
 		try{
-			if(log.isTraceEnabled()){
-				log.trace("Starting trigger...");
-			}
 			long start = System.currentTimeMillis();
 			int count =triggerFiredImpl();
 			long elapse = System.currentTimeMillis()-start;
-			if(log.isTraceEnabled()){
-				log.trace("Finished trigger in "+elapse+" ms");
-			}
 			return count;
 		}catch (Throwable e){
 			log.error("Trigger fired failed", e);

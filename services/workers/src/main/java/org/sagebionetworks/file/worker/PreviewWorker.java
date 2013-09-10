@@ -4,8 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -29,7 +29,7 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class PreviewWorker implements Callable<List<Message>> {
 	
-	static private Log log = LogFactory.getLog(PreviewWorker.class);
+	static private Logger log = LogManager.getLogger(PreviewWorker.class);
 	
 	private PreviewManager previewManager;
 	private List<Message> messages;
