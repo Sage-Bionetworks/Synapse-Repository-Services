@@ -1,6 +1,6 @@
 package org.sagebionetworks.logging;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -13,7 +13,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.logging.s3.LogDAO;
 import org.sagebionetworks.repo.web.AccessInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +34,7 @@ public class LoggingIntegrationTest {
 	/**
 	 * This test has a long wait time as log rolling only occurs once a minute.
 	 */
-	public static final int MAX_WAIT_MS = 1000*60*3;
+	public static final int MAX_WAIT_MS = 1000*60*6;
 	
 	
 	@Autowired
