@@ -67,6 +67,8 @@ import org.springframework.transaction.UnexpectedRollbackException;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class NodeDAOImplTest {
 
+	public static final long TEST_FILE_SIZE = 1234567l;
+
 	@Autowired
 	NodeDAO nodeDao;
 
@@ -180,6 +182,7 @@ public class NodeDAOImplTest {
 			Node current = nodeDao.getNode(id);
 			current.setVersionComment("Comment "+i);
 			current.setVersionLabel("0.0."+i);
+			current.setFileHandleId(fileHandle.getId());
 			nodeDao.createNewVersion(current);
 		}
 		return id;
@@ -823,7 +826,13 @@ public class NodeDAOImplTest {
 		QueryResults<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
 		assertNotNull(versionsOfEntity);
 		assertEquals(numberVersions,versionsOfEntity.getResults().size());
-		assertEquals(new Long(numberVersions), versionsOfEntity.getResults().get(0).getVersionNumber());
+		VersionInfo firstResult = versionsOfEntity.getResults().get(0);
+		assertEquals(new Long(numberVersions), firstResult.getVersionNumber());
+		//verify content size
+		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
+		//verify md5 (is set to filename in our test filehandle)
+		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+
 		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity.getResults()) {
 			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
@@ -2117,6 +2126,7 @@ public class NodeDAOImplTest {
 		fileHandle.setCreatedBy(createdById);
 		fileHandle.setFileName(fileName);
 		fileHandle.setContentMd5(fileName);
+		fileHandle.setContentSize(TEST_FILE_SIZE);
 		fileHandle = fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;
