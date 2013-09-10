@@ -451,6 +451,12 @@ public class EvaluationControllerAutowiredTest {
 		for (Evaluation c : evals.getResults())
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		
+		// paginated evaluations by content source
+		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(ownerName, KeyFactory.SYN_ROOT_ID, 10, 0);
+		assertEquals(2, evals.getTotalNumberOfResults());
+		for (Evaluation c : evals.getResults())
+			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
+		
 		// paginated participants
 		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(ownerName, eval1.getId());
 		assertEquals(2, parts.getTotalNumberOfResults());

@@ -129,7 +129,7 @@ public class EvaluationDAOImplTest {
 	@Test
 	public void testGetByContentSource() throws Exception {
 		// Get nothing
-		List<Evaluation> retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE);
+		List<Evaluation> retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, 10, 0);
 		assertEquals(0, retrieved.size());
 		
 		// Create one
@@ -138,7 +138,7 @@ public class EvaluationDAOImplTest {
 		toDelete.add(evalId);
 		
 		// Get it
-		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE);
+		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE, 10, 0);
 		assertEquals(1, retrieved.size());
 		
 		Evaluation created = retrieved.get(0);

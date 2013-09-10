@@ -40,7 +40,7 @@ public interface EvaluationDAO {
 	 * Retrieves an evaluation via the project it draws its content from
 	 * May return null if no such evaluation exists
 	 */
-	public List<Evaluation> getByContentSource(String projectId) throws DatastoreException, NotFoundException;
+	public List<Evaluation> getByContentSource(String projectId, long limit, long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get all Evaluations, in a given range. Note that Evaluations of all

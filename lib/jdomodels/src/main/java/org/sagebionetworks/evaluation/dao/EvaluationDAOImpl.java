@@ -58,7 +58,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final String SELECT_BY_CONTENT_SOURCE = 
 			"SELECT * FROM "+SQLConstants.TABLE_EVALUATION+
-			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
+			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE+
+			" LIMIT :"+ LIMIT_PARAM_NAME +
+			" OFFSET :" + OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
@@ -149,10 +151,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	@Override
-	public List<Evaluation> getByContentSource(String projectId) 
+	public List<Evaluation> getByContentSource(String projectId, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);	
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, rowMapper, params);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
