@@ -1,0 +1,47 @@
+{
+	"title": "MembershipInvitation",
+	"description": "JSON schema for MembershipInvitation POJO",
+
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of the MembershipInvitation."
+		},
+		"teamId": {
+			"type": "string",
+			"description": "The id of the Team to which the invitation is given."
+		},
+		"invitees": {
+			"type": "array",
+			"description": "The principal IDs of the ones being invited to join the Team.",
+			"items": {
+        		"type":"string",
+			}
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a MembershipInvitation is updated it is used to detect when a client's current representation of a MembershipInvitation is out-of-date."
+		},
+		"message": {
+			"type": "string",
+			"description": "The invitation message."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipInvitation expires.",
+			"title": "Expires On"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipInvitation was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this MembershipInvitation.",
+			"title": "Created By"
+		}
+	}
+}
