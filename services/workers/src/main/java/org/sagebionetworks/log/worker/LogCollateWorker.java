@@ -9,8 +9,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.logging.s3.LogDAO;
 import org.sagebionetworks.logging.s3.LogKeyUtils;
 import org.sagebionetworks.logging.s3.LogReader;
@@ -26,7 +26,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  */
 public class LogCollateWorker {
 		
-	static private Log log = LogFactory.getLog(LogCollateWorker.class);
+	static private Logger log = LogManager.getLogger(LogCollateWorker.class);
 	private LogDAO logDAO;
 
 	/**
