@@ -95,7 +95,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 				evaluations.add(eval);
 			}
 		}
-		return new QueryResults<Evaluation>(evaluations, evaluations.size());
+		long totalNumberOfResults = evaluationDAO.getCountByContentSource(projectId);
+		return new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 	}
 
 	@Deprecated

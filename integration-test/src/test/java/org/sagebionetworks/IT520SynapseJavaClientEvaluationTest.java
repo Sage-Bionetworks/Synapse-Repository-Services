@@ -279,7 +279,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(eval1, fetched);
 		fetched = synapseOne.findEvaluation(eval1.getName());
 		assertEquals(eval1, fetched);
-		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationByContentSource(project.getId(), 10, 0);
+		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationByContentSource(project.getId(), 0, 10);
 		assertEquals(1, evals.getTotalNumberOfResults());
 		fetched = evals.getResults().get(0);
 		assertEquals(eval1, fetched);

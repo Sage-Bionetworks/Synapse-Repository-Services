@@ -56,11 +56,18 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String STATUS = DBOConstants.PARAM_EVALUATION_STATUS;
 	private static final String CONTENT_SOURCE = DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
 	
+	private static final String OFFSET_AND_LIMIT = 
+			" LIMIT :"+ LIMIT_PARAM_NAME +
+			" OFFSET :" + OFFSET_PARAM_NAME;
+	
 	private static final String SELECT_BY_CONTENT_SOURCE = 
 			"SELECT * FROM "+SQLConstants.TABLE_EVALUATION+
 			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE+
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
+	
+	private static final String COUNT_BY_CONTENT_SOURCE = 
+			"SELECT COUNT(*) FROM "+SQLConstants.TABLE_EVALUATION+
+			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
 	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
@@ -68,14 +75,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
 	
 	private static final String SELECT_BY_STATUS_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
 			" WHERE " + COL_EVALUATION_STATUS + "=:" + STATUS +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
 	
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_EVALUATION_ETAG + " FROM " +
 														TABLE_EVALUATION +" WHERE ID = ?";
@@ -191,6 +196,13 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(EvaluationDBO.class);
+	}
+	
+	@Override
+	public long getCountByContentSource(String projectId) throws DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
 	}
 
 	@Override

@@ -63,6 +63,11 @@ public interface EvaluationDAO {
 	 */
 	public long getCount() throws DatastoreException;
 	
+	/**
+	 * Gets the total count of evaluations tied to a project
+	 */
+	public long getCountByContentSource(String projectId) throws DatastoreException;
+	
 	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException;
 
 	/**
