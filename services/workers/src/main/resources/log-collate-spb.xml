@@ -11,37 +11,38 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:audit-dao.spb.xml" />
+	<import resource="classpath:log-sweeper.spb.xml" />
 	
-	<bean id="auditMergeWorkerFactory" class="org.sagebionetworks.audit.worker.MergeWorkerFactory"/>
+	<!-- This factory creates and executes the workers that do the log collation. -->
+	<bean id="logCollateWorkerFactory" class="org.sagebionetworks.log.worker.LogCollateWorkerFactory"/>
 
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="auditMergeWorkerSemaphoreGatedRunner"
+	<bean id="logCollateWorkerSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<!-- The timeout on this worker is set to one hour since it buckets data by the hour -->
 		<property name="timeoutMS" value="3600000" />
 		<!-- There must never be more than one instances of this worker running at a time! 
 		 If more than one worker is run then the workers will duplicate the audit data!!!! -->
 		<property name="maxNumberRunners" value="1" />
-		<property name="semaphoreKey" value="auditMergeWorkerFactory" />		
-		<property name="runner" ref="auditMergeWorkerFactory" />
+		<property name="semaphoreKey" value="logCollateWorkerFactoryKey" />		
+		<property name="runner" ref="logCollateWorkerFactory" />
 	</bean>
 
 	<!-- This is the trigger used to fire this worker -->
-	<bean id="auditMergeWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="logCollateWorkerTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="auditMergeWorkerSemaphoreGatedRunner" />
+				<property name="targetObject" ref="logCollateWorkerSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
-		<property name="startDelay" value="31" />
+		<property name="startDelay" value="55" />
 		<!-- This is a slow worker and does not need to be run more than once every 30 seconds. -->
-		<property name="repeatInterval" value="10000" />
+		<property name="repeatInterval" value="30000" />
 	</bean>
 
 </beans>
