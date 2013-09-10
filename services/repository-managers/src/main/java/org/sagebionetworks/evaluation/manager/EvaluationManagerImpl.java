@@ -84,6 +84,19 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 		return evaluationDAO.get(id);
 	}
+	
+	@Override
+	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String projectId)
+			throws DatastoreException, NotFoundException {
+		List<Evaluation> evalList = evaluationDAO.getByContentSource(projectId);
+		List<Evaluation> evaluations = new ArrayList<Evaluation>();
+		for (Evaluation eval : evalList) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
+				evaluations.add(eval);
+			}
+		}
+		return new QueryResults<Evaluation>(evaluations, evaluations.size());
+	}
 
 	@Deprecated
 	@Override

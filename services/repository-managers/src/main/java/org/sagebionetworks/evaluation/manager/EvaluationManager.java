@@ -23,6 +23,12 @@ public interface EvaluationManager {
 	 */
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Gets all Synapse Evaluations tied to the given project
+	 */
+	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String projectId)
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range

@@ -112,6 +112,7 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
+    	when(mockEvaluationDAO.getByContentSource(eq(EVALUATION_CONTENT_SOURCE))).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), (EvaluationStatus)any(), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
@@ -133,6 +134,13 @@ public class EvaluationManagerTest {
 		Evaluation eval2 = evaluationManager.getEvaluation(ownerInfo, EVALUATION_ID);
 		assertEquals(evalWithId, eval2);
 		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
+	}
+	
+	@Test
+	public void testGetEvaluationByContentSource() throws Exception {
+		QueryResults<Evaluation> qr = evaluationManager.getEvaluationByContentSource(ownerInfo, EVALUATION_CONTENT_SOURCE);
+		assertEquals(evaluations, qr.getResults());
+		assertEquals(1L, qr.getTotalNumberOfResults());
 	}
 	
 	@Test
