@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dao;
 
-import java.util.Date;
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -59,7 +59,7 @@ public interface TrashCanDao {
 	/**
 	 * Gets all the trash items that were deleted before the specified time stamp.
 	 */
-	List<TrashedEntity> getTrashBefore(Date timestamp) throws DatastoreException;
+	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
 
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.

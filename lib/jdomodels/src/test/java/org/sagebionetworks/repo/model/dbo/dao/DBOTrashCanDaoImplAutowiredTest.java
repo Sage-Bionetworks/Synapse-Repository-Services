@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.junit.After;
@@ -55,7 +56,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	}
 
 	@Test
-	public void testRoundTrip() throws DatastoreException, NotFoundException {
+	public void testRoundTrip() throws Exception {
 
 		int count = trashCanDao.getCount();
 		assertEquals(0, count);
@@ -74,15 +75,33 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		TrashedEntity trash = trashCanDao.getTrashedEntity(userId, nodeId1);
 		assertNull(trash);
 
+		// Move node 1 to trash can
 		trashCanDao.create(userId, nodeId1, nodeName, parentId1);
+
 		count = trashCanDao.getCount();
 		assertEquals(1, count);
 		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);
+
 		trashList = trashCanDao.getInRange(0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
+
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(1, trashList.size());
+		trash = trashList.get(0);
+		assertEquals(nodeId1, trash.getEntityId());
+		assertEquals(nodeName, trash.getEntityName());
+		assertEquals(userId, trash.getDeletedByPrincipalId());
+		assertEquals(parentId1, trash.getOriginalParentId());
+		assertNotNull(trash.getDeletedOn());
+
+		Thread.sleep(1000);
+		Timestamp timestamp1 = new Timestamp(System.currentTimeMillis());
+		System.out.println(trash.getDeletedOn());
+		System.out.println(timestamp1);
+		trashList = trashCanDao.getTrashBefore(timestamp1);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 		trash = trashList.get(0);
@@ -110,10 +129,12 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		exists = trashCanDao.exists(userId, KeyFactory.keyToString(118493838393848L));
 		assertFalse(exists);
 
+		// Move node 2 to trash can
 		final String nodeName2 = "DBOTrashCanDaoImplAutowiredTest.testRoundTrip() 2";
 		final String nodeId2 = KeyFactory.keyToString(666L);
 		final String parentId2 = KeyFactory.keyToString(6L);
 		trashCanDao.create(userId, nodeId2, nodeName2, parentId2);
+
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
@@ -126,6 +147,16 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(2, count);
 		exists = trashCanDao.exists(userId, nodeId2);
 		assertTrue(exists);
+
+		trashList = trashCanDao.getTrashBefore(timestamp1);
+		assertNotNull(trashList);
+		assertEquals(1, trashList.size());
+		assertEquals(nodeId1, trashList.get(0).getEntityId());
+		Thread.sleep(1000);
+		Timestamp timestamp2 = new Timestamp(System.currentTimeMillis());
+		trashList = trashCanDao.getTrashBefore(timestamp2);
+		assertNotNull(trashList);
+		assertEquals(2, trashList.size());
 
 		trashCanDao.delete(userId, nodeId1);
 		trashList = trashCanDao.getInRange(0L, 100L);

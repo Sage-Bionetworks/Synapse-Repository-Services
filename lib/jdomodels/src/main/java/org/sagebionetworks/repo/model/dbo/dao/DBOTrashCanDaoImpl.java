@@ -8,7 +8,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
 import java.sql.Timestamp;
-import java.util.Date;
 import java.util.List;
 
 import org.joda.time.DateTime;
@@ -182,7 +181,7 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 	}
 
 	@Override
-	public List<TrashedEntity> getTrashBefore(Date timestamp) throws DatastoreException {
+	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
 
 		if (timestamp == null) {
 			throw new IllegalArgumentException("Time stamp cannot be null.");
@@ -190,7 +189,8 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_ON, timestamp);
-		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH, rowMapper, paramMap);
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(
+				SELECT_TRASCH_BEFORE_TIMESTAMP, rowMapper, paramMap);
 
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
