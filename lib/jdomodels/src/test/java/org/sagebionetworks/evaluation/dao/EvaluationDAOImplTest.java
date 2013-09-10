@@ -125,6 +125,30 @@ public class EvaluationDAOImplTest {
 		assertEquals(initialCount, evaluationDAO.getCount());
 		assertNull(evaluationDAO.lookupByName(updated.getName()));
 	}
+	
+	@Test
+	public void testGetByContentSource() throws Exception {
+		// Get nothing
+		List<Evaluation> retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE);
+		assertEquals(0, retrieved.size());
+		
+		// Create one
+		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
+		assertNotNull(evalId);
+		toDelete.add(evalId);
+		
+		// Get it
+		retrieved = evaluationDAO.getByContentSource(EVALUATION_CONTENT_SOURCE);
+		assertEquals(1, retrieved.size());
+		
+		Evaluation created = retrieved.get(0);
+		assertEquals(evalId, created.getId());
+		assertEquals(EVALUATION_NAME, created.getName());
+		assertEquals(EVALUATION_OWNER_ID.toString(), created.getOwnerId());
+		assertEquals(EVALUATION_CONTENT_SOURCE, created.getContentSource());
+		assertEquals(EvaluationStatus.PLANNED, created.getStatus());
+		assertNotNull(created.getEtag());
+	}
 
 	@Test
 	public void testFind() throws Exception {        
