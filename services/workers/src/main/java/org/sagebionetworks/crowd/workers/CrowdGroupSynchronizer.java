@@ -13,8 +13,9 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -54,7 +55,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 	@Autowired
 	private UserDAO userDAOImpl; // the CrowdUserDAO
 	
-	private static Log log = LogFactory.getLog(CrowdGroupSynchronizer.class); 
+	private static Logger log = LogManager.getLogger(CrowdGroupSynchronizer.class); 
 	
 	@Override
 	public void run() {

@@ -9,7 +9,8 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,7 +30,7 @@ public class LogCollateIntegrationTest {
 	
 	public static final int MAX_WAIT_MS = 1000*60*2;
 	
-	Logger log = Logger.getLogger(LogCollateIntegrationTest.class);
+	Logger log = LogManager.getLogger(LogCollateIntegrationTest.class);
 	
 	@Autowired
 	LogDAO logDAO;

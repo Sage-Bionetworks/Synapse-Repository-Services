@@ -4,8 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -23,7 +23,7 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class RdsWorker implements Callable<List<Message>> {
 	
-	static private Log log = LogFactory.getLog(RdsWorker.class);
+	static private Logger log = LogManager.getLogger(RdsWorker.class);
 	
 	List<Message> messages;
 	AsynchronousDAO asynchronousManager;
