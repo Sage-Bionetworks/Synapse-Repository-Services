@@ -21,6 +21,7 @@
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="accessRecorder" />
 				<property name="targetMethod" value="timerFired" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<property name="startDelay" value="13" />

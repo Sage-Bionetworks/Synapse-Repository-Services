@@ -38,6 +38,7 @@
 	<bean id="methodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
   		<property name="targetObject" ref="consumer" />
   		<property name="targetMethod" value="executeCloudWatchPut" />
+  		<property name="concurrent" value="false" />
 	</bean>
 
 	<!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->

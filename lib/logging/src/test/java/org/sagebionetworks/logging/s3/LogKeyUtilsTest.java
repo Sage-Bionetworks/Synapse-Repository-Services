@@ -64,4 +64,44 @@ public class LogKeyUtilsTest {
 		long parsed = LogKeyUtils.readISO8601GMTFromString(expected+" plus some extra stuff");
 		assertEquals(time, parsed);
 	}
+	
+	@Test
+	public void testGetTypeDateAndHourFromKey(){
+	    Calendar cal = LogKeyUtils.getClaendarUTC();
+		cal.set(1999, 0, 15, 22, 49, 12);
+		String key = LogKeyUtils.createKeyForFile(123, "test-type.date.log.gz", cal.getTimeInMillis());
+		String results = LogKeyUtils.getTypeDateAndHourFromKey(key);
+		String expected = "test-type/1999-01-15/22";
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testGetTypeFromTypeDateHour(){
+	    Calendar cal = LogKeyUtils.getClaendarUTC();
+		cal.set(1999, 0, 15, 22, 49, 12);
+		String key = LogKeyUtils.createKeyForFile(123, "test-type.date.log.gz", cal.getTimeInMillis());
+		String typeDateHour = LogKeyUtils.getTypeDateAndHourFromKey(key);
+		String type = LogKeyUtils.getTypeFromTypeDateHour(typeDateHour);
+		String expected = "test-type";
+		assertEquals(expected, type);
+	}
+	
+	@Test
+	public void testGetTimestampFromTypeDateHour(){
+	    Calendar cal = LogKeyUtils.getClaendarUTC();
+		cal.set(1999, 0, 15, 22, 49, 12);
+		String key = LogKeyUtils.createKeyForFile(123, "test-type.date.log.gz", cal.getTimeInMillis());
+		String typeDateHour = LogKeyUtils.getTypeDateAndHourFromKey(key);
+		System.out.println(typeDateHour);
+		cal = LogKeyUtils.getClaendarUTC();
+		cal.set(Calendar.YEAR, 1999);
+		cal.set(Calendar.MONTH, 0);
+		cal.set(Calendar.DAY_OF_MONTH, 15);
+		cal.set(Calendar.HOUR_OF_DAY, 22);
+		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		long timeStamp = LogKeyUtils.getTimestampFromTypeDateHour(typeDateHour);
+		assertEquals(cal.getTimeInMillis(), timeStamp);
+	}
 }
