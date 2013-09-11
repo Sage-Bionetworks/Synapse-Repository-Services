@@ -3645,6 +3645,20 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String projectId, int offset, int limit) throws SynapseException {
+		String url = EVALUATION_URI_PATH + "/project/" + projectId + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
