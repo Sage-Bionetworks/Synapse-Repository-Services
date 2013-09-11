@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.trash;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -311,6 +313,19 @@ public class TrashManagerImpl implements TrashManager {
 	@Override
 	public void purgeTrash(List<TrashedEntity> trashList)
 			throws DatastoreException, NotFoundException {
+		
+		if (trashList == null) {
+			throw new IllegalArgumentException("Trash list cannot be null.");
+		}
+
+		// Sort by ID to avoid potential deadlocks
+		Collections.sort(trashList, new Comparator<TrashedEntity>() {
+			@Override
+			public int compare(TrashedEntity entity1, TrashedEntity entity2) {
+				return entity1.getEntityId().compareTo(entity2.getEntityId());
+			}
+		});
+
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
 		// a set of the trashed items to help find the roots.
@@ -318,6 +333,8 @@ public class TrashManagerImpl implements TrashManager {
 		for (TrashedEntity trash : trashList) {
 			trashIdSet.add(trash.getEntityId());
 		}
+
+		// Purge now
 		for (TrashedEntity trash : trashList) {
 			String nodeId = trash.getEntityId();
 			if (!trashIdSet.contains(trash.getOriginalParentId())) {
