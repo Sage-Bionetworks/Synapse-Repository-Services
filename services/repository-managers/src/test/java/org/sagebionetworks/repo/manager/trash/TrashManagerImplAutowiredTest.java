@@ -610,6 +610,99 @@ public class TrashManagerImplAutowiredTest {
 	}
 
 	@Test
+	public void testPurgeList() throws Exception {
+
+		QueryResults<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		assertEquals(0L, results.getTotalNumberOfResults());
+		assertEquals(0, results.getResults().size());
+
+		//
+		//           root
+		//           /  \
+		//          A1  A2
+		//          |    |
+		//          B1  B2
+		//          |
+		//          C1
+		//
+		final Node nodeA1 = new Node();
+		final String nodeNameA1 = "TrashManagerImplAutowiredTest.testPurge() A1";
+		nodeA1.setName(nodeNameA1);
+		nodeA1.setNodeType(EntityType.project.name());
+		final String nodeIdA1 = nodeManager.createNewNode(nodeA1, testUserInfo);
+		assertNotNull(nodeIdA1);
+		toClearList.add(nodeIdA1);
+
+		final Node nodeA2 = new Node();
+		final String nodeNameA2 = "TrashManagerImplAutowiredTest.testPurge() A2";
+		nodeA2.setName(nodeNameA2);
+		nodeA2.setNodeType(EntityType.project.name());
+		final String nodeIdA2 = nodeManager.createNewNode(nodeA2, testUserInfo);
+		assertNotNull(nodeIdA2);
+		toClearList.add(nodeIdA2);
+
+		final Node nodeB1 = new Node();
+		final String nodeNameB1 = "TrashManagerImplAutowiredTest.testPurge() B1";
+		nodeB1.setName(nodeNameB1);
+		nodeB1.setNodeType(EntityType.folder.name());
+		nodeB1.setParentId(nodeIdA1);
+		final String nodeIdB1 = nodeManager.createNewNode(nodeB1, testUserInfo);
+		assertNotNull(nodeIdB1);
+		toClearList.add(nodeIdB1);
+		
+		final Node nodeB2 = new Node();
+		final String nodeNameB2 = "TrashManagerImplAutowiredTest.testPurge() B2";
+		nodeB2.setName(nodeNameB2);
+		nodeB2.setNodeType(EntityType.folder.name());
+		nodeB2.setParentId(nodeIdA2);
+		final String nodeIdB2 = nodeManager.createNewNode(nodeB2, testUserInfo);
+		assertNotNull(nodeIdB2);
+		toClearList.add(nodeIdB2);
+
+		final Node nodeC1 = new Node();
+		final String nodeNameC1 = "TrashManagerImplAutowiredTest.testPurge() C1";
+		nodeC1.setName(nodeNameC1);
+		nodeC1.setNodeType(EntityType.dataset.name());
+		nodeC1.setParentId(nodeIdB1);
+		final String nodeIdC1 = nodeManager.createNewNode(nodeC1, testUserInfo);
+		assertNotNull(nodeIdC1);
+		toClearList.add(nodeIdC1);
+
+		// Move all of them to trash can
+		trashManager.moveToTrash(testUserInfo, nodeIdA1);
+		trashManager.moveToTrash(testUserInfo, nodeIdA2);
+
+		// Purge B1, C1, A2, B2, and keep A1
+		List<TrashedEntity> allTrash = trashManager.viewTrashForUser(
+				testUserInfo, testUserInfo, 0L, 1000L).getResults();
+		List<TrashedEntity> purgeList = new ArrayList<TrashedEntity>(4);
+		for (TrashedEntity trash : allTrash) {
+			if (nodeIdC1.equals(trash.getEntityId())) {
+				purgeList.add(trash);
+			}
+			if (nodeIdB1.equals(trash.getEntityId())) {
+				purgeList.add(trash);
+			}
+			if (nodeIdB2.equals(trash.getEntityId())) {
+				purgeList.add(trash);
+			}
+			if (nodeIdA2.equals(trash.getEntityId())) {
+				purgeList.add(trash);
+			}
+		}
+		assertEquals(4, purgeList.size());
+		trashManager.purge(purgeList);
+		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
+		assertEquals(1L, results.getTotalNumberOfResults());
+		assertEquals(1, results.getResults().size());
+		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA1)));
+		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA2)));
+		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB1)));
+		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB2)));
+		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
+	}
+
+	@Test
 	public void testAdmin() throws Exception {
 
 		QueryResults<TrashedEntity> results = trashManager.viewTrash(

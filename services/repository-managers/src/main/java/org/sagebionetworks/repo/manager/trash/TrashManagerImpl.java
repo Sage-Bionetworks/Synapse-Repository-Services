@@ -306,21 +306,9 @@ public class TrashManagerImpl implements TrashManager {
 		purge(trashList);
 	}
 
-	/**
-	 * Recursively gets the IDs of all the descendants.
-	 */
-	private void getDescendants(String nodeId, Collection<String> descendants) {
-		List<String> children = this.nodeDao.getChildrenIdsAsList(nodeId);
-		descendants.addAll(children);
-		if (children == null || children.size() == 0) {
-			return;
-		}
-		for (String child : children) {
-			getDescendants(child, descendants); // Recursion
-		}
-	}
-
-	private void purge(List<TrashedEntity> trashList)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void purge(List<TrashedEntity> trashList)
 			throws DatastoreException, NotFoundException {
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
@@ -336,6 +324,20 @@ public class TrashManagerImpl implements TrashManager {
 				aclDAO.delete(nodeId);
 			}
 			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
+		}
+	}
+
+	/**
+	 * Recursively gets the IDs of all the descendants.
+	 */
+	private void getDescendants(String nodeId, Collection<String> descendants) {
+		List<String> children = this.nodeDao.getChildrenIdsAsList(nodeId);
+		descendants.addAll(children);
+		if (children == null || children.size() == 0) {
+			return;
+		}
+		for (String child : children) {
+			getDescendants(child, descendants); // Recursion
 		}
 	}
 }
