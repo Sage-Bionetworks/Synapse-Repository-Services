@@ -448,20 +448,23 @@ public class EvaluationControllerAutowiredTest {
 		// paginated evaluations
 		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(ownerName, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
-		for (Evaluation c : evals.getResults())
+		for (Evaluation c : evals.getResults()) {
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
+		}
 		
 		// paginated evaluations by content source
 		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(ownerName, KeyFactory.SYN_ROOT_ID, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
-		for (Evaluation c : evals.getResults())
+		for (Evaluation c : evals.getResults()) {
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
+		}
 		
 		// paginated participants
 		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(ownerName, eval1.getId());
 		assertEquals(2, parts.getTotalNumberOfResults());
-		for (Participant p : parts.getResults())
+		for (Participant p : parts.getResults()) {
 			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
+		}
 		
 		parts = entityServletHelper.getAllParticipants(ownerName, eval2.getId());
 		assertEquals(0, parts.getTotalNumberOfResults());
@@ -469,8 +472,9 @@ public class EvaluationControllerAutowiredTest {
 		// paginated submissions
 		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(ownerName, eval1.getId(), null);
 		assertEquals(2, subs.getTotalNumberOfResults());
-		for (Submission s : subs.getResults())
+		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+		}
 		
 		subs = entityServletHelper.getAllSubmissions(ownerName, eval1.getId(), SubmissionStatusEnum.CLOSED);
 		assertEquals(0, subs.getTotalNumberOfResults());

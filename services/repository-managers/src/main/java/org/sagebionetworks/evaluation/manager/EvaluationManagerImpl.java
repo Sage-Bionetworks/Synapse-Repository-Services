@@ -88,6 +88,11 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Override
 	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String projectId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
+		EvaluationUtils.ensureNotNull(projectId, "Project ID");
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+		
 		List<Evaluation> evalList = evaluationDAO.getByContentSource(projectId, limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
 		for (Evaluation eval : evalList) {
