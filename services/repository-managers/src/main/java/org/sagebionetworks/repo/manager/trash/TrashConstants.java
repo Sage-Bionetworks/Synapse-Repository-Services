@@ -13,7 +13,8 @@ public class TrashConstants {
 	 * The maximum number of entities that can be moved
 	 * into the trash can at one time.
 	 */
-	public static final int MAX_TRASHABLE = StackConfiguration.getTrashCanMaxTrashable();
+	public static final int MAX_TRASHABLE =
+			StackConfiguration.getTrashCanMaxTrashable();
 
 	/**
 	 * The ID of the bootstrapped trash folder.

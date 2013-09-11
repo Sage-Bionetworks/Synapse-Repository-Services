@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
@@ -42,6 +43,9 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private NodeDAO nodeDao;
+
+	@Autowired
+	private AccessControlListDAO aclDAO;
 
 	@Autowired
 	private NodeTreeQueryDao nodeTreeQueryDao;
@@ -256,6 +260,7 @@ public class TrashManagerImpl implements TrashManager {
 		Collection<String> descendants = new ArrayList<String>();
 		this.getDescendants(nodeId, descendants);
 		nodeDao.delete(nodeId);
+		aclDAO.delete(nodeId);
 		trashCanDao.delete(userGroupId, nodeId);
 		for (String desc : descendants) {
 			trashCanDao.delete(userGroupId, desc);
@@ -328,6 +333,7 @@ public class TrashManagerImpl implements TrashManager {
 			String nodeId = trash.getEntityId();
 			if (!trashIdSet.contains(trash.getOriginalParentId())) {
 				nodeDao.delete(nodeId);
+				aclDAO.delete(nodeId);
 			}
 			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
 		}
