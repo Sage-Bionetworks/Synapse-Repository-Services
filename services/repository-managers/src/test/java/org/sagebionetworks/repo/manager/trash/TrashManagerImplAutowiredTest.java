@@ -691,7 +691,7 @@ public class TrashManagerImplAutowiredTest {
 			}
 		}
 		assertEquals(4, purgeList.size());
-		trashManager.purge(purgeList);
+		trashManager.purgeTrash(purgeList);
 		results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
 		assertEquals(1L, results.getTotalNumberOfResults());
 		assertEquals(1, results.getResults().size());

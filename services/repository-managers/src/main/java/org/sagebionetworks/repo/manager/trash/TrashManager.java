@@ -86,5 +86,5 @@ public interface TrashManager {
 	/**
 	 * Purges a list of trashed entities. Once purged, the entities will be permanently deleted.
 	 */
-	void purge(List<TrashedEntity> trashList) throws DatastoreException, NotFoundException;
+	void purgeTrash(List<TrashedEntity> trashList) throws DatastoreException, NotFoundException;
 }

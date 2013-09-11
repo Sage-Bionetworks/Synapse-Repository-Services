@@ -284,7 +284,7 @@ public class TrashManagerImpl implements TrashManager {
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
 		// a set of the trashed items to help find the roots.
 		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0, Long.MAX_VALUE);
-		purge(trashList);
+		purgeTrash(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -304,12 +304,12 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		List<TrashedEntity> trashList = trashCanDao.getInRange(0, Long.MAX_VALUE);
-		purge(trashList);
+		purgeTrash(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purge(List<TrashedEntity> trashList)
+	public void purgeTrash(List<TrashedEntity> trashList)
 			throws DatastoreException, NotFoundException {
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
