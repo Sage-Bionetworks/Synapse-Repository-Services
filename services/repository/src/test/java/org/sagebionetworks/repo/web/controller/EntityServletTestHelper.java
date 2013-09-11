@@ -746,6 +746,33 @@ public class EntityServletTestHelper {
 			handleException(response.getStatus(), response.getContentAsString());
 		}
 	}
+
+	
+	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(String userId, String projectId, long limit, long offset) 
+			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/project/" + projectId);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		PaginatedResults<Evaluation> res = new PaginatedResults<Evaluation>(Evaluation.class);
+		res.initializeFromJSONObject(joa);
+		return res;
+	}
+	
 	
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(String userId, long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();

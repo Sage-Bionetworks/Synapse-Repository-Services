@@ -165,6 +165,31 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
+	 * Get Evaluations tied to a project. 
+	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the specified Evaluations.
+	 * </p>
+	 * 
+	 * @param projectId - the ID of the Project.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_CONTENT_SOURCE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String projectId, 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			HttpServletRequest request
+			) throws DatastoreException, NotFoundException
+	{
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, projectId, limit, offset, request);
+	}
+	
+	/**
 	 * Get a collection of Evaluations, within a given range.
 	 * 
 	 * <p>

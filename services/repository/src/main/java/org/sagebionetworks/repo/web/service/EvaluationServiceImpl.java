@@ -74,6 +74,22 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return evaluationManager.getEvaluation(userInfo, id);
 	}
+	
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String userId, String projectId, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		QueryResults<Evaluation> res = evaluationManager.getEvaluationByContentSource(userInfo, projectId, limit, offset);
+		return new PaginatedResults<Evaluation>(
+				request.getServletPath() + UrlHelpers.EVALUATION,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false				
+			);
+	}
 
 	@Override
 	@Deprecated

@@ -44,6 +44,12 @@ public interface EvaluationService {
 	 */
 	public Evaluation getEvaluation(String userId, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Gets all Synapse Evaluations tied to the given Project
+	 */
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String userId, String projectId, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
