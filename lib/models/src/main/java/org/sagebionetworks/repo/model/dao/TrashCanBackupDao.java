@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dao;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.TrashedEntity;
  *
  * @author Eric Wu
  */
-public interface DBOTrashCanBackupDao {
+public interface TrashCanBackupDao {
 
 	/**
 	 * Gets the trashed entity given its ID.
