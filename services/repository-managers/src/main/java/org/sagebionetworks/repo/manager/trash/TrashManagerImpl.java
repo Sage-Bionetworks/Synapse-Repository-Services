@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.trash;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -11,6 +14,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
@@ -20,7 +24,7 @@ import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
+import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -44,10 +48,13 @@ public class TrashManagerImpl implements TrashManager {
 	private NodeDAO nodeDao;
 
 	@Autowired
+	private AccessControlListDAO aclDAO;
+
+	@Autowired
 	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Autowired
-	private DBOTrashCanDao trashCanDao;
+	private TrashCanDao trashCanDao;
 
 	@Autowired
 	private TagMessenger tagMessenger;
@@ -256,6 +263,7 @@ public class TrashManagerImpl implements TrashManager {
 		Collection<String> descendants = new ArrayList<String>();
 		this.getDescendants(nodeId, descendants);
 		nodeDao.delete(nodeId);
+		aclDAO.delete(nodeId);
 		trashCanDao.delete(userGroupId, nodeId);
 		for (String desc : descendants) {
 			trashCanDao.delete(userGroupId, desc);
@@ -278,7 +286,7 @@ public class TrashManagerImpl implements TrashManager {
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
 		// a set of the trashed items to help find the roots.
 		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0, Long.MAX_VALUE);
-		purge(trashList);
+		purgeTrash(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -298,7 +306,48 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		List<TrashedEntity> trashList = trashCanDao.getInRange(0, Long.MAX_VALUE);
-		purge(trashList);
+		purgeTrash(trashList);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void purgeTrash(List<TrashedEntity> trashList)
+			throws DatastoreException, NotFoundException {
+		
+		if (trashList == null) {
+			throw new IllegalArgumentException("Trash list cannot be null.");
+		}
+
+		// Sort by ID to avoid potential deadlocks
+		Collections.sort(trashList, new Comparator<TrashedEntity>() {
+			@Override
+			public int compare(TrashedEntity entity1, TrashedEntity entity2) {
+				return entity1.getEntityId().compareTo(entity2.getEntityId());
+			}
+		});
+
+		// For subtrees moved entirely into the trash can, we want to find the roots
+		// of these subtrees. Deleting the roots should delete the subtrees. We use
+		// a set of the trashed items to help find the roots.
+		Set<String> trashIdSet = new HashSet<String>();
+		for (TrashedEntity trash : trashList) {
+			trashIdSet.add(trash.getEntityId());
+		}
+
+		// Purge now
+		for (TrashedEntity trash : trashList) {
+			String nodeId = trash.getEntityId();
+			if (!trashIdSet.contains(trash.getOriginalParentId())) {
+				nodeDao.delete(nodeId);
+				aclDAO.delete(nodeId);
+			}
+			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
+		}
+	}
+
+	@Override
+	public List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException {
+		return trashCanDao.getTrashBefore(timestamp);
 	}
 
 	/**
@@ -312,24 +361,6 @@ public class TrashManagerImpl implements TrashManager {
 		}
 		for (String child : children) {
 			getDescendants(child, descendants); // Recursion
-		}
-	}
-
-	private void purge(List<TrashedEntity> trashList)
-			throws DatastoreException, NotFoundException {
-		// For subtrees moved entirely into the trash can, we want to find the roots
-		// of these subtrees. Deleting the roots should delete the subtrees. We use
-		// a set of the trashed items to help find the roots.
-		Set<String> trashIdSet = new HashSet<String>();
-		for (TrashedEntity trash : trashList) {
-			trashIdSet.add(trash.getEntityId());
-		}
-		for (TrashedEntity trash : trashList) {
-			String nodeId = trash.getEntityId();
-			if (!trashIdSet.contains(trash.getOriginalParentId())) {
-				nodeDao.delete(nodeId);
-			}
-			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
 		}
 	}
 }

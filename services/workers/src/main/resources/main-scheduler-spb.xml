@@ -19,9 +19,10 @@
 	<import resource="classpath:annotations-sqs-spb.xml" />
 	<import resource="classpath:audit-merge-spb.xml" />
 	<import resource="classpath:grouper-spb.xml" />
+	<import resource="classpath:trash-spb.xml" />
 	<import resource="classpath:log-collate-spb.xml" />
 	<import resource="classpath:worker-log-sweep-spb.xml" />
-	
+
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
 			scope="singleton">
@@ -36,6 +37,7 @@
 				<ref bean="auditMergeWorkerTrigger" />
 				<ref bean="crowdGroupSynchronizerTrigger" />
 				<ref bean="logCollateWorkerTrigger" />
+				<ref bean="trashWorkerTrigger" />
 				<ref bean="workersLogSweeperTrigger" />
 			</list>
 		</property>
