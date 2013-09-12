@@ -18,7 +18,7 @@ public class DoiUtilsTest {
 	public void testConvertToDto() {
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final ObjectType ObjectType = ObjectType.ENTITY;
+		final ObjectType objectType = ObjectType.ENTITY;
 		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String eTag = "eTag";
 		final Long id = 2L;
@@ -28,7 +28,7 @@ public class DoiUtilsTest {
 		DBODoi dbo = new DBODoi();
 		dbo.setCreatedBy(createdBy);
 		dbo.setCreatedOn(createdOn);
-		dbo.setObjectType(ObjectType);
+		dbo.setObjectType(objectType);
 		dbo.setDoiStatus(doiStatus);
 		dbo.setETag(eTag);
 		dbo.setId(id);
@@ -38,7 +38,7 @@ public class DoiUtilsTest {
 		Doi dto = DoiUtils.convertToDto(dbo);
 		assertEquals(createdBy.toString(), dto.getCreatedBy());
 		assertEquals(createdOn.getTime(), dto.getCreatedOn().getTime());
-		assertEquals(ObjectType, dto.getObjectType());
+		assertEquals(objectType, dto.getObjectType());
 		assertEquals(doiStatus, dto.getDoiStatus());
 		assertEquals(eTag, dto.getEtag());
 		assertEquals(id.toString(), dto.getId());
@@ -51,7 +51,7 @@ public class DoiUtilsTest {
 	public void testConvertToDbo() {
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final ObjectType ObjectType = ObjectType.ENTITY;
+		final ObjectType objectType = ObjectType.ENTITY;
 		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String eTag = "eTag";
 		final Long id = 2L;
@@ -61,7 +61,7 @@ public class DoiUtilsTest {
 		Doi dto = new Doi();
 		dto.setCreatedBy(createdBy.toString());
 		dto.setCreatedOn(createdOn);
-		dto.setObjectType(ObjectType);
+		dto.setObjectType(objectType);
 		dto.setDoiStatus(doiStatus);
 		dto.setEtag(eTag);
 		dto.setId(id.toString());
@@ -71,7 +71,7 @@ public class DoiUtilsTest {
 		DBODoi dbo = DoiUtils.convertToDbo(dto);
 		assertEquals(createdBy, dbo.getCreatedBy());
 		assertEquals(createdOn.getTime(), dbo.getCreatedOn().getTime());
-		assertEquals(ObjectType.name(), dbo.getObjectType());
+		assertEquals(objectType.name(), dbo.getObjectType());
 		assertEquals(doiStatus.name(), dbo.getDoiStatus());
 		assertEquals(eTag, dbo.getETag());
 		assertEquals(id, dbo.getId());
