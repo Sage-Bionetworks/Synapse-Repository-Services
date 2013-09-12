@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.message.ObjectType;
-
 /**
  * Any entity that can be observed from the outside world.  All migratable objects should be observable.
  * @author jmhill

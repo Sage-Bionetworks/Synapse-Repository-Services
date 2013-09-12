@@ -56,10 +56,10 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -212,7 +212,7 @@ public class MigrationIntegrationAutowireTest {
 
 
 	private void createDoi() throws Exception {
-		doi = serviceProvider.getDoiService().createDoi(userName, project.getId(), DoiObjectType.ENTITY, 1L);
+		doi = serviceProvider.getDoiService().createDoi(userName, project.getId(), ObjectType.ENTITY, 1L);
 	}
 
 

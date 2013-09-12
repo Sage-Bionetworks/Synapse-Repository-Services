@@ -1,8 +1,0 @@
-{
-	"description": "Types of digital objects.",
-	"type": "string",
-	"enum": [
-		"ENTITY",
-		"EVALUATION"
-	]
-}
