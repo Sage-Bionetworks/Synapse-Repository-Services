@@ -14,7 +14,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiMigratableDao;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +46,7 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
-		final DoiObjectType doiObjectType = DoiObjectType.ENTITY;
+		final ObjectType objectType = ObjectType.ENTITY;
 		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String etag = "etag";
 		final Long id = 2L;
@@ -56,7 +56,7 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 		Doi dto = new Doi();
 		dto.setCreatedBy(createdBy.toString());
 		dto.setCreatedOn(createdOn);
-		dto.setDoiObjectType(doiObjectType);
+		dto.setObjectType(objectType);
 		dto.setDoiStatus(doiStatus);
 		dto.setEtag(etag);
 		dto.setId(id.toString());
@@ -71,7 +71,7 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 		assertNotNull(dtoRetrieved);
 		assertEquals(createdBy.toString(), dtoRetrieved.getCreatedBy());
 		assertEquals(createdOn.getTime()/1000, dtoRetrieved.getCreatedOn().getTime()/1000);
-		assertEquals(doiObjectType, dtoRetrieved.getDoiObjectType());
+		assertEquals(objectType, dtoRetrieved.getObjectType());
 		assertEquals(doiStatus, dtoRetrieved.getDoiStatus());
 		assertEquals(etag, dtoRetrieved.getEtag());
 		assertEquals(id.toString(), dtoRetrieved.getId());

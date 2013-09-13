@@ -13,7 +13,7 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 
 import com.amazonaws.services.sqs.model.Message;
 

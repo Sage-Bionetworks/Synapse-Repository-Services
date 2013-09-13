@@ -25,7 +25,7 @@
 		},
 		"objectType": {
 			"description": "The type of the object that changed",
-			"$ref":"org.sagebionetworks.repo.model.message.ObjectType"
+			"$ref":"org.sagebionetworks.repo.model.ObjectType"
 		},
 		"changeType": {
 			"type": "string",
