@@ -4,8 +4,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,8 +25,8 @@ public class SynapseProfileProxy {
 	 */
 	public static SynapseInt createProfileProxy(SynapseInt toProxy){
 	     InvocationHandler handler = new SynapseInvocationHandler(toProxy);
-	     return (SynapseInt) Proxy.newProxyInstance(HttpServletRequest.class.getClassLoader(),
-					new Class[] { HttpServletRequest.class }, handler);
+	     return (SynapseInt) Proxy.newProxyInstance(SynapseInt.class.getClassLoader(),
+					new Class[] { SynapseInt.class }, handler);
 	}
 	
 	/**
