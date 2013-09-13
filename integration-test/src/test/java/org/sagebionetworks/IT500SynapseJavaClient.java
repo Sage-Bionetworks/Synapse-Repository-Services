@@ -32,6 +32,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseInt;
+import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -89,19 +91,19 @@ public class IT500SynapseJavaClient {
 	
 	private List<String> toDelete = null;
 
-	private static Synapse synapse = null;
+	private static SynapseInt synapse = null;
 	private static Project project = null;
 	private static Study dataset = null;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
+	private static SynapseInt createSynapseClient(String user, String pw) throws SynapseException {
 		Synapse synapse = new Synapse();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
 		synapse.login(user, pw);
-		
-		return synapse;
+		// Return a proxy
+		return SynapseProfileProxy.createProfileProxy(synapse);
 	}
 	
 	/**
@@ -344,7 +346,7 @@ public class IT500SynapseJavaClient {
 		ar.setTermsOfUse("play nice");
 		ar = synapse.createAccessRequirement(ar);
 		
-		Synapse otherUser = createSynapseClient(
+		SynapseInt otherUser = createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
@@ -847,7 +849,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		
-		Synapse otherUser = createSynapseClient(
+		SynapseInt otherUser = createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
