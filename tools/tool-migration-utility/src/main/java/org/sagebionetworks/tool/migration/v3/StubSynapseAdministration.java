@@ -24,7 +24,7 @@ import java.util.Stack;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -113,7 +113,7 @@ import com.thoughtworks.xstream.XStream;
  * @author jmhill
  * 
  */
-public class StubSynapseAdministration implements SynapseAdministrationInt {
+public class StubSynapseAdministration implements SynapseAdminClient {
 
 	Stack<StackStatus> statusHistory;
 	String endpoint;

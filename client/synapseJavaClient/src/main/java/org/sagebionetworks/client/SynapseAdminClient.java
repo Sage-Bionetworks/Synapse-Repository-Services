@@ -21,7 +21,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * @author jmhill
  *
  */
-public interface SynapseAdministrationInt extends SynapseClient {
+public interface SynapseAdminClient extends SynapseClient {
 
 	/**
 	 * Update the current stack status.

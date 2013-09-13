@@ -23,7 +23,7 @@ public class SynapseAdministrationTest {
 	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
-	SynapseAdministration synapse;
+	SynapseAdminClientImpl synapse;
 	
 	@Before
 	public void before() throws Exception{
@@ -32,7 +32,7 @@ public class SynapseAdministrationTest {
 		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseAdministration(mockProvider, mockUploader);
+		synapse = new SynapseAdminClientImpl(mockProvider, mockUploader);
 	}
 	
 	@Test
@@ -49,64 +49,64 @@ public class SynapseAdministrationTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testBuildListMessagesURLNullStartNumber(){
-		SynapseAdministration.buildListMessagesURL(null, ObjectType.EVALUATION, new Long(1));
+		SynapseAdminClientImpl.buildListMessagesURL(null, ObjectType.EVALUATION, new Long(1));
 	}
 	@Test
 	public void testBuildListMessagesURL(){
 		String expected = "/admin/messages?startChangeNumber=345&type=EVALUATION&limit=987";
-		String url = SynapseAdministration.buildListMessagesURL(new Long(345), ObjectType.EVALUATION, new Long(987));
+		String url = SynapseAdminClientImpl.buildListMessagesURL(new Long(345), ObjectType.EVALUATION, new Long(987));
 		assertEquals(expected, url);
 	}
 	
 	@Test
 	public void testBuildListMessagesURLNullType(){
 		String expected = "/admin/messages?startChangeNumber=345&limit=987";
-		String url = SynapseAdministration.buildListMessagesURL(new Long(345),null, new Long(987));
+		String url = SynapseAdminClientImpl.buildListMessagesURL(new Long(345),null, new Long(987));
 		assertEquals(expected, url);
 	}
 	
 	@Test
 	public void testBuildListMessagesURLNullLimit(){
 		String expected = "/admin/messages?startChangeNumber=345&type=EVALUATION";
-		String url = SynapseAdministration.buildListMessagesURL(new Long(345), ObjectType.EVALUATION, null);
+		String url = SynapseAdminClientImpl.buildListMessagesURL(new Long(345), ObjectType.EVALUATION, null);
 		assertEquals(expected, url);
 	}
 	
 	@Test
 	public void testBuildListMessagesURLAllNonRequiredNull(){
 		String expected = "/admin/messages?startChangeNumber=345";
-		String url = SynapseAdministration.buildListMessagesURL(new Long(345), null, null);
+		String url = SynapseAdminClientImpl.buildListMessagesURL(new Long(345), null, null);
 		assertEquals(expected, url);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testBuildPublishMessagesURLQueueNameNull(){
-		SynapseAdministration.buildPublishMessagesURL(null, new Long(345), ObjectType.ACTIVITY, new Long(888));
+		SynapseAdminClientImpl.buildPublishMessagesURL(null, new Long(345), ObjectType.ACTIVITY, new Long(888));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testBuildPublishMessagesURLStartNumberNull(){
-		SynapseAdministration.buildPublishMessagesURL("some-queue", null, ObjectType.ACTIVITY, new Long(888));
+		SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", null, ObjectType.ACTIVITY, new Long(888));
 	}
 	
 	@Test
 	public void testBuildPublishMessagesURL(){
 		String expected = "/admin/messages/rebroadcast?queueName=some-queue&startChangeNumber=345&type=ACTIVITY&limit=888";
-		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, new Long(888));
+		String url = SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, new Long(888));
 		assertEquals(expected, url);
 	}
 	
 	@Test
 	public void testBuildPublishMessagesURLTypeNull(){
 		String expected = "/admin/messages/rebroadcast?queueName=some-queue&startChangeNumber=345&limit=888";
-		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), null, new Long(888));
+		String url = SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", new Long(345), null, new Long(888));
 		assertEquals(expected, url);
 	}
 	
 	@Test
 	public void testBuildPublishMessagesURLLimitNull(){
 		String expected = "/admin/messages/rebroadcast?queueName=some-queue&startChangeNumber=345&type=ACTIVITY";
-		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, null);
+		String url = SynapseAdminClientImpl.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, null);
 		assertEquals(expected, url);
 	}
 	

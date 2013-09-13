@@ -1,6 +1,6 @@
 package org.sagebionetworks.tool.migration.v3;
 
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 /**
@@ -16,12 +16,12 @@ public interface SynapseClientFactory {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public SynapseAdministrationInt createNewSourceClient() throws SynapseException;
+	public SynapseAdminClient createNewSourceClient() throws SynapseException;
 	
 	/**
 	 * Create a new client connected to the destination stack
 	 * @return
 	 * @throws SynapseException
 	 */
-	public SynapseAdministrationInt createNewDestinationClient() throws SynapseException;
+	public SynapseAdminClient createNewDestinationClient() throws SynapseException;
 }

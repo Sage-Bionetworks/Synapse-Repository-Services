@@ -9,7 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.UserSessionData;
 
 public class IT070SynapseJavaClientTrashCanTest {
 
-	private static SynapseAdministration synapseAdmin;
+	private static SynapseAdminClientImpl synapseAdmin;
 	private SynapseClientImpl synapse;
 	private Entity parent;
 	private Entity child;
@@ -43,7 +43,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		assertNotNull(session.getProfile().getUserName());
 		assertNotNull(session.getSessionToken());
 
-		synapseAdmin = new SynapseAdministration();
+		synapseAdmin = new SynapseAdminClientImpl();
 		synapseAdmin.setAuthEndpoint(
 				StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapseAdmin.setRepositoryEndpoint(

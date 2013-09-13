@@ -6,7 +6,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.repo.model.Entity;
@@ -18,7 +18,7 @@ public class IT050SynapseJavaClientDynamo {
 
 	public static final long MAX_WAIT_TIME_MS = 5 * 60 * 1000; // 5 min
 
-	private static SynapseAdministration synapseAdmin = null;
+	private static SynapseAdminClientImpl synapseAdmin = null;
 	private static SynapseClientImpl synapse = null;
 
 	private static Entity parent;
@@ -27,7 +27,7 @@ public class IT050SynapseJavaClientDynamo {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 
-		synapseAdmin = new SynapseAdministration();
+		synapseAdmin = new SynapseAdminClientImpl();
 		synapseAdmin.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapseAdmin.setRepositoryEndpoint(StackConfiguration
