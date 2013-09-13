@@ -424,7 +424,7 @@ public class WikiController extends BaseController {
 	// Get Wiki Hierarchy
 
 	/**
-	 * Get list paginated list of all <a
+	 * Get a paginated list of all <a
 	 * href="${org.sagebionetworks.repo.model.wiki.WikiHeader}">WikiHeaders</a>
 	 * that belong to the given owner Entity. The resulting list can be used to
 	 * build a tree of the WikiPages for this owner. The first WikiHeader will
@@ -463,7 +463,7 @@ public class WikiController extends BaseController {
 	}
 
 	/**
-	 * Get list paginated list of all <a
+	 * Get a paginated list of all <a
 	 * href="${org.sagebionetworks.repo.model.wiki.WikiHeader}">WikiHeaders</a>
 	 * that belong to the given owner Evaluation. The resulting list can be used
 	 * to build a tree of the WikiPages for this owner. The first WikiHeader
@@ -503,7 +503,7 @@ public class WikiController extends BaseController {
 
 	// Handles
 	/**
-	 * Get the list of FileHandles for a all file attachments of a specific
+	 * Get the list of FileHandles for all file attachments of a specific
 	 * WikiPage for a given owning Entity. This list will include Previews if
 	 * they exist and will provide information about file sizes, content types
 	 * and names.
@@ -535,7 +535,7 @@ public class WikiController extends BaseController {
 	}
 
 	/**
-	 * Get the list of FileHandles for a all file attachments of a specific
+	 * Get the list of FileHandles for all file attachments of a specific
 	 * WikiPage for a given owning Evaluation. This list will include Previews
 	 * if they exist and will provide information about file sizes, content
 	 * types and names.
