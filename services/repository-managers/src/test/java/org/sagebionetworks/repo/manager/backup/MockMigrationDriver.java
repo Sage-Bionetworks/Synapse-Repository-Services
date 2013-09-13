@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.backup;
 
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 
 public class MockMigrationDriver implements MigrationDriver {
@@ -13,11 +12,4 @@ public class MockMigrationDriver implements MigrationDriver {
 		// TODO Auto-generated method stub
 		return type;
 	}
-
-	@Override
-	public void migrateNodePrincipals(NodeBackup nodeBackup) {
-		// TODO Auto-generated method stub
-
-	}
-
 }
