@@ -5,14 +5,11 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.schema.ObjectSchema;
 
 public class UserProfileUtils {
 	
@@ -41,11 +38,6 @@ public class UserProfileUtils {
 		UserProfile dto = null;
 		if (decompressed instanceof UserProfile) {
 			dto = (UserProfile) decompressed;
-		} else if (decompressed instanceof NamedAnnotations) {
-			// Support the old way of serializing the UserProfile
-			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-			dto = new UserProfile();
-			SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getProperties(), dto, schema);
 		} else {
 			throw new RuntimeException("Unsupported object type " + decompressed.getClass());
 		}
