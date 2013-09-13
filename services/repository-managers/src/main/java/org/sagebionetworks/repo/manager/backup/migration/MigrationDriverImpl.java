@@ -1,23 +1,11 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl;
-import org.sagebionetworks.repo.model.registry.MigrationSpecDataLoaderImpl;
-import org.sagebionetworks.repo.model.registry.MigrationSpecData;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.springframework.beans.factory.annotation.Autowired;
-
 
 /**
  * This is a simple step-wise migration driver implementation. 
@@ -42,11 +30,10 @@ public class MigrationDriverImpl implements MigrationDriver{
 	 */
 	public static MigrationDriver instanceForTesting() {
 		MigrationDriverImpl instance = new MigrationDriverImpl();
-		instance.revisionSteps = new ArrayList();
+		instance.revisionSteps = new ArrayList<RevisionMigrationStep>();
 		return instance;
 	}
-	
-	
+
 	/**
 	 * 
 	 * This is injected by Spring
@@ -74,46 +61,4 @@ public class MigrationDriverImpl implements MigrationDriver{
 		if(!NodeRevisionBackup.CURRENT_XML_VERSION.equals(toMigrate.getXmlVersion())) throw new IllegalStateException("Failed to migrate a NodeRevisionBackup from version: "+startingVersion+" to the current version: "+NodeRevisionBackup.CURRENT_XML_VERSION);
 		return newType;
 	}
-	
-	// migrate user names to principal IDs in node and ACL
-	// Note, do NOT need to update the 'modifiedBy', which 
-	// is only used during serialization, not deserialization
-	@Override
-	public void migrateNodePrincipals(NodeBackup nodeBackup) {
-		if (nodeBackup==null) throw new IllegalArgumentException("NodeBackup cannot be null");
-		Node node = nodeBackup.getNode();
-		if (node==null) throw new IllegalArgumentException("Node cannot be null");
-		if (node.getCreatedByPrincipalId() == null) {
-			// then we have to set it based on the createdBy user name
-			String creatorUserName = node.getCreatedBy();
-			node.setCreatedByPrincipalId(nodeOwnerMigrator.getUserPrincipalWithSubstitution(creatorUserName));
-		}
-		if (node.getModifiedByPrincipalId() == null) {
-			// then we have to set it based on the modifiedBy user name
-			String modifiedByUserName = node.getModifiedBy();
-			node.setModifiedByPrincipalId(nodeOwnerMigrator.getUserPrincipalWithSubstitution(modifiedByUserName));
-		}
-		AccessControlList acl = nodeBackup.getAcl();
-		if (acl!=null) {
-			// this set will hold the ResourceAccess objects that we don't skip
-			Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-			for (ResourceAccess ra : acl.getResourceAccess()) {
-				if (ra.getPrincipalId()==null) {
-					Long principalId = nodeOwnerMigrator.getUserPrincipal(ra.getGroupName());
-					if (principalId==null) {
-						continue; // can't figure out the principal, so just skip this ResourceAccess
-					} else {
-						// fix up the ResourceAccess object 
-						ra.setPrincipalId(principalId);
-					}
-				}
-				// the ResourceAccess object is OK or was fixed up.  Now add it to the set.
-				ras.add(ra);
-			}
-			// now put the finalized set of ResourceAccess objects in the acl
-			acl.setResourceAccess(ras);
-		}
-	}
-
-
 }
