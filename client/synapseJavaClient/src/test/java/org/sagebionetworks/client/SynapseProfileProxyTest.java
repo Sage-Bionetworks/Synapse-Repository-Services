@@ -8,7 +8,7 @@ public class SynapseProfileProxyTest {
 
 	@Test
 	public void testProxy(){
-		SynapseInt proxy = SynapseProfileProxy.createProfileProxy(new Synapse());
+		SynapseClient proxy = SynapseProfileProxy.createProfileProxy(new SynapseClientImpl());
 		String token = "123";
 		proxy.setSessionToken(token);
 		String result = proxy.getCurrentSessionToken();

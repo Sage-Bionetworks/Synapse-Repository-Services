@@ -21,7 +21,7 @@ public class FileChunkUploadWorker implements Callable<Long> {
 	
 	protected static final Logger log = LogManager.getLogger(FileChunkUploadWorker.class.getName());
 
-	Synapse client;
+	SynapseClientImpl client;
 	ChunkRequest request;
 	File chunk;
 	
@@ -33,7 +33,7 @@ public class FileChunkUploadWorker implements Callable<Long> {
 	 * @param request
 	 * @param chunk
 	 */
-	public FileChunkUploadWorker(Synapse client, ChunkRequest request, File chunk) {
+	public FileChunkUploadWorker(SynapseClientImpl client, ChunkRequest request, File chunk) {
 		super();
 		this.client = client;
 		this.request = request;

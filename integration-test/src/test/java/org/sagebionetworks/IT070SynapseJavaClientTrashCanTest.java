@@ -8,7 +8,7 @@ import static org.junit.Assert.fail;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -22,14 +22,14 @@ import org.sagebionetworks.repo.model.UserSessionData;
 public class IT070SynapseJavaClientTrashCanTest {
 
 	private static SynapseAdministration synapseAdmin;
-	private Synapse synapse;
+	private SynapseClientImpl synapse;
 	private Entity parent;
 	private Entity child;
 
 	@Before
 	public void before() throws SynapseException {
 
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(
 				StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(

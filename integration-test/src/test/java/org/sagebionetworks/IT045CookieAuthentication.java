@@ -15,7 +15,7 @@ import org.apache.http.protocol.HttpContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.HttpClientProviderImpl;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -28,13 +28,13 @@ import org.sagebionetworks.utils.DefaultHttpClientSingleton;
  */
 public class IT045CookieAuthentication {
 	
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	private static UserSessionData session;
 	private static Cookie cookie;
 	File imageFile;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

@@ -135,7 +135,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class Synapse implements SynapseInt {
+public class SynapseClientImpl implements SynapseClient {
 
 	public static final String SYNPASE_JAVA_CLIENT = "Synpase-Java-Client/";
 
@@ -143,7 +143,7 @@ public class Synapse implements SynapseInt {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-	protected static final Logger log = LogManager.getLogger(Synapse.class.getName());
+	protected static final Logger log = LogManager.getLogger(SynapseClientImpl.class.getName());
 	
 	protected static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
 
@@ -288,7 +288,7 @@ public class Synapse implements SynapseInt {
 	 * Default constructor uses the default repository and auth services
 	 * endpoints.
 	 */
-	public Synapse() {
+	public SynapseClientImpl() {
 		// Use the default implementations
 		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl());
 	}
@@ -299,7 +299,7 @@ public class Synapse implements SynapseInt {
 	 * @param clientProvider 
 	 * @param dataUploader 
 	 */
-	public Synapse(HttpClientProvider clientProvider, DataUploader dataUploader) {
+	public SynapseClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
 		if (clientProvider == null)
 			throw new IllegalArgumentException("HttpClientProvider cannot be null");
 

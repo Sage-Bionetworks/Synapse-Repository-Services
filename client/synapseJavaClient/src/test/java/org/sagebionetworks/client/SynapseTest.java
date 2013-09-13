@@ -67,7 +67,7 @@ public class SynapseTest {
 	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
-	Synapse synapse;
+	SynapseClientImpl synapse;
 	
 	@Before
 	public void before() throws Exception{
@@ -76,7 +76,7 @@ public class SynapseTest {
 		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new Synapse(mockProvider, mockUploader);
+		synapse = new SynapseClientImpl(mockProvider, mockUploader);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -458,14 +458,14 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new Synapse(stubProvider, mockUploader);
+		synapse = new SynapseClientImpl(stubProvider, mockUploader);
 		// Make a call and ensure 
 		synapse.getVersionInfo();
 		// Validate that the User-Agent was sent
 		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
 		String value = sentHeaders.get("User-Agent");
 		assertNotNull(value);
-		assertTrue(value.startsWith(Synapse.SYNPASE_JAVA_CLIENT));
+		assertTrue(value.startsWith(SynapseClientImpl.SYNPASE_JAVA_CLIENT));
  	}
 	
 	@Test
@@ -475,7 +475,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new Synapse(stubProvider, mockUploader);
+		synapse = new SynapseClientImpl(stubProvider, mockUploader);
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
 		synapse.appendUserAgent(appended);
@@ -486,7 +486,7 @@ public class SynapseTest {
 		String value = sentHeaders.get("User-Agent");
 		System.out.println(value);
 		assertNotNull(value);
-		assertTrue(value.startsWith(Synapse.SYNPASE_JAVA_CLIENT));
+		assertTrue(value.startsWith(SynapseClientImpl.SYNPASE_JAVA_CLIENT));
 		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
  	}
 	

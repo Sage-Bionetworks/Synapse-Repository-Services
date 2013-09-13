@@ -13,7 +13,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Project;
@@ -23,14 +23,14 @@ import org.sagebionetworks.repo.model.Project;
 @Ignore // this is to investigate PLFM-1431
 public class ITCreationLoadTest {
 
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		String authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(authEndpoint);
 		synapse.setRepositoryEndpoint(repoEndpoint);
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),

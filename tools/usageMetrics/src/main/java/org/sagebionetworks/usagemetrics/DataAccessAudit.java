@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -28,7 +28,7 @@ public class DataAccessAudit {
 
 	public static void main(String[] args) throws Exception {
 		initIdToEmailMap();
-		Synapse synapse = new Synapse();
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		String username = args[0];
 		String password = args[1];
 		synapse.login(username, password);
@@ -72,7 +72,7 @@ public class DataAccessAudit {
 
 	}
 
-	private static void getAclList(Synapse synapse, List<String> projectIds)
+	private static void getAclList(SynapseClientImpl synapse, List<String> projectIds)
 			throws SynapseException, IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(new File("/home/geoff/Documents/output.txt")));
 		

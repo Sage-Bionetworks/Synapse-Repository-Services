@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -29,13 +29,13 @@ public class IT060SynapseJavaClientDoiTest {
 	private static long MAX_WAIT = 12000; // 12 seconds
 	private static long PAUSE = 2000;     // Pause between waits is 2 seconds
 	private static SynapseAdministration synapseAdmin;
-	private Synapse synapse;
+	private SynapseClientImpl synapse;
 	private Entity entity;
 
 	@Before
 	public void before() throws SynapseException {
 
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(
 				StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(

@@ -83,7 +83,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * @author jmhill
  *
  */
-public interface SynapseInt {
+public interface SynapseClient {
 
 	/**
 	 * Get the current status of the stack.

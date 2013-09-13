@@ -18,7 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
@@ -43,13 +43,13 @@ public class IT055WikiPageTest {
 
 	private List<WikiPageKey> toDelete = null;
 
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	File imageFile;
 	S3FileHandle fileHandle;
 	Project project;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

@@ -30,7 +30,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 /**
  * Java Client API for Synapse Administrative REST APIs
  */
-public class SynapseAdministration extends Synapse implements SynapseAdministrationInt {
+public class SynapseAdministration extends SynapseClientImpl implements SynapseAdministrationInt {
 
 	public static final String DAEMON = ADMIN + "/daemon";
 	public static final String BACKUP = "/backup";

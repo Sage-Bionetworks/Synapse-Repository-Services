@@ -18,7 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
@@ -40,11 +40,11 @@ public class IT049FileHandleTest {
 
 	private List<FileHandle> toDelete = null;
 
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	File imageFile;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
@@ -245,7 +245,7 @@ public class IT049FileHandleTest {
 			float bytesPerMB = (float) Math.pow(2, 20);
 			float fileSizeMB = fileSize/bytesPerMB;
 			System.out.println(String.format("Attempting to upload file: %1$s of size %2$.2f",  largeFile.getName(), fileSizeMB));
-			String contentType = Synapse.guessContentTypeFromStream(largeFile);
+			String contentType = SynapseClientImpl.guessContentTypeFromStream(largeFile);
 			long start = System.currentTimeMillis();
 			S3FileHandle handle = synapse.createFileHandle(largeFile, contentType);
 			long elapse = System.currentTimeMillis()-start;

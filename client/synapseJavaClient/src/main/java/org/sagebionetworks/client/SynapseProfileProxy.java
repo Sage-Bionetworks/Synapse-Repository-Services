@@ -23,10 +23,10 @@ public class SynapseProfileProxy {
 	 * @param toProxy
 	 * @return
 	 */
-	public static SynapseInt createProfileProxy(SynapseInt toProxy){
+	public static SynapseClient createProfileProxy(SynapseClient toProxy){
 	     InvocationHandler handler = new SynapseInvocationHandler(toProxy);
-	     return (SynapseInt) Proxy.newProxyInstance(SynapseInt.class.getClassLoader(),
-					new Class[] { SynapseInt.class }, handler);
+	     return (SynapseClient) Proxy.newProxyInstance(SynapseClient.class.getClassLoader(),
+					new Class[] { SynapseClient.class }, handler);
 	}
 	
 	/**
@@ -35,12 +35,12 @@ public class SynapseProfileProxy {
 	 */
 	private static class SynapseInvocationHandler implements InvocationHandler {
 
-		public SynapseInvocationHandler(SynapseInt wrapped) {
+		public SynapseInvocationHandler(SynapseClient wrapped) {
 			super();
 			this.wrapped = wrapped;
 		}
 
-		private SynapseInt wrapped;
+		private SynapseClient wrapped;
 		
 		@Override
 		public Object invoke(Object proxy, Method method, Object[] args)
