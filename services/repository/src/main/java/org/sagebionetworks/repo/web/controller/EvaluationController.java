@@ -1044,7 +1044,14 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Create a new ACL.
+	 * Creates a new access control list (ACL) for an evaluation.
+	 * The <a href="${org.sagebionetworks.repo.model.AccessControlList}">ACL</a>
+	 * to be created should have the ID of the evaluation. The user must be an owner of
+	 * the evaluation to create the ACL.
+	 *
+	 * @param userId  The user creating the ACL.
+	 * @param acl     The ACL to be created.
+	 * @return        The ACL created.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
@@ -1059,7 +1066,15 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Update the given ACL.
+	 * Updates the supplied access control list (ACL) for an evaluation.
+	 * The <a href="${org.sagebionetworks.repo.model.AccessControlList}">ACL</a>
+	 * to be updated should have the ID of the evaluation. The user should have the proper
+	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a>
+	 * in order to update the ACL.
+	 *
+	 * @param userId  The user updating the ACL.
+	 * @param acl     The ACL being updated.
+	 * @return        The updated ACL.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
@@ -1074,7 +1089,12 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Delete the ACL of the specified evaluation.
+	 * Deletes the ACL (access control list) of the specified evaluation. The user should have the proper
+	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a>
+	 * to delete the ACL.
+	 *
+	 * @param userId  The user deleting the ACL.
+	 * @param evalId  The ID of the evaluation whose ACL is being removed.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
@@ -1088,7 +1108,13 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Get the access control list (ACL) governing the given evaluation.
+	 * Gets the access control list (ACL) governing the given evaluation. The user should have the proper
+	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a> to
+	 * read the ACL.
+	 *
+	 * @param userId  The retrieving the ACL.
+	 * @param evalId  The ID of the evaluation whose ACL is being retrieved.
+	 * @return        The ACL requested.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.GET)
@@ -1102,7 +1128,12 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Gets the user permissions for the specified evaluation.
+	 * Gets the <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">user permissions</a>
+	 * for the specified evaluation.
+	 *
+	 * @param userId  The ID of the user whose permissions over the specified evaluation are being retrieved.
+	 * @param evalId  The ID of the evaluation over which the user permission are being retrieved.
+	 * @return  The requested user permissions.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_PERMISSIONS, method = RequestMethod.GET)
