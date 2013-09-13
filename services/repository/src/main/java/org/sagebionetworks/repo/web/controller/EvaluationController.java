@@ -99,7 +99,7 @@ public class EvaluationController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Create a new Evaluation. The passed request body should contain the following fields:
+	 * Creates a new Evaluation. The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>name - Give your new Evaluation a name.</li>
 	 * <li>contentSource - The ID of the parent Entity, such as a Folder or Project.</li>
@@ -136,7 +136,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get an Evaluation.
+	 * Gets an Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -165,7 +165,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get Evaluations tied to a project. 
+	 * Gets Evaluations tied to a project. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -190,7 +190,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Evaluations, within a given range.
+	 * Gets a collection of Evaluations, within a given range.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
@@ -229,7 +229,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Evaluations in which the user may participate, within a given range.
+	 * Gets a collection of Evaluations in which the user may participate, within a given range.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
@@ -276,7 +276,7 @@ public class EvaluationController extends BaseController {
 	}	
 	
 	/**
-	 * Get the total number of Evaluations in Synapse.
+	 * Gets the total number of Evaluations in Synapse.
 	 * 
 	 * <b>Note:</b> This method is deprecated and should not be used.
 	 * </p>
@@ -298,7 +298,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Find an Evaluation by name.
+	 * Finds an Evaluation by name.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -328,7 +328,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Update an Evaluation.
+	 * Updates an Evaluation.
 	 *  
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -376,7 +376,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Delete an Evaluation.
+	 * Deletes an Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -405,7 +405,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Join as a Participant in a specified Evaluation.
+	 * Joins as a Participant in a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -437,7 +437,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a Participant. 
+	 * Gets a Participant. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -467,7 +467,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Delete a Participant.
+	 * Deletes a Participant.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -499,7 +499,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get all Participants for a specified Evaluation. 
+	 * Gets all Participants for a specified Evaluation. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -537,7 +537,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the number of Participants in a specified Evaluation.
+	 * Gets the number of Participants in a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -564,7 +564,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Create a Submission. The passed request body should contain the following fields:
+	 * Creates a Submission. The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>evaluationId - The ID of the Evaluation to which this Submission belongs.</li>
 	 * <li>entityId - The ID of the Entity being submitted.</li>
@@ -605,7 +605,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a Submission.
+	 * Gets a Submission.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -634,7 +634,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the SubmissionStatus object associated with a specified Submission.
+	 * Gets the SubmissionStatus object associated with a specified Submission.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -666,7 +666,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Update a SubmissionStatus object.
+	 * Updates a SubmissionStatus object.
 	 *  
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -716,7 +716,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**	
-	 * Delete a Submission and its accompanying SubmissionStatus.
+	 * Deletes a Submission and its accompanying SubmissionStatus.
 	 * Use of this service is discouraged, since Submissions should be immutable.
 	 * 
 	 * <p>
@@ -747,7 +747,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Submissions to a specified Evaluation.
+	 * Gets a collection of Submissions to a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -792,7 +792,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of SubmissionStatuses to a specified Evaluation.
+	 * Gets a collection of SubmissionStatuses to a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -840,7 +840,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of bundled Submissions and SubmissionStatuses to a given Evaluation. 
+	 * Gets a collection of bundled Submissions and SubmissionStatuses to a given Evaluation. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -885,7 +885,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the requesting user's Submissions to a specified Evaluation.
+	 * Gets the requesting user's Submissions to a specified Evaluation.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -923,7 +923,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the requesting user's bundled Submissions and SubmissionStatuses to a specified
+	 * Gets the requesting user's bundled Submissions and SubmissionStatuses to a specified
 	 * Evaluation.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
@@ -962,7 +962,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a pre-signed URL to access a requested File contained within a specified Submission.
+	 * Gets a pre-signed URL to access a requested File contained within a specified Submission.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -992,7 +992,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the number of Submissions to a specified Evaluation.
+	 * Gets the number of Submissions to a specified Evaluation.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -1018,7 +1018,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Determine whether a specified Synapse user has a certain 
+	 * Determines whether a specified Synapse user has a certain 
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE</a> 
 	 * on the specified Evaluation.
 	 * </p>
@@ -1147,7 +1147,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Execute a user-defined query over the Submissions of a specific Evaluation. Queries may be of
+	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries may be of
 	 * the following form:
 	 * 
 	 * <p>
