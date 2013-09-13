@@ -8,7 +8,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

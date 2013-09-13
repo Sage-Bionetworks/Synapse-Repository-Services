@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.aop.framework.Advised;
@@ -97,7 +97,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
-		assertEquals(DoiObjectType.ENTITY, doiCreate.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertNull(doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
 		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
@@ -108,7 +108,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiGet);
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
-		assertEquals(DoiObjectType.ENTITY, doiGet.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
 		assertNull(doiGet.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
 		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
@@ -151,7 +151,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
-		assertEquals(DoiObjectType.ENTITY, doiCreate.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertEquals(Long.valueOf(1), doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
 		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
@@ -162,7 +162,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiGet);
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
-		assertEquals(DoiObjectType.ENTITY, doiGet.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
 		assertEquals(Long.valueOf(1), doiCreate.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
 		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
@@ -203,7 +203,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		// Set up an error status first
 		// Test that we should be able to recreate the DOI from here
 		final String userId = testUserInfo.getIndividualGroup().getId();
-		doiDao.createDoi(userId, nodeId, DoiObjectType.ENTITY, null, DoiStatus.ERROR);
+		doiDao.createDoi(userId, nodeId, ObjectType.ENTITY, null, DoiStatus.ERROR);
 
 		final String userName = testUserInfo.getIndividualGroup().getName();
 		Doi doiCreate = entityDoiManager.createDoi(userName, nodeId, null);
@@ -211,7 +211,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
-		assertEquals(DoiObjectType.ENTITY, doiCreate.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertNull(doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
 		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
@@ -222,7 +222,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiGet);
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
-		assertEquals(DoiObjectType.ENTITY, doiGet.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
 		assertNull(doiCreate.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
 		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());

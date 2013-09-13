@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.message.ObjectType;
 
 public class WikiPageKeyTest {
 	

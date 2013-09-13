@@ -98,7 +98,7 @@ public class DoiControllerAutowiredTest {
 		assertNotNull(doiGet);
 		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
 		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
-		assertEquals(doiPut.getDoiObjectType(), doiGet.getDoiObjectType());
+		assertEquals(doiPut.getObjectType(), doiGet.getObjectType());
 		assertEquals(DoiStatus.IN_PROCESS, doiPut.getDoiStatus());
 		assertNotNull(doiGet.getDoiStatus());
 		assertEquals(doiPut.getEtag(), doiGet.getEtag());
@@ -141,7 +141,7 @@ public class DoiControllerAutowiredTest {
 		assertNotNull(doiGet);
 		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
 		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
-		assertEquals(doiPut.getDoiObjectType(), doiGet.getDoiObjectType());
+		assertEquals(doiPut.getObjectType(), doiGet.getObjectType());
 		assertEquals(DoiStatus.IN_PROCESS, doiPut.getDoiStatus());
 		assertNotNull(doiGet.getDoiStatus());
 		assertEquals(doiPut.getEtag(), doiGet.getEtag());

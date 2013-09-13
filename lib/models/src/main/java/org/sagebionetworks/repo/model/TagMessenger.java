@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * Union of eTag generation and messaging.
