@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -40,7 +40,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 
 public class IT102MigrationTest {
 	
-	private static SynapseAdministration conn;
+	private static SynapseAdminClientImpl conn;
 	private static AmazonS3Client s3Client;
 	private static String bucket;
 	private Project project;
@@ -50,7 +50,7 @@ public class IT102MigrationTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Use the synapse client to do some of the work for us.
-		conn = new SynapseAdministration();
+		conn = new SynapseAdminClientImpl();
 		conn.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		conn.setRepositoryEndpoint(StackConfiguration

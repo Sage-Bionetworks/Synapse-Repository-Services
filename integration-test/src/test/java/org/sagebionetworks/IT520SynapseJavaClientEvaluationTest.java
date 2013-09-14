@@ -20,7 +20,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -66,8 +66,8 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class IT520SynapseJavaClientEvaluationTest {
 
-	private static Synapse synapseOne = null;
-	private static Synapse synapseTwo = null;
+	private static SynapseClientImpl synapseOne = null;
+	private static SynapseClientImpl synapseTwo = null;
 	private static Project project = null;
 	private static Study dataset = null;
 	private static Project projectTwo = null;
@@ -101,8 +101,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 	}
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

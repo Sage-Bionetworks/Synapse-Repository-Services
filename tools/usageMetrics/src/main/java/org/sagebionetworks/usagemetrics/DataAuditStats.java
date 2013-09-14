@@ -16,7 +16,7 @@ import java.util.Map.Entry;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityPath;
 
@@ -43,7 +43,7 @@ public class DataAuditStats {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		Synapse synapse = new Synapse();
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		String username = args[0];
 		String password = args[1];
 		synapse.login(username, password);
@@ -76,7 +76,7 @@ public class DataAuditStats {
 		}
 	}
 
-	private static Map<String, Map<String, ArrayList<DataObject>>> getRootProjects(Synapse synapse,
+	private static Map<String, Map<String, ArrayList<DataObject>>> getRootProjects(SynapseClientImpl synapse,
 			Map<String, ArrayList<DataObject>> entitiesByUser) {
 		
 		Map<String, Map<String, ArrayList<DataObject>>> userToProjects = new HashMap<String,Map<String, ArrayList<DataObject>>>();
@@ -145,7 +145,7 @@ public class DataAuditStats {
 	// filter the list of users for non-sage employees, then run per-user queries limiting data
 	// where createdBy = userId.  Second.  This step is potentially parallelizable, make that object a runnable
 	// and then dispatch three or four threads with lists of users to process.
-	public static Map<String, ArrayList<DataObject>> getEntities(Synapse synapse, ArrayList<String> externalUserIds) throws SynapseException, JSONException, InterruptedException {
+	public static Map<String, ArrayList<DataObject>> getEntities(SynapseClientImpl synapse, ArrayList<String> externalUserIds) throws SynapseException, JSONException, InterruptedException {
 		String baseQuery = "select id, name " +
 							"from data where createdByPrincipalId == \"%s\" limit %d offset %d";
 

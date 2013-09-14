@@ -31,7 +31,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -89,19 +91,19 @@ public class IT500SynapseJavaClient {
 	
 	private List<String> toDelete = null;
 
-	private static Synapse synapse = null;
+	private static SynapseClient synapse = null;
 	private static Project project = null;
 	private static Study dataset = null;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClient createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
 		synapse.login(user, pw);
-		
-		return synapse;
+		// Return a proxy
+		return SynapseProfileProxy.createProfileProxy(synapse);
 	}
 	
 	/**
@@ -344,7 +346,7 @@ public class IT500SynapseJavaClient {
 		ar.setTermsOfUse("play nice");
 		ar = synapse.createAccessRequirement(ar);
 		
-		Synapse otherUser = createSynapseClient(
+		SynapseClient otherUser = createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
@@ -847,7 +849,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		
-		Synapse otherUser = createSynapseClient(
+		SynapseClient otherUser = createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
@@ -900,7 +902,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(apiKey);
 		// set user name and api key in a synapse client
 		// we don't want to log-in, so use a new Synapse client instance
-		Synapse synapseNoLogin = new Synapse();
+		SynapseClientImpl synapseNoLogin = new SynapseClientImpl();
 		synapseNoLogin.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapseNoLogin.setRepositoryEndpoint(StackConfiguration

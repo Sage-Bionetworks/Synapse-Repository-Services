@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
  */
 public class FileChunkUploadWorkerTest {
 
-	Synapse mockClient;
+	SynapseClientImpl mockClient;
 	ChunkedFileToken token;
 	ChunkRequest request;
 	File mockChunk;
@@ -30,7 +30,7 @@ public class FileChunkUploadWorkerTest {
 	
 	@Before
 	public void before(){
-		mockClient = Mockito.mock(Synapse.class);
+		mockClient = Mockito.mock(SynapseClientImpl.class);
 		mockChunk = Mockito.mock(File.class);
 		// token
 		token = new ChunkedFileToken();
