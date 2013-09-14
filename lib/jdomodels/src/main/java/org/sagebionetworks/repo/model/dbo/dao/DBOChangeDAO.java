@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * Abstraction for DBOChage CRUD.

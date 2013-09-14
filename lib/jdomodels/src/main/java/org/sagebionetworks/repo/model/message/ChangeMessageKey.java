@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.message;
 
+import org.sagebionetworks.repo.model.ObjectType;
+
 /**
  * The change key is a composite of the object type and the object id.
  * 

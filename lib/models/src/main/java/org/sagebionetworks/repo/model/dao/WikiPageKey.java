@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dao;
 
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 
 /**
  * It takes a three part key to access a wiki page.  This object encapsulates all three parts of a key in an immutable object.

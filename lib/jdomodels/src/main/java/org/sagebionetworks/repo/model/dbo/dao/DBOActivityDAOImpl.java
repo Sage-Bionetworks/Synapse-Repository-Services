@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TagMessenger;
@@ -27,7 +28,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,12 +51,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	private DBOBasicDao basicDao;	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
-	
-	private static final String SELECT_FOR_RANGE_SQL = "SELECT " + COL_ACTIVITY_ID +", "+ COL_ACTIVITY_ETAG 
-													+ " FROM " + TABLE_ACTIVITY 
-													+ " ORDER BY " + COL_ACTIVITY_ID 
-													+ " LIMIT :" + LIMIT_PARAM_NAME 
-													+ " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_ACTIVITY_ETAG+" FROM "+TABLE_ACTIVITY+" WHERE ID = ?";
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
@@ -100,7 +94,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		Long startingId = KeyFactory.stringToKey(dto.getId());
 		// Create the node.
 		// We want to force the use of the current eTag. See PLFM-845
-		boolean forceUseEtag = true;
 		String id = createPrivate(dto, true);
 		// validate that the ID is unchanged.
 		if(!startingId.equals(KeyFactory.stringToKey(id))) throw new DatastoreException("Creating an activity from a backup changed the ID.");

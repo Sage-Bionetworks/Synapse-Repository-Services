@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
 public class IT060SynapseJavaClientDoiTest {
@@ -113,7 +113,7 @@ public class IT060SynapseJavaClientDoiTest {
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertNull(doi.getObjectVersion());
-		assertEquals(DoiObjectType.ENTITY, doi.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doi.getObjectType());
 		assertNotNull(doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
@@ -150,7 +150,7 @@ public class IT060SynapseJavaClientDoiTest {
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertEquals(Long.valueOf(1L), doi.getObjectVersion());
-		assertEquals(DoiObjectType.ENTITY, doi.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doi.getObjectType());
 		assertNotNull(doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
