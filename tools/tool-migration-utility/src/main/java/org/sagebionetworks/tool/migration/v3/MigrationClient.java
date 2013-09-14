@@ -17,7 +17,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -115,7 +115,7 @@ public class MigrationClient {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	private static void setStatus(SynapseAdministrationInt client, StatusEnum status, String message) throws JSONObjectAdapterException, SynapseException{
+	private static void setStatus(SynapseAdminClient client, StatusEnum status, String message) throws JSONObjectAdapterException, SynapseException{
 		StackStatus destStatus = client.getCurrentStackStatus();
 		destStatus.setStatus(status);
 		destStatus.setCurrentMessage(message);
@@ -140,8 +140,8 @@ public class MigrationClient {
 	 * @throws Exception
 	 */
 	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
-		SynapseAdministrationInt source = factory.createNewSourceClient();
-		SynapseAdministrationInt destination = factory.createNewDestinationClient();
+		SynapseAdminClient source = factory.createNewSourceClient();
+		SynapseAdminClient destination = factory.createNewDestinationClient();
 		// Get the counts for all type from both the source and destination
 		MigrationTypeCounts startSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts startDestCounts = destination.getTypeCounts();

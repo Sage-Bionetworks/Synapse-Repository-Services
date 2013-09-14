@@ -4,7 +4,7 @@ import javax.swing.text.html.parser.Entity;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 public class GetProjectNames {
@@ -16,7 +16,7 @@ public class GetProjectNames {
 			"syn365501", "syn371716", "syn392319", "syn443970", "syn447981" };
 
 	public static void main(String[] args) throws Exception {
-		Synapse synapse = new Synapse();
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		String username = args[0];
 		String password = args[1];
 		synapse.login(username, password);
@@ -24,7 +24,7 @@ public class GetProjectNames {
 		printProjectNames(synapse);
 	}
 
-	private static void printProjectNames(Synapse synapse) {
+	private static void printProjectNames(SynapseClientImpl synapse) {
 		for (String id : projectIds) {
 			JSONObject entity;
 			try {

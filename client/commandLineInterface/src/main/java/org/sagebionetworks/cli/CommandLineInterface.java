@@ -13,7 +13,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 /**
@@ -177,8 +177,8 @@ public class CommandLineInterface {
 	 *         applicable) and the user logged in
 	 * @throws SynapseException
 	 */
-	public Synapse getSynapseClient() throws SynapseException {
-		Synapse synapse = new Synapse();
+	public SynapseClientImpl getSynapseClient() throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		if (properties.containsKey("repoEndpoint")) {
 			synapse.setRepositoryEndpoint(properties
 					.getProperty("repoEndpoint"));
