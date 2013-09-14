@@ -718,7 +718,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public FileHandle createFileHandle(File temp, String contentType)
+	public S3FileHandle createFileHandle(File temp, String contentType)
 			throws SynapseException, IOException {
 		// TODO Auto-generated method stub
 		return null;

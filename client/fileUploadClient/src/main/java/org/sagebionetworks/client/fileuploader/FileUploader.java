@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pivot.wtk.Window;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -45,7 +45,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 
 	private FileUploaderView view;
 	UploadFuturesFactory uploadFuturesFactory;
-    private Synapse synapseClient;
+    private SynapseClient synapseClient;
     private String targetEntityId;
     private final ExecutorService uploadPool = Executors.newFixedThreadPool(2);
 	private Map<Integer,File> idToFile = Collections.synchronizedMap(new HashMap<Integer, File>());
@@ -75,7 +75,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 	 * @param synapseClient
 	 * @param targetEntityId
 	 */
-	public void configure(Synapse synapseClient, String targetEntityId) {
+	public void configure(SynapseClient synapseClient, String targetEntityId) {
 		this.synapseClient = synapseClient;
 		this.targetEntityId = targetEntityId;
 		
@@ -230,7 +230,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 	/*
 	 * Private Methods
 	 */
-	private boolean getUserSessionData(Synapse synapseClient) {
+	private boolean getUserSessionData(SynapseClient synapseClient) {
 		try {
 			userSessionData = synapseClient.getUserSessionData();
 		} catch (SynapseException e) {
@@ -246,7 +246,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 		return true;
 	}
 	
-	private void getTargetEntity(Synapse synapseClient, String targetEntityId) {
+	private void getTargetEntity(SynapseClient synapseClient, String targetEntityId) {
 		try {
 			targetEntity = synapseClient.getEntityById(targetEntityId);
 			if(targetEntity != null) {

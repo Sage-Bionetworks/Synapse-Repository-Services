@@ -211,7 +211,7 @@ public interface SynapseClient {
 	public URL getFileEntityTemporaryUrlForVersion(String entityId,
 			Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException;
 
-	public FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException;
+	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException;
 
 	/**
 	 * Get a WikiPage using its key

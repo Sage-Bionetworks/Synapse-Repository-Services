@@ -44,7 +44,7 @@ public class FileUploaderTest {
 
 	FileUploader fileUploader;
 	FileUploaderView mockView;
-	Synapse mockSynapseClient;
+	SynapseClient mockSynapseClient;
 	UploadFuturesFactory mockUploadFuturesFactory;
 	Project parentTarget;
 	FileEntity updateTarget;
@@ -65,7 +65,7 @@ public class FileUploaderTest {
 		fileUploader = new FileUploader(mockView, mockUploadFuturesFactory);		
 		verify(mockView).setPresenter(fileUploader);
 		
-		mockSynapseClient = mock(Synapse.class);
+		mockSynapseClient = mock(SynapseClient.class);
 
 		usd = new UserSessionData();		
 		UserProfile profile = new UserProfile();
@@ -192,15 +192,15 @@ public class FileUploaderTest {
 		when(mockFuture3.isDone()).thenReturn(true);
 		when(mockFuture3.get()).thenThrow(new ExecutionException("some reason", new SynapseException("Some other exception")));		
 		when(mockUploadFuturesFactory.createChildFileEntityFuture(eq(tmpFile1), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class)))
 				  .thenReturn(mockFuture1);
 		when(mockUploadFuturesFactory.createChildFileEntityFuture(eq(tmpFile2), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class)))
 				  .thenReturn(mockFuture2);		
 		when(mockUploadFuturesFactory.createChildFileEntityFuture(eq(tmpFile3), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class)))
 				  .thenReturn(mockFuture3);		
 		
@@ -209,13 +209,13 @@ public class FileUploaderTest {
 		Thread.sleep(100);
 				
 		verify(mockUploadFuturesFactory).createChildFileEntityFuture(eq(tmpFile1), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class));
 		verify(mockUploadFuturesFactory).createChildFileEntityFuture(eq(tmpFile2), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class));
 		verify(mockUploadFuturesFactory).createChildFileEntityFuture(eq(tmpFile3), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class));
 		
 		// check status
@@ -244,7 +244,7 @@ public class FileUploaderTest {
 		when(mockFuture1.isDone()).thenReturn(true);
 		when(mockFuture1.get()).thenReturn(updatedEntity);		
 		when(mockUploadFuturesFactory.createNewVersionFileEntityFuture(eq(tmpFile1), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  any(FileEntity.class), any(StatusCallback.class)))
 				  .thenReturn(mockFuture1);
 
@@ -252,7 +252,7 @@ public class FileUploaderTest {
 		fileUploader.uploadFiles();
 		Thread.sleep(100);
 		verify(mockUploadFuturesFactory).createNewVersionFileEntityFuture(eq(tmpFile1), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  eq(updateTarget), any(StatusCallback.class));
 		// check status
 		Map<File, UploadStatus> fileStatus = fileUploader.getFileStatus();
@@ -267,12 +267,12 @@ public class FileUploaderTest {
 		when(mockFuture2.isDone()).thenReturn(true);
 		when(mockFuture2.get()).thenReturn(new FileEntity());
 		when(mockUploadFuturesFactory.createChildFileEntityFuture(eq(tmpFile2), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class)))
 				  .thenReturn(mockFuture2);
 		fileUploader.uploadFiles();
 		verify(mockUploadFuturesFactory).createNewVersionFileEntityFuture(eq(tmpFile2), anyString(),
-				  any(ExecutorService.class), any(Synapse.class),
+				  any(ExecutorService.class), any(SynapseClient.class),
 				  eq(updatedEntity), any(StatusCallback.class));
 		
 	}
