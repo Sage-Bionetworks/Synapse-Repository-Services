@@ -1,6 +1,5 @@
 package org.sagebionetworks.crowd.workers;
 
-import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -8,11 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,8 +26,6 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
 
 /**
@@ -57,10 +50,15 @@ public class CrowdGroupSynchronizer implements Runnable {
 	
 	private static Logger log = LogManager.getLogger(CrowdGroupSynchronizer.class); 
 	
+	private enum CROWD_TYPE {
+		group, 
+		user
+	}
+	
 	@Override
 	public void run() {
-		List<String> crowdGroups = getCrowdGroups("group");
-		List<String> crowdUsers = getCrowdGroups("user");
+		List<String> crowdGroups = getCrowdGroups(CROWD_TYPE.group);
+		List<String> crowdUsers = getCrowdGroups(CROWD_TYPE.user);
 		List<String> principalIds = new ArrayList<String>();
 		
 		// Make sure all the Crowd groups exist in RDS
@@ -126,7 +124,7 @@ public class CrowdGroupSynchronizer implements Runnable {
 				
 				// Don't needlessly re-update the profile with the same data
 				if (userProfile.getAgreesToTermsOfUse() == null 
-						|| userProfile.getAgreesToTermsOfUse().longValue() != termsTimeStamp) {
+						|| userProfile.getAgreesToTermsOfUse().longValue() < termsTimeStamp) {
 					userProfile.setAgreesToTermsOfUse(termsTimeStamp);
 					try {
 						userProfileDAO.update(userProfile);
@@ -185,27 +183,16 @@ public class CrowdGroupSynchronizer implements Runnable {
 	 * @param entityType Either "user" or "group"
 	 * @return 
 	 */
-	private List<String> getCrowdGroups(String entityType) {
+	private List<String> getCrowdGroups(CROWD_TYPE entityType) {
 		try {
 			byte[] sessionXml = CrowdAuthUtil.executeRequest(
-					CrowdAuthUtil.urlPrefix()+"/search?entity-type="+entityType, 
+					CrowdAuthUtil.urlPrefix()+"/search?entity-type="+entityType.name(), 
 					"GET", "", HttpStatus.OK, "Could not perform query");
-			
-			XPath xpath = XPathFactory.newInstance().newXPath();
-			NodeList results = (NodeList)xpath.evaluate("/"+entityType+"s/"+entityType+"/@name", 
-					new InputSource(new ByteArrayInputStream(sessionXml)), 
-					XPathConstants.NODESET);
-			
-			List<String> groups = new ArrayList<String>();
-			for (int i = 0; i < results.getLength(); i++) {
-				String groupName = results.item(i).getNodeValue();
-				groups.add(groupName);
-			}
-			return groups;
+			return CrowdAuthUtil.getMultiFromXML("/"+entityType.name()+"s/"+entityType.name()+"/@name", sessionXml);
 		} catch (AuthenticationException e) {
 			throw new RuntimeException(e);
-		} catch (XPathExpressionException e) { 
+		} catch (XPathExpressionException e) {
 			throw new RuntimeException(e);
-		}
+		} 
 	}
 }
