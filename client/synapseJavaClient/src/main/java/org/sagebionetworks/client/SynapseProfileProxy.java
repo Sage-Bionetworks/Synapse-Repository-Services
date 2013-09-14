@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
@@ -49,7 +50,11 @@ public class SynapseProfileProxy {
 			long start = System.currentTimeMillis();
 			try{
 				return method.invoke(wrapped, args);
-			}finally{
+			} catch (InvocationTargetException e) {
+				// We must catch InvocationTargetException to avoid UndeclaredThrowableExceptions
+				// see: http://amitstechblog.wordpress.com/2011/07/24/java-proxies-and-undeclaredthrowableexception/
+				throw e.getCause();
+			} finally{
 				long elapse = System.currentTimeMillis()-start;
 				if(log.isTraceEnabled()){
 					log.trace(String.format(MESSAGE_TEMPALTE, method.getName(), elapse));
