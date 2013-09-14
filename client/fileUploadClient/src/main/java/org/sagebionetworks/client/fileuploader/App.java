@@ -13,7 +13,8 @@ import org.apache.pivot.wtk.Label;
 import org.apache.pivot.wtk.VerticalAlignment;
 import org.apache.pivot.wtk.Window;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 
 public class App implements Application {
 	
@@ -69,9 +70,9 @@ public class App implements Application {
 	/*
 	 * Private Methods
 	 */
-	private static Synapse createSynapseClient() {
+	private static SynapseClient createSynapseClient() {
 		// Create a new syanpse			
-		Synapse synapseClient = new Synapse();
+		SynapseClient synapseClient = new SynapseClientImpl();
 		synapseClient.setSessionToken(sessionToken);
 		synapseClient.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 		synapseClient.setAuthEndpoint(StackConfiguration.getAuthenticationServicePublicEndpoint());

@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 public class UploaderUtilsTest {	
 	
 	UploadFuturesFactory mockUploadFuturesFactory;
-	Synapse mockSynapseClient;
+	SynapseClient mockSynapseClient;
 	Path tmpdir = null;	
 	Path tmpfile;
 	File tmpFileFile;		
@@ -45,7 +45,7 @@ public class UploaderUtilsTest {
 	
 	@Before
 	public void before() throws Exception {	
-		mockSynapseClient = mock(Synapse.class);
+		mockSynapseClient = mock(SynapseClient.class);
 		tmpdir = Files.createTempDirectory("FileUploaderTest");
 		mockStatusCallback = mock(StatusCallback.class);
 		tmpfile = Files.createTempFile(tmpdir, "tmpFile", "txt");

@@ -5,7 +5,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 
@@ -27,7 +27,7 @@ public class UploadFuturesFactoryImpl implements UploadFuturesFactory {
 	@Override
 	public Future<Entity> createChildFileEntityFuture(final File file,
 			final String mimeType, final ExecutorService threadPool,
-			final Synapse synapseClient, final String targetEntityId,
+			final SynapseClient synapseClient, final String targetEntityId,
 			final StatusCallback statusCallback) {
 		return threadPool.submit(new Callable<Entity>() {
 			@Override
@@ -39,7 +39,7 @@ public class UploadFuturesFactoryImpl implements UploadFuturesFactory {
 
 	@Override
 	public Future<Entity> createNewVersionFileEntityFuture(final File file,
-			final String mimeType, final ExecutorService threadPool, final Synapse synapseClient,
+			final String mimeType, final ExecutorService threadPool, final SynapseClient synapseClient,
 			final FileEntity targetEntity, final StatusCallback statusCallback) {
 		return threadPool.submit(new Callable<Entity>() {
 			@Override
