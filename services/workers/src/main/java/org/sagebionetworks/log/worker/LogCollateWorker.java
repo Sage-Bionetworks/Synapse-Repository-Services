@@ -62,18 +62,9 @@ public class LogCollateWorker {
 							// batch.
 							if (!batchData.batchDateString.equals(typeDateHour)) {
 								// The next log does not belong in the current batch so
-								// collate the batch and start again.
-								if (collateBatch(batchData)) {
-									// The batch was merged to completion and we
-									// are done for this round
-									return true;
-								} else {
-									// The batch was not merged. This occurs if
-									// where there was nothing in the batch to
-									// merged. For this case we want to start
-									// with a new batch.
-									batchData = null;
-								}
+								collateBatch(batchData);
+								// We are done with this batch
+								batchData = null;
 							}
 						}
 							
