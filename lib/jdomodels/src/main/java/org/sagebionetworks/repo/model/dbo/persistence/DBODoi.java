@@ -18,14 +18,16 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.backup.DoiBackup;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.DoiUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
+public class DBODoi implements MigratableDatabaseObject<DBODoi, DoiBackup> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
@@ -49,7 +51,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setETag(rs.getString(COL_DOI_ETAG));
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
-					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
+					dbo.setObjectType(objectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
 					// Object version is nullable
 					// We can't just use rs.getLong() which returns a primitive long
 					Object obj = rs.getObject(COL_DOI_OBJECT_VERSION);
@@ -109,10 +111,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
-		return ObjectType.name();
+		return objectType.name();
 	}
 	public void setObjectType(ObjectType ObjectType) {
-		this.ObjectType = ObjectType;
+		this.objectType = ObjectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -143,7 +145,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public String toString() {
 		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
 				+ doiStatus + ", objectId=" + objectId + ", ObjectType="
-				+ ObjectType + ", objectVersion=" + objectVersion
+				+ objectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", updatedOn=" + updatedOn + "]";
 	}
@@ -152,7 +154,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
-	private ObjectType ObjectType;
+	private ObjectType objectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
@@ -164,23 +166,23 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	}
 
 	@Override
-	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new MigratableTableTranslation<DBODoi, DBODoi>(){
+	public MigratableTableTranslation<DBODoi, DoiBackup> getTranslator() {
+		return new MigratableTableTranslation<DBODoi, DoiBackup>(){
 
 			@Override
-			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				return backup;
+			public DBODoi createDatabaseObjectFromBackup(DoiBackup backup) {
+				return DoiUtils.fromBackupToDbo(backup);
 			}
 
 			@Override
-			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
-				return dbo;
+			public DoiBackup createBackupFromDatabaseObject(DBODoi dbo) {
+				return DoiUtils.fromDboToBackup(dbo);
 			}};
 	}
 
 	@Override
-	public Class<? extends DBODoi> getBackupClass() {
-		return DBODoi.class;
+	public Class<? extends DoiBackup> getBackupClass() {
+		return DoiBackup.class;
 	}
 
 	@Override
