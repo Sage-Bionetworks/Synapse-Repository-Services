@@ -1,12 +1,16 @@
 package org.sagebionetworks.log.worker;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +20,7 @@ import org.sagebionetworks.logging.s3.LogKeyUtils;
 import org.sagebionetworks.logging.s3.LogReader;
 
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 /**
@@ -113,13 +118,16 @@ public class LogCollateWorker {
 					File temp = File.createTempFile(type+".", ".log.gz");
 					BufferedWriter outWriter = null;
 					LogReader[] toCollate = new LogReader[data.mergedKeys.size()];
+					File[] tempFiles = new File[data.mergedKeys.size()];
 					try{
 						// Now setup the writer
 						outWriter = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(temp))));
 						// Get the log reader for each file to collate
 						int index = 0;
 						for(String key: data.mergedKeys){
-							toCollate[index] = logDAO.getLogFileReader(key);
+							tempFiles[index] = File.createTempFile("collateDownload", ".log.gz");
+							ObjectMetadata meta = logDAO.downloadLogFile(key, tempFiles[index]);
+							toCollate[index] = new LogReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(tempFiles[index])))));
 							index++;
 						}
 						// Now collate all of the files
@@ -141,6 +149,10 @@ public class LogCollateWorker {
 							try {
 								reader.close();
 							} catch (Exception e) {}
+						}
+						// Delete all temp files
+						for(File tempIn: tempFiles){
+							tempIn.delete();
 						}
 						// We are done with the temp file.
 						temp.delete();
