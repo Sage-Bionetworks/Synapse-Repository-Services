@@ -1357,7 +1357,6 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
 	public <T extends Entity> T putEntity(T entity) throws SynapseException {
 		return putEntity(entity, null);
