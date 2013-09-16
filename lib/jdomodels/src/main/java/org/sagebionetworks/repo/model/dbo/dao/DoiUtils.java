@@ -8,9 +8,9 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
-class DoiUtils {
+public class DoiUtils {
 
-	static Doi convertToDto(DBODoi dbo) {
+	public static Doi convertToDto(DBODoi dbo) {
 		if (dbo == null) {
 			throw new IllegalArgumentException("DBO cannot be null.");
 		}
@@ -32,7 +32,7 @@ class DoiUtils {
 		return dto;
 	}
 
-	static DBODoi convertToDbo(Doi dto) {
+	public static DBODoi convertToDbo(Doi dto) {
 		if (dto == null) {
 			throw new IllegalArgumentException("DTO cannot be null.");
 		}
