@@ -49,7 +49,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setETag(rs.getString(COL_DOI_ETAG));
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
-					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
+					dbo.setObjectType(objectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
 					// Object version is nullable
 					// We can't just use rs.getLong() which returns a primitive long
 					Object obj = rs.getObject(COL_DOI_OBJECT_VERSION);
@@ -109,10 +109,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
-		return ObjectType.name();
+		return objectType.name();
 	}
 	public void setObjectType(ObjectType ObjectType) {
-		this.ObjectType = ObjectType;
+		this.objectType = ObjectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -143,7 +143,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public String toString() {
 		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
 				+ doiStatus + ", objectId=" + objectId + ", ObjectType="
-				+ ObjectType + ", objectVersion=" + objectVersion
+				+ objectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", updatedOn=" + updatedOn + "]";
 	}
@@ -152,7 +152,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
-	private ObjectType ObjectType;
+	private ObjectType objectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
