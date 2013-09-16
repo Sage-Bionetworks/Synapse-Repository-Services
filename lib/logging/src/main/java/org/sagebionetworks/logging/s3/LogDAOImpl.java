@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -153,5 +154,11 @@ public class LogDAOImpl implements LogDAO {
 			reader.close();
 		}
 
+	}
+
+	@Override
+	public ObjectMetadata downloadLogFile(String key, File destination)
+			throws IOException {
+		return this.s3Client.getObject(new GetObjectRequest(bucketName, key), destination);
 	}
 }
