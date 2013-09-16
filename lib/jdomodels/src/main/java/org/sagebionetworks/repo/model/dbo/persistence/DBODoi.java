@@ -109,10 +109,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
-		return ObjectType.name();
+		return objectType.name();
 	}
 	public void setObjectType(ObjectType ObjectType) {
-		this.ObjectType = ObjectType;
+		this.objectType = ObjectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -138,12 +138,16 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setUpdatedOn(Timestamp updatedOn) {
 		this.updatedOn = updatedOn;
 	}
+	@Deprecated
+	public void setDoiObjectType(ObjectType ObjectType) {
+		this.objectType = ObjectType;
+	}
 
 	@Override
 	public String toString() {
 		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
 				+ doiStatus + ", objectId=" + objectId + ", ObjectType="
-				+ ObjectType + ", objectVersion=" + objectVersion
+				+ objectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", updatedOn=" + updatedOn + "]";
 	}
@@ -152,7 +156,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
-	private ObjectType ObjectType;
+	private ObjectType objectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
