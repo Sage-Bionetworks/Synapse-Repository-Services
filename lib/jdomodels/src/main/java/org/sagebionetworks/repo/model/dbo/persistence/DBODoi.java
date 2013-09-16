@@ -18,14 +18,16 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.backup.DoiBackup;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.DoiUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
+public class DBODoi implements MigratableDatabaseObject<DBODoi, DoiBackup> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
@@ -164,23 +166,23 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	}
 
 	@Override
-	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new MigratableTableTranslation<DBODoi, DBODoi>(){
+	public MigratableTableTranslation<DBODoi, DoiBackup> getTranslator() {
+		return new MigratableTableTranslation<DBODoi, DoiBackup>(){
 
 			@Override
-			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
-				return backup;
+			public DBODoi createDatabaseObjectFromBackup(DoiBackup backup) {
+				return DoiUtils.fromBackupToDbo(backup);
 			}
 
 			@Override
-			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
-				return dbo;
+			public DoiBackup createBackupFromDatabaseObject(DBODoi dbo) {
+				return DoiUtils.fromDboToBackup(dbo);
 			}};
 	}
 
 	@Override
-	public Class<? extends DBODoi> getBackupClass() {
-		return DBODoi.class;
+	public Class<? extends DoiBackup> getBackupClass() {
+		return DoiBackup.class;
 	}
 
 	@Override
