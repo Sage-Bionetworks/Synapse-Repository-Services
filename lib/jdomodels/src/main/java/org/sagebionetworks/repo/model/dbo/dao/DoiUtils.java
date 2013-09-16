@@ -3,14 +3,16 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.sql.Timestamp;
 
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.backup.DoiBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
-class DoiUtils {
+public class DoiUtils {
 
-	static Doi convertToDto(DBODoi dbo) {
+	public static Doi convertToDto(DBODoi dbo) {
 		if (dbo == null) {
 			throw new IllegalArgumentException("DBO cannot be null.");
 		}
@@ -32,7 +34,7 @@ class DoiUtils {
 		return dto;
 	}
 
-	static DBODoi convertToDbo(Doi dto) {
+	public static DBODoi convertToDbo(Doi dto) {
 		if (dto == null) {
 			throw new IllegalArgumentException("DTO cannot be null.");
 		}
@@ -47,5 +49,34 @@ class DoiUtils {
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
 		return dbo;
+	}
+
+	public static DBODoi fromBackupToDbo(DoiBackup backup) {
+		DBODoi dbo = new DBODoi();
+		dbo.setCreatedBy(backup.getCreatedBy());
+		dbo.setCreatedOn(backup.getCreatedOn());
+		dbo.setDoiStatus(backup.getDoiStatus());
+		dbo.setETag(backup.geteTag());
+		dbo.setId(backup.getId());
+		dbo.setObjectId(backup.getObjectId());
+		dbo.setObjectType(ObjectType.valueOf(backup.getDoiObjectType().name()));
+		dbo.setObjectVersion(backup.getObjectVersion());
+		dbo.setUpdatedOn(backup.getUpdatedOn());
+		return dbo;
+	}
+
+	public static DoiBackup fromDboToBackup(DBODoi dbo) {
+		DoiBackup backup = new DoiBackup();
+		backup.setCreatedBy(dbo.getCreatedBy());
+		backup.setCreatedOn(dbo.getCreatedOn());
+		backup.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
+		backup.seteTag(dbo.getETag());
+		backup.setId(dbo.getId());
+		backup.setObjectId(dbo.getObjectId());
+		backup.setObjectType(ObjectType.valueOf(dbo.getObjectType()));
+		backup.setDoiObjectType(DoiObjectType.valueOf(dbo.getObjectType()));
+		backup.setObjectVersion(dbo.getObjectVersion());
+		backup.setUpdatedOn(dbo.getUpdatedOn());
+		return backup;
 	}
 }
