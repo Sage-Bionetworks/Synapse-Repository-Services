@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 /**
  * An abstraction for the log Data Access Object.
@@ -35,6 +36,14 @@ public interface LogDAO {
 	 * @throws IOException 
 	 */
 	public LogReader getLogFileReader(String key) throws IOException;
+	
+	/**
+	 * Download a log to the passed destiantion file.
+	 * @param key
+	 * @return
+	 * @throws IOException
+	 */
+	public ObjectMetadata downloadLogFile(String key, File destination) throws IOException;
 
 	/**
 	 * Delete all logs for this Stack Instances.
