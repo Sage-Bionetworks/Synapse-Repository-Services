@@ -29,10 +29,20 @@ public interface DBOChangeDAO {
 	
 	
 	/**
-	 * Get the current application change number;
+	 * @return The minimum change number
+	 */
+	public long getMinimumChangeNumber();
+	
+	/**
+	 * Get the current (maximum) application change number.
 	 * @return
 	 */
 	public long getCurrentChangeNumber();
+	
+	/**
+	 * @return The count of change numbers.
+	 */
+	public long getCount();
 
 	/**
 	 * Completely remove a change from the DB.
@@ -63,6 +73,7 @@ public interface DBOChangeDAO {
 	 * @param changeNumber
 	 */
 	public void registerMessageSent(long changeNumber);
+
 	
 	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).

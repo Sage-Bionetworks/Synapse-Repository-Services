@@ -22,10 +22,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -55,7 +55,19 @@ public class DBOChangeDAOImplAutowiredTest {
 	@Test
 	public void testGetCurrentChangeNumberEmpty() {
 		long ccn = changeDAO.getCurrentChangeNumber();
-		assertEquals(0l, ccn);
+		assertEquals(0L, ccn);
+	}
+	
+	@Test
+	public void testGetMinimumChangeNumberEmpty() {
+		long mcn = changeDAO.getMinimumChangeNumber();
+		assertEquals(0L, mcn);
+	}
+	
+	@Test
+	public void testGetCountEmpty() {
+		long count = changeDAO.getCount();
+		assertEquals(0L, count);
 	}
 	
 	@Test
@@ -93,14 +105,16 @@ public class DBOChangeDAOImplAutowiredTest {
 		changeOne.setObjectEtag("myEtag");
 		changeOne.setChangeType(ChangeType.CREATE);
 		changeOne.setObjectType(ObjectType.ACTIVITY);
-		ChangeMessage clone = changeDAO.replaceChange(changeOne);
+		changeDAO.replaceChange(changeOne);
+		
 		// Now create a second change with the same id but different type.
 		ChangeMessage changeTwo = new ChangeMessage();
 		changeTwo.setObjectId(changeOne.getObjectId());
 		changeTwo.setObjectEtag("myEtag");
 		changeTwo.setChangeType(ChangeType.CREATE);
 		changeTwo.setObjectType(ObjectType.PRINCIPAL);
-		ChangeMessage clonetwo = changeDAO.replaceChange(changeTwo);
+		changeDAO.replaceChange(changeTwo);
+		
 		// Now we should see both changes listed
 		List<ChangeMessage> list = changeDAO.listChanges(0, ObjectType.ACTIVITY, 100);
 		assertNotNull(list);
@@ -123,7 +137,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		change.setObjectEtag("myEtag");
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(ObjectType.ENTITY);
-		ChangeMessage clone = changeDAO.replaceChange(change);
+		changeDAO.replaceChange(change);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -133,8 +147,9 @@ public class DBOChangeDAOImplAutowiredTest {
 		change.setObjectEtag("myEtag");
 		change.setChangeType(null);
 		change.setObjectType(ObjectType.ENTITY);
-		ChangeMessage clone = changeDAO.replaceChange(change);
+		changeDAO.replaceChange(change);
 	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void tesNullObjectTypeType(){
 		ChangeMessage change = new ChangeMessage();
@@ -142,7 +157,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		change.setObjectEtag("myEtag");
 		change.setChangeType(ChangeType.CREATE);
 		change.setObjectType(null);
-		ChangeMessage clone = changeDAO.replaceChange(change);
+		changeDAO.replaceChange(change);
 	}
 	
 	/**
@@ -277,8 +292,14 @@ public class DBOChangeDAOImplAutowiredTest {
 		
 		// Check the change numbers
 		long endChangeNumber = changeDAO.getCurrentChangeNumber();
-		assertEquals(startChangeNumber + numChangesInBatch , endChangeNumber);
-
+		assertEquals(startChangeNumber + numChangesInBatch, endChangeNumber);
+		
+		// The element inserted by startChangeNumber() will be replaced by an element created in createList(5, ...)
+		long minChangeNumber = changeDAO.getMinimumChangeNumber();
+		assertEquals(startChangeNumber + 1, minChangeNumber);
+		
+		long countChangeNumber = changeDAO.getCount();
+		assertEquals(numChangesInBatch, countChangeNumber);
 	}
 	
 	@Test
