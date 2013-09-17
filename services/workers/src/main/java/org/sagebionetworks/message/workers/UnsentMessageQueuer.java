@@ -19,8 +19,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 
 /**
- * The basic implementation of the RepositoryUnsentMessageQueuer.  
- * This implementation will push a sequential list of ranges to coordinate workers sending unsent messages.  
+ * Pushes a sequential list of ranges to coordinate workers sending unsent messages.  
  */
 public class UnsentMessageQueuer implements Runnable {
 
@@ -64,6 +63,12 @@ public class UnsentMessageQueuer implements Runnable {
 			return;
 		}
 		
+		List<SendMessageBatchRequestEntry> batch = buildRangeBatch();
+		awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queueURL, batch));
+	}
+	
+	protected List<SendMessageBatchRequestEntry> buildRangeBatch() {
+		long count = changeDAO.getCount();
 		long min = changeDAO.getMinimumChangeNumber();
 		long max = changeDAO.getCurrentChangeNumber();
 		long chunks = 1 + count / approxRangeSize;
@@ -73,14 +78,15 @@ public class UnsentMessageQueuer implements Runnable {
 		for (int i = 0; i < chunks; i++) {
 			addMessageToBatch(batch, i, min + i * chunkSize, min + (i + 1) * chunkSize);
 		}
-		addMessageToBatch(batch, chunks, min + chunks * chunkSize, max);
-		
-		awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queueURL, batch));
+		if (min + chunks * chunkSize < max) {
+			addMessageToBatch(batch, chunks, min + chunks * chunkSize, max);
+		}
+		return batch;
 	}
 	
 	private void addMessageToBatch(List<SendMessageBatchRequestEntry> batch, long index, long lower, long upper) {
 		if (lower > upper) {
-			throw new IllegalArgumentException("Upper and lower bounds must have the correct numeric relationship (upper >= lower)");
+			throw new IllegalArgumentException("Upper and lower bounds must have the correct numeric relationship: " + lower + " <= " + upper);
 		}
 		UnsentMessageRange range = new UnsentMessageRange();
 		range.setLowerBound(lower);
