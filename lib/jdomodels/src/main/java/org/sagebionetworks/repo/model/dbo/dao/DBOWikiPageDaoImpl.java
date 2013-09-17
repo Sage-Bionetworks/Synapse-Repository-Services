@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
@@ -37,12 +38,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -58,7 +60,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
 	private static final String SQL_LOOKUP_WIKI_PAGE_KEY = "SELECT WO."+COL_WIKI_ONWERS_OWNER_ID+", WO."+COL_WIKI_ONWERS_OBJECT_TYPE+", WP."+COL_WIKI_ID+" FROM "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_OWNERS+" WO WHERE WP."+COL_WIKI_ROOT_ID+" = WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" AND WP."+COL_WIKI_ID+" = ?";
-	private static final String SQL_MIGRATEABLE_WIKIPAGE = "SELECT O."+COL_WIKI_ONWERS_OWNER_ID+", O."+COL_WIKI_ONWERS_OBJECT_TYPE+", W."+COL_WIKI_ID+", W."+COL_WIKI_ETAG+", W."+COL_WIKI_PARENT_ID+" FROM "+TABLE_WIKI_PAGE+" W, "+TABLE_WIKI_OWNERS+" O WHERE W."+COL_WIKI_ROOT_ID+" = O."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" ORDER BY W."+COL_WIKI_ID+" LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_WIKIPAGES = "SELECT COUNT(*) FROM "+TABLE_WIKI_PAGE;
 	private static final String SQL_FIND_WIKI_ATTACHMENT_BY_NAME = "SELECT WA."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_OWNERS+" WO, "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_ATTACHMENT+" WA WHERE WO."+COL_WIKI_ONWERS_OWNER_ID+" = ? AND WO."+COL_WIKI_ONWERS_OBJECT_TYPE+" = ? AND WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" = WP."+COL_WIKI_ROOT_ID+" AND WP."+COL_WIKI_ID+" = ? AND WP."+COL_WIKI_ID+" = WA."+COL_WIKI_ATTACHMENT_ID+" AND WA."+COL_WIKI_ATTACHMENT_FILE_NAME+"= ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
@@ -219,8 +220,10 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		ownerEntry.setRootWikiId(rootWikiId);
 		try{
 			basicDao.createNew(ownerEntry);
-		}catch(DatastoreException e){
+		} catch (DatastoreException e) {
 			throw new IllegalArgumentException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
+		} catch (DuplicateKeyException e) {
+			throw new ConflictingUpdateException("The wiki you are attempting to create already exists.  Try fetching the Wiki and then updating it.");
 		}
 
 	}

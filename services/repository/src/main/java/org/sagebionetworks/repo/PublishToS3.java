@@ -5,7 +5,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -24,7 +25,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
  */
 public class PublishToS3 {
 
-	private static Logger log = Logger.getLogger(PublishToS3.class);
+	private static Logger log = LogManager.getLogger(PublishToS3.class);
 	
 	private static String POLICY_PREFIX = "{ \"Version\":\"2008-10-17\", \"Statement\":[{ \"Sid\":\"PublicReadForGetBucketObjects\", \"Effect\":\"Allow\", \"Principal\": { \"AWS\": \"*\" }, \"Action\":[\"s3:GetObject\"], \"Resource\":[\"arn:aws:s3:::";
 	private static String POLICY_SUFFIX = "/*\" ] }]}";

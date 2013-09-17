@@ -3,7 +3,9 @@ package org.sagebionetworks.dynamo.dao.nodetree;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteExecutor;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
@@ -13,7 +15,7 @@ import org.sagebionetworks.dynamo.DynamoWriteOperation;
  */
 class NodeLineageWriteExecutor implements DynamoWriteExecutor {
 
-	private final Logger logger = Logger.getLogger(NodeLineageWriteExecutor.class);
+	private final Logger logger = LogManager.getLogger(NodeLineageWriteExecutor.class);
 
 	@Override
 	public boolean execute(DynamoWriteExecution execution) {

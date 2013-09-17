@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.dao.TrashCanBackupDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -18,7 +19,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
-public class DBOTrashCanBackupDaoImpl implements DBOTrashCanBackupDao {
+public class DBOTrashCanBackupDaoImpl implements TrashCanBackupDao {
 
 	private static final String SELECT_TRASH_BY_NODE_ID =
 			"SELECT * FROM " + TABLE_TRASH_CAN

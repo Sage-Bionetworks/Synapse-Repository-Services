@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -26,14 +26,14 @@ public class DeleteWorker implements Callable<Long>, BatchWorker{
 	long count;
 	Iterator<RowMetadata> iterator;
 	BasicProgress progress;
-	SynapseAdministrationInt destClient;
+	SynapseAdminClient destClient;
 	long batchSize;
 	
 	
 
 	public DeleteWorker(MigrationType type, long count,
 			Iterator<RowMetadata> iterator, BasicProgress progress,
-			SynapseAdministrationInt destClient, long batchSize) {
+			SynapseAdminClient destClient, long batchSize) {
 		super();
 		this.type = type;
 		this.count = count;

@@ -49,6 +49,8 @@ public class ExpectedStackBeansTest {
 			
 			"stackConfiguration.auditRecordBucketName",
 			"stackConfiguration.stackInstanceNumber",
+			
+			"stackConfiguration.logBucketName",
 	};
 	
 	@Before

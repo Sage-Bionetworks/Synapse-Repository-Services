@@ -82,5 +82,7 @@
 	<!-- Audit config -->
 	<bean id="stackConfiguration.auditRecordBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.stackInstanceNumber" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<!-- Logging -->
+	<bean id="stackConfiguration.logBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 </beans>

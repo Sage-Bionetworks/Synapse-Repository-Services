@@ -13,9 +13,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 /**
@@ -153,9 +151,6 @@ public class CommandLineInterface {
 				}
 			}
 			
-			if(properties.containsKey("debug")) {
-				LogManager.getLogger(Synapse.class).setLevel((Level)Level.DEBUG);
-			}
 		} catch (SynapseException e) {
 			printUsage(e.getMessage());
 			throw e;
@@ -182,8 +177,8 @@ public class CommandLineInterface {
 	 *         applicable) and the user logged in
 	 * @throws SynapseException
 	 */
-	public Synapse getSynapseClient() throws SynapseException {
-		Synapse synapse = new Synapse();
+	public SynapseClientImpl getSynapseClient() throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		if (properties.containsKey("repoEndpoint")) {
 			synapse.setRepositoryEndpoint(properties
 					.getProperty("repoEndpoint"));

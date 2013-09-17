@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.jdo.JDONodeLockChecker;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 import org.sagebionetworks.repo.web.NotFoundException;

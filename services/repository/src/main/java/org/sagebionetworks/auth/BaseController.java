@@ -1,11 +1,11 @@
 package org.sagebionetworks.auth;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
 public class BaseController {
-	private static final Logger log = Logger.getLogger(BaseController.class
+	private static final Logger log = LogManager.getLogger(BaseController.class
 			.getName());
 	
 	/**
@@ -37,7 +37,7 @@ public class BaseController {
 			HttpServletResponse response) {
 		if (null!=ex.getAuthURL()) response.setHeader("AuthenticationURL", ex.getAuthURL());
 		response.setStatus(ex.getRespStatus());
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	@ExceptionHandler(UnauthorizedException.class)
@@ -46,7 +46,7 @@ public class BaseController {
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		response.setStatus(HttpStatus.FORBIDDEN.value());
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 
@@ -67,10 +67,7 @@ public class BaseController {
 	public @ResponseBody
 	ErrorResponse handleAllOtherExceptions(Exception ex,
 			HttpServletRequest request) {
-		log.log(Level.SEVERE,
-				"Consider specifically handling exceptions of type "
-						+ ex.getClass().getName());
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 
@@ -87,8 +84,13 @@ public class BaseController {
 	 *         other human-readable response
 	 */
 	protected ErrorResponse handleException(Throwable ex,
-			HttpServletRequest request) {
-		log.log(Level.WARNING, "Handling " + request.toString(), ex);
+			HttpServletRequest request, boolean fullStackTrace) {
+		if(fullStackTrace){
+			log.error("Handling " + request.toString(), ex);
+		}else{
+			log.error("Handling " + request.toString());
+		}
+
 		ErrorResponse response = new ErrorResponse();
 		response.setReason(ex.getMessage());
 		return response;

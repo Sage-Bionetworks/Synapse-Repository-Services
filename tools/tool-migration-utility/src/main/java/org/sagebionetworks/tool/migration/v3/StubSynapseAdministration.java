@@ -6,6 +6,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -19,13 +22,68 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
 
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.apache.http.client.ClientProtocolException;
+import org.json.JSONObject;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.evaluation.model.UserEvaluationState;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -33,8 +91,15 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.query.QueryTableResults;
+import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -48,7 +113,7 @@ import com.thoughtworks.xstream.XStream;
  * @author jmhill
  * 
  */
-public class StubSynapseAdministration implements SynapseAdministrationInt {
+public class StubSynapseAdministration implements SynapseAdminClient {
 
 	Stack<StackStatus> statusHistory;
 	String endpoint;
@@ -441,6 +506,1626 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		// Pop a number off of the stack
 		result.setNextChangeNumber(currentChangeNumberStack.pop());
 		return result;
+	}
+
+
+	@Override
+	public void appendUserAgent(String toAppend) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void setRepositoryEndpoint(String repoEndpoint) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void setAuthEndpoint(String authEndpoint) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public String getAuthEndpoint() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void setFileEndpoint(String fileEndpoint) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public String getFileEndpoint() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void setSessionToken(String sessionToken) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp,
+			String fileName) throws JSONObjectAdapterException,
+			SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Entity getEntityById(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends Entity> T putEntity(T entity) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PresignedUrl waitForPreviewToBeCreated(String entityId,
+			String tokenId, int maxTimeOut) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PresignedUrl createAttachmentPresignedUrl(String entityId,
+			String tokenId) throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey properKey,
+			String fileName) throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getWikiAttachmentTemporaryUrl(WikiPageKey properKey,
+			String fileName) throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserSessionData login(String username, String password)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserSessionData login(String username, String password,
+			boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void loginWithNoProfile(String userName, String password)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public UserSessionData getUserSessionData() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public boolean revalidateSession() throws SynapseException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public String getCurrentSessionToken() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends Entity> T createEntity(T entity) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject createJSONObject(String uri, JSONObject entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public SearchResults search(SearchQuery searchQuery)
+			throws SynapseException, UnsupportedEncodingException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId)
+			throws ClientProtocolException, MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId)
+			throws ClientProtocolException, MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId,
+			Long versionNumber) throws ClientProtocolException,
+			MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getFileEntityTemporaryUrlForVersion(String entityId,
+			Long versionNumber) throws ClientProtocolException,
+			MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public S3FileHandle createFileHandle(File temp, String contentType)
+			throws SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getWikiPage(WikiPageKey properKey)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(
+			RestrictableObjectDescriptor subjectId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
+			WikiPage toUpdate) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void setRequestProfile(boolean request) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public JSONObject getProfileData() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public String getUserName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void setUserName(String userName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public String getApiKey() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void setApiKey(String apiKey) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public <T extends Entity> T createEntity(T entity, String activityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends JSONEntity> T createJSONEntity(String uri, T entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc,
+			String activityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityBundle updateEntityBundle(String entityId,
+			EntityBundleCreate ebc) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityBundle updateEntityBundle(String entityId,
+			EntityBundleCreate ebc, String activityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject getEntity(String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityBundle getEntityBundle(String entityId, int partsMask)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
+			int partsMask) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<VersionInfo> getEntityVersions(String entityId,
+			int offset, int limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AccessControlList getACL(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityHeader getEntityBenefactor(String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserProfile getMyProfile() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void updateMyProfile(UserProfile userProfile)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public UserProfile getUserProfile(String ownerId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix)
+			throws SynapseException, UnsupportedEncodingException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AccessControlList updateACL(AccessControlList acl)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AccessControlList updateACL(AccessControlList acl, boolean recursive)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteACL(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public AccessControlList createACL(AccessControlList acl)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public boolean canAccess(String entityId, ACCESS_TYPE accessType)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public boolean canAccess(String id, ObjectType type, ACCESS_TYPE accessType)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public UserEntityPermissions getUsersEntityPermissions(String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Annotations getAnnotations(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Annotations updateAnnotations(String entityId, Annotations updated)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends AccessRequirement> T createAccessRequirement(T ar)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ACTAccessRequirement createLockAccessRequirement(String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+			RestrictableObjectDescriptor subjectId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends AccessApproval> T createAccessApproval(T aa)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends JSONEntity> T getEntity(String entityId,
+			Class<? extends T> clazz) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteAccessRequirement(Long arId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public JSONObject updateEntity(String uri, JSONObject entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public <T extends Entity> T putEntity(T entity, String activityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject putJSONObject(String uri, JSONObject entity,
+			Map<String, String> headers) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject postUri(String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteUri(String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public <T extends Entity> void deleteEntity(T entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public <T extends Entity> void deleteAndPurgeEntity(T entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void deleteEntityById(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void deleteAndPurgeEntityById(String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public <T extends Entity> void deleteEntityVersion(T entity,
+			Long versionNumber) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void deleteEntityVersionById(String entityId, Long versionNumber)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public EntityPath getEntityPath(Entity entity) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityPath getEntityPath(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public BatchResults<EntityHeader> getEntityHeaderBatch(
+			List<Reference> references) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<EntityHeader> getEntityReferencedBy(
+			String entityId, String targetVersion) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject query(String query) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults createFileHandles(List<File> files)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ChunkedFileToken createChunkedFileUploadToken(
+			CreateChunkedFileTokenRequest ccftr) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL createChunkedPresignedUrl(ChunkRequest chunkRequest)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public String putFileToURL(URL url, File file, String contentType)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ChunkResult addChunkToFile(ChunkRequest chunkRequest)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public S3FileHandle completeChunkFileUpload(
+			CompleteChunkedFileRequest request) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandle getRawFileHandle(String fileHandleId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteFileHandle(String fileHandleId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void clearPreview(String fileHandleId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public WikiPage createWikiPage(String ownerId, ObjectType ownerType,
+			WikiPage toCreate) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadWikiAttachment(WikiPageKey key, String fileName)
+			throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteWikiPage(WikiPageKey key) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
+			ObjectType ownerType) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(
+			String entityId) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults getEntityFileHandlesForVersion(String entityId,
+			Long versionNumber) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadLocationableFromSynapse(Locationable locationable)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadLocationableFromSynapse(Locationable locationable,
+			File destinationFile) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadFromSynapse(LocationData location, String md5,
+			File destinationFile) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadFromSynapse(String path, String md5,
+			File destinationFile) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
+			File dataFile) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
+			File dataFile, String md5) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Locationable updateExternalLocationableToSynapse(
+			Locationable locationable, String externalUrl)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Locationable updateExternalLocationableToSynapse(
+			Locationable locationable, String externalUrl, String md5)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AttachmentData uploadAttachmentToSynapse(String entityId,
+			File dataFile) throws JSONObjectAdapterException, SynapseException,
+			IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId,
+			File dataFile, String fileName) throws JSONObjectAdapterException,
+			SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AttachmentData uploadAttachmentToSynapse(String id,
+			AttachmentType attachmentType, File dataFile, String fileName)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id,
+			String tokenOrPreviewId) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PresignedUrl createAttachmentPresignedUrl(String id,
+			AttachmentType attachmentType, String tokenOrPreviewId)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId,
+			String tokenOrPreviewId, int timeout) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PresignedUrl waitForPreviewToBeCreated(String id,
+			AttachmentType type, String tokenOrPreviewId, int timeout)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void downloadEntityAttachment(String entityId,
+			AttachmentData attachmentData, File destFile)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void downloadUserProfileAttachment(String userId,
+			AttachmentData attachmentData, File destFile)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void downloadAttachment(String id, AttachmentType type,
+			AttachmentData attachmentData, File destFile)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void downloadEntityAttachmentPreview(String entityId,
+			String previewId, File destFile) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void downloadUserProfileAttachmentPreview(String userId,
+			String previewId, File destFile) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void downloadAttachmentPreview(String id, AttachmentType type,
+			String previewId, File destFile) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public S3AttachmentToken createAttachmentS3Token(String id,
+			AttachmentType attachmentType, S3AttachmentToken token)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject createAuthEntity(String uri, JSONObject entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject getAuthEntity(String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject putAuthEntity(String uri, JSONObject entity)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject createJSONObjectEntity(String endpoint, String uri,
+			JSONObject entity) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject getSynapseEntity(String endpoint, String uri)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject putJSONObject(String endpoint, String uri,
+			JSONObject entity, Map<String, String> headers)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject postUri(String endpoint, String uri)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public JSONObject querySynapse(String endpoint, String query)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteUri(String endpoint, String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public <T extends JSONEntity> T getJSONEntity(String uri,
+			Class<? extends T> clazz) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public String getSynapseTermsOfUse() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Long getChildCount(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public SynapseVersionInfo getVersionInfo() throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Set<String> getAllUserAndGroupIds() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Activity getActivityForEntity(String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Activity getActivityForEntityVersion(String entityId,
+			Long versionNumber) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Activity setActivityForEntity(String entityId, String activityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteGeneratedByForEntity(String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Activity createActivity(Activity activity) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Activity getActivity(String activityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Activity putActivity(Activity activity) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteActivity(String activityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(
+			String activityId, Integer limit, Integer offset)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityIdList getDescendants(String nodeId, int pageSize,
+			String lastDescIdExcl) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public EntityIdList getDescendants(String nodeId, int generation,
+			int pageSize, String lastDescIdExcl) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Evaluation createEvaluation(Evaluation eval) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Evaluation getEvaluation(String evalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(
+			String projectId, int offset, int limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset,
+			int limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			EvaluationStatus status, int offset, int limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Long getEvaluationCount() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Evaluation findEvaluation(String name) throws SynapseException,
+			UnsupportedEncodingException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteEvaluation(String evalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Participant createParticipant(String evalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Participant getParticipant(String evalId, String principalId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteParticipant(String evalId, String principalId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<Participant> getAllParticipants(String s,
+			long offset, long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Long getParticipantCount(String evalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Submission createSubmission(Submission sub, String etag)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Submission getSubmission(String subId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public SubmissionStatus getSubmissionStatus(String subId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteSubmission(String subId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<Submission> getAllSubmissions(String evalId,
+			long offset, long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
+			String evalId, long offset, long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(
+			String evalId, long offset, long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Submission> getAllSubmissionsByStatus(
+			String evalId, SubmissionStatusEnum status, long offset, long limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatusesByStatus(
+			String evalId, SubmissionStatusEnum status, long offset, long limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
+			String evalId, SubmissionStatusEnum status, long offset, long limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Submission> getMySubmissions(String evalId,
+			long offset, long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<SubmissionBundle> getMySubmissionBundles(
+			String evalId, long offset, long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId,
+			String fileHandleId) throws ClientProtocolException,
+			MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Long getSubmissionCount(String evalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserEvaluationState getUserEvaluationState(String evalId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public QueryTableResults queryEvaluation(String query)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void moveToTrash(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void restoreFromTrash(String entityId, String newParentId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset,
+			long limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void purgeTrashForUser(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void purgeTrashForUser() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public EntityHeader addFavorite(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void removeFavorite(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit,
+			Integer offset) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void createEntityDoi(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void createEntityDoi(String entityId, Long entityVersion)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Doi getEntityDoi(String entityId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Doi getEntityDoi(String s, Long entityVersion)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public List<EntityHeader> getEntityHeaderByMd5(String md5)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public String retrieveApiKey() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AccessControlList updateEvaluationAcl(AccessControlList acl)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public AccessControlList getEvaluationAcl(String evalId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

@@ -99,7 +99,7 @@ public class EvaluationController extends BaseController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Create a new Evaluation. The passed request body should contain the following fields:
+	 * Creates a new Evaluation. The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>name - Give your new Evaluation a name.</li>
 	 * <li>contentSource - The ID of the parent Entity, such as a Folder or Project.</li>
@@ -136,7 +136,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get an Evaluation.
+	 * Gets an Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -165,7 +165,32 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Evaluations, within a given range.
+	 * Gets Evaluations tied to a project. 
+	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> on the specified Evaluations.
+	 * </p>
+	 * 
+	 * @param projectId - the ID of the Project.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_CONTENT_SOURCE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String projectId, 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			HttpServletRequest request
+			) throws DatastoreException, NotFoundException
+	{
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, projectId, limit, offset, request);
+	}
+	
+	/**
+	 * Gets a collection of Evaluations, within a given range.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
@@ -204,7 +229,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Evaluations in which the user may participate, within a given range.
+	 * Gets a collection of Evaluations in which the user may participate, within a given range.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
@@ -251,7 +276,7 @@ public class EvaluationController extends BaseController {
 	}	
 	
 	/**
-	 * Get the total number of Evaluations in Synapse.
+	 * Gets the total number of Evaluations in Synapse.
 	 * 
 	 * <b>Note:</b> This method is deprecated and should not be used.
 	 * </p>
@@ -273,7 +298,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Find an Evaluation by name.
+	 * Finds an Evaluation by name.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -303,7 +328,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Update an Evaluation.
+	 * Updates an Evaluation.
 	 *  
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -351,7 +376,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Delete an Evaluation.
+	 * Deletes an Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -380,7 +405,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Join as a Participant in a specified Evaluation.
+	 * Joins as a Participant in a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -412,7 +437,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a Participant. 
+	 * Gets a Participant. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -442,7 +467,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Delete a Participant.
+	 * Deletes a Participant.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -474,7 +499,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get all Participants for a specified Evaluation. 
+	 * Gets all Participants for a specified Evaluation. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -512,7 +537,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the number of Participants in a specified Evaluation.
+	 * Gets the number of Participants in a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -539,7 +564,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Create a Submission. The passed request body should contain the following fields:
+	 * Creates a Submission. The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>evaluationId - The ID of the Evaluation to which this Submission belongs.</li>
 	 * <li>entityId - The ID of the Entity being submitted.</li>
@@ -580,7 +605,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a Submission.
+	 * Gets a Submission.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -609,7 +634,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the SubmissionStatus object associated with a specified Submission.
+	 * Gets the SubmissionStatus object associated with a specified Submission.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -641,7 +666,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Update a SubmissionStatus object.
+	 * Updates a SubmissionStatus object.
 	 *  
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
@@ -691,7 +716,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**	
-	 * Delete a Submission and its accompanying SubmissionStatus.
+	 * Deletes a Submission and its accompanying SubmissionStatus.
 	 * Use of this service is discouraged, since Submissions should be immutable.
 	 * 
 	 * <p>
@@ -722,7 +747,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of Submissions to a specified Evaluation.
+	 * Gets a collection of Submissions to a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -767,7 +792,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of SubmissionStatuses to a specified Evaluation.
+	 * Gets a collection of SubmissionStatuses to a specified Evaluation.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -815,7 +840,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a collection of bundled Submissions and SubmissionStatuses to a given Evaluation. 
+	 * Gets a collection of bundled Submissions and SubmissionStatuses to a given Evaluation. 
 	 * 
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
@@ -860,7 +885,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the requesting user's Submissions to a specified Evaluation.
+	 * Gets the requesting user's Submissions to a specified Evaluation.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -898,7 +923,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the requesting user's bundled Submissions and SubmissionStatuses to a specified
+	 * Gets the requesting user's bundled Submissions and SubmissionStatuses to a specified
 	 * Evaluation.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
@@ -937,7 +962,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get a pre-signed URL to access a requested File contained within a specified Submission.
+	 * Gets a pre-signed URL to access a requested File contained within a specified Submission.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -967,7 +992,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Get the number of Submissions to a specified Evaluation.
+	 * Gets the number of Submissions to a specified Evaluation.
 	 * 
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -993,7 +1018,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Determine whether a specified Synapse user has a certain 
+	 * Determines whether a specified Synapse user has a certain 
 	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE</a> 
 	 * on the specified Evaluation.
 	 * </p>
@@ -1019,7 +1044,14 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Create a new ACL.
+	 * Creates a new access control list (ACL) for an evaluation.
+	 * The <a href="${org.sagebionetworks.repo.model.AccessControlList}">ACL</a>
+	 * to be created should have the ID of the evaluation. The user must be an owner of
+	 * the evaluation to create the ACL.
+	 *
+	 * @param userId  The user creating the ACL.
+	 * @param acl     The ACL to be created.
+	 * @return        The ACL created.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
@@ -1034,7 +1066,15 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Update the given ACL.
+	 * Updates the supplied access control list (ACL) for an evaluation.
+	 * The <a href="${org.sagebionetworks.repo.model.AccessControlList}">ACL</a>
+	 * to be updated should have the ID of the evaluation. The user should have the proper
+	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a>
+	 * in order to update the ACL.
+	 *
+	 * @param userId  The user updating the ACL.
+	 * @param acl     The ACL being updated.
+	 * @return        The updated ACL.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
@@ -1049,7 +1089,12 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Delete the ACL of the specified evaluation.
+	 * Deletes the ACL (access control list) of the specified evaluation. The user should have the proper
+	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a>
+	 * to delete the ACL.
+	 *
+	 * @param userId  The user deleting the ACL.
+	 * @param evalId  The ID of the evaluation whose ACL is being removed.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
@@ -1063,7 +1108,13 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Get the access control list (ACL) governing the given evaluation.
+	 * Gets the access control list (ACL) governing the given evaluation. The user should have the proper
+	 * <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">permissions</a> to
+	 * read the ACL.
+	 *
+	 * @param userId  The retrieving the ACL.
+	 * @param evalId  The ID of the evaluation whose ACL is being retrieved.
+	 * @return        The ACL requested.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.GET)
@@ -1077,7 +1128,12 @@ public class EvaluationController extends BaseController {
 	}
 
 	/**
-	 * Gets the user permissions for the specified evaluation.
+	 * Gets the <a href="${org.sagebionetworks.evaluation.model.UserEvaluationPermissions}">user permissions</a>
+	 * for the specified evaluation.
+	 *
+	 * @param userId  The ID of the user whose permissions over the specified evaluation are being retrieved.
+	 * @param evalId  The ID of the evaluation over which the user permission are being retrieved.
+	 * @return  The requested user permissions.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_PERMISSIONS, method = RequestMethod.GET)
@@ -1091,7 +1147,7 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Execute a user-defined query over the Submissions of a specific Evaluation. Queries may be of
+	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries may be of
 	 * the following form:
 	 * 
 	 * <p>

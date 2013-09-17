@@ -6,9 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
@@ -17,7 +16,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
@@ -33,7 +32,7 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class SearchQueueWorker implements Callable<List<Message>> {
 	
-	static private Log log = LogFactory.getLog(SearchQueueWorker.class);
+	static private Logger log = LogManager.getLogger(SearchQueueWorker.class);
 	
 	private SearchDao searchDao;
 	private SearchDocumentDriver documentProvider;

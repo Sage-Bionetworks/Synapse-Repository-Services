@@ -18,7 +18,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -106,7 +106,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		assertEquals(1, unsent.size());
 		messagePublisher.fireChangeMessage(message);
 		// The message will be published on a timer, so we wait for that to occur.
-		Thread.sleep(200);
+		Thread.sleep(2000);
 		// Validate that our message was fired.
 		String json = EntityFactory.createJSONStringForEntity(message);
 		// The message should be published once and only once.
@@ -139,7 +139,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		}
 
 		// The message will be published on a timer, so we wait for that to occur.
-		Thread.sleep(200);
+		Thread.sleep(2000);
 		// Validate that all of the messages were fired.
 		for(String messageBody: messageBodyList){
 			System.out.println("Checking for message body: "+messageBody);

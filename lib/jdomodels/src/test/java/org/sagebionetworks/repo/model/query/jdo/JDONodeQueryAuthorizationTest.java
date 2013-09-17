@@ -12,8 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +52,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	
-	private static Log log = LogFactory.getLog(JDONodeQueryAuthorizationTest.class);
+	private static Logger log = LogManager.getLogger(JDONodeQueryAuthorizationTest.class);
 
 	@Autowired
 	private NodeQueryDao nodeQueryDao;

@@ -12,7 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -23,13 +23,13 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 public class IT930ActivityController {
 	private static final Logger log = Logger.getLogger(IT930ActivityController.class.getName());
 	
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 
 	List<String> entitiesToDelete;
 	List<String> activitiesToDelete;
 
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
