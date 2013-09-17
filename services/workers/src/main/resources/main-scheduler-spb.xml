@@ -22,6 +22,7 @@
 	<import resource="classpath:trash-spb.xml" />
 	<import resource="classpath:log-collate-spb.xml" />
 	<import resource="classpath:worker-log-sweep-spb.xml" />
+	<import resource="classpath:message-sqs-sender.spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -39,6 +40,7 @@
 				<ref bean="logCollateWorkerTrigger" />
 				<ref bean="trashWorkerTrigger" />
 				<ref bean="workersLogSweeperTrigger" />
+				<ref bean="unsentMessageQueuerTrigger" />
 			</list>
 		</property>
 	</bean>
