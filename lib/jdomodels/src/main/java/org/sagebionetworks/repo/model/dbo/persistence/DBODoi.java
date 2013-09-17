@@ -138,10 +138,6 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setUpdatedOn(Timestamp updatedOn) {
 		this.updatedOn = updatedOn;
 	}
-	@Deprecated
-	public void setDoiObjectType(ObjectType ObjectType) {
-		this.objectType = ObjectType;
-	}
 
 	@Override
 	public String toString() {
