@@ -146,11 +146,6 @@
 		scope="singleton">
 	</bean>
 
-	<bean id="trashCanBackupDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanBackupDaoImpl"
-		scope="singleton">
-	</bean>
-
 	<bean id="wikiPageDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
 		scope="singleton">
@@ -162,11 +157,6 @@
 
 	<bean id="doiAdminDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiAdminDaoImpl"
-		scope="singleton">
-	</bean>
-
-	<bean id="doiMigratableDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiMigratableDaoImpl"
 		scope="singleton">
 	</bean>
 
