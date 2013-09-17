@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -27,12 +26,20 @@ public class UnsentMessageQueuer implements Runnable {
 	
 	@Autowired
 	private AmazonSQSClient awsSQSClient;
+	private String queueName;
+	private String queueURL;
 	
 	@Autowired
 	private DBOChangeDAO changeDAO;
-	
 	private Long approxRangeSize;
-	private String queueURL;
+	
+	public void setQueueName(String queueName) {
+		this.queueName = queueName;
+	}
+	
+	public String getQueueURL() {
+		return queueURL;
+	}
 	
 	public void setApproxRangeSize(long approxRangeSize) {
 		if (approxRangeSize <= 0) {
@@ -41,16 +48,11 @@ public class UnsentMessageQueuer implements Runnable {
 		this.approxRangeSize = approxRangeSize;
 	}
 	
-	public String getQueueURL() {
-		return queueURL;
-	}
-	
 	/**
 	 * Called by Spring after bean creation
 	 */
 	public void initialize() {
 		// Make or get the SQS URL
-		String queueName = StackConfiguration.getUnsentMessagesQueueName();
 		CreateQueueRequest cqRequest = new CreateQueueRequest(queueName);
 		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
 		queueURL = cqResult.getQueueUrl();
@@ -86,6 +88,7 @@ public class UnsentMessageQueuer implements Runnable {
 	
 	private void addMessageToBatch(List<SendMessageBatchRequestEntry> batch, long index, long lower, long upper) {
 		if (lower > upper) {
+			// This should never be hit since it means the worker's logic is incorrect
 			throw new IllegalArgumentException("Upper and lower bounds must have the correct numeric relationship: " + lower + " <= " + upper);
 		}
 		UnsentMessageRange range = new UnsentMessageRange();

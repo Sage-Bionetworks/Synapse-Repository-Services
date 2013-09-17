@@ -96,4 +96,11 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return 0;
 	}
 
+	@Override
+	public List<ChangeMessage> listUnsentMessages(long lowerBound,
+			long upperBound) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

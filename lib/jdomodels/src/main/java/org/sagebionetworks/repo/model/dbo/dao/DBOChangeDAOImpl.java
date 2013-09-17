@@ -20,6 +20,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
@@ -44,10 +45,18 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			"INSERT INTO "+TABLE_SENT_MESSAGES+" ( "+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_TIME_STAMP+")"+
 			" VALUES ( ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?";
 	
-	private static final String SQL_SELECT_CHANGES_NOT_SENT = 
+	private static final String SQL_CHANGES_NOT_SENT_PREFIX = 
 			"SELECT C.* FROM "+TABLE_CHANGES+
 			" C LEFT OUTER JOIN "+TABLE_SENT_MESSAGES+" S ON (C."+COL_CHANGES_CHANGE_NUM+" = S."+COL_SENT_MESSAGES_CHANGE_NUM+")"+
-			"WHERE S."+COL_SENT_MESSAGES_CHANGE_NUM+" IS NULL LIMIT ?";
+			"WHERE S."+COL_SENT_MESSAGES_CHANGE_NUM+" IS NULL";
+	
+	private static final String SQL_SELECT_CHANGES_NOT_SENT = 
+			SQL_CHANGES_NOT_SENT_PREFIX + " LIMIT ?";
+	
+	private static final String SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE = 
+			SQL_CHANGES_NOT_SENT_PREFIX+
+			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" >= ?"+
+			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?";
 	
 	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = 
 			"SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+
@@ -81,6 +90,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -172,7 +183,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, limit);
 		}else{
 			// Filter by object type.
-			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, type.name(), limit);
+			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE, rowMapper, greaterOrEqualChangeNumber, type.name(), limit);
 		}
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
@@ -187,7 +198,15 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long limit) {
-		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT, new DBOChange().getTableMapping(), limit);
+		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT, rowMapper, limit);
+		return ChangeMessageUtils.createDTOList(dboList);
+	}
+
+
+	@Override
+	public List<ChangeMessage> listUnsentMessages(long lowerBound,
+			long upperBound) {
+		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE, rowMapper, lowerBound, upperBound);
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
 }

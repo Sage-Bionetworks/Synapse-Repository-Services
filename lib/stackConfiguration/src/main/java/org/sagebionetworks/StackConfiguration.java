@@ -1020,6 +1020,24 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.crowd.synchronize"));
 	}
 
+	
+	/**
+	 * The maximum number of workers in the cluster that will push UnsentMessageRanges to SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersUnsentMessageQueuer() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.queuer"));
+	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will pop UnsentMessageRanges from SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersUnsentMessagePoppers() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
+	}
 	/**
 	 * The maximum number of workers in the cluster that will process
 	 * Annotations
