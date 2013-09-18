@@ -784,7 +784,7 @@ public class StackConfiguration {
 	/**
 	 * @return The name of the AWS SQS where ranges of change messages are pushed. 
 	 */
-	public static String getUnsentMessagesQueueName() {
+	public String getUnsentMessagesQueueName() {
 		return String.format(StackConstants.UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE,
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());

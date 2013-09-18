@@ -21,18 +21,23 @@
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
+	<!-- Sets up the message queue. -->
+	<bean id="unsentMessageQueue"
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
+			depends-on="stackConfiguration">
+		<constructor-arg index="0" ref="stackConfiguration.unsentMessagesQueueName" />
+	</bean>
+
 	<bean id="unsentMessageQueuer"
 			class="org.sagebionetworks.message.workers.UnsentMessageQueuer"
-			scope="singleton"
-			init-method="initialize">
+			scope="singleton">
 		<property name="approxRangeSize" value="1000" />
-		<property name="queueName" ref="stackConfiguration.getUnsentMessagesQueueName" />
 	</bean>
 			
 	<bean id="unsentMessageQueuerSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
-		<property name="maxNumberRunners" ref="stackConfiguration.getSemaphoreGatedMaxRunnersUnsentMessageQueuer" />
+		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessageQueuer" />
 		<property name="semaphoreKey" value="unsentMessageQueuer" />		
 		<property name="runner" ref="unsentMessageQueuer" />
 	</bean>

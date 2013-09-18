@@ -13,6 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.asynchronous.workers.sqs.MessageQueue;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -31,6 +32,9 @@ public class UnsentMessageQueuerTest {
 
 	@Autowired
 	private UnsentMessageQueuer unsentMessageQueuer;
+	
+	@Autowired
+	private MessageQueue unsentMessageQueue;
 	
 	@Autowired
 	private DBOChangeDAO changeDAO;
@@ -100,9 +104,9 @@ public class UnsentMessageQueuerTest {
 		// All these should fall within the range that is queued up
 		Set<Long> changeNumbers = unsentMessageQueuerTestHelper.convertBatchToRange(batch);
 		
-		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueuer.getQueueURL());
+		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
 		unsentMessageQueuer.run();
-		List<UnsentMessageRange> ranges = unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueuer.getQueueURL());
+		List<UnsentMessageRange> ranges = unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
 		
 		// Make sure the entire range of change numbers is accounted for
 		removeRangeFromSet(changeNumbers, ranges);

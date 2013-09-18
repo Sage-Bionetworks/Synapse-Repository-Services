@@ -372,6 +372,32 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(0, unSent.size());
 	}
 	
+	@Test
+	public void testListUnsentRange() {
+		List<ChangeMessage> batch = createList(10, ObjectType.ENTITY);
+		batch = changeDAO.replaceChange(batch);
+		
+		long min = changeDAO.getMinimumChangeNumber();
+		long max = changeDAO.getCurrentChangeNumber();
+		
+		// Get everything
+		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max); 
+		assertEquals(batch, unSent);
+		
+		// Shrink the range and check each iteration for correctness
+		for (int i = 0; i < batch.size(); i++) {
+			if (i % 2 == 0) {
+				ChangeMessage removed = batch.remove(0);
+				min = removed.getChangeNumber() + 1;
+			} else {
+				ChangeMessage removed = batch.remove(batch.size() - 1);
+				max = removed.getChangeNumber() - 1;
+			}
+			unSent = changeDAO.listUnsentMessages(min, max); 
+			assertEquals(batch, unSent);
+		}
+	}
+	
 	/**
 	 * Will add a row to start the a test.
 	 * @return
