@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,7 +17,6 @@ import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.repo.web.service.SearchUtil;
 
 import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 

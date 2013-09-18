@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.ontology.Concept;
-import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 
 public interface ConceptCache {
 		

@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 import java.io.File;
 
-
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -14,7 +13,6 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.HttpClientProviderImpl;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;

@@ -2,10 +2,6 @@ package org.sagebionetworks.usagemetrics;
 
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserProfile;
 
 public class ProfilingUsers {
 	private static final long NANOSECOND_PER_MILLISECOND = 1000000L;

@@ -1,15 +1,13 @@
 package org.sagebionetworks.repo.model.registry;
 
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
-
 import java.util.List;
-import org.junit.Test;
-import org.junit.Ignore;
 
-import org.sagebionetworks.repo.model.EntityType;
+import org.junit.Test;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
