@@ -21,7 +21,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
  */
 public class UnsentMessageQueuer implements Runnable {
 
-	static private Log log = LogFactory.getLog(UnsentMessageQueuerTest.class);
+	static private Log log = LogFactory.getLog(UnsentMessageQueuer.class);
 	
 	@Autowired
 	private AmazonSQSClient awsSQSClient;
