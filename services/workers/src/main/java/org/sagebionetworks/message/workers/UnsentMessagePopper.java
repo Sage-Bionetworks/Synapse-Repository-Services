@@ -1,5 +1,6 @@
 package org.sagebionetworks.message.workers;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -7,6 +8,8 @@ import java.util.concurrent.Callable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
@@ -25,12 +28,16 @@ public class UnsentMessagePopper implements Callable<List<Message>> {
 	private Log log = LogFactory.getLog(UnsentMessagePopper.class);
 	
 	private AmazonSNSClient awsSNSClient;
+	private Consumer consumer;
 	private DBOChangeDAO changeDAO;
 	private String topicArn;
 	private List<Message> messages;
 	
-	public UnsentMessagePopper(AmazonSNSClient awsSNSClient, DBOChangeDAO changeDAO, String topicArn, List<Message> messages) {
+	public UnsentMessagePopper(AmazonSNSClient awsSNSClient, 
+			Consumer consumer, DBOChangeDAO changeDAO, 
+			String topicArn, List<Message> messages) {
 		this.awsSNSClient = awsSNSClient;
+		this.consumer = consumer;
 		this.changeDAO = changeDAO;
 		this.topicArn = topicArn;
 		this.messages = messages;
@@ -38,6 +45,9 @@ public class UnsentMessagePopper implements Callable<List<Message>> {
 
 	@Override
 	public List<Message> call() throws Exception {
+		final long start = System.currentTimeMillis();
+		long unsentMessageCount = 0;
+		
 		List<Message> processedMessages = new LinkedList<Message>();
 		for (Message message: messages) {
 			// Get all the unsent ChangeMessages in a range and publish them
@@ -47,8 +57,15 @@ public class UnsentMessagePopper implements Callable<List<Message>> {
 				publishMessage(changes.get(i));
 			}
 			
+			// Keep track of how many messages were unsent
+			unsentMessageCount += changes.size();
+			
 			processedMessages.add(message);
 		}
+		
+		// Record the amount of time spent and how many messages were resent
+		addMetric("ProcessRangeOfMessagesLatency", System.currentTimeMillis() - start, "Milliseconds");
+		addMetric("UnsentMessageCount", unsentMessageCount, "Count");
 		return processedMessages;
 	}
 	
@@ -66,5 +83,15 @@ public class UnsentMessagePopper implements Callable<List<Message>> {
 			//   as this is called from a timer and not a web-service.
 			log.error("Failed to parse ChangeMessage:", e);
 		}
+	}
+
+	private void addMetric(String name, long metric, String unit) {
+		ProfileData profileData = new ProfileData();
+		profileData.setNamespace("UnsentMessagePopper");
+		profileData.setName(name);
+		profileData.setLatency(metric);
+		profileData.setUnit(unit);
+		profileData.setTimestamp(new Date());
+		consumer.addProfileData(profileData);
 	}
 }

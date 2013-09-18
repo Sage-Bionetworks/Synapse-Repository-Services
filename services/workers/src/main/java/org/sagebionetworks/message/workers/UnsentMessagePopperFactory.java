@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,6 +19,9 @@ public class UnsentMessagePopperFactory implements MessageWorkerFactory {
 	private AmazonSNSClient awsSNSClient;
 	private String topicName;
 	private String topicArn;
+	
+	@Autowired
+	private Consumer consumer;
 	
 	@Autowired
 	private DBOChangeDAO changeDAO;
@@ -37,7 +41,7 @@ public class UnsentMessagePopperFactory implements MessageWorkerFactory {
 	
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new UnsentMessagePopper(awsSNSClient, changeDAO, topicArn, messages);
+		return new UnsentMessagePopper(awsSNSClient, consumer, changeDAO, topicArn, messages);
 	}
 
 }
