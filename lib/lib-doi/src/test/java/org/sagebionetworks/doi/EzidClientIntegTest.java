@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Calendar;
 import java.util.Random;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.doi.Doi;
 

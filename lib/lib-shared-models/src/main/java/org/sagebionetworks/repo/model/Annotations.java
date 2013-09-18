@@ -13,7 +13,6 @@ import java.util.Set;
 
 import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.AdapterCollectionUtils;
-import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

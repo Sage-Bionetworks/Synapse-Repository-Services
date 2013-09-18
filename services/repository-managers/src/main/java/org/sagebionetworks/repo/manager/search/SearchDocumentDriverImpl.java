@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.NodeBackupManager;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
-import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -337,7 +336,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return displayName;
 	}
 
-	@SuppressWarnings("unchecked")
 	static void addAnnotationsToSearchDocument(DocumentFields fields,
 			Annotations annots) {
 

@@ -1,7 +1,5 @@
 package org.sagebionetworks.usagemetrics;
 
-import javax.swing.text.html.parser.Entity;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.SynapseClientImpl;

@@ -1,13 +1,14 @@
 package org.sagebionetworks.auth.services;
 
-import static org.junit.Assert.assertEquals;
-
-import java.net.URLEncoder;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UserInfo;
 

@@ -675,7 +675,6 @@ public class UrlHelpers {
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	@SuppressWarnings("unchecked")
 	public static String makeEntityPropertyUri(Entity entity,
 			Class propertyClass, HttpServletRequest request) {
 

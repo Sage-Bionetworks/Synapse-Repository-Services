@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
  * @author jmhill
  *
  */
-@SuppressWarnings("unchecked")
 public class JDOSecondaryPropertyUtilsTest {
 	
 	

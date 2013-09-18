@@ -21,7 +21,6 @@ public class StepMetadataProvider implements TypeSpecificMetadataProvider<Step> 
 	@Autowired
 	ReferenceUtil referenceUtil;
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void addTypeSpecificMetadata(Step entity,
 			HttpServletRequest request, UserInfo userInfo, EventType eventType)

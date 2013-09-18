@@ -1,16 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
-import org.junit.*;
-import static org.junit.Assert.*;
-import org.junit.runner.RunWith;
+import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 
 /**
  *

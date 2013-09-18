@@ -6,14 +6,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
 
-import javax.mail.Message;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.utils.EmailUtils;
 
