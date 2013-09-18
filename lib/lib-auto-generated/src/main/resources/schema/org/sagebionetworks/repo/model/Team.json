@@ -56,7 +56,11 @@
 			"description": "The ID of the user that last modified this Team.",
 			"title": "Modified By",
 			"transient": true
-		}
+		},
+		"concreteType":{
+            "type":"string",
+            "description":"Indicates this object's type."
+        }
 	}
 }
 }

@@ -1,24 +1,17 @@
 {
 	"title": "MembershipRequest",
 	"description": "JSON schema for MembershipRequest POJO",
-
 	"properties": {
-		"id": {
-			"type": "string",
-			"description": "The id of the MembershipRequest."
-		},
 		"teamId": {
 			"type": "string",
 			"description": "The id of the Team to which the request is sent."
 		},
-		"userId": {
-			"type": "string",
-			"description": "The id of the user for whom membership is requested."
-		},
-		"etag": {
-			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a MembershipRequest is updated it is used to detect when a client's current representation of a MembershipRequest is out-of-date."
-		},
+		"user":{
+            "type":"object",
+  			"description": "The one being invited to join the Team.",
+            "$ref":"org.sagebionetworks.repo.model.UserGroupHeader",
+            "title":"User"
+        },
 		"message": {
 			"type": "string",
 			"description": "The request message."
@@ -29,16 +22,9 @@
 			"description": "The date this MembershipRequest expires.",
 			"title": "Expires On"
 		},
-		"createdOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date this MembershipRequest was created.",
-			"title": "Created On"
-		},
-		"createdBy": {
-			"type": "string",
-			"description": "The ID of the user that created this MembershipRequest.",
-			"title": "Created By"
-		}
+		"concreteType":{
+            "type":"string",
+            "description":"Indicates this object's type."
+        }
 	}
 }

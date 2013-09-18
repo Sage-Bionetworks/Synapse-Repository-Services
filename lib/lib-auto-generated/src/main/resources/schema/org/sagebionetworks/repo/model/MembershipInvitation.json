@@ -3,25 +3,16 @@
 	"description": "JSON schema for MembershipInvitation POJO",
 
 	"properties": {
-		"id": {
+		"userId": {
 			"type": "string",
-			"description": "The id of the MembershipInvitation."
+			"description": "The id of the user to which the invitation is given."
 		},
-		"teamId": {
-			"type": "string",
-			"description": "The id of the Team to which the invitation is given."
-		},
-		"invitees": {
-			"type": "array",
-			"description": "The principal IDs of the ones being invited to join the Team.",
-			"items": {
-        		"type":"string",
-			}
-		},
-		"etag": {
-			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a MembershipInvitation is updated it is used to detect when a client's current representation of a MembershipInvitation is out-of-date."
-		},
+		"team":{
+            "type":"object",
+  			"description": "The Team which the user is invited to join.",
+            "$ref":"org.sagebionetworks.repo.model.Team",
+            "title":"Team"
+        },
 		"message": {
 			"type": "string",
 			"description": "The invitation message."
@@ -32,16 +23,9 @@
 			"description": "The date this MembershipInvitation expires.",
 			"title": "Expires On"
 		},
-		"createdOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date this MembershipInvitation was created.",
-			"title": "Created On"
-		},
-		"createdBy": {
-			"type": "string",
-			"description": "The ID of the user that created this MembershipInvitation.",
-			"title": "Created By"
-		}
+		"concreteType":{
+            "type":"string",
+            "description":"Indicates this object's type."
+        }
 	}
 }
