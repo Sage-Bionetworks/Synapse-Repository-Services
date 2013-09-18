@@ -1,6 +1,10 @@
 package org.sagebionetworks.message.workers;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageQueue;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -24,7 +29,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -42,6 +52,11 @@ public class UnsentMessageQueuerTest {
 	@Autowired
 	private UnsentMessageQueuerTestHelper unsentMessageQueuerTestHelper;
 	
+	@Autowired
+	private AmazonSQSClient awsSQSClient;
+	
+	private static final int NUM_MESSAGES_TO_CREATE = 1000;
+	
 	@Before
 	public void setup() throws Exception {
 		unsentMessageQueuer.setApproxRangeSize(1000L);
@@ -51,12 +66,16 @@ public class UnsentMessageQueuerTest {
 	@After
 	public void teardown() throws Exception {
 		changeDAO.deleteAllChanges();
+		
+		// One test replaces the client with a mock
+		unsentMessageQueuer.setAwsSQSClient(awsSQSClient);
 	}
 	
 	@Test
 	public void testRangeAllQueued() throws Exception {
 		// Create a ton of messages (~50% gaps)
-		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(10000, ObjectType.ENTITY, 1234, 5678);
+		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(NUM_MESSAGES_TO_CREATE, 
+				ObjectType.ENTITY, 0, 2 * NUM_MESSAGES_TO_CREATE);
 		batch = changeDAO.replaceChange(batch);
 		
 		// All these should fall within the range that is queued up
@@ -98,7 +117,8 @@ public class UnsentMessageQueuerTest {
 	@Test
 	public void testRoundtrip() throws Exception {
 		// Create a sizable number of messages (~10% gaps)
-		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(5000, ObjectType.ENTITY, 12345, 67890);
+		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(NUM_MESSAGES_TO_CREATE, 
+				ObjectType.ENTITY, 0, 10 * NUM_MESSAGES_TO_CREATE);
 		batch = changeDAO.replaceChange(batch);
 
 		// All these should fall within the range that is queued up
@@ -122,5 +142,18 @@ public class UnsentMessageQueuerTest {
 				outaRange.remove(j);
 			}
 		}
+	}
+	
+	@Test
+	public void testOnlyQueueWhenEmpty() throws Exception {
+		// Setup a mock to return a single message
+		AmazonSQSClient mockSQSClient = Mockito.mock(AmazonSQSClient.class);
+		when(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class)))
+				.thenReturn(new ReceiveMessageResult().withMessages(new Message()));
+		unsentMessageQueuer.setAwsSQSClient(mockSQSClient);
+		
+		// Make sure no messages are sent by the queuer
+		unsentMessageQueuer.run();
+		verify(mockSQSClient, times(0)).sendMessage(any(SendMessageRequest.class));
 	}
 }

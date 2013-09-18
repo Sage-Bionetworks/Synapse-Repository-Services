@@ -31,7 +31,7 @@
 	<bean id="unsentMessageQueuer"
 			class="org.sagebionetworks.message.workers.UnsentMessageQueuer"
 			scope="singleton">
-		<property name="approxRangeSize" value="1000" />
+		<property name="approxRangeSize" value="10000" />
 	</bean>
 			
 	<bean id="unsentMessageQueuerSemaphoreGatedRunner"
@@ -53,8 +53,8 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="1337" />
-		<!-- 60 minutes -->
-		<property name="repeatInterval" value="3600000" />
+		<!-- 5 minutes -->
+		<property name="repeatInterval" value="300000" />
 	</bean>
 
 </beans>

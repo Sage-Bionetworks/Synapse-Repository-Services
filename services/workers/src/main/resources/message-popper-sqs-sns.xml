@@ -36,7 +36,7 @@
 		<property name="messageQueue" ref="unsentMessageQueue" />
 		<property name="workerFactory" ref="unsentMessagePopperFactory" />
 		<property name="maxNumberOfWorkerThreads" ref="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" />
-		<property name="maxMessagePerWorker" value="5" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 			
@@ -59,8 +59,8 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="123" />
-		<!-- 10 seconds -->
-		<property name="repeatInterval" value="10000" />
+		<!-- 30 seconds -->
+		<property name="repeatInterval" value="30000" />
 	</bean>
 
 </beans>

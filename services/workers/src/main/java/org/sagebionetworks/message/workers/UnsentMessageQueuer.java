@@ -13,6 +13,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
+import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 
@@ -40,10 +42,27 @@ public class UnsentMessageQueuer implements Runnable {
 		this.approxRangeSize = approxRangeSize;
 	}
 	
+	/**
+	 * For testing
+	 */
+	public void setAwsSQSClient(AmazonSQSClient awsSQSClient) {
+		this.awsSQSClient = awsSQSClient;
+	}
+	
 	@Override
 	public void run() {
 		long count = changeDAO.getCount();
 		if (count <= 0) {
+			return;
+		}
+		
+		// Only run if the SQS is empty
+		ReceiveMessageRequest rmRequest = new ReceiveMessageRequest();
+		rmRequest.setVisibilityTimeout(0);
+		rmRequest.setWaitTimeSeconds(0);
+		rmRequest.setMaxNumberOfMessages(1);
+		ReceiveMessageResult rmResult = awsSQSClient.receiveMessage(rmRequest);
+		if (rmResult.getMessages().size() > 0) {
 			return;
 		}
 		

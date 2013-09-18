@@ -24,10 +24,10 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 public class UnsentMessageWorkersIntegrationTest {
 
 	/**
-	 * Enough time for both the Queuer (10 sec) and Popper (10 sec) to fire
+	 * Enough time for both the Queuer (10 sec) and Popper (30 sec) to fire
 	 * Plus some extra time just in case
 	 */
-	public static long MAX_WAIT = 1000*30; 
+	public static long MAX_WAIT = 1000*50; 
 	
 	@Autowired
 	private MessageQueue unsentMessageQueue;
