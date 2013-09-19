@@ -12,7 +12,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public class TrashWorker {
 
-	private final static long MONTH = 1000 * 60 * 60 * 24 * 30;
+	private final static long SHIFT_ONE_DAY = 26;
+	private final static long MONTH = 1000L * 60L * 60L * 24L * 30L;
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
 	private final TrashManager trashManager;
 
@@ -24,9 +25,15 @@ public class TrashWorker {
 	}
 
 	public void purgeTrash() throws DatastoreException, NotFoundException {
-		final Timestamp timestamp = new Timestamp(System.currentTimeMillis() - MONTH);
+		long now = System.currentTimeMillis();
+		// Drop (very roughly) the hours, minutes, seconds so that the two workers,
+		// one in prod and the other in staging, will have a good chance
+		// to use the same timestamp to purge the trash can.
+		long today = (now >> SHIFT_ONE_DAY) << SHIFT_ONE_DAY;
+		final Timestamp timestamp = new Timestamp(today - MONTH);
 		List<TrashedEntity> trashList = trashManager.getTrashBefore(timestamp);
-		logger.info("Purging " + trashList.size() + " entities from the trash can.");
+		logger.info("Purging " + trashList.size() + " entities, before " +
+					timestamp + ", from the trash can.");
 		trashManager.purgeTrash(trashList);
 	}
 }
