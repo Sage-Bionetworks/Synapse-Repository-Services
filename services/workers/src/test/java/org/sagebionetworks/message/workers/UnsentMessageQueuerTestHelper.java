@@ -38,6 +38,7 @@ public class UnsentMessageQueuerTestHelper {
 	
 	/**
 	 * Helper to empty a queue of UnsentMessageRange objects
+	 * @returns All messages removed from the queue
 	 */
 	public List<UnsentMessageRange> emptyQueue(String queueURL) {
 		// Fetch as many messages as possible and don't wait
@@ -69,8 +70,8 @@ public class UnsentMessageQueuerTestHelper {
 	}
 
 	/**
+	 * Extracts change numbers that fall between the minimum and maximum of the CHANGE_NUM column in the CHANGES table
 	 * @param batch ChangeMessages that have been inserted/replaced into the CHANGES table
-	 * @return Set of change numbers that should fall between the minimum and maximum of the CHANGE_NUM column
 	 */
 	public Set<Long> convertBatchToRange(List<ChangeMessage> batch) {
 		long minChange = changeDAO.getMinimumChangeNumber();
@@ -88,7 +89,7 @@ public class UnsentMessageQueuerTestHelper {
 
 	/**
 	 * Helper to build up a list of changes
-	 * Based on similarly named method found in DBOChangeDAOImplAutowiredTest
+	 * Based on the similarly-named method found in DBOChangeDAOImplAutowiredTest
 	 * 
 	 * Randomly and uniformly distributes change number IDs 
 	 * between the given upper and lower bound (inclusive)
@@ -98,12 +99,12 @@ public class UnsentMessageQueuerTestHelper {
 	 */
 	public List<ChangeMessage> createList(int numChangesInBatch, ObjectType type, long lowerBound, long upperBound) {
 		List<ChangeMessage> batch = new ArrayList<ChangeMessage>();
-		for(int i=0; i<numChangesInBatch; i++){
+		for (int i = 0; i < numChangesInBatch; i++) {
 			ChangeMessage change = new ChangeMessage();
 			long changeNum = lowerBound + (random.nextLong() % (upperBound - lowerBound + 1));
-			if(ObjectType.ENTITY == type){
+			if (ObjectType.ENTITY == type) {
 				change.setObjectId("syn" + changeNum);
-			}else{
+			} else {
 				change.setObjectId("" + changeNum);
 			}
 			change.setObjectEtag("etag" + changeNum);

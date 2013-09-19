@@ -374,8 +374,12 @@ public class DBOChangeDAOImplAutowiredTest {
 	
 	@Test
 	public void testListUnsentRange() {
-		List<ChangeMessage> batch = createList(10, ObjectType.ENTITY);
+		// Create a set of changes with change numbers like:
+		// 0 _ 2 3 _ 5 6
+		List<ChangeMessage> batch = createList(5, ObjectType.ENTITY);
 		batch = changeDAO.replaceChange(batch);
+		batch.add(changeDAO.replaceChange(batch.remove(1)));
+		batch.add(changeDAO.replaceChange(batch.remove(3)));
 		
 		long min = changeDAO.getMinimumChangeNumber();
 		long max = changeDAO.getCurrentChangeNumber();

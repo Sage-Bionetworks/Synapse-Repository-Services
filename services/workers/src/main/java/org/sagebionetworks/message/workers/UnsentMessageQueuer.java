@@ -58,6 +58,7 @@ public class UnsentMessageQueuer implements Runnable {
 		
 		// Only run if the SQS is empty
 		ReceiveMessageRequest rmRequest = new ReceiveMessageRequest();
+		rmRequest.setQueueUrl(unsentMessageQueue.getQueueUrl());
 		rmRequest.setVisibilityTimeout(0);
 		rmRequest.setWaitTimeSeconds(0);
 		rmRequest.setMaxNumberOfMessages(1);

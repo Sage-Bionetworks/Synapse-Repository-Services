@@ -55,11 +55,12 @@ public class UnsentMessageQueuerTest {
 	@Autowired
 	private AmazonSQSClient awsSQSClient;
 	
-	private static final int NUM_MESSAGES_TO_CREATE = 1000;
+	private static final int NUM_MESSAGES_TO_CREATE = 100;
+	private static final long CONFIGURATION_RANGE_SIZE = 10000L;
 	
 	@Before
 	public void setup() throws Exception {
-		unsentMessageQueuer.setApproxRangeSize(1000L);
+		unsentMessageQueuer.setApproxRangeSize(CONFIGURATION_RANGE_SIZE);
 		changeDAO.deleteAllChanges();
 	}
 
@@ -69,6 +70,7 @@ public class UnsentMessageQueuerTest {
 		
 		// One test replaces the client with a mock
 		unsentMessageQueuer.setAwsSQSClient(awsSQSClient);
+		unsentMessageQueuer.setApproxRangeSize(CONFIGURATION_RANGE_SIZE);
 	}
 	
 	@Test
@@ -82,7 +84,7 @@ public class UnsentMessageQueuerTest {
 		Set<Long> changeNumbers = unsentMessageQueuerTestHelper.convertBatchToRange(batch);
 		
 		// The range size must be adjustable, so make sure a variety of values work
-		long[] rangeSizes = new long[] { 17L, 83L, 299L, 1000L, 7331L };
+		long[] rangeSizes = new long[] { 17L, 83L, 299L, 1000L, 7331L, CONFIGURATION_RANGE_SIZE };
 		for (int r = 0; r < rangeSizes.length; r++) {
 			// Get the elements that would be queued
 			unsentMessageQueuer.setApproxRangeSize(rangeSizes[r]);
