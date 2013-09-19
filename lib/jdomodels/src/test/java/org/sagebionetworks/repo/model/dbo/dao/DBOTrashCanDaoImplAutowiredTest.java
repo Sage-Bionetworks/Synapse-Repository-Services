@@ -97,8 +97,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 
 		Thread.sleep(1000);
 		Timestamp timestamp1 = new Timestamp(System.currentTimeMillis());
-		System.out.println(trash.getDeletedOn());
-		System.out.println(timestamp1);
+		assertTrue(trash.getDeletedOn().before(timestamp1));
 		trashList = trashCanDao.getTrashBefore(timestamp1);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
