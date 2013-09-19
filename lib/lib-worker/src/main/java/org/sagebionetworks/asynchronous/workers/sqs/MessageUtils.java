@@ -4,6 +4,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -39,6 +40,22 @@ public class MessageUtils {
 			}else{
 				throw new IllegalArgumentException("Unknown message type: "+message.getBody());
 			}
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Extracts a UnsentMessageRange from an Amazon Message
+	 */
+	public static UnsentMessageRange extractUnsentMessageBody(Message message) {
+		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		try {
+			JSONObject object = new JSONObject(message.getBody());
+			JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
+			return new UnsentMessageRange(adapter);
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
 		} catch (JSONObjectAdapterException e) {

@@ -1,5 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -28,6 +29,8 @@ public class MessageReceiverImpl implements MessageReceiver {
 	
 
 	static private Logger log = LogManager.getLogger(MessageReceiverImpl.class);
+	
+	private static int SQS_MAX_REQUEST_SIZE = 10;
 	
 	@Autowired
 	AmazonSQSClient awsSQSClient;
@@ -192,13 +195,30 @@ public class MessageReceiverImpl implements MessageReceiver {
 		verifyConfig();
 		// When the timer is fired we receive messages from AWS SQS.
 		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expected to handle a batch of messages.
+		// Note: Messages must be requested in batches of 10 or less (otherwise SQS will complain)
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
-		ReceiveMessageResult result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(messageQueue.getQueueUrl()).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeoutSec));
-		if(result.getMessages().size() < 1) return 0;
+		List<Message> toBeProcessed = new ArrayList<Message>();
+		for (int i = 0; i < maxMessages; i += SQS_MAX_REQUEST_SIZE) {
+			ReceiveMessageRequest rmRequest = new ReceiveMessageRequest(messageQueue.getQueueUrl()).withVisibilityTimeout(visibilityTimeoutSec);
+			if (maxMessages - i > 10) {
+				rmRequest.setMaxNumberOfMessages(SQS_MAX_REQUEST_SIZE);
+			} else {
+				rmRequest.setMaxNumberOfMessages(maxMessages % (SQS_MAX_REQUEST_SIZE + 1));
+			}
+			ReceiveMessageResult result = awsSQSClient.receiveMessage(rmRequest);
+			if (result.getMessages().size() <= 0) {
+				break;
+			}
+			toBeProcessed.addAll(result.getMessages());
+		}
+		if (toBeProcessed.size() < 1) {
+			return 0;
+		}
+		
 		// Process all of the messages.
 		List<Future<List<Message>>> currentWorkers = new LinkedList<Future<List<Message>>>();
 		List<Message> messageBatch = new LinkedList<Message>();
-		for(Message message: result.getMessages()){
+		for (Message message: toBeProcessed) {
 			// Add this message to a batch
 			messageBatch.add(message);
 			if(messageBatch.size() >= maxMessagePerWorker){
@@ -263,7 +283,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 			Thread.yield();
 		}
 		// Return the number of messages that were on the queue.
-		return result.getMessages().size();
+		return toBeProcessed.size();
 	}
 
 
