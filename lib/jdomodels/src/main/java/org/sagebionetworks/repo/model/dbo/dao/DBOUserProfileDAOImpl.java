@@ -8,10 +8,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -37,25 +39,17 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
+	private UserGroupDAO userGroupDAO;
+	@Autowired
 	private ETagGenerator eTagGenerator;	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
-	private List<UserGroupInt> bootstrapUsers;
 	
 	private static final String SELECT_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_PROFILE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
-
-	/**
-	 * Injected by spring
-	 * @param bootstrapUsers
-	 */
-	public void setBootstrapUsers(List<UserGroupInt> bootstrapUsers) {
-		this.bootstrapUsers = bootstrapUsers;
-	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
@@ -181,9 +175,10 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapProfiles(){
 		// Boot strap all users and groups
-		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
+		if (userGroupDAO.getBootstrapUsers() == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
+		
 		// For each one determine if it exists, if not create it
-		for(UserGroupInt ug: this.bootstrapUsers){
+		for (UserGroupInt ug: userGroupDAO.getBootstrapUsers()) {
 			if(ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
 			if(ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
 			if(ug.getIsIndividual()){
@@ -197,14 +192,17 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 					userProfile.setFirstName(ug.getName());
 					userProfile.setLastName(ug.getName());
 					userProfile.setDisplayName(ug.getName());
+
+					// Pretend the integration test users have already signed the terms of use
+					if (!StackConfiguration.isProductionStack() 
+							&& (ug.getName().equals(StackConfiguration.getIntegrationTestUserOneEmail()) 
+									|| ug.getName().equals(StackConfiguration.getIntegrationTestUserTwoName())
+									|| ug.getName().equals(StackConfiguration.getIntegrationTestUserThreeEmail()))) {
+						userProfile.setAgreesToTermsOfUse(Long.MAX_VALUE);
+					}
 					this.create(userProfile);
 				}
 			}
 		}
-	}
-
-	@Override
-	public List<UserGroupInt> getBootstrapUsers() {
-		return this.bootstrapUsers;
 	}
 }

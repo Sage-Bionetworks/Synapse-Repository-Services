@@ -86,7 +86,6 @@ public class AuthorizationManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		// userInfo
-		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
 		userInfo = userManager.getUserInfo("AuthorizationManagerImplTest.testuser@foo.bar");
 		usersToDelete = new ArrayList<String>();
 		usersToDelete.add(userInfo.getIndividualGroup().getId());

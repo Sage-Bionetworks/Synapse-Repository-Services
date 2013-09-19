@@ -62,6 +62,8 @@ public class AuthorizationConstants {
 	 * The group name for those users that have all kinds of access to all resources.
 	 */
 	public static final String ADMIN_GROUP_NAME = "Administrators";
+
+	public static final String MIGRATION_USER_NAME = "migrationAdmin@sagebase.org";
 	
 	/**
 	 * 

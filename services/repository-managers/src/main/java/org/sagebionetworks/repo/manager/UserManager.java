@@ -10,7 +10,6 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,9 +23,6 @@ public interface UserManager {
 	 * 
 	 */
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
-	
-	// for testing
-	public void setUserDAO(UserDAO userDAO);
 	
 	/**
 	 * Get a default group.
@@ -83,8 +79,6 @@ public interface UserManager {
 	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException;
 
 	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException;
-	
-	public void clearCache();
 
 	/**
 	 * Get all non-individual user groups, including Public.

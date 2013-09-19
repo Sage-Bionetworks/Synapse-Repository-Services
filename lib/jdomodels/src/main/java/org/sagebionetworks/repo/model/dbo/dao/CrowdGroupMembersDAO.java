@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.naming.OperationNotSupportedException;
+
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -139,6 +141,11 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 		} catch (IOException e) {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		}
+	}
+
+	@Override
+	public void bootstrapGroups() throws Exception {
+		throw new OperationNotSupportedException("Bootstrapping on Crowd is done manually via the Crowd console.");
 	}
 	
 }

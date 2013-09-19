@@ -51,7 +51,9 @@ public class QueryControllerAutowireTest {
 	public void before() throws DatastoreException, NotFoundException{
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		toDelete = new LinkedList<String>();
-		user = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		
+		// The user can't be an admin, since admins can see trash-canned entities
+		user = userManager.getUserInfo(TestUserDAO.TEST_USER_NAME);
 	}
 	
 	@After
@@ -68,6 +70,7 @@ public class QueryControllerAutowireTest {
 	
 	@Test
 	public void testQueryForRoot() throws Exception{
+		// Only an admin can see the root node
 		String query = "select id, eTag from entity where parentId == null";
 		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, query, mockRequest);
 		assertNotNull(results);
@@ -92,12 +95,12 @@ public class QueryControllerAutowireTest {
 		data.setId(id);
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+p.getId()+"\"";
-		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		QueryResults results = controller.query(user.getIndividualGroup().getName(), queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 		
 		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+p.getId()+"\"";
-		results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		results = controller.query(user.getIndividualGroup().getName(), queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}
@@ -113,7 +116,7 @@ public class QueryControllerAutowireTest {
 		toDelete.add(p.getId());
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM project WHERE createdByPrincipalId == \""+user.getIndividualGroup().getId()+"\"";
-		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		QueryResults results = controller.query(user.getIndividualGroup().getName(), queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}
