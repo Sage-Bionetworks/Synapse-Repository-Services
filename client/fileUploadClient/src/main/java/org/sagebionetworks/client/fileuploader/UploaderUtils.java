@@ -3,7 +3,7 @@ package org.sagebionetworks.client.fileuploader;
 import java.io.File;
 import java.io.IOException;
 
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 public class UploaderUtils {
 
 	public static FileEntity createChildFileEntity(final File file,
-			final String mimeType, final Synapse synapseClient, final String targetEntityId,
+			final String mimeType, final SynapseClient synapseClient, final String targetEntityId,
 			StatusCallback statusCallback) throws SynapseException, IOException {
 
 		// create filehandle via multipart upload (blocking)
@@ -29,7 +29,7 @@ public class UploaderUtils {
 	}
 
 	public static FileEntity createNewVersionFileEntity(File file,
-			String mimeType, Synapse synapseClient, FileEntity targetEntity,
+			String mimeType, SynapseClient synapseClient, FileEntity targetEntity,
 			StatusCallback statusCallback) throws SynapseException, IOException {
 
 		// create filehandle via multipart upload (blocking)

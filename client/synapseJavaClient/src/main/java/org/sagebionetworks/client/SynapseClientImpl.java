@@ -113,7 +113,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -135,7 +135,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class Synapse implements SynapseInt {
+public class SynapseClientImpl implements SynapseClient {
 
 	public static final String SYNPASE_JAVA_CLIENT = "Synpase-Java-Client/";
 
@@ -143,7 +143,7 @@ public class Synapse implements SynapseInt {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-	protected static final Logger log = LogManager.getLogger(Synapse.class.getName());
+	protected static final Logger log = LogManager.getLogger(SynapseClientImpl.class.getName());
 	
 	protected static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
 
@@ -288,7 +288,7 @@ public class Synapse implements SynapseInt {
 	 * Default constructor uses the default repository and auth services
 	 * endpoints.
 	 */
-	public Synapse() {
+	public SynapseClientImpl() {
 		// Use the default implementations
 		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl());
 	}
@@ -299,7 +299,7 @@ public class Synapse implements SynapseInt {
 	 * @param clientProvider 
 	 * @param dataUploader 
 	 */
-	public Synapse(HttpClientProvider clientProvider, DataUploader dataUploader) {
+	public SynapseClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
 		if (clientProvider == null)
 			throw new IllegalArgumentException("HttpClientProvider cannot be null");
 
@@ -338,6 +338,7 @@ public class Synapse implements SynapseInt {
 	 * Addition User-Agent information can be appended to this string by calling this method.
 	 * @param toAppend
 	 */
+	@Override
 	public void appendUserAgent(String toAppend){
 		String currentUserAgent = defaultGETDELETEHeaders.get(USER_AGENT);
 		if(currentUserAgent == null) throw new RuntimeException("User-Agent header is missing");
@@ -383,6 +384,7 @@ public class Synapse implements SynapseInt {
 	 * @param repoEndpoint
 	 *            the repoEndpoint to set
 	 */
+	@Override
 	public void setRepositoryEndpoint(String repoEndpoint) {
 		this.repoEndpoint = repoEndpoint;
 	}
@@ -391,6 +393,7 @@ public class Synapse implements SynapseInt {
 	 * Get the configured Repository Service Endpoint
 	 * @return
 	 */
+	@Override
 	public String getRepoEndpoint() {
 		return repoEndpoint;
 	}
@@ -399,6 +402,7 @@ public class Synapse implements SynapseInt {
 	 * @param authEndpoint
 	 *            the authEndpoint to set
 	 */
+	@Override
 	public void setAuthEndpoint(String authEndpoint) {
 		this.authEndpoint = authEndpoint;
 	}
@@ -407,6 +411,7 @@ public class Synapse implements SynapseInt {
 	 * Get the configured Authorization Service Endpoint
 	 * @return
 	 */
+	@Override
 	public String getAuthEndpoint() {
 		return authEndpoint;
 	}
@@ -415,6 +420,7 @@ public class Synapse implements SynapseInt {
 	 * @param fileEndpoint
 	 *            the authEndpoint to set
 	 */
+	@Override
 	public void setFileEndpoint(String fileEndpoint) {
 		this.fileEndpoint = fileEndpoint;
 	}
@@ -424,12 +430,14 @@ public class Synapse implements SynapseInt {
 	 * 
 	 * @return
 	 */
+	@Override
 	public String getFileEndpoint(){
 		return this.fileEndpoint;
 	}
 	/**
 	 * @param request
 	 */
+	@Override
 	public void setRequestProfile(boolean request) {
 		this.requestProfile = request;
 	}
@@ -437,6 +445,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * @return JSONObject
 	 */
+	@Override
 	public JSONObject getProfileData() {
 		return this.profileData;
 	}
@@ -448,6 +457,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * @return the userName
 	 */
+	@Override
 	public String getUserName() {
 		return userName;
 	}
@@ -455,6 +465,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * @param userName the userName to set
 	 */
+	@Override
 	public void setUserName(String userName) {
 		this.userName = userName;
 	}
@@ -462,6 +473,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * @return the apiKey
 	 */
+	@Override
 	public String getApiKey() {
 		return apiKey;
 	}
@@ -469,6 +481,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * @param apiKey the apiKey to set
 	 */
+	@Override
 	public void setApiKey(String apiKey) {
 		this.apiKey = apiKey;
 	}
@@ -480,6 +493,7 @@ public class Synapse implements SynapseInt {
 	 * @param password
 	 * @throws SynapseException
 	 */
+	@Override
 	public UserSessionData login(String username, String password) throws SynapseException {
 		/**
 		 * Log into Synapse
@@ -490,7 +504,7 @@ public class Synapse implements SynapseInt {
 		 */
 		return login(username, password, false);
 	}
-		
+	@Override
 	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
 		UserSessionData userData = null;
 			JSONObject loginRequest = new JSONObject();
@@ -533,6 +547,7 @@ public class Synapse implements SynapseInt {
 	 * @param password
 	 * @throws SynapseException 
 	 */
+	@Override
 	public void loginWithNoProfile(String userName, String password) throws SynapseException {
 		JSONObject loginRequest = new JSONObject();
 		JSONObject credentials = null;
@@ -550,6 +565,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 
+	@Override
 	public UserSessionData getUserSessionData() throws SynapseException {
 		//get the UserSessionData if the session token is set
 		UserSessionData userData = null;
@@ -561,7 +577,7 @@ public class Synapse implements SynapseInt {
 		userData.setProfile(profile);
 		return userData;
 	}
-	
+	@Override
 	public boolean revalidateSession() throws SynapseException {
 		JSONObject sessionInfo = new JSONObject();
 		try {
@@ -584,6 +600,7 @@ public class Synapse implements SynapseInt {
 	 * 
 	 * @param sessionToken
 	 */
+	@Override
 	public void setSessionToken(String sessionToken) {
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
@@ -594,6 +611,7 @@ public class Synapse implements SynapseInt {
 	 * 
 	 * @return the session token
 	 */
+	@Override
 	public String getCurrentSessionToken() {
 		return defaultPOSTPUTHeaders.get(SESSION_TOKEN_HEADER);
 	}
@@ -608,6 +626,7 @@ public class Synapse implements SynapseInt {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject createJSONObject(String uri, JSONObject entity)
 			throws SynapseException {
 		return createJSONObjectEntity(repoEndpoint, uri, entity);
@@ -621,6 +640,7 @@ public class Synapse implements SynapseInt {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public <T extends Entity> T createEntity(T entity)
 			throws SynapseException {
 		return createEntity(entity, null);
@@ -635,6 +655,7 @@ public class Synapse implements SynapseInt {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public <T extends Entity> T createEntity(T entity, String activityId)
 			throws SynapseException {
 		if (entity == null)
@@ -654,6 +675,7 @@ public class Synapse implements SynapseInt {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
+	@Override
 	@SuppressWarnings("unchecked")
 	public <T extends JSONEntity> T createJSONEntity(String uri, T entity)
 			throws SynapseException {
@@ -680,6 +702,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc) throws SynapseException {
 		return createEntityBundle(ebc, null);
 	}
@@ -692,6 +715,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId) throws SynapseException {
 		if (ebc == null)
 			throw new IllegalArgumentException("EntityBundle cannot be null");
@@ -718,6 +742,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc) throws SynapseException {
 		return updateEntityBundle(entityId, ebc, null);
 	}
@@ -730,6 +755,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc, String activityId) throws SynapseException {
 		if (ebc == null)
 			throw new IllegalArgumentException("EntityBundle cannot be null");
@@ -758,6 +784,7 @@ public class Synapse implements SynapseInt {
 	 * @return the retrieved entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject getEntity(String uri) throws SynapseException {
 		return getSynapseEntity(repoEndpoint, uri);
 	}
@@ -768,6 +795,7 @@ public class Synapse implements SynapseInt {
 	 * @return the entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public Entity getEntityById(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -781,6 +809,7 @@ public class Synapse implements SynapseInt {
 	 * @return the entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -810,6 +839,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Override
 	public EntityBundle getEntityBundle(String entityId, int partsMask) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -834,6 +864,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Override
 	public EntityBundle getEntityBundle(String entityId, Long versionNumber, int partsMask) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -857,6 +888,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public PaginatedResults<VersionInfo> getEntityVersions(String entityId, int offset, int limit) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -873,7 +905,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+
 	public static <T extends JSONEntity> T initializeFromJSONObject(JSONObject o, Class<T> clazz) throws SynapseException {
 		try {
 			T obj = clazz.newInstance();
@@ -893,25 +925,28 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-		
+	
+	@Override
 	public AccessControlList getACL(String entityId) throws SynapseException {
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, AccessControlList.class);
 	}
 	
+	@Override
 	public EntityHeader getEntityBenefactor(String entityId) throws SynapseException {
 		String uri = ENTITY_URI_PATH + "/" + entityId+ BENEFACTOR;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, EntityHeader.class);
 	}
 	
+	@Override
 	public UserProfile getMyProfile() throws SynapseException {
 		String uri = USER_PROFILE_PATH;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, UserProfile.class);
 	}
-	
+	@Override
 	public void updateMyProfile(UserProfile userProfile) throws SynapseException {
 		try {
 			String uri = USER_PROFILE_PATH;
@@ -921,7 +956,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public UserProfile getUserProfile(String ownerId) throws SynapseException {
 		String uri = USER_PROFILE_PATH + "/" + ownerId;
 		JSONObject json = getEntity(uri);
@@ -936,6 +971,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONException 
 	 * @throws SynapseException 
 	 */
+	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) throws SynapseException {
 		String uri = listToString(ids);
 		JSONObject json = getEntity(uri);
@@ -953,7 +989,7 @@ public class Synapse implements SynapseInt {
 		sb.deleteCharAt(sb.length() - 1);
 		return sb.toString();
 	}
-	
+	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException, UnsupportedEncodingException {
 		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
 		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix);
@@ -963,6 +999,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Update an ACL. Default to non-recursive application.
 	 */
+	@Override
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException {
 		return updateACL(acl, false);
 	}
@@ -971,6 +1008,7 @@ public class Synapse implements SynapseInt {
 	 * Update an entity's ACL. If 'recursive' is set to true, then any child 
 	 * ACLs will be deleted, such that all child entities inherit this ACL. 
 	 */
+	@Override
 	public AccessControlList updateACL(AccessControlList acl, boolean recursive) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
@@ -985,11 +1023,13 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Override
 	public void deleteACL(String entityId) throws SynapseException {
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
 		deleteUri(uri);
 	}
 	
+	@Override
 	public AccessControlList createACL(AccessControlList acl) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
@@ -1002,6 +1042,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Override
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit) throws SynapseException {
 		String uri = "/user?"+OFFSET+"="+offset+"&limit="+limit;
 		JSONObject jsonUsers = getEntity(uri);
@@ -1015,7 +1056,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 
-
+	@Override
 	public PaginatedResults<UserGroup> getGroups(int offset, int limit) throws SynapseException {
 		String uri = "/userGroup?"+OFFSET+"="+offset+"&limit="+limit;
 		JSONObject jsonUsers = getEntity(uri);
@@ -1035,6 +1076,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public UserEntityPermissions getUsersEntityPermissions(String entityId) throws SynapseException{
 		String url = ENTITY_URI_PATH + "/" + entityId+"/permissions";
 		JSONObject jsonObj = getEntity(url);
@@ -1054,10 +1096,11 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public boolean canAccess(String entityId, ACCESS_TYPE accessType) throws SynapseException {
 		return canAccess(entityId, ObjectType.ENTITY, accessType);
 	}
-	
+	@Override
 	public boolean canAccess(String id, ObjectType type, ACCESS_TYPE accessType) throws SynapseException{
 		if(id == null) throw new IllegalArgumentException("id cannot be null");
 		if (type == null) throw new IllegalArgumentException("ObjectType cannot be null");
@@ -1095,6 +1138,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Annotations getAnnotations(String entityId) throws SynapseException{
 		String url = ENTITY_URI_PATH + "/" + entityId+"/annotations";
 		JSONObject jsonObj = getEntity(url);
@@ -1114,6 +1158,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Annotations updateAnnotations(String entityId, Annotations updated) throws SynapseException{
 		try {
 			String url = ENTITY_URI_PATH + "/" + entityId+"/annotations";
@@ -1138,7 +1183,7 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e);
 		}
 	}
-	
+	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
 		
 		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
@@ -1156,17 +1201,18 @@ public class Synapse implements SynapseInt {
 		}
 		
 	}
-	
+	@Override
 	public ACTAccessRequirement createLockAccessRequirement(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		JSONObject jsonObj = postUri(ENTITY+"/"+entityId+LOCK_ACCESS_REQUIREMENT);
 		return initializeFromJSONObject(jsonObj, ACTAccessRequirement.class);
 	}
 
+	@Override
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
 		deleteUri(ACCESS_REQUIREMENT+"/"+arId);
 	}
-
+	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
 		String uri = null;
 		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
@@ -1186,7 +1232,8 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-
+	
+	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
 		String uri = null;
 		if (RestrictableObjectType.ENTITY == subjectId.getType()) {
@@ -1215,6 +1262,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 	
+	@Override
 	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
 		
 		if (aa==null) throw new IllegalArgumentException("AccessApproval cannot be null");		
@@ -1233,7 +1281,7 @@ public class Synapse implements SynapseInt {
 		
 	}
 
-/**
+	/**
 	 * Get an entity given an Entity ID and the class of the Entity.
 	 * 
 	 * @param <T>
@@ -1242,6 +1290,7 @@ public class Synapse implements SynapseInt {
 	 * @return the entity
 	 * @throws SynapseException
 	 */
+	@Override
 	@SuppressWarnings("cast")
 	public <T extends JSONEntity> T getEntity(String entityId, Class<? extends T> clazz) throws SynapseException {
 		if (entityId == null)
@@ -1292,6 +1341,7 @@ public class Synapse implements SynapseInt {
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
+	@Override
 	@Deprecated
 	// Use putEntity
 	public JSONObject updateEntity(String uri, JSONObject entity)
@@ -1307,7 +1357,7 @@ public class Synapse implements SynapseInt {
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
-	@SuppressWarnings("unchecked")
+	@Override
 	public <T extends Entity> T putEntity(T entity) throws SynapseException {
 		return putEntity(entity, null);
 	}
@@ -1321,6 +1371,7 @@ public class Synapse implements SynapseInt {
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
+	@Override
 	@SuppressWarnings("unchecked")
 	public <T extends Entity> T putEntity(T entity, String activityId) throws SynapseException {
 		if (entity == null)
@@ -1348,6 +1399,7 @@ public class Synapse implements SynapseInt {
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject putJSONObject(String uri, JSONObject entity, Map<String,String> headers)
 			throws SynapseException {
 		return putJSONObject(repoEndpoint, uri, entity, headers);
@@ -1359,6 +1411,7 @@ public class Synapse implements SynapseInt {
 	 * @param uri
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject postUri(String uri) throws SynapseException {
 		return postUri(repoEndpoint, uri);
 	}
@@ -1370,6 +1423,7 @@ public class Synapse implements SynapseInt {
 	 * @param uri
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteUri(String uri) throws SynapseException {
 		deleteUri(repoEndpoint, uri);
 		return;
@@ -1384,6 +1438,7 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public <T extends Entity> void deleteEntity(T entity)
 			throws SynapseException {
 		if (entity == null)
@@ -1399,6 +1454,7 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public <T extends Entity> void deleteAndPurgeEntity(T entity)
 			throws SynapseException {
 		deleteEntity(entity);
@@ -1414,6 +1470,7 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteEntityById(String entityId)
 			throws SynapseException {
 		if (entityId == null)
@@ -1429,18 +1486,21 @@ public class Synapse implements SynapseInt {
 	 * @param entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteAndPurgeEntityById(String entityId)
 			throws SynapseException {
 		deleteEntityById(entityId);
 		purgeTrashForUser(entityId);
 	}
 
+	@Override
 	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
 		deleteEntityVersionById(entity.getId(), versionNumber);
 	}
 
+	@Override
 	public void deleteEntityVersionById(String entityId, Long versionNumber) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -1457,6 +1517,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Override
 	public EntityPath getEntityPath(Entity entity) throws SynapseException {
 		return getEntityPath(entity.getId());
 	}
@@ -1468,6 +1529,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public EntityPath getEntityPath(String entityId) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + entityId+"/path";
 		JSONObject jsonObj = getEntity(url);
@@ -1481,6 +1543,7 @@ public class Synapse implements SynapseInt {
 		}
 	}	
 
+	@Override
 	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/type"; // TODO move UrlHelpers someplace shared so that we can UrlHelpers.ENTITY_TYPE
 		url += "?" + ServiceConstants.BATCH_PARAM + "=" + StringUtils.join(entityIds, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
@@ -1495,6 +1558,7 @@ public class Synapse implements SynapseInt {
 		}
 	}	
 	
+	@Override
 	public BatchResults<EntityHeader> getEntityHeaderBatch(List<Reference> references) throws SynapseException {
 		ReferenceList list = new ReferenceList();
 		list.setReferences(references);
@@ -1520,6 +1584,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Override
 	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity) throws SynapseException {
 		// By default we want to find anything that references any version of this entity.
 		String version = null;
@@ -1533,6 +1598,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId, String targetVersion) throws SynapseException {
 		String url = ENTITY_URI_PATH + "/" + entityId;
 		if(targetVersion != null) {
@@ -1559,6 +1625,7 @@ public class Synapse implements SynapseInt {
 	 * @return the query result
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject query(String query) throws SynapseException {
 		return querySynapse(repoEndpoint, query);
 	}
@@ -1573,6 +1640,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
 		try {
@@ -1603,6 +1671,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
+	@Override
 	public S3FileHandle createFileHandle(File file, String contentType) throws SynapseException, IOException{
 		if(file == null) throw new IllegalArgumentException("File cannot be null");
 		if(contentType == null) throw new IllegalArgumentException("Content type cannot be null");
@@ -1709,6 +1778,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public ChunkedFileToken createChunkedFileUploadToken(CreateChunkedFileTokenRequest ccftr) throws SynapseException{
 		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
 		if(ccftr.getFileName() == null) throw new IllegalArgumentException("FileName cannot be null");
@@ -1731,6 +1801,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public URL createChunkedPresignedUrl(ChunkRequest chunkRequest) throws SynapseException {
 		try {
 			if(chunkRequest == null) throw new IllegalArgumentException("ChunkRequest cannot be null");
@@ -1754,6 +1825,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public String putFileToURL(URL url, File file, String contentType) throws SynapseException{
 		try{
 			if(url == null) throw new IllegalArgumentException("URL cannot be null");
@@ -1791,6 +1863,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 */
 	@Deprecated
+	@Override
 	public ChunkResult addChunkToFile(ChunkRequest chunkRequest) throws SynapseException{
 		String url = getFileEndpoint()+ADD_CHUNK_TO_FILE;
 		return asymmetricalPost(url, chunkRequest, ChunkResult.class);
@@ -1810,6 +1883,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 */
 	@Deprecated
+	@Override
 	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request) throws SynapseException{
 		String url = getFileEndpoint()+COMPLETE_CHUNK_FILE_UPLOAD;
 		return asymmetricalPost(url, request, S3FileHandle.class);
@@ -1821,6 +1895,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr) throws SynapseException{
 		String url = getFileEndpoint()+START_COMPLETE_UPLOAD_DAEMON;
 		return asymmetricalPost(url, cacr, UploadDaemonStatus.class);
@@ -1833,6 +1908,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId) throws SynapseException{
 		String url = COMPLETE_UPLOAD_DAEMON_STATUS+"/"+daemonId;
 		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
@@ -1851,6 +1927,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Override
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh) throws JSONObjectAdapterException, SynapseException{
 		String uri = EXTERNAL_FILE_HANDLE;
 		return createJSONEntity(getFileEndpoint(), uri, efh);
@@ -1918,6 +1995,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException 
 	 */
+	@Override
 	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException{
 		JSONObject object = signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "GET", null, defaultGETDELETEHeaders);
 		try {
@@ -1933,6 +2011,7 @@ public class Synapse implements SynapseInt {
 	 * @param fileHandleId
 	 * @throws SynapseException 
 	 */
+	@Override
 	public void deleteFileHandle(String fileHandleId) throws SynapseException{
 		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "DELETE", null, defaultGETDELETEHeaders);
 	}
@@ -1943,6 +2022,7 @@ public class Synapse implements SynapseInt {
 	 * @param fileHandleId
 	 * @throws SynapseException 
 	 */
+	@Override
 	public void clearPreview(String fileHandleId) throws SynapseException{
 		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId+FILE_PREVIEW, "DELETE", null, defaultGETDELETEHeaders);
 	}
@@ -1982,6 +2062,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Override
 	public WikiPage createWikiPage(String ownerId, ObjectType ownerType, WikiPage toCreate) throws JSONObjectAdapterException, SynapseException{
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
@@ -2009,6 +2090,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Override
 	public WikiPage getWikiPage(WikiPageKey key) throws JSONObjectAdapterException, SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = createWikiURL(key);
@@ -2025,6 +2107,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType) throws JSONObjectAdapterException, SynapseException{
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
@@ -2039,6 +2122,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key) throws JSONObjectAdapterException, SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = createWikiURL(key)+ATTACHMENT_HANDLES;
@@ -2054,6 +2138,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
@@ -2070,6 +2155,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public URL getWikiAttachmentTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
@@ -2088,6 +2174,7 @@ public class Synapse implements SynapseInt {
 	 * @throws FileNotFoundException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
@@ -2104,6 +2191,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
+	@Override
 	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
@@ -2121,6 +2209,7 @@ public class Synapse implements SynapseInt {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
+	@Override
 	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
 		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+FILE+QUERY_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
@@ -2135,6 +2224,7 @@ public class Synapse implements SynapseInt {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
+	@Override
 	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
 		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+FILE_PREVIEW+QUERY_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
@@ -2149,6 +2239,7 @@ public class Synapse implements SynapseInt {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
+	@Override
 	public URL getFileEntityTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException{
 		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+VERSION_INFO+"/"+versionNumber+FILE+QUERY_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
@@ -2163,6 +2254,7 @@ public class Synapse implements SynapseInt {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
+	@Override
 	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException{
 		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+VERSION_INFO+"/"+versionNumber+FILE_PREVIEW+QUERY_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
@@ -2236,6 +2328,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType, WikiPage toUpdate) throws JSONObjectAdapterException, SynapseException{
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
@@ -2250,6 +2343,7 @@ public class Synapse implements SynapseInt {
 	 * @param key
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = createWikiURL(key);
@@ -2274,6 +2368,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Override
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId, ObjectType ownerType) throws SynapseException, JSONObjectAdapterException{
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
@@ -2294,6 +2389,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId) throws JSONObjectAdapterException, SynapseException {
 		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = ENTITY_URI_PATH+"/"+entityId+FILE_HANDLES;
@@ -2308,6 +2404,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public FileHandleResults getEntityFileHandlesForVersion(String entityId, Long versionNumber) throws JSONObjectAdapterException, SynapseException {
 		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = ENTITY_URI_PATH+"/"+entityId+"/version/"+versionNumber+FILE_HANDLES;
@@ -2324,6 +2421,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseUserException
 	 */
 	@Deprecated
+	@Override
 	public File downloadLocationableFromSynapse(Locationable locationable)
 			throws SynapseException {
 		// TODO do the equivalent of the R client synapse cache and file naming
@@ -2353,6 +2451,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	@Deprecated
+	@Override
 	public File downloadLocationableFromSynapse(Locationable locationable,
 			File destinationFile) throws SynapseException {
 		List<LocationData> locations = locationable.getLocations();
@@ -2382,12 +2481,14 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	@Deprecated
+	@Override
 	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException {
 		return downloadFromSynapse(location.getPath(), md5, destinationFile);
 	}
 	
 	@Deprecated
+	@Override
 	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
 		try {
@@ -2421,6 +2522,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	@Deprecated
+	@Override
 	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile) throws SynapseException {
 
@@ -2446,6 +2548,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	@Deprecated
+	@Override
 	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile, String md5) throws SynapseException {
 
@@ -2484,6 +2587,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	@Deprecated
+	@Override
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl) throws SynapseException {
 		return updateExternalLocationableToSynapse(locationable, externalUrl, null);
@@ -2498,6 +2602,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 */
 	@Deprecated
+	@Override
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl, String md5) throws SynapseException {
 		// set the upload location in the locationable so that Synapse
@@ -2522,6 +2627,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException
 	 */
 	@Deprecated
+	@Override
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile) throws JSONObjectAdapterException, SynapseException, IOException{
 		return uploadAttachmentToSynapse(entityId, dataFile, dataFile.getName());
 	}
@@ -2538,6 +2644,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 */
 	@Deprecated
+	@Override
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		return uploadAttachmentToSynapse(entityId, AttachmentType.ENTITY, dataFile, fileName);
 	}
@@ -2553,6 +2660,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 */	
 	@Deprecated
+	@Override
 	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		return uploadAttachmentToSynapse(userId, AttachmentType.USER_PROFILE, dataFile, fileName);
 	}
@@ -2569,6 +2677,7 @@ public class Synapse implements SynapseInt {
 	 * @throws IOException 
 	 */	
 	@Deprecated
+	@Override
 	public AttachmentData uploadAttachmentToSynapse(String id, AttachmentType attachmentType, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		// First we need to get an S3 token
 		S3AttachmentToken token = new S3AttachmentToken();
@@ -2599,6 +2708,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException 
 	 */
 	@Deprecated
+	@Override
 	public PresignedUrl createAttachmentPresignedUrl(String id, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		return createAttachmentPresignedUrl(id, AttachmentType.ENTITY, tokenOrPreviewId);
 	}
@@ -2612,6 +2722,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException 
 	 */
 	@Deprecated
+	@Override
 	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		return createAttachmentPresignedUrl(id, AttachmentType.USER_PROFILE, tokenOrPreviewId);
 	}
@@ -2626,6 +2737,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException 
 	 */
 	@Deprecated
+	@Override
 	public PresignedUrl createAttachmentPresignedUrl(String id, AttachmentType attachmentType, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		String url = getAttachmentTypeURL(attachmentType)+"/"+id+ATTACHMENT_URL;
 		PresignedUrl preIn = new PresignedUrl();
@@ -2647,6 +2759,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public PresignedUrl waitForPreviewToBeCreated(String entityId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		return waitForPreviewToBeCreated(entityId, AttachmentType.ENTITY, tokenOrPreviewId, timeout);
 	}
@@ -2660,6 +2773,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		return waitForPreviewToBeCreated(userId, AttachmentType.USER_PROFILE, tokenOrPreviewId, timeout);
 	}
@@ -2674,6 +2788,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
 		PresignedUrl url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
@@ -2703,6 +2818,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public void downloadEntityAttachment(String entityId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachment(entityId, AttachmentType.ENTITY, attachmentData, destFile);
 	}
@@ -2716,6 +2832,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public void downloadUserProfileAttachment(String userId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachment(userId, AttachmentType.USER_PROFILE, attachmentData, destFile);
 	}
@@ -2729,6 +2846,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public void downloadAttachment(String id, AttachmentType type, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
@@ -2753,6 +2871,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public void downloadEntityAttachmentPreview(String entityId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachmentPreview(entityId, AttachmentType.ENTITY, previewId, destFile);
 	}
@@ -2766,6 +2885,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public void downloadUserProfileAttachmentPreview(String userId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachmentPreview(userId, AttachmentType.USER_PROFILE, previewId, destFile);
 	}
@@ -2780,6 +2900,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Deprecated
+	@Override
 	public void downloadAttachmentPreview(String id, AttachmentType type, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
@@ -2798,6 +2919,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 */
 	@Deprecated
+	@Override
 	public S3AttachmentToken createAttachmentS3Token(String id, ServiceConstants.AttachmentType attachmentType, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(token == null) throw new IllegalArgumentException("S3AttachmentToken cannot be null");
@@ -2817,16 +2939,18 @@ public class Synapse implements SynapseInt {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject createAuthEntity(String uri, JSONObject entity)
 			throws SynapseException {
 		return createJSONObjectEntity(authEndpoint, uri, entity);
 	}
 
+	@Override
 	public JSONObject getAuthEntity(String uri)
 			throws SynapseException {
 		return getSynapseEntity(authEndpoint, uri);
 	}
-	
+	@Override
 	public JSONObject putAuthEntity(String uri, JSONObject entity)
 			throws SynapseException {
 		if (null == authEndpoint) {
@@ -2854,6 +2978,7 @@ public class Synapse implements SynapseInt {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject createJSONObjectEntity(String endpoint, String uri,
 			JSONObject entity) throws SynapseException {
 		if (null == endpoint) {
@@ -2959,6 +3084,7 @@ public class Synapse implements SynapseInt {
 	 * @return the retrieved entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject getSynapseEntity(String endpoint, String uri)
 			throws SynapseException {
 		if (null == endpoint) {
@@ -3031,6 +3157,7 @@ public class Synapse implements SynapseInt {
 	 * @return the updated entity
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject putJSONObject(String endpoint, String uri,
 			JSONObject entity, Map<String,String> headers) throws SynapseException {
 			if (null == endpoint) {
@@ -3057,6 +3184,7 @@ public class Synapse implements SynapseInt {
 	 * @param uri
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject postUri(String endpoint, String uri) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
 		return signAndDispatchSynapseRequest(endpoint, uri, "POST", null, defaultPOSTPUTHeaders);
@@ -3069,6 +3197,7 @@ public class Synapse implements SynapseInt {
 	 * @param uri
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteUri(String endpoint, String uri) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
 		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders);
@@ -3083,6 +3212,7 @@ public class Synapse implements SynapseInt {
 	 * @return the query result
 	 * @throws SynapseException
 	 */
+	@Override
 	public JSONObject querySynapse(String endpoint, String query)
 			throws SynapseException {
 		try {
@@ -3263,6 +3393,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Override
 	public StackStatus getCurrentStackStatus() throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject json = getEntity(STACK_STATUS);
@@ -3281,6 +3412,7 @@ public class Synapse implements SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
+	@Override
 	public <T extends JSONEntity> T getJSONEntity(String uri,
 			Class<? extends T> clazz) throws SynapseException,
 			JSONObjectAdapterException {
@@ -3293,6 +3425,7 @@ public class Synapse implements SynapseInt {
 		
 	}
 	
+	@Override
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {
 		SearchResults searchResults = null;		
 		String uri = "/search";
@@ -3305,7 +3438,7 @@ public class Synapse implements SynapseInt {
 		return searchResults;
 	}
 	
-	
+	@Override
 	public String getSynapseTermsOfUse() throws SynapseException {
 		try {
 			HttpResponse response = clientProvider.performRequest(authEndpoint+"/termsOfUse.html",
@@ -3333,6 +3466,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException 
 	 * @throws JSONException 
 	 */
+	@Override
 	public Long getChildCount(String entityId) throws SynapseException {
 		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID+entityId+LIMIT_1_OFFSET_1;
 		JSONObject query = query(queryString);
@@ -3365,6 +3499,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Set<String> getAllUserAndGroupIds() throws SynapseException {
 		HashSet<String> ids = new HashSet<String>();
 		// Get all the users
@@ -3384,6 +3519,7 @@ public class Synapse implements SynapseInt {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Override
 	public SynapseVersionInfo getVersionInfo() throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject json = getEntity(VERSION_INFO);
@@ -3397,6 +3533,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Activity getActivityForEntity(String entityId) throws SynapseException {
 		return getActivityForEntityVersion(entityId, null);
 	}
@@ -3408,6 +3545,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Activity getActivityForEntityVersion(String entityId, Long versionNumber) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
@@ -3432,6 +3570,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Activity setActivityForEntity(String entityId, String activityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");					
@@ -3453,6 +3592,7 @@ public class Synapse implements SynapseInt {
 	 * @param entityId
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteGeneratedByForEntity(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		String uri = createEntityUri(ENTITY_URI_PATH, entityId) + GENERATED_BY_SUFFIX;
@@ -3465,6 +3605,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Activity createActivity(Activity activity) throws SynapseException {
 		if (activity == null) throw new IllegalArgumentException("Activity can not be null");
 		String url = ACTIVITY_URI_PATH;		
@@ -3489,6 +3630,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Activity getActivity(String activityId) throws SynapseException {
 		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");
 		String url = createEntityUri(ACTIVITY_URI_PATH, activityId);		
@@ -3507,6 +3649,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public Activity putActivity(Activity activity) throws SynapseException {
 		if (activity == null) throw new IllegalArgumentException("Activity can not be null");
 		String url = createEntityUri(ACTIVITY_URI_PATH, activity.getId());		
@@ -3529,12 +3672,14 @@ public class Synapse implements SynapseInt {
 	 * @param activityId
 	 * @throws SynapseException
 	 */
+	@Override
 	public void deleteActivity(String activityId) throws SynapseException {
 		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");
 		String uri = createEntityUri(ACTIVITY_URI_PATH, activityId);
 		deleteUri(uri);
 	}
 	
+	@Override
 	public PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId, Integer limit, Integer offset) throws SynapseException {
 		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");
 		String url = createEntityUri(ACTIVITY_URI_PATH, activityId + GENERATED_PATH +
@@ -3559,6 +3704,7 @@ public class Synapse implements SynapseInt {
 	 *            Paging delimiter. The last descendant ID (exclusive).
 	 * @throws SynapseException 
 	 */
+	@Override
 	public EntityIdList getDescendants(String nodeId, int pageSize, String lastDescIdExcl)
 			throws SynapseException {
 		StringBuilder url = new StringBuilder()
@@ -3594,6 +3740,7 @@ public class Synapse implements SynapseInt {
 	 *            Paging delimiter. The last descendant ID (exclusive).
 	 * @throws SynapseException 
 	 */
+	@Override
 	public EntityIdList getDescendants(String nodeId, int generation, int pageSize, String lastDescIdExcl)
 			throws SynapseException {
 		StringBuilder url = new StringBuilder()
@@ -3621,7 +3768,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public Evaluation createEvaluation(Evaluation eval) throws SynapseException {
 		String uri = EVALUATION_URI_PATH;
 		try {
@@ -3632,7 +3779,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public Evaluation getEvaluation(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = createEntityUri(EVALUATION_URI_PATH, evalId);		
@@ -3644,8 +3791,23 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e1);
 		}
 	}
+	@Override
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String projectId, int offset, int limit) throws SynapseException {
+		String url = EVALUATION_URI_PATH + "/project/" + projectId + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 	
 	@Deprecated
+	@Override
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
@@ -3661,6 +3823,7 @@ public class Synapse implements SynapseInt {
 	}
 	
 	@Deprecated
+	@Override
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
 		String url = null;
 		if (null==status) {
@@ -3681,11 +3844,12 @@ public class Synapse implements SynapseInt {
 	}
 	
 	@Deprecated
+	@Override
 	public Long getEvaluationCount() throws SynapseException {
 		PaginatedResults<Evaluation> res = getEvaluationsPaginated(0,0);
 		return res.getTotalNumberOfResults();
 	}
-	
+	@Override
 	public Evaluation findEvaluation(String name) throws SynapseException, UnsupportedEncodingException {
 		if (name == null) throw new IllegalArgumentException("Evaluation name cannot be null");
 		String encodedName = URLEncoder.encode(name, "UTF-8");
@@ -3698,7 +3862,7 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e1);
 		}
 	}
-	
+	@Override
 	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException {
 		if (eval == null) throw new IllegalArgumentException("Evaluation can not be null");
 		String url = createEntityUri(EVALUATION_URI_PATH, eval.getId());		
@@ -3715,7 +3879,7 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e1);
 		}
 	}
-	
+	@Override
 	public void deleteEvaluation(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId);
@@ -3725,13 +3889,14 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Adds the authenticated user as a Participant in Evaluation evalId
 	 */
+	@Override
 	public Participant createParticipant(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String uri = createEntityUri(EVALUATION_URI_PATH, evalId) + "/" + PARTICIPANT;
 		JSONObject jsonObj = postUri(uri);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
-
+	@Override
 	public Participant getParticipant(String evalId, String principalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
@@ -3755,6 +3920,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Removes user principalId from Evaluation evalId.
 	 */
+	@Override
 	public void deleteParticipant(String evalId, String principalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
@@ -3762,7 +3928,7 @@ public class Synapse implements SynapseInt {
 				+ "/" + principalId;
 		deleteUri(uri);
 	}
-	
+	@Override
 	public PaginatedResults<Participant> getAllParticipants(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + PARTICIPANT +
@@ -3778,13 +3944,13 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public Long getParticipantCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		PaginatedResults<Participant> res = getAllParticipants(evalId, 0, 0);
 		return res.getTotalNumberOfResults();
 	}
-	
+	@Override
 	public Submission createSubmission(Submission sub, String etag) throws SynapseException {
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "=" + etag;
 		try {
@@ -3795,7 +3961,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public Submission getSubmission(String subId) throws SynapseException {
 		if (subId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId;
@@ -3807,7 +3973,7 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e1);
 		}
 	}
-	
+	@Override
 	public SubmissionStatus getSubmissionStatus(String subId) throws SynapseException {
 		if (subId == null) throw new IllegalArgumentException("Submission id cannot be null");
 		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId + "/" + STATUS;		
@@ -3819,7 +3985,7 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e1);
 		}
 	}
-	
+	@Override
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
 		if (status == null) {
 			throw new IllegalArgumentException("SubmissionStatus  cannot be null");
@@ -3841,13 +4007,13 @@ public class Synapse implements SynapseInt {
 			throw new RuntimeException(e1);
 		}
 	}
-	
+	@Override
 	public void deleteSubmission(String subId) throws SynapseException {
 		if (subId == null) throw new IllegalArgumentException("Submission id cannot be null");
 		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + subId;			
 		deleteUri(uri);
 	}
-	
+	@Override
 	public PaginatedResults<Submission> getAllSubmissions(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL +
@@ -3863,7 +4029,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_STATUS_ALL +
@@ -3879,7 +4045,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_BUNDLE_ALL +
@@ -3895,7 +4061,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<Submission> getAllSubmissionsByStatus(
 			String evalId, SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
@@ -3912,7 +4078,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<SubmissionStatus> getAllSubmissionStatusesByStatus(String evalId, 
 			SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
@@ -3929,7 +4095,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
 			String evalId, SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
@@ -3946,7 +4112,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<Submission> getMySubmissions(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION +
@@ -3962,7 +4128,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-	
+	@Override
 	public PaginatedResults<SubmissionBundle> getMySubmissionBundles(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_BUNDLE +
@@ -3989,6 +4155,7 @@ public class Synapse implements SynapseInt {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
+	@Override
 	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId, String fileHandleId)
 			throws ClientProtocolException, MalformedURLException, IOException {
 		String url = getRepoEndpoint() + EVALUATION_URI_PATH + "/" + 
@@ -3996,13 +4163,13 @@ public class Synapse implements SynapseInt {
 				QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(url);
 	}
-	
+	@Override
 	public Long getSubmissionCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		PaginatedResults<Submission> res = getAllSubmissions(evalId, 0, 0);
 		return res.getTotalNumberOfResults();
 	}
-
+	@Override
 	public UserEvaluationState getUserEvaluationState(String evalId) throws SynapseException{
 		UserEvaluationState returnState = UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE;
 		//TODO: replace with single call to getAvailableEvaluations() (PLFM-1858, simply check to see if evalId is in the return set) 
@@ -4035,6 +4202,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public QueryTableResults queryEvaluation(String query) throws SynapseException {
 		try {
 			if (null == query) {
@@ -4060,6 +4228,7 @@ public class Synapse implements SynapseInt {
 	 *
 	 * @param entityId The ID of the entity to be moved to the trash can
 	 */
+	@Override
 	public void moveToTrash(String entityId) throws SynapseException {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
@@ -4073,6 +4242,7 @@ public class Synapse implements SynapseInt {
 	 * to the specified parent. If the parent is not specified, it will be restored to the
 	 * original parent.
 	 */
+	@Override
 	public void restoreFromTrash(String entityId, String newParentId) throws SynapseException {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
@@ -4087,6 +4257,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Retrieves entities (in the trash can) deleted by the user.
 	 */
+	@Override
 	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit) throws SynapseException {
 		String url = TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(
@@ -4104,6 +4275,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity will be permanently deleted.
 	 */
+	@Override
 	public void purgeTrashForUser(String entityId) throws SynapseException {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
@@ -4115,6 +4287,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be permanently deleted.
 	 */
+	@Override
 	public void purgeTrashForUser() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
 	}
@@ -4125,6 +4298,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public EntityHeader addFavorite(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		String url = createEntityUri(FAVORITE_URI_PATH, entityId);		
@@ -4142,6 +4316,7 @@ public class Synapse implements SynapseInt {
 	 * @param entityId
 	 * @throws SynapseException
 	 */
+	@Override
 	public void removeFavorite(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		String uri = createEntityUri(FAVORITE_URI_PATH, entityId);		
@@ -4155,6 +4330,7 @@ public class Synapse implements SynapseInt {
 	 * @return
 	 * @throws SynapseException
 	 */
+	@Override
 	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset) throws SynapseException {
 		String url = FAVORITE_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
@@ -4174,6 +4350,7 @@ public class Synapse implements SynapseInt {
 	 * Creates a DOI for the specified entity. The DOI will always be associated with
 	 * the current version of the entity.
 	 */
+	@Override
 	public void createEntityDoi(String entityId) throws SynapseException {
 		createEntityDoi(entityId, null);
 	}
@@ -4182,6 +4359,7 @@ public class Synapse implements SynapseInt {
 	 * Creates a DOI for the specified entity version. If version is null, the DOI
 	 * will always be associated with the current version of the entity.
 	 */
+	@Override
 	public void createEntityDoi(String entityId, Long entityVersion) throws SynapseException {
 
 		if (entityId == null || entityId.isEmpty()) {
@@ -4199,6 +4377,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Gets the DOI for the specified entity version. The DOI is for the current version of the entity.
 	 */
+	@Override
 	public Doi getEntityDoi(String entityId) throws SynapseException {
 		return getEntityDoi(entityId, null);
 	}
@@ -4207,6 +4386,7 @@ public class Synapse implements SynapseInt {
 	 * Gets the DOI for the specified entity version. If version is null, the DOI
 	 * is for the current version of the entity.
 	 */
+	@Override
 	public Doi getEntityDoi(String entityId, Long entityVersion) throws SynapseException {
 
 		if (entityId == null || entityId.isEmpty()) {
@@ -4232,6 +4412,7 @@ public class Synapse implements SynapseInt {
 	/**
 	 * Gets the header information of entities whose file's MD5 matches the given MD5 checksum.
 	 */
+	@Override
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException {
 
 		if (md5 == null || md5.isEmpty()) {
@@ -4250,7 +4431,7 @@ public class Synapse implements SynapseInt {
 		}
 	}
 
-	
+	@Override
 	public String retrieveApiKey() throws SynapseException {
 		try {
 			final String ATTRIBUTE_NAME = "secretKey";
@@ -4266,7 +4447,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-
+	@Override
 	public AccessControlList updateEvaluationAcl(AccessControlList acl) throws SynapseException {
 
 		if (acl == null) {
@@ -4287,7 +4468,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-
+	@Override
 	public AccessControlList getEvaluationAcl(String evalId) throws SynapseException {
 
 		if (evalId == null) {
@@ -4303,7 +4484,7 @@ public class Synapse implements SynapseInt {
 			throw new SynapseException(e);
 		}
 	}
-
+	@Override
 	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId) throws SynapseException {
 
 		if (evalId == null) {

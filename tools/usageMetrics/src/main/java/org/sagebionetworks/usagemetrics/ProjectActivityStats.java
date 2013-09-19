@@ -23,21 +23,20 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-
 
 /**
  * This class collects Synapse usage statistics, specifically for the following metric:
@@ -59,7 +58,7 @@ public class ProjectActivityStats {
 	
 	public static void main(String[] args) throws Exception {
 		DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");		
-		Synapse synapse = new Synapse();
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		final String username = args[0];
 		final String password = args[1];
 		final Date end = df.parse(args[2]); // i.e. "27-JUL-2012"
@@ -107,7 +106,7 @@ public class ProjectActivityStats {
 	 * @return a Map whose keys are project ids and who values are Lists
 	 * of users who added or modified content
 	 */
-	public static Map<String, Collection<String>> findProjectUsers(Synapse synapse, Long start, Long end) throws SynapseException, JSONException {
+	public static Map<String, Collection<String>> findProjectUsers(SynapseClientImpl synapse, Long start, Long end) throws SynapseException, JSONException {
 		Map<String, Collection<String>> ans = new HashMap<String, Collection<String>>();
 		// get all projects
 		JSONObject projectQueryResults = synapse.query("select id, name from project");
@@ -153,7 +152,7 @@ public class ProjectActivityStats {
 			Long start, 
 			Long end, 
 			boolean stopIfMaxScore,
-			Synapse synapse, 
+			SynapseClientImpl synapse, 
 			Queue<String> entitiesToProcess, Integer nEntitiesProcessed) throws SynapseException, JSONException {
 		
 		if(entitiesToProcess.size() == 0 || nEntitiesProcessed > MAX_CONTENT_PER_BUCKET) return;		
@@ -193,7 +192,7 @@ public class ProjectActivityStats {
 	}
 
 	private static List<String> lookupOldVersionContributors(Long start,
-			Long end, Synapse synapse, Entity entity) throws SynapseException {
+			Long end, SynapseClientImpl synapse, Entity entity) throws SynapseException {
 		List<String> contributors = new ArrayList<String>();
 
 		if(entity instanceof Versionable) {			 				
@@ -212,7 +211,7 @@ public class ProjectActivityStats {
 		return contributors;
 	}
 
-	private static void addChildren(Synapse synapse,
+	private static void addChildren(SynapseClientImpl synapse,
 			Queue<String> entitiesToProcess, String entityId,
 			boolean hasChildren) throws JSONException {
 		if(hasChildren) {					
@@ -245,7 +244,7 @@ public class ProjectActivityStats {
 	 * @return
 	 * @throws SynapseException
 	 */
-	private static List<String> lookupEntityContributors(String entityId, Long start, Long end, Synapse synapse) throws SynapseException {
+	private static List<String> lookupEntityContributors(String entityId, Long start, Long end, SynapseClientImpl synapse) throws SynapseException {
 		List<String> contributors = new ArrayList<String>();		
 
 		// Count Children
@@ -265,7 +264,7 @@ public class ProjectActivityStats {
 		return contributors;
 	}
 	
-	private static Collection<String> lookupWikiContributors(String entityId, Long start, Long end, Synapse synapse) throws SynapseException {
+	private static Collection<String> lookupWikiContributors(String entityId, Long start, Long end, SynapseClientImpl synapse) throws SynapseException {
 		List<String> contributors = new ArrayList<String>();
 		try {			
 			PaginatedResults<WikiHeader> headerTree = synapse.getWikiHeaderTree(entityId, ObjectType.ENTITY);
@@ -288,7 +287,7 @@ public class ProjectActivityStats {
 		return contributors;
 	}
 
-	private static Collection<String> lookupProvenanceContributors(String entityId, Long start, Long end, Synapse synapse) throws SynapseException {
+	private static Collection<String> lookupProvenanceContributors(String entityId, Long start, Long end, SynapseClientImpl synapse) throws SynapseException {
 		List<String> contributors = new ArrayList<String>();
 		
 		try {
@@ -369,7 +368,7 @@ public class ProjectActivityStats {
 		
 	}
 
-	private static JSONObject reliablyQuerySynapse(Synapse synapse, String query) {
+	private static JSONObject reliablyQuerySynapse(SynapseClientImpl synapse, String query) {
 		JSONObject dataIds = null;
 		boolean succeeded = false;
 		do {

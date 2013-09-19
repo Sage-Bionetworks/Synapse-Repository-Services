@@ -41,7 +41,6 @@ import org.sagebionetworks.profiler.ProfileSingleton;
  */
 public class ResponseHeaderResolver implements ModelAndViewResolver {
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public ModelAndView resolveModelAndView(Method handlerMethod,
 			Class handlerType, Object returnValue,

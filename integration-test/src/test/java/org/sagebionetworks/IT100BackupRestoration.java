@@ -15,7 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -34,7 +34,7 @@ public class IT100BackupRestoration {
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
 	
-	private static SynapseAdministration synapse;
+	private static SynapseAdminClientImpl synapse;
 //	private static String bucket;
 	
 	private List<Entity> toDelete = null;
@@ -42,7 +42,7 @@ public class IT100BackupRestoration {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Use the synapse client to do some of the work for us.
-		synapse = new SynapseAdministration();
+		synapse = new SynapseAdminClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

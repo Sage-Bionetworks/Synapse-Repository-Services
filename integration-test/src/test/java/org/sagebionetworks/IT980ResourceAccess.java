@@ -8,7 +8,7 @@ import java.net.URLEncoder;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 
 
 /**
@@ -16,7 +16,7 @@ import org.sagebionetworks.client.Synapse;
  */
 
 public class IT980ResourceAccess {
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	private static String authEndpoint = null;
 	private static String repoEndpoint = null;
 	
@@ -32,7 +32,7 @@ public class IT980ResourceAccess {
 
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 	}
 	
@@ -73,7 +73,7 @@ public class IT980ResourceAccess {
 		String resourceAccessToken = session.getString("resourceAccessToken");
 		
 		// get the session:  can be done by another user (e.g. some service account) 
-		Synapse secondUser = new Synapse();
+		SynapseClientImpl secondUser = new SynapseClientImpl();
 		secondUser.setAuthEndpoint(authEndpoint);
 		secondUser.setRepositoryEndpoint(repoEndpoint);
 		secondUser.login(StackConfiguration.getIntegrationTestUserTwoName(),

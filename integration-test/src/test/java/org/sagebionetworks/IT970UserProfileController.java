@@ -14,22 +14,21 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 
 public class IT970UserProfileController {
 	private static final Logger log = Logger.getLogger(IT970UserProfileController.class.getName());
 	
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 
 	List<String> entitiesToDelete;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
+	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

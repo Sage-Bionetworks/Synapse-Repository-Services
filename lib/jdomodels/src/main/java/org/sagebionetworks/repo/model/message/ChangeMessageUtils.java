@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 

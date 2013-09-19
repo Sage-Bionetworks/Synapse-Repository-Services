@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -53,6 +54,20 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String ID = DBOConstants.PARAM_EVALUATION_ID;
 	private static final String NAME = DBOConstants.PARAM_EVALUATION_NAME;
 	private static final String STATUS = DBOConstants.PARAM_EVALUATION_STATUS;
+	private static final String CONTENT_SOURCE = DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
+	
+	private static final String OFFSET_AND_LIMIT = 
+			" LIMIT :"+ LIMIT_PARAM_NAME +
+			" OFFSET :" + OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_BY_CONTENT_SOURCE = 
+			"SELECT * FROM "+SQLConstants.TABLE_EVALUATION+
+			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE+
+			OFFSET_AND_LIMIT;
+	
+	private static final String COUNT_BY_CONTENT_SOURCE = 
+			"SELECT COUNT(*) FROM "+SQLConstants.TABLE_EVALUATION+
+			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
 	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
@@ -60,14 +75,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
 	
 	private static final String SELECT_BY_STATUS_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
 			" WHERE " + COL_EVALUATION_STATUS + "=:" + STATUS +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
 	
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_EVALUATION_ETAG + " FROM " +
 														TABLE_EVALUATION +" WHERE ID = ?";
@@ -141,6 +154,19 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		copyDboToDto(dbo, dto);
 		return dto;
 	}
+	
+	@Override
+	public List<Evaluation> getByContentSource(String projectId, long limit, long offset) 
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);	
+		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, rowMapper, params);
+		List<Evaluation> dtos = new ArrayList<Evaluation>();
+		copyDbosToDtos(dbos, dtos);
+		return dtos;
+	}
 
 	@Override
 	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
@@ -149,11 +175,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		for (EvaluationDBO dbo : dbos) {
-			Evaluation dto = new Evaluation();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 
@@ -167,17 +189,20 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(STATUS, status.ordinal());
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		for (EvaluationDBO dbo : dbos) {
-			Evaluation dto = new Evaluation();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(EvaluationDBO.class);
+	}
+	
+	@Override
+	public long getCountByContentSource(String projectId) throws DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
 	}
 
 	@Override
@@ -305,6 +330,14 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			}
 		}
 	}
+	
+	protected static void copyDbosToDtos(List<EvaluationDBO> dbos, List<Evaluation> dtos) throws DatastoreException {
+		for (EvaluationDBO dbo : dbos) {
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+	}
 
 	/**
 	 * Ensure that a EvaluationDBO object has all required components
@@ -404,11 +437,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		for (EvaluationDBO dbo : dbos) {
-			Evaluation dto = new Evaluation();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 

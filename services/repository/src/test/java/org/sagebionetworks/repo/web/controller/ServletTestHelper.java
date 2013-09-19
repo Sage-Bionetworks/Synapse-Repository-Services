@@ -1945,7 +1945,6 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		@SuppressWarnings("unchecked")
 		Activity returnedActivity = (Activity) objectMapper.readValue(
 				response.getContentAsString(), activity.getClass());
 		return returnedActivity;
@@ -1972,7 +1971,6 @@ public class ServletTestHelper {
 		
 	}
 
-	@SuppressWarnings("unchecked")
 	public static Activity updateActivity(
 			HttpServlet dispatchServlet, Activity activity, String userId,
 			Map<String, String> extraParams) throws ServletException,
@@ -2027,7 +2025,6 @@ public class ServletTestHelper {
 	}
 
 
-	@SuppressWarnings("unchecked")
 	public static PaginatedResults<Reference> getEntitiesGeneratedBy(
 			HttpServlet dispatchServlet, Activity activity, String userId,
 			Map<String, String> extraParams) throws ServletException,
@@ -2109,7 +2106,6 @@ public class ServletTestHelper {
 	}
 
 
-	@SuppressWarnings("unchecked")
 	public static PaginatedResults<EntityHeader> getFavorites(
 			HttpServlet dispatchServlet, String userId,
 			Map<String, String> extraParams) throws ServletException,

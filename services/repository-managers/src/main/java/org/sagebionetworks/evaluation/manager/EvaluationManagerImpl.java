@@ -84,6 +84,25 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 		return evaluationDAO.get(id);
 	}
+	
+	@Override
+	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String projectId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		EvaluationUtils.ensureNotNull(projectId, "Project ID");
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+		
+		List<Evaluation> evalList = evaluationDAO.getByContentSource(projectId, limit, offset);
+		List<Evaluation> evaluations = new ArrayList<Evaluation>();
+		for (Evaluation eval : evalList) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
+				evaluations.add(eval);
+			}
+		}
+		long totalNumberOfResults = evaluationDAO.getCountByContentSource(projectId);
+		return new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
+	}
 
 	@Deprecated
 	@Override

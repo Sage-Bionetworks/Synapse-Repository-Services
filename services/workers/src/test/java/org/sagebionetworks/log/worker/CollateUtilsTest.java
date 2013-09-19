@@ -1,18 +1,16 @@
 package org.sagebionetworks.log.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.logging.s3.LogEntry;
-import org.sagebionetworks.logging.s3.LogKeyUtils;
 import org.sagebionetworks.logging.s3.LogReader;
 
 /**

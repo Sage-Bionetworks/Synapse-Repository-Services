@@ -780,6 +780,15 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * @return The name of the AWS SQS where ranges of change messages are pushed. 
+	 */
+	public String getUnsentMessagesQueueName() {
+		return String.format(StackConstants.UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
@@ -1011,6 +1020,24 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.crowd.synchronize"));
 	}
 
+	
+	/**
+	 * The maximum number of workers in the cluster that will push UnsentMessageRanges to SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersUnsentMessageQueuer() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.queuer"));
+	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will pop UnsentMessageRanges from SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersUnsentMessagePoppers() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
+	}
 	/**
 	 * The maximum number of workers in the cluster that will process
 	 * Annotations

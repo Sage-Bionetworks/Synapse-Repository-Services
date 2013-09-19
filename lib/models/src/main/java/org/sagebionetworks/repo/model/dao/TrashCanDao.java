@@ -1,5 +1,6 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model.dao;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -11,7 +12,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  * @author Eric Wu
  */
-public interface DBOTrashCanDao {
+public interface TrashCanDao {
 
 	/**
 	 * Creates a trash entity. This should happen when an entity is deleted into the trash can.
@@ -54,6 +55,11 @@ public interface DBOTrashCanDao {
 	 * and limit (the max number of items retrieved).
 	 */
 	List<TrashedEntity> getInRange(long offset, long limit) throws DatastoreException;
+
+	/**
+	 * Gets all the trash items that were deleted before the specified time stamp.
+	 */
+	List<TrashedEntity> getTrashBefore(Timestamp timestamp) throws DatastoreException;
 
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.

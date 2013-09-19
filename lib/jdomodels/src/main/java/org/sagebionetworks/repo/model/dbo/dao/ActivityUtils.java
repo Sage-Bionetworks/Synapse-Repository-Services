@@ -46,7 +46,6 @@ public class ActivityUtils {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	private static Activity copyFromSerializedField(DBOActivity dbo) throws DatastoreException {
 		try {
 			return (Activity)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());

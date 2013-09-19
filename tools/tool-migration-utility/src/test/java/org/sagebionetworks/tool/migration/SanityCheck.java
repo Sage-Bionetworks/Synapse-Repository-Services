@@ -9,7 +9,7 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
@@ -20,14 +20,14 @@ import org.sagebionetworks.repo.model.LocationData;
 public class SanityCheck {
 
 
-	private static Synapse synapse;
+	private static SynapseClientImpl synapse;
 	
 	private List<Entity> toDelete = null;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Use the synapse client to do some of the work for us.
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint("https://auth-prod-c.sagebase.org/auth/v1");
 		synapse.setRepositoryEndpoint("https://repo-prod-c.sagebase.org/repo/v1");
 

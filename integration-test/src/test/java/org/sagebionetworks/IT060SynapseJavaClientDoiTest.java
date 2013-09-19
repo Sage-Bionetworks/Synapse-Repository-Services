@@ -9,8 +9,8 @@ import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.doi.DoiClient;
@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
 public class IT060SynapseJavaClientDoiTest {
@@ -28,14 +28,14 @@ public class IT060SynapseJavaClientDoiTest {
 	/** Max wait time for the DOI status to turn green */
 	private static long MAX_WAIT = 12000; // 12 seconds
 	private static long PAUSE = 2000;     // Pause between waits is 2 seconds
-	private static SynapseAdministration synapseAdmin;
-	private Synapse synapse;
+	private static SynapseAdminClientImpl synapseAdmin;
+	private SynapseClientImpl synapse;
 	private Entity entity;
 
 	@Before
 	public void before() throws SynapseException {
 
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(
 				StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(
@@ -49,7 +49,7 @@ public class IT060SynapseJavaClientDoiTest {
 		assertNotNull(session.getProfile().getUserName());
 		assertNotNull(session.getSessionToken());
 
-		synapseAdmin = new SynapseAdministration();
+		synapseAdmin = new SynapseAdminClientImpl();
 		synapseAdmin.setAuthEndpoint(
 				StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapseAdmin.setRepositoryEndpoint(
@@ -113,7 +113,7 @@ public class IT060SynapseJavaClientDoiTest {
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertNull(doi.getObjectVersion());
-		assertEquals(DoiObjectType.ENTITY, doi.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doi.getObjectType());
 		assertNotNull(doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
@@ -150,7 +150,7 @@ public class IT060SynapseJavaClientDoiTest {
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertEquals(Long.valueOf(1L), doi.getObjectVersion());
-		assertEquals(DoiObjectType.ENTITY, doi.getDoiObjectType());
+		assertEquals(ObjectType.ENTITY, doi.getObjectType());
 		assertNotNull(doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());

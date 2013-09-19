@@ -12,13 +12,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -38,7 +38,7 @@ public class IT101Administration {
 
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
-	private static SynapseAdministration synapse;
+	private static SynapseAdminClientImpl synapse;
 	private static AmazonS3Client s3Client;
 	private static String bucket;
 	
@@ -47,7 +47,7 @@ public class IT101Administration {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Use the synapse client to do some of the work for us.
-		synapse = new SynapseAdministration();
+		synapse = new SynapseAdminClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

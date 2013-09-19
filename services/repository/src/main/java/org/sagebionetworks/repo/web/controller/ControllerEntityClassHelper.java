@@ -5,7 +5,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.util.ControllerUtil;

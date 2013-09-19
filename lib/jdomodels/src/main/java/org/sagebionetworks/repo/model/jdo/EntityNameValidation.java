@@ -4,7 +4,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.repo.model.util.ModelConstants;
-import org.sagebionetworks.repo.model.InvalidModelException;
 
 /**
  * Validation for entity names.

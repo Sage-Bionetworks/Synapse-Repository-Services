@@ -519,7 +519,6 @@ public class EntityController extends BaseController {
 			throws IOException, NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException,
 			JSONObjectAdapterException {
-		@SuppressWarnings("unchecked")
 		// Entity entity = (Entity)
 		// objectTypeSerializer.deserialize(request.getInputStream(), header,
 		// type.getClassForType(), header.getContentType());
@@ -582,7 +581,6 @@ public class EntityController extends BaseController {
 			@PathVariable Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
-		@SuppressWarnings("unchecked")
 		Entity updatedEntity = serviceProvider.getEntityService()
 				.getEntityForVersion(userId, id, versionNumber, request);
 		// Return the results
@@ -1122,7 +1120,6 @@ public class EntityController extends BaseController {
 		}
 
 		// Determine the object type from the url.
-		@SuppressWarnings("unchecked")
 		PaginatedResults<VersionInfo> results = serviceProvider
 				.getEntityService().getAllVersionsOfEntity(userId, offset,
 						limit, id, request);

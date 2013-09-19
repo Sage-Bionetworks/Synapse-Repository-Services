@@ -16,7 +16,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.HttpClientProvider;
 import org.sagebionetworks.client.HttpClientProviderImpl;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
@@ -24,8 +24,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserGroup;
 
 public class IT960TermsOfUse {
-	private static Synapse synapse = null;
-	private static Synapse adminSynapse = null;
+	private static SynapseClientImpl synapse = null;
+	private static SynapseClientImpl adminSynapse = null;
 	private static String authEndpoint = null;
 	private static String repoEndpoint = null;
 	
@@ -37,13 +37,13 @@ public class IT960TermsOfUse {
 
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(authEndpoint);
 		synapse.setRepositoryEndpoint(repoEndpoint);
 		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
 				StackConfiguration.getIntegrationTestUserThreePassword());
 		
-		adminSynapse = new Synapse();
+		adminSynapse = new SynapseClientImpl();
 		adminSynapse.setAuthEndpoint(authEndpoint);
 		adminSynapse.setRepositoryEndpoint(repoEndpoint);
 		adminSynapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
@@ -113,7 +113,7 @@ public class IT960TermsOfUse {
 
 	@Test
 	public void testRepoSvcNoTermsOfUse() throws Exception {
-		Synapse anonymous = new Synapse();
+		SynapseClientImpl anonymous = new SynapseClientImpl();
 		anonymous.setAuthEndpoint(authEndpoint);
 		anonymous.setRepositoryEndpoint(repoEndpoint);
 		

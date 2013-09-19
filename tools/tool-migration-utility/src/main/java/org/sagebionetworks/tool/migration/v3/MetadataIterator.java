@@ -4,7 +4,7 @@ import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -23,7 +23,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	static private Log log = LogFactory.getLog(MetadataIterator.class);
 	
 	MigrationType type;
-	SynapseAdministrationInt client;
+	SynapseAdminClient client;
 	long batchSize;
 	Iterator<RowMetadata> lastPageIterator;
 	RowMetadataResult lastPage;
@@ -38,7 +38,7 @@ public class MetadataIterator implements Iterator<RowMetadata> {
 	 * @param client - The Synapse client used to get the real data.
 	 * @param batchSize - The batch size is the page size of data fetched from a stack.
 	 */
-	public MetadataIterator(MigrationType type,	SynapseAdministrationInt client, long batchSize, BasicProgress progress) {
+	public MetadataIterator(MigrationType type,	SynapseAdminClient client, long batchSize, BasicProgress progress) {
 		super();
 		this.type = type;
 		this.client = client;

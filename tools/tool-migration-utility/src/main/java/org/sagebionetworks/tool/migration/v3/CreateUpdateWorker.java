@@ -7,7 +7,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -34,8 +34,8 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	long count;
 	Iterator<RowMetadata> iterator;
 	BasicProgress progress;
-	SynapseAdministrationInt destClient;
-	SynapseAdministrationInt sourceClient;
+	SynapseAdminClient destClient;
+	SynapseAdminClient sourceClient;
 	long batchSize;
 	long timeoutMS;
 	int retryDenominator;
@@ -55,8 +55,8 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	 * If this is set to less than 2, then no re-try will be attempted.
 	 */
 	public CreateUpdateWorker(MigrationType type, long count, Iterator<RowMetadata> iterator, BasicProgress progress,
-			SynapseAdministrationInt destClient,
-			SynapseAdministrationInt sourceClient, long batchSize, long timeoutMS, int retryDenominator) {
+			SynapseAdminClient destClient,
+			SynapseAdminClient sourceClient, long batchSize, long timeoutMS, int retryDenominator) {
 		super();
 		this.type = type;
 		this.count = count;
@@ -190,7 +190,7 @@ public class CreateUpdateWorker implements Callable<Long>, BatchWorker {
 	 * @throws JSONObjectAdapterException
 	 * @throws InterruptedException
 	 */
-	public BackupRestoreStatus waitForDaemon(String daemonId, SynapseAdministrationInt client)
+	public BackupRestoreStatus waitForDaemon(String daemonId, SynapseAdminClient client)
 			throws SynapseException, JSONObjectAdapterException,
 			InterruptedException {
 		// Wait for the daemon to finish.

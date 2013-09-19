@@ -20,7 +20,6 @@
 		<property name="triggers">
 			<list>
 				<ref bean="messagePublisherTrigger" />
-				<ref bean="unsentMessagesTrigger" />
 				<ref bean="accessRecorderTrigger" />
 			</list>
 		</property>

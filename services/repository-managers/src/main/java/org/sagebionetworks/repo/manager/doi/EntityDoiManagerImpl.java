@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +70,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// If it already exists with no error, no need to create again.
 		Doi doiDto = null;
 		try {
-			doiDto = doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 		} catch (NotFoundException e) {
 			doiDto = null;
 		}
@@ -84,9 +84,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
 			String userGroupId = currentUser.getIndividualGroup().getId();
-			doiDto = doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 		} else {
-			doiDto = doiDao.updateDoiStatus(entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
+			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
 		}
 
 		// Create DOI string
@@ -126,7 +126,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				assert doi != null;
 				try {
 					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getObjectType(),
 							dto.getObjectVersion(), DoiStatus.CREATED, dto.getEtag());
 				} catch (DatastoreException e) {
 					logger.error(e.getMessage(), e);
@@ -141,7 +141,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					logger.error(e.getMessage(), e);
 					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getObjectType(),
 							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
 				} catch (DatastoreException x) {
 					logger.error(x.getMessage(), x);
@@ -158,10 +158,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onSuccess(EzidDoi ezidDoi) {
 				try {
 					Doi doiDto = ezidDoi.getDto();
-					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getDoiObjectType(),
+					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getObjectType(),
 							doiDto.getObjectVersion());
 					doiDao.updateDoiStatus(doiDto.getObjectId(),
-							doiDto.getDoiObjectType(), doiDto.getObjectVersion(),
+							doiDto.getObjectType(), doiDto.getObjectVersion(),
 							DoiStatus.READY, doiDto.getEtag());
 				} catch (DatastoreException e) {
 					logger.error(e.getMessage(), e);
@@ -197,7 +197,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
-		return doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */

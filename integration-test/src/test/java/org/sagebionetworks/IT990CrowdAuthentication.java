@@ -19,11 +19,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.repo.model.UserSessionData;
 import org.springframework.http.HttpStatus;
 
 
@@ -32,7 +31,7 @@ import org.springframework.http.HttpStatus;
  */
 
 public class IT990CrowdAuthentication {
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	private static String authEndpoint = null;
 	private static String repoEndpoint = null;
 	/**
@@ -44,7 +43,7 @@ public class IT990CrowdAuthentication {
 
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(authEndpoint);
 		synapse.setRepositoryEndpoint(repoEndpoint);
 		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),

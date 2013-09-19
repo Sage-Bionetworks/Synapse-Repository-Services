@@ -1,6 +1,7 @@
 package org.sagebionetworks.search;
 
-import static org.sagebionetworks.search.SearchConstants.*;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
+import static org.sagebionetworks.search.SearchConstants.FIELD_ANCESTORS;
 import static org.sagebionetworks.search.SearchConstants.FIELD_BOOST;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
@@ -35,7 +36,6 @@ import com.amazonaws.services.cloudsearch.model.SourceAttribute;
 import com.amazonaws.services.cloudsearch.model.SourceData;
 import com.amazonaws.services.cloudsearch.model.SourceDataFunction;
 import com.amazonaws.services.cloudsearch.model.TextOptions;
-import com.amazonaws.services.cloudsearch.model.UIntOptions;
 
 /**
  * Load the search schema.

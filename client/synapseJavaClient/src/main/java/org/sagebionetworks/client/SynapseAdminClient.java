@@ -1,7 +1,6 @@
 package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
@@ -12,7 +11,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
@@ -21,7 +19,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * @author jmhill
  *
  */
-public interface SynapseAdministrationInt extends SynapseInt {
+public interface SynapseAdminClient extends SynapseClient {
 
 	/**
 	 * Update the current stack status.

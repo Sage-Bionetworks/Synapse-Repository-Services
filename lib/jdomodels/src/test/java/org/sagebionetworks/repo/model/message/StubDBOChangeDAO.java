@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -68,7 +69,7 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 
 	@Override
 	public List<ChangeMessage> listChanges(long greaterOrEqualChangeNumber,	ObjectType type, long limit) {
-		return new LinkedList(map.values());
+		return new LinkedList<ChangeMessage>(map.values());
 	}
 
 	@Override
@@ -79,6 +80,25 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long limit) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public long getMinimumChangeNumber() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public long getCount() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public List<ChangeMessage> listUnsentMessages(long lowerBound,
+			long upperBound) {
 		// TODO Auto-generated method stub
 		return null;
 	}

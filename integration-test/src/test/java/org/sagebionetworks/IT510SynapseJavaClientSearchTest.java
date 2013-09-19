@@ -19,7 +19,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -43,7 +43,7 @@ public class IT510SynapseJavaClientSearchTest {
 	
 	public static final long MAX_WAIT_TIME_MS = 10*60*1000; // ten min.
 
-	private static Synapse synapse = null;
+	private static SynapseClientImpl synapse = null;
 	
 	/**
 	 * All objects are added to this project.
@@ -61,7 +61,7 @@ public class IT510SynapseJavaClientSearchTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 
-		synapse = new Synapse();
+		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

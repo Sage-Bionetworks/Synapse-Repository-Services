@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.query;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.EntityType;
-
 /**
  * The data describing a basic query.
  * 
