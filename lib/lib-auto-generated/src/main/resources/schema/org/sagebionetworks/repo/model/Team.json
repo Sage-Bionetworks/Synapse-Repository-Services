@@ -17,14 +17,8 @@
 			"title": "Description"
 		},
 		"icon": {
-			"type": "object",
-			"description": "picture attachment",
-			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData",
-			"links": [
-				{
-					"rel": "describedby"
-				}
-			]
+			"type": "string",
+			"description": "fileHandleId for icon image of the Team",
 		},
 		"etag": {
 			"type": "string",

@@ -32,7 +32,7 @@ public class DBOTeamTest {
 	DBOBasicDao dboBasicDao;
 	
 	@Autowired
-	private IdGenerator idGenerator;
+	private UserGroupDAO userGroupDAO;
 	
 	List<Long> toDelete = null;
 	
@@ -52,15 +52,21 @@ public class DBOTeamTest {
 		toDelete = new LinkedList<Long>();
 	}
 	
-	@Test
-	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
+	public static DBOTeam newTeam(UserGroupDAO userGroupDAO) {
+		Long id = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		DBOTeam team = new DBOTeam();
-		team.setId(idGenerator.generateNewId());
+		team.setId(id);
 		team.setEtag("1");
 		team.setProperties((new String("12345")).getBytes());
+		return team;
+	}
+	
+	@Test
+	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		// Make sure we can create it
-		DBOTeam clone = dboBasicDao.createNew(team);
+		DBOTeam team = newTeam(userGroupDAO);
 		toDelete.add(team.getId());
+		DBOTeam clone = dboBasicDao.createNew(team);		
 		assertNotNull(clone);
 		assertEquals(team, clone);
 		// Fetch it

@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * Database Object for a MembershipRqstSubmission.
- * @author John
  *
  */
 public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBOMembershipRqstSubmission, DBOMembershipRqstSubmission> {
@@ -161,7 +160,7 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.TEAM;
+		return MigrationType.MEMBERSHIP_REQUEST_SUBMISSION;
 	}
 
 	@Override

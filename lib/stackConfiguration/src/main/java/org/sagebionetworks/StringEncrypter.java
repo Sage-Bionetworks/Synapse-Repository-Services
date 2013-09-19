@@ -34,7 +34,7 @@ public class StringEncrypter {
 		}
 		for (int i = 1; i < args.length; i++) {
 			StringEncrypter se = new StringEncrypter(args[i]);	
-			System.out.println(args[0]+" -> "+se.encrypt(args[0]) + " (for encryption key " + args[i] + ")");
+			System.out.println(args[0]+" -> "+se.decrypt(args[0]) + " (for encryption key " + args[i] + ")");
 		}
 
 	}
