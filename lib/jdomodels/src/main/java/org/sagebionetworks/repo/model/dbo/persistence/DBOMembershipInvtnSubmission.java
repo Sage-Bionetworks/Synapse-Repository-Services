@@ -5,9 +5,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_TEAM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_INVITATION_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,7 +21,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
- * Database Object for a MembershipInvitation.
+ * Database Object for a MembershipInvtnSubmission.
  * @author John
  *
  */
@@ -51,8 +50,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				team.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
 				team.setEtag(rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG));
 				team.setTeamId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
+				team.setExpiresOn(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON));
 
-				java.sql.Blob blob = rs.getBlob(COL_TEAM_PROPERTIES);
+				java.sql.Blob blob = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 				if(blob != null){
 					team.setProperties(blob.getBytes(1, (int) blob.length()));
 				}
@@ -61,12 +61,12 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 			@Override
 			public String getTableName() {
-				return TABLE_TEAM;
+				return TABLE_MEMBERSHIP_INVITATION_SUBMISSION;
 			}
 
 			@Override
 			public String getDDLFileName() {
-				return DDL_FILE_TEAM;
+				return DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION;
 			}
 
 			@Override
