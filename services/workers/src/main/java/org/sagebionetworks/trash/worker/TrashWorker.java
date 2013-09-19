@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public class TrashWorker {
 
-	private final static long MONTH = 1000 * 60 * 60 * 24 * 30;
+	private final static long MONTH = 1000l * 60l * 60l * 24l * 30l;
 	private final Logger logger = LogManager.getLogger(TrashWorker.class);
 	private final TrashManager trashManager;
 
