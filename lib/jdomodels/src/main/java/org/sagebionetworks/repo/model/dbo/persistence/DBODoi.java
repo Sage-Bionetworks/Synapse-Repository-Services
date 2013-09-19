@@ -32,7 +32,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
-			new FieldColumn("ObjectType", COL_DOI_OBJECT_TYPE),
+			new FieldColumn("objectType", COL_DOI_OBJECT_TYPE),
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
 			new FieldColumn("createdBy", COL_DOI_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOI_CREATED_ON),
@@ -109,10 +109,10 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
-		return objectType.name();
+		return doiObjectType.name();
 	}
-	public void setObjectType(ObjectType ObjectType) {
-		this.objectType = ObjectType;
+	public void setObjectType(ObjectType objectType) {
+		this.doiObjectType = objectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -142,8 +142,8 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	@Override
 	public String toString() {
 		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
-				+ doiStatus + ", objectId=" + objectId + ", ObjectType="
-				+ objectType + ", objectVersion=" + objectVersion
+				+ doiStatus + ", objectId=" + objectId + ", objectType="
+				+ doiObjectType + ", objectVersion=" + objectVersion
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", updatedOn=" + updatedOn + "]";
 	}
@@ -152,7 +152,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
-	private ObjectType objectType;
+	private ObjectType doiObjectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;

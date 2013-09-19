@@ -34,9 +34,9 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<property name="startDelay" value="172" />
-		<!-- Runs every hour. -->
-		<property name="repeatInterval" value="3600000" />
+		<property name="startDelay" value="93867" />
+		<!-- Runs every 10 hours. A long interval to give a grace period for data migration. -->
+		<property name="repeatInterval" value="36000000" />
 	</bean>
 
 </beans>
