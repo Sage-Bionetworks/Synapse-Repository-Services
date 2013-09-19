@@ -32,7 +32,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
-			new FieldColumn("doiObjectType", COL_DOI_OBJECT_TYPE),
+			new FieldColumn("objectType", COL_DOI_OBJECT_TYPE),
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
 			new FieldColumn("createdBy", COL_DOI_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOI_CREATED_ON),
