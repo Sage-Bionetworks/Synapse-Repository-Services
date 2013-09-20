@@ -216,7 +216,7 @@ public class MigatableTableDAOImplAutowireTest {
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
-	
+
 	/**
 	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 
 	 * primary type is added, but that ensures we check that the types are truly primary.
@@ -243,12 +243,11 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
-		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
+		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
 		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
-
 }
