@@ -49,7 +49,7 @@ public class SizeLimitRowMapper extends ColumnMapRowMapper{
 	Map<String, Object> checkSize(Map<String, Object> rowMap) {
 		bytesUsed += getRowSizeBytes(rowMap);
 		if(bytesUsed > maxBytes){
-			throw new IllegalArgumentException("The results of this query exceeded the maximumn number of allowable byte: "+maxBytes+".  Please try the query again with a smaller page size or limit the columns returend in the select clause.");
+			throw new IllegalArgumentException("The results of this query exceeded the maximum number of allowable bytes: "+maxBytes+".  Please try the query again with a smaller page size or limit the columns returned in the select clause.");
 		}
 		return rowMap;
 	}
