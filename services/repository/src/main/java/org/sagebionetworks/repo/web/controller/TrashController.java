@@ -23,7 +23,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * REST APIs for the trash can.
+ * The recycle bin (or trash can) is the special folder that holds the deleted entities for users.
+ * <p>
+ * Services are provided for users to delete entities into the trash can, to view entities
+ * in the trash can, to purge entities from the trash can, and to restore entities out
+ * of the trash can.
  */
 @ControllerInfo(displayName="Recycle Bin Services", path="repo/v1")
 @Controller
@@ -32,6 +36,11 @@ public class TrashController extends BaseController {
 	@Autowired
 	private ServiceProvider serviceProvider;
 
+	/**
+	 * Moves an entity and its descendants to the trash can.
+	 *
+	 * @param id The ID of the entity being moved to the trash can.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_TRASH}, method = RequestMethod.PUT)
 	public void moveToTrash(
@@ -42,6 +51,14 @@ public class TrashController extends BaseController {
 		this.serviceProvider.getTrashService().moveToTrash(currentUserId, id);
 	}
 
+	/**
+	 * Moves an entity and its descendants out of the trash can back to its original parent. An exception
+	 * is thrown if the original parent does not exist any more.  In that case, please use
+	 * <a href="${PUT.trashcan.restore.id.parentId}">PUT /trashcan/restored/{id}/{parentId}</a> to
+	 * restore to a new parent.
+	 *
+	 * @param id The ID of the entity being restored out of the trash can.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
@@ -52,6 +69,12 @@ public class TrashController extends BaseController {
 		this.serviceProvider.getTrashService().restoreFromTrash(currentUserId, id, null);
 	}
 
+	/**
+	 * Moves an entity and its descendants out of the trash can to a new parent.
+	 *
+	 * @param id        The ID of the entity being restored out of the trash can.
+	 * @param parentId  The ID of the new parent entity.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE_TO_PARENT}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
@@ -63,6 +86,13 @@ public class TrashController extends BaseController {
 		this.serviceProvider.getTrashService().restoreFromTrash(currentUserId, id, parentId);
 	}
 
+	/**
+	 * Retrieves the paginated list of trash entities deleted by the current user.
+	 *
+	 * @param offset Paginated results. Offset to the current page.
+	 * @param limit  The maximum number of entities to retrieve per page.
+	 * @return The paginated list of trash entities.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_VIEW}, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<TrashedEntity> viewTrashForUser(
@@ -73,6 +103,12 @@ public class TrashController extends BaseController {
 		return serviceProvider.getTrashService().viewTrashForUser(userId, userId, offset, limit, request);
 	}
 
+	/**
+	 * Purges the specified entity from the trash can. Once purging is done, the entity
+	 * will be permanently deleted from the system.
+	 *
+	 * @param id  The ID of the entity to be purged.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
 	public void purgeTrashForUser(
@@ -83,6 +119,10 @@ public class TrashController extends BaseController {
 		this.serviceProvider.getTrashService().purgeTrashForUser(userId, id);
 	}
 
+	/**
+	 * Purges everything in the trash can for the current user. Once purging is done, items in
+	 * the trash can will permanently removed from the system.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE}, method = RequestMethod.PUT)
 	public void purgeTrashForUser(
@@ -94,6 +134,9 @@ public class TrashController extends BaseController {
 
 	// For administrators //
 
+	/**
+	 * For administrators to view the entire trash can.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_VIEW}, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<TrashedEntity> viewTrash(
@@ -104,6 +147,9 @@ public class TrashController extends BaseController {
 		return serviceProvider.getTrashService().viewTrash(adminUserId, offset, limit, request);
 	}
 
+	/**
+	 * For administrators to purge the entire trash can.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_PURGE}, method = RequestMethod.PUT)
 	public void purge(
