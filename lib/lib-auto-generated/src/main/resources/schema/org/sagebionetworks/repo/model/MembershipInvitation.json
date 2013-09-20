@@ -22,10 +22,6 @@
 			"format": "date-time",
 			"description": "The date this MembershipInvitation expires.",
 			"title": "Expires On"
-		},
-		"concreteType":{
-            "type":"string",
-            "description":"Indicates this object's type."
-        }
+		}
 	}
 }

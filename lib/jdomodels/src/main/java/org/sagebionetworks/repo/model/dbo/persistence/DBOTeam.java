@@ -144,8 +144,7 @@ public class DBOTeam implements MigratableDatabaseObject<DBOTeam, DBOTeam> {
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
-		return list;
+		return null;
 	}
 
 

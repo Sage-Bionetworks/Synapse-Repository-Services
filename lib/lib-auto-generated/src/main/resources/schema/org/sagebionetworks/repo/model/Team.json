@@ -12,13 +12,13 @@
 			"description": "The name of the Team."
 		},
 		"description": {
-			"description": "The description of this Team.",
+			"description": "A short description of this Team.",
 			"type": "string",
 			"title": "Description"
 		},
 		"icon": {
 			"type": "string",
-			"description": "fileHandleId for icon image of the Team",
+			"description": "fileHandleId for icon image of the Team"
 		},
 		"etag": {
 			"type": "string",
@@ -50,11 +50,6 @@
 			"description": "The ID of the user that last modified this Team.",
 			"title": "Modified By",
 			"transient": true
-		},
-		"concreteType":{
-            "type":"string",
-            "description":"Indicates this object's type."
-        }
+		}
 	}
-}
 }

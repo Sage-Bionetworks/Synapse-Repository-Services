@@ -118,8 +118,7 @@ public class DBOMembershipInvitee implements MigratableDatabaseObject<DBOMembers
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
-		return list;
+		return null;
 	}
 
 

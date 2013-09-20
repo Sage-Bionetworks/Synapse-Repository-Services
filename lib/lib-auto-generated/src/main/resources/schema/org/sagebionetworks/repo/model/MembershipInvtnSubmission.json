@@ -15,7 +15,7 @@
 			"type": "array",
 			"description": "The principal IDs of the ones being invited to join the Team.",
 			"items": {
-        		"type":"string",
+        		"type":"string"
 			}
 		},
 		"etag": {
@@ -42,10 +42,6 @@
 			"type": "string",
 			"description": "The ID of the user that created this MembershipInvtnSubmission.",
 			"title": "Created By"
-		},
-		"concreteType":{
-            "type":"string",
-            "description":"Indicates this object's type."
-        }
+		}
 	}
 }

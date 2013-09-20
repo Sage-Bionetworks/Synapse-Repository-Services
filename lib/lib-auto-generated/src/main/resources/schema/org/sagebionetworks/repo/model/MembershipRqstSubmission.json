@@ -39,10 +39,6 @@
 			"type": "string",
 			"description": "The ID of the user that created this MembershipRqstSubmission.",
 			"title": "Created By"
-		},
-		"concreteType":{
-            "type":"string",
-            "description":"Indicates this object's type."
-        }
+		}
 	}
 }

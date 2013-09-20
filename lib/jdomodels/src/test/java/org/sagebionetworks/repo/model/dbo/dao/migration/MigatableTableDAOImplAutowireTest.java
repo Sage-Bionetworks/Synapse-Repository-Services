@@ -243,8 +243,11 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
-		expectedPrimaryTypes.add(MigrationType.CHANGE);
+		expectedPrimaryTypes.add(MigrationType.TEAM);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
+		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
 		System.out.println(primary);

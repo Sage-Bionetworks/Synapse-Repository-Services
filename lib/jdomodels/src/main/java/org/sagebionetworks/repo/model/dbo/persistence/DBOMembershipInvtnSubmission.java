@@ -175,6 +175,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBOMembershipInvitee());
 		return list;
 	}
 
