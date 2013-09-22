@@ -4,12 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Date;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -23,7 +25,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOTeamDAOImplTest {
 	
-	private long teamToDelete = 0L;
+	private long teamToDelete = -1L;
 	
 	@Autowired
 	private TeamDAO teamDAO;
@@ -31,11 +33,14 @@ public class DBOTeamDAOImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+	
 	@After
 	public void tearDown() throws Exception {
-		if (teamDAO!=null && teamToDelete!=0L) {
+		if (teamDAO!=null && teamToDelete!=-1L) {
 			teamDAO.delete(""+teamToDelete);
-			teamToDelete=0L;
+			teamToDelete=-1L;
 		}
 	}
 
@@ -74,8 +79,13 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, teamDAO.getInRange(0, 1).size());
 		assertEquals(0, teamDAO.getInRange(1, 2).size());
 		
-		//assertEquals(1, teamDAO.getForMemberInRange(principalId, fromIncl, toExcl))
-		
+		assertEquals(0, teamDAO.getForMemberInRange(""+id, 0, 1).size());
+		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 3).size());
+		// need an arbitrary user to add to the group
+		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
+		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 0, 1).size());
+		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 1, 3).size());
 		
 		// delete the team
 		teamDAO.delete(""+id);
@@ -85,7 +95,7 @@ public class DBOTeamDAOImplTest {
 		} catch (NotFoundException e) {
 			// OK
 		}
-		teamToDelete=0L; // no need to delete in 'tear down'
+		teamToDelete=-1L; // no need to delete in 'tear down'
 	}
 
 }

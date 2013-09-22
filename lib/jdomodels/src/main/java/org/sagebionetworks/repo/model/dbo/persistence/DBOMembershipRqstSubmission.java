@@ -160,7 +160,7 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MEMBERSHIP_REQUEST_SUBMISSION;
+		return null; //MigrationType.MEMBERSHIP_REQUEST_SUBMISSION;
 	}
 
 	@Override
