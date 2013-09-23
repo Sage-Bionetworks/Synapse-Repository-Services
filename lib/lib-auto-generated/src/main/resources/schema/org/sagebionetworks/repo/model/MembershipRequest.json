@@ -1,0 +1,26 @@
+{
+	"title": "MembershipRequest",
+	"description": "JSON schema for MembershipRequest POJO",
+	"properties": {
+		"teamId": {
+			"type": "string",
+			"description": "The id of the Team to which the request is sent."
+		},
+		"user":{
+            "type":"object",
+  			"description": "The one being invited to join the Team.",
+            "$ref":"org.sagebionetworks.repo.model.UserGroupHeader",
+            "title":"User"
+        },
+		"message": {
+			"type": "string",
+			"description": "The request message."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipRequest expires.",
+			"title": "Expires On"
+		}
+	}
+}

@@ -45,6 +45,8 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -126,6 +128,8 @@ public class MigrationIntegrationAutowireTest {
 	UserGroupDAO userGroupDAO;
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
+	@Autowired
+	TeamDAO teamDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -191,7 +195,8 @@ public class MigrationIntegrationAutowireTest {
 		creatWikiPages();
 		createDoi();
 		createStorageQuota();
-		createUserGroups();
+		UserGroup sampleGroup = createUserGroups();
+		createTeamsRequestsAndInvitations(sampleGroup);
 	}
 
 
@@ -388,7 +393,8 @@ public class MigrationIntegrationAutowireTest {
 		storageQuotaManager.setQuotaForUser(userInfo, userInfo, 3000);
 	}
 	
-	private void createUserGroups() throws NotFoundException {
+	// returns a group for use in a team
+	private UserGroup createUserGroups() throws NotFoundException {
 		String groupNamePrefix = "Caravan-";
 		String userNamePrefix = "GoinOnTheOregonTrail@";
 		List<String> adder = new ArrayList<String>();
@@ -439,6 +445,19 @@ public class MigrationIntegrationAutowireTest {
 		tempUserAndGroups.add(parentUser);
 		tempUserAndGroups.add(siblingUser);
 		tempUserAndGroups.add(childUser);
+		return parentGroup;
+	}
+	
+	private void createTeamsRequestsAndInvitations(UserGroup group) {
+		Team team = new Team();
+		team.setId(group.getId());
+		team.setName(group.getName());
+		team.setDescription("test team");
+		teamDAO.create(team);
+		
+		// TODO create a MembershipInvtnSubmission
+		
+		// TODO create a MembershipRqstSumbission
 	}
 
 	@After
