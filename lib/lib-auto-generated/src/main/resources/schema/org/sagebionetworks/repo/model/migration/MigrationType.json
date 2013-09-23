@@ -27,6 +27,7 @@
         "TRASH_CAN",
         "DOI",
         "STORAGE_QUOTA",
+         "TEAM",
         "CHANGE"
     ]
 }

@@ -1,0 +1,55 @@
+{
+	"title": "Team",
+	"description": "JSON schema for Team POJO",
+
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of the Team."
+		},
+		"name": {
+			"type": "string",
+			"description": "The name of the Team."
+		},
+		"description": {
+			"description": "A short description of this Team.",
+			"type": "string",
+			"title": "Description"
+		},
+		"icon": {
+			"type": "string",
+			"description": "fileHandleId for icon image of the Team"
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a Team is updated it is used to detect when a client's current representation of a Team is out-of-date.",
+			"transient": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this Team was created.",
+			"title": "Created On",
+			"transient": true
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this Team was last modified.",
+			"title": "Modified On",
+			"transient": true
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this Team.",
+			"title": "Created By",
+			"transient": true
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this Team.",
+			"title": "Modified By",
+			"transient": true
+		}
+	}
+}

@@ -11,6 +11,7 @@
     	"WIKI",
     	"FAVORITE",
     	"ACCESS_REQUIREMENT",
-    	"ACCESS_APPROVAL"
+    	"ACCESS_APPROVAL",
+    	"TEAM"
     ]
 }

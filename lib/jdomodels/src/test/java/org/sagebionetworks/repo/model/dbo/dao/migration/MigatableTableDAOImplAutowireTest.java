@@ -243,6 +243,9 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
+		expectedPrimaryTypes.add(MigrationType.TEAM);
+		//expectedPrimaryTypes.add(null); //MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
+		//expectedPrimaryTypes.add(null); //MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
