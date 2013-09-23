@@ -216,7 +216,7 @@ public class MigatableTableDAOImplAutowireTest {
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
-	
+
 	/**
 	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 
 	 * primary type is added, but that ensures we check that the types are truly primary.
@@ -253,5 +253,4 @@ public class MigatableTableDAOImplAutowireTest {
 		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
-
 }
