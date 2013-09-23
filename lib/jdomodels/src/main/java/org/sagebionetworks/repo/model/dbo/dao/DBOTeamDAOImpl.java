@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
@@ -59,6 +60,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")"+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
+	private static final String SELECT_FOR_UPDATE_SQL = "select "+COL_TEAM_ETAG+" from "+TABLE_TEAM+" where "+COL_TEAM_ID+
+			"=:"+COL_TEAM_ID+" for update";
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#create(org.sagebionetworks.repo.model.Team)
 	 */
@@ -69,7 +73,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required");
 		DBOTeam dbo = new DBOTeam();
 		TeamUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getEtag()==null) dbo.setEtag(eTagGenerator.generateETag());
+		dbo.setEtag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
 		Team result = TeamUtils.copyDboToDto(dbo);
 		return result;
@@ -91,11 +95,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 * @see org.sagebionetworks.repo.model.TeamDAO#getInRange(long, long)
 	 */
 	@Override
-	public List<Team> getInRange(long fromIncl, long toExcl)
+	public List<Team> getInRange(long offset, long limit)
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
-		param.addValue(OFFSET_PARAM_NAME, fromIncl);
-		long limit = toExcl - fromIncl;
+		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_SQL_PAGINATED, teamRowMapper, param);
@@ -108,12 +111,11 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 * @see org.sagebionetworks.repo.model.TeamDAO#getForMemberInRange(java.lang.String, long, long)
 	 */
 	@Override
-	public List<Team> getForMemberInRange(String principalId, long fromIncl,
-			long toExcl) throws DatastoreException {
+	public List<Team> getForMemberInRange(String principalId, long offset,
+			long limit) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
-		param.addValue(OFFSET_PARAM_NAME, fromIncl);
-		long limit = toExcl - fromIncl;
+		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_GROUPS_OF_MEMBER, teamRowMapper, param);
@@ -122,36 +124,34 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return dtos;
 	}
 
-	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
-			"=:"+COL_TEAM_ID+" for update";
-
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#update(org.sagebionetworks.repo.model.Team)
 	 */
 	@Override
 	public Team update(Team dto) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException {
-		DBOTeam dbo = null;
+
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID, dto.getId());
+		String oldEtag = null;
 		try{
-			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, teamRowMapper, param);
+			oldEtag = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, String.class, param);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 
 		// check dbo's etag against dto's etag
 		// if different rollback and throw a meaningful exception
-		if (!dbo.getEtag().equals(dto.getEtag())) {
+		if (!oldEtag.equals(dto.getEtag())) {
 			throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
-		
+		DBOTeam dbo = new DBOTeam();		
 		TeamUtils.copyDtoToDbo(dto, dbo);
 		// Update with a new e-tag
 		dbo.setEtag(eTagGenerator.generateETag());
 
 		boolean success = basicDao.update(dbo);
-		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
+		if (!success) throw new DatastoreException("Unsuccessful updating Team in database.");
 
 		Team resultantDto = TeamUtils.copyDboToDto(dbo);
 		return resultantDto;

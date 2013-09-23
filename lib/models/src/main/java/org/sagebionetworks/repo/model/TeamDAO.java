@@ -26,21 +26,21 @@ public interface TeamDAO {
 	/**
 	 * Get the Teams in the system
 	 * 
-	 * @param fromIncl the beginning of the range, inclusive
-	 * @param toExcl the end of the range, exclusive
+	 * @param offset
+	 * @param limit
 	 * 
 	 */
-	public List<Team> getInRange(long fromIncl, long toExcl) throws DatastoreException;
+	public List<Team> getInRange(long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Get the Teams a member belongs to
 	 * @param princialId the team member
-	 * @param fromIncl the beginning of the range, inclusive
-	 * @param toExcl the end of the range, exclusive
+	 * @param offset
+	 * @param limit
 	 * @return the Teams this principal belongs to
 	 * @throws DatastoreException 
 	 */
-	public List<Team> getForMemberInRange(String principalId, long fromIncl, long toExcl) throws DatastoreException;
+	public List<Team> getForMemberInRange(String principalId, long offset, long limit) throws DatastoreException;
 	
 	/**
 	 * Updates the 'shallow' properties of an object.
