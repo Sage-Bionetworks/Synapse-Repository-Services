@@ -29,13 +29,13 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -105,29 +105,41 @@ public class MigrationIntegrationAutowireTest {
 	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
+	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
-	UserProfileManager userProfileManager;
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
+	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
+	
 	@Autowired
-	MigrationManager migrationManager;
+	private MigrationManager migrationManager;
+	
 	@Autowired
-	StorageQuotaManager storageQuotaManager;
+	private StorageQuotaManager storageQuotaManager;
+	
 	@Autowired
-	StorageQuotaAdminDao storageQuotaAdminDao;
+	private StorageQuotaAdminDao storageQuotaAdminDao;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
-	GroupMembersDAO groupMembersDAO;
+	private GroupMembersDAO groupMembersDAO;
+	
 	@Autowired
 	TeamDAO teamDAO;
 
@@ -181,7 +193,7 @@ public class MigrationIntegrationAutowireTest {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
-		userName = TestUserDAO.MIGRATION_USER_NAME;
+		userName = AuthorizationConstants.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
 		resetDatabase();
@@ -223,7 +235,7 @@ public class MigrationIntegrationAutowireTest {
 	private void createActivity() throws Exception {
 		activity = new Activity();
 		activity.setDescription("some desc");
-		activity = serviceProvider.getActivityService().createActivity(adminId, activity);
+		activity = serviceProvider.getActivityService().createActivity(userName, activity);
 	}
 
 
@@ -445,6 +457,9 @@ public class MigrationIntegrationAutowireTest {
 		tempUserAndGroups.add(parentUser);
 		tempUserAndGroups.add(siblingUser);
 		tempUserAndGroups.add(childUser);
+		
+		// Made by the bootstrapper
+		tempUserAndGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
 		return parentGroup;
 	}
 	
@@ -482,6 +497,18 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		validateStartingCount(startCounts);
 		
+		// The admin group cannot be deleted without locking the migrator out of the system
+		// So a special case must be made for the admins
+		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		Long startAdminCount = new Long(groupMembersDAO.getMembers(adminGroupId).size());
+		// Remove the admins from the start count
+		for (int i = 0; i < startCounts.getList().size(); i++) {
+			if (startCounts.getList().get(i).getType() == MigrationType.GROUP_MEMBERS) {
+				MigrationTypeCount shouldntIncludeAdmins = startCounts.getList().get(i);
+				shouldntIncludeAdmins.setCount(shouldntIncludeAdmins.getCount() - startAdminCount);
+			}
+		}
+		
 		// This test will backup all data, delete it, then restore it.
 		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
 		for(MigrationType type: primaryTypesList.getList()){
@@ -505,8 +532,14 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for(int i=1; i<afterDeleteCounts.getList().size(); i++){
-			assertEquals(new Long(0), afterDeleteCounts.getList().get(i).getCount());
+		for (int i=1; i<afterDeleteCounts.getList().size(); i++) {
+			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
+			// Special case for not-deleted admins
+			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS) {
+				assertEquals(startAdminCount, afterDelete.getCount());
+			} else {
+				assertEquals(new Long(0), afterDelete.getCount());
+			}
 		}
 		
 		// Now restore all of the data
@@ -515,6 +548,7 @@ public class MigrationIntegrationAutowireTest {
 			assertNotNull("Did not find a backup file name for type: "+info.getType(), fileName);
 			restoreFromBackup(info.getType(), fileName);
 		}
+		
 		// The counts should all be back
 		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertEquals(startCounts, finalCounts);

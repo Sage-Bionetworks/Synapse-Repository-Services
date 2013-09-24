@@ -11,7 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -36,8 +35,8 @@ public class TrashControllerAutowiredTest {
 	@Autowired
 	private EntityService entityService;
 
-	private final String adminUser = TestUserDAO.ADMIN_USER_NAME;
-	private final String testUser = TestUserDAO.TEST_USER_NAME;
+	private final String adminUser = AuthorizationConstants.ADMIN_USER_NAME;
+	private final String testUser = AuthorizationConstants.TEST_USER_NAME;
 	private Entity parent;
 	private Entity child;
 

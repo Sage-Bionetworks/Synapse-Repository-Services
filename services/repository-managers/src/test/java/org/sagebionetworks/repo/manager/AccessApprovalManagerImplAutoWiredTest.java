@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -32,7 +33,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -41,20 +41,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AccessApprovalManagerImplAutoWiredTest {
+	
 	@Autowired
-	public NodeManager nodeManager;
+	private UserManager userManager;
+	
 	@Autowired
-	public UserProvider testUserProvider;
+	private NodeManager nodeManager;
+	
 	@Autowired
-	public AccessRequirementManager accessRequirementManager;
+	private AccessRequirementManager accessRequirementManager;
+	
 	@Autowired
-	public AccessApprovalManager accessApprovalManager;
+	private AccessApprovalManager accessApprovalManager;
+	
 	@Autowired
-	public AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
+	
 	@Autowired
-	public EntityPermissionsManager entityPermissionsManager;
+	private EntityPermissionsManager entityPermissionsManager;
 	
 	private UserInfo adminUserInfo;
+	private UserInfo testUserInfo;
 	
 	private static final String TERMS_OF_USE = "my dog has fleas";
 
@@ -67,7 +74,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@Before
 	public void before() throws Exception{
-		adminUserInfo = testUserProvider.getTestAdminUserInfo();
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		
@@ -89,7 +97,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(testUserProvider.getTestUserInfo().getIndividualGroup().getId()));
+		ra.setPrincipalId(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
 		ras.add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
@@ -181,21 +189,20 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateAccessApprovalForbidden() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), null);
-		aa = accessApprovalManager.createAccessApproval(testUserProvider.getTestUserInfo(), aa);
-		accessApprovalManager.deleteAccessApproval(testUserProvider.getTestUserInfo(), aa.getId().toString());
+		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
+		accessApprovalManager.deleteAccessApproval(testUserInfo, aa.getId().toString());
 	}
 	
 	// check that signing ToU actually gives download access
 	@Test
 	public void testHappyPath() throws Exception {
-		UserInfo other = testUserProvider.getTestUserInfo();
 		// can't download at first
-		assertFalse(authorizationManager.canAccess(other, entityId, ACCESS_TYPE.DOWNLOAD));
+		assertFalse(authorizationManager.canAccess(testUserInfo, entityId, ACCESS_TYPE.DOWNLOAD));
 		// then he signs the terms of use for the data
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), other.getIndividualGroup().getId());
-		aa = accessApprovalManager.createAccessApproval(other, aa);
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), testUserInfo.getIndividualGroup().getId());
+		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
 		// now he *can* download the data
-		assertTrue(authorizationManager.canAccess(other, entityId, ACCESS_TYPE.DOWNLOAD));
+		assertTrue(authorizationManager.canAccess(testUserInfo, entityId, ACCESS_TYPE.DOWNLOAD));
 	}
 		
 	public void testCreateAccessApprovalAndFillInUser() throws Exception {
@@ -238,8 +245,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Test
 	public void testCreateAccessApprovalBadAccessorId() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
-		aa = accessApprovalManager.createAccessApproval(testUserProvider.getTestUserInfo(), aa);
-		assertEquals(testUserProvider.getTestUserInfo().getIndividualGroup().getId(), aa.getAccessorId());
+		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
+		assertEquals(testUserInfo.getIndividualGroup().getId(), aa.getAccessorId());
 	}
 	
 	// it's OK for an administrator of the resource to give ACT approval
@@ -247,7 +254,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	public void testGiveACTApproval() throws Exception {
 		actAr = newACTAccessRequirement(entityId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserProvider.getTestUserInfo().getIndividualGroup().getId());
+		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserInfo.getIndividualGroup().getId());
 		actAa = accessApprovalManager.createAccessApproval(adminUserInfo, actAa);
 		assertNotNull(actAa.getId());
 	}
@@ -257,8 +264,8 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	public void testGiveACTApprovalForbidden() throws Exception {
 		actAr = newACTAccessRequirement(entityId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserProvider.getTestUserInfo().getIndividualGroup().getId());
-		actAa = accessApprovalManager.createAccessApproval(testUserProvider.getTestUserInfo(), actAa);
+		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserInfo.getIndividualGroup().getId());
+		actAa = accessApprovalManager.createAccessApproval(testUserInfo, actAa);
 		assertNotNull(actAa.getId());
 	}
 	
@@ -286,7 +293,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		// ensure that the 'modifiedOn' date is later
 		Thread.sleep(100L);
 		long aaModifiedOn = aa.getModifiedOn().getTime();
-		TermsOfUseAccessApproval aa2 = accessApprovalManager.updateAccessApproval(adminUserInfo, aa);
+		accessApprovalManager.updateAccessApproval(adminUserInfo, aa);
 		assertTrue(aa.getModifiedOn().getTime()-aaModifiedOn>0);
 	}
 	

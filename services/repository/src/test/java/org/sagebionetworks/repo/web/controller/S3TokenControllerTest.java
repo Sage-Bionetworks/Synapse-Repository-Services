@@ -21,7 +21,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.manager.AmazonS3Utility;
 import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -60,8 +59,8 @@ public class S3TokenControllerTest {
 	UserGroupDAO userGroupDAO;
 
 	private UserGroup testUser;
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
-	private static final String TEST_USER2 = "testuser2@test.org";
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
+	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneEmail();
 	private static final String TEST_MD5 = "4053f00b39aae693a6969f37102e2764";
 
 	private Project project;
@@ -206,7 +205,7 @@ public class S3TokenControllerTest {
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
 		
-		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, ServiceConstants.AttachmentType.USER_PROFILE,testUser.getId(), startToken);
+		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(AuthorizationConstants.TEST_USER_NAME, ServiceConstants.AttachmentType.USER_PROFILE,testUser.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());
@@ -219,7 +218,7 @@ public class S3TokenControllerTest {
 		// Make sure we can get a signed download URL for this attachment.
 		long now = System.currentTimeMillis();
 		long oneMinuteFromNow = now + (60*1000);
-		PresignedUrl url = testHelper.getUserProfileAttachmentUrl(TestUserDAO.TEST_USER_NAME, testUser.getId(), resultToken.getTokenId());
+		PresignedUrl url = testHelper.getUserProfileAttachmentUrl(AuthorizationConstants.TEST_USER_NAME, testUser.getId(), resultToken.getTokenId());
 		System.out.println(url);
 		assertNotNull(url);
 		assertNotNull(url.getPresignedUrl());
@@ -252,7 +251,7 @@ public class S3TokenControllerTest {
 		assertNotNull("Failed to find: "+fileName+" on the classpath", toUpUrl);
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
-		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, ServiceConstants.AttachmentType.ENTITY, project.getId(), startToken);
+		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(AuthorizationConstants.TEST_USER_NAME, ServiceConstants.AttachmentType.ENTITY, project.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());
@@ -265,7 +264,7 @@ public class S3TokenControllerTest {
 		// Make sure we can get a signed download URL for this attachment.
 		long now = System.currentTimeMillis();
 		long oneMinuteFromNow = now + (60*1000);
-		PresignedUrl url = testHelper.getAttachmentUrl(TestUserDAO.TEST_USER_NAME, project.getId(), resultToken.getTokenId());
+		PresignedUrl url = testHelper.getAttachmentUrl(AuthorizationConstants.TEST_USER_NAME, project.getId(), resultToken.getTokenId());
 		System.out.println(url);
 		assertNotNull(url);
 		assertNotNull(url.getPresignedUrl());

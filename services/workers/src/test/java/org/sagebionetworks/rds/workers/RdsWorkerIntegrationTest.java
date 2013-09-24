@@ -9,18 +9,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -40,34 +38,37 @@ public class RdsWorkerIntegrationTest {
 	
 	@Autowired
 	private EntityManager entityManager;
+	
 	@Autowired
 	private NodeQueryDao nodeQueryDao;
+	
 	@Autowired
-	private UserProvider userProvider;
+	private UserManager userManager;
+	
 	@Autowired
 	private MessageReceiver rdsQueueMessageReveiver;
 	
-	String key = "some_annotation_key";
-	String uniqueValue;
-	
+	private final String key = "some_annotation_key";
+	private String uniqueValue;
 	private Project project;
 	
 	@Before
 	public void before() throws Exception {
 		// Before we start, make sure the queue is empty
 		emptyQueue();
+		
 		// Create a project
-		UserInfo info = userProvider.getTestUserInfo();
+		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		project = new Project();
 		project.setName("RdsWorkerIntegrationTest.Project");
 		// this should trigger create message.
-		String id = entityManager.createEntity(info, project, null);
-		project = entityManager.getEntity(info, id, Project.class);
+		String id = entityManager.createEntity(userInfo, project, null);
+		project = entityManager.getEntity(userInfo, id, Project.class);
 		// Add an annotation to query for
-		Annotations annos = entityManager.getAnnotations(info, id);
+		Annotations annos = entityManager.getAnnotations(userInfo, id);
 		uniqueValue = UUID.randomUUID().toString();
 		annos.addAnnotation(key, uniqueValue);
-		entityManager.updateAnnotations(info, id, annos);
+		entityManager.updateAnnotations(userInfo, id, annos);
 	}
 
 	/**
@@ -87,21 +88,20 @@ public class RdsWorkerIntegrationTest {
 	}
 	
 	@After
-	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
-		if(project != null && entityManager != null && userProvider != null){
-			entityManager.deleteEntity(userProvider.getTestAdminUserInfo(), project.getId());
-		}
+	public void after() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		entityManager.deleteEntity(adminUserInfo, project.getId());
 	}
 	
 	
 	@Test
 	public void testRoundTrip() throws Exception {
 		// First run query
+		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		BasicQuery query = new BasicQuery();
-		UserInfo info = userProvider.getTestUserInfo();
 		query.addExpression(new Expression(new CompoundId(null, key), Comparator.EQUALS, uniqueValue));
 		long start = System.currentTimeMillis();
-		while(nodeQueryDao.executeCountQuery(query, info)< 1){
+		while(nodeQueryDao.executeCountQuery(query, userInfo)< 1){
 			System.out.println("Waiting for annotations index to be updated for entity: "+project.getId());
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;

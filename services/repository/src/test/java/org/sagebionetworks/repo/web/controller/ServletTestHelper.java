@@ -17,7 +17,6 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -80,7 +79,7 @@ public class ServletTestHelper {
 
 	private static final Log log = LogFactory.getLog(ServletTestHelper.class);
 	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
-	private static final String DEFAULT_USERNAME = TestUserDAO.TEST_USER_NAME;
+	private static final String DEFAULT_USERNAME = AuthorizationConstants.TEST_USER_NAME;
 
 	@Autowired
 	// Used for cleanup
@@ -135,7 +134,7 @@ public class ServletTestHelper {
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(TestUserDAO.ADMIN_USER_NAME, idToDelete);
+					entityController.deleteEntity(AuthorizationConstants.ADMIN_USER_NAME, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

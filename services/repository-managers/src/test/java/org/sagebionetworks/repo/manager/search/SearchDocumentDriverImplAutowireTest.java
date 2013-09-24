@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -42,7 +44,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
@@ -62,33 +63,30 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchDocumentDriverImplAutowireTest {
 
-	private static final String TEST_USER = "foo@bar.com";
-	UserInfo userInfo;
+	private UserInfo userInfo;
 	
 	@Autowired
-	SearchDocumentDriver searchDocumentDriver;
+	private SearchDocumentDriver searchDocumentDriver;
 
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
+	
 	@Autowired
-	WikiPageDao wikiPageDao;
+	private WikiPageDao wikiPageDao;
 	
-	Project project;
-	WikiPage rootPage;
-	WikiPageKey rootKey;
-	WikiPage subPage;
-	WikiPageKey subPageKey;
+	private Project project;
+	private WikiPage rootPage;
+	private WikiPageKey rootKey;
+	private WikiPage subPage;
+	private WikiPageKey subPageKey;
 	
-	/**
-	 * @throws Exception
-	 */
 	@Before
 	public void before() throws Exception {
 		// This will create the user if they do not exist
-		userInfo = userManager.getUserInfo(TEST_USER);
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		// Create a project
 		project = new Project();
 		project.setName("SearchDocumentDriverImplAutowireTest");

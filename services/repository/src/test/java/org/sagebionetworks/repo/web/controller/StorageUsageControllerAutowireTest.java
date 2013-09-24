@@ -8,7 +8,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -33,7 +32,7 @@ public class StorageUsageControllerAutowireTest {
 	@Autowired
 	private EntityService entityController;
 
-	private final String userName = TestUserDAO.ADMIN_USER_NAME;
+	private final String userName = AuthorizationConstants.ADMIN_USER_NAME;
 	private Entity testEntity;
 
 	@Before
@@ -59,14 +58,14 @@ public class StorageUsageControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "0");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 
-		Assert.assertEquals(200, response.getStatus());
+		Assert.assertEquals("Status wasn't OK: " + response.getErrorMessage(), 200, response.getStatus());
 
 		String jsonStr = response.getContentAsString();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
@@ -83,8 +82,8 @@ public class StorageUsageControllerAutowireTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY + "/0");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "0");
+		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY + "/" + userName);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		String aggregation = "storage_provider";
 		aggregation += ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR;
 		aggregation += "content_type";
@@ -95,7 +94,7 @@ public class StorageUsageControllerAutowireTest {
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 
-		Assert.assertEquals(200, response.getStatus());
+		Assert.assertEquals("Status wasn't OK: " + response.getErrorMessage(), 200, response.getStatus());
 
 		String jsonStr = response.getContentAsString();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
@@ -113,7 +112,7 @@ public class StorageUsageControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.STORAGE_DETAILS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "0");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		String aggregation = "storage_provider";
 		aggregation += ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR;
 		aggregation += "content_type";
@@ -124,7 +123,7 @@ public class StorageUsageControllerAutowireTest {
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 
-		Assert.assertEquals(200, response.getStatus());
+		Assert.assertEquals("Status wasn't OK: " + response.getErrorMessage(), 200, response.getStatus());
 
 		String jsonStr = response.getContentAsString();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);

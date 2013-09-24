@@ -1,22 +1,23 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.mockito.Mockito.*;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -35,7 +36,7 @@ public class EntityBundleServiceImplTest {
 	
 	EntityBundleService entityBundleService;
 	
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
 	
 	private ServiceProvider mockServiceProvider;
 	private EntityService mockEntityService;

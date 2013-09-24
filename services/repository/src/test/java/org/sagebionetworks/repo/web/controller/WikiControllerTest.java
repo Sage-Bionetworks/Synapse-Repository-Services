@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
+
 import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
@@ -13,8 +14,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -61,7 +62,7 @@ public class WikiControllerTest {
 	@Before
 	public void before() throws Exception{
 		// get user IDs
-		userName = TestUserDAO.TEST_USER_NAME;
+		userName = AuthorizationConstants.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle

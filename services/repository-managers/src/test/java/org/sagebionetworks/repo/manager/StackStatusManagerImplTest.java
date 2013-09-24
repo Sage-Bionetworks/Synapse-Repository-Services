@@ -5,10 +5,11 @@ import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -18,9 +19,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class StackStatusManagerImplTest {
 	
 	@Autowired
-	StackStatusManager stackStatusManager;
+	private StackStatusManager stackStatusManager;
+	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserManager userManager;
+	
 	@Test
 	public void testGetCurrent(){
 		StackStatus status = stackStatusManager.getCurrentStatus();
@@ -29,23 +32,24 @@ public class StackStatusManagerImplTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
-	public void testNonAdminUpdate() throws UnauthorizedException{
+	public void testNonAdminUpdate() throws Exception {
 		// Only an admin can change the status
 		StackStatus status = stackStatusManager.getCurrentStatus();
-		stackStatusManager.updateStatus(testUserProvider.getTestUserInfo(), status);
+		stackStatusManager.updateStatus(userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME), status);
 	}
 	
 	@Test 
-	public void testAdminUpdate() throws UnauthorizedException{
+	public void testAdminUpdate() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		// Only an admin can change the status
 		StackStatus status = stackStatusManager.getCurrentStatus();
 		status.setPendingMaintenanceMessage("Pending the completion of this test");
-		StackStatus updated = stackStatusManager.updateStatus(testUserProvider.getTestAdminUserInfo(), status);
+		StackStatus updated = stackStatusManager.updateStatus(adminUserInfo, status);
 		assertEquals(status, updated);
 		// Clear the message
 		status = stackStatusManager.getCurrentStatus();
 		status.setPendingMaintenanceMessage(null);
-		updated = stackStatusManager.updateStatus(testUserProvider.getTestAdminUserInfo(), status);
+		updated = stackStatusManager.updateStatus(adminUserInfo, status);
 		assertEquals(status, updated);
 	}
 	

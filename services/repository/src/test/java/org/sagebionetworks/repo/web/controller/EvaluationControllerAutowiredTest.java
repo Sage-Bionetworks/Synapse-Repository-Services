@@ -32,10 +32,10 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -100,8 +100,8 @@ public class EvaluationControllerAutowiredTest {
 		nodesToDelete = new ArrayList<String>();
 		
 		// get user IDs
-		ownerName = TestUserDAO.ADMIN_USER_NAME;
-		userName = TestUserDAO.TEST_USER_NAME;
+		ownerName = AuthorizationConstants.ADMIN_USER_NAME;
+		userName = AuthorizationConstants.TEST_USER_NAME;
 		userManager.getUserInfo(ownerName).getIndividualGroup().getId();
 		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		
@@ -156,7 +156,7 @@ public class EvaluationControllerAutowiredTest {
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
-				UserInfo admin = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+				UserInfo admin = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 				evalPermissionsManager.deleteAcl(admin, id);
 				evaluationDAO.delete(id);
 			} catch (Exception e) {}

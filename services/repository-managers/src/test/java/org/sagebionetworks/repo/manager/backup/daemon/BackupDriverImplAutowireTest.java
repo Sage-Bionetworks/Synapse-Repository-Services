@@ -14,10 +14,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -66,7 +66,7 @@ public class BackupDriverImplAutowireTest {
 	@Before
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
-		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		adminUser = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		creatorUserGroupId = adminUser.getIndividualGroup().getId();
 		assertNotNull(creatorUserGroupId);
 		startCount = fileHandleDao.getCount();
@@ -109,7 +109,6 @@ public class BackupDriverImplAutowireTest {
 	public void after() throws Exception{
 		// Since this test can delete all data make sure bootstrap data gets put back.
 		entityBootstrapper.bootstrapAll();
-		userManager.clearCache();
 		// If we have deleted all data make sure the bootstrap process puts it back
 		if(fileHandleDao != null && toDelete != null){
 			for(String id: toDelete){
