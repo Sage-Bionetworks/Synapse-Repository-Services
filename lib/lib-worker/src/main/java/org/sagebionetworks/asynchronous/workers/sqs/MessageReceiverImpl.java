@@ -30,7 +30,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 
 	static private Logger log = LogManager.getLogger(MessageReceiverImpl.class);
 	
-	private static int SQS_MAX_REQUEST_SIZE = 10;
+	public static int SQS_MAX_REQUEST_SIZE = 10;
 	
 	@Autowired
 	AmazonSQSClient awsSQSClient;
@@ -274,8 +274,15 @@ public class MessageReceiverImpl implements MessageReceiver {
 				}
 			}
 			// Batch delete all of the completed message.
-			if(messagesToDelete.size() > 0){
-				awsSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(messageQueue.getQueueUrl(), messagesToDelete));
+			if (messagesToDelete.size() > 0) {
+				for (int i = 0; i < messagesToDelete.size(); i += SQS_MAX_REQUEST_SIZE) {
+					DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(messageQueue.getQueueUrl(), 
+							messagesToDelete.subList(i, 
+									(i + SQS_MAX_REQUEST_SIZE > messagesToDelete.size() 
+											? messagesToDelete.size() 
+											: i + SQS_MAX_REQUEST_SIZE)));
+					awsSQSClient.deleteMessageBatch(dmbRequest);
+				}
 			}
 			// remove all that we can
 			currentWorkers.removeAll(toRemove);

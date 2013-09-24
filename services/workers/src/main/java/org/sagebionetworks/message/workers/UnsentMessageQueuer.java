@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageQueue;
+import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -53,6 +54,7 @@ public class UnsentMessageQueuer implements Runnable {
 	public void run() {
 		long count = changeDAO.getCount();
 		if (count <= 0) {
+			log.info("No change messages");
 			return;
 		}
 		
@@ -64,11 +66,19 @@ public class UnsentMessageQueuer implements Runnable {
 		rmRequest.setMaxNumberOfMessages(1);
 		ReceiveMessageResult rmResult = awsSQSClient.receiveMessage(rmRequest);
 		if (rmResult.getMessages().size() > 0) {
+			log.info("Queue is not empty");
 			return;
 		}
 		
 		List<SendMessageBatchRequestEntry> batch = buildRangeBatch();
-		awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(unsentMessageQueue.getQueueUrl(), batch));
+		for (int i = 0; i < batch.size(); i += MessageReceiverImpl.SQS_MAX_REQUEST_SIZE) {
+			List<SendMessageBatchRequestEntry> miniBatch = batch.subList(i, 
+					(i + MessageReceiverImpl.SQS_MAX_REQUEST_SIZE > batch.size() 
+							? batch.size() 
+							: i + MessageReceiverImpl.SQS_MAX_REQUEST_SIZE));
+			awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(unsentMessageQueue.getQueueUrl(), miniBatch));
+		}
+		log.info("Just queued: " + batch.size() + " message(s)");
 	}
 	
 	protected List<SendMessageBatchRequestEntry> buildRangeBatch() {

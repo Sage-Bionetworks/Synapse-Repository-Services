@@ -158,4 +158,16 @@ public class UnsentMessageQueuerTest {
 		unsentMessageQueuer.run();
 		verify(mockSQSClient, times(0)).sendMessage(any(SendMessageRequest.class));
 	}
+	
+	@Test
+	public void testQueueMoreThan10Messages() throws Exception {
+		// Create more than 10 messages
+		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(20, 
+				ObjectType.ENTITY, 0, 40);
+		batch = changeDAO.replaceChange(batch);
+		
+		// Make the range as small as possible, to send as many messages to SQS
+		unsentMessageQueuer.setApproxRangeSize(1L);
+		unsentMessageQueuer.run();
+	}
 }

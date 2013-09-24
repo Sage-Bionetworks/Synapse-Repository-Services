@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -63,8 +64,14 @@ public class UnsentMessageQueuerTestHelper {
 		} while (messages.size() > 0);
 		
 		if (batch.size() > 0) {
-			DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(queueURL, batch);
-			awsSQSClient.deleteMessageBatch(dmbRequest);
+			for (int i = 0; i < batch.size(); i += MessageReceiverImpl.SQS_MAX_REQUEST_SIZE) {
+				DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(queueURL, 
+						batch.subList(i, 
+								(i + MessageReceiverImpl.SQS_MAX_REQUEST_SIZE > batch.size() 
+										? batch.size() 
+										: i + MessageReceiverImpl.SQS_MAX_REQUEST_SIZE)));
+				awsSQSClient.deleteMessageBatch(dmbRequest);
+			}
 		}
 		return ranges;
 	}
