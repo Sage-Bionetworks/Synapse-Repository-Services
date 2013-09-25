@@ -1,5 +1,8 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -18,6 +21,8 @@ import com.amazonaws.services.sqs.model.Message;
  *
  */
 public class MessageUtils {
+	
+	public static int SQS_MAX_REQUEST_SIZE = 10;
 	
 	/**
 	 * Extract a ChangeMessage from an Amazon Message
@@ -136,6 +141,20 @@ public class MessageUtils {
 		message.setParentId(parentId);
 		message.setObjectType(ObjectType.ENTITY);
 		return MessageUtils.createMessage(message, messageId, messageHandle);
+	}
+	
+	/**
+	 * Constructs a list of lists, each sublist containing no more than 10 items
+	 */
+	public static <T> List<List<T>> splitListIntoTens(List<T> batch) {
+		List<List<T>> miniBatches = new ArrayList<List<T>>();
+		for (int i = 0; i < batch.size(); i += SQS_MAX_REQUEST_SIZE) {
+			miniBatches.add(batch.subList(i, 
+					((i + SQS_MAX_REQUEST_SIZE > batch.size()) 
+							? batch.size() 
+							: (i + SQS_MAX_REQUEST_SIZE))));
+		}
+		return miniBatches;
 	}
 
 }

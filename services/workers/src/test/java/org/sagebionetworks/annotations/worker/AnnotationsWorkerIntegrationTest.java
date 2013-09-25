@@ -160,7 +160,7 @@ public class AnnotationsWorkerIntegrationTest {
 					count + " messages on the queue");
 			Thread.yield();
 			long elapse = System.currentTimeMillis() - start;
-			if (elapse > MAX_WAIT*2) {
+			if (elapse > MAX_WAIT * 5) {
 				throw new RuntimeException("Timed-out waiting process all messages that were on the queue before the tests started.");
 			}
 		} while(count > 0);

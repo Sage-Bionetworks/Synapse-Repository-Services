@@ -30,8 +30,6 @@ public class MessageReceiverImpl implements MessageReceiver {
 
 	static private Logger log = LogManager.getLogger(MessageReceiverImpl.class);
 	
-	private static int SQS_MAX_REQUEST_SIZE = 10;
-	
 	@Autowired
 	AmazonSQSClient awsSQSClient;
 	
@@ -198,12 +196,12 @@ public class MessageReceiverImpl implements MessageReceiver {
 		// Note: Messages must be requested in batches of 10 or less (otherwise SQS will complain)
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
 		List<Message> toBeProcessed = new ArrayList<Message>();
-		for (int i = 0; i < maxMessages; i += SQS_MAX_REQUEST_SIZE) {
+		for (int i = 0; i < maxMessages; i += MessageUtils.SQS_MAX_REQUEST_SIZE) {
 			ReceiveMessageRequest rmRequest = new ReceiveMessageRequest(messageQueue.getQueueUrl()).withVisibilityTimeout(visibilityTimeoutSec);
 			if (maxMessages - i > 10) {
-				rmRequest.setMaxNumberOfMessages(SQS_MAX_REQUEST_SIZE);
+				rmRequest.setMaxNumberOfMessages(MessageUtils.SQS_MAX_REQUEST_SIZE);
 			} else {
-				rmRequest.setMaxNumberOfMessages(maxMessages % (SQS_MAX_REQUEST_SIZE + 1));
+				rmRequest.setMaxNumberOfMessages(maxMessages % (MessageUtils.SQS_MAX_REQUEST_SIZE + 1));
 			}
 			ReceiveMessageResult result = awsSQSClient.receiveMessage(rmRequest);
 			if (result.getMessages().size() <= 0) {
@@ -274,8 +272,12 @@ public class MessageReceiverImpl implements MessageReceiver {
 				}
 			}
 			// Batch delete all of the completed message.
-			if(messagesToDelete.size() > 0){
-				awsSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(messageQueue.getQueueUrl(), messagesToDelete));
+			if (messagesToDelete.size() > 0) {
+				List<List<DeleteMessageBatchRequestEntry>> miniBatches = MessageUtils.splitListIntoTens(messagesToDelete);
+				for (int i = 0; i < miniBatches.size(); i++) {
+					DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(messageQueue.getQueueUrl(), miniBatches.get(i));
+					awsSQSClient.deleteMessageBatch(dmbRequest);
+				}
 			}
 			// remove all that we can
 			currentWorkers.removeAll(toRemove);
