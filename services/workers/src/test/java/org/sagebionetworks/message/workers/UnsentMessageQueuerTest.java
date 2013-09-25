@@ -62,11 +62,13 @@ public class UnsentMessageQueuerTest {
 	public void setup() throws Exception {
 		unsentMessageQueuer.setApproxRangeSize(CONFIGURATION_RANGE_SIZE);
 		changeDAO.deleteAllChanges();
+		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
 	}
 
 	@After
 	public void teardown() throws Exception {
 		changeDAO.deleteAllChanges();
+		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
 		
 		// One test replaces the client with a mock
 		unsentMessageQueuer.setAwsSQSClient(awsSQSClient);
@@ -161,13 +163,18 @@ public class UnsentMessageQueuerTest {
 	
 	@Test
 	public void testQueueMoreThan10Messages() throws Exception {
+		// Make the range as small as possible, to send as many messages to SQS
+		unsentMessageQueuer.setApproxRangeSize(1L);
+		
 		// Create more than 10 messages
-		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(20, 
+		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(25, 
 				ObjectType.ENTITY, 0, 40);
 		batch = changeDAO.replaceChange(batch);
 		
-		// Make the range as small as possible, to send as many messages to SQS
-		unsentMessageQueuer.setApproxRangeSize(1L);
+		// Make sure there are more than 10 messages
+		List<?> messageBatch = unsentMessageQueuer.buildRangeBatch();
+		assertTrue(messageBatch.size() > 10);
+		
 		unsentMessageQueuer.run();
 	}
 }

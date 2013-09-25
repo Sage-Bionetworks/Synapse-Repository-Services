@@ -119,9 +119,9 @@ public class MessageReceiverImplTest {
 			deleteRequest.add(new DeleteMessageBatchRequestEntry().withId(message.getMessageId()).withReceiptHandle(message.getReceiptHandle()));
 		}
 		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl,
-				deleteRequest.subList(0, MessageReceiverImpl.SQS_MAX_REQUEST_SIZE));
+				deleteRequest.subList(0, MessageUtils.SQS_MAX_REQUEST_SIZE));
 		DeleteMessageBatchRequest expectedBatch2 = new DeleteMessageBatchRequest(queueUrl, 
-				deleteRequest.subList(MessageReceiverImpl.SQS_MAX_REQUEST_SIZE, deleteRequest.size()));
+				deleteRequest.subList(MessageUtils.SQS_MAX_REQUEST_SIZE, deleteRequest.size()));
 		// Verify that all were deleted
 		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch);
 		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch2);
