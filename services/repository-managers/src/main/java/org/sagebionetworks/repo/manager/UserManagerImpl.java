@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,9 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.xpath.XPathExpressionException;
-
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -27,6 +23,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -328,5 +325,49 @@ public class UserManagerImpl implements UserManager {
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
+	}
+
+	@Override
+	public void createUser(NewUser user) {
+		UserGroup individualGroup = new UserGroup();
+		individualGroup.setName(user.getEmail());
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		try {
+			String id = userGroupDAO.create(individualGroup);
+			individualGroup = userGroupDAO.get(id);
+		} catch (NotFoundException ime) {
+			// shouldn't happen!
+			throw new DatastoreException(ime);
+		} catch (InvalidModelException ime) {
+			// shouldn't happen!
+			throw new DatastoreException(ime);
+		}
+		
+		// Make a user profile for this individual
+		UserProfile userProfile = null;
+		try {
+			userProfile = userProfileDAO.get(individualGroup.getId());
+		} catch (NotFoundException nfe) {
+			userProfile = null;
+		}
+		if (userProfile==null) {
+			userProfile = new UserProfile();
+			userProfile.setOwnerId(individualGroup.getId());
+			userProfile.setFirstName(user.getFirstName());
+			userProfile.setLastName(user.getLastName());
+			userProfile.setDisplayName(user.getDisplayName());
+			try {
+				userProfileDAO.create(userProfile);
+			} catch (InvalidModelException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	@Override
+	public String getGroupName(String principalId) throws NotFoundException {
+		UserGroup userGroup = userGroupDAO.get(principalId);
+		return userGroup.getName();
 	}
 }

@@ -173,4 +173,13 @@ public class AuthorizationConstants {
 	 */
 	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
 	
+	/**
+	 * Identifies a token as related to registering a new user
+	 */
+	public static final String REGISTRATION_TOKEN_PREFIX = "register_";
+	
+	/**
+	 * Identifies a token as related to changing a user's email
+	 */
+	public static final String CHANGE_EMAIL_TOKEN_PREFIX = "change_email_";
 }

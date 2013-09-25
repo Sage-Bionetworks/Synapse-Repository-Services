@@ -100,6 +100,9 @@
 	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" />
+	<bean id="authDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
+		depends-on="userGroupDAO" />
 
 	<bean id="accessRequirementDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
