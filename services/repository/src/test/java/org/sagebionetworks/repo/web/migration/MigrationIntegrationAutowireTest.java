@@ -501,13 +501,6 @@ public class MigrationIntegrationAutowireTest {
 		// So a special case must be made for the admins
 		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
 		Long startAdminCount = new Long(groupMembersDAO.getMembers(adminGroupId).size());
-		// Remove the admins from the start count
-		for (int i = 0; i < startCounts.getList().size(); i++) {
-			if (startCounts.getList().get(i).getType() == MigrationType.GROUP_MEMBERS) {
-				MigrationTypeCount shouldntIncludeAdmins = startCounts.getList().get(i);
-				shouldntIncludeAdmins.setCount(shouldntIncludeAdmins.getCount() - startAdminCount);
-			}
-		}
 		
 		// This test will backup all data, delete it, then restore it.
 		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
@@ -532,7 +525,7 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for (int i=1; i<afterDeleteCounts.getList().size(); i++) {
+		for (int i = 1; i < afterDeleteCounts.getList().size(); i++) {
 			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
 			// Special case for not-deleted admins
 			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS) {
@@ -551,7 +544,12 @@ public class MigrationIntegrationAutowireTest {
 		
 		// The counts should all be back
 		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		assertEquals(startCounts, finalCounts);
+		for (int i = 1; i < finalCounts.getList().size(); i++) {
+			MigrationTypeCount startCount = startCounts.getList().get(i);
+			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
+			// Special case for not-deleted admins
+			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+		}
 	}
 	
 	private static class BackupInfo {

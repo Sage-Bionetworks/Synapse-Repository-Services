@@ -31,8 +31,12 @@ public class StorageUsageControllerAutowireTest {
 
 	@Autowired
 	private EntityService entityController;
+	
+	@Autowired
+	private UserProfileController userProfileController;
 
-	private final String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private final String username = AuthorizationConstants.ADMIN_USER_NAME;
+	private String userId;
 	private Entity testEntity;
 
 	@Before
@@ -40,14 +44,16 @@ public class StorageUsageControllerAutowireTest {
 		testEntity = new Project();
 		testEntity.setName("projectForStorageUsageControllerTest");
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
-		testEntity = ServletTestHelper.createEntity(dispatchServlet, testEntity, userName);
+		testEntity = ServletTestHelper.createEntity(dispatchServlet, testEntity, username);
 		Assert.assertNotNull(testEntity);
+		
+		userId = userProfileController.getMyOwnUserProfile(username, null).getOwnerId();
 	}
 
 	@After
 	public void after() throws Exception {
 		if (testEntity != null) {
-			entityController.deleteEntity(userName, testEntity.getId());
+			entityController.deleteEntity(username, testEntity.getId());
 		}
 	}
 
@@ -58,7 +64,7 @@ public class StorageUsageControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -82,8 +88,8 @@ public class StorageUsageControllerAutowireTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY + "/" + userName);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY + "/" + userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 		String aggregation = "storage_provider";
 		aggregation += ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR;
 		aggregation += "content_type";
@@ -112,7 +118,7 @@ public class StorageUsageControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.STORAGE_DETAILS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 		String aggregation = "storage_provider";
 		aggregation += ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR;
 		aggregation += "content_type";

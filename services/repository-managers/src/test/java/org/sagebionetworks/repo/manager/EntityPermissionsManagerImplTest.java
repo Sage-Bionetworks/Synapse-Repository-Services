@@ -19,6 +19,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -86,6 +87,10 @@ public class EntityPermissionsManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		
 		// create a resource
 		project = createNode("foo", 1L, 2L, null);
 		nodeList.add(project);
@@ -93,11 +98,6 @@ public class EntityPermissionsManagerImplTest {
 		childNode = createNode("foo2", 3L, 4L, project.getId());
 		grandchildNode0 = createNode("foo3", 5L, 6L, childNode.getId());
 		grandchildNode1 = createNode("foo4", 7L, 8L, childNode.getId());
-		
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		
-		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
 	}
 
 	@After
@@ -158,7 +158,8 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should fail, since user is not included with proper permissions in ACL
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneEmail());
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 
 	
@@ -197,7 +198,8 @@ public class EntityPermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should fail since user does not have permission editing rights in ACL
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
+		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneEmail());
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 
 

@@ -293,9 +293,9 @@ public class ServletTestHelper {
 	 * 
 	 */
 	public static <T extends Entity> T createEntity(
-			HttpServlet dispatchServlet, T entity, String userId)
+			HttpServlet dispatchServlet, T entity, String username)
 			throws ServletException, IOException {
-		return ServletTestHelper.createEntity(dispatchServlet, entity, userId,
+		return ServletTestHelper.createEntity(dispatchServlet, entity, username,
 				null);
 	}
 
@@ -313,7 +313,7 @@ public class ServletTestHelper {
 	 * 
 	 */
 	public static <T extends Entity> T createEntity(
-			HttpServlet dispatchServlet, T entity, String userId,
+			HttpServlet dispatchServlet, T entity, String username,
 			Map<String, String> extraParams) throws ServletException,
 			IOException {
 		if (dispatchServlet == null)
@@ -324,7 +324,7 @@ public class ServletTestHelper {
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 		if (null != extraParams) {
 			for (Map.Entry<String, String> param : extraParams.entrySet()) {
 				request.setParameter(param.getKey(), param.getValue());

@@ -81,6 +81,8 @@ public interface UserManager {
 	 * @return for a group, returns the group name, for a user returns the display name in the user's profile
 	 */
 	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException;
+	
+	public String getGroupName(String principalId) throws NotFoundException;
 
 	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException;
 	
