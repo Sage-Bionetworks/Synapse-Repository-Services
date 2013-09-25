@@ -27,7 +27,9 @@
         "TRASH_CAN",
         "DOI",
         "STORAGE_QUOTA",
-         "TEAM",
+        "TEAM",
+        "MEMBERSHIP_INVITATION_SUBMISSION",
+        "MEMBERSHIP_REQUEST_SUBMISSION",
         "CHANGE"
     ]
 }

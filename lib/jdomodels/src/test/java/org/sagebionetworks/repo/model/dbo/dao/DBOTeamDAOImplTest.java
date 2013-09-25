@@ -86,6 +86,7 @@ public class DBOTeamDAOImplTest {
 		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
 		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 0, 1).size());
 		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 1, 3).size());
+		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
 		
 		// delete the team
 		teamDAO.delete(""+id);

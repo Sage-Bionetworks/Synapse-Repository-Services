@@ -144,7 +144,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return null; //MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
+		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
 	}
 
 	@Override

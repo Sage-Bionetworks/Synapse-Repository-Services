@@ -172,7 +172,9 @@
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
-	<bean id="entityBootstrapper"
+	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
+
+		<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl" init-method="bootstrapAll">
 		<property name="bootstrapEntities">
 			<list>
