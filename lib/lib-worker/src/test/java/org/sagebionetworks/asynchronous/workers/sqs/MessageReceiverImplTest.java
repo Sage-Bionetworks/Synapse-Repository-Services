@@ -118,9 +118,13 @@ public class MessageReceiverImplTest {
 		for(Message message: messageList){
 			deleteRequest.add(new DeleteMessageBatchRequestEntry().withId(message.getMessageId()).withReceiptHandle(message.getReceiptHandle()));
 		}
-		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl, deleteRequest);
+		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl,
+				deleteRequest.subList(0, MessageUtils.SQS_MAX_REQUEST_SIZE));
+		DeleteMessageBatchRequest expectedBatch2 = new DeleteMessageBatchRequest(queueUrl, 
+				deleteRequest.subList(MessageUtils.SQS_MAX_REQUEST_SIZE, deleteRequest.size()));
 		// Verify that all were deleted
 		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch);
+		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch2);
 	}
 	@Test
 	public void testTrigerFiredOneFailureMulitipleSuccess() throws InterruptedException{
