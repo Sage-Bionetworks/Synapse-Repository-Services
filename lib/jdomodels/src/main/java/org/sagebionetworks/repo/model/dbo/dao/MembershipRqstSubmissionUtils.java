@@ -41,11 +41,16 @@ public class MembershipRqstSubmissionUtils {
 		}
 	}
 	
-	public static MembershipRqstSubmission copyFromSerializedField(DBOMembershipRqstSubmission dbo) throws DatastoreException {
+	public static MembershipRqstSubmission deserialize(byte[] b) {
 		try {
-			return (MembershipRqstSubmission)JDOSecondaryPropertyUtils.decompressedObject(dbo.getProperties());
+			return (MembershipRqstSubmission)JDOSecondaryPropertyUtils.decompressedObject(b);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+		
+	}
+	
+	public static MembershipRqstSubmission copyFromSerializedField(DBOMembershipRqstSubmission dbo) throws DatastoreException {
+		return deserialize(dbo.getProperties());
 	}
 }

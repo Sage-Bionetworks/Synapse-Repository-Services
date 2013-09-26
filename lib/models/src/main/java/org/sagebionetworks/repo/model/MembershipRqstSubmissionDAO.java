@@ -33,7 +33,7 @@ public interface MembershipRqstSubmissionDAO {
 	 * @param limit
 	 * 
 	 */
-	public List<MembershipRqstSubmission> getOpenByTeamInRange(long teamId, long now, long offset, long limit) throws DatastoreException, NotFoundException;
+	public List<MembershipRequest> getOpenByTeamInRange(long teamId, long now, long offset, long limit) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team from a given requestor
@@ -45,7 +45,7 @@ public interface MembershipRqstSubmissionDAO {
 	 * @param limit
 	 * 
 	 */
-	public List<MembershipRqstSubmission> getOpenByTeamAndRequestorInRange(long teamId, long requestorId, long now, long offset, long limit) throws DatastoreException, NotFoundException;
+	public List<MembershipRequest> getOpenByTeamAndRequestorInRange(long teamId, long requestorId, long now, long offset, long limit) throws DatastoreException, NotFoundException;
 
 	/**
 	 * delete the object given by the given ID
