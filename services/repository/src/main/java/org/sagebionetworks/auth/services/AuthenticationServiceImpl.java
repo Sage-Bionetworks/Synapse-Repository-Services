@@ -138,17 +138,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		UserInfo user = userManager.getUserInfo(email);
+		NewUser mailTarget = new NewUser();
+		mailTarget.setDisplayName(user.getUser().getDisplayName());
+		mailTarget.setEmail(user.getIndividualGroup().getName());
+		mailTarget.setFirstName(user.getUser().getFname());
+		mailTarget.setLastName(user.getUser().getLname());
 		// now send the reset password email, filling in the user name and session token
 		SendMail sendMail = new SendMail();
 		switch (mode) {
 			case SET_PW:
-				sendMail.sendSetPasswordMail(user, sessionToken);
+				sendMail.sendSetPasswordMail(mailTarget, sessionToken);
 				break;
 			case RESET_PW:
-				sendMail.sendResetPasswordMail(user, sessionToken);
+				sendMail.sendResetPasswordMail(mailTarget, sessionToken);
 				break;
 			case SET_API_PW:
-				sendMail.sendSetAPIPasswordMail(user, sessionToken);
+				sendMail.sendSetAPIPasswordMail(mailTarget, sessionToken);
 				break;
 		}
 	}

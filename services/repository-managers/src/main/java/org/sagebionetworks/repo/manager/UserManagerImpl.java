@@ -305,7 +305,7 @@ public class UserManagerImpl implements UserManager {
 	}
 	
 	@Override
-	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException {
+	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException {
 		if (userInfo != null) {
 			UserGroup userGroup = userGroupDAO.get(userInfo.getIndividualGroup().getId());
 			userGroup.setName(newEmail);
@@ -363,11 +363,5 @@ public class UserManagerImpl implements UserManager {
 				throw new RuntimeException(e);
 			}
 		}
-	}
-
-	@Override
-	public String getGroupName(String principalId) throws NotFoundException {
-		UserGroup userGroup = userGroupDAO.get(principalId);
-		return userGroup.getName();
 	}
 }
