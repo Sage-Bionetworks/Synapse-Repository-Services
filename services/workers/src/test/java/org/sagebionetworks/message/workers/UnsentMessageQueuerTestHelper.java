@@ -63,8 +63,11 @@ public class UnsentMessageQueuerTestHelper {
 		} while (messages.size() > 0);
 		
 		if (batch.size() > 0) {
-			DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(queueURL, batch);
-			awsSQSClient.deleteMessageBatch(dmbRequest);
+			List<List<DeleteMessageBatchRequestEntry>> miniBatches = MessageUtils.splitListIntoTens(batch);
+			for (int i = 0; i < miniBatches.size(); i++) {
+				DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(queueURL, miniBatches.get(i));
+				awsSQSClient.deleteMessageBatch(dmbRequest);
+			}
 		}
 		return ranges;
 	}
