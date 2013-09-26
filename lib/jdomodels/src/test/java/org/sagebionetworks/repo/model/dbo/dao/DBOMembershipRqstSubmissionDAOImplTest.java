@@ -93,7 +93,6 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		
 		// retrieve the mrs
 		MembershipRqstSubmission clone = membershipRqstSubmissionDAO.get(id);
-		mrs.setEtag(clone.getEtag()); // for comparison
 		assertEquals(mrs, clone);
 		
 		// get-by-team query, returning only the *open* (unexpired) invitations
