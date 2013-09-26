@@ -17,7 +17,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -33,7 +35,7 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.service.EntityService;
-import org.sagebionetworks.repo.web.util.UserProvider;
+import org.sagebionetworks.repo.web.service.TrashService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -44,14 +46,18 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class EntityServiceImplAutowiredTest {
 	
 	@Autowired
-	EntityService entityController;
+	private EntityService entityController;
 	
 	@Autowired
-	public UserProvider testUserProvider;
-	@Autowired
-	AsynchronousDAO asynchronousDAO;
+	private TrashService trashService;
 	
-	List<String> toDelete = null;
+	@Autowired
+	public UserManager userManager;
+	
+	@Autowired
+	private AsynchronousDAO asynchronousDAO;
+	
+	private List<String> toDelete = null;
 	
 	private int totalEntities = 10;
 	private int layers = 5;
@@ -63,14 +69,11 @@ public class EntityServiceImplAutowiredTest {
 	
 	HttpServletRequest mockRequest;
 
-	
 	@Before
-	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
-		assertNotNull(entityController);
-		assertNotNull(testUserProvider);
+	public void before() throws Exception {
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		userInfo = testUserProvider.getTestAdminUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		UserInfo.validateUserInfo(userInfo);
 		userName = userInfo.getUser().getUserId();
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -135,14 +138,13 @@ public class EntityServiceImplAutowiredTest {
 	}
 	
 	@After
-	public void after(){
-		if(entityController != null && toDelete != null){
-			for(String id: toDelete){
-				try{
-					entityController.deleteEntity(userName, id);
-				}catch(Exception e){}
-			}
+	public void after() throws Exception {
+		for (String id: toDelete) {
+			try {
+				entityController.deleteEntity(userName, id);
+			} catch (Exception e) {}
 		}
+		trashService.purgeTrashForUser(userName);
 	}
 	
 	@Test

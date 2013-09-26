@@ -13,7 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
@@ -46,13 +46,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class StepControllerTest {
 
 	@Autowired
-	ServletTestHelper testHelper;
+	private ServletTestHelper testHelper;
 
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
-	private static final String TEST_USER2 = "testuser2@test.org";
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
+	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneEmail();
 	
 	private Project project;
 	private Study dataset;

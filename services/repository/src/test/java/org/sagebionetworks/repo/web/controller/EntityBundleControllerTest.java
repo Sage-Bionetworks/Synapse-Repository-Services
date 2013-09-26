@@ -19,10 +19,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -63,7 +63,7 @@ public class EntityBundleControllerTest {
 	@Autowired
 	private NodeManager nodeManager;
 
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
 	
 	private List<String> toDelete = null;
 	S3FileHandle handleOne;
@@ -80,7 +80,7 @@ public class EntityBundleControllerTest {
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
 		toDelete = new ArrayList<String>();
-		userName = TestUserDAO.TEST_USER_NAME;
+		userName = AuthorizationConstants.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 	}
 	

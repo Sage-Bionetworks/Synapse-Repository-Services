@@ -10,13 +10,6 @@
 	<context:annotation-config />
 
 	<import resource="classpath:main-scheduler-spb.xml" />
-
-	<bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO"
-		scope="singleton" />
-
-	<!-- Provides users for testing. -->
-	<bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl"
-		scope="singleton" />
 		
 	<!-- Each UnsentMessage worker test needs its own test helper -->
 	<bean id="unsentMessageQueuerTestHelper" 

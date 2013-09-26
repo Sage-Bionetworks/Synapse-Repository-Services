@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -99,7 +100,7 @@ public class CrowdUserDAO implements UserDAO {
 		values = userAttrValues.get(AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE);
 		if (values!=null && values.size()>0) user.setAgreesToTermsOfUse(Boolean.parseBoolean(values.iterator().next()));
 		
-		org.sagebionetworks.repo.model.auth.User authUser = null;
+		NewUser authUser = null;
 		try { 
 			authUser = CrowdAuthUtil.getUser(userName);
 		}catch (IOException e) {

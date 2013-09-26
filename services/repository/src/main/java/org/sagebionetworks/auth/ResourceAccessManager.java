@@ -12,8 +12,8 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.User;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
@@ -134,7 +134,7 @@ public class ResourceAccessManager {
 	 * Should only be called after authenticating the user.
 	 */
 	public static String getSessionTokenFromUserName(String userName) throws AuthenticationException {
-		User creds = new User();
+		NewUser creds = new NewUser();
 		creds.setEmail(userName);
 		try {
 			Session session = CrowdAuthUtil.authenticate(creds, /*validatePassword*/false);

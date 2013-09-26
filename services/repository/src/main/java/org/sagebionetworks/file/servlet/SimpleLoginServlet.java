@@ -15,8 +15,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.User;
 
 /**
  * This is a simple servlet that will login
@@ -63,7 +63,7 @@ public class SimpleLoginServlet implements Servlet {
 			String password = request.getParameter("password");
 			if(password == null) throw new IllegalArgumentException("'password' is a required parameter");
 			// Login the user
-			User user = new User();
+			NewUser user = new NewUser();
 			user.setPassword(password);
 			user.setEmail(username);
 			Session session = CrowdAuthUtil.authenticate(user, true);

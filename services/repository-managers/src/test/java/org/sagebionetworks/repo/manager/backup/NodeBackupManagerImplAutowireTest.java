@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 import org.junit.After;
@@ -16,10 +15,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -44,57 +43,40 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class NodeBackupManagerImplAutowireTest {
 	
 	@Autowired
-	NodeBackupManager backupManager;
+	private NodeBackupManager backupManager;
 	
 	@Autowired
-	NodeManager nodeManager;
+	private NodeManager nodeManager;
 	
 	@Autowired
 	public UserManager userManager;
 	
 	@Autowired
-	NodeQueryDao nodeQueryDao;
+	private NodeQueryDao nodeQueryDao;
 	
 	@Autowired
-	AsynchronousDAO asynchronousDAO;
+	private AsynchronousDAO asynchronousDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	List<String> usersToDelete;
-	List<String> nodesToDelete;
+	private List<String> nodesToDelete;
 	
-	UserInfo adminUser;	
-	UserInfo nonAdminUser;
-	String nonAdminPrincipalName;
+	private UserInfo adminUser;	
+	private UserInfo nonAdminUser;
 	
-	String newNodeId;
-	String uniqueAnnotationName;
-	String uniqueAnnotationValue;
+	private String newNodeId;
+	private String uniqueAnnotationName;
+	private String uniqueAnnotationValue;
 	
-	BasicQuery queryForNode;
-	
-	private Comparator<NodeRevisionBackup> comp = new Comparator<NodeRevisionBackup>(){
-		@Override
-		public int compare(NodeRevisionBackup one, NodeRevisionBackup two) {
-			// Sort based on the revision number only.
-			return one.getRevisionNumber().compareTo(two.getRevisionNumber());
-		}} ;
+	private BasicQuery queryForNode;
 	
 	
 	@Before
-	public void before() throws Exception{
-		usersToDelete = new ArrayList<String>();
+	public void before() throws Exception {
 		nodesToDelete =  new ArrayList<String>();
-		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		
-		// First create a new user just for this test
-		nonAdminPrincipalName = "NodeBackupManagerImplAutowireTest@testRestore";
-		// Delete this principal if they already exist
-		userManager.deletePrincipal(nonAdminPrincipalName);
-		userManager.createPrincipal(nonAdminPrincipalName, true);
-		usersToDelete.add(nonAdminPrincipalName);
-		nonAdminUser = userManager.getUserInfo(nonAdminPrincipalName);
+		adminUser = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		nonAdminUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 
 		
 		Node randomNode = RandomNodeUtil.generateRandom(443);
@@ -139,19 +121,10 @@ public class NodeBackupManagerImplAutowireTest {
 	
 	@After
 	public void after(){
-		if(usersToDelete != null && userManager != null){
-			for(String userName: usersToDelete){
-				try {
-					userManager.deletePrincipal(userName);
-				} catch (Exception e) {}
-			}
-		}
-		if(nodesToDelete != null && nodeManager != null){
-			for(String nodeId: nodesToDelete){
-				try {
-					nodeManager.delete(adminUser, nodeId);
-				} catch (Exception e) {}
-			}
+		for (String nodeId: nodesToDelete) {
+			try {
+				nodeManager.delete(adminUser, nodeId);
+			} catch (Exception e) {}
 		}
 	}
 	

@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.User;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ public class AuthenticationController extends BaseController {
 
 	private Random rand = new Random();
 	
-	private static Map<User,Session> sessionCache = null;
+	private static Map<NewUser,Session> sessionCache = null;
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
 //	   a special userId that's used for integration testing
@@ -55,10 +55,10 @@ public class AuthenticationController extends BaseController {
 //	   The behavior is as follows
 //	  	If passed to the user creation service, there is no confirmation email generated.
 //	  	Instead the password is taken from the incoming request
-	private String integrationTestUser = null;
+	private String integrationTestNewUser = null;
 
 	private void initCache() {
-		sessionCache = Collections.synchronizedMap(new HashMap<User,Session>());
+		sessionCache = Collections.synchronizedMap(new HashMap<NewUser,Session>());
 		lastCacheDump = new Date();
 		String s = System.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
 		if (s!=null && s.length()>0) {
@@ -77,29 +77,29 @@ public class AuthenticationController extends BaseController {
 	}
 
 	/**
-	 * @return the integrationTestUser
+	 * @return the integrationTestNewUser
 	 */
-	public String getIntegrationTestUser() {
-		return integrationTestUser;
+	public String getIntegrationTestNewUser() {
+		return integrationTestNewUser;
 	}
 
 	/**
-	 * @param integrationTestUser the integrationTestUser to set
+	 * @param integrationTestNewUser the integrationTestNewUser to set
 	 */
-	public void setIntegrationTestUser(String integrationTestUser) {
-		this.integrationTestUser = integrationTestUser;
+	public void setIntegrationTestNewUser(String integrationTestNewUser) {
+		this.integrationTestNewUser = integrationTestNewUser;
 	}
 
 	public AuthenticationController() {
 		initCache();
         // optional, only used for testing
-        setIntegrationTestUser(StackConfiguration.getIntegrationTestUserThreeName());
+        setIntegrationTestNewUser(StackConfiguration.getIntegrationTestUserThreeName());
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
 	public @ResponseBody
-	Session authenticate(@RequestBody User credentials,
+	Session authenticate(@RequestBody NewUser credentials,
 			HttpServletRequest request) throws Exception {
 		try { 
 			Session session = null;
@@ -153,7 +153,7 @@ public class AuthenticationController extends BaseController {
 
 			if (cacheTimeout>0) { // if using cache
 				checkCacheDump();
-				for (User user : sessionCache.keySet()) {
+				for (NewUser user : sessionCache.keySet()) {
 					Session cachedSession = sessionCache.get(user);
 					if (sessionToken.equals(cachedSession.getSessionToken())) {
 						sessionCache.remove(user);
@@ -165,8 +165,8 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public void createUser(@RequestBody User user) throws Exception {
-		String itu = getIntegrationTestUser();
+	public void createNewUser(@RequestBody NewUser user) throws Exception {
+		String itu = getIntegrationTestNewUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) {
 			user.setPassword(""+rand.nextLong());
@@ -181,18 +181,18 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+	public @ResponseBody NewUser getNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userId)) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
-		User user = CrowdAuthUtil.getUser(userId);
+		NewUser user = CrowdAuthUtil.getUser(userId);
 		return user;
 	}
 	
 	// for integration testing
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public void deleteUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		String itu = getIntegrationTestUser();
+	public void deleteNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		String itu = getIntegrationTestNewUser();
 		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
 		CrowdAuthUtil.deleteUser(userId);
@@ -200,9 +200,9 @@ public class AuthenticationController extends BaseController {
 	
 
 	// reset == true means send the 'reset' message; reset== false means send the 'set' message
-	private static void sendUserPasswordEmail(String userEmail, PW_MODE mode) throws Exception {
+	private static void sendNewUserPasswordEmail(String userEmail, PW_MODE mode) throws Exception {
 		// need a session token
-		User user = new User();
+		NewUser user = new NewUser();
 		user.setEmail(userEmail);
 		Session session = CrowdAuthUtil.authenticate(user, false);
 		
@@ -211,8 +211,8 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
-		sendUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
+	public void sendChangePasswordEmail(@RequestBody NewUser user) throws Exception {
+		sendNewUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -222,20 +222,20 @@ public class AuthenticationController extends BaseController {
 		if (userId == null)
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 			
-		sendUserPasswordEmail(userId, PW_MODE.SET_API_PW);
+		sendNewUserPasswordEmail(userId, PW_MODE.SET_API_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
-	public void setPassword(@RequestBody ChangeUserPassword changeUserPassword,
+	public void setPassword(@RequestBody ChangeUserPassword changeNewUserPassword,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		if (changeUserPassword.getNewPassword()==null) 			
+		if (changeNewUserPassword.getNewPassword()==null) 			
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
-		User user = new User();
+		NewUser user = new NewUser();
 		user.setEmail(userId);
-		user.setPassword(changeUserPassword.getNewPassword());
+		user.setPassword(changeNewUserPassword.getNewPassword());
 		CrowdAuthUtil.updatePassword(user);
 	}
 	
@@ -251,35 +251,35 @@ public class AuthenticationController extends BaseController {
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
 		
 		String sessionToken  = registrationToken.substring(CrowdAuthUtil.CHANGE_EMAIL_TOKEN_PREFIX.length());
-		String realUserId = CrowdAuthUtil.revalidate(sessionToken);
-		if (realUserId==null) 
+		String realNewUserId = CrowdAuthUtil.revalidate(sessionToken);
+		if (realNewUserId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 		//set the password
-		User user = new User();
-		user.setEmail(realUserId);
+		NewUser user = new NewUser();
+		user.setEmail(realNewUserId);
 		user.setPassword(registrationInfo.getPassword());
 		CrowdAuthUtil.updatePassword(user);
 		
 		//and update the preexisting user to the new email address
-		authenticationService.updateEmail(userId, realUserId);
+		authenticationService.updateEmail(userId, realNewUserId);
 		CrowdAuthUtil.deauthenticate(sessionToken);
 	}
 	
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/registeringUserPassword", method = RequestMethod.POST)
-	public void setRegisteringUserPassword(@RequestBody RegistrationInfo registrationInfo,
+	@RequestMapping(value = "/registeringNewUserPassword", method = RequestMethod.POST)
+	public void setRegisteringNewUserPassword(@RequestBody RegistrationInfo registrationInfo,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		String registrationToken = registrationInfo.getRegistrationToken();
 		if (registrationToken==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
 		
 		String sessionToken  = registrationToken.substring(CrowdAuthUtil.REGISTRATION_TOKEN_PREFIX.length());
-		String realUserId = CrowdAuthUtil.revalidate(sessionToken);
-		if (realUserId==null) 
+		String realNewUserId = CrowdAuthUtil.revalidate(sessionToken);
+		if (realNewUserId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		User user = new User();
-		user.setEmail(realUserId);
+		NewUser user = new NewUser();
+		user.setEmail(realNewUserId);
 		user.setPassword(registrationInfo.getPassword());
 		CrowdAuthUtil.updatePassword(user);
 		CrowdAuthUtil.deauthenticate(sessionToken);

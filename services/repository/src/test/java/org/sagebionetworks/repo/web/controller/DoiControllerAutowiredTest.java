@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.Entity;
@@ -37,7 +36,7 @@ public class DoiControllerAutowiredTest {
 
 	@Autowired private EntityService entityService;
 	@Autowired private DoiAdminDao doiAdminDao;
-	private final String testUser = TestUserDAO.TEST_USER_NAME;
+	private final String testUser = AuthorizationConstants.TEST_USER_NAME;
 	private Entity entity;
 
 	@Before
