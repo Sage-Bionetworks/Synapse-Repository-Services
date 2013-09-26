@@ -771,31 +771,6 @@ public class ServletTestHelper {
 				VersionInfo.class);
 	}
 
-	/**
-	 * We need extra help to convert from JSON to a PaginatedResults
-	 * 
-	 * @param <T>
-	 * @param json
-	 * @param clazz
-	 * @return
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws JsonMappingException
-	 * @throws JsonParseException
-	 */
-	public static <T extends JSONEntity> PaginatedResults<T> createPaginatedResultsFromJSON(
-			String jsonString, Class<? extends T> clazz) throws JSONException,
-			JsonParseException, JsonMappingException, IOException {
-		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
-		try {
-			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
-			return pr;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-
-	}
-
 
 	/**
 	 * Delete an entity
