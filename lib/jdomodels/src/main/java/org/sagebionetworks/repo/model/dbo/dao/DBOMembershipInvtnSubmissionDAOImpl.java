@@ -59,8 +59,6 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	private ETagGenerator eTagGenerator;
-	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
@@ -100,15 +98,13 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		dbo.setEtag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
 		populateMembershipInvitees(dbo.getId(), dto.getInvitees());
 		MembershipInvtnSubmission result = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
 		return result;
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void populateMembershipInvitees(long invitationId, List<String> invitees) throws DatastoreException {
+	private void populateMembershipInvitees(long invitationId, List<String> invitees) throws DatastoreException {
 		List<DBOMembershipInvitee> mis = new ArrayList<DBOMembershipInvitee>();
 		for (String inviteeId : invitees) {
 			DBOMembershipInvitee mi = new DBOMembershipInvitee();

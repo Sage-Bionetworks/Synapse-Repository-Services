@@ -10,13 +10,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_REQUEST_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -24,7 +21,6 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -32,8 +28,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -54,8 +48,6 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	private DBOBasicDao basicDao;	
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
@@ -88,7 +80,6 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		DBOMembershipRqstSubmission dbo = new DBOMembershipRqstSubmission();
 		MembershipRqstSubmissionUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		dbo.setEtag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
 		MembershipRqstSubmission result = MembershipRqstSubmissionUtils.copyDboToDto(dbo);
 		return result;
