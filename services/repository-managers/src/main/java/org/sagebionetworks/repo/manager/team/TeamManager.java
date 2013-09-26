@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.team;
 
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -28,7 +29,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public QueryResults<Team> get(long limit, long offset) throws DatastoreException;
+	public QueryResults<Team> get(long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Retrieve the Teams whose names match the given nameFragment, paginated
@@ -38,7 +39,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public QueryResults<Team> getByNameFragment(String nameFragment, long limit, long offset) throws DatastoreException;
+	public QueryResults<Team> getByNameFragment(String nameFragment, long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Retrieve the Teams to which the given user belongs, paginated
@@ -47,21 +48,94 @@ public interface TeamManager {
 	 * @param limit
 	 * @return
 	 * @throws DatastoreException
-
 	 */
-	public QueryResults<Team> getByMember(String principalId, long limit, long offset) throws DatastoreException;
+	public QueryResults<Team> getByMember(String principalId, long offset, long limit) throws DatastoreException;
 	
+	/**
+	 * Get a Team by its ID
+	 * @param id
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	public Team get(String id) throws DatastoreException, NotFoundException;
 
+	/**
+	 * Update a Team
+	 * 
+	 * @param userInfo
+	 * @param team
+	 * @return
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	public Team put(UserInfo userInfo, Team team) throws InvalidModelException, DatastoreException, UnauthorizedException, NotFoundException;
 	
+	/**
+	 * Delete a Team by its ID
+	 * @param userInfo
+	 * @param id
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	public void delete(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException; 
 
+	/**
+	 * Add a member to a Team
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @param principalId
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
 	public void addMember(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
-	public QueryResults<Team> getMembersByNameFragment(String nameFragment, long limit, long offset);
+	/**
+	 * Get the members of a Team matching a name fragment, paginated
+	 * @param nameFragment, if null then all members are returned
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public QueryResults<Team> getMembersByNameFragment(String nameFragment, long offset, long limit);
 	
+	/**
+	 * Remove a member from a Team
+	 * @param userInfo
+	 * @param teamId
+	 * @param principalId
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public void removeMember(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
+	/**
+	 * Get the ACL for a Team
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public AccessControlList getACL(UserInfo userInfo, String teamId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
+	/**
+	 * Update the ACL for a Team
+	 * @param userInfo
+	 * @param acl
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public AccessControlList updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 }
