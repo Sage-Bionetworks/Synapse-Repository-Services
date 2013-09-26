@@ -30,10 +30,10 @@ public class UserProfileUtils {
 		}
 	}
 	
-	public static UserProfile convertDboToDto(DBOUserProfile dbo) throws DatastoreException {
+	public static UserProfile deserialize(byte[] b) {
 		Object decompressed = null;
 		try {
-			decompressed = JDOSecondaryPropertyUtils.decompressedObject(dbo.getProperties());
+			decompressed = JDOSecondaryPropertyUtils.decompressedObject(b);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -45,11 +45,15 @@ public class UserProfileUtils {
 			// Support the old way of serializing the UserProfile
 			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 			dto = new UserProfile();
-			SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getProperties(), dto, schema);
+			SchemaSerializationUtils.mapAnnotationsToDtoFields(b, dto, schema);
 		} else {
 			throw new RuntimeException("Unsupported object type " + decompressed.getClass());
 		}
-		
+		return dto;
+	}
+	
+	public static UserProfile convertDboToDto(DBOUserProfile dbo) throws DatastoreException {
+		UserProfile dto = deserialize(dbo.getProperties());
 		if (dbo.getOwnerId()==null) {
 			dto.setOwnerId(null);
 		} else {
