@@ -1,14 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
 import org.apache.commons.lang.StringUtils;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -21,12 +18,10 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -46,12 +41,10 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
@@ -81,82 +74,93 @@ public class EntityServletTestHelper {
 	public EntityServletTestHelper() throws Exception {
 		dispatcherServlet = DispatchServletSingleton.getInstance();
 	}
-	
+
 	/**
 	 * Create an entity without an entity type
 	 */
 	public Entity createEntity(Entity entity, String username, String activityId)
-			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, NameConflictException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				UrlHelpers.ENTITY, username, entity);
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY, username, entity);
 		request.setParameter(ServiceConstants.GENERATED_BY_PARAM, activityId);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-		
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
+
 		return ServletTestHelperUtils.readResponseEntity(response);
 	}
 
 	/**
 	 * Delete an entity without knowing the type
 	 */
-	public void deleteEntity(String id, String username) 
-			throws ServletException, IOException, NotFoundException, DatastoreException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.DELETE, 
-				UrlHelpers.ENTITY + "/" + id, username, null);
-		
-		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.NO_CONTENT);
+	public void deleteEntity(String id, String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, username, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
 
 	/**
 	 * Get an entity using only the ID
 	 */
-	public Entity getEntity(String id, String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + "/" + id, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
+	public Entity getEntity(String id, String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
 		return ServletTestHelperUtils.readResponseEntity(response);
 	}
-	
+
 	/**
 	 * Get an entity bundle using only the ID
 	 */
-	public EntityBundle getEntityBundle(String id, int mask, String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE, username, null);
+	public EntityBundle getEntityBundle(String id, int mask, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
+				username, null);
 		request.setParameter("mask", "" + mask);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundle(ServletTestHelperUtils.readResponseJSON(response));
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new EntityBundle(
+				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
 	/**
-	 * Get an entity bundle for a specific version using the ID and versionNumber.
+	 * Get an entity bundle for a specific version using the ID and
+	 * versionNumber.
 	 */
-	public EntityBundle getEntityBundleForVersion(String id, Long versionNumber, int mask, String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION + "/" + versionNumber + UrlHelpers.BUNDLE, username, null);
+	public EntityBundle getEntityBundleForVersion(String id,
+			Long versionNumber, int mask, String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+						+ "/" + versionNumber + UrlHelpers.BUNDLE, username,
+				null);
 		request.setParameter("mask", "" + mask);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new EntityBundle(ServletTestHelperUtils.readResponseJSON(response));
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new EntityBundle(
+				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
 	/**
 	 * Update an entity.
 	 */
-	public Entity updateEntity(Entity toUpdate, String username) 
-			throws JSONObjectAdapterException, IOException, NotFoundException, DatastoreException, ServletException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				UrlHelpers.ENTITY + "/" + toUpdate.getId(), username, toUpdate);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public Entity updateEntity(Entity toUpdate, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + toUpdate.getId(),
+				username, toUpdate);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return ServletTestHelperUtils.readResponseEntity(response);
 	}
@@ -164,433 +168,520 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public Annotations getEntityAnnotations(String id, String username) 
-			throws ServletException, IOException, NotFoundException, DatastoreException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + "/" + id + UrlHelpers.ANNOTATIONS, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), Annotations.class);
+	public Annotations getEntityAnnotations(String id, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.ANNOTATIONS, username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), Annotations.class);
 	}
 
 	/**
 	 * Update the annotations of an entity
 	 */
-	public Annotations updateAnnotations(Annotations annos, String username) 
-			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				UrlHelpers.ENTITY + "/" + annos.getId() + UrlHelpers.ANNOTATIONS, username, annos);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public Annotations updateAnnotations(Annotations annos, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
+						+ UrlHelpers.ANNOTATIONS, username, annos);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), Annotations.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), Annotations.class);
 	}
 
 	/**
 	 * Get the user's permissions for an entity
 	 */
-	public UserEntityPermissions getUserEntityPermissions(String id, String username) 
-			throws ServletException, IOException, NotFoundException, DatastoreException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + "/" + id + UrlHelpers.PERMISSIONS, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public UserEntityPermissions getUserEntityPermissions(String id,
+			String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.PERMISSIONS, username, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), UserEntityPermissions.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), UserEntityPermissions.class);
 	}
-	
+
 	/**
 	 * Get the user's permissions for an entity.
 	 */
-	public EntityPath getEntityPath(String id, String username) 
-			throws ServletException, IOException, NotFoundException, DatastoreException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public EntityPath getEntityPath(String id, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH,
+				username, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityPath.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), EntityPath.class);
 	}
-	
+
 	/**
 	 * Get the types of entities
 	 */
-	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> ids, String username) 
-			throws ServletException, IOException, NotFoundException, DatastoreException, JSONException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY_TYPE, username, null);
-		request.setParameter(ServiceConstants.BATCH_PARAM, StringUtils.join(ids, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> ids,
+			String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY_TYPE, username, null);
+		request.setParameter(ServiceConstants.BATCH_PARAM, StringUtils.join(
+				ids, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
 
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(new JSONObject(response.getContentAsString()));
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(new JSONObject(
+				response.getContentAsString()));
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+				EntityHeader.class);
 		results.initializeFromJSONObject(adapter);
 		return results;
 	}
-	
-	
+
 	/**
 	 * Get the list of all REST resources
 	 */
-	public RestResourceList getRESTResources() 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.REST_RESOURCES, null, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public RestResourceList getRESTResources() throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.REST_RESOURCES, null, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), RestResourceList.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), RestResourceList.class);
 	}
-	
+
 	/**
 	 * Get the effective schema for a resource
 	 */
-	public ObjectSchema getEffectiveSchema(String resourceId) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.REST_RESOURCES + UrlHelpers.EFFECTIVE_SCHEMA, null, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public ObjectSchema getEffectiveSchema(String resourceId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.REST_RESOURCES
+						+ UrlHelpers.EFFECTIVE_SCHEMA, null, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), ObjectSchema.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), ObjectSchema.class);
 	}
-	
+
 	/**
 	 * Get the full schema for a resource
 	 */
-	public ObjectSchema getFullSchema(String resourceId) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.REST_RESOURCES + UrlHelpers.SCHEMA, null, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public ObjectSchema getFullSchema(String resourceId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.REST_RESOURCES + UrlHelpers.SCHEMA,
+				null, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), ObjectSchema.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), ObjectSchema.class);
 	}
 
 	/**
 	 * Get the entity registry
 	 */
-	public EntityRegistry getEntityRegistry() 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.ENTITY + UrlHelpers.REGISTRY, null, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public EntityRegistry getEntityRegistry() throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + UrlHelpers.REGISTRY, null,
+				null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityRegistry.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), EntityRegistry.class);
 	}
 
 	/**
 	 * Creates a new version of an entity
 	 */
-	public Versionable createNewVersion(String username, Versionable entity) 
-			throws DatastoreException, IOException, ServletException, NotFoundException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				UrlHelpers.ENTITY + "/" + entity.getId() + "/version", username, entity);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public Versionable createNewVersion(String username, Versionable entity)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
+						+ "/version", username, entity);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), Versionable.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), Versionable.class);
 	}
-	
-	/////////////////////////
+
+	// ///////////////////////
 	// Evaluation Services //
-	/////////////////////////
-	
+	// ///////////////////////
+
 	/**
 	 * Creates an evaluation
 	 */
 	public Evaluation createEvaluation(Evaluation eval, String username)
-			throws JSONObjectAdapterException, IOException, DatastoreException, NotFoundException, ServletException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				UrlHelpers.EVALUATION, username, eval);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.EVALUATION, username, eval);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
+
 	/**
 	 * Gets an evaluation
 	 */
-	public Evaluation getEvaluation(String username, String evalId) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public Evaluation getEvaluation(String username, String evalId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId, username,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
+
 	/**
 	 * Returns whether the user has access rights to the evaluation
 	 */
-	public Boolean canAccess(String username, String evalId, ACCESS_TYPE accessType) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/access", username, null);
+	public Boolean canAccess(String username, String evalId,
+			ACCESS_TYPE accessType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId + "/access",
+				username, null);
 		request.addParameter("accessType", accessType.toString());
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		JSONObjectAdapter joa = ServletTestHelperUtils.readResponseJSON(response);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		JSONObjectAdapter joa = ServletTestHelperUtils
+				.readResponseJSON(response);
 		return (Boolean) joa.get("result");
 	}
 
 	/**
 	 * Looks for an evaluation by name
 	 */
-	public Evaluation findEvaluation(String username, String name) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/name/" + name, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public Evaluation findEvaluation(String username, String name)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/name/" + name,
+				username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
+
 	/**
 	 * Gets a paginated list of available evaluations
 	 */
-	public PaginatedResults<Evaluation> getAvailableEvaluations(String username, String status) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION_AVAILABLE, username, null);
+	public PaginatedResults<Evaluation> getAvailableEvaluations(
+			String username, String status) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION_AVAILABLE, username, null);
 		request.setParameter("limit", "100");
 		request.setParameter("offset", "0");
 		if (status != null) {
 			request.setParameter("status", status);
 		}
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return ServletTestHelperUtils.readResponsePaginatedResults(response, Evaluation.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				Evaluation.class);
 	}
-	
-	public Evaluation updateEvaluation(Evaluation eval, String username) 
-			throws JSONObjectAdapterException, IOException, NotFoundException, DatastoreException, ServletException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				UrlHelpers.EVALUATION + "/" + eval.getId(), username, eval);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+	public Evaluation updateEvaluation(Evaluation eval, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.EVALUATION + "/" + eval.getId(),
+				username, eval);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public void deleteEvaluation(String evalId, String username) 
-			throws ServletException, IOException, NotFoundException, DatastoreException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.DELETE, 
-				UrlHelpers.EVALUATION + "/" + evalId, username, null);
-		
-		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.NO_CONTENT);
+
+	public void deleteEvaluation(String evalId, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.EVALUATION + "/" + evalId,
+				username, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
 
-	
-	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(String username, String projectId, long limit, long offset) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/project/" + projectId, username, null);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
+			String username, String projectId, long limit, long offset)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/project/" + projectId,
+				username, null);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
+				+ offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
+				+ limit);
 
-		return ServletTestHelperUtils.readResponsePaginatedResults(response, Evaluation.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				Evaluation.class);
 	}
-	
-	
-	public PaginatedResults<Evaluation> getEvaluationsPaginated(String username, long limit, long offset) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION, username, null);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return ServletTestHelperUtils.readResponsePaginatedResults(response, Evaluation.class);
+
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(
+			String username, long limit, long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION, username, null);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
+				+ offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
+				+ limit);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				Evaluation.class);
 	}
-	
-	public long getEvaluationCount(String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION_COUNT, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
+
+	public long getEvaluationCount(String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION_COUNT, username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
 		return Long.parseLong(response.getContentAsString());
 	}
-	
+
 	public Participant createParticipant(String username, String evalId)
-			throws JSONObjectAdapterException, IOException, DatastoreException, NotFoundException, ServletException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/participant", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/participant", username, null);
 
-		return new Participant(ServletTestHelperUtils.readResponseJSON(response));
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new Participant(
+				ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public Participant getParticipant(String username, String partId, String evalId) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+
+	public Participant getParticipant(String username, String partId,
+			String evalId) throws Exception {
 		// Make sure we are passing in the ID, not the user name
 		Long.parseLong(partId);
-		
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/participant/" + partId, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new Participant(ServletTestHelperUtils.readResponseJSON(response));
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/participant/" + partId, username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new Participant(
+				ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public void deleteParticipant(String username, String partId, String evalId) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+
+	public void deleteParticipant(String username, String partId, String evalId)
+			throws Exception {
 		// Make sure we are passing in the ID, not the user name
 		Long.parseLong(partId);
-		
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.DELETE, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/participant/" + partId, username, null);
-		
-		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.NO_CONTENT);
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/participant/" + partId, username, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
-	
-	public PaginatedResults<Participant> getAllParticipants(String username, String evalId) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/participant", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return ServletTestHelperUtils.readResponsePaginatedResults(response, Participant.class);
+
+	public PaginatedResults<Participant> getAllParticipants(String username,
+			String evalId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/participant", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				Participant.class);
 	}
-	
-	public long getParticipantCount(String username, String evalId) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/participant/count", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
+
+	public long getParticipantCount(String username, String evalId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/participant/count", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
 		return Long.parseLong(response.getContentAsString());
 	}
-	
-	public Submission createSubmission(Submission sub, String username, String entityEtag)
-			throws JSONObjectAdapterException, IOException, DatastoreException, NotFoundException, ServletException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				UrlHelpers.SUBMISSION, username, sub);
+
+	public Submission createSubmission(Submission sub, String username,
+			String entityEtag) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.SUBMISSION, username, sub);
 		request.setParameter(AuthorizationConstants.ETAG_PARAM, entityEtag);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
 
 		return new Submission(ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public Submission getSubmission(String username, String subId) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.SUBMISSION + "/" + subId, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+	public Submission getSubmission(String username, String subId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.SUBMISSION + "/" + subId, username,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return new Submission(ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public SubmissionStatus getSubmissionStatus(String username, String subId) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.SUBMISSION + "/" + subId + "/status", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return new SubmissionStatus(ServletTestHelperUtils.readResponseJSON(response));
-	}
-	
-	public SubmissionStatus updateSubmissionStatus(SubmissionStatus subStatus, String username) 
-			throws JSONObjectAdapterException, IOException, NotFoundException, DatastoreException, ServletException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				UrlHelpers.SUBMISSION + "/" + subStatus.getId() + "/status", username, subStatus);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public SubmissionStatus getSubmissionStatus(String username, String subId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.SUBMISSION + "/" + subId + "/status",
+				username, null);
 
-		return new SubmissionStatus(ServletTestHelperUtils.readResponseJSON(response));
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new SubmissionStatus(
+				ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public void deleteSubmission(String subId, String username) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.DELETE, 
-				UrlHelpers.SUBMISSION + "/" + subId, username, null);
-		
-		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.NO_CONTENT);
+
+	public SubmissionStatus updateSubmissionStatus(SubmissionStatus subStatus,
+			String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.SUBMISSION + "/" + subStatus.getId()
+						+ "/status", username, subStatus);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return new SubmissionStatus(
+				ServletTestHelperUtils.readResponseJSON(response));
 	}
-	
-	public PaginatedResults<Submission> getAllSubmissions(String username, String evalId, SubmissionStatusEnum status) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/submission/all", username, null);
+
+	public void deleteSubmission(String subId, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.SUBMISSION + "/" + subId, username,
+				null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
+	public PaginatedResults<Submission> getAllSubmissions(String username,
+			String evalId, SubmissionStatusEnum status) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/submission/all", username, null);
 		if (status != null) {
 			request.setParameter(UrlHelpers.STATUS, status.toString());
 		}
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
-		return ServletTestHelperUtils.readResponsePaginatedResults(response, Submission.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				Submission.class);
 	}
-	
-	public long getSubmissionCount(String username, String evalId) 
-			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + "/submission/count", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+	public long getSubmissionCount(String username, String evalId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ "/submission/count", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return Long.parseLong(response.getContentAsString());
 	}
 
 	public AccessControlList getEvaluationAcl(String username, String evalId)
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + UrlHelpers.ACL, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ UrlHelpers.ACL, username, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), AccessControlList.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
 	}
 
-	public AccessControlList updateEvaluationAcl(String username, AccessControlList acl)
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				UrlHelpers.EVALUATION_ACL, username, acl);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public AccessControlList updateEvaluationAcl(String username,
+			AccessControlList acl) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.EVALUATION_ACL, username, acl);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), AccessControlList.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), AccessControlList.class);
 	}
 
-	public UserEvaluationPermissions getEvaluationPermissions(String username, String evalId)
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				UrlHelpers.EVALUATION + "/" + evalId + UrlHelpers.PERMISSIONS, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public UserEvaluationPermissions getEvaluationPermissions(String username,
+			String evalId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
+						+ UrlHelpers.PERMISSIONS, username, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), UserEvaluationPermissions.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), UserEvaluationPermissions.class);
 	}
 
-	public BatchResults<EntityHeader> getEntityHeaderByMd5(String username, String md5) 
-			throws DatastoreException, IOException, ServletException, NotFoundException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/entity/md5/" + md5, username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public BatchResults<EntityHeader> getEntityHeaderByMd5(String username,
+			String md5) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/md5/" + md5, username, null);
 
-		JSONObjectAdapter adapter = ServletTestHelperUtils.readResponseJSON(response);
-		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		JSONObjectAdapter adapter = ServletTestHelperUtils
+				.readResponseJSON(response);
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(
+				EntityHeader.class);
 		results.initializeFromJSONObject(adapter);
 		return results;
 	}
@@ -598,278 +689,333 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the migration counts
 	 */
-	public MigrationTypeCounts getMigrationTypeCounts(String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/migration/counts", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationTypeCounts.class);
+	public MigrationTypeCounts getMigrationTypeCounts(String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/counts", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), MigrationTypeCounts.class);
 	}
-	
+
 	/**
-	 * Get the RowMetadata for a given Migration type.
-	 * This is used to get all metadata from a source stack during migation.
+	 * Get the RowMetadata for a given Migration type. This is used to get all
+	 * metadata from a source stack during migation.
 	 */
-	public RowMetadataResult getRowMetadata(String username, MigrationType type, long limit, long offset) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/migration/rows", username, null);
+	public RowMetadataResult getRowMetadata(String username,
+			MigrationType type, long limit, long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/rows", username, null);
 		request.setParameter("type", type.name());
 		request.setParameter("limit", "" + limit);
 		request.setParameter("offset", "" + offset);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), RowMetadataResult.class);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), RowMetadataResult.class);
 	}
-	
+
 	/**
-	 * Get the RowMetadata for a given Migration type.
-	 * This is used to get all metadata from a source stack during migation.
+	 * Get the RowMetadata for a given Migration type. This is used to get all
+	 * metadata from a source stack during migation.
 	 */
-	public RowMetadataResult getRowMetadataDelta(String username, MigrationType type, IdList list) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/migration/delta", username, list);
+	public RowMetadataResult getRowMetadataDelta(String username,
+			MigrationType type, IdList list) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/delta", username, list);
 		request.setParameter("type", type.name());
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), RowMetadataResult.class);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), RowMetadataResult.class);
 	}
-	
+
 	/**
-	 * Get the RowMetadata for a given Migration type.
-	 * This is used to get all metadata from a source stack during migation.
+	 * Get the RowMetadata for a given Migration type. This is used to get all
+	 * metadata from a source stack during migation.
 	 */
-	public MigrationTypeList getPrimaryMigrationTypes(String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/migration/primarytypes", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationTypeList.class);
+	public MigrationTypeList getPrimaryMigrationTypes(String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/primarytypes", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), MigrationTypeList.class);
 	}
-	
+
 	/**
 	 * Start the backup of a list of objects
 	 */
-	public BackupRestoreStatus startBackup(String username, MigrationType type, IdList list) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				"/migration/backup", username, list);
+	public BackupRestoreStatus startBackup(String username, MigrationType type,
+			IdList list) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/migration/backup", username, list);
 		request.setParameter("type", type.name());
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), BackupRestoreStatus.class);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), BackupRestoreStatus.class);
 	}
-	
+
 	/**
 	 * Start the restore of a list of objects
 	 */
-	public BackupRestoreStatus startRestore(String username, MigrationType type, RestoreSubmission sub) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				"/migration/restore", username, sub);
+	public BackupRestoreStatus startRestore(String username,
+			MigrationType type, RestoreSubmission sub) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/migration/restore", username, sub);
 		request.setParameter("type", type.name());
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), BackupRestoreStatus.class);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), BackupRestoreStatus.class);
 	}
-	
+
 	/**
 	 * Get the status of a migration operation
 	 */
-	public BackupRestoreStatus getBackupRestoreStatus(String username, String daemonId) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/migration/status", username, null);
+	public BackupRestoreStatus getBackupRestoreStatus(String username,
+			String daemonId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/status", username, null);
 		request.setParameter("daemonId", daemonId);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), BackupRestoreStatus.class);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), BackupRestoreStatus.class);
 	}
-	
+
 	/**
 	 * Deletes all objects of a given type
 	 */
-	public MigrationTypeCount deleteMigrationType(String username, MigrationType type, IdList list) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/migration/delete", username, list);
+	public MigrationTypeCount deleteMigrationType(String username,
+			MigrationType type, IdList list) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/migration/delete", username, list);
 		request.setParameter("type", type.name());
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), MigrationTypeCount.class);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), MigrationTypeCount.class);
 	}
-	
-	public WikiPage createWikiPage(String username, String ownerId, ObjectType ownerType, WikiPage toCreate) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, 
-				"/"+ownerType.name().toLowerCase() + "/" + ownerId + "/wiki", username, toCreate);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
+
+	public WikiPage createWikiPage(String username, String ownerId,
+			ObjectType ownerType, WikiPage toCreate) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki", username, toCreate);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), WikiPage.class);
 	}
-	
+
 	/**
 	 * Delete a wikipage
 	 */
-	public void deleteWikiPage(WikiPageKey key, String username) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.DELETE, 
-				ServletTestHelperUtils.createWikiURI(key), username, null);
-		
-		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public void deleteWikiPage(WikiPageKey key, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, ServletTestHelperUtils.createWikiURI(key),
+				username, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
+				HttpStatus.OK);
 	}
-	
+
 	/**
 	 * Get a wiki page.
 	 */
-	public WikiPage getWikiPage(WikiPageKey key, String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				ServletTestHelperUtils.createWikiURI(key), username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
+	public WikiPage getWikiPage(WikiPageKey key, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key),
+				username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), WikiPage.class);
 	}
-	
+
 	/**
 	 * Get the root wiki page
 	 */
-	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType, String username) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/" + ownerType.name().toLowerCase() + "/" + ownerId + "/wiki", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
+	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType,
+			String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), WikiPage.class);
 	}
-	
+
 	/**
 	 * Update a wiki page
 	 */
-	public WikiPage updateWikiPage(String username, String ownerId, ObjectType ownerType, WikiPage wiki) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.PUT, 
-				"/" + ownerType.name().toLowerCase() + "/" + ownerId + "/wiki/" + wiki.getId(), username, wiki);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-		
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
+	public WikiPage updateWikiPage(String username, String ownerId,
+			ObjectType ownerType, WikiPage wiki) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki/" + wiki.getId(), username, wiki);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), WikiPage.class);
 	}
-	
+
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public PaginatedResults<WikiHeader> getWikiHeaderTree(String username, String ownerId, ObjectType ownerType) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/" + ownerType.name().toLowerCase() + "/" + ownerId + "/wikiheadertree", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(String username,
+			String ownerId, ObjectType ownerType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wikiheadertree", username, null);
 
-		return ServletTestHelperUtils.readResponsePaginatedResults(response, WikiHeader.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				WikiHeader.class);
 	}
-	
+
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public FileHandleResults getWikiFileHandles(String username, WikiPageKey key) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				ServletTestHelperUtils.createWikiURI(key) + "/attachmenthandles", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public FileHandleResults getWikiFileHandles(String username, WikiPageKey key)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key)
+						+ "/attachmenthandles", username, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), FileHandleResults.class);
 	}
-	
+
 	/**
 	 * Get the file handles for the current version
 	 */
-	public FileHandleResults geEntityFileHandlesForCurrentVersion(String username, String entityId) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/entity/" + entityId + "/filehandles", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public FileHandleResults geEntityFileHandlesForCurrentVersion(
+			String username, String entityId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + entityId + "/filehandles", username,
+				null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), FileHandleResults.class);
 	}
-	
+
 	/**
 	 * Get the file handles for a given version
 	 */
-	public FileHandleResults geEntityFileHandlesForVersion(String username, String entityId, Long versionNumber) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/entity/" + entityId + "/version/" + versionNumber + "/filehandles", username, null);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+	public FileHandleResults geEntityFileHandlesForVersion(String username,
+			String entityId, Long versionNumber) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + entityId + "/version/"
+						+ versionNumber + "/filehandles", username, null);
 
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), FileHandleResults.class);
 	}
-	
+
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
 	 */
-	public URL getWikiAttachmentFileURL(String username, WikiPageKey key, String fileName, Boolean redirect) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				ServletTestHelperUtils.createWikiURI(key) + "/attachment", username, null);
+	public URL getWikiAttachmentFileURL(String username, WikiPageKey key,
+			String fileName, Boolean redirect) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key)
+						+ "/attachment", username, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, 
-				redirect ? HttpStatus.TEMPORARY_REDIRECT : HttpStatus.OK);
-		
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request,
+						redirect ? HttpStatus.TEMPORARY_REDIRECT
+								: HttpStatus.OK);
+
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
-	
+
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
 	 */
-	public URL getWikiAttachmentPreviewFileURL(String username, WikiPageKey key, String fileName, Boolean redirect) 
-			throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				ServletTestHelperUtils.createWikiURI(key) + "/attachmentpreview", username, null);
+	public URL getWikiAttachmentPreviewFileURL(String username,
+			WikiPageKey key, String fileName, Boolean redirect)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key)
+						+ "/attachmentpreview", username, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, 
-				redirect ? HttpStatus.TEMPORARY_REDIRECT : HttpStatus.OK);
-		
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request,
+						redirect ? HttpStatus.TEMPORARY_REDIRECT
+								: HttpStatus.OK);
+
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
-	
+
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
 	 * 
-	 * @param redirect - Defaults to null, which will follow the redirect.  
-	 *   When set to FALSE, a call will be made without a redirect.
-	 * @param preview - Defaults to null, which will get the File and not the preview of the File.  
-	 *   When set to TRUE, the URL of the preview will be returned.
-	 * @param versionNumber - Defaults to null, which will get the file for the current version.  
-	 *   When set to a version number, the file (or preview) associated with that version number will be returned.
+	 * @param redirect
+	 *            - Defaults to null, which will follow the redirect. When set
+	 *            to FALSE, a call will be made without a redirect.
+	 * @param preview
+	 *            - Defaults to null, which will get the File and not the
+	 *            preview of the File. When set to TRUE, the URL of the preview
+	 *            will be returned.
+	 * @param versionNumber
+	 *            - Defaults to null, which will get the file for the current
+	 *            version. When set to a version number, the file (or preview)
+	 *            associated with that version number will be returned.
 	 */
-	private URL getEntityFileURL(String username, String entityId, Boolean redirect, Boolean preview, Long versionNumber) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	private URL getEntityFileURL(String username, String entityId,
+			Boolean redirect, Boolean preview, Long versionNumber)
+			throws Exception {
 		String suffix = "/file";
 		if (Boolean.TRUE.equals(preview)) {
 			// This is a preview request
@@ -877,48 +1023,57 @@ public class EntityServletTestHelper {
 		}
 		String version = "";
 		if (versionNumber != null) {
-			version = "/version/"+versionNumber;
+			version = "/version/" + versionNumber;
 		}
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, 
-				"/entity/" + entityId + version + suffix, username, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + entityId + version + suffix,
+				username, null);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
-		
-		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request, 
-				redirect ? HttpStatus.TEMPORARY_REDIRECT : HttpStatus.OK);
-		
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request,
+						redirect ? HttpStatus.TEMPORARY_REDIRECT
+								: HttpStatus.OK);
+
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
+
 	/**
 	 * Get the file URL for the current version
 	 */
-	public URL getEntityFileURLForCurrentVersion(String userName, String entityId, Boolean redirect) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public URL getEntityFileURLForCurrentVersion(String userName,
+			String entityId, Boolean redirect) throws Exception {
 		Boolean preview = null;
 		Long versionNumber = null;
-		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+		return getEntityFileURL(userName, entityId, redirect, preview,
+				versionNumber);
 	}
-	
+
 	/**
 	 * Get the file preview URL for the current version
 	 */
-	public URL getEntityFilePreviewURLForCurrentVersion(String userName, String entityId, Boolean redirect) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public URL getEntityFilePreviewURLForCurrentVersion(String userName,
+			String entityId, Boolean redirect) throws Exception {
 		Boolean preview = Boolean.TRUE;
 		Long versionNumber = null;
-		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+		return getEntityFileURL(userName, entityId, redirect, preview,
+				versionNumber);
 	}
 
-	public URL getEntityFileURLForVersion(String userName, String entityId, Long versionNumber, Boolean redirect) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public URL getEntityFileURLForVersion(String userName, String entityId,
+			Long versionNumber, Boolean redirect) throws Exception {
 		Boolean preview = null;
-		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+		return getEntityFileURL(userName, entityId, redirect, preview,
+				versionNumber);
 	}
-	
-	public URL getEntityFilePreviewURLForVersion(String userName, String entityId, Long versionNumber, Boolean redirect) 
-			throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+
+	public URL getEntityFilePreviewURLForVersion(String userName,
+			String entityId, Long versionNumber, Boolean redirect)
+			throws Exception {
 		Boolean preview = Boolean.TRUE;
-		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+		return getEntityFileURL(userName, entityId, redirect, preview,
+				versionNumber);
 	}
 }

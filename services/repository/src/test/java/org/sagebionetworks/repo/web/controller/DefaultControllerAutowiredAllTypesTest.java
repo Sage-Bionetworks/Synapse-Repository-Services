@@ -283,47 +283,6 @@ public class DefaultControllerAutowiredAllTypesTest {
 			assertEquals(entity, fromGet);
 		}
 	}
-	
-	@Ignore
-	@Deprecated
-	@Test
-	public void testGetList() throws Exception {
-		// This time we want 3 of each type.
-		int number = 3;
-		List<Entity> created = createEntitesOfEachType(number);
-		assertNotNull(created);
-		assertTrue(created.size() >= EntityType.values().length);
-		
-		EntityType[] types = EntityType.values();
-		int index = 0;
-		for(EntityType type: types){
-			// Try with all default values
-			PaginatedResults<Entity> result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), null, null, null, null, userName);
-			assertNotNull(result);
-			int expectedNumer = number;
-			if(EntityType.project == type || EntityType.dataset == type || EntityType.layer == type){
-				// There is one extra project since we use that as the parent.
-				expectedNumer++;
-			}
-			if(EntityType.folder == type){
-				// There are three root folders
-				expectedNumer = expectedNumer+3;
-			}
-			assertTrue(result.getTotalNumberOfResults() >= expectedNumer );
-			assertNotNull(result.getResults());
-			assertTrue(result.getResults().size() >= expectedNumer);
-
-			// Try with a value in each slot
-			result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), 2, 1,	"name", true, userName);
-			assertNotNull(result);
-			assertTrue(result.getTotalNumberOfResults() >= expectedNumer );
-			assertNotNull(result.getResults());
-			assertEquals(1, result.getResults().size());
-			assertNotNull(result.getResults().get(0));
-		}
-	}
-	
-
 
 	@Test
 	public void testDelete() throws Exception {
