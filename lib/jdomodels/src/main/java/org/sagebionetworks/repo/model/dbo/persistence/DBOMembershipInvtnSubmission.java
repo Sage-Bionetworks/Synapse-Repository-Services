@@ -37,7 +37,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	private Long id;
 	private String etag;
 	private Long teamId;
-	private long expiresOn;
+	private Long expiresOn;
 	private byte[] properties;
 
 	@Override
@@ -49,7 +49,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				team.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
 				team.setEtag(rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG));
 				team.setTeamId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
-				team.setExpiresOn(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON));
+				Long expiresOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON);
+				if (expiresOn==0L) expiresOn=null;
+				team.setExpiresOn(expiresOn);
 
 				java.sql.Blob blob = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 				if(blob != null){
@@ -130,13 +132,13 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 
 
-	public long getExpiresOn() {
+	public Long getExpiresOn() {
 		return expiresOn;
 	}
 
 
 
-	public void setExpiresOn(long expiresOn) {
+	public void setExpiresOn(Long expiresOn) {
 		this.expiresOn = expiresOn;
 	}
 
@@ -144,7 +146,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return null; //MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
+		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
 	}
 
 	@Override
@@ -186,7 +188,8 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + (int) (expiresOn ^ (expiresOn >>> 32));
+		result = prime * result
+				+ ((expiresOn == null) ? 0 : expiresOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
 		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
@@ -209,7 +212,10 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				return false;
 		} else if (!etag.equals(other.etag))
 			return false;
-		if (expiresOn != other.expiresOn)
+		if (expiresOn == null) {
+			if (other.expiresOn != null)
+				return false;
+		} else if (!expiresOn.equals(other.expiresOn))
 			return false;
 		if (id == null) {
 			if (other.id != null)

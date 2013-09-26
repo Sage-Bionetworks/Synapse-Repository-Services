@@ -6,12 +6,10 @@
 			"type": "string",
 			"description": "The id of the Team to which the request is sent."
 		},
-		"user":{
-            "type":"object",
-  			"description": "The one being invited to join the Team.",
-            "$ref":"org.sagebionetworks.repo.model.UserGroupHeader",
-            "title":"User"
-        },
+		"userId": {
+			"type": "string",
+			"description": "The one being invited to join the Team."
+		},
 		"message": {
 			"type": "string",
 			"description": "The request message."
