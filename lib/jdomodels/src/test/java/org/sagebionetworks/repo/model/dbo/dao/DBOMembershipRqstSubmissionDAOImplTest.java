@@ -55,9 +55,8 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 			teamToDelete=-1L;
 		}
 	}
-
-	@Test
-	public void testRoundTrip() throws Exception {
+	
+	private Long createTeam() throws Exception {
 		// create a team
 		Team team = new Team();
 		assertNotNull(userGroupDAO);
@@ -74,7 +73,12 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		team.setModifiedBy("102");
 		teamDAO.create(team);
 		teamToDelete = teamId;
-		
+		return teamId;
+	}
+	
+	@Test
+	public void testRoundTrip() throws Exception {
+		Long teamId = createTeam();
 		// create the submission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		Date expiresOn = new Date();
@@ -156,5 +160,35 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		}
 		mrsToDelete=-1L; // no need to delete in 'tear down'
 	}
+
+	@Test
+	public void testNoExpirationDate() throws Exception {
+		Long teamId = createTeam();
+		// create the submission
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		mrs.setExpiresOn(null); // NO EXPIRATION DATE
+		mrs.setMessage("Please let me join the team.");
+		mrs.setTeamId(""+teamId);
+		
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mrs.setUserId(individUser.getId());
+		
+		mrs = membershipRqstSubmissionDAO.create(mrs);
+		String id = mrs.getId();
+		assertNotNull(id);
+		mrsToDelete = Long.parseLong(id);
+
+		// get-by-team query, returning only the *open* invitations
+		// OK
+		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamInRange(teamId, (new Date()).getTime(), 0, 1);
+		assertEquals(1, mrList.size());		
+		// get-by-team-and-user query, returning only the *open* (unexpired) invitations
+		// OK
+		long pgLong = Long.parseLong(individUser.getId());
+		mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId, pgLong, (new Date()).getTime(), 0, 1);
+		assertEquals(1, mrList.size());
+	}
+
 
 }

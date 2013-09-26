@@ -17,7 +17,7 @@ public class MembershipInvtnSubmissionUtils {
 	public static void copyDtoToDbo(MembershipInvtnSubmission dto, DBOMembershipInvtnSubmission dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setEtag(dto.getEtag());
-		if(dto.getExpiresOn()==null) dbo.setExpiresOn(0L); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
+		if(dto.getExpiresOn()==null) dbo.setExpiresOn(null); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
 		dbo.setTeamId(Long.parseLong(dto.getTeamId()));
 		copyToSerializedField(dto, dbo);
 	}
@@ -26,7 +26,7 @@ public class MembershipInvtnSubmissionUtils {
 		MembershipInvtnSubmission dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setEtag(dbo.getEtag());
-		if (dbo.getExpiresOn()==0L) dto.setExpiresOn(null);else dto.setExpiresOn(new Date(dbo.getExpiresOn()));
+		if (dbo.getExpiresOn()==null) dto.setExpiresOn(null); else dto.setExpiresOn(new Date(dbo.getExpiresOn()));
 		dto.setTeamId(dbo.getTeamId().toString());
 		return dto;
 	}

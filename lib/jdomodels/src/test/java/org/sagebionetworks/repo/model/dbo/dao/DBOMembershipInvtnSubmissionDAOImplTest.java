@@ -55,9 +55,8 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 			teamToDelete=-1L;
 		}
 	}
-
-	@Test
-	public void testRoundTrip() throws Exception {
+	
+	private Team createTeam() throws Exception {
 		// create a team
 		Team team = new Team();
 		assertNotNull(userGroupDAO);
@@ -72,9 +71,48 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		team.setCreatedBy("101");
 		team.setModifiedOn(new Date());
 		team.setModifiedBy("102");
-		teamDAO.create(team);
+		team = teamDAO.create(team);
 		teamToDelete = teamId;
+		return team;
+	}
+	
+	@Test 
+	public void testNoExpirationDate() throws Exception {
+		Team team = createTeam();
+		Long teamId = Long.parseLong(team.getId());
+		// create the submission
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+
+		mis.setExpiresOn(null); // NO EXPIRATION DATE
+		mis.setMessage("Please join the team.");
+		mis.setTeamId(""+teamId);
 		
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		long pgLong = Long.parseLong(individUser.getId());
+		
+		mis = membershipInvtnSubmissionDAO.create(mis);
+		String id = mis.getId();
+		assertNotNull(id);
+		misToDelete = Long.parseLong(id);
+		
+		// get-by-team query, returning only the *open* (unexpired) invitations
+		// OK
+		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(pgLong, (new Date()).getTime(), 0, 1);
+		assertEquals(1, miList.size());
+
+		// get-by-team-and-user query, returning only the *open* (unexpired) invitations
+		// OK
+		miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, (new Date()).getTime(), 0, 1);
+		assertEquals(1, miList.size());
+
+	}
+
+	@Test
+	public void testRoundTrip() throws Exception {
+		Team team = createTeam();
+		Long teamId = Long.parseLong(team.getId());
 		// create the submission
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		Date expiresOn = new Date();
