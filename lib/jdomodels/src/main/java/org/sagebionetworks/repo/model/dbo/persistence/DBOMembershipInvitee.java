@@ -88,7 +88,7 @@ public class DBOMembershipInvitee implements MigratableDatabaseObject<DBOMembers
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
+		return MigrationType.MEMBERSHIP_INVITEE;
 	}
 
 	@Override
