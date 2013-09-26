@@ -61,12 +61,8 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
 	
-	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
-
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
-			"SELECT mrs.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
-			" FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+" mrs LEFT OUTER JOIN "+
-				TABLE_USER_PROFILE+" up ON (mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=up."+COL_USER_PROFILE_ID+") "+
+			"SELECT mrs.* FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
 			" WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
 			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+" ) "+
@@ -74,9 +70,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED = 
-			"SELECT mrs.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
-			" FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+" mrs LEFT OUTER JOIN "+
-				TABLE_USER_PROFILE+" up ON (mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=up."+COL_USER_PROFILE_ID+") "+
+			"SELECT mrs.* FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
 			" WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
 			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+
 			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
@@ -126,28 +120,13 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		@Override
 		public MembershipRequest mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MembershipRequest mr = new MembershipRequest();
-			UserGroupHeader ugh = new UserGroupHeader();
-			mr.setUser(ugh);
+			mr.setUserId(""+rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID));
 			mr.setTeamId(""+rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID));
-			mr.setMessage("TODO");
 			mr.setExpiresOn(new Date(rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON)));
 
 			Blob mrsProperties = rs.getBlob(COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES);
 			MembershipRqstSubmission mrs = MembershipRqstSubmissionUtils.deserialize(mrsProperties.getBytes(1, (int) mrsProperties.length()));
 			mr.setMessage(mrs.getMessage());
-			
-			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
-			if (upProperties!=null) {
-				UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
-				ugh.setDisplayName(up.getDisplayName());
-				ugh.setFirstName(up.getFirstName());
-				ugh.setIsIndividual(true);
-				ugh.setLastName(up.getLastName());
-				ugh.setOwnerId(up.getOwnerId());
-				ugh.setPic(up.getPic());
-			} else {
-				ugh.setIsIndividual(false);
-			}
 			return mr;
 		}
 	};

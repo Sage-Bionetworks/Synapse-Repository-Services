@@ -107,11 +107,7 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		assertEquals(mrs.getMessage(), mr.getMessage());
 		assertEquals(mrs.getExpiresOn(), mr.getExpiresOn());
 		assertEquals(mrs.getTeamId(), mr.getTeamId());
-		assertEquals(mrs.getUserId(), mr.getUser().getOwnerId());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, mr.getUser().getDisplayName());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, mr.getUser().getLastName());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, mr.getUser().getLastName());
-		assertEquals(true, mr.getUser().getIsIndividual());
+		assertEquals(mrs.getUserId(), mr.getUserId());
 		
 		// expired
 		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamInRange(teamId, expiresOn.getTime()+1000L, 0, 1).size());
@@ -133,11 +129,7 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		assertEquals(mrs.getMessage(), mr.getMessage());
 		assertEquals(mrs.getExpiresOn(), mr.getExpiresOn());
 		assertEquals(mrs.getTeamId(), mr.getTeamId());
-		assertEquals(mrs.getUserId(), mr.getUser().getOwnerId());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, mr.getUser().getDisplayName());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, mr.getUser().getLastName());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, mr.getUser().getLastName());
-		assertEquals(true, mr.getUser().getIsIndividual());
+		assertEquals(mrs.getUserId(), mr.getUserId());
 
 		// expired
 		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId, pgLong, expiresOn.getTime()+1000L, 0, 1).size());

@@ -68,12 +68,10 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	private static final String INVITEE_ID_COLUMN_LABEL = "INVITEE_ID";
 
 	private static final String SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED = 
-			"SELECT mis.*, t.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+" FROM "+
+			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+" FROM "+
 					TABLE_MEMBERSHIP_INVITATION_SUBMISSION+" mis, "+
-					TABLE_TEAM+" t, "+
 					TABLE_MEMBERSHIP_INVITEE+" mi "+
 			" WHERE mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_ID+"=mi."+COL_MEMBERSHIP_INVITEE_INVITATION_ID+
-			" AND mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+"=t."+COL_TEAM_ID+
 			" AND mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+"=:"+COL_MEMBERSHIP_INVITEE_INVITEE_ID+
 			" AND mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" ) "+
@@ -81,12 +79,10 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED = 
-			"SELECT mis.*, t.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+" FROM "+
+			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+" FROM "+
 					TABLE_MEMBERSHIP_INVITATION_SUBMISSION+" mis, "+
-					TABLE_TEAM+" t, "+
 					TABLE_MEMBERSHIP_INVITEE+" mi "+
 			" WHERE mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_ID+"=mi."+COL_MEMBERSHIP_INVITEE_INVITATION_ID+
-			" AND mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+"=t."+COL_TEAM_ID+
 			" AND mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+"=:"+COL_MEMBERSHIP_INVITEE_INVITEE_ID+
 			" AND mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" ) "+
@@ -149,16 +145,12 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		// note:  there's no need to clean up the membership-invitees table since we have an 'on delete cascade' constraint
 	}
 	
-	private static RowMapper<DBOTeam> teamRowMapper = (new DBOTeam()).getTableMapping();
-
 	private static final RowMapper<MembershipInvitation> membershipInvitationRowMapper = new RowMapper<MembershipInvitation>(){
 		@Override
 		public MembershipInvitation mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MembershipInvitation mi = new MembershipInvitation();
 			mi.setUserId(rs.getString(INVITEE_ID_COLUMN_LABEL));
-			DBOTeam dboTeam = teamRowMapper.mapRow(rs, rowNum);
-			Team team = TeamUtils.copyDboToDto(dboTeam);
-			mi.setTeam(team);
+			mi.setTeamId(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID);
 			mi.setExpiresOn(new Date(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON)));
 			Blob misProperties = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 			MembershipInvtnSubmission mis = MembershipInvtnSubmissionUtils.deserialize(misProperties.getBytes(1, (int) misProperties.length()));

@@ -142,10 +142,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		assertEquals(mis.getMessage(), mi.getMessage());
 		assertEquals(mis.getExpiresOn(), mi.getExpiresOn());
 		assertEquals(""+pgLong, mi.getUserId());
-		assertEquals(mis.getTeamId(), mi.getTeam().getId());
-		assertEquals(team.getName(), mi.getTeam().getName());
-		assertEquals(team.getDescription(), mi.getTeam().getDescription());
-		assertEquals(team.getIcon(), mi.getTeam().getIcon());
+		assertEquals(mis.getTeamId(), mi.getTeamId());
 		
 		// expired
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByUserInRange(pgLong, expiresOn.getTime()+1000L, 0, 1).size());
@@ -166,10 +163,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		assertEquals(mis.getMessage(), mi.getMessage());
 		assertEquals(mis.getExpiresOn(), mi.getExpiresOn());
 		assertEquals(""+pgLong, mi.getUserId());
-		assertEquals(mis.getTeamId(), mi.getTeam().getId());
-		assertEquals(team.getName(), mi.getTeam().getName());
-		assertEquals(team.getDescription(), mi.getTeam().getDescription());
-		assertEquals(team.getIcon(), mi.getTeam().getIcon());
+		assertEquals(mis.getTeamId(), mi.getTeamId());
 
 		// expired
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, expiresOn.getTime()+1000L, 0, 1).size());
