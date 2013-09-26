@@ -3,6 +3,7 @@
     "name": "TeamMembershipState",
     "type":"string",
     "enum":[
+    	"NONE",
         "MEMBER",
 		"MEMBERSHIP_REQUESTED",
 		"INVITATION_EXTENDED"
