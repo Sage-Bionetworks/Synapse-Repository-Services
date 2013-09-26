@@ -36,10 +36,13 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -130,6 +133,8 @@ public class MigrationIntegrationAutowireTest {
 	GroupMembersDAO groupMembersDAO;
 	@Autowired
 	TeamDAO teamDAO;
+	@Autowired
+	MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -455,9 +460,19 @@ public class MigrationIntegrationAutowireTest {
 		team.setDescription("test team");
 		teamDAO.create(team);
 		
-		// TODO create a MembershipInvtnSubmission
+		// create a MembershipRqstSubmission
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date expiresOn = new Date();
+		mrs.setExpiresOn(expiresOn);
+		mrs.setMessage("Please let me join the team.");
+		mrs.setTeamId(""+group.getId());
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mrs.setUserId(individUser.getId());
+		membershipRqstSubmissionDAO.create(mrs);
 		
-		// TODO create a MembershipRqstSumbission
+		
+		// TODO create a MembershipInvtnSubmission
 	}
 
 	@After
