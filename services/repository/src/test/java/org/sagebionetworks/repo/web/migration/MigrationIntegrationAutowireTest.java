@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -135,6 +137,8 @@ public class MigrationIntegrationAutowireTest {
 	TeamDAO teamDAO;
 	@Autowired
 	MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -472,7 +476,17 @@ public class MigrationIntegrationAutowireTest {
 		membershipRqstSubmissionDAO.create(mrs);
 		
 		
-		// TODO create a MembershipInvtnSubmission
+		// create a MembershipInvtnSubmission
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setExpiresOn(expiresOn);
+		mis.setMessage("Please join the team.");
+		mis.setTeamId(""+group.getId());
+		
+		// need another valid user group
+		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		long pgLong = Long.parseLong(individUser.getId());
+		
+		membershipInvtnSubmissionDAO.create(mis);
 	}
 
 	@After
