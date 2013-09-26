@@ -5,7 +5,7 @@
     "enum":[
     	"NONE",
         "MEMBER",
-		"MEMBERSHIP_REQUESTED",
-		"INVITATION_EXTENDED"
+		"OPEN_MEMBERSHIP_REQUEST",
+		"OPEN_INVITATION"
     ]
 }
