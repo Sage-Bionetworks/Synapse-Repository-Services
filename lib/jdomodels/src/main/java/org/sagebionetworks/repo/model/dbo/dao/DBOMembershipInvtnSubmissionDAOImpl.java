@@ -150,7 +150,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		public MembershipInvitation mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MembershipInvitation mi = new MembershipInvitation();
 			mi.setUserId(rs.getString(INVITEE_ID_COLUMN_LABEL));
-			mi.setTeamId(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID);
+			mi.setTeamId(rs.getString(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
 			mi.setExpiresOn(new Date(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON)));
 			Blob misProperties = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 			MembershipInvtnSubmission mis = MembershipInvtnSubmissionUtils.deserialize(misProperties.getBytes(1, (int) misProperties.length()));
