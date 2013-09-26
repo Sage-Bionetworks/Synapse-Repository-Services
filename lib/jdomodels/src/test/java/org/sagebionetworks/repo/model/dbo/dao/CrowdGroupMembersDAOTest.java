@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.auth.User;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -74,7 +74,7 @@ public class CrowdGroupMembersDAOTest {
 			groupsToDelete.add(new Pair<String, String>(user.getName(), user.getId()));
 			
 			// Add those users to Crowd
-			User crowdUser = new User();
+			NewUser crowdUser = new NewUser();
 			crowdUser.setFirstName("bogus");
 			crowdUser.setLastName("bogus");
 			crowdUser.setDisplayName(username);

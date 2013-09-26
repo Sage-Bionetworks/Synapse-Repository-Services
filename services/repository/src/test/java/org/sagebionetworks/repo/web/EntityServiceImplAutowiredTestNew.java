@@ -15,6 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,44 +26,39 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.service.EntityService;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-/**
- * 
- * @author John
- *
- */
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityServiceImplAutowiredTestNew {
 
 	@Autowired
-	EntityService entityService;
+	private EntityService entityService;
 	
 	@Autowired
-	UserProvider testUserProvider;
+	private UserManager userManager;
 	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
-	Project project;
-	List<String> toDelete;
-	HttpServletRequest mockRequest;
-	String userName;
-	UserInfo userInfo;
+	private Project project;
+	private List<String> toDelete;
+	private HttpServletRequest mockRequest;
+	private String userName;
+	private UserInfo userInfo;
 	
-	S3FileHandle fileHandle1;
-	S3FileHandle fileHandle2;
+	private S3FileHandle fileHandle1;
+	private S3FileHandle fileHandle2;
 	
 	@Before
 	public void before() throws Exception{
 		toDelete = new LinkedList<String>();
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		userInfo = testUserProvider.getTestAdminUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		UserInfo.validateUserInfo(userInfo);
 		userName = userInfo.getUser().getUserId();
 		mockRequest = Mockito.mock(HttpServletRequest.class);

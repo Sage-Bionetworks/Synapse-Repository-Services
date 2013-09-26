@@ -19,9 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -54,7 +54,7 @@ public class EntityControllerTest {
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
@@ -79,7 +79,7 @@ public class EntityControllerTest {
 		assertNotNull(fileMetadataDao);
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
-		userName = TestUserDAO.TEST_USER_NAME;
+		userName = AuthorizationConstants.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new ArrayList<String>();
 		// Create a file handle

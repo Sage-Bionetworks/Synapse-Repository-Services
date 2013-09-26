@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.repo.web.service.StorageUsageService;
+import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -37,6 +38,9 @@ public class StorageUsageController extends BaseController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;
+	
+	@Autowired
+	private UserProfileService userProfileService;
 
 	/**
 	 * Retrieves the aggregated usage for the current user. Aggregation is done over the supplied dimensions,
@@ -53,14 +57,15 @@ public class StorageUsageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageForCurrentUser(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUsername,
 			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
 			HttpServletRequest request)
 			throws IllegalArgumentException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUserId, currUserId, dList);
+		String userId = userProfileService.getMyOwnUserProfile(currUsername).getOwnerId();
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUsername, userId, dList);
 		return storageSummaries;
 	}
 

@@ -29,7 +29,7 @@ public interface StorageUsageService {
 	 * @throws NotFoundException
 	 *			When the user does not exist.
 	 */
-	StorageUsageSummaryList getUsageForUser(String currUserName, String userName,
+	StorageUsageSummaryList getUsageForUser(String currUserName, String userId,
 			List<StorageUsageDimension> dimensionList)
 			throws UnauthorizedException, NotFoundException, DatastoreException;
 

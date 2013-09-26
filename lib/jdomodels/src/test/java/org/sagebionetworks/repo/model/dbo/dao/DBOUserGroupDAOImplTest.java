@@ -30,7 +30,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-
 public class DBOUserGroupDAOImplTest {
 	
 	@Autowired
@@ -39,25 +38,23 @@ public class DBOUserGroupDAOImplTest {
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 		
-	List<String> groupsToDelete;
+	private List<String> groupsToDelete;
 	
-	private static final String GROUP_NAME = "test-group";
+	private static final String GROUP_NAME = "DBOUserGroup_TestGroup";
 
 	@Before
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
 		UserGroup ug = userGroupDAO.findGroup(GROUP_NAME, false);
-		if(ug != null){
+		if (ug != null) {
 			userGroupDAO.delete(ug.getId());
 		}
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		if(groupsToDelete != null && userGroupDAO != null){
-			for(String todelte: groupsToDelete){
-				userGroupDAO.delete(todelte);
-			}
+		for (String todelete: groupsToDelete) {
+			userGroupDAO.delete(todelete);
 		}
 	}
 	
@@ -150,6 +147,7 @@ public class DBOUserGroupDAOImplTest {
 		assertTrue(boots.size() >0);
 		// Each should exist
 		for(UserGroupInt bootUg: boots){
+			assertTrue(userGroupDAO.doesPrincipalExist(bootUg.getName()));
 			UserGroup ug = userGroupDAO.get(bootUg.getId());
 			assertEquals(bootUg.getId(), ug.getId());
 			assertEquals(bootUg.getName(), ug.getName());

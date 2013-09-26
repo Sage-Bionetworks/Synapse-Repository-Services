@@ -38,16 +38,25 @@ public class AuthorizationManagerImplTest {
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	
 	@Autowired
 	private NodeManager nodeManager;
+	
 	@Autowired
-	private UserManager userManager;	
+	private UserManager userManager;
+	
+	@Autowired
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	
 	@Autowired
 	private NodeDAO nodeDao;
+	
 	@Autowired
 	private ActivityManager activityManager;
+	
 	@Autowired
 	private EvaluationManager evaluationManager;
 
@@ -59,7 +68,6 @@ public class AuthorizationManagerImplTest {
 	private UserInfo adminUser;
 	private Random rand = null;
 	
-	private List<String> usersToDelete;
 	private List<String> activitiesToDelete;
 	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId, String activityId) {
@@ -85,16 +93,9 @@ public class AuthorizationManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		// userInfo
-		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
-		userInfo = userManager.getUserInfo("AuthorizationManagerImplTest.testuser@foo.bar");
-		usersToDelete = new ArrayList<String>();
-		usersToDelete.add(userInfo.getIndividualGroup().getId());
-		usersToDelete.add(userInfo.getUser().getId());
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		
-		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		usersToDelete.add(adminUser.getIndividualGroup().getId());
-		usersToDelete.add(adminUser.getUser().getId());
+		adminUser = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		rand = new Random();
 		// create a resource
 		node = createNode("foo_"+rand.nextLong(), adminUser, 2L, null, null);
@@ -112,15 +113,9 @@ public class AuthorizationManagerImplTest {
 
 	@After
 	public void tearDown() throws Exception {
-		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminUser = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
 		this.node=null;
-		
-		if(userManager != null && usersToDelete != null){
-			for(String idToDelete: usersToDelete){
-				userManager.deleteUser(idToDelete);
-			}
-		}
 		
 		if(activitiesToDelete != null && activityManager != null) {
 			for(String activityId : activitiesToDelete) {
@@ -180,7 +175,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(b);
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		UserGroup g = userManager.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
+		UserGroup g = userManager.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false);
 		acl = AuthorizationHelper.addToACL(acl, g, ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
@@ -259,7 +254,7 @@ public class AuthorizationManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		// give some other group access
-		UserGroup g = userManager.findGroup(TestUserDAO.TEST_GROUP_NAME, false);
+		UserGroup g = userManager.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false);
 		acl = AuthorizationHelper.addToACL(acl, g, ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// anonymous does not have access
@@ -270,7 +265,7 @@ public class AuthorizationManagerImplTest {
 	@Test 
 	public void testCanAccessAdmin() throws Exception {
 		// test that an admin can access anything
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		// test that admin can access anything
 		boolean b = authorizationManager.canAccess(adminInfo, node.getId(), ACCESS_TYPE.READ);
 		assertTrue(b);
@@ -280,7 +275,7 @@ public class AuthorizationManagerImplTest {
 	public void testCanPublicRead() throws Exception {
 		// verify that anonymous user can't initially access
 		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
 		assertFalse(b);
 		
@@ -344,7 +339,7 @@ public class AuthorizationManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		acl.setId(childNode.getId());
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		entityPermissionsManager.overrideInheritance(acl, adminInfo); // must do as admin!
 		// permissions haven't changed (yet)
 		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));
@@ -400,7 +395,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testCreateSpecialUsers() throws Exception {
 		// admin always has access 
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		Node child = createDTO("child", 10L, 11L, node.getId(), null);
 		assertTrue(authorizationManager.canCreate(adminInfo, child));
 
@@ -425,16 +420,17 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canCreate(userInfo, orphan));
 
 		// admin creates a node with no parent.  should work
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		assertTrue(authorizationManager.canCreate(adminInfo, orphan));
 	}
 
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
-		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		UserInfo adminInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		assertTrue(adminInfo.isAdmin());
+		assertTrue(adminInfo.getUser().isAgreesToTermsOfUse());
 		// the admin user can do it all
-		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminInfo, node.getId());
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());

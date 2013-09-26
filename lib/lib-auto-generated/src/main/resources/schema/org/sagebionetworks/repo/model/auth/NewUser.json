@@ -1,0 +1,29 @@
+{
+	"description": "Needs a description",
+	"properties": {
+		"email": {
+			"type": "string",
+			"description": "The user's email"
+		},
+		"password": {
+			"type": "string",
+			"description": "User's password"
+		},
+		"firstName": {
+			"type": "string",
+			"description": "User's first name"
+		},
+		"lastName": {
+			"type": "string",
+			"description": "User's last name"
+		},
+		"displayName": {
+			"type": "string",
+			"description": "User's display name"
+		},
+		"acceptsTermsOfUse": {
+			"type": "boolean",
+			"description": "Does the user accept the terms of use"
+		}
+	}
+}

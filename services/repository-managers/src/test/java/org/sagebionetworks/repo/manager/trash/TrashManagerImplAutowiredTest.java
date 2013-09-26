@@ -13,11 +13,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -29,7 +31,6 @@ import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -38,13 +39,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TrashManagerImplAutowiredTest {
 
-	@Autowired private TrashManager trashManager;
-	@Autowired private NodeManager nodeManager;
-	@Autowired private NodeInheritanceManager nodeInheritanceManager;
-	@Autowired private EntityPermissionsManager entityPermissionsManager;
-	@Autowired private TrashCanDao trashCanDao;
-	@Autowired private NodeDAO nodeDAO;
-	@Autowired private UserProvider userProvider;
+	@Autowired 
+	private TrashManager trashManager;
+	
+	@Autowired 
+	private NodeManager nodeManager;
+	
+	@Autowired 
+	private NodeInheritanceManager nodeInheritanceManager;
+	
+	@Autowired 
+	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired 
+	private TrashCanDao trashCanDao;
+	
+	@Autowired 
+	private NodeDAO nodeDAO;
+	
+	@Autowired
+	private UserManager userManager;
+	
 	private UserInfo testAdminUserInfo;
 	private UserInfo testUserInfo;
 	private String trashCanId;
@@ -52,17 +67,8 @@ public class TrashManagerImplAutowiredTest {
 
 	@Before
 	public void before() throws Exception {
-
-		assertNotNull(trashManager);
-		assertNotNull(nodeManager);
-		assertNotNull(nodeInheritanceManager);
-		assertNotNull(entityPermissionsManager);
-		assertNotNull(trashCanDao);
-		assertNotNull(nodeDAO);
-		assertNotNull(userProvider);
-
-		testAdminUserInfo = userProvider.getTestAdminUserInfo();
-		testUserInfo = userProvider.getTestUserInfo();
+		testAdminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 
@@ -836,7 +842,7 @@ public class TrashManagerImplAutowiredTest {
 	private void cleanUp() throws Exception {
 		for (String nodeId : toClearList) {
 			try {
-				nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
+				nodeManager.delete(testAdminUserInfo, nodeId);
 			} catch (NotFoundException e) {}
 		}
 		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
@@ -846,7 +852,7 @@ public class TrashManagerImplAutowiredTest {
 		List<String> children = nodeDAO.getChildrenIdsAsList(trashCanId);
 		for (String child : children) {
 			try {
-				nodeManager.delete(userProvider.getTestAdminUserInfo(), child);
+				nodeManager.delete(testAdminUserInfo, child);
 			} catch (NotFoundException e) {}
 		}
 	}

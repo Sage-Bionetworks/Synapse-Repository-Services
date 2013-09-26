@@ -12,7 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ErrorResponse;
@@ -49,7 +48,7 @@ public class UploadControllerTest {
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
 		// get user IDs
-		userName = TestUserDAO.TEST_USER_NAME;
+		userName = AuthorizationConstants.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup()
 				.getId();
 		// Create a file handle

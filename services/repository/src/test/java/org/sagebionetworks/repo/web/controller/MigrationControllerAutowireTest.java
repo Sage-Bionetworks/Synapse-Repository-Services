@@ -13,8 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -55,7 +55,7 @@ public class MigrationControllerAutowireTest {
 	@Before
 	public void before() throws Exception{
 		// get user IDs
-		userName = TestUserDAO.ADMIN_USER_NAME;
+		userName = AuthorizationConstants.ADMIN_USER_NAME;
 		adminId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		startFileCount = fileMetadataDao.getCount();
 		// Create a file handle

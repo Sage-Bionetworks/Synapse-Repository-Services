@@ -85,12 +85,6 @@ public interface UserProfileDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get the bootstrap users.
-	 * @return
-	 */
-	public List<UserGroupInt> getBootstrapUsers();
-	
-	/**
 	 * Ensure the bootstrap user's profiles exist
 	 */
 	public void bootstrapProfiles();

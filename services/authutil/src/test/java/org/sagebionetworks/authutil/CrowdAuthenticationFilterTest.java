@@ -13,8 +13,8 @@ import javax.servlet.ServletContext;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.User;
 
 /**
  *
@@ -67,7 +67,7 @@ public class CrowdAuthenticationFilterTest {
 	@Test
 	public void testMultiRevalidations() throws Exception {
 		if (!isIntegrationTest()) return;
-		User creds = new User();
+		NewUser creds = new NewUser();
 		creds.setEmail("demouser@sagebase.org");
 		Session session = CrowdAuthUtil.authenticate(creds, false);
 		int n = 100;
