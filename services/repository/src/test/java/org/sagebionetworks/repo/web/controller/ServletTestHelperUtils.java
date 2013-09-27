@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -34,11 +35,12 @@ public class ServletTestHelperUtils {
 	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
 
 	public enum HTTPMODE {
-		GET, POST, PUT, DELETE
+		GET, POST, PUT, DELETE, HEAD
 	}
 
 	/**
-	 * Adds the extra parameters and the Entity object to the HTTP request (via a EntityObjectMapper)
+	 * Adds the extra parameters and the Entity object to the HTTP request (via
+	 * a EntityObjectMapper)
 	 */
 	public static void addExtraParams(MockHttpServletRequest request,
 			Object entity, Map<String, String> extraParams) throws Exception {
@@ -97,7 +99,7 @@ public class ServletTestHelperUtils {
 		if (dispatcherServlet == null) {
 			throw new IllegalArgumentException("Servlet cannot be null");
 		}
-		
+
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -162,10 +164,24 @@ public class ServletTestHelperUtils {
 	public static <T extends JSONEntity> PaginatedResults<T> readResponsePaginatedResults(
 			MockHttpServletResponse response, Class<? extends T> clazz)
 			throws Exception {
-		JSONObjectAdapterImpl adapter = ServletTestHelperUtils.readResponseJSON(response);
+		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
+				.readResponseJSON(response);
 		PaginatedResults<T> result = new PaginatedResults<T>(clazz);
 		result.initializeFromJSONObject(adapter);
 		return result;
+	}
+
+	/**
+	 * Extracts the JSON content of a HTTP response and parses it into a set of
+	 * variable paginated results
+	 */
+	public static <T extends JSONEntity> VariableContentPaginatedResults<T> readResponseVariablePaginatedResults(
+			MockHttpServletResponse response, Class<? extends T> clazz) throws Exception {
+		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
+				.readResponseJSON(response);
+		VariableContentPaginatedResults<T> pr = new VariableContentPaginatedResults<T>();
+		pr.initializeFromJSONObject(adapter);
+		return pr;
 	}
 
 	/**
