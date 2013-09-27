@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -86,6 +87,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
+	NodeInheritanceDAO nodeInheritanceDao;
+	@Autowired
 	WikiPageDao wikiPageDao;
 
 	static {
@@ -128,7 +131,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	public Document formulateFromBackup(Node node) throws NotFoundException {
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
-		String benefactorId = node.getBenefactorId();
+		String benefactorId = nodeInheritanceDao.getBenefactor(node.getId());
 		AccessControlList benefactorACL = aclDAO.get(benefactorId,
 				ObjectType.ENTITY);
 		Long revId = node.getVersionNumber();
