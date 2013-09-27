@@ -10,12 +10,6 @@
 	<context:annotation-config />
 
 	<import resource="classpath:main-scheduler-spb.xml" />
-		
-	<!-- Each UnsentMessage worker test needs its own test helper -->
-	<bean id="unsentMessageQueuerTestHelper" 
-		class="org.sagebionetworks.message.workers.UnsentMessageQueuerTestHelper"
-		scope="prototype"
-		init-method="initialize" />
 
 	<bean id="dynamoQueueRemoverFactory"
 		class="org.sagebionetworks.dynamo.workers.sqs.DynamoQueueRemoverFactory"
