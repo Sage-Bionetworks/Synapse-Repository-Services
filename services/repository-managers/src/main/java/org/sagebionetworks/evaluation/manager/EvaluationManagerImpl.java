@@ -86,21 +86,21 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 	
 	@Override
-	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String projectId, long limit, long offset)
+	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		EvaluationUtils.ensureNotNull(projectId, "Project ID");
+		EvaluationUtils.ensureNotNull(id, "Entity ID");
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
 		
-		List<Evaluation> evalList = evaluationDAO.getByContentSource(projectId, limit, offset);
+		List<Evaluation> evalList = evaluationDAO.getByContentSource(id, limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
 		for (Evaluation eval : evalList) {
 			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
 				evaluations.add(eval);
 			}
 		}
-		long totalNumberOfResults = evaluationDAO.getCountByContentSource(projectId);
+		long totalNumberOfResults = evaluationDAO.getCountByContentSource(id);
 		return new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
 	}
 
