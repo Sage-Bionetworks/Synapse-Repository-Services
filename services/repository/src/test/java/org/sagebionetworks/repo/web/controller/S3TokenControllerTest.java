@@ -6,19 +6,15 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
 import java.util.HashSet;
-
-import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.manager.AmazonS3Utility;
 import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -26,11 +22,11 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -38,7 +34,6 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -194,7 +189,7 @@ public class S3TokenControllerTest {
 	}
 	
 	@Test
-	public void testcreateS3ProfileToken() throws JSONObjectAdapterException, ServletException, IOException, DatastoreException{
+	public void testcreateS3ProfileToken() throws Exception {
 		S3AttachmentToken startToken = new S3AttachmentToken();
 		startToken.setFileName("someImage.jpg");
 		startToken.setMd5(TEST_MD5);
@@ -205,7 +200,7 @@ public class S3TokenControllerTest {
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
 		
-		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(AuthorizationConstants.TEST_USER_NAME, ServiceConstants.AttachmentType.USER_PROFILE,testUser.getId(), startToken);
+		S3AttachmentToken resultToken = ServletTestHelper.createS3AttachmentToken(AuthorizationConstants.TEST_USER_NAME, ServiceConstants.AttachmentType.USER_PROFILE,testUser.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());
@@ -241,7 +236,7 @@ public class S3TokenControllerTest {
 	}
 	
 	@Test
-	public void testcreateS3AttachmentToken() throws JSONObjectAdapterException, ServletException, IOException, DatastoreException{
+	public void testcreateS3AttachmentToken() throws Exception {
 		S3AttachmentToken startToken = new S3AttachmentToken();
 		startToken.setFileName("someImage.jpg");
 		startToken.setMd5(TEST_MD5);
@@ -251,7 +246,7 @@ public class S3TokenControllerTest {
 		assertNotNull("Failed to find: "+fileName+" on the classpath", toUpUrl);
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
-		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(AuthorizationConstants.TEST_USER_NAME, ServiceConstants.AttachmentType.ENTITY, project.getId(), startToken);
+		S3AttachmentToken resultToken = ServletTestHelper.createS3AttachmentToken(AuthorizationConstants.TEST_USER_NAME, ServiceConstants.AttachmentType.ENTITY, project.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());

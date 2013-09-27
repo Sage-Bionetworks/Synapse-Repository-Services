@@ -7,8 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -16,17 +14,13 @@ import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -144,7 +138,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testAnonymousGet() throws ServletException, IOException, ACLInheritanceException, DatastoreException {
+	public void testAnonymousGet() throws Exception {
 		Project project = new Project();
 		project.setName("testAnonymousGet");
 		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
@@ -181,7 +175,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	private List<Entity> createEntitesOfEachType(int countPerType) throws ServletException, IOException, InstantiationException, IllegalAccessException, InvalidModelException, DatastoreException, NotFoundException, UnauthorizedException{
+	private List<Entity> createEntitesOfEachType(int countPerType) throws Exception {
 		// For now put each object in a project so their parent id is not null;
 		// Create a project
 		Project project = new Project();
@@ -295,35 +289,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			ServletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			// This should throw an exception
-			HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 			try {
 				ServletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
 				fail("Entity ID " + entity.getId() + " should no longer exist. Expected an exception.");
 			} catch (Exception e) {
 				// expected
 			}
-		}
-	}
-	
-	/**
-	 * Helper to validate a schema for an object
-	 * @param schema
-	 * @param type
-	 * @throws JSONException
-	 */
-	private void validateSchemaForObject(String schema, EntityType type) throws JSONException{
-		// The schema should contain all fields of this 
-		JSONObject objectFromSchema = new JSONObject(schema);
-		JSONObject properties = objectFromSchema.getJSONObject("properties");
-		assertNotNull(properties);
-		Field[] fields = type.getClassForType().getDeclaredFields();
-		// The schema should have each field name a s key
-		for(Field field: fields){
-			// skip static variables
-			if((field.getModifiers() & Modifier.STATIC) > 0){
-				continue;
-			}
-			assertTrue("expected key: "+field.getName()+" on :"+type.name(),properties.has(field.getName()));
 		}
 	}
 	

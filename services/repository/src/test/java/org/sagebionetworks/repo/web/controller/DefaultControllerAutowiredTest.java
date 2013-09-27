@@ -15,8 +15,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.junit.After;
 import org.junit.Before;
@@ -73,9 +71,6 @@ public class DefaultControllerAutowiredTest {
 	@Autowired
 	private AsynchronousDAO asynchronousDAO;
 
-	static private Log log = LogFactory
-			.getLog(DefaultControllerAutowiredTest.class);
-
 	private static HttpServlet dispatchServlet;
 
 	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
@@ -129,7 +124,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testUpdateEntityAcl() throws ServletException, IOException, ACLInheritanceException{
+	public void testUpdateEntityAcl() throws Exception {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
@@ -145,7 +140,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testCreateEntityAcl() throws ServletException, IOException, ACLInheritanceException{
+	public void testCreateEntityAcl() throws Exception {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
@@ -207,7 +202,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testHasAccess() throws ServletException, IOException{
+	public void testHasAccess() throws Exception {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
@@ -229,7 +224,7 @@ public class DefaultControllerAutowiredTest {
 	 * @throws ServletException
 	 */
 	@Test
-	public void testProjectUpdate() throws ServletException, IOException{
+	public void testProjectUpdate() throws Exception {
 		// Frist create a project as a non-admin
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
@@ -256,7 +251,7 @@ public class DefaultControllerAutowiredTest {
 	// Not needed if everything is /entity/
 	@Ignore
 	@Test (expected=ServletTestHelperException.class)
-	public void testTypeDoesNotMatchId() throws ServletException, IOException{
+	public void testTypeDoesNotMatchId() throws Exception {
 		// First create a project as a non-admin
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
@@ -270,7 +265,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testGetEntityType() throws ServletException, IOException{
+	public void testGetEntityType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
 		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);
@@ -285,7 +280,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testGetEntityBenefactor() throws ServletException, IOException{
+	public void testGetEntityBenefactor() throws Exception {
 		Project project = new Project();
 		project.setName(null);
 		project = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);;
@@ -316,7 +311,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test (expected=ServletTestHelperException.class)
-	public void testAclUpdateWithChildType() throws ServletException, IOException, ACLInheritanceException{
+	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
 		project = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);;
@@ -337,7 +332,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testGetEntityReferences() throws ServletException, IOException, JSONException, NotFoundException {
+	public void testGetEntityReferences() throws Exception , JSONException, NotFoundException {
 		// Create project
 		Project project = new Project();
 		project.setName("testProject");
@@ -439,7 +434,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testForPLFM_1096() throws ServletException, IOException, ACLInheritanceException{
+	public void testForPLFM_1096() throws Exception {
 		Project project = new Project();
 		project.setName(null);
 		project = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);;

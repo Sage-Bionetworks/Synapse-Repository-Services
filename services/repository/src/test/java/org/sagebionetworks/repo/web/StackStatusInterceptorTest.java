@@ -5,8 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
@@ -16,14 +14,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DaemonStatusUtil;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.controller.ServletTestHelper;
@@ -47,8 +40,6 @@ public class StackStatusInterceptorTest {
 	private static final String CURRENT_STATUS_2 = " for StackStatusInterceptorTest.test";
 
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";
-
-	private static final long TIMEOUT = 1000*60*1; // 1 minutes
 	
 	@Autowired
 	StackStatusDao stackStatusDao;
@@ -250,40 +241,5 @@ public class StackStatusInterceptorTest {
 		status.setPendingMaintenanceMessage("Pending the completion of StackStatusInterceptorTest.test");
 		stackStatusDao.updateStatus(status);
 	}
-	
-	/**
-	 * Helper method to wait for a given status of the Daemon
-	 * @param lookinFor
-	 * @param id
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws InterruptedException
-	 * @throws UnauthorizedException 
-	 * @throws IOException 
-	 * @throws ServletException 
-	 */
-	private BackupRestoreStatus waitForStatus(DaemonStatus lookinFor, String id) throws DatastoreException, NotFoundException, InterruptedException, UnauthorizedException, ServletException, IOException{
-		BackupRestoreStatus status = ServletTestHelper.getDaemonStatus(dispatchServlet, userName, id);
-		long start = System.currentTimeMillis();
-		long elapse = 0;
-		while(!lookinFor.equals(status.getStatus())){
-			// Wait for it to complete
-			Thread.sleep(1000);
-			long end =  System.currentTimeMillis();
-			elapse = end-start;
-			if(elapse > TIMEOUT){
-				fail("Timmed out waiting for the backup deamon to finish");
-			}
-			status = ServletTestHelper.getDaemonStatus(dispatchServlet, userName, id);
-			assertEquals(id, status.getId());
-			System.out.println(DaemonStatusUtil.printStatus(status));
-			if(DaemonStatus.FAILED != lookinFor && DaemonStatus.FAILED.equals(status.getStatus())){
-				fail("Unexpected failure: "+status.getErrorMessage()+" "+status.getErrorDetails());
-			}
-		}
-		return status;
-	}
-	
 
 }
