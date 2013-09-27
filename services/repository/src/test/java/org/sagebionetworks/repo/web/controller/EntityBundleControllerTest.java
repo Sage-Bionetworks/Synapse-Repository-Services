@@ -110,7 +110,7 @@ public class EntityBundleControllerTest {
 	
 	
 	@Test
-	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+	public void testGetEntityBundle() throws Exception {
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
@@ -134,7 +134,7 @@ public class EntityBundleControllerTest {
 		toDelete.add(s2.getId());
 		
 		// Get/add/update annotations for this entity
-		Annotations a = entityServletHelper.getEntityAnnotaions(id, TEST_USER1);
+		Annotations a = entityServletHelper.getEntityAnnotations(id, TEST_USER1);
 		a.addAnnotation("doubleAnno", new Double(45.0001));
 		a.addAnnotation("string", "A string");
 		Annotations a2 = entityServletHelper.updateAnnotations(a, TEST_USER1);
@@ -177,7 +177,7 @@ public class EntityBundleControllerTest {
 	}
 	
 	@Test
-	public void testGetEntityBundleInheritedACL() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+	public void testGetEntityBundleInheritedACL() throws Exception {
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
@@ -215,7 +215,7 @@ public class EntityBundleControllerTest {
 	 * @throws DatastoreException
 	 */
 	@Test
-	public void testGetEntityBundleForVersion() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {		
+	public void testGetEntityBundleForVersion() throws Exception {		
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
@@ -237,10 +237,10 @@ public class EntityBundleControllerTest {
 		toDelete.add(d1.getId());
 		
 		// Get/add/update annotations for this entity
-		Annotations a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		Annotations a1 = entityServletHelper.getEntityAnnotations(d1.getId(), TEST_USER1);
 		a1.addAnnotation("v1", new Long(1));
 		a1 = entityServletHelper.updateAnnotations(a1, TEST_USER1);
-		a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		a1 = entityServletHelper.getEntityAnnotations(d1.getId(), TEST_USER1);
 	
 		// create 2nd version of entity and annotations
 		d1 = (Data) entityServletHelper.getEntity(d1.getId(), TEST_USER1);
@@ -251,10 +251,10 @@ public class EntityBundleControllerTest {
 		d1.setMd5("c88c3db97754be31f9242eb3c08382e0");
 		entityServletHelper.updateEntity(d1, TEST_USER1);
 		// Get/add/update annotations for this entity
-		Annotations a2 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		Annotations a2 = entityServletHelper.getEntityAnnotations(d1.getId(), TEST_USER1);
 		a2.addAnnotation("v2", new Long(2));
 		a2 = entityServletHelper.updateAnnotations(a2, TEST_USER1);
-		a2 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		a2 = entityServletHelper.getEntityAnnotations(d1.getId(), TEST_USER1);
 		
 		int mask =  EntityBundle.ENTITY | 
 					EntityBundle.ANNOTATIONS |
@@ -281,7 +281,7 @@ public class EntityBundleControllerTest {
 	}
 	
 	@Test
-	public void testGetPartialEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+	public void testGetPartialEntityBundle() throws Exception {
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
@@ -291,7 +291,7 @@ public class EntityBundleControllerTest {
 		toDelete.add(id);
 		
 		// Get/add/update annotations for this entity
-		Annotations a = entityServletHelper.getEntityAnnotaions(id, TEST_USER1);
+		Annotations a = entityServletHelper.getEntityAnnotations(id, TEST_USER1);
 		a.addAnnotation("doubleAnno", new Double(45.0001));
 		a.addAnnotation("string", "A string");
 		entityServletHelper.updateAnnotations(a, TEST_USER1);
@@ -324,7 +324,7 @@ public class EntityBundleControllerTest {
 	}
 	
 	@Test
-	public void testGetFileHandle() throws NameConflictException, DatastoreException, JSONObjectAdapterException, ServletException, IOException, NotFoundException{
+	public void testGetFileHandle() throws Exception{
 		
 		S3FileHandle handle = new S3FileHandle();
 		// Create a file handle
