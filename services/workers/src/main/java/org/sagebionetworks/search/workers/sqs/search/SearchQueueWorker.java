@@ -93,7 +93,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 					}
 				}catch(NotFoundException e){
 					// Nothing to do if the wiki does not exist
-					log.debug(e);
+					log.debug("Wiki not found for id: "+change.getObjectId()+" Message:"+e.getMessage());
 				}
 			}
 		}
@@ -143,7 +143,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	private void processCreateUpdateBatch() throws DatastoreException, NotFoundException, ClientProtocolException, IOException, HttpClientHelperException {
+	private void processCreateUpdateBatch() throws DatastoreException, ClientProtocolException, IOException, HttpClientHelperException {
 		if(createOrUpdateMessages != null){
 			log.debug("Processing "+createOrUpdateMessages.size()+" create/update messages");
 			// Prepare a batch of documents
@@ -154,8 +154,14 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 					// We want to ignore this message if a document with this ID and Etag are not in the repository as it is an old message.
 					if(message.getObjectEtag() == null || documentProvider.doesDocumentExist(message.getObjectId(), message.getObjectEtag())){
 						// Create a document for this
-						Document newDoc = documentProvider.formulateSearchDocument(message.getObjectId());
-						batch.add(newDoc);
+						Document newDoc;
+						try {
+							newDoc = documentProvider.formulateSearchDocument(message.getObjectId());
+							batch.add(newDoc);
+						} catch (NotFoundException e) {
+							// There is nothing to do if it does not exist
+							log.debug("Node not found for id: "+message.getObjectId()+" Message:"+e.getMessage());
+						}
 					}
 				}
 			}

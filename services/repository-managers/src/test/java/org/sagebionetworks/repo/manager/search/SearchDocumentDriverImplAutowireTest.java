@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -161,7 +160,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
-		NodeRevisionBackup rev = new NodeRevisionBackup();
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
 		primaryAnnos.addAnnotation("species", "Dragon");
@@ -179,7 +177,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos
 				.addAnnotation("blobKey", new String("bytes").getBytes());
-		rev.setNamedAnnotations(named);
 		Set<Reference> references = new HashSet<Reference>();
 		Map<String, Set<Reference>> referenceMap = new HashMap<String, Set<Reference>>();
 		referenceMap.put("tooMany", references);
@@ -217,7 +214,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl, fakeEntityPath, wikiPageText);
+				named, acl, fakeEntityPath, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals("en", document.getLang());
 		assertEquals(node.getId(), document.getId());
@@ -302,7 +299,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setCreatedOn(new Date());
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
-		NodeRevisionBackup rev = new NodeRevisionBackup();
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
 		primaryAnnos.addAnnotation("stringKey", "a");
@@ -310,12 +306,11 @@ public class SearchDocumentDriverImplAutowireTest {
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
 		additionalAnnos.addAnnotation("stringKey", "a");
 		additionalAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		rev.setNamedAnnotations(named);
 		AccessControlList acl = new AccessControlList();
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl, new EntityPath(), null);
+				named, acl, new EntityPath(), null);
 		byte[] cloudSearchDocument = SearchDocumentDriverImpl
 				.cleanSearchDocument(document);
 		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
