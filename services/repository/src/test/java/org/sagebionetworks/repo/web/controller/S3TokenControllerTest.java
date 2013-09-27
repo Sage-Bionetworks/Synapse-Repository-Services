@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -35,7 +36,6 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -162,9 +162,6 @@ public class S3TokenControllerTest {
 				"^http.*" + initialPath + ".*"));
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testCreateS3TokenInsufficientPermissions() throws Exception {
 		String initialPath = "foo.java";
@@ -179,12 +176,11 @@ public class S3TokenControllerTest {
 			token = testHelper.createObject(dataset.getUri() + "/"
 					+ UrlHelpers.S3TOKEN, token);
 			fail("expected exception not thrown");
-		} catch (ServletTestHelperException ex) {
+		} catch (UnauthorizedException ex) {
 			assertTrue(ex
 					.getMessage()
-					.startsWith(
+					.contains(
 							"update access is required to obtain an S3Token for entity"));
-			assertEquals(HttpStatus.FORBIDDEN.value(), ex.getHttpStatus());
 		}
 	}
 	

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.net.URL;
 import java.util.Map;
 
@@ -32,8 +31,6 @@ public class ServletTestHelperUtils {
 
 	private static final Log log = LogFactory.getLog(ServletTestHelper.class);
 
-	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
-
 	public enum HTTPMODE {
 		GET, POST, PUT, DELETE, HEAD
 	}
@@ -43,17 +40,11 @@ public class ServletTestHelperUtils {
 	 * a EntityObjectMapper)
 	 */
 	public static void addExtraParams(MockHttpServletRequest request,
-			Object entity, Map<String, String> extraParams) throws Exception {
+			Map<String, String> extraParams) throws Exception {
 		if (null != extraParams) {
 			for (Map.Entry<String, String> param : extraParams.entrySet()) {
 				request.setParameter(param.getKey(), param.getValue());
 			}
-		}
-		if (entity != null) {
-			StringWriter out = new StringWriter();
-			objectMapper.writeValue(out, entity);
-			String body = out.toString();
-			request.setContent(body.getBytes("UTF-8"));
 		}
 
 	}
@@ -83,6 +74,7 @@ public class ServletTestHelperUtils {
 		if (entity != null) {
 			String body = EntityFactory.createJSONStringForEntity(entity);
 			request.setContent(body.getBytes("UTF-8"));
+			log.debug("Request content: " + body);
 		}
 		return request;
 	}
@@ -91,7 +83,7 @@ public class ServletTestHelperUtils {
 	 * Sends off a Mock HTTP request and check for errors
 	 * 
 	 * @param expected
-	 *            The expected HTTP status code
+	 *            The expected HTTP status code (null to skip the check)
 	 */
 	public static MockHttpServletResponse dispatchRequest(
 			HttpServlet dispatcherServlet, MockHttpServletRequest request,
@@ -102,8 +94,7 @@ public class ServletTestHelperUtils {
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		dispatcherServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != expected.value()) {
+		if (expected != null && response.getStatus() != expected.value()) {
 			handleException(response.getStatus(), response.getContentAsString());
 		}
 		return response;
@@ -114,6 +105,7 @@ public class ServletTestHelperUtils {
 	 */
 	private static void handleException(int status, String message)
 			throws Exception {
+		log.debug("HTTP status: " + status + ", Message: " + message);
 		if (HttpStatus.NOT_FOUND.value() == status) {
 			throw new NotFoundException(message);
 		}
@@ -121,7 +113,7 @@ public class ServletTestHelperUtils {
 			throw new DatastoreException(message);
 		}
 		if (status == 409) {
-			throw new NameConflictException();
+			throw new NameConflictException(message);
 		}
 		if (status == 403) {
 			throw new UnauthorizedException(message);
@@ -176,7 +168,8 @@ public class ServletTestHelperUtils {
 	 * variable paginated results
 	 */
 	public static <T extends JSONEntity> VariableContentPaginatedResults<T> readResponseVariablePaginatedResults(
-			MockHttpServletResponse response, Class<? extends T> clazz) throws Exception {
+			MockHttpServletResponse response, Class<? extends T> clazz)
+			throws Exception {
 		JSONObjectAdapterImpl adapter = ServletTestHelperUtils
 				.readResponseJSON(response);
 		VariableContentPaginatedResults<T> pr = new VariableContentPaginatedResults<T>();
@@ -200,14 +193,14 @@ public class ServletTestHelperUtils {
 		// Redirect response is different than non-redirect
 		if (redirect == null || Boolean.TRUE.equals(redirect)) {
 			if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
-				throw new ServletTestHelperException(response);
+				throw new RuntimeException("Status : " + response.getStatus() + ", Content: " + response.getContentAsString());
 			}
 			// Get the redirect location
 			return new URL(response.getRedirectedUrl());
 		} else {
 			// Redirect == false
 			if (response.getStatus() != HttpStatus.OK.value()) {
-				throw new ServletTestHelperException(response);
+				throw new RuntimeException("Status : " + response.getStatus() + ", Content: " + response.getContentAsString());
 			}
 			// Get the redirect location
 			return new URL(response.getContentAsString());

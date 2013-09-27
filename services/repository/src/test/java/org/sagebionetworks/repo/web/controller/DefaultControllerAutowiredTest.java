@@ -245,12 +245,10 @@ public class DefaultControllerAutowiredTest {
 	/**
 	 * This is a test for PLFM-431.  If you try to get an object where they type does not match the ID
 	 * an exception should be thrown.
-	 * @throws IOException
-	 * @throws ServletException
 	 */
 	// Not needed if everything is /entity/
 	@Ignore
-	@Test (expected=ServletTestHelperException.class)
+	@Test (expected=IllegalArgumentException.class)
 	public void testTypeDoesNotMatchId() throws Exception {
 		// First create a project as a non-admin
 		Project project = new Project();
@@ -260,7 +258,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		// Now try to get the project as a dataset
-		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(),  AuthorizationConstants.TEST_USER_NAME);
+		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(), AuthorizationConstants.TEST_USER_NAME);
 
 	}
 
@@ -310,7 +308,7 @@ public class DefaultControllerAutowiredTest {
 
 	}
 
-	@Test (expected=ServletTestHelperException.class)
+	@Test(expected=IllegalArgumentException.class)
 	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
@@ -326,9 +324,8 @@ public class DefaultControllerAutowiredTest {
 		// Get the ACL for the project
 		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, project.getId(), AuthorizationConstants.TEST_USER_NAME);
 
-		// Now attempt to update the ACL as the dataset.
+		// Now attempt to update the ACL as the dataset
 		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, AuthorizationConstants.TEST_USER_NAME);
-
 	}
 
 	@Test

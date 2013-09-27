@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServlet;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -146,7 +147,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, uri, username, null);
-
+		
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, object);
 		String body = out.toString();
@@ -230,8 +231,8 @@ public class ServletTestHelper {
 		entity.setEntityType(entity.getClass().getName());
 
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ENTITY, username, null);
-		ServletTestHelperUtils.addExtraParams(request, entity, extraParams);
+				HTTPMODE.POST, UrlHelpers.ENTITY, username, entity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -258,7 +259,7 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, username, null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -342,8 +343,7 @@ public class ServletTestHelper {
 			Annotations updatedAnnos, String username) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + updatedAnnos.getId()
-						+ UrlHelpers.ANNOTATIONS, username, null);
-		ServletTestHelperUtils.addExtraParams(request, updatedAnnos, null);
+						+ UrlHelpers.ANNOTATIONS, username, updatedAnnos);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -371,8 +371,8 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId(),
-				username, null);
-		ServletTestHelperUtils.addExtraParams(request, entity, extraParams);
+				username, entity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -390,8 +390,7 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
-						+ UrlHelpers.VERSION, username, null);
-		ServletTestHelperUtils.addExtraParams(request, entity, null);
+						+ UrlHelpers.VERSION, username, entity);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -443,7 +442,7 @@ public class ServletTestHelper {
 			String username, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, username, null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -487,8 +486,7 @@ public class ServletTestHelper {
 			AccessControlList entityACL, String username) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
-				username, null);
-		ServletTestHelperUtils.addExtraParams(request, entityACL, null);
+				username, entityACL);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -507,8 +505,13 @@ public class ServletTestHelper {
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
 				username, null);
 
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		MockHttpServletResponse response;
+		try {
+			response = ServletTestHelperUtils
+					.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+		} catch (NotFoundException e) {
+			throw new ACLInheritanceException(e.getMessage());
+		}
 
 		return objectMapper.readValue(response.getContentAsString(),
 				AccessControlList.class);
@@ -522,8 +525,7 @@ public class ServletTestHelper {
 			AccessControlList entityACL, String username) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
-				username, null);
-		ServletTestHelperUtils.addExtraParams(request, entityACL, null);
+				username, entityACL);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -631,8 +633,7 @@ public class ServletTestHelper {
 	public static StackStatus updateStackStatus(HttpServlet dispatchServlet,
 			String username, StackStatus toUpdate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.STACK_STATUS, username, null);
-		ServletTestHelperUtils.addExtraParams(request, toUpdate, null);
+				HTTPMODE.PUT, UrlHelpers.STACK_STATUS, username, toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -716,7 +717,7 @@ public class ServletTestHelper {
 			String username, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/search", username, null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -840,8 +841,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(attachentType)
 						+ "/" + id + UrlHelpers.ATTACHMENT_S3_TOKEN, username,
-				null);
-		ServletTestHelperUtils.addExtraParams(request, token, null);
+						token);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -876,12 +876,11 @@ public class ServletTestHelper {
 		Assert.assertNotNull(id);
 		Assert.assertNotNull(tokenId);
 
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(type) + "/" + id
-						+ UrlHelpers.ATTACHMENT_URL, username, null);
 		PresignedUrl url = new PresignedUrl();
 		url.setTokenID(tokenId);
-		ServletTestHelperUtils.addExtraParams(request, url, null);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(type) + "/" + id
+						+ UrlHelpers.ATTACHMENT_URL, username, url);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -905,9 +904,8 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, T accessRequirement, String username,
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ACCESS_REQUIREMENT, username, null);
-		ServletTestHelperUtils.addExtraParams(request, accessRequirement,
-				extraParams);
+				HTTPMODE.POST, UrlHelpers.ACCESS_REQUIREMENT, username, accessRequirement);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -988,9 +986,8 @@ public class ServletTestHelper {
 			HttpServlet dispatchServlet, T accessApproval, String username,
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ACCESS_APPROVAL, username, null);
-		ServletTestHelperUtils.addExtraParams(request, accessApproval,
-				extraParams);
+				HTTPMODE.POST, UrlHelpers.ACCESS_APPROVAL, username, accessApproval);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1052,8 +1049,8 @@ public class ServletTestHelper {
 			Activity activity, String username, Map<String, String> extraParams)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ACTIVITY, username, null);
-		ServletTestHelperUtils.addExtraParams(request, activity, extraParams);
+				HTTPMODE.POST, UrlHelpers.ACTIVITY, username, activity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1079,8 +1076,8 @@ public class ServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ACTIVITY + "/" + activity.getId(),
-				username, null);
-		ServletTestHelperUtils.addExtraParams(request, activity, extraParams);
+				username, activity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1095,7 +1092,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.ACTIVITY + "/" + activityId,
 				username, null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -1106,8 +1103,8 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ACTIVITY + "/" + activity.getId()
-						+ UrlHelpers.GENERATED, username, null);
-		ServletTestHelperUtils.addExtraParams(request, activity, extraParams);
+						+ UrlHelpers.GENERATED, username, activity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
@@ -1122,7 +1119,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.FAVORITE + "/" + entityId, username,
 				null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
@@ -1137,7 +1134,7 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.FAVORITE + "/" + entityId,
 				username, null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -1148,10 +1145,10 @@ public class ServletTestHelper {
 			Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.FAVORITE, username, null);
-		ServletTestHelperUtils.addExtraParams(request, null, extraParams);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				EntityHeader.class);

@@ -271,6 +271,7 @@ public class EntityServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.REST_RESOURCES
 						+ UrlHelpers.EFFECTIVE_SCHEMA, null, null);
+		request.addParameter(UrlHelpers.RESOURCE_ID, resourceId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -286,6 +287,7 @@ public class EntityServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.REST_RESOURCES + UrlHelpers.SCHEMA,
 				null, null);
+		request.addParameter(UrlHelpers.RESOURCE_ID, resourceId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -338,7 +340,7 @@ public class EntityServletTestHelper {
 				HTTPMODE.POST, UrlHelpers.EVALUATION, username, eval);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
 
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
 	}
@@ -484,7 +486,7 @@ public class EntityServletTestHelper {
 						+ "/participant", username, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
 
 		return new Participant(
 				ServletTestHelperUtils.readResponseJSON(response));
@@ -807,7 +809,7 @@ public class EntityServletTestHelper {
 	public MigrationTypeCount deleteMigrationType(String username,
 			MigrationType type, IdList list) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/delete", username, list);
+				HTTPMODE.PUT, "/migration/delete", username, list);
 		request.setParameter("type", type.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -969,9 +971,7 @@ public class EntityServletTestHelper {
 		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request,
-						redirect ? HttpStatus.TEMPORARY_REDIRECT
-								: HttpStatus.OK);
+				.dispatchRequest(dispatcherServlet, request, null);
 
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
@@ -991,9 +991,7 @@ public class EntityServletTestHelper {
 		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request,
-						redirect ? HttpStatus.TEMPORARY_REDIRECT
-								: HttpStatus.OK);
+				.dispatchRequest(dispatcherServlet, request, null);
 
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
@@ -1033,9 +1031,7 @@ public class EntityServletTestHelper {
 		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request,
-						redirect ? HttpStatus.TEMPORARY_REDIRECT
-								: HttpStatus.OK);
+				.dispatchRequest(dispatcherServlet, request, null);
 
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
