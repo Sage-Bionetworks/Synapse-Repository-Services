@@ -20,12 +20,6 @@
 			depends-on="awsCredentials">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
-		
-	<!-- Each UnsentMessage worker test needs its own test helper -->
-	<bean id="unsentMessageQueuerTestHelper" 
-		class="org.sagebionetworks.message.workers.UnsentMessageQueuerTestHelper"
-		scope="prototype"
-		init-method="initialize" />
 
 	<!-- Sets up the message queue. -->
 	<bean id="unsentMessageQueue"
