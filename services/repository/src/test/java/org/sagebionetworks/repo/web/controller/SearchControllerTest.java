@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
 
@@ -9,7 +10,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Project;
@@ -55,7 +55,7 @@ public class SearchControllerTest {
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest");
-		project = provider.getEntityService().createEntity(TestUserDAO.TEST_USER_NAME, project, null, new MockHttpServletRequest());
+		project = provider.getEntityService().createEntity(AuthorizationConstants.TEST_USER_NAME, project, null, new MockHttpServletRequest());
 		// Push this to the serach index
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchDao.createOrUpdateSearchDocument(doc);
@@ -72,7 +72,7 @@ public class SearchControllerTest {
 	@After
 	public void after()  throws Exception{
 		if(provider != null && project != null){
-			provider.getEntityService().deleteEntity(TestUserDAO.TEST_USER_NAME, project.getId());
+			provider.getEntityService().deleteEntity(AuthorizationConstants.TEST_USER_NAME, project.getId());
 			searchDao.deleteAllDocuments();
 		}
 	}
@@ -93,7 +93,7 @@ public class SearchControllerTest {
 		request.addHeader("Accept", "application/json");
 		request.addHeader("Content-Type", "application/json");
 		request.setRequestURI("/search");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, TestUserDAO.TEST_USER_NAME);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, AuthorizationConstants.TEST_USER_NAME);
 		request.setContent(EntityFactory.createJSONStringForEntity(query)
 				.getBytes("UTF-8"));
 		DispatchServletSingleton.getInstance().service(request, response);

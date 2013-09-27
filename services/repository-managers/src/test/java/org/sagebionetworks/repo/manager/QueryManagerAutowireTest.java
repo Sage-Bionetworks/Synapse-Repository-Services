@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -51,35 +50,34 @@ public class QueryManagerAutowireTest {
 	
 	@Autowired
 	private EntityManager entityManager;
-	@Autowired
-	public UserProvider testUserProvider;
-	@Autowired
-	NodeQueryDao nodeQueryDao;
-	@Autowired
-	AsynchronousDAO asynchronousDAO;
 	
-	List<String> toDelete = null;
+	@Autowired
+	public UserManager userManager;
+	
+	@Autowired
+	private NodeQueryDao nodeQueryDao;
+	
+	@Autowired
+	private AsynchronousDAO asynchronousDAO;
+	
+	private List<String> toDelete = null;
 	
 	private long totalEntities = 10;
 	
-	private UserInfo userInfo;
-	private String userId;
-	HttpServletRequest mockRequest;
+	private UserInfo adminUserInfo;
+	private HttpServletRequest mockRequest;
 	
 	@Before
-	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		assertNotNull(entityManager);
-		assertNotNull(testUserProvider);
-		userInfo=testUserProvider.getTestAdminUserInfo();
-		UserInfo.validateUserInfo(userInfo);
-		userId = userInfo.getUser().getUserId();
+	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		UserInfo.validateUserInfo(adminUserInfo);
 		toDelete = new ArrayList<String>();
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		
 		Project project = new Project();
 		project.setName("QueryManagerAutowireTest.rootProject2");
-		String id = entityManager.createEntity(userInfo, project, null);
+		String id = entityManager.createEntity(adminUserInfo, project, null);
 		project.setId(id);
 		toDelete.add(project.getId());
 		
@@ -89,13 +87,13 @@ public class QueryManagerAutowireTest {
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
-			String dsId = entityManager.createEntity(userInfo, ds, null);
+			String dsId = entityManager.createEntity(adminUserInfo, ds, null);
 			ds.setId(dsId);
 			assertNotNull(ds);
 			assertNotNull(ds.getId());
 			toDelete.add(ds.getId());
 			toUpdate.add(ds.getId());
-			Annotations annos = entityManager.getAnnotations(userInfo, ds.getId());
+			Annotations annos = entityManager.getAnnotations(adminUserInfo, ds.getId());
 			assertNotNull(annos);
 			// Add some annotations
 			annos.addAnnotation("stringKey", "string"+i);
@@ -105,11 +103,11 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("longKey", new Long(i));
 			annos.addAnnotation("dateKey", new Date(10000+i));
 			annos.addAnnotation("doubleKey", new Double(42*i));
-			entityManager.updateAnnotations(userInfo, ds.getId(), annos);
+			entityManager.updateAnnotations(adminUserInfo, ds.getId(), annos);
 			// Add a layer to each dataset
 			Data inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
-			String lid = entityManager.createEntity(userInfo, inLayer, null);
+			String lid = entityManager.createEntity(adminUserInfo, inLayer, null);
 			inLayer.setId(id);
 		}
 		
@@ -145,7 +143,7 @@ public class QueryManagerAutowireTest {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					entityManager.deleteEntity(userInfo, id);
+					entityManager.deleteEntity(adminUserInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -164,7 +162,7 @@ public class QueryManagerAutowireTest {
 		// Execute it.
 		long start = System.currentTimeMillis();
 		
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, adminUserInfo);
 		QueryResults results = new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
@@ -207,7 +205,7 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, adminUserInfo);
 		QueryResults results = new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");

@@ -65,6 +65,11 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.LongAnnotationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO" />
+				<!-- Team-related beans -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitee" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
@@ -95,8 +100,14 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
+				
+				<!-- Team-related beans -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>
 	</bean>

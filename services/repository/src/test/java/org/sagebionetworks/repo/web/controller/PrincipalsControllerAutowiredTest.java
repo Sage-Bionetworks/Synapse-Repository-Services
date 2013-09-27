@@ -6,9 +6,7 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -20,7 +18,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -32,10 +29,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * This is a an integration test for the PrincipalsController.
@@ -59,7 +54,7 @@ public class PrincipalsControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = TestUserDAO.ADMIN_USER_NAME;
+	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
 	private List<String> toDelete;

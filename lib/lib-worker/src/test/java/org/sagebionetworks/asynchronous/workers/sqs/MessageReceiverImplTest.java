@@ -1,14 +1,20 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Stack;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
@@ -34,7 +40,7 @@ public class MessageReceiverImplTest {
 	MessageWorkerFactory stubFactory;
 	AmazonSQSClient mockSQSClient;
 	List<Message> messageList;
-	ReceiveMessageResult results;
+	Queue<Message> messageQueue;
 	
 	@Before
 	public void before(){
@@ -52,11 +58,21 @@ public class MessageReceiverImplTest {
 			messageList.add(new Message().withMessageId("id"+i).withReceiptHandle("handle1"+i));
 		}
 		// Setup the messages
-		results = new ReceiveMessageResult();
-		for(Message message: messageList){
-			results.withMessages(message);
-		}
-		when(mockSQSClient.receiveMessage(new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeout))).thenReturn(results);
+		messageQueue = new LinkedList<Message>(messageList);
+		when(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).thenAnswer(new Answer<ReceiveMessageResult>() {
+
+			@Override
+			public ReceiveMessageResult answer(InvocationOnMock invocation)
+					throws Throwable {
+				ReceiveMessageRequest rmRequest = (ReceiveMessageRequest) invocation.getArguments()[0];
+				ReceiveMessageResult results = new ReceiveMessageResult();
+				for (int i = 0; i < rmRequest.getMaxNumberOfMessages() && !messageQueue.isEmpty(); i++) {
+					results.withMessages(messageQueue.poll());
+				}
+				return results;
+			}
+			
+		});
 
 	}
 	
@@ -102,9 +118,13 @@ public class MessageReceiverImplTest {
 		for(Message message: messageList){
 			deleteRequest.add(new DeleteMessageBatchRequestEntry().withId(message.getMessageId()).withReceiptHandle(message.getReceiptHandle()));
 		}
-		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl, deleteRequest);
+		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl,
+				deleteRequest.subList(0, MessageUtils.SQS_MAX_REQUEST_SIZE));
+		DeleteMessageBatchRequest expectedBatch2 = new DeleteMessageBatchRequest(queueUrl, 
+				deleteRequest.subList(MessageUtils.SQS_MAX_REQUEST_SIZE, deleteRequest.size()));
 		// Verify that all were deleted
 		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch);
+		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch2);
 	}
 	@Test
 	public void testTrigerFiredOneFailureMulitipleSuccess() throws InterruptedException{

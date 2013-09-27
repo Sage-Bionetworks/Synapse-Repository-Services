@@ -94,9 +94,8 @@
 
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
-		depends-on="userGroupDAO" init-method="bootstrapProfiles">
-		<property name="bootstrapUsers" ref="bootstrapUsers" />
-	</bean>
+		depends-on="userGroupDAO" 
+		init-method="bootstrapProfiles" />
 	
 	<bean id="crowdGroupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
@@ -146,11 +145,6 @@
 		scope="singleton">
 	</bean>
 
-	<bean id="trashCanBackupDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanBackupDaoImpl"
-		scope="singleton">
-	</bean>
-
 	<bean id="wikiPageDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
 		scope="singleton">
@@ -165,11 +159,6 @@
 		scope="singleton">
 	</bean>
 
-	<bean id="doiMigratableDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBODoiMigratableDaoImpl"
-		scope="singleton">
-	</bean>
-
 	<bean id="storageQuotaDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOStorageQuotaDaoImpl"
 		scope="singleton">
@@ -180,7 +169,13 @@
 		scope="singleton">
 	</bean>
 
-	<bean id="entityBootstrapper"
+	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
+
+	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
+
+		<bean id="membershipInvtnSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipInvtnSubmissionDAOImpl" scope="singleton"/>
+	
+		<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl" init-method="bootstrapAll">
 		<property name="bootstrapEntities">
 			<list>

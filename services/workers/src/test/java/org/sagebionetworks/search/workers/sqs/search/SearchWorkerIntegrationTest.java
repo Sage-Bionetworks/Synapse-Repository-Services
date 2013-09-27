@@ -13,17 +13,18 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,19 +46,23 @@ public class SearchWorkerIntegrationTest {
 	
 	@Autowired
 	private EntityManager entityManager;
+	
 	@Autowired
-	private UserProvider userProvider;
+	private UserManager userManager;
+	
 	@Autowired
 	private MessageReceiver searchQueueMessageReveiver;
+	
 	@Autowired
 	private SearchDao searchDao;
+	
 	@Autowired
-	WikiPageDao wikiPageDao;
+	private WikiPageDao wikiPageDao;
 	
 	private Project project;
-	WikiPage rootPage;
-	WikiPageKey rootKey;
-	UserInfo userInfo;
+	private WikiPage rootPage;
+	private WikiPageKey rootKey;
+	private UserInfo userInfo;
 	
 	@Before
 	public void before() throws Exception {
@@ -67,7 +72,7 @@ public class SearchWorkerIntegrationTest {
 		searchDao.deleteAllDocuments();
 		
 		// Create a project
-		userInfo = userProvider.getTestUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		project = new Project();
 		project.setName("SearchIntegrationTest.Project");
 		// this should trigger create messaage.
@@ -105,8 +110,9 @@ public class SearchWorkerIntegrationTest {
 	
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
-		if(project != null && entityManager != null && userProvider != null){
-			entityManager.deleteEntity(userProvider.getTestAdminUserInfo(), project.getId());
+		if (project != null){
+			UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 		if(rootKey != null){
 			wikiPageDao.delete(rootKey);

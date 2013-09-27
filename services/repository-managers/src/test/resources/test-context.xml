@@ -11,13 +11,6 @@
   <context:annotation-config />
 
   <import resource="classpath:managers-spb.xml" />
-                    
-    <bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
-
-<!-- 	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.MockAmazonClientFactory"  scope="singleton"/> -->
-        
-    <!-- Provides users for testing. -->
-    <bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl" scope="singleton"/>
     
     <!--  We do not want to publish to the repository change topic while running test so we turn it off -->
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">

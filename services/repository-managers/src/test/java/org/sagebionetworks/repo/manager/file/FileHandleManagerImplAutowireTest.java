@@ -29,7 +29,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -44,7 +46,6 @@ import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -63,19 +64,19 @@ public class FileHandleManagerImplAutowireTest {
 	
 	public static final long MAX_UPLOAD_WORKER_TIME_MS = 20*1000;
 	
-	List<S3FileHandle> toDelete;
+	private List<S3FileHandle> toDelete;
 	
 	@Autowired
-	FileHandleManager fileUploadManager;
+	private FileHandleManager fileUploadManager;
 	
 	@Autowired
-	AmazonS3Client s3Client;
+	private AmazonS3Client s3Client;
 	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserManager userManager;
 	
 	private UserInfo userInfo;
 	
@@ -88,8 +89,7 @@ public class FileHandleManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		assertNotNull(testUserProvider);
-		userInfo = testUserProvider.getTestUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		toDelete = new LinkedList<S3FileHandle>();
 		// Setup the mock file to upload.
 		int numberFiles = 2;

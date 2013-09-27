@@ -1,15 +1,12 @@
 package org.sagebionetworks.repo.model.registry;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
 import org.junit.Test;
-import org.junit.Ignore;
-
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.schema.ENCODING;
-import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.repo.model.registry.MigrationSpecData.FieldMigrationSpecData;
 
 public class MigrationSpecDataLoaderImplTest {

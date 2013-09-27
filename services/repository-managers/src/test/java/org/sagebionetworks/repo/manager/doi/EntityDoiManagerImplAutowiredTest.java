@@ -14,15 +14,16 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.doi.DoiAsyncClient;
 import org.sagebionetworks.doi.DxAsyncClient;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,23 +41,27 @@ public class EntityDoiManagerImplAutowiredTest {
 	private static long EZID_CLIENT_DELAY = 1000;
 	private static long DX_CLIENT_DELAY = 3000;
 
-	@Autowired private EntityDoiManager entityDoiManager;
-	@Autowired private NodeManager nodeManager;
-	@Autowired private UserProvider userProvider;
-	@Autowired private DoiDao doiDao;
-	@Autowired private DoiAdminDao doiAdminDao;
+	@Autowired 
+	private EntityDoiManager entityDoiManager;
+	
+	@Autowired 
+	private NodeManager nodeManager;
+	
+	@Autowired 
+	private DoiDao doiDao;
+	
+	@Autowired 
+	private DoiAdminDao doiAdminDao;
+	
+	@Autowired
+	private UserManager userManager;
+	
 	private UserInfo testUserInfo;
 	private List<String> toClearList;
 
 	@Before
 	public void before() throws Exception {
-
-		assertNotNull(entityDoiManager);
-		assertNotNull(nodeManager);
-		assertNotNull(userProvider);
-		assertNotNull(doiAdminDao);
-
-		testUserInfo = userProvider.getTestUserInfo();
+		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		assertNotNull(testUserInfo);
 
 		toClearList = new ArrayList<String>();
@@ -74,8 +79,9 @@ public class EntityDoiManagerImplAutowiredTest {
 
 	@After
 	public void after() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		for (String nodeId : toClearList) {
-			nodeManager.delete(userProvider.getTestAdminUserInfo(), nodeId);
+			nodeManager.delete(adminUserInfo, nodeId);
 		}
 		doiAdminDao.clear();
 	}

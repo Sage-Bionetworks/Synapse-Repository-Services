@@ -22,10 +22,10 @@ import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.GenotypeData;
@@ -34,11 +34,9 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -49,13 +47,15 @@ public class EntityManagerImplAutowireTest {
 	
 	@Autowired
 	private EntityManager entityManager;	
-	@Autowired
-	public UserProvider testUserProvider;	
-	@Autowired 
-	ActivityManager activityManager;
-	@Autowired
-	FileHandleManager fileHandleManager;
 	
+	@Autowired
+	public UserManager userManager;	
+	
+	@Autowired 
+	private ActivityManager activityManager;
+	
+	@Autowired
+	private FileHandleManager fileHandleManager;
 	
 	// We use a mock auth DAO for this test.
 	private AuthorizationManager mockAuth;
@@ -68,9 +68,7 @@ public class EntityManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		assertNotNull(entityManager);
-		assertNotNull(testUserProvider);
-		userInfo = testUserProvider.getTestAdminUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();

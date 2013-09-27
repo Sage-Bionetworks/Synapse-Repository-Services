@@ -26,12 +26,10 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -48,30 +46,32 @@ public class AnnotationsWorkerIntegrationTest {
 	public static final long MAX_WAIT = 30*1000; // 30 seconds	
 	
 	@Autowired
-	AnnotationsDAO annotationsDAO;
+	private AnnotationsDAO annotationsDAO;
+	
 	@Autowired
-	SubmissionStatusDAO submissionStatusDAO;
-    @Autowired
-    SubmissionDAO submissionDAO;
-    @Autowired
-    ParticipantDAO participantDAO;
-    @Autowired
-    EvaluationDAO evaluationDAO;
+	private SubmissionStatusDAO submissionStatusDAO;
+    
 	@Autowired
-	NodeDAO nodeDAO;
+    private SubmissionDAO submissionDAO;
+    
 	@Autowired
-	private UserProvider userProvider;
+    private ParticipantDAO participantDAO;
+    
+	@Autowired
+    private EvaluationDAO evaluationDAO;
+	
+	@Autowired
+	private NodeDAO nodeDAO;
+	
 	@Autowired
 	private MessageReceiver annotationsQueueMessageReceiver;
-	
-	UserInfo userInfo;
 	
 	private String nodeId = null;
     private String submissionId = null;
     private String userId = "0";
     private String evalId;
-    private String name = "test submission";
-    private Long versionNumber = 1L;
+    private final String name = "test submission";
+    private final Long versionNumber = 1L;
 	
 	@Before
 	public void before() throws Exception {
@@ -160,7 +160,7 @@ public class AnnotationsWorkerIntegrationTest {
 					count + " messages on the queue");
 			Thread.yield();
 			long elapse = System.currentTimeMillis() - start;
-			if (elapse > MAX_WAIT*2) {
+			if (elapse > MAX_WAIT * 5) {
 				throw new RuntimeException("Timed-out waiting process all messages that were on the queue before the tests started.");
 			}
 		} while(count > 0);

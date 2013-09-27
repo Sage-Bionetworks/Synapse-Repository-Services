@@ -1,9 +1,13 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -17,6 +21,8 @@ import com.amazonaws.services.sqs.model.Message;
  *
  */
 public class MessageUtils {
+	
+	public static int SQS_MAX_REQUEST_SIZE = 10;
 	
 	/**
 	 * Extract a ChangeMessage from an Amazon Message
@@ -39,6 +45,22 @@ public class MessageUtils {
 			}else{
 				throw new IllegalArgumentException("Unknown message type: "+message.getBody());
 			}
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Extracts a UnsentMessageRange from an Amazon Message
+	 */
+	public static UnsentMessageRange extractUnsentMessageBody(Message message) {
+		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		try {
+			JSONObject object = new JSONObject(message.getBody());
+			JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
+			return new UnsentMessageRange(adapter);
 		} catch (JSONException e) {
 			throw new RuntimeException(e);
 		} catch (JSONObjectAdapterException e) {
@@ -119,6 +141,20 @@ public class MessageUtils {
 		message.setParentId(parentId);
 		message.setObjectType(ObjectType.ENTITY);
 		return MessageUtils.createMessage(message, messageId, messageHandle);
+	}
+	
+	/**
+	 * Constructs a list of lists, each sublist containing no more than 10 items
+	 */
+	public static <T> List<List<T>> splitListIntoTens(List<T> batch) {
+		List<List<T>> miniBatches = new ArrayList<List<T>>();
+		for (int i = 0; i < batch.size(); i += SQS_MAX_REQUEST_SIZE) {
+			miniBatches.add(batch.subList(i, 
+					((i + SQS_MAX_REQUEST_SIZE > batch.size()) 
+							? batch.size() 
+							: (i + SQS_MAX_REQUEST_SIZE))));
+		}
+		return miniBatches;
 	}
 
 }

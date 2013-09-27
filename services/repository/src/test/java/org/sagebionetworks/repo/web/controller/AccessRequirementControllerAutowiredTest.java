@@ -21,10 +21,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -62,7 +62,7 @@ public class AccessRequirementControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = TestUserDAO.ADMIN_USER_NAME;
+	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 	private Project project;
 
@@ -155,7 +155,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		// get the unmet access requirements for the entity
 		results = ServletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, TestUserDAO.TEST_USER_NAME);	
+				dispatchServlet, entityId, AuthorizationConstants.TEST_USER_NAME);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
@@ -197,7 +197,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		// get the unmet access requirements for the evaluation
 		results = ServletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), TestUserDAO.TEST_USER_NAME);	
+				dispatchServlet, evaluation.getId(), AuthorizationConstants.TEST_USER_NAME);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		

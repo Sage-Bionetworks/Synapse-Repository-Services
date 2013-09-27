@@ -3,11 +3,12 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +42,6 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;

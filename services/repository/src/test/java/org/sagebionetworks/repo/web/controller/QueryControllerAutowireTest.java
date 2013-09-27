@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -15,8 +15,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -52,7 +51,9 @@ public class QueryControllerAutowireTest {
 	public void before() throws DatastoreException, NotFoundException{
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		toDelete = new LinkedList<String>();
-		user = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		
+		// The user can't be an admin, since admins can see trash-canned entities
+		user = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 	}
 	
 	@After
@@ -69,8 +70,9 @@ public class QueryControllerAutowireTest {
 	
 	@Test
 	public void testQueryForRoot() throws Exception{
+		// Only an admin can see the root node
 		String query = "select id, eTag from entity where parentId == null";
-		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, query, mockRequest);
+		QueryResults results = controller.query(AuthorizationConstants.ADMIN_USER_NAME, query, mockRequest);
 		assertNotNull(results);
 		assertTrue(results.getTotalNumberOfResults() > 0);
 	}
@@ -93,12 +95,12 @@ public class QueryControllerAutowireTest {
 		data.setId(id);
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+p.getId()+"\"";
-		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		QueryResults results = controller.query(user.getIndividualGroup().getName(), queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 		
 		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+p.getId()+"\"";
-		results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		results = controller.query(user.getIndividualGroup().getName(), queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}
@@ -114,7 +116,7 @@ public class QueryControllerAutowireTest {
 		toDelete.add(p.getId());
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM project WHERE createdByPrincipalId == \""+user.getIndividualGroup().getId()+"\"";
-		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		QueryResults results = controller.query(user.getIndividualGroup().getName(), queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}

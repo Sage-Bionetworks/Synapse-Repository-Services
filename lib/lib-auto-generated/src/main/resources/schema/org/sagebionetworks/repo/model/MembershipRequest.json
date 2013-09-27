@@ -1,0 +1,24 @@
+{
+	"title": "MembershipRequest",
+	"description": "JSON schema for MembershipRequest POJO",
+	"properties": {
+		"teamId": {
+			"type": "string",
+			"description": "The id of the Team to which the request is sent."
+		},
+		"userId": {
+			"type": "string",
+			"description": "The one being invited to join the Team."
+		},
+		"message": {
+			"type": "string",
+			"description": "The request message."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipRequest expires.",
+			"title": "Expires On"
+		}
+	}
+}

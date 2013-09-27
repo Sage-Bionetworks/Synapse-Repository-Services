@@ -9,7 +9,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;

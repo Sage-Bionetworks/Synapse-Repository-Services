@@ -43,9 +43,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	
 	private boolean shouldMessagesBePublishedToTopic;
 	
-	private int listUnsentMessagePageSize;
-	private long lockTimeoutMS;
-	
 	/**
 	 * This is injected from spring.
 	 * 
@@ -54,22 +51,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void setShouldMessagesBePublishedToTopic(
 			boolean shouldMessagesBePublishedToTopic) {
 		this.shouldMessagesBePublishedToTopic = shouldMessagesBePublishedToTopic;
-	}
-
-	/**
-	 * This is injected from spring.
-	 * @param listUnsentMessagePageSize
-	 */
-	public void setListUnsentMessagePageSize(int listUnsentMessagePageSize) {
-		this.listUnsentMessagePageSize = listUnsentMessagePageSize;
-	}
-
-	/**
-	 * Injected by spring
-	 * @param lockTimeoutMS
-	 */
-	public void setLockTimeoutMS(long lockTimeoutMS) {
-		this.lockTimeoutMS = lockTimeoutMS;
 	}
 
 	/**
@@ -207,41 +188,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			if(log.isDebugEnabled()){
 				log.debug(e.getMessage());
 			}
-		}
-	}
-	
-	/**
-	 * Quartz will fire this method on a 10 second timer. This timer is used to find messages that have been created but not sent.
-	 *  We use a semaphore to ensure only one worker per stack does this task at a time.
-	 */
-	@Override
-	public void timerFiredFindUnsentMessages(){
-		try {
-			// Do nothing if the messages should not be published.
-			if(!shouldMessagesBePublishedToTopic) return;
-			// We use a semaphore to ensure only one worker per stack does this task at a time.
-			String lockToken = semaphoreDao.attemptToAcquireLock(SEMAPHORE_KEY, lockTimeoutMS);
-			if(lockToken != null){
-				log.debug("Acquire the lock with token: "+lockToken);
-				try{
-					// Add all messages to the queue.
-					List<ChangeMessage> unSentMessages = transactionalMessanger.listUnsentMessages(this.listUnsentMessagePageSize);
-					for(ChangeMessage message: unSentMessages){
-						publishMessage(message);
-					}
-				}finally{
-					// Release the lock
-					boolean released = semaphoreDao.releaseLock(SEMAPHORE_KEY, lockToken);
-					if(!released){
-						log.warn("Failed to release the lock with token: "+lockToken);
-					}
-				}
-			}else{
-				log.debug("Did not acquire the lock.");
-			}
-		} catch (Throwable e) {
-			// Only print one line of the error
-			log.error("Error: "+e.getMessage());
 		}
 	}
 }

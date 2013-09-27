@@ -24,11 +24,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -60,7 +59,7 @@ public class UserProfileControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userId = TestUserDAO.ADMIN_USER_NAME;
+	private String userId = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
 	private List<String> favoritesToDelete;

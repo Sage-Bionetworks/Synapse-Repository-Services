@@ -10,13 +10,12 @@
 	<context:annotation-config />
 
 	<import resource="classpath:main-scheduler-spb.xml" />
-
-	<bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO"
-		scope="singleton" />
-
-	<!-- Provides users for testing. -->
-	<bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl"
-		scope="singleton" />
+		
+	<!-- Each UnsentMessage worker test needs its own test helper -->
+	<bean id="unsentMessageQueuerTestHelper" 
+		class="org.sagebionetworks.message.workers.UnsentMessageQueuerTestHelper"
+		scope="prototype"
+		init-method="initialize" />
 
 	<bean id="dynamoQueueRemoverFactory"
 		class="org.sagebionetworks.dynamo.workers.sqs.DynamoQueueRemoverFactory"
@@ -45,6 +44,22 @@
 		</property>
 		<property name="startDelay" value="0" />
 		<property name="repeatInterval" value="200" />
+	</bean>
+	
+	<!-- Redefine the unsent message queuer trigger for shorter intervals during tests -->
+	<bean id="unsentMessageQueuerTrigger"
+			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+			scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="unsentMessageQueuerSemaphoreGatedRunner" />
+				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="0" />
+		<!-- 10 seconds -->
+		<property name="repeatInterval" value="10000" />
 	</bean>
 
 </beans>

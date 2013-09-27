@@ -1,14 +1,13 @@
 package org.sagebionetworks.repo.model;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Date;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
-
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class ProjectTest {
 	

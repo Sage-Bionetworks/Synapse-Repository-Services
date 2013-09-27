@@ -170,7 +170,6 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	 * Add the properties from the settings file to the system properties if
 	 * they are there.
 	 */
-	@SuppressWarnings("unchecked")
 	private void addSettingsPropertiesToSystem() {
 		Properties props;
 		try {

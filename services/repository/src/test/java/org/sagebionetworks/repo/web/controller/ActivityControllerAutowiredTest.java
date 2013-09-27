@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
@@ -23,8 +23,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -64,7 +64,7 @@ public class ActivityControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userId = TestUserDAO.ADMIN_USER_NAME;
+	private String userId = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
 	private List<String> activityIdstoDelete;

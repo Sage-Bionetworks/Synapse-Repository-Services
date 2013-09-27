@@ -29,21 +29,28 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -56,10 +63,8 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -104,29 +109,47 @@ public class MigrationIntegrationAutowireTest {
 	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
+	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
-	UserProfileManager userProfileManager;
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
+	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
+	
 	@Autowired
-	MigrationManager migrationManager;
+	private MigrationManager migrationManager;
+	
 	@Autowired
-	StorageQuotaManager storageQuotaManager;
+	private StorageQuotaManager storageQuotaManager;
+	
 	@Autowired
-	StorageQuotaAdminDao storageQuotaAdminDao;
+	private StorageQuotaAdminDao storageQuotaAdminDao;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
-	GroupMembersDAO groupMembersDAO;
+	private GroupMembersDAO groupMembersDAO;
+	
+	@Autowired
+	TeamDAO teamDAO;
+	@Autowired
+	MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -178,7 +201,7 @@ public class MigrationIntegrationAutowireTest {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
-		userName = TestUserDAO.MIGRATION_USER_NAME;
+		userName = AuthorizationConstants.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
 		resetDatabase();
@@ -192,7 +215,8 @@ public class MigrationIntegrationAutowireTest {
 		creatWikiPages();
 		createDoi();
 		createStorageQuota();
-		createUserGroups();
+		UserGroup sampleGroup = createUserGroups();
+		createTeamsRequestsAndInvitations(sampleGroup);
 	}
 
 
@@ -219,7 +243,7 @@ public class MigrationIntegrationAutowireTest {
 	private void createActivity() throws Exception {
 		activity = new Activity();
 		activity.setDescription("some desc");
-		activity = serviceProvider.getActivityService().createActivity(adminId, activity);
+		activity = serviceProvider.getActivityService().createActivity(userName, activity);
 	}
 
 
@@ -389,7 +413,8 @@ public class MigrationIntegrationAutowireTest {
 		storageQuotaManager.setQuotaForUser(userInfo, userInfo, 3000);
 	}
 	
-	private void createUserGroups() throws NotFoundException {
+	// returns a group for use in a team
+	private UserGroup createUserGroups() throws NotFoundException {
 		String groupNamePrefix = "Caravan-";
 		String userNamePrefix = "GoinOnTheOregonTrail@";
 		List<String> adder = new ArrayList<String>();
@@ -440,6 +465,42 @@ public class MigrationIntegrationAutowireTest {
 		tempUserAndGroups.add(parentUser);
 		tempUserAndGroups.add(siblingUser);
 		tempUserAndGroups.add(childUser);
+		
+		// Made by the bootstrapper
+		tempUserAndGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
+		return parentGroup;
+	}
+	
+	private void createTeamsRequestsAndInvitations(UserGroup group) {
+		Team team = new Team();
+		team.setId(group.getId());
+		team.setName(group.getName());
+		team.setDescription("test team");
+		teamDAO.create(team);
+		
+		// create a MembershipRqstSubmission
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date expiresOn = new Date();
+		mrs.setExpiresOn(expiresOn);
+		mrs.setMessage("Please let me join the team.");
+		mrs.setTeamId(""+group.getId());
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mrs.setUserId(individUser.getId());
+		membershipRqstSubmissionDAO.create(mrs);
+		
+		
+		// create a MembershipInvtnSubmission
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setExpiresOn(expiresOn);
+		mis.setMessage("Please join the team.");
+		mis.setTeamId(""+group.getId());
+		
+		// need another valid user group
+		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		long pgLong = Long.parseLong(individUser.getId());
+		
+		membershipInvtnSubmissionDAO.create(mis);
 	}
 
 	@After
@@ -464,6 +525,11 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		validateStartingCount(startCounts);
 		
+		// The admin group cannot be deleted without locking the migrator out of the system
+		// So a special case must be made for the admins
+		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		Long startAdminCount = new Long(groupMembersDAO.getMembers(adminGroupId).size());
+		
 		// This test will backup all data, delete it, then restore it.
 		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
 		for(MigrationType type: primaryTypesList.getList()){
@@ -487,8 +553,14 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for(int i=1; i<afterDeleteCounts.getList().size(); i++){
-			assertEquals(new Long(0), afterDeleteCounts.getList().get(i).getCount());
+		for (int i = 1; i < afterDeleteCounts.getList().size(); i++) {
+			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
+			// Special case for not-deleted admins
+			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS) {
+				assertEquals(startAdminCount, afterDelete.getCount());
+			} else {
+				assertEquals(new Long(0), afterDelete.getCount());
+			}
 		}
 		
 		// Now restore all of the data
@@ -497,9 +569,15 @@ public class MigrationIntegrationAutowireTest {
 			assertNotNull("Did not find a backup file name for type: "+info.getType(), fileName);
 			restoreFromBackup(info.getType(), fileName);
 		}
+		
 		// The counts should all be back
 		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		assertEquals(startCounts, finalCounts);
+		for (int i = 1; i < finalCounts.getList().size(); i++) {
+			MigrationTypeCount startCount = startCounts.getList().get(i);
+			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
+			// Special case for not-deleted admins
+			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+		}
 	}
 	
 	private static class BackupInfo {

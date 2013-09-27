@@ -6,15 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
 
-import javax.mail.Message;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.auth.User;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.utils.EmailUtils;
 
 //http://www.mkyong.com/java/javamail-api-sending-email-via-gmail-smtp-example/
@@ -58,19 +50,19 @@ public class SendMail {
     	}
     }
     
-    public void sendSetPasswordMail(User user, String sessionToken) {
+    public void sendSetPasswordMail(NewUser user, String sessionToken) {
     	sendUserMail(user, sessionToken, "setpasswordEmail.txt");
     } 
     
-    public void sendResetPasswordMail(User user, String sessionToken) {
+    public void sendResetPasswordMail(NewUser user, String sessionToken) {
     	sendUserMail(user, sessionToken, "resetpasswordEmail.txt");
     } 
     
-    public void sendSetAPIPasswordMail(User user, String sessionToken) {
+    public void sendSetAPIPasswordMail(NewUser user, String sessionToken) {
     	sendUserMail(user, sessionToken, "setAPIpasswordEmail.txt");
     } 
     
-    public void sendUserMail(User user, String sessionToken, String fname) {
+    public void sendUserMail(NewUser user, String sessionToken, String fname) {
     	// read in email template
     	String msg = readMailTemplate(fname);
     	// fill in display name and user name

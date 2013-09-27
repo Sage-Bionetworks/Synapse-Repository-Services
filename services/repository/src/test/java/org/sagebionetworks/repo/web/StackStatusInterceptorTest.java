@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.HashSet;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -16,7 +15,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
@@ -24,9 +23,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.controller.ServletTestHelper;
@@ -60,7 +57,7 @@ public class StackStatusInterceptorTest {
 	
 	private Project sampleProject = null;
 
-	private String userName = TestUserDAO.ADMIN_USER_NAME;
+	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
 	
 	
 	@BeforeClass

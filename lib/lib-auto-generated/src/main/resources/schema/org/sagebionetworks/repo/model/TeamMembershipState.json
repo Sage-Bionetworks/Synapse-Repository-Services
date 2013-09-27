@@ -1,0 +1,11 @@
+{
+    "description":"JSON schema for the possible states of a User with respect to Team membership.",
+    "name": "TeamMembershipState",
+    "type":"string",
+    "enum":[
+    	"NONE",
+        "MEMBER",
+		"OPEN_MEMBERSHIP_REQUEST",
+		"OPEN_INVITATION"
+    ]
+}

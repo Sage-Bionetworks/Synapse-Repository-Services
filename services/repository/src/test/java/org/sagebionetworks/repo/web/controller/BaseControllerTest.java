@@ -6,7 +6,6 @@ import java.sql.BatchUpdateException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.http.conn.ConnectTimeoutException;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.utils.HttpClientHelperException;

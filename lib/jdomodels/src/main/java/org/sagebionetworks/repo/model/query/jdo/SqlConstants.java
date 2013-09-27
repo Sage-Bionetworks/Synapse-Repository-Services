@@ -365,6 +365,39 @@ public class SqlConstants {
 	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
 	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
 
+	// The Team table
+	public static final String TABLE_TEAM				= "TEAM";
+	public static final String COL_TEAM_ID				= "ID";
+	public static final String COL_TEAM_ETAG			= "ETAG";
+	public static final String COL_TEAM_PROPERTIES		= "PROPERTIES";
+	public static final String DDL_FILE_TEAM = "schema/Team-ddl.sql";
+
+	
+	// MembershipInvitation Table
+	public static final String TABLE_MEMBERSHIP_INVITATION_SUBMISSION	= "MEMBERSHIP_INVITATION_SUBMISSION";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_ID				= "ID";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_ETAG			= "ETAG";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID			= "TEAM_ID";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES		= "PROPERTIES";
+	public static final String DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION	= "schema/MembershipInvitationSubmission-ddl.sql";
+	
+	// Membership-Invitee Table
+	public static final String TABLE_MEMBERSHIP_INVITEE = "MEMBERSHIP_INVITEE";
+	public static final String COL_MEMBERSHIP_INVITEE_INVITATION_ID		= "MEMBERSHIP_INVITATION_ID";
+	public static final String COL_MEMBERSHIP_INVITEE_INVITEE_ID		= "INVITEE_ID";
+	public static final String DDL_FILE_MEMBERSHIP_INVITEE_SUBMISSION	= "schema/Membership-Invitee-ddl.sql";
+	
+	// MembershipRequest Table
+	public static final String TABLE_MEMBERSHIP_REQUEST_SUBMISSION	= "MEMBERSHIP_REQUEST_SUBMISSION";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_ID				= "ID";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_ETAG			= "ETAG";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID		= "TEAM_ID";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID		= "USER_ID";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
+	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,7 +35,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -43,24 +43,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AccessRequirementManagerImplAutoWiredTest {
-	@Autowired
-	public NodeManager nodeManager;
-	@Autowired
-	public UserProvider testUserProvider;
 	
 	@Autowired
-	public AccessRequirementManager accessRequirementManager;
+	private UserManager userManager;
 	
 	@Autowired
-	EvaluationManager evaluationManager;
+	private NodeManager nodeManager;
 	
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;
+	private AccessRequirementManager accessRequirementManager;
 	
 	@Autowired
-	EvaluationPermissionsManager evaluationPermissionsManager;
+	private EvaluationManager evaluationManager;
+	
+	@Autowired
+	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired
+	private EvaluationPermissionsManager evaluationPermissionsManager;
 	
 	private UserInfo adminUserInfo;
+	private UserInfo testUserInfo;
 	
 	private static final String TERMS_OF_USE = "my dog has fleas";
 
@@ -77,7 +80,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 	@Before
 	public void before() throws Exception {
-		adminUserInfo = testUserProvider.getTestAdminUserInfo();
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		
@@ -95,7 +99,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
-		String testUserId = testUserProvider.getTestUserInfo().getIndividualGroup().getId();
+		String testUserId = testUserInfo.getIndividualGroup().getId();
 		ra.setPrincipalId(Long.parseLong(testUserId));
 		Set<ACCESS_TYPE> atSet = new HashSet<ACCESS_TYPE>();
 		atSet.add(ACCESS_TYPE.CREATE);
@@ -103,8 +107,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		raSet.add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 
-		evaluation = newEvaluation("test-name", testUserProvider.getTestUserInfo(), rootId);
-		adminEvaluation = newEvaluation("admin-name", testUserProvider.getTestAdminUserInfo(), rootId);
+		evaluation = newEvaluation("test-name", testUserInfo, rootId);
+		adminEvaluation = newEvaluation("admin-name", adminUserInfo, rootId);
 
 		rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
@@ -117,7 +121,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setParentId(rootId2);
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
-		evaluation2 = newEvaluation("test-name2", testUserProvider.getTestAdminUserInfo(), rootId2);
+		evaluation2 = newEvaluation("test-name2", adminUserInfo, rootId2);
 	}
 	
 	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {
@@ -149,19 +153,19 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		
 		if (evaluation!=null) {
 			try {
-				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation.getId());
+				evaluationManager.deleteEvaluation(adminUserInfo, evaluation.getId());
 				evaluation=null;
 			} catch (Exception e) {}
 		}
 		if (evaluation2!=null) {
 			try {
-				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), evaluation2.getId());
+				evaluationManager.deleteEvaluation(adminUserInfo, evaluation2.getId());
 				evaluation2=null;
 			} catch (Exception e) {}
 		}
 		if (adminEvaluation!=null) {
 			try {
-				evaluationManager.deleteEvaluation(testUserProvider.getTestAdminUserInfo(), adminEvaluation.getId());
+				evaluationManager.deleteEvaluation(adminUserInfo, adminEvaluation.getId());
 				adminEvaluation=null;
 			} catch (Exception e) {}
 		}
@@ -251,14 +255,14 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testEntityCreateAccessRequirementForbidden() throws Exception {
 		ar = newEntityAccessRequirement(entityId2);
-		ar = accessRequirementManager.createAccessRequirement(testUserProvider.getTestUserInfo(), ar);
+		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testEvaluationCreateAccessRequirementForbidden() throws Exception {
 		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
 		// this user will not have permission to add a restriction to the evaluation
-		ar = accessRequirementManager.createAccessRequirement(testUserProvider.getTestUserInfo(), ar);
+		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
 	}
 	
 	@Test
@@ -291,7 +295,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testGetUnmetEntityAccessRequirements() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		UserInfo otherUserInfo = testUserProvider.getTestUserInfo();
+		UserInfo otherUserInfo = testUserInfo;
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
@@ -304,7 +308,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
 		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		UserInfo otherUserInfo = testUserProvider.getTestUserInfo();
+		UserInfo otherUserInfo = testUserInfo;
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(adminEvaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
@@ -330,11 +334,11 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testGetUnmetEvaluationAccessRequirementsOwner() throws Exception {
 		ar = newEvaluationAccessRequirement(evaluation.getId());
-		ar = accessRequirementManager.createAccessRequirement(testUserProvider.getTestUserInfo(), ar);
+		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(evaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserProvider.getTestUserInfo(), rod);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(testUserInfo, rod);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -357,7 +361,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testDeleteEvaluationAccessRequirementForbidden() throws Exception {
 		ar = newEvaluationAccessRequirement(adminEvaluation.getId());
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		accessRequirementManager.deleteAccessRequirement(testUserProvider.getTestUserInfo(), ar.getId().toString());
+		accessRequirementManager.deleteAccessRequirement(testUserInfo, ar.getId().toString());
 	}
 	
 
