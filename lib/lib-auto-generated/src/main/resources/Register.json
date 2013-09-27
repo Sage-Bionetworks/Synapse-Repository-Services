@@ -198,6 +198,19 @@
             "name":"file",
             "entityType":"org.sagebionetworks.repo.model.FileEntity",
             "defaultParentPath":"/root"
+        },
+		{
+            "validParentTypes":[
+            	"org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
+            ],
+            "aliases":[
+                "table"
+            ],
+            "name":"table",
+            "entityType":"org.sagebionetworks.repo.model.table.TableEntity",
+            "defaultParentPath":"/root"
         }
     ]
 }

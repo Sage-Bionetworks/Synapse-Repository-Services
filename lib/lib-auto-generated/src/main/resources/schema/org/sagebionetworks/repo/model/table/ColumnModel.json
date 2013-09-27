@@ -1,0 +1,35 @@
+{
+    "title":"Column Model",
+    "description":"A column model contains the metadata of a single column of a TableEntity",
+    "properties":{
+        "id":{
+            "type":"string",
+            "description":"The immutable ID issued to new columns"
+        },
+        "name":{
+            "type":"string",
+            "description":"The display name of the column"
+        },
+        "description":{
+            "type":"string",
+            "description":"The description of this column"
+        },
+        "defaultValue":{
+            "type":"string",
+            "description":"The default value of this column."
+        },
+        "columnType": {
+			"type": "string",
+			"description": "The type of the column must be from this enumeration.",
+			"name": "ColumnType",
+			"id": "org.sagebionetworks.repo.model.table.ColumnType",
+			"enum": [
+				"STRING",
+				"DOUBLE",
+				"LONG",
+				"BOOLEAN",
+				"FILEHANDLEID"
+			]
+		},
+    }
+}
