@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -23,12 +21,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
  */
 class NodeUtils {
 	
-	// take backupnode and backuprevision, map to dbonode and dborevision
 
-	public static void updateFromDto(NodeBackup nbDto, NodeRevisionBackup revDto, DBONode jdo, DBORevision rev) throws DatastoreException, InvalidModelException {
-		throw new RuntimeException("Not yet implemented");
-	}
-	
 		
 	/**
 	 * Used to update an existing object

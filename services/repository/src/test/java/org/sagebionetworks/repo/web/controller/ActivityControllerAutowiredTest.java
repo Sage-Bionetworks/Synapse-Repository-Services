@@ -15,8 +15,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,8 +57,6 @@ public class ActivityControllerAutowiredTest {
 	
 	@Autowired
 	private UserManager userManager;
-
-	static private Log log = LogFactory.getLog(ActivityControllerAutowiredTest.class);
 
 	private static HttpServlet dispatchServlet;
 	
@@ -147,7 +143,7 @@ public class ActivityControllerAutowiredTest {
 		try {
 			ServletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
 			fail("Activity should have been deleted");
-		} catch (ServletTestHelperException e) {
+		} catch (NotFoundException e) {
 			// good.
 		}
 	}

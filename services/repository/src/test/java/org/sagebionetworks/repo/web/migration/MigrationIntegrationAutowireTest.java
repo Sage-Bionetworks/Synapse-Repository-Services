@@ -247,8 +247,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	private void createEvaluation() throws JSONObjectAdapterException,
-			IOException, NotFoundException, ServletException {
+	private void createEvaluation() throws Exception {
 		// initialize Evaluations
 		evaluation = new Evaluation();
 		evaluation.setName("name");
@@ -282,7 +281,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	public void createAccessApproval() throws ServletException, IOException {
+	public void createAccessApproval() throws Exception {
 		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminId);
 		accessApproval = ServletTestHelper.createAccessApproval(
 				DispatchServletSingleton.getInstance(), accessApproval, userName, new HashMap<String, String>());
@@ -498,7 +497,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		// need another valid user group
 		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
-		long pgLong = Long.parseLong(individUser.getId());
+		Long.parseLong(individUser.getId());
 		
 		membershipInvtnSubmissionDAO.create(mis);
 	}
@@ -655,7 +654,7 @@ public class MigrationIntegrationAutowireTest {
 		return getFileNameFromUrl(status.getBackupUrl());
 	}
 	
-	private void restoreFromBackup(MigrationType type, String fileName) throws ServletException, IOException, JSONObjectAdapterException, InterruptedException{
+	private void restoreFromBackup(MigrationType type, String fileName) throws Exception{
 		RestoreSubmission sub = new RestoreSubmission();
 		sub.setFileName(fileName);
 		BackupRestoreStatus status = entityServletHelper.startRestore(userName, type, sub);
@@ -670,7 +669,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void deleteAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
+	private void deleteAllOfType(MigrationType type) throws Exception{
 		IdList idList = getIdListOfAllOfType(type);
 		if(idList == null) return;
 		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
@@ -685,7 +684,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	private IdList getIdListOfAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
+	private IdList getIdListOfAllOfType(MigrationType type) throws Exception{
 		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
 		if(list.getTotalCount() < 1) return null;
 		// Create the backup list
@@ -706,7 +705,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	private void waitForDaemon(BackupRestoreStatus status) throws InterruptedException, ServletException, IOException, JSONObjectAdapterException{
+	private void waitForDaemon(BackupRestoreStatus status) throws Exception{
 		long start = System.currentTimeMillis();
 		while(DaemonStatus.COMPLETED != status.getStatus()){
 			assertFalse("Daemon failed "+status.getErrorDetails(), DaemonStatus.FAILED == status.getStatus());

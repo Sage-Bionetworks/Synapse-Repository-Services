@@ -36,12 +36,10 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -70,9 +68,6 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	NodeDAO nodeDao;
-
-	@Autowired
-	NodeBackupDAO nodeBackupDao;
 
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDAO;
@@ -1052,96 +1047,6 @@ public class NodeDAOImplTest {
 		assertEquals(childIds, fromDao);
 	}
 	
-	
-	@Test
-	public void testUpdateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		assertNotNull(id);
-		node = nodeDao.getNode(id);
-		Long v1Number = node.getVersionNumber();
-		// Get the current rev
-		NodeRevisionBackup currentRev = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		assertNotNull(currentRev);
-		// Add some annotations
-		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
-		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
-		currentRev.setLabel("2.0");
-		nodeBackupDao.updateRevisionFromBackup(currentRev);
-		
-		// Get it back
-		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		assertNotNull(clone);
-		assertEquals("newValue", clone.getNamedAnnotations().getAdditionalAnnotations().getSingleValue(keyOnFirstVersion));
-		assertEquals("2.0", clone.getLabel());
-		
-		// now create a new version
-		node = nodeDao.getNode(id);
-		node.setVersionLabel("3.0");
-		nodeDao.createNewVersion(node);
-		node = nodeDao.getNode(id);
-		// Get the latest
-		clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		// Clear the string annotations.
-		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, List<String>>());
-		nodeBackupDao.updateRevisionFromBackup(clone);
-	
-		// Finally, update the first version again, adding back the string property
-		// but this time since this is not the current version it should not be query-able
-		clone = nodeBackupDao.getNodeRevision(id, v1Number);
-		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
-		nodeBackupDao.updateRevisionFromBackup(clone);
-	}
-	
-	@Test
-	public void testCreateRevision() throws Exception {
-		Long currentVersionNumver = new Long(8);
-		Node node = privateCreateNew("parent");
-		// Start with a node already on an advanced version
-		node.setVersionNumber(currentVersionNumver);
-		node.setVersionComment("Current comment");
-		node.setVersionLabel("8.0");
-		node.setNodeType(EntityType.project.name());
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		assertNotNull(id);
-		node = nodeDao.getNode(id);
-		assertEquals("8.0", node.getVersionLabel());
-		assertEquals(currentVersionNumver, node.getVersionNumber());
-		
-		// now create a new version number
-		NodeRevisionBackup newRev = new NodeRevisionBackup();
-		Annotations annos = new Annotations();
-		annos.addAnnotation("stringKey", "StringValue");
-		annos.addAnnotation("dateKey", new Date(1000));
-		annos.addAnnotation("longKey", new Long(123));
-		annos.addAnnotation("doubleKey", new Double(4.5));
-		NamedAnnotations nammed = new NamedAnnotations();
-		nammed.put("newNamed", annos);
-		String keyOnNewVersion = "NodeDAOImplTest.testCreateRevision.OnNew";
-		annos.addAnnotation(keyOnNewVersion, "value on new");
-		newRev.setNamedAnnotations(nammed);
-		Long newVersionNumber = new Long(1);
-		newRev.setRevisionNumber(newVersionNumber);
-		newRev.setNodeId(id);
-		newRev.setLabel("1.0");
-		newRev.setModifiedByPrincipalId(creatorUserGroupId);
-		newRev.setModifiedOn(new Date());
-		newRev.setReferences(new HashMap<String, Set<Reference>>());
-
-		// Now create the version
-		nodeBackupDao.createNewRevisionFromBackup(newRev);
-		
-		// Get the older version
-		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, newVersionNumber);
-		assertNotNull(clone);
-		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
-		assertEquals("1.0", clone.getLabel());
-		assertEquals(newRev, clone);
-	}
-	
 	@Test (expected=NotFoundException.class)
 	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
 		// This should throw a not found exception.
@@ -1619,52 +1524,6 @@ public class NodeDAOImplTest {
 		assertNotNull(restored);
 		assertEquals(id, restored.getId());
 		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
-		assertEquals(testActivity.getId(), restored.getActivityId());
-	}
-	
-	@Test
-	public void testUpdateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
-		// This will be our backup node.
-		Node backup = privateCreateNew("backMeUp2");
-		backup.setNodeType(EntityType.project.name());		
-		String id = nodeDao.createNew(backup);
-		toDelete.add(id);
-		assertNotNull(id);
-		// We will use this to do the backup.
-		backup = nodeDao.getNode(id);
-		// Change the etag (see: PLFM-845)
-		String newEtag = "199";
-		backup.setETag(newEtag);
-		String newDescription = "New description";
-		
-		backup.setDescription(newDescription);		
-		// Now create the node from the backup
-		nodeDao.updateNodeFromBackup(backup);
-		// The revision should have been deleted.
-		assertFalse(nodeDao.doesNodeRevisionExist(id, backup.getVersionNumber()));
-		// Get a fresh copy
-		try{
-			Node restored = nodeDao.getNode(id);
-			fail("All revision for this node should have been deleted so this should have failed.");
-		}catch (NotFoundException e){
-			// This is expected since updating from a backup replaces all revisions.
-		}
-		// Now create a new revision from backup
-		NodeRevisionBackup revBackup  = new NodeRevisionBackup();
-		revBackup.setNodeId(id);
-		revBackup.setModifiedByPrincipalId(creatorUserGroupId);
-		revBackup.setModifiedOn(new Date(System.currentTimeMillis()));
-		revBackup.setRevisionNumber(1l);
-		revBackup.setLabel("v1");
-		revBackup.setComment("No Comment");
-		revBackup.setActivityId(testActivity.getId()); 
-		((NodeBackupDAO)nodeDao).createNewRevisionFromBackup(revBackup);
-
-		Node restored = nodeDao.getNode(id);
-		assertNotNull(restored);
-		assertEquals(id, restored.getId());
-		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
-		assertEquals(newDescription, restored.getDescription());
 		assertEquals(testActivity.getId(), restored.getActivityId());
 	}
 	
