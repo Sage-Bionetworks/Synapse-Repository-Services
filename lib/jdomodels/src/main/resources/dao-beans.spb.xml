@@ -41,8 +41,6 @@
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 
-	<alias name="nodeDao" alias="nodeBackupDao" />
-
 	<bean id="activityDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"
 		depends-on="idGenerator" />

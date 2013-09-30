@@ -30,9 +30,10 @@ public class ConceptControllerTest {
 	static final String MOTILE_CELL_CONCEPT_ID = "11328";
 	static final String ADRENAL_MEDULLA_CELL_CONCEPT_ID = "398";
 	final MemoryMXBean memBean = ManagementFactory.getMemoryMXBean(); 
-	private static final int MB_PER_BYTE = 1024*1024;;
+	private static final int MB_PER_BYTE = 1024*1024;
+	
 	@Autowired
-	ServletTestHelper testHelper;
+	private ServletTestHelper testHelper;
 	
 	// Start memory
 	long startMemoryMB;
@@ -50,9 +51,9 @@ public class ConceptControllerTest {
 	}
 	
 	@Test
-	public void testGetSummaryNoFilter() throws ServletException, IOException{
+	public void testGetSummaryNoFilter() throws Exception {
 		String parentUrl = "http://synapse.sagebase.org/ontology#"+MOTILE_CELL_CONCEPT_ID;
-		ConceptResponsePage response = testHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 10, 0);
+		ConceptResponsePage response = ServletTestHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 10, 0);
 		assertNotNull(response);
 		assertEquals(parentUrl, response.getParentConceptUri());
 		List<Concept> children = response.getChildren();
@@ -62,7 +63,7 @@ public class ConceptControllerTest {
 		
 		// Test paging
 		Concept fourthConcept = children.get(3);
-		response = testHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 1, 3);
+		response = ServletTestHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 1, 3);
 		assertNotNull(response);
 		assertEquals(parentUrl, response.getParentConceptUri());
 		children = response.getChildren();
@@ -75,11 +76,11 @@ public class ConceptControllerTest {
 	
 	
 	@Test
-	public void testGetSummaryWithFilter() throws ServletException, IOException{
+	public void testGetSummaryWithFilter() throws Exception {
 		String parentId = "8406";
 		String parentUrl = "http://synapse.sagebase.org/ontology#"+parentId;
 		String prefix = "adrenal medulla cell";
-		ConceptResponsePage response = testHelper.getConceptsForParent(parentId, prefix, Integer.MAX_VALUE, 0);
+		ConceptResponsePage response = ServletTestHelper.getConceptsForParent(parentId, prefix, Integer.MAX_VALUE, 0);
 		assertNotNull(response);
 		assertEquals(parentUrl, response.getParentConceptUri());
 		assertEquals(parentUrl, response.getParentConceptUri());
@@ -91,9 +92,9 @@ public class ConceptControllerTest {
 	}
 	
 	@Test
-	public void testGetConcept() throws ServletException, IOException{
+	public void testGetConcept() throws Exception {
 		String conceptUrl = "http://synapse.sagebase.org/ontology#"+MOTILE_CELL_CONCEPT_ID;
-		Concept response = testHelper.getConcept(MOTILE_CELL_CONCEPT_ID);
+		Concept response = ServletTestHelper.getConcept(MOTILE_CELL_CONCEPT_ID);
 		assertNotNull(response);
 		assertEquals(conceptUrl, response.getUri());
 	}
@@ -106,10 +107,10 @@ public class ConceptControllerTest {
 	 */
 	@Ignore // This does not seem to work as a filter.
 	@Test
-	public void testGetConceptJSONP() throws ServletException, IOException, JSONObjectAdapterException{
+	public void testGetConceptJSONP() throws Exception , JSONObjectAdapterException{
 		String conceptUrl = "http://synapse.sagebase.org/ontology#"+ADRENAL_MEDULLA_CELL_CONCEPT_ID;
 		String callbackName = "exampleCallback";
-		String response = testHelper.getConceptAsJSONP(ADRENAL_MEDULLA_CELL_CONCEPT_ID, callbackName);
+		String response = ServletTestHelper.getConceptAsJSONP(ADRENAL_MEDULLA_CELL_CONCEPT_ID, callbackName);
 		assertNotNull(response);
 		System.out.println(response);
 		String expectedPrefix = callbackName+"(";

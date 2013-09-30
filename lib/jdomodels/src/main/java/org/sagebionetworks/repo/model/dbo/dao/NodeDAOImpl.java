@@ -58,11 +58,10 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TagMessenger;
@@ -76,7 +75,6 @@ import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +92,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
+public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -1112,48 +1110,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			list.add(KeyFactory.keyToString(childId));
 		}
 		return list;
-	}
-
-	@Override
-	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
-		if(nodeId == null) throw new IllegalArgumentException("nodeId cannot be null");
-		if(revisionId == null) throw new IllegalArgumentException("revisionId cannot be null");
-		DBORevision rev = getNodeRevisionById(KeyFactory.stringToKey(nodeId), revisionId);
-		return JDORevisionUtils.createDtoFromJdo(rev);
-	}
-	
-	@Override
-	public long getTotalNodeCount() {
-		return simpleJdbcTemplate.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
-	}
-	
-	/**
-	 * Is the passed revision valid?
-	 * @param rev
-	 */
-	public static void validateNodeRevision(NodeRevisionBackup rev) {
-		if(rev == null) throw new IllegalArgumentException("NodeRevisionBackup cannot be null");
-		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevisionBackup.nodeId cannot be null");
-		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevisionBackup.revisionNumber cannot be null");
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
-		validateNodeRevision(rev);
-		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
-		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
-		// Save the new revision
-		dboBasicDao.update(dboRev);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
-		validateNodeRevision(rev);
-		DBORevision dboRev = new DBORevision();
-		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
-		dboBasicDao.createNew(dboRev);
 	}
 
 	@Override

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,7 +78,7 @@ public class AdministrationControllerTest {
 	}
 	
 	@Test
-	public void testGetStackStatus() throws ServletException, IOException{
+	public void testGetStackStatus() throws Exception {
 		// Make sure we can get the stack status
 		StackStatus status = ServletTestHelper.getStackStatus(dispatchServlet);
 		assertNotNull(status);
@@ -87,7 +86,7 @@ public class AdministrationControllerTest {
 	}
 	
 	@Test
-	public void testUpdateStatus() throws ServletException, IOException{
+	public void testUpdateStatus() throws Exception {
 		// Make sure we can get the stack status
 		StackStatus status = ServletTestHelper.getStackStatus(dispatchServlet);
 		assertNotNull(status);
@@ -99,7 +98,7 @@ public class AdministrationControllerTest {
 	}
 	
 	@Test
-	public void testGetAndUpdateStatusWhenDown() throws ServletException, IOException{
+	public void testGetAndUpdateStatusWhenDown() throws Exception {
 		// Make sure we can get the status when down.
 		StackStatus setDown = new StackStatus();
 		setDown.setStatus(StatusEnum.DOWN);

@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.URL;
 import java.util.Date;
@@ -16,6 +20,7 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -25,9 +30,9 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -234,17 +239,17 @@ public class WikiControllerTest {
 		System.out.println(presigned);
 		// Now delete the wiki
 		entityServletHelper.deleteWikiPage(key, userName);
-		try{
+		try {
 			entityServletHelper.getWikiPage(key, userName);
 			fail("The wiki should have been deleted");
-		}catch(ServletTestHelperException e){
+		} catch (NotFoundException e) {
 			// this is expected
 		}
 		// the child should be delete as well
-		try{
+		try {
 			entityServletHelper.getWikiPage(childKey, userName);
 			fail("The wiki should have been deleted");
-		}catch(ServletTestHelperException e){
+		} catch (NotFoundException e) {
 			// this is expected
 		}
 	}

@@ -6,14 +6,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -39,7 +36,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -48,7 +44,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -171,7 +166,7 @@ public class EvaluationControllerAutowiredTest {
 	}
 	
 	@Test
-	public void testEvaluationRoundTrip() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
+	public void testEvaluationRoundTrip() throws Exception {
 		long initialCount = entityServletHelper.getEvaluationCount(ownerName);
 		
 		// Create
@@ -235,7 +230,7 @@ public class EvaluationControllerAutowiredTest {
 	}
 	
 	@Test
-	public void testParticipantRoundTrip() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
+	public void testParticipantRoundTrip() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
@@ -295,7 +290,7 @@ public class EvaluationControllerAutowiredTest {
 	}
 	
 	@Test
-	public void testSubmissionRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, IOException, ServletException, InterruptedException {
+	public void testSubmissionRoundTrip() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
@@ -367,7 +362,7 @@ public class EvaluationControllerAutowiredTest {
 
 	
 	@Test(expected=UnauthorizedException.class)
-	public void testSubmissionUnauthorized() throws NotFoundException, DatastoreException, JSONObjectAdapterException, IOException, ServletException {		
+	public void testSubmissionUnauthorized() throws Exception {		
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
 		evaluationsToDelete.add(eval1.getId());
@@ -386,7 +381,7 @@ public class EvaluationControllerAutowiredTest {
 	}
 	
 	@Test
-	public void testPaginated() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
+	public void testPaginated() throws Exception {
 		// create objects
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
@@ -530,7 +525,7 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(uepReturned);
 	}
 
-	private String createNode(String name, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException {
+	private String createNode(String name, UserInfo userInfo) throws Exception {
 		Node toCreate = new Node();
 		toCreate.setName(name);
 		String ownerId = userInfo.getIndividualGroup().getId();
