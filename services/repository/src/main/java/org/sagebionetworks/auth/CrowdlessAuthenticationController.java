@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class CrowdlessAuthenticationController extends BaseController {
 	
 	@Autowired
-	AuthenticationService authenticationService;
+	private AuthenticationService authenticationService;
 	
 	/**
 	 * This is a defines a 'back door' used for integration testing the authentication servlet.

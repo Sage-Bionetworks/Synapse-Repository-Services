@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -145,11 +146,16 @@ public class MigrationIntegrationAutowireTest {
 	private GroupMembersDAO groupMembersDAO;
 	
 	@Autowired
-	TeamDAO teamDAO;
+	private TeamDAO teamDAO;
+
 	@Autowired
-	MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	private AuthenticationDAO authDAO;
+
 	@Autowired
-	MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+
+	@Autowired
+	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -217,6 +223,7 @@ public class MigrationIntegrationAutowireTest {
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
+		createCredentials();
 	}
 
 
@@ -468,6 +475,13 @@ public class MigrationIntegrationAutowireTest {
 		// Made by the bootstrapper
 		tempUserAndGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
 		return parentGroup;
+	}
+	
+	private void createCredentials() throws Exception {
+		// Use a user created for another migration task
+		assertTrue(tempUserAndGroups.size() > 0);
+		authDAO.create(tempUserAndGroups.get(0).getId(), "ThisIsMySuperSecurePassword");
+		authDAO.changeSecretKey(tempUserAndGroups.get(0).getId());
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {

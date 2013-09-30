@@ -49,5 +49,10 @@ public interface AuthenticationDAO {
 	 * Generates a new secret key for the user
 	 */
 	public void changeSecretKey(String id);
+	
+	/**
+	 * Replaces the user's secret key with the specified one
+	 */
+	public void changeSecretKey(String id, String secretKey);
 
 }

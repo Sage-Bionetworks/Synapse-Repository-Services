@@ -223,10 +223,17 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
+	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void changeSecretKey(String id) {
+		changeSecretKey(id, HMACUtils.newHMACSHA1Key());
+	}
+	
+	@Override
+	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	public void changeSecretKey(String id, String secretKey) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		param.addValue(TOKEN_PARAM_NAME, HMACUtils.newHMACSHA1Key());
+		param.addValue(TOKEN_PARAM_NAME, secretKey);
 		simpleJdbcTemplate.update(UPDATE_SECRET_KEY, param);
 	}
 	

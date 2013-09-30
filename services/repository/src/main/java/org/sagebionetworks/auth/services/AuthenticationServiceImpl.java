@@ -18,13 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 
 	@Autowired
-	UserProfileManager userProfileManager;
+	private UserProfileManager userProfileManager;
 	
 	@Autowired
-	AuthenticationManager authManager;
+	private AuthenticationManager authManager;
+	
+	public AuthenticationServiceImpl() {}
 	
 	public AuthenticationServiceImpl(UserManager userManager, UserProfileManager userProfileManager, AuthenticationManager authManager) {
 		this.userManager = userManager;

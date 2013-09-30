@@ -101,7 +101,7 @@ public class AuthenticationFilter implements Filter {
 			username = AuthorizationConstants.ANONYMOUS_USER_ID;
 		}
 
-		// pass along, including the user id
+		// Pass along, including the user ID
 		@SuppressWarnings("unchecked")
 		Map<String,String[]> modParams = new HashMap<String,String[]>(req.getParameterMap());
 		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[]{username});
@@ -115,7 +115,7 @@ public class AuthenticationFilter implements Filter {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
 		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
 		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
-		return username!=null && date!=null && signature!=null;
+		return username != null && date != null && signature != null;
 	}
 	
 	/**
@@ -125,19 +125,15 @@ public class AuthenticationFilter implements Filter {
 	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws AuthenticationException {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
 		String uri = request.getRequestURI();
-//		StringBuffer sb = request.getRequestURL();
-//		String url = sb.toString();
 		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
 		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
-		
 
-    	// compute the difference between what time this machine thinks it is (in UTC)
-    	// vs. the timestamp in the header of the request (also in UTC)
-
+    	// Compute the difference between what time this machine thinks it is (in UTC)
+    	//   vs. the timestamp in the header of the request (also in UTC)
     	DateTime timeStamp = new DateTime(date); 
     	int timeDiff = Minutes.minutesBetween(new DateTime(), timeStamp).getMinutes();
 
-    	if (Math.abs(timeDiff)>MAX_TIMESTAMP_DIFF_MIN) {
+    	if (Math.abs(timeDiff) > MAX_TIMESTAMP_DIFF_MIN) {
     		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
     				"Timestamp in request, "+date+", is out of date.", null);
     	}

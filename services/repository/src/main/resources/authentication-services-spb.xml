@@ -15,6 +15,6 @@
 		
 	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
 	
-	<bean id="authFilter" class="org.sagebionetworks.auth.filter.AuthenticationFilter" />
+	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />
 	
 </beans>
