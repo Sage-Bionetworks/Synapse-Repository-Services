@@ -1,4 +1,4 @@
-package org.sagebionetworks.crowd.workers;
+package org.sagebionetworks.auth.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.auth.services.CrowdSynchronizerService;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -32,7 +33,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 
-public class CrowdGroupSynchronizerTest {
+public class CrowdSynchronizerServiceTest {
 
 	@Autowired
 	private GroupMembersDAO crowdGroupMembersDAO;
@@ -44,9 +45,9 @@ public class CrowdGroupSynchronizerTest {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	private CrowdGroupSynchronizer crowdGroupSynchronizer;
+	private CrowdSynchronizerService crowdSynchronizer;
 	
-	private static final Logger log = LogManager.getLogger(CrowdGroupSynchronizerTest.class);
+	private static final Logger log = LogManager.getLogger(CrowdSynchronizerServiceTest.class);
 	
 	Set<String> originalGroupsInRDS;
 	List<String> groupsToDeleteFromRDS;
@@ -195,9 +196,11 @@ public class CrowdGroupSynchronizerTest {
 		createCrowdTestGroup(VIPGroup);
 		initCrowdGroupMember(elGenericVIP);
 		initCrowdGroupMember(leGenericVIP);
+		initRDSGroupMember(elGenericVIP);
+		initRDSGroupMember(leGenericVIP);
 		CrowdAuthUtil.addUserToGroup(VIPGroup, elGenericVIP);
 
-		crowdGroupSynchronizer.run();
+		crowdSynchronizer.migrateAll();
 		
 		// Verify that everything was transferred
 		assertTrue(userGroupDAO.doesPrincipalExist(VIPGroup));
@@ -228,7 +231,7 @@ public class CrowdGroupSynchronizerTest {
 		untouchable = userGroupDAO.get(untouchable.getId());
 		untouchableMember = userGroupDAO.get(untouchableMember.getId());
 		
-		crowdGroupSynchronizer.run();
+		crowdSynchronizer.migrateAll();
 		
 		assertEquals("Etag should be the same", untouchable.getEtag(), userGroupDAO.get(untouchable.getId()).getEtag());
 		assertEquals("Etag should be the same", untouchableMember.getEtag(), userGroupDAO.get(untouchableMember.getId()).getEtag());
@@ -250,7 +253,7 @@ public class CrowdGroupSynchronizerTest {
 		initCrowdGroupMember(evilMember);
 		CrowdAuthUtil.addUserToGroup(stompy, evilMember);
 
-		crowdGroupSynchronizer.run();
+		crowdSynchronizer.migrateAll();
 
 		assertTrue(userGroupDAO.doesPrincipalExist(evilMember));
 		groupsToDeleteFromRDS.add(userGroupDAO.findGroup(evilMember, true).getId());
