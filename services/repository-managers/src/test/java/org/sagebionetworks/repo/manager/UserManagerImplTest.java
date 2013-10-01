@@ -11,7 +11,6 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -30,10 +29,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class UserManagerImplTest {
 	
 	@Autowired
-	private UserManager userManager;
+	UserManager userManager;
 	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
+	UserGroupDAO userGroupDAO;
 	
 	private List<String> groupsToDelete = null;
 	
@@ -114,11 +113,6 @@ public class UserManagerImplTest {
 		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 	}
 	
-	/**
-	 * This test is extremely troublesome without the TestUserDAO in place
-	 * It can be reactivated once Crowd is removed
-	 */
-	@Ignore 
 	@Test
 	public void testUpdateEmail() throws Exception {
 		String oldEmail = "old-change-email-test-user@sagebase.org";
@@ -127,12 +121,11 @@ public class UserManagerImplTest {
 		groupsToDelete.add(newEmail);
 		
 		// Create a user to change the email of
-		userManager.createPrincipal(oldEmail, true);
-		NewUser user = new NewUser();
-		user.setAcceptsTermsOfUse(true);
-		user.setEmail(oldEmail);
-		user.setPassword("foofoobarbar");
-		// userManager.createUser(user);
+		NewUser oldie = new NewUser();
+		oldie.setAcceptsTermsOfUse(true);
+		oldie.setEmail(oldEmail);
+		oldie.setPassword("foobar");
+		userManager.createUser(oldie);
 		
 		// Make sure the new user exists
 		UserInfo userInfo = userManager.getUserInfo(oldEmail);
