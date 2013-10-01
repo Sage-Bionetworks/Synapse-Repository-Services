@@ -3792,8 +3792,8 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 	@Override
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(String projectId, int offset, int limit) throws SynapseException {
-		String url = EVALUATION_URI_PATH + "/project/" + projectId + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id, int offset, int limit) throws SynapseException {
+		String url = ENTITY_URI_PATH + "/" + id + EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);

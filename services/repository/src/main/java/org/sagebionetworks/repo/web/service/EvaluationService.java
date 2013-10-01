@@ -48,7 +48,7 @@ public interface EvaluationService {
 	/**
 	 * Gets all Synapse Evaluations tied to the given Project
 	 */
-	public PaginatedResults<Evaluation> getEvaluationByContentSource(String userId, String projectId, long limit, long offset, HttpServletRequest request)
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String userId, String id, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException;
 
 	/**
