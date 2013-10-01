@@ -47,22 +47,22 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	}
 
 	@Override
-	public StorageUsageSummaryList getUsageForUser(String currUserName, String userName,
+	public StorageUsageSummaryList getUsageForUser(String currUserName, String userId,
 			List<StorageUsageDimension> dimensionList)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 
 		if (currUserName == null || currUserName.isEmpty()) {
 			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
-		if (userName == null || userName.isEmpty()) {
-			throw new IllegalArgumentException("User name cannot be null or empty.");
+		if (userId == null || userId.isEmpty()) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
+		String userName = userManager.getGroupName(userId);
 		checkAuthorization(isAdmin, currUserName, userName);
 		validateDimensionList(dimensionList);
 
-		String userId = getUserId(userName);
 		StorageUsageSummaryList results = storageUsageManager.getUsageForUser(userId, dimensionList);
 		return results;
 	}

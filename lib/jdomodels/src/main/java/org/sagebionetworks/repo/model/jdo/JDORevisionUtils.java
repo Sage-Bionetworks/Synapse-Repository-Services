@@ -1,11 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Date;
 
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 
 public class JDORevisionUtils {
@@ -38,64 +34,5 @@ public class JDORevisionUtils {
 		return copy;
 	}
 	
-	/**
-	 * Create a DTO from the JDO.
-	 * @param jdo
-	 * @return
-	 * @throws DatastoreException 
-	 * @throws IOException 
-	 */
-	public static NodeRevisionBackup createDtoFromJdo(DBORevision jdo) throws DatastoreException{
-		NodeRevisionBackup rev = new NodeRevisionBackup();
-		if(jdo.getOwner() != null){
-			rev.setNodeId(KeyFactory.keyToString(jdo.getOwner()));
-		}
-		rev.setRevisionNumber(jdo.getRevisionNumber());
-		rev.setComment(jdo.getComment());
-		rev.setLabel(jdo.getLabel());
-		rev.setModifiedByPrincipalId(jdo.getModifiedBy());
-		rev.setModifiedOn(new Date(jdo.getModifiedOn()));
-		if(jdo.getActivityId() != null) {
-			rev.setActivityId(jdo.getActivityId().toString());
-		}
-		try {
-			rev.setNamedAnnotations(JDOSecondaryPropertyUtils.decompressedAnnotations(jdo.getAnnotations()));
-			rev.setReferences(JDOSecondaryPropertyUtils.decompressedReferences(jdo.getReferences()));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-		if(jdo.getFileHandleId() != null){
-			rev.setDataFileHandleId(jdo.getFileHandleId().toString());
-		}
-		return rev;
-	}
-	/**
-	 * Update the JDO object using the DTO.
-	 * @param dto
-	 * @param jdo
-	 * @throws IOException 
-	 */
-	public static void updateJdoFromDto(NodeRevisionBackup dto, DBORevision jdo) throws DatastoreException{
-		jdo.setOwner(KeyFactory.stringToKey(dto.getNodeId()));
-		jdo.setComment(dto.getComment());
-		jdo.setLabel(dto.getLabel());
-		jdo.setModifiedBy(dto.getModifiedByPrincipalId());
-		if(dto.getModifiedOn() != null){
-			jdo.setModifiedOn(dto.getModifiedOn().getTime());
-		}
-		jdo.setRevisionNumber(dto.getRevisionNumber());
-		if(dto.getActivityId() != null) {
-			jdo.setActivityId(Long.parseLong(dto.getActivityId()));
-		}
-		try {
-			jdo.setAnnotations(JDOSecondaryPropertyUtils.compressAnnotations(dto.getNamedAnnotations()));
-			jdo.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-		if(dto.getDataFileHandleId() != null){
-			jdo.setFileHandleId(Long.parseLong(dto.getDataFileHandleId()));
-		}
-	}
 
 }

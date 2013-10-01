@@ -12,7 +12,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBER
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -40,7 +39,7 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 	private String etag;
 	private Long teamId;
 	private Long userId;
-	private long expiresOn;
+	private Long expiresOn;
 	private byte[] properties;
 
 	@Override
@@ -53,7 +52,9 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 				team.setEtag(rs.getString(COL_MEMBERSHIP_REQUEST_SUBMISSION_ETAG));
 				team.setTeamId(rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID));
 				team.setUserId(rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID));
-				team.setExpiresOn(rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON));
+				Long expiresOn = rs.getLong(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON);
+				if (expiresOn==0L) expiresOn=null;
+				team.setExpiresOn(expiresOn);
 
 				java.sql.Blob blob = rs.getBlob(COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES);
 				if(blob != null){
@@ -146,13 +147,13 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 
 
 
-	public long getExpiresOn() {
+	public Long getExpiresOn() {
 		return expiresOn;
 	}
 
 
 
-	public void setExpiresOn(long expiresOn) {
+	public void setExpiresOn(Long expiresOn) {
 		this.expiresOn = expiresOn;
 	}
 
@@ -160,7 +161,7 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return null; //MigrationType.MEMBERSHIP_REQUEST_SUBMISSION;
+		return MigrationType.MEMBERSHIP_REQUEST_SUBMISSION;
 	}
 
 	@Override
@@ -200,7 +201,8 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + (int) (expiresOn ^ (expiresOn >>> 32));
+		result = prime * result
+				+ ((expiresOn == null) ? 0 : expiresOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
 		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
@@ -224,7 +226,10 @@ public class DBOMembershipRqstSubmission implements MigratableDatabaseObject<DBO
 				return false;
 		} else if (!etag.equals(other.etag))
 			return false;
-		if (expiresOn != other.expiresOn)
+		if (expiresOn == null) {
+			if (other.expiresOn != null)
+				return false;
+		} else if (!expiresOn.equals(other.expiresOn))
 			return false;
 		if (id == null) {
 			if (other.id != null)

@@ -37,14 +37,14 @@
 		<property name="workerFactory" ref="unsentMessagePopperFactory" />
 		<property name="maxNumberOfWorkerThreads" ref="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" />
 		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
+		<property name="visibilityTimeoutSec" value="200" />
 	</bean>
 			
 	<bean id="unsentMessagePopperSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
 		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" />
-		<property name="semaphoreKey" value="unsentMessagePopper" />		
+		<property name="semaphoreKey" value="unsentMessagePopper" />
 		<property name="runner" ref="unsentMessagePopper" />
 	</bean>
 	

@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -35,10 +36,16 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
 	@Autowired
 	private NodeDAO nodeDao;
+	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+	
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
@@ -53,10 +60,12 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void bootstrapAll() throws Exception {
-		// Make sure users and profiles have been boostraped
+		// Make sure users and profiles have been bootstrapped
 		userGroupDAO.bootstrapUsers();
 		userProfileDAO.bootstrapProfiles();
-		// First make sure the nodeDao has been boostraped
+		groupMembersDAO.bootstrapGroups();
+		
+		// First make sure the nodeDao has been bootstrapped
 		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
 		UserGroup bootstrapPrincipal = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);

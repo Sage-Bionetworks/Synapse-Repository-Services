@@ -41,8 +41,6 @@
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 
-	<alias name="nodeDao" alias="nodeBackupDao" />
-
 	<bean id="activityDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"
 		depends-on="idGenerator" />
@@ -94,9 +92,8 @@
 
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
-		depends-on="userGroupDAO" init-method="bootstrapProfiles">
-		<property name="bootstrapUsers" ref="bootstrapUsers" />
-	</bean>
+		depends-on="userGroupDAO" 
+		init-method="bootstrapProfiles" />
 	
 	<bean id="crowdGroupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
@@ -172,7 +169,11 @@
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
-	<bean id="entityBootstrapper"
+	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
+
+		<bean id="membershipInvtnSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipInvtnSubmissionDAOImpl" scope="singleton"/>
+	
+		<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl" init-method="bootstrapAll">
 		<property name="bootstrapEntities">
 			<list>

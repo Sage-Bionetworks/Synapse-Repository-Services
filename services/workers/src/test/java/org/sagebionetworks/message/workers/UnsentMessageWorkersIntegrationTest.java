@@ -1,6 +1,5 @@
 package org.sagebionetworks.message.workers;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -28,6 +27,9 @@ public class UnsentMessageWorkersIntegrationTest {
 	 * Plus some extra time just in case
 	 */
 	public static long MAX_WAIT = 1000*50; 
+
+	@Autowired
+	private UnsentMessageQueuer unsentMessageQueuer;
 	
 	@Autowired
 	private MessageQueue unsentMessageQueue;
@@ -53,28 +55,48 @@ public class UnsentMessageWorkersIntegrationTest {
 	@After
 	public void teardown() throws Exception {
 		changeDAO.deleteAllChanges();
+		unsentMessageQueuerTestHelper.emptyQueue(queueURL);
 	}
 
 	@Test
-	public void testUnsentMessages() throws InterruptedException{
+	public void testRoundtrip() throws InterruptedException {
 		// This will be added to the change table, but will not be sent
-		List<ChangeMessage> message = unsentMessageQueuerTestHelper.createList(1, ObjectType.ENTITY, 10, 20);
-		message = changeDAO.replaceChange(message);
+		// Create a sizable number of messages (~10% gaps)
+		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(UnsentMessageQueuerTest.NUM_MESSAGES_TO_CREATE, 
+				ObjectType.ENTITY, 0, 10 * UnsentMessageQueuerTest.NUM_MESSAGES_TO_CREATE);
+		batch = changeDAO.replaceChange(batch);
 		
 		// List the unsent messages.
 		List<ChangeMessage> unsent = changeDAO.listUnsentMessages(Long.MAX_VALUE);
-		assertEquals(1, unsent.size());
 		
 		// Wait for message to be fired
 		long start = System.currentTimeMillis();
 		do{
 			System.out.println("Waiting for UnsentMessagePopper timer to fire...");
 			Thread.sleep(2000);
-			long elpase = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for quartz timer to fire.",elpase < MAX_WAIT);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for quartz timer to fire.", elapse < MAX_WAIT);
 			
 			// Get the messages
 			unsent = changeDAO.listUnsentMessages(Long.MAX_VALUE);
 		} while (unsent.size() > 0);
+	}
+	
+	@Test
+	public void testQueueMoreThan10Messages() throws Exception {
+		// Make the range as small as possible, to send as many messages to SQS
+		unsentMessageQueuer.setApproxRangeSize(1L);
+		
+		// Create more than 10 messages
+		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(25, 
+				ObjectType.ENTITY, 0, 40);
+		batch = changeDAO.replaceChange(batch);
+		
+		// Make sure there are more than 10 messages
+		List<?> messageBatch = unsentMessageQueuer.buildRangeBatch();
+		assertTrue(messageBatch.size() > 10);
+		
+		// Should not get an error message from AWS
+		unsentMessageQueuer.run();
 	}
 }

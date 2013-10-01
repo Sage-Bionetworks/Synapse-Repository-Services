@@ -62,6 +62,8 @@ public class AuthorizationConstants {
 	 * The group name for those users that have all kinds of access to all resources.
 	 */
 	public static final String ADMIN_GROUP_NAME = "Administrators";
+
+	public static final String MIGRATION_USER_NAME = "migrationAdmin@sagebase.org";
 	
 	/**
 	 * 
@@ -154,5 +156,21 @@ public class AuthorizationConstants {
 	 * Request parameter for an optimistic concurrency control (OCC) eTag.
 	 */
 	public static final String ETAG_PARAM = "etag";
+	
+
+	/**
+	 * A test user that is bootstrapped for testing on non-production stacks
+	 */
+	public static final String TEST_USER_NAME = "test-user@sagebase.org";
+
+	/**
+	 * The group the test user belongs to (see TEST_USER_NAME)
+	 */
+	public static final String TEST_GROUP_NAME = "test-group";
+
+	/**
+	 * An admin user that is bootstrapped for testing on non-production stacks
+	 */
+	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
 	
 }

@@ -55,18 +55,20 @@ public class UnsentMessageQueuerTest {
 	@Autowired
 	private AmazonSQSClient awsSQSClient;
 	
-	private static final int NUM_MESSAGES_TO_CREATE = 100;
-	private static final long CONFIGURATION_RANGE_SIZE = 10000L;
+	public static final int NUM_MESSAGES_TO_CREATE = 100;
+	private static final long CONFIGURATION_RANGE_SIZE = 1000L;
 	
 	@Before
 	public void setup() throws Exception {
 		unsentMessageQueuer.setApproxRangeSize(CONFIGURATION_RANGE_SIZE);
 		changeDAO.deleteAllChanges();
+		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
 	}
 
 	@After
 	public void teardown() throws Exception {
 		changeDAO.deleteAllChanges();
+		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
 		
 		// One test replaces the client with a mock
 		unsentMessageQueuer.setAwsSQSClient(awsSQSClient);
@@ -84,7 +86,7 @@ public class UnsentMessageQueuerTest {
 		Set<Long> changeNumbers = unsentMessageQueuerTestHelper.convertBatchToRange(batch);
 		
 		// The range size must be adjustable, so make sure a variety of values work
-		long[] rangeSizes = new long[] { 17L, 83L, 299L, 1000L, 7331L, CONFIGURATION_RANGE_SIZE };
+		long[] rangeSizes = new long[] { 17L, 83L, 299L, 971L, 7331L, CONFIGURATION_RANGE_SIZE };
 		for (int r = 0; r < rangeSizes.length; r++) {
 			// Get the elements that would be queued
 			unsentMessageQueuer.setApproxRangeSize(rangeSizes[r]);
@@ -116,26 +118,7 @@ public class UnsentMessageQueuerTest {
 		}
 	}
 	
-	@Test
-	public void testRoundtrip() throws Exception {
-		// Create a sizable number of messages (~10% gaps)
-		List<ChangeMessage> batch = unsentMessageQueuerTestHelper.createList(NUM_MESSAGES_TO_CREATE, 
-				ObjectType.ENTITY, 0, 10 * NUM_MESSAGES_TO_CREATE);
-		batch = changeDAO.replaceChange(batch);
-
-		// All these should fall within the range that is queued up
-		Set<Long> changeNumbers = unsentMessageQueuerTestHelper.convertBatchToRange(batch);
-		
-		unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
-		unsentMessageQueuer.run();
-		List<UnsentMessageRange> ranges = unsentMessageQueuerTestHelper.emptyQueue(unsentMessageQueue.getQueueUrl());
-		
-		// Make sure the entire range of change numbers is accounted for
-		removeRangeFromSet(changeNumbers, ranges);
-		assertTrue("Not queued: " + changeNumbers, changeNumbers.isEmpty());
-	}
-	
-	private void removeRangeFromSet(Set<Long> outaRange, List<UnsentMessageRange> ranges) {
+	public static void removeRangeFromSet(Set<Long> outaRange, List<UnsentMessageRange> ranges) {
 		for (int i = 0; i < ranges.size(); i++) {
 			UnsentMessageRange range = ranges.get(i);
 			long lower = range.getLowerBound();

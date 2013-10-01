@@ -10,10 +10,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
@@ -29,10 +30,10 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -46,13 +47,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class StepControllerTest {
 
 	@Autowired
-	ServletTestHelper testHelper;
+	private ServletTestHelper testHelper;
 
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
-	private static final String TEST_USER2 = "testuser2@test.org";
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
+	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneEmail();
 	
 	private Project project;
 	private Study dataset;
@@ -208,9 +209,8 @@ public class StepControllerTest {
 			testHelper.getEntity(step, null);
 			fail("expected exception");
 		}
-		catch(ServletTestHelperException e) {
-			assertEquals(TEST_USER2 + " lacks read access to the requested object.", e.getMessage());
-			assertEquals(HttpStatus.FORBIDDEN.value(), e.getHttpStatus());
+		catch (UnauthorizedException e) {
+			Assert.assertTrue(e.getMessage().contains(TEST_USER2 + " lacks read access to the requested object."));
 		}
 		
 		// Add a public read ACL to the project object

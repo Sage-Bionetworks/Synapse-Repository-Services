@@ -15,16 +15,14 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -60,11 +58,9 @@ public class ActivityControllerAutowiredTest {
 	@Autowired
 	private UserManager userManager;
 
-	static private Log log = LogFactory.getLog(ActivityControllerAutowiredTest.class);
-
 	private static HttpServlet dispatchServlet;
 	
-	private String userId = TestUserDAO.ADMIN_USER_NAME;
+	private String userId = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
 	private List<String> activityIdstoDelete;
@@ -147,7 +143,7 @@ public class ActivityControllerAutowiredTest {
 		try {
 			ServletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
 			fail("Activity should have been deleted");
-		} catch (ServletTestHelperException e) {
+		} catch (NotFoundException e) {
 			// good.
 		}
 	}

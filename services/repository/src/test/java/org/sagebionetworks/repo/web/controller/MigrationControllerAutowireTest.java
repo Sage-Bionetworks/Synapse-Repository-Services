@@ -3,18 +3,15 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
 import java.util.Date;
-
-import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -24,7 +21,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -55,7 +51,7 @@ public class MigrationControllerAutowireTest {
 	@Before
 	public void before() throws Exception{
 		// get user IDs
-		userName = TestUserDAO.ADMIN_USER_NAME;
+		userName = AuthorizationConstants.ADMIN_USER_NAME;
 		adminId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		startFileCount = fileMetadataDao.getCount();
 		// Create a file handle
@@ -116,7 +112,7 @@ public class MigrationControllerAutowireTest {
 	}
 	
 	@Test
-	public void testRowMetadata() throws ServletException, IOException, JSONObjectAdapterException{
+	public void testRowMetadata() throws Exception {
 		// First list the values for files
 		RowMetadataResult results = entityServletHelper.getRowMetadata(userName, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startFileCount);
 		assertNotNull(results);

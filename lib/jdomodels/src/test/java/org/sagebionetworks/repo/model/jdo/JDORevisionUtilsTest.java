@@ -5,21 +5,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Random;
-import java.util.Set;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
-import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 
 /**
  * A unit test for JDORevisionUtils
@@ -66,29 +57,6 @@ public class JDORevisionUtilsTest {
 		// the file handle should be copied.
 		assertEquals(original.getFileHandleId(), copy.getFileHandleId());
 	}
-	
-	@Test
-	public void testRoundTrip() throws IOException, DatastoreException{
-		Long createdById = new Long(77777);
-		NodeRevisionBackup dto = new NodeRevisionBackup();
-		dto.setNodeId(KeyFactory.keyToString(123L));
-		dto.setRevisionNumber(new Long(3));
-		dto.setComment("I comment therefore I am!");
-		dto.setLabel("1.0.1");
-		dto.setModifiedByPrincipalId(createdById);
-		dto.setModifiedOn(new Date());
-		dto.setNamedAnnotations(new NamedAnnotations());
-		dto.getNamedAnnotations().put("someRandomName-space", RandomAnnotationsUtil.generateRandom(123, 4));
-		dto.setReferences(new HashMap<String, Set<Reference>>());
-		dto.setDataFileHandleId("123");
-		// Now create the JDO object
-		DBORevision jdo = new DBORevision();
-		DBONode owner = new DBONode();
-		owner.setId(new Long(123));
-		JDORevisionUtils.updateJdoFromDto(dto, jdo);
-		// Now go back
-		NodeRevisionBackup clone = JDORevisionUtils.createDtoFromJdo(jdo);
-		assertEquals(dto, clone);
-	}
+
 
 }

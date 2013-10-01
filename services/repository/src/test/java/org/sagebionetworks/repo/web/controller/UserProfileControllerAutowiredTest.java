@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,8 +23,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -59,7 +58,7 @@ public class UserProfileControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userId = TestUserDAO.ADMIN_USER_NAME;
+	private String userId = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
 	private List<String> favoritesToDelete;
@@ -115,7 +114,7 @@ public class UserProfileControllerAutowiredTest {
 	
 	
 	@Test
-	public void testGetUserGroupHeadersNoFilter() throws ServletException, IOException{
+	public void testGetUserGroupHeadersNoFilter() throws Exception {
 		String prefix = "";
 		int limit = 15;
 		int offset = 0;
@@ -137,7 +136,7 @@ public class UserProfileControllerAutowiredTest {
 	
 	
 	@Test
-	public void testGeUserGroupHeadersWithFilter() throws ServletException, IOException{
+	public void testGeUserGroupHeadersWithFilter() throws Exception {
 		String prefix = "dev";
 		int limit = 10;
 		int offset = 0;

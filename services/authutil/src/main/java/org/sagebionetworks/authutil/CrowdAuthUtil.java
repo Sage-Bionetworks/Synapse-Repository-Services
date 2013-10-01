@@ -34,7 +34,7 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.User;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -175,7 +175,7 @@ public class CrowdAuthUtil {
 	 * for the named user.  Note:  In this case the password must not be omitted, according to Atlassian.  
 	 * For more info, see   http://jira.atlassian.com/browse/CWD-2152
 	 */
-	public static Session authenticate(User creds, boolean validatePassword) throws AuthenticationException, IOException, XPathExpressionException {
+	public static Session authenticate(NewUser creds, boolean validatePassword) throws AuthenticationException, IOException, XPathExpressionException {
 		byte[] sessionXML = null;
 		{
 			sessionXML = executeRequest(urlPrefix()+"/session?validate-password="+validatePassword, 
@@ -221,7 +221,7 @@ public class CrowdAuthUtil {
 				"Unable to invalidate session.");
 	}
 	
-	private static String userXML(User user) {
+	private static String userXML(NewUser user) {
 		return "<?xml version='1.0' encoding='UTF-8'?>\n"+
 		  "<user name='"+user.getEmail()+"' expand='attributes'>\n"+
 		  "\t<first-name>"+user.getFirstName()+"</first-name>\n"+
@@ -238,12 +238,12 @@ public class CrowdAuthUtil {
 	}
 	
 	
-	private static String userPasswordXML(User user) {
+	private static String userPasswordXML(NewUser user) {
 		return "<?xml version='1.0' encoding='UTF-8'?><password><value>"+
 			user.getPassword()+"</value></password>";
 	}
 	
-	public static void createUser(User user) throws AuthenticationException, IOException {
+	public static void createUser(NewUser user) throws AuthenticationException, IOException {
 		// input:  userid, pw, email, fname, lname, display name
 		// POST /user
 		executeRequest(urlPrefix()+"/user", "POST", userXML(user)+"\n", HttpStatus.CREATED, "Unable to create user.");
@@ -254,7 +254,7 @@ public class CrowdAuthUtil {
 		setUserAttributes(user.getEmail(), attributes);
 	}
 	
-	public static User getUser(String userId) throws IOException {
+	public static NewUser getUser(String userId) throws IOException {
 		byte[] sessionXML = null;
 		try {
 			sessionXML = executeRequest(urlPrefix()+"/user?username="+userId, "GET", "", HttpStatus.OK, "Unable to get "+userId+".");
@@ -263,7 +263,7 @@ public class CrowdAuthUtil {
 		}
 
 		try {
-			User user = new User();
+			NewUser user = new NewUser();
 			user.setEmail(getFromXML("/user/email", sessionXML));
 			user.setFirstName(getFromXML("/user/first-name", sessionXML));
 			user.setLastName(getFromXML("/user/last-name", sessionXML));
@@ -281,7 +281,7 @@ public class CrowdAuthUtil {
 	/**
 	 * Update user attributes (not password).
 	 */
-	public static void updateUser(User user) throws AuthenticationException, IOException {
+	public static void updateUser(NewUser user) throws AuthenticationException, IOException {
 					
 			// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
 			executeRequestNoResponseBody(urlPrefix()+"/user?username="+user.getEmail(), 
@@ -294,12 +294,12 @@ public class CrowdAuthUtil {
 	/**
 	 * Update password
 	 */
-	public static void updatePassword(User user) throws AuthenticationException, IOException {
+	public static void updatePassword(NewUser user) throws AuthenticationException, IOException {
 			executeRequestNoResponseBody(urlPrefix()+"/user/password?username="+user.getEmail(),
 					"PUT", userPasswordXML(user)+"\n", HttpStatus.NO_CONTENT, "Unable to update user password.");
 	}
 	
-	public static void sendResetPWEmail(User user) throws AuthenticationException, IOException {
+	public static void sendResetPWEmail(NewUser user) throws AuthenticationException, IOException {
 		// POST /user/mail/password?username=USERNAME
 		executeRequestNoResponseBody(urlPrefix()+"/user/mail/password?username="+user.getEmail(),
 				"POST",
@@ -583,7 +583,7 @@ public class CrowdAuthUtil {
 	// reset == true means send the 'reset' message; reset== false means send the 'set' message
 	public static void sendUserPasswordEmail(String userEmail, PW_MODE mode, String sessiontoken) throws XPathExpressionException, AuthenticationException, IOException {
 		// need a session token
-		User user = new User();
+		NewUser user = new NewUser();
 		user.setEmail(userEmail);
 		Session session = authenticate(user, false);
 		// need the rest of the user's fields
@@ -616,8 +616,8 @@ public class CrowdAuthUtil {
 	 */
 	public static void copyUser(String oldEmail, String newEmail, Random rand) throws IOException, AuthenticationException, XPathExpressionException {
 		//create a new user in crowd
-		User oldUser = CrowdAuthUtil.getUser(oldEmail);
-		User newUser = new User();
+		NewUser oldUser = CrowdAuthUtil.getUser(oldEmail);
+		NewUser newUser = new NewUser();
 		newUser.setDisplayName(oldUser.getDisplayName());
 		newUser.setFirstName(oldUser.getFirstName());
 		newUser.setLastName(oldUser.getLastName());

@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageQueue;
+import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -53,24 +54,43 @@ public class UnsentMessageQueuer implements Runnable {
 	public void run() {
 		long count = changeDAO.getCount();
 		if (count <= 0) {
+			log.info("No change messages");
+			return;
+		}
+
+		// Only run if the SQS is empty
+		if (!isQueueEmpty()) {
+			log.info("Queue is not empty");
 			return;
 		}
 		
-		// Only run if the SQS is empty
+		List<SendMessageBatchRequestEntry> batch = buildRangeBatch();
+		List<List<SendMessageBatchRequestEntry>> miniBatches = MessageUtils.splitListIntoTens(batch);
+		for (int i = 0; i < miniBatches.size(); i++) {
+			awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(unsentMessageQueue.getQueueUrl(), miniBatches.get(i)));
+		}
+		log.info("Just queued: " + batch.size() + " message(s)");
+	}
+	
+	/**
+	 * Checks to see if the queue is empty
+	 */
+	protected boolean isQueueEmpty() {
 		ReceiveMessageRequest rmRequest = new ReceiveMessageRequest();
 		rmRequest.setQueueUrl(unsentMessageQueue.getQueueUrl());
 		rmRequest.setVisibilityTimeout(0);
 		rmRequest.setWaitTimeSeconds(0);
 		rmRequest.setMaxNumberOfMessages(1);
 		ReceiveMessageResult rmResult = awsSQSClient.receiveMessage(rmRequest);
-		if (rmResult.getMessages().size() > 0) {
-			return;
+		if (rmResult.getMessages().size() <= 0) {
+			return true;
 		}
-		
-		List<SendMessageBatchRequestEntry> batch = buildRangeBatch();
-		awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(unsentMessageQueue.getQueueUrl(), batch));
+		return false;
 	}
 	
+	/**
+	 * Builds up a number of ranges based on the state of the CHANGE table
+	 */
 	protected List<SendMessageBatchRequestEntry> buildRangeBatch() {
 		long count = changeDAO.getCount();
 		long min = changeDAO.getMinimumChangeNumber();
@@ -88,6 +108,9 @@ public class UnsentMessageQueuer implements Runnable {
 		return batch;
 	}
 	
+	/**
+	 * Adds the range to the list of messages to push to SQS
+	 */
 	private void addMessageToBatch(List<SendMessageBatchRequestEntry> batch, long index, long lower, long upper) {
 		if (lower > upper) {
 			// This should never be hit since it means the worker's logic is incorrect
@@ -96,12 +119,15 @@ public class UnsentMessageQueuer implements Runnable {
 		UnsentMessageRange range = new UnsentMessageRange();
 		range.setLowerBound(lower);
 		range.setUpperBound(upper);
-		SendMessageBatchRequestEntry entry= createEntry(index, range);
+		SendMessageBatchRequestEntry entry = createEntry(index, range);
 		if (entry != null) {
 			batch.add(entry);
 		}
 	}
-	
+
+	/**
+	 * Converts a UnsentMessageRange to a AWS-SQS-compatible message
+	 */
 	private SendMessageBatchRequestEntry createEntry(long index, UnsentMessageRange range) {
 		try {
 			String messageBody = EntityFactory.createJSONStringForEntity(range);

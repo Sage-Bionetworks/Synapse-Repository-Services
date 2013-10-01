@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -297,5 +299,25 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		}
 		Collections.sort(ascendents);
 		return ascendents;
+	}
+
+	@Override
+	public void bootstrapGroups() throws Exception {
+		if (!StackConfiguration.isProductionStack()) {
+			// Add the boot strap admins to the appropriate admin group
+			String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+			
+			List<String> adminUserIdList = new ArrayList<String>();
+			adminUserIdList.add(userGroupDAO.findGroup(StackConfiguration.getIntegrationTestUserAdminName(), true).getId());
+			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId());
+			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.ADMIN_USER_NAME, true).getId());
+			this.addMembers(adminGroupId, adminUserIdList);
+			
+			// Add the test user to the test group
+			String testGroupId = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false).getId();
+			List<String> testUserIdList = new ArrayList<String>();
+			testUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true).getId());
+			this.addMembers(testGroupId, testUserIdList);
+		}
 	}
 }

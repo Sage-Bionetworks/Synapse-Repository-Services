@@ -29,17 +29,21 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -105,31 +109,47 @@ public class MigrationIntegrationAutowireTest {
 	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
+	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
-	UserProfileManager userProfileManager;
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
+	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
+	
 	@Autowired
-	MigrationManager migrationManager;
+	private MigrationManager migrationManager;
+	
 	@Autowired
-	StorageQuotaManager storageQuotaManager;
+	private StorageQuotaManager storageQuotaManager;
+	
 	@Autowired
-	StorageQuotaAdminDao storageQuotaAdminDao;
+	private StorageQuotaAdminDao storageQuotaAdminDao;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
-	GroupMembersDAO groupMembersDAO;
+	private GroupMembersDAO groupMembersDAO;
+	
 	@Autowired
 	TeamDAO teamDAO;
+	@Autowired
+	MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -181,7 +201,7 @@ public class MigrationIntegrationAutowireTest {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
-		userName = TestUserDAO.MIGRATION_USER_NAME;
+		userName = AuthorizationConstants.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
 		resetDatabase();
@@ -223,12 +243,11 @@ public class MigrationIntegrationAutowireTest {
 	private void createActivity() throws Exception {
 		activity = new Activity();
 		activity.setDescription("some desc");
-		activity = serviceProvider.getActivityService().createActivity(adminId, activity);
+		activity = serviceProvider.getActivityService().createActivity(userName, activity);
 	}
 
 
-	private void createEvaluation() throws JSONObjectAdapterException,
-			IOException, NotFoundException, ServletException {
+	private void createEvaluation() throws Exception {
 		// initialize Evaluations
 		evaluation = new Evaluation();
 		evaluation.setName("name");
@@ -262,7 +281,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	public void createAccessApproval() throws ServletException, IOException {
+	public void createAccessApproval() throws Exception {
 		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminId);
 		accessApproval = ServletTestHelper.createAccessApproval(
 				DispatchServletSingleton.getInstance(), accessApproval, userName, new HashMap<String, String>());
@@ -445,6 +464,9 @@ public class MigrationIntegrationAutowireTest {
 		tempUserAndGroups.add(parentUser);
 		tempUserAndGroups.add(siblingUser);
 		tempUserAndGroups.add(childUser);
+		
+		// Made by the bootstrapper
+		tempUserAndGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
 		return parentGroup;
 	}
 	
@@ -455,9 +477,29 @@ public class MigrationIntegrationAutowireTest {
 		team.setDescription("test team");
 		teamDAO.create(team);
 		
-		// TODO create a MembershipInvtnSubmission
+		// create a MembershipRqstSubmission
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date expiresOn = new Date();
+		mrs.setExpiresOn(expiresOn);
+		mrs.setMessage("Please let me join the team.");
+		mrs.setTeamId(""+group.getId());
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mrs.setUserId(individUser.getId());
+		membershipRqstSubmissionDAO.create(mrs);
 		
-		// TODO create a MembershipRqstSumbission
+		
+		// create a MembershipInvtnSubmission
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setExpiresOn(expiresOn);
+		mis.setMessage("Please join the team.");
+		mis.setTeamId(""+group.getId());
+		
+		// need another valid user group
+		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		Long.parseLong(individUser.getId());
+		
+		membershipInvtnSubmissionDAO.create(mis);
 	}
 
 	@After
@@ -482,6 +524,11 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		validateStartingCount(startCounts);
 		
+		// The admin group cannot be deleted without locking the migrator out of the system
+		// So a special case must be made for the admins
+		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		Long startAdminCount = new Long(groupMembersDAO.getMembers(adminGroupId).size());
+		
 		// This test will backup all data, delete it, then restore it.
 		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
 		for(MigrationType type: primaryTypesList.getList()){
@@ -505,8 +552,14 @@ public class MigrationIntegrationAutowireTest {
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for(int i=1; i<afterDeleteCounts.getList().size(); i++){
-			assertEquals(new Long(0), afterDeleteCounts.getList().get(i).getCount());
+		for (int i = 1; i < afterDeleteCounts.getList().size(); i++) {
+			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
+			// Special case for not-deleted admins
+			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS) {
+				assertEquals(startAdminCount, afterDelete.getCount());
+			} else {
+				assertEquals(new Long(0), afterDelete.getCount());
+			}
 		}
 		
 		// Now restore all of the data
@@ -515,9 +568,15 @@ public class MigrationIntegrationAutowireTest {
 			assertNotNull("Did not find a backup file name for type: "+info.getType(), fileName);
 			restoreFromBackup(info.getType(), fileName);
 		}
+		
 		// The counts should all be back
 		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		assertEquals(startCounts, finalCounts);
+		for (int i = 1; i < finalCounts.getList().size(); i++) {
+			MigrationTypeCount startCount = startCounts.getList().get(i);
+			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
+			// Special case for not-deleted admins
+			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+		}
 	}
 	
 	private static class BackupInfo {
@@ -595,7 +654,7 @@ public class MigrationIntegrationAutowireTest {
 		return getFileNameFromUrl(status.getBackupUrl());
 	}
 	
-	private void restoreFromBackup(MigrationType type, String fileName) throws ServletException, IOException, JSONObjectAdapterException, InterruptedException{
+	private void restoreFromBackup(MigrationType type, String fileName) throws Exception{
 		RestoreSubmission sub = new RestoreSubmission();
 		sub.setFileName(fileName);
 		BackupRestoreStatus status = entityServletHelper.startRestore(userName, type, sub);
@@ -610,7 +669,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void deleteAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
+	private void deleteAllOfType(MigrationType type) throws Exception{
 		IdList idList = getIdListOfAllOfType(type);
 		if(idList == null) return;
 		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
@@ -625,7 +684,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	private IdList getIdListOfAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
+	private IdList getIdListOfAllOfType(MigrationType type) throws Exception{
 		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
 		if(list.getTotalCount() < 1) return null;
 		// Create the backup list
@@ -646,7 +705,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	private void waitForDaemon(BackupRestoreStatus status) throws InterruptedException, ServletException, IOException, JSONObjectAdapterException{
+	private void waitForDaemon(BackupRestoreStatus status) throws Exception{
 		long start = System.currentTimeMillis();
 		while(DaemonStatus.COMPLETED != status.getStatus()){
 			assertFalse("Daemon failed "+status.getErrorDetails(), DaemonStatus.FAILED == status.getStatus());

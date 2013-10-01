@@ -38,4 +38,9 @@ public interface GroupMembersDAO {
 	public List<UserGroup> getUsersGroups(String principalId) 
 			throws DatastoreException, NotFoundException;
 
+	/**
+	 * Ensure the bootstrap users are in the correct bootstrap groups
+	 * Only used for testing purposes (hence no arguments)
+	 */
+	public void bootstrapGroups() throws Exception;
 }

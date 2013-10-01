@@ -11,14 +11,11 @@ import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -50,12 +47,9 @@ public class PrincipalsControllerAutowiredTest {
 	@Autowired
 	public UserManager userManager;
 
-	static private Log log = LogFactory
-			.getLog(PrincipalsControllerAutowiredTest.class);
-
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = TestUserDAO.ADMIN_USER_NAME;
+	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
 	private List<String> toDelete;
@@ -92,15 +86,12 @@ public class PrincipalsControllerAutowiredTest {
 
 
 	@Test
-	public void testGetUsers() throws ServletException, IOException{
+	public void testGetUsers() throws Exception {
 		PaginatedResults<UserProfile> userProfiles = ServletTestHelper.getUsers(dispatchServlet, userName);
 		assertNotNull(userProfiles);
-		boolean foundAnon = false;
 		for (UserProfile userProfile : userProfiles.getResults()) {
 			System.out.println(userProfile);
-//			if (userProfile.getDisplayName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) foundAnon=true;
 		}
-//		assertTrue(foundAnon);
 	}
 	
 	@Test
@@ -115,7 +106,7 @@ public class PrincipalsControllerAutowiredTest {
 	}
 	
 	@Test
-	public void testGetGroups() throws ServletException, IOException{
+	public void testGetGroups() throws Exception {
 		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, userName);
 		assertNotNull(ugs);
 		boolean foundPublic = false;
@@ -126,6 +117,7 @@ public class PrincipalsControllerAutowiredTest {
 			assertTrue(ug.toString(), !ug.getIsIndividual());
 		}
 		assertTrue(foundPublic);
+		assertTrue(foundAdmin);
 	}
 	
 	@Test
