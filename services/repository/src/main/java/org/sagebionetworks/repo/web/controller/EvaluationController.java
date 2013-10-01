@@ -180,13 +180,13 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String projectId, 
+			@PathVariable String id, 
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, projectId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getEvaluationByContentSource(userId, id, limit, offset, request);
 	}
 	
 	/**
