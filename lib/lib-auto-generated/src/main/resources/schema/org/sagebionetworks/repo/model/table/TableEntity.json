@@ -8,6 +8,7 @@
     ],
     "properties":{
 		"columns": {
+			"contentEncoding": "binary",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
