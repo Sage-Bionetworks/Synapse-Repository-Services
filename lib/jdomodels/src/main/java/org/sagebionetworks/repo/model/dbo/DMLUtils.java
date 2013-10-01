@@ -57,6 +57,15 @@ public class DMLUtils {
 	}
 	
 	/**
+	 * Create an INSERT or UPDATE statement for a given mapping.
+	 * @param mapping
+	 * @return
+	 */
+	public static String createBatchInsertOrUpdateStatement(TableMapping mapping){
+		return getBatchInsertOrUdpate(mapping);
+	}
+	
+	/**
 	 * A batch insert or update SQL.
 	 * @return
 	 */

@@ -203,13 +203,13 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		
 		// Create the typed annos
 		if (!longAnnoDBOs.isEmpty()) {
-			dboBasicDao.createBatch(longAnnoDBOs);
+			dboBasicDao.createBatch(longAnnoDBOs, false);
 		}
 		if (!doubleAnnoDBOs.isEmpty()) {
-			dboBasicDao.createBatch(doubleAnnoDBOs);		
+			dboBasicDao.createBatch(doubleAnnoDBOs, false);		
 		}
 		if (!stringAnnoDBOs.isEmpty()) {
-			dboBasicDao.createBatch(stringAnnoDBOs);
+			dboBasicDao.createBatch(stringAnnoDBOs, false);
 		}
 		
 	}

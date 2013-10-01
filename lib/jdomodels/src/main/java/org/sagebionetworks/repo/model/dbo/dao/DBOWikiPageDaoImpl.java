@@ -134,7 +134,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(fileNameToFileHandleMap, dbo.getId());
 		// Save them to the DB
 		if(attachments.size() >0){
-			basicDao.createBatch(attachments);
+			basicDao.createBatch(attachments, false);
 		}
 		// Send the create message
 		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, ChangeType.CREATE);
@@ -343,7 +343,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		}
 		// Add back the new attachments
 		if(newAttachments.size() > 0){
-			basicDao.createBatch(newAttachments);
+			basicDao.createBatch(newAttachments, false);
 		}
 	}
 	
@@ -423,7 +423,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			// Create
 			dbo = create(ownerType, dbo, ownerIdLong);
 			if(attachments.size() >0){
-				basicDao.createBatch(attachments);
+				basicDao.createBatch(attachments, false);
 			}
 			changeType = ChangeType.CREATE;
 		}

@@ -81,7 +81,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		// Create the list of references
 		List<DBOReference> batch = ReferenceUtil.createDBOReferences(ownerId, references);
 		if(batch.size() > 0 ){
-			dboBasicDao.createBatch(batch);
+			dboBasicDao.createBatch(batch, false);
 		}
 		return references;
 	}

@@ -50,6 +50,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	 * We cache the SQL for each object type.
 	 */
 	private Map<Class<? extends DatabaseObject>, String> insertMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	private Map<Class<? extends DatabaseObject>, String> insertOrUpdateMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> fetchMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> countMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
@@ -71,6 +72,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			// Create the Insert SQL
 			String insertSQL = DMLUtils.createInsertStatement(mapping);
 			this.insertMap.put(mapping.getDBOClass(), insertSQL);
+			// The batchInsertOrUpdate SQL
+			String insertOrUpdateSQL = DMLUtils.createBatchInsertOrUpdateStatement(mapping);
+			this.insertOrUpdateMap.put(mapping.getDBOClass(), insertOrUpdateSQL);
 			// The get SQL
 			String getSQL = DMLUtils.createGetByIDStatement(mapping);
 			this.fetchMap.put(mapping.getDBOClass(), getSQL);
@@ -113,11 +117,16 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
+	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch, boolean updateOnDuplicate)	throws DatastoreException {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
 		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
 		// Lookup the insert SQL
-		String insertSQl = getInsertSQL(batch.get(0).getClass());
+		String sql;
+		if(updateOnDuplicate) {
+			sql = getInsertOrUpdateSQL(batch.get(0).getClass());
+		} else {
+			sql = getInsertSQL(batch.get(0).getClass());
+		}
 //		System.out.println(insertSQl);
 //		System.out.println(toCreate);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
@@ -125,7 +134,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
 		}
 		try{
-			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(insertSQl, namedParameters);
+			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(sql, namedParameters);
 			for(int count: updatedCountArray){
 				if(count != 1) throw new DatastoreException("Failed to insert without error");
 			}
@@ -143,6 +152,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}catch(DataIntegrityViolationException e){
 			throw new IllegalArgumentException(e);
 		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends DatabaseObject<T>> List<T> createBatchOrUpdate(
+			List<T> batch) throws DatastoreException {
+		return createBatch(batch, true);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -201,6 +217,18 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private String getInsertSQL(Class<? extends DatabaseObject> clazz){
 		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
 		String sql = this.insertMap.get(clazz);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the insert SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
+		return sql;
+	}
+	
+	/**
+	 * Get the insert or update sql for a given class.;
+	 * @param clazz
+	 * @return
+	 */
+	private String getInsertOrUpdateSQL(Class<? extends DatabaseObject> clazz) {
+		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
+		String sql = this.insertOrUpdateMap.get(clazz);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the insert SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
 		return sql;
 	}

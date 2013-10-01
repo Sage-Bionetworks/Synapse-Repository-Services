@@ -123,26 +123,26 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
 			List<DBOStringAnnotation> stringBatch = AnnotationDBOUtils.createStringAnnotations(ownerId, stringAnnos);
-			dboBasicDao.createBatch(stringBatch);
+			dboBasicDao.createBatch(stringBatch, false);
 		}
 		
 		// Create the long.
 		Map<String, List<Long>> longAnnos = annotations.getLongAnnotations();
 		if(longAnnos != null && longAnnos.size() > 0){
 			List<DBOLongAnnotation> batch = AnnotationDBOUtils.createLongAnnotations(ownerId, longAnnos);
-			dboBasicDao.createBatch(batch);
+			dboBasicDao.createBatch(batch, false);
 		}
 		// Create the double
 		Map<String, List<Double>> doubleAnnos = annotations.getDoubleAnnotations();
 		if(doubleAnnos != null && doubleAnnos.size() > 0){
 			List<DBODoubleAnnotation> batch = AnnotationDBOUtils.createDoubleAnnotations(ownerId, doubleAnnos);
-			dboBasicDao.createBatch(batch);
+			dboBasicDao.createBatch(batch, false);
 		}
 		// Create the dates
 		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();
 		if(dateAnnos != null && dateAnnos.size() > 0){
 			List<DBODateAnnotation> batch = AnnotationDBOUtils.createDateAnnotations(ownerId, dateAnnos);
-			dboBasicDao.createBatch(batch);
+			dboBasicDao.createBatch(batch, false);
 		}
 	}
 
