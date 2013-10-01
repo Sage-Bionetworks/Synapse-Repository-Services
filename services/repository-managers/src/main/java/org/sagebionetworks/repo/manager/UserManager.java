@@ -41,9 +41,14 @@ public interface UserManager {
 	public UserGroup findGroup(String name, boolean b) throws DatastoreException;
 	
 	/**
+	 * Creates a new user (to be replaced by createUser)
+	 */
+	@Deprecated
+	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException;
+
+	/**
 	 * Creates a new user
 	 */
-	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException;
 	public void createUser(NewUser user);
 	
 	/**

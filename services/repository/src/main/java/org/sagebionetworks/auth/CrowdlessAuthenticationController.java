@@ -158,7 +158,7 @@ public class CrowdlessAuthenticationController extends BaseController {
 		
 		Credential credential = new Credential();
 		credential.setEmail(username);
-		credential.setPassword(changeUserPassword.getNewPassword());
+		credential.setPassHash(changeUserPassword.getNewPassword());
 		authenticationService.changePassword(credential);
 	}
 	
@@ -182,7 +182,7 @@ public class CrowdlessAuthenticationController extends BaseController {
 		// Set the password
 		Credential credential = new Credential();
 		credential.setEmail(realUsername);
-		credential.setPassword(registrationInfo.getPassword());
+		credential.setPassHash(registrationInfo.getPassword());
 		authenticationService.changePassword(credential);
 		
 		// Update the pre-existing user to the new email address
@@ -207,7 +207,7 @@ public class CrowdlessAuthenticationController extends BaseController {
 		// Set the password
 		Credential credential = new Credential();
 		credential.setEmail(realUsername);
-		credential.setPassword(registrationInfo.getPassword());
+		credential.setPassHash(registrationInfo.getPassword());
 		authenticationService.changePassword(credential);
 		authenticationService.invalidateSessionToken(sessionToken);
 	}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.securitytools;
 
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
@@ -36,6 +37,7 @@ public class PBKDF2Utils {
 	
 	/**
 	 * Hashes the password with the given salt
+	 * @param salt If null, a random salt is generated
 	 * @return A string with LDAP password format {PREFIX}[data]
 	 *   where [data] is a 64 character, base64 encoded string containing a salt and password checksum 
 	 */
@@ -43,6 +45,11 @@ public class PBKDF2Utils {
 		if (password == null) {
 			// Note: the hashing scheme allows null passwords
 			throw new IllegalArgumentException("Password may not be null");
+		}
+		if (salt == null) {
+			SecureRandom rand = new SecureRandom();
+			salt = new byte[HASHING_SALTLENGTH];
+			rand.nextBytes(salt);
 		}
 		if (salt.length != HASHING_SALTLENGTH) {
 			throw new IllegalArgumentException("Salt must be 16 bytes");

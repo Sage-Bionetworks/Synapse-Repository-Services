@@ -35,7 +35,7 @@ public class AuthenticationServiceImplTest {
 	public void setUp() throws Exception {
 		credential = new Credential();
 		credential.setEmail("foo");
-		credential.setPassword("bar");
+		credential.setPassHash("bar");
 		
 		userInfo = new UserInfo(false);
 		userInfo.setUser(new User());

@@ -118,24 +118,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 		
 	};
-	
-	private RowMapper<Long> principalRowMapper = new RowMapper<Long>() {
-		
-		@Override
-		public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return rs.getLong(SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID);
-		}
-
-	};
-	
-	private RowMapper<String> secretKeyRowMapper = new RowMapper<String>() {
-
-		@Override
-		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return rs.getString(SqlConstants.COL_CREDENTIAL_SECRET_KEY);
-		}
-		
-	};
 
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
@@ -148,7 +130,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(PASSWORD_PARAM_NAME, credential.getPassword());
+		param.addValue(PASSWORD_PARAM_NAME, credential.getPassHash());
 		List<Session> sessionToken = simpleJdbcTemplate.query(SELECT_SESSION_TOKEN_BY_ID_PASSWORD, 
 				sessionRowMapper, param);
 		
@@ -157,7 +139,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		} else if (sessionToken.size() == 0) {
 			throw new UnauthorizedException("The provided username/password combination is incorrect");
 		} else {
-			// Unreachable
+			// Unreachable due to table-level constraint
 			throw new DatastoreException("The unique key "+credential.getEmail()+" maps to more than one value");
 		}
 	}
@@ -186,7 +168,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		Long principal = null;
 		try {
 			principal = simpleJdbcTemplate.queryForObject(SELECT_PRINCIPAL_BY_TOKEN, 
-					principalRowMapper, param); 
+					Long.class, param); 
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
@@ -219,7 +201,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public String getSecretKey(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, secretKeyRowMapper, param);
+		return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, param);
 	}
 	
 	@Override
@@ -252,6 +234,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		simpleJdbcTemplate.update(UPDATE_SESSION_TOKEN_IF_EXPIRED, param);
 		
 		// Update when the session token was last validated
+		// Note: These two updates are done separately because the session token is updated only when it is invalid
+		//   The timestamp is updated every time this method is called successfully
 		param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TIME_PARAM_NAME, now);

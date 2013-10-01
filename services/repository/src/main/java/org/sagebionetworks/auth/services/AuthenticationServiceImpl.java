@@ -93,7 +93,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public void changePassword(Credential credential) throws NotFoundException {
 		UserInfo user = userManager.getUserInfo(credential.getEmail());
-		authManager.changePassword(user.getIndividualGroup().getId(), credential.getPassword());
+		authManager.changePassword(user.getIndividualGroup().getId(), credential.getPassHash());
 	}
 	
 	@Override

@@ -21,6 +21,13 @@ public class PBKDF2UtilsTest {
 		Assert.assertEquals(passHash, rehashed);
 	}
 	
+	@Test
+	public void testHashRandomSalt() throws Exception {
+		String passHash = PBKDF2Utils.hashPassword("password", null);
+		byte[] salt = PBKDF2Utils.extractSalt(passHash);
+		Assert.assertNotNull(salt);
+	}
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testBadHash_Short() throws Exception {
 		String passHash = "{PKCS5S2}I'm too short";

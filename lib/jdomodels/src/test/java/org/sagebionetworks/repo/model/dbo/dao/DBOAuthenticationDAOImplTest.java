@@ -64,14 +64,14 @@ public class DBOAuthenticationDAOImplTest {
 		// Construct the username/password combo
 		credential = new Credential();
 		credential.setEmail(GROUP_NAME);
-		credential.setPassword("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
+		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 
 		// Make a row of Credentials but don't insert it yet
 		secretRow = new DBOCredential();
 		secretRow.setPrincipalId(principalId);
 		secretRow.setValidatedOn(new Date());
 		secretRow.setSessionToken("Hsssssss...");
-		secretRow.setPassHash(credential.getPassword());
+		secretRow.setPassHash(credential.getPassHash());
 		secretRow.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	}
 
@@ -86,7 +86,7 @@ public class DBOAuthenticationDAOImplTest {
 	public void testAuthenticateBadPassword() throws Exception {
 		basicDAO.createNew(secretRow);
 		
-		credential.setPassword("INVALID");
+		credential.setPassHash("INVALID");
 		authDAO.authenticate(credential);
 		fail();
 	}
@@ -162,7 +162,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Getter should work
 		assertEquals(secretRow.getSecretKey(), authDAO.getSecretKey(userId));
 		
-		// Changer should work
+		// Setter should work
 		authDAO.changeSecretKey(userId);
 		assertFalse(secretRow.getSecretKey().equals(authDAO.getSecretKey(userId)));
 	}
