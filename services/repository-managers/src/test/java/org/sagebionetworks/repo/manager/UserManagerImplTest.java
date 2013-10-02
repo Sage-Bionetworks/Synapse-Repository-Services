@@ -14,12 +14,14 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,6 +37,12 @@ public class UserManagerImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private AuthenticationDAO authDAO;
+	
 	private List<String> groupsToDelete = null;
 	
 	
@@ -45,10 +53,9 @@ public class UserManagerImplTest {
 
 	@After
 	public void tearDown() throws Exception {
-		for(String groupId: groupsToDelete){
-			UserGroup ug = userGroupDAO.get(groupId);
+		for (String groupId: groupsToDelete) {
 			try {
-				userManager.deletePrincipal(ug.getName());
+				userGroupDAO.delete(groupId);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -127,12 +134,10 @@ public class UserManagerImplTest {
 		groupsToDelete.add(newEmail);
 		
 		// Create a user to change the email of
-		userManager.createPrincipal(oldEmail, true);
 		NewUser user = new NewUser();
-		user.setAcceptsTermsOfUse(true);
 		user.setEmail(oldEmail);
 		user.setPassword("foofoobarbar");
-		// userManager.createUser(user);
+		userManager.createUser(user);
 		
 		// Make sure the new user exists
 		UserInfo userInfo = userManager.getUserInfo(oldEmail);
@@ -145,6 +150,22 @@ public class UserManagerImplTest {
 		assertEquals(userInfo.getIndividualGroup().getId(), newUserInfo.getIndividualGroup().getId());
 	}
 	
-	
-
+	@Test
+	public void testCreateUser() throws Exception {
+		final String USERNAME = "UserManagerImpl@test.sagebase.org";
+		
+		NewUser user = new NewUser();
+		user.setEmail(USERNAME);
+		user.setPassword("password");
+		userManager.createUser(user);
+		
+		// Now that the user exists, the appropriate database rows should too
+		UserGroup ug = userGroupDAO.findGroup(USERNAME, true);
+		groupsToDelete.add(ug.getId());
+		userProfileDAO.get(ug.getId());
+		authDAO.getSecretKey(ug.getId());
+		
+		// TODO UserDAO must be pointing at RDS for this line to work
+		// userManager.getUserInfo(USERNAME);
+	}
 }

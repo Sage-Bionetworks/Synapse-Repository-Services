@@ -236,6 +236,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public boolean deletePrincipal(String name) {
 		try {
 			DBOUserGroup ug = findGroup(name);
@@ -250,6 +251,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(UserGroup dto) throws DatastoreException,
 			InvalidModelException {
 		DBOUserGroup dbo = new DBOUserGroup();
@@ -257,25 +259,25 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		
 		// If the create is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
-		if(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(dto.getName())){
+		if (AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(dto.getName())) {
 			// This is a special hack since the auto-generated ID column cannot
 			// start at zero yet the BOOTSTRAP_USER_GROUP_NAME was assigned to zero long ago.
 			dbo.setId(0l);
-		}else{
-			// we allow the ID generator to create all other IDs
+		} else {
+			// We allow the ID generator to create all other IDs
 			dbo.setId(idGenerator.generateNewId(dto.getName(), NamedType.USER_GROUP_ID));
 		}
 		try {
 			dbo = basicDao.createNew(dbo);
-			
-			// Also create a row for the parents cache
-			DBOGroupParentsCache cacheDBO = new DBOGroupParentsCache();
-			cacheDBO.setGroupId(dbo.getId());
-			basicDao.createNew(cacheDBO);
-			return dbo.getId().toString();
 		} catch (Exception e) {
-			throw new DatastoreException("id="+dbo.getId()+" name="+dto.getName(), e);
+			throw new DatastoreException("id=" + dbo.getId() + " name="+dto.getName(), e);
 		}
+		
+		// Create a row for the parents cache
+		DBOGroupParentsCache cacheDBO = new DBOGroupParentsCache();
+		cacheDBO.setGroupId(dbo.getId());
+		basicDao.createNew(cacheDBO);
+		return dbo.getId().toString();
 	}
 
 	public boolean doesIdExist(Long id) {

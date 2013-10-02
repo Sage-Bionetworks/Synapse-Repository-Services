@@ -372,6 +372,15 @@ public class SqlConstants {
 	public static final String COL_STORAGE_QUOTA_ETAG         = "ETAG";
 	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
 	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
+	
+	// Credential
+	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
+	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
+	public static final String COL_CREDENTIAL_VALIDATED_ON  = "VALIDATED_ON";
+	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
+	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
+	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
+	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";

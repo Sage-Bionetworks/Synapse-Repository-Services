@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,9 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.xpath.XPathExpressionException;
-
-import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -27,8 +26,10 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,11 +37,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserManagerImpl implements UserManager {
 	
 	@Autowired
-	UserDAO userDAO;
+	private UserDAO userDAO;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;	
+	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
-	UserProfileDAO userProfileDAO;
+	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private AuthenticationDAO authDAO;
 	
 	private static Map<String, UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
@@ -308,7 +314,8 @@ public class UserManagerImpl implements UserManager {
 	}
 	
 	@Override
-	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException {
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException {
 		if (userInfo != null) {
 			UserGroup userGroup = userGroupDAO.get(userInfo.getIndividualGroup().getId());
 			userGroup.setName(newEmail);
@@ -328,5 +335,48 @@ public class UserManagerImpl implements UserManager {
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
+	}
+
+	/**
+	 * Will replace createIndividualGroup() and createPrincipal()
+	 */
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void createUser(NewUser user) {
+		UserGroup individualGroup = new UserGroup();
+		individualGroup.setName(user.getEmail());
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		try {
+			String id = userGroupDAO.create(individualGroup);
+			individualGroup = userGroupDAO.get(id);
+		} catch (NotFoundException e) {
+			throw new DatastoreException(e);
+		} catch (InvalidModelException e) {
+			throw new DatastoreException(e);
+		}
+		
+		// Make a user profile for this individual
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(individualGroup.getId());
+		userProfile.setFirstName(user.getFirstName());
+		userProfile.setLastName(user.getLastName());
+		userProfile.setDisplayName(user.getDisplayName());
+		try {
+			userProfileDAO.create(userProfile);
+		} catch (InvalidModelException e) {
+			throw new RuntimeException(e);
+		}
+		
+		// Store the user's authentication info
+		String passHash;
+		try {
+			passHash = PBKDF2Utils.hashPassword(user.getPassword(), null);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		} catch (InvalidKeySpecException e) {
+			throw new RuntimeException(e);
+		}
+		authDAO.create(individualGroup.getId(), passHash);
 	}
 }
