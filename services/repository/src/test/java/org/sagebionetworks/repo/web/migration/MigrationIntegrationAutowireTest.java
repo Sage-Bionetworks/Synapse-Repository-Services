@@ -480,8 +480,10 @@ public class MigrationIntegrationAutowireTest {
 	private void createCredentials() throws Exception {
 		// Use a user created for another migration task
 		assertTrue(tempUserAndGroups.size() > 0);
-		authDAO.create(tempUserAndGroups.get(0).getId(), "ThisIsMySuperSecurePassword");
-		authDAO.changeSecretKey(tempUserAndGroups.get(0).getId());
+		String principalId = tempUserAndGroups.get(0).getId();
+		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
+		authDAO.changeSecretKey(principalId);
+		authDAO.changeSessionToken(principalId, null);
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {

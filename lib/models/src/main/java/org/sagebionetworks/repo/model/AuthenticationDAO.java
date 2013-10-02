@@ -1,23 +1,40 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.auth.Credential;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.web.NotFoundException;
 
-
+/**
+ * Note: These methods assume that all users have a row in the appropriate table, 
+ *   presumably created by the UserGroupDAO
+ */
 public interface AuthenticationDAO {
 
 	/**
-	 * Checks a username/password combination
-	 * @return A session token if valid, otherwise null
+	 * Checks to see if the username and password hash combination are valid
+	 * @return The UserID of corresponding to the credentials
+	 * @throws UnauthorizedException If the username or password are incorrect
 	 */
-	public Session authenticate(Credential credential) throws NotFoundException;
+	public Long checkEmailAndPassword(String email, String passHash) throws UnauthorizedException;
+	
+	/**
+	 * Updates the timestamp associated with the user's session token
+	 * It is the caller's responsibility to determine if the session token is still valid
+	 */
+	public void revalidateSessionToken(String principalId);
+	
+	/**
+	 * Changes the user's session token to the specified string
+	 * @param sessionToken If null, a random token is generated
+	 *   To set the token to null, use deleteSessionToken()
+	 * @return The session token that was set
+	 */
+	public String changeSessionToken(String principalId, String sessionToken);
 	
 	/** 
 	 * Fetches a session token by username (email)
+	 * If the token has expired, null is returned
 	 * It is the caller's responsibility to make sure the token does not go into unauthorized hands
 	 */
-	public Session getSessionToken(String username);
+	public Session getSessionTokenIfValid(String username);
 	
 	/**
 	 * Nullifies the session token
@@ -26,14 +43,14 @@ public interface AuthenticationDAO {
 	
 	/**
 	 * Looks for the given session token
-	 * @return The principal ID of the holder, or null if the token is not used
+	 * @return The principal ID of the holder, or null if the token is invalid
 	 */
-	public Long getPrincipal(String sessionToken);
+	public Long getPrincipalIfValid(String sessionToken);
 	
 	/**
-	 * Makes an entry for the given user
+	 * Returns the salt used to hash the user's password
 	 */
-	public void create(String id, String passHash);
+	public byte[] getPasswordSalt(String username);
 	
 	/**
 	 * Changes a user's password
@@ -52,7 +69,9 @@ public interface AuthenticationDAO {
 	
 	/**
 	 * Replaces the user's secret key with the specified one
+	 * This method should only be used by the CrowdMigratorService
 	 */
+	@Deprecated
 	public void changeSecretKey(String id, String secretKey);
 
 }

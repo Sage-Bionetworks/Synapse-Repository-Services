@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.auth.Credential;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -9,15 +9,16 @@ public interface AuthenticationManager {
 
 	/**
 	 * Authenticates a user/password combination, returning a session token if valid
+	 * @param password If null, password checking is skipped
 	 */
-	public Session authenticate(Credential credential, boolean validatePassword)
-			throws NotFoundException;
+	public Session authenticate(String email, String password) throws NotFoundException;
 	
 	/**
 	 * Looks for the given session token
-	 * @return The principal ID of the holder, or null if the token is not used
+	 * @return The principal ID of the holder
+	 * @throws UnauthorizedException If the token is not valid
 	 */
-	public Long checkSessionToken(String sessionToken);
+	public Long checkSessionToken(String sessionToken) throws UnauthorizedException;
 	
 	/**
 	 * Deletes the given session token, thereby invalidating it
@@ -27,7 +28,7 @@ public interface AuthenticationManager {
 	/**
 	 * Changes a user's password
 	 */
-	public void changePassword(String id, String passHash);
+	public void changePassword(String id, String password);
 	
 	/** 
 	 * Gets the user's secret key
@@ -42,6 +43,6 @@ public interface AuthenticationManager {
 	/**
 	 * Returns the user's session token
 	 */
-	public Session getSessionToken(String username);
+	public Session getSessionToken(String username) throws NotFoundException;
 	
 }

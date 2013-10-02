@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -10,6 +9,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,10 +17,10 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.auth.Credential;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -43,7 +43,6 @@ public class DBOAuthenticationDAOImplTest {
 	List<String> groupsToDelete;
 	
 	private static final String GROUP_NAME = "auth-test-group";
-	private Credential credential;
 	private DBOCredential secretRow;
 
 	@Before
@@ -60,18 +59,13 @@ public class DBOAuthenticationDAOImplTest {
 		}
 		groupsToDelete.add(ug.getId());
 		Long principalId = Long.parseLong(ug.getId());
-		
-		// Construct the username/password combo
-		credential = new Credential();
-		credential.setEmail(GROUP_NAME);
-		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 
-		// Make a row of Credentials but don't insert it yet
+		// Make a row of Credentials but apply it yet
 		secretRow = new DBOCredential();
 		secretRow.setPrincipalId(principalId);
 		secretRow.setValidatedOn(new Date());
 		secretRow.setSessionToken("Hsssssss...");
-		secretRow.setPassHash(credential.getPassHash());
+		secretRow.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		secretRow.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	}
 
@@ -82,82 +76,104 @@ public class DBOAuthenticationDAOImplTest {
 		}
 	}
 	
-	@Test(expected=UnauthorizedException.class)
-	public void testAuthenticateBadPassword() throws Exception {
-		basicDAO.createNew(secretRow);
+	@Test
+	public void testCheckEmailAndPassword() throws Exception {
+		basicDAO.update(secretRow);
 		
-		credential.setPassHash("INVALID");
-		authDAO.authenticate(credential);
-		fail();
+		// Valid combination
+		Long principalId = authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
+		Assert.assertEquals(secretRow.getPrincipalId(), principalId);
+		
+		// Invalid combinations
+		try {
+			authDAO.checkEmailAndPassword(GROUP_NAME, "Blargle");
+			fail("That combination should not have succeeded");
+		} catch (UnauthorizedException e) { }
+		
+		try {
+			authDAO.checkEmailAndPassword("Blargle", secretRow.getPassHash());
+			fail("That combination should not have succeeded");
+		} catch (UnauthorizedException e) { }
+		
+		try {
+			authDAO.checkEmailAndPassword("Blargle", "Blargle");
+			fail("That combination should not have succeeded");
+		} catch (UnauthorizedException e) { }
 	}
 	
 	@Test
-	public void testAuthenticateValidSession() throws Exception {
+	public void testSessionTokenCRUD() throws Exception {
+		basicDAO.update(secretRow);
+		
+		// Get by username
+		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Assert.assertEquals(secretRow.getSessionToken(), session.getSessionToken());
+		
+		// Get by token
+		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
+		Assert.assertEquals(secretRow.getPrincipalId(), id);
+		
+		// Delete
+		authDAO.deleteSessionToken(secretRow.getSessionToken());
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		System.out.println(session);
+		Assert.assertNull(session.getSessionToken());
+		
+		// Change to a string
+		String foobarSessionToken = "foobar";
+		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), foobarSessionToken);
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Assert.assertEquals(foobarSessionToken, session.getSessionToken());
+		
+		// Change to a UUID
+		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), null);
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Assert.assertFalse(foobarSessionToken.equals(session.getSessionToken()));
+		Assert.assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
+	}
+	
+	@Test
+	public void testSessionTokenRevalidation() throws Exception {
 		// Test fast!  Only one second before expiration!
 		Date almostExpired = secretRow.getValidatedOn();
-		almostExpired.setTime(almostExpired.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1);
-		basicDAO.createNew(secretRow);
-		
-		Session session = authDAO.authenticate(credential);
-		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
-	}
-	
-	@Test
-	public void testAuthenticateNoSession() throws Exception {
-		secretRow.setSessionToken(null);
-		basicDAO.createNew(secretRow);
-		
-		Session session = authDAO.authenticate(credential);
-		assertNotNull(session.getSessionToken());
-	}
-	
-	@Test
-	public void testAuthenticateTerminatedSession() throws Exception {
-		basicDAO.createNew(secretRow);
-		authDAO.deleteSessionToken(secretRow.getSessionToken());
-		
-		Session session = authDAO.authenticate(credential);
-		assertNotNull(session.getSessionToken());
-	}
-	
-	@Test
-	public void testAuthenticationAfterOneDay() throws Exception {
-		// The token is still valid for 1 second!
-		Date almostExpired = secretRow.getValidatedOn();
-		almostExpired.setTime(almostExpired.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1);
-		basicDAO.createNew(secretRow);
+		almostExpired.setTime(almostExpired.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000);
+		basicDAO.update(secretRow);
+
+		// A second hasn't passed yet
+		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Assert.assertNotNull(session);
+		Assert.assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
 		Thread.sleep(1500);
 		
-		// Oh no, the token has gone bad!
-		Session session = authDAO.authenticate(credential);
-		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
-	}
-	
-	@Test
-	public void testGetPrincipal() throws Exception {
-		basicDAO.createNew(secretRow);
-		Long id = authDAO.getPrincipal(secretRow.getSessionToken());
-		assertEquals(secretRow.getPrincipalId(), id);
+		// Session should no longer be valid
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Assert.assertNull(session);
+
+		// Session is valid again
+		authDAO.revalidateSessionToken(secretRow.getPrincipalId().toString());
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Assert.assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testChangePassword() throws Exception {
 		// The original credentials should authenticate correctly
-		basicDAO.createNew(secretRow);
-		authDAO.authenticate(credential);
+		basicDAO.update(secretRow);
+		Long principalId = authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
+		Assert.assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Change the password and try to authenticate again
-		// This time it should fail
 		authDAO.changePassword(secretRow.getPrincipalId().toString(), "Bibbity Boppity BOO!");
-		authDAO.authenticate(credential);
-		fail();
+		
+		// This time it should fail
+		authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
 	}
 	
 	@Test
 	public void testSecretKey() throws Exception {
 		String userId = secretRow.getPrincipalId().toString();
-		basicDAO.createNew(secretRow);
+		basicDAO.update(secretRow);
 		
 		// Getter should work
 		assertEquals(secretRow.getSecretKey(), authDAO.getSecretKey(userId));
@@ -165,5 +181,19 @@ public class DBOAuthenticationDAOImplTest {
 		// Setter should work
 		authDAO.changeSecretKey(userId);
 		assertFalse(secretRow.getSecretKey().equals(authDAO.getSecretKey(userId)));
+	}
+	
+	@Test
+	public void testGetPasswordSalt() throws Exception {
+		basicDAO.update(secretRow);
+		String passHash = PBKDF2Utils.hashPassword("password", null);
+		byte[] salt = PBKDF2Utils.extractSalt(passHash);
+		
+		// Change the password to a valid one
+		authDAO.changePassword(secretRow.getPrincipalId().toString(), passHash);
+		
+		// Compare the salts
+		byte[] passedSalt = authDAO.getPasswordSalt(GROUP_NAME);
+		Assert.assertArrayEquals(salt, passedSalt);
 	}
 }

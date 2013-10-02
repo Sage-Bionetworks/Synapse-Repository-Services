@@ -1,35 +1,65 @@
 package org.sagebionetworks.repo.manager;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.auth.Credential;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Very simple implementation of an authentication manager
- * Merely passes each call to the appropriate method of the AuthenticationDAO
- */
 public class AuthenticationManagerImpl implements AuthenticationManager {
 
 	@Autowired
-	AuthenticationDAO authDAO;
+	private AuthenticationDAO authDAO;
 	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(Credential credential, boolean validatePassword) 
-			throws NotFoundException {
-		if (validatePassword) {
-			return authDAO.authenticate(credential);
-		}
-		return authDAO.getSessionToken(credential.getEmail());
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+	
+	public AuthenticationManagerImpl() { }
+	
+	/**
+	 * For unit testing
+	 */
+	public AuthenticationManagerImpl(AuthenticationDAO authDAO, UserGroupDAO userGroupDAO) {
+		this.authDAO = authDAO;
+		this.userGroupDAO = userGroupDAO;
 	}
 	
 	@Override
-	public Long checkSessionToken(String sessionToken) {
-		return authDAO.getPrincipal(sessionToken);
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Session authenticate(String email, String password) throws NotFoundException {
+		// Check the username password combination
+		// This will throw an UnauthorizedException if invalid
+		if (password != null) {
+			byte[] salt = authDAO.getPasswordSalt(email);
+			String passHash;
+			try {
+				passHash = PBKDF2Utils.hashPassword(password, salt);
+			} catch (NoSuchAlgorithmException e) {
+				throw new RuntimeException(e);
+			} catch (InvalidKeySpecException e) {
+				throw new RuntimeException(e);
+			}
+			authDAO.checkEmailAndPassword(email, passHash);
+		}
+		
+		return getSessionToken(email);
+	}
+	
+	@Override
+	public Long checkSessionToken(String sessionToken) throws UnauthorizedException {
+		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
+		if (principalId == null) {
+			throw new UnauthorizedException("The session token (" + sessionToken + ") is invalid");
+		}
+		return principalId;
 	}
 
 	@Override
@@ -39,6 +69,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void changePassword(String id, String passHash) {
 		authDAO.changePassword(id, passHash);
 	}
@@ -56,8 +87,25 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session getSessionToken(String username) {
-		return authDAO.getSessionToken(username);
+	public Session getSessionToken(String username) throws NotFoundException {
+		// Get the session token
+		Session session = authDAO.getSessionTokenIfValid(username);
+		
+		// Make the session token if none was returned
+		if (session == null) {
+			session = new Session();
+		}
+		if (session.getSessionToken() == null) {
+			UserGroup ug = userGroupDAO.findGroup(username, true);
+			if (ug == null) {
+				throw new NotFoundException("The user (" + username + ") does not exist");
+			}
+			String principalId = ug.getId();
+			String token = authDAO.changeSessionToken(principalId, null);
+			session.setSessionToken(token);
+		}
+		
+		return session;
 	}
 	
 }
