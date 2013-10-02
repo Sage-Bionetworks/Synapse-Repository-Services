@@ -70,6 +70,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitee" />
+				<!-- Table -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />

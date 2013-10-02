@@ -297,6 +297,14 @@ public class SqlConstants {
 	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
 	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
 	
+	// The column model table
+	public static final String TABLE_COLUMN_MODEL			= "COLUMN_MODEL";
+	public static final String COL_CM_ID					= "ID";
+	public static final String COL_CM_NAME					= "NAME";
+	public static final String COL_CM_HASH					= "HASH";
+	public static final String COL_CM_BYTES					= "BYTES";
+	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
+	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
