@@ -10,10 +10,6 @@
             "type":"string",
             "description":"The display name of the column"
         },
-        "description":{
-            "type":"string",
-            "description":"The description of this column"
-        },
         "defaultValue":{
             "type":"string",
             "description":"The default value of this column."
@@ -28,8 +24,16 @@
 				"DOUBLE",
 				"LONG",
 				"BOOLEAN",
-				"FILEHANDLEID"
+				"FILEHANDLEID",
+				"ENUM"
 			]
 		},
+		"enumValues": {
+			"description": "For a column type that is an enumeration this is the list of values",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
     }
 }
