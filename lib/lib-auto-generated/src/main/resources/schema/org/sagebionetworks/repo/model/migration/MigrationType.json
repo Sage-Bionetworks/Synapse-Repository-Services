@@ -4,6 +4,7 @@
     "enum":[
     	"PRINCIPAL",
     	"GROUP_MEMBERS", 
+    	"CREDENTIAL", 
     	"USER_PROFILE",
         "FILE_HANDLE",
         "WIKI_PAGE",
