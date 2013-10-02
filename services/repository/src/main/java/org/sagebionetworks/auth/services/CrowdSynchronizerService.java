@@ -12,7 +12,6 @@ import java.util.Set;
 
 import javax.xml.xpath.XPathExpressionException;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.authutil.AuthenticationException;
@@ -57,7 +56,8 @@ public class CrowdSynchronizerService {
 			.getLogger(CrowdSynchronizerService.class);
 
 	/**
-	 * Pulls data from Crowd into RDS Note: does not create any principals
+	 * Pulls data from Crowd into RDS 
+	 * Note: does not create any principals
 	 * 
 	 * Data includes: 
 	 * - Basic profile info (only if the profile does not exist)
@@ -142,7 +142,6 @@ public class CrowdSynchronizerService {
 	
 	/**
 	 * Migrates the user's info from Crowd into RDS
-	 * 
 	 */
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	protected void migrateUser(String username) throws Exception {
@@ -168,7 +167,7 @@ public class CrowdSynchronizerService {
 		migrateSecretKey(username, principalId);
 		
 		// Get the user's password hash and stash it
-		migratePassword(username, principalId);
+		migratePassword(username);
 	}
 	
 	/**
@@ -226,8 +225,8 @@ public class CrowdSynchronizerService {
 		}
 	}
 	
-	private void migratePassword(String username, String principalId) {
-		throw new NotImplementedException();
+	private void migratePassword(String username) throws NotFoundException {
+		authDAO.migratePasswordHashFromCrowd(username);
 	}
 	
 	private String ensureGroupExists(String groupName) {
