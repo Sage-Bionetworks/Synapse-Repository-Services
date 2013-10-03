@@ -3,13 +3,22 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,20 +65,20 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			"SELECT * FROM "+TABLE_TEAM+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_COUNT_FOR_MEMBER_SQL = 
-			"SELECT count(*) FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
+	private static final String SELECT_COUNT_FOR_MEMBER_SQL_CORE = 
+			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
 			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
 			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
+
+	private static final String SELECT_COUNT_FOR_MEMBER_SQL = 
+			"SELECT count(*) "+SELECT_COUNT_FOR_MEMBER_SQL_CORE;
 
 	private static final String SELECT_COUNT_SQL = 
 			"SELECT COUNT(*) FROM "+TABLE_TEAM;
 
 	private static final String SELECT_GROUPS_OF_MEMBER = 
-			"SELECT t.* FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
-			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
-			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")"+
+			"SELECT t.* "+SELECT_COUNT_FOR_MEMBER_SQL_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-
 	
 	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
 

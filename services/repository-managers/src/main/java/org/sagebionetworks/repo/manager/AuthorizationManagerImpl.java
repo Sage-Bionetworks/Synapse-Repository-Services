@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
@@ -55,6 +56,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private FileHandleDao fileHandleDao;
+	@Autowired
+	private AccessControlListDAO aclDAO;
 
 	@Override
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -82,6 +85,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				}
 				AccessApproval accessApproval = accessApprovalDAO.get(objectId);
 				return canAdminAccessApproval(userInfo, accessApproval);
+			case TEAM:
+				if (userInfo.isAdmin()) {
+					return true;
+				}
+				// just check the acl
+				return aclDAO.canAccess(userInfo.getGroups(), objectId, accessType);
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}

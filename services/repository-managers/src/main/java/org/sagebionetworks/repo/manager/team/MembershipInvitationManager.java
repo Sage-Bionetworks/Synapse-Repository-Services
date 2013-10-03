@@ -19,8 +19,9 @@ public interface MembershipInvitationManager {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
-	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException;
+	public MembershipInvtnSubmission create(UserInfo userInfo, MembershipInvtnSubmission mis) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * Retrieve an invitation by its ID

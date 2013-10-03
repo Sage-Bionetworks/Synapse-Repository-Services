@@ -53,22 +53,30 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
 	
-	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
-			"SELECT mrs.* FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED_CORE = 
+			" FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
 			" mrs WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
 			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+" ) "+
-			" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) "+
+			" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) ";
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
+			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED_CORE;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED_CORE = 
+			SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED_CORE+
+			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
+	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED = 
-			"SELECT mrs.* FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
-			" mrs WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
-			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+
-			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
-				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+" ) "+
-				" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) "+
+			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED_CORE;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
@@ -135,6 +143,15 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	}
 
 	@Override
+	public long getOpenByTeamCount(long teamId, long now)
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_COUNT, param);
+	}
+
+	@Override
 	public List<MembershipRequest> getOpenByTeamAndRequestorInRange(
 			long teamId, long requestorId, long now, long offset, long limit)
 			throws DatastoreException, NotFoundException {
@@ -146,6 +163,17 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED, membershipRequestRowMapper, param);
+	}
+
+	@Override
+	public long getOpenByTeamAndRequestorCount(long teamId,
+			long requestorId, long now) throws DatastoreException,
+			NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requestorId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT, param);
 	}
 
 }

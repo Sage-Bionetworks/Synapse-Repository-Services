@@ -35,18 +35,18 @@ public interface TeamDAO {
 	
 	/**
 	 * 
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
-	
-	/**
-	 * 
 	 * @return the number of teams in the system
 	 * @throws DatastoreException
 	 */
 	public long getCount() throws DatastoreException;
 
+	/**
+	 * This is used to build up the team and member prefix caches
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
+	
 	/**
 	 * Get the Teams a member belongs to
 	 * @param princialId the team member

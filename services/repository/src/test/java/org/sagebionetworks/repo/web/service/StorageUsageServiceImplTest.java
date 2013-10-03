@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -50,7 +51,7 @@ public class StorageUsageServiceImplTest {
 		Mockito.when(userMan.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
 
 		AuthorizationManager auMan = Mockito.mock(AuthorizationManager.class);
-		Mockito.when(auMan.canAccess(userInfo, nodeId, ACCESS_TYPE.READ)).thenReturn(false);
+		Mockito.when(auMan.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 
 		StorageUsageManager suMan = Mockito.mock(StorageUsageManager.class);
 		Mockito.when(suMan.getUsage(dList)).thenReturn(susList);
