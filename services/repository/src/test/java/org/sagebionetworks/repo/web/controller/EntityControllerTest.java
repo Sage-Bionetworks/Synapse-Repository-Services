@@ -19,9 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -54,7 +54,7 @@ public class EntityControllerTest {
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
-	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
+	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
@@ -79,7 +79,7 @@ public class EntityControllerTest {
 		assertNotNull(fileMetadataDao);
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
-		userName = TestUserDAO.TEST_USER_NAME;
+		userName = AuthorizationConstants.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new ArrayList<String>();
 		// Create a file handle
@@ -185,7 +185,7 @@ public class EntityControllerTest {
 	}
 	
 	@Test
-	public void testAnnotationsCRUD() throws Exception{
+	public void testAnnotationsCRUD() throws Exception {
 		Project p = new Project();
 		p.setName("AnnotCrud");
 		p.setEntityType(p.getClass().getName());
@@ -193,7 +193,7 @@ public class EntityControllerTest {
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		Annotations annos = entityServletHelper.getEntityAnnotaions(id, TEST_USER1);
+		Annotations annos = entityServletHelper.getEntityAnnotations(id, TEST_USER1);
 		assertNotNull(annos);
 		// Change the values
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
@@ -210,7 +210,7 @@ public class EntityControllerTest {
 	}
 	
 	@Test
-	public void testGetUserEntityPermissions() throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException{
+	public void testGetUserEntityPermissions() throws Exception{
 		Project p = new Project();
 		p.setName("UserEntityPermissions");
 		p.setEntityType(p.getClass().getName());
@@ -247,7 +247,7 @@ public class EntityControllerTest {
 	}
 	
 	@Test
-	public void testEntityPath() throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException{
+	public void testEntityPath() throws Exception{
 		Project p = new Project();
 		p.setName("EntityPath");
 		p.setEntityType(p.getClass().getName());
@@ -264,7 +264,7 @@ public class EntityControllerTest {
 	}
 	
 	@Test
-	public void testGetRESTResources() throws ServletException, IOException, JSONObjectAdapterException{
+	public void testGetRESTResources() throws Exception {
 		RestResourceList rrl = entityServletHelper.getRESTResources();
 		assertNotNull(rrl);
 		assertNotNull(rrl.getList());
@@ -273,7 +273,7 @@ public class EntityControllerTest {
 	
 	
 	@Test
-	public void testGetEffectiveSchema() throws ServletException, IOException, JSONObjectAdapterException{
+	public void testGetEffectiveSchema() throws Exception {
 		String resourceId = Study.class.getName();
 		ObjectSchema effective = entityServletHelper.getEffectiveSchema(Study.class.getName());
 		assertNotNull(effective);
@@ -281,7 +281,7 @@ public class EntityControllerTest {
 	}
 	
 	@Test
-	public void testGetFullSchema() throws ServletException, IOException, JSONObjectAdapterException{
+	public void testGetFullSchema() throws Exception {
 		ObjectSchema full = entityServletHelper.getFullSchema(Study.class.getName());
 		assertNotNull(full);
 		// This class should implement entity.
@@ -290,7 +290,7 @@ public class EntityControllerTest {
 	}
 	
 	@Test
-	public void testGetRegistry() throws ServletException, IOException, JSONObjectAdapterException{
+	public void testGetRegistry() throws Exception {
 		EntityRegistry registry = entityServletHelper.getEntityRegistry();
 		assertNotNull(registry);
 		assertNotNull(registry.getEntityTypes());

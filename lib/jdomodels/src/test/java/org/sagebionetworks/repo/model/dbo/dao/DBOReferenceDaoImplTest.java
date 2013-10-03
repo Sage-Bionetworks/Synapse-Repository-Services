@@ -82,7 +82,7 @@ public class DBOReferenceDaoImplTest {
 	// This is the node we will add refrence too.
 	private DBONode node;
 	
-	private static final String GROUP_NAME = "test-group";
+	private static final String GROUP_NAME = "ReferenceDAO_TestGroup";
 
 	@After
 	public void after() throws DatastoreException, NotFoundException {

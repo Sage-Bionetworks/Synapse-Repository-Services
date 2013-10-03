@@ -41,8 +41,6 @@
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 
-	<alias name="nodeDao" alias="nodeBackupDao" />
-
 	<bean id="activityDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl"
 		depends-on="idGenerator" />
@@ -94,15 +92,17 @@
 
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
-		depends-on="userGroupDAO" init-method="bootstrapProfiles">
-		<property name="bootstrapUsers" ref="bootstrapUsers" />
-	</bean>
+		depends-on="userGroupDAO" 
+		init-method="bootstrapProfiles" />
 	
 	<bean id="crowdGroupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
 	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" />
+	<bean id="authDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
+		depends-on="userGroupDAO" />
 
 	<bean id="accessRequirementDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
@@ -167,6 +167,11 @@
 
 	<bean id="storageQuotaAdminDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.StorageQuotaAdminDaoImpl"
+		scope="singleton">
+	</bean>
+	
+	<bean id="columnModelDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOColumnModelDAOImpl"
 		scope="singleton">
 	</bean>
 

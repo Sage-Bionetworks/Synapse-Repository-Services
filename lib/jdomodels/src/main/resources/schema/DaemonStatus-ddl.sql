@@ -13,6 +13,5 @@ CREATE TABLE `DAEMON_STATUS` (
   `RUN_TIME_MS` bigint(20) NOT NULL,
   `TYPE` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
   PRIMARY KEY (`ID`)
-
 )
 

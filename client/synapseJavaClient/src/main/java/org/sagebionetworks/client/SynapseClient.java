@@ -593,7 +593,7 @@ public interface SynapseClient {
 
 	Evaluation getEvaluation(String evalId) throws SynapseException;
 
-	PaginatedResults<Evaluation> getEvaluationByContentSource(String projectId,
+	PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
 			int offset, int limit) throws SynapseException;
 
 	@Deprecated

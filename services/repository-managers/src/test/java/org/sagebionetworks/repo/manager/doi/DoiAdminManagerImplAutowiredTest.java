@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.manager.doi;
 
-import static org.junit.Assert.assertNotNull;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -16,17 +15,18 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiAdminManagerImplAutowiredTest {
 
-	@Autowired private DoiAdminManager doiAdminManager;
-	@Autowired private UserProvider userProvider;
-	private UserInfo testUserInfo;
+	@Autowired 
+	private DoiAdminManager doiAdminManager;
+	
+	@Autowired
+	private UserManager userManager;
 	private UserInfo testAdminUserInfo;
+	private UserInfo testUserInfo;
 
 	@Before
-	public void before() {
-		testUserInfo = userProvider.getTestUserInfo();
-		assertNotNull(testUserInfo);
-		testAdminUserInfo = userProvider.getTestAdminUserInfo();
-		assertNotNull(testAdminUserInfo);
+	public void before() throws Exception {
+		testAdminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 	}
 
 	@Test

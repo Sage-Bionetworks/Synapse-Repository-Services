@@ -16,7 +16,6 @@ import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -45,7 +44,7 @@ public class NodeTreeQueryControllerAutowireTest {
 	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
 	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
 
-	private final String testUser = TestUserDAO.ADMIN_USER_NAME;
+	private final String testUser = AuthorizationConstants.ADMIN_USER_NAME;
 	private Entity parent;
 	private Entity child;
 	private List<EntityHeader> rootToChild;

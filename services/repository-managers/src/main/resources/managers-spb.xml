@@ -158,59 +158,9 @@
 		scope="singleton" />
 	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO"
 		scope="singleton" />
+		
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 
-	<bean id="backupManager"
-		class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl"
-		scope="singleton" />
-
-	<bean id="nodeOwnerMigrator"
-		class="org.sagebionetworks.repo.manager.backup.migration.NodeOwnerMigratorImpl"
-		scope="singleton" />
-
-	<bean id="migrationDriver"
-		class="org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl"
-		scope="singleton">
-		<property name="revisionSteps">
-			<list>
-				<bean
-					class="org.sagebionetworks.repo.manager.backup.migration.ApplyMigrationData">
-					<constructor-arg>
-						<bean
-							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-							<property name="targetClass">
-								<value>org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl
-								</value>
-							</property>
-							<property name="targetMethod">
-								<value>getMigrationData</value>
-							</property>
-						</bean>
-					</constructor-arg>
-				</bean>
-				<bean
-					class="org.sagebionetworks.repo.manager.backup.migration.GenericMigrator">
-					<constructor-arg>
-						<bean id="migrationSpecData"
-							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-							<property name="targetClass">
-								<value>org.sagebionetworks.repo.model.registry.MigrationSpecDataLoaderImpl
-								</value>
-							</property>
-							<property name="targetMethod">
-								<value>getMigrationSpecData</value>
-							</property>
-						</bean>
-					</constructor-arg>
-				</bean>
-				<bean
-					class="org.sagebionetworks.repo.manager.backup.migration.DataTypeMigrator">
-				</bean>
-				<bean
-					class="org.sagebionetworks.repo.manager.backup.migration.NodeOwnerMigratorImpl">
-				</bean>
-			</list>
-		</property>
-	</bean>
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
 	
@@ -218,11 +168,6 @@
 		<property name="backupBatchMax"
 			ref="stackConfiguration.migrationBackupBatchMax" />
 	</bean>
-
-	<bean id="nodeSerializer"
-		class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl"
-		scope="singleton" />
-
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />

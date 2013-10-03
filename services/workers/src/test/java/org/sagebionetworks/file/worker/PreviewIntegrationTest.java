@@ -15,16 +15,17 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.web.util.UserProvider;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -48,27 +49,30 @@ public class PreviewIntegrationTest {
 	public static final long MAX_WAIT = 30*1000; // 30 seconds
 	
 	@Autowired
-	FileHandleManager fileUploadManager;
+	private FileHandleManager fileUploadManager;
+	
 	@Autowired
-	private UserProvider userProvider;
+	private UserManager userManager;
+	
 	@Autowired
 	private MessageReceiver fileQueueMessageReveiver;
-	@Autowired
-	AmazonS3Client s3Client;
 	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private AmazonS3Client s3Client;
 	
-	List<S3FileHandleInterface> toDelete;
-	UserInfo userInfo;
-	S3FileHandle imageFileHandle, csvFileHandle, tabFileHandle, txtFileHandle;
+	@Autowired
+	private FileHandleDao fileMetadataDao;
+	
+	private List<S3FileHandleInterface> toDelete;
+	private UserInfo userInfo;
+	private S3FileHandle imageFileHandle, csvFileHandle, tabFileHandle, txtFileHandle;
 	
 	@Before
 	public void before() throws Exception {
 		// Before we start, make sure the queue is empty
 		emptyQueue();
 		// Create a file
-		userInfo = userProvider.getTestUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		imageFileHandle = uploadFile(LITTLE_IMAGE_NAME, ImagePreviewGenerator.IMAGE_PNG);

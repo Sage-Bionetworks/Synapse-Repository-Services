@@ -29,13 +29,13 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -110,35 +111,52 @@ public class MigrationIntegrationAutowireTest {
 	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
 	
 	@Autowired
-	EntityServletTestHelper entityServletHelper;
+	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
+	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
-	UserProfileManager userProfileManager;
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
+	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
+	
 	@Autowired
-	MigrationManager migrationManager;
+	private MigrationManager migrationManager;
+	
 	@Autowired
-	StorageQuotaManager storageQuotaManager;
+	private StorageQuotaManager storageQuotaManager;
+	
 	@Autowired
-	StorageQuotaAdminDao storageQuotaAdminDao;
+	private StorageQuotaAdminDao storageQuotaAdminDao;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
-	GroupMembersDAO groupMembersDAO;
+	private GroupMembersDAO groupMembersDAO;
+	
 	@Autowired
-	TeamDAO teamDAO;
+	private TeamDAO teamDAO;
+
 	@Autowired
-	MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	private AuthenticationDAO authDAO;
+
 	@Autowired
-	MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+
+	@Autowired
+	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 
 	UserInfo userInfo;
 	private String userName;
@@ -181,7 +199,7 @@ public class MigrationIntegrationAutowireTest {
 	Favorite favorite;
 	
 	// UserGroups 
-	List<UserGroup> tempUserAndGroups;
+	List<UserGroup> nonVitalUserGroups;
 	
 	HttpServletRequest mockRequest;
 	
@@ -190,9 +208,10 @@ public class MigrationIntegrationAutowireTest {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
-		userName = TestUserDAO.MIGRATION_USER_NAME;
+		userName = AuthorizationConstants.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
+		nonVitalUserGroups = new ArrayList<UserGroup>();
 		resetDatabase();
 		createFileHandles();
 		createActivity();
@@ -206,6 +225,7 @@ public class MigrationIntegrationAutowireTest {
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
+		createCredentials();
 	}
 
 
@@ -232,12 +252,11 @@ public class MigrationIntegrationAutowireTest {
 	private void createActivity() throws Exception {
 		activity = new Activity();
 		activity.setDescription("some desc");
-		activity = serviceProvider.getActivityService().createActivity(adminId, activity);
+		activity = serviceProvider.getActivityService().createActivity(userName, activity);
 	}
 
 
-	private void createEvaluation() throws JSONObjectAdapterException,
-			IOException, NotFoundException, ServletException {
+	private void createEvaluation() throws Exception {
 		// initialize Evaluations
 		evaluation = new Evaluation();
 		evaluation.setName("name");
@@ -271,7 +290,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	public void createAccessApproval() throws ServletException, IOException {
+	public void createAccessApproval() throws Exception {
 		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminId);
 		accessApproval = ServletTestHelper.createAccessApproval(
 				DispatchServletSingleton.getInstance(), accessApproval, userName, new HashMap<String, String>());
@@ -447,14 +466,30 @@ public class MigrationIntegrationAutowireTest {
 		adder.add(childUser.getId());
 		groupMembersDAO.addMembers(nestedGroup.getId(), adder);
 		
-		// Since the migrator does not delete users by default...
-		tempUserAndGroups = new ArrayList<UserGroup>();
-		tempUserAndGroups.add(parentGroup);
-		tempUserAndGroups.add(nestedGroup);
-		tempUserAndGroups.add(parentUser);
-		tempUserAndGroups.add(siblingUser);
-		tempUserAndGroups.add(childUser);
+		// Since the migrator does not delete users by default, 
+		// All the users and groups not used by the migration process should be deleted
+		List<String> excluded = new ArrayList<String>();
+		excluded.add(AuthorizationConstants.MIGRATION_USER_NAME);
+		nonVitalUserGroups.addAll(userGroupDAO.getAllExcept(true, excluded));
+		excluded.clear();
+		excluded.add(AuthorizationConstants.ADMIN_GROUP_NAME);
+		excluded.add(DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
+		excluded.add(DEFAULT_GROUPS.PUBLIC.name());
+		excluded.add(DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP.name());
+		nonVitalUserGroups.addAll(userGroupDAO.getAllExcept(false, excluded));
+
+		// Made by the bootstrapper
+		nonVitalUserGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
 		return parentGroup;
+	}
+	
+	private void createCredentials() throws Exception {
+		// Use a user created for another migration task
+		assertTrue(nonVitalUserGroups.size() > 0);
+		String principalId = nonVitalUserGroups.get(0).getId();
+		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
+		authDAO.changeSecretKey(principalId);
+		authDAO.changeSessionToken(principalId, null);
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {
@@ -484,7 +519,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		// need another valid user group
 		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
-		long pgLong = Long.parseLong(individUser.getId());
+		Long.parseLong(individUser.getId());
 		
 		membershipInvtnSubmissionDAO.create(mis);
 	}
@@ -526,16 +561,25 @@ public class MigrationIntegrationAutowireTest {
 		}
 		
 		// Delete the temp UserGroups manually
-		for (UserGroup tempUser : tempUserAndGroups) {
-			userGroupDAO.delete(tempUser.getId());
+		for (UserGroup nonVital : nonVitalUserGroups) {
+			userGroupDAO.delete(nonVital.getId());
 		}
 		
 		// after deleting, the counts should be null
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for(int i=1; i<afterDeleteCounts.getList().size(); i++){
-			assertEquals(new Long(0), afterDeleteCounts.getList().get(i).getCount());
+		for (int i = 1; i < afterDeleteCounts.getList().size(); i++) {
+			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
+
+			// Special cases for the not-deleted migration admin
+			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS 
+					|| afterDelete.getType() == MigrationType.CREDENTIAL) {
+				assertEquals("Counts do not match for: " + afterDelete.getType().name(), new Long(1), afterDelete.getCount());
+				
+			} else {
+				assertEquals("Counts are non-zero for: " + afterDelete.getType().name(), new Long(0), afterDelete.getCount());
+			}
 		}
 		
 		// Now restore all of the data
@@ -544,9 +588,15 @@ public class MigrationIntegrationAutowireTest {
 			assertNotNull("Did not find a backup file name for type: "+info.getType(), fileName);
 			restoreFromBackup(info.getType(), fileName);
 		}
+		
 		// The counts should all be back
 		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		assertEquals(startCounts, finalCounts);
+		for (int i = 1; i < finalCounts.getList().size(); i++) {
+			MigrationTypeCount startCount = startCounts.getList().get(i);
+			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
+			// Special case for not-deleted admins
+			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+		}
 	}
 	
 	private static class BackupInfo {
@@ -624,7 +674,7 @@ public class MigrationIntegrationAutowireTest {
 		return getFileNameFromUrl(status.getBackupUrl());
 	}
 	
-	private void restoreFromBackup(MigrationType type, String fileName) throws ServletException, IOException, JSONObjectAdapterException, InterruptedException{
+	private void restoreFromBackup(MigrationType type, String fileName) throws Exception{
 		RestoreSubmission sub = new RestoreSubmission();
 		sub.setFileName(fileName);
 		BackupRestoreStatus status = entityServletHelper.startRestore(userName, type, sub);
@@ -639,7 +689,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void deleteAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
+	private void deleteAllOfType(MigrationType type) throws Exception{
 		IdList idList = getIdListOfAllOfType(type);
 		if(idList == null) return;
 		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
@@ -654,7 +704,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	private IdList getIdListOfAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
+	private IdList getIdListOfAllOfType(MigrationType type) throws Exception{
 		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
 		if(list.getTotalCount() < 1) return null;
 		// Create the backup list
@@ -675,7 +725,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	private void waitForDaemon(BackupRestoreStatus status) throws InterruptedException, ServletException, IOException, JSONObjectAdapterException{
+	private void waitForDaemon(BackupRestoreStatus status) throws Exception{
 		long start = System.currentTimeMillis();
 		while(DaemonStatus.COMPLETED != status.getStatus()){
 			assertFalse("Daemon failed "+status.getErrorDetails(), DaemonStatus.FAILED == status.getStatus());

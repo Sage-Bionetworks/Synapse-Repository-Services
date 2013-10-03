@@ -140,5 +140,8 @@ public class CrowdGroupMembersDAO implements GroupMembersDAO {
 			throw new DatastoreException("500 Server Error - "+e.getMessage(), e);
 		}
 	}
+
+	@Override
+	public void bootstrapGroups() throws Exception { }
 	
 }

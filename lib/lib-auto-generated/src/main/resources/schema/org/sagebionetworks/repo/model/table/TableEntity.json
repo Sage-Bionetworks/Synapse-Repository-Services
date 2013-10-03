@@ -1,0 +1,18 @@
+{
+    "title":"Table",
+    "description":"JSON schema for Table POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Versionable"
+        }
+    ],
+    "properties":{
+		"columns": {
+			"contentEncoding": "binary",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		}
+    }
+}

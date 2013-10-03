@@ -20,7 +20,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -29,7 +31,6 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,21 +43,24 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class MultipartManagerImplAutowireTest {
 
 	@Autowired
-	MultipartManager multipartManager;
+	private MultipartManager multipartManager;
+	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
+	
 	@Autowired
-	AmazonS3Client s3Client;
+	private AmazonS3Client s3Client;
+	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserManager userManager;
 	
 	private UserInfo userInfo;
 	List<String> fileHandlesToDelete;
 	
 	@Before
-	public void before(){
+	public void before() throws Exception {
 		fileHandlesToDelete = new LinkedList<String>();
-		userInfo = testUserProvider.getTestUserInfo();
+		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 	}
 	
 	@After

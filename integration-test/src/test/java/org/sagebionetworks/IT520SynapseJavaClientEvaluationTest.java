@@ -89,7 +89,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static List<Long> accessRequirementsToDelete;
 	
 
-	public static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
+	public static final int RDS_WORKER_TIMEOUT = 2*1000*60; // Two min
 	public static final long MAX_WAIT_MS = 1000*10; // 10 sec	
 	private static final String FILE_NAME = "LittleImage.png";
 

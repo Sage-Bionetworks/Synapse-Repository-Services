@@ -16,7 +16,7 @@ import java.util.TreeSet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.auth.User;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
@@ -29,7 +29,7 @@ public class CrowdAuthUtilTest {
 		// this attempts to clean up any users created in a previous run and not deleted
 		for (int i=0; i<NUM_USERS; i++) {
 			try {
-				User user = CrowdAuthUtil.getUser(userID(i));
+				NewUser user = CrowdAuthUtil.getUser(userID(i));
 				CrowdAuthUtil.deleteUser(user.getEmail());
 			} catch (Exception e) {
 				// here we are doing the best we can, so just go on to the next one
@@ -91,7 +91,7 @@ public class CrowdAuthUtilTest {
 	public void createUsers() throws Exception {
 		long start = System.currentTimeMillis();
 		for (int i=0; i<NUM_USERS; i++) {
-			User user = new User();
+			NewUser user = new NewUser();
 			user.setEmail(userID(i));
 			user.setPassword("pw");
 			user.setFirstName("foo");
@@ -108,7 +108,7 @@ public class CrowdAuthUtilTest {
 	public void deleteUsers() throws Exception {
 		long start = System.currentTimeMillis();
 		for (String s : usersToDelete) {
-			User user = new User();
+			NewUser user = new NewUser();
 			user.setEmail(s);
 			CrowdAuthUtil.deleteUser(user.getEmail());
 		}
@@ -146,7 +146,7 @@ public class CrowdAuthUtilTest {
 		 	Thread thread = new Thread() {
 				public void run() {
 					try {
-						User user = new User();
+						NewUser user = new NewUser();
 						user.setEmail(userID(fi % NUM_USERS));
 						long start = System.currentTimeMillis();
 						CrowdAuthUtil.authenticate(user, false);

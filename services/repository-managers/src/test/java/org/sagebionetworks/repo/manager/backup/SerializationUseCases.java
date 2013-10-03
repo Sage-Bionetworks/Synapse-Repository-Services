@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.backup;
 
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashSet;
@@ -9,10 +8,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.NodeTranslationUtils;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
@@ -25,136 +21,6 @@ import org.sagebionetworks.repo.model.Study;
  * 
  */
 public class SerializationUseCases {
-
-	/**
-	 * This will create a revision with annotations
-	 * 
-	 * @return
-	 */
-	public static NodeRevisionBackup createV0DatasetRevision() {
-		// Create a dataset with data
-		Study ds = createDatasetWithAllFields();
-
-		// Get the annotations for this object
-		Annotations annos = createAnnotationsV0(ds);
-		// now create a revision for this node
-		NodeRevisionBackup rev = createRevisionV0(ds, annos);
-		// We did not have this field in v0
-		rev.setXmlVersion(null);
-		return rev;
-	}
-
-	public static NodeRevisionBackup createV1DatasetRevision() {
-		// Create a dataset with data
-		Study ds = createDatasetWithAllFields();
-
-		// Get the annotations for this object
-		NamedAnnotations annos = createAnnotationsV1(ds);
-		// now create a revision for this node
-		NodeRevisionBackup rev = createRevisionV1(ds, annos);
-		rev.setXmlVersion(NodeRevisionBackup.XML_V_1);
-		return rev;
-	}
-
-	/**
-	 * This will create a revision with annotations
-	 * 
-	 * @return
-	 */
-	public static NodeRevisionBackup createV0ProjectRevision() {
-		// Create a dataset with data
-		Project project = createProjectWithAllFields();
-		// Get the annotations for this object
-		Annotations annos = createAnnotationsV0(project);
-		// now create a revision for this node
-		NodeRevisionBackup rev = createRevisionV0(project, annos);
-		// We did not have this field in v0
-		rev.setXmlVersion(null);
-		return rev;
-	}
-
-	/**
-	 * This will create a revision with annotations
-	 * 
-	 * @return
-	 */
-	public static NodeRevisionBackup createV1ProjectRevision() {
-		// Create a dataset with data
-		Project project = createProjectWithAllFields();
-		// Get the annotations for this object
-		NamedAnnotations annos = createAnnotationsV1(project);
-		// now create a revision for this node
-		NodeRevisionBackup rev = createRevisionV1(project, annos);
-		rev.setXmlVersion(NodeRevisionBackup.XML_V_1);
-		return rev;
-	}
-
-	/**
-	 * This will create a Step revision with references
-	 * 
-	 * This is a little more complicated now with references. TODO think about
-	 * how to factor this more cleanly. The problem is that in the real
-	 * codebase, we don't go from Node -> NodeRevisionBackup, we go from Entity ->
-	 * Node -> JDORevision -> NodeRevisionBackup. We wind up writing a bunch of
-	 * artificial code here instead of testing the real code path.
-	 * 
-	 * @return
-	 */
-	public static NodeRevisionBackup createV1StepRevision() {
-		// Create a Step
-		Step step = createStepWithReferences();
-
-		/************
-		 *  This code is lifted from EntityManagerImpl.createEntity.
-		 */
-		Node node = NodeTranslationUtils.createFromEntity(step);
-		// Set the type for this object
-		node.setNodeType(EntityType.getNodeTypeForClass(step.getClass())
-				.toString());
-		NamedAnnotations named = new NamedAnnotations();
-		// Now add all of the annotations and references from the step
-		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(step, named
-				.getPrimaryAnnotations(), node.getReferences());
-		/*************/
-
-		// Add some annotations
-		Annotations additionalAnnos = named.getAdditionalAnnotations();
-		addAdditionalAnnotations(additionalAnnos);
-
-		// Now create a revision for this node
-		NodeRevisionBackup rev = new NodeRevisionBackup();
-		rev.setRevisionNumber(1l);
-		rev.setNodeId(node.getId());
-		rev.setLabel("The first version of this object");
-		rev.setComment("I have no comment at this time");
-		rev.setNamedAnnotations(named);
-		rev.setReferences(node.getReferences());
-		rev.setXmlVersion(NodeRevisionBackup.XML_V_1);
-		return rev;
-	}
-
-	public static <T extends Entity> NodeRevisionBackup createRevisionV0(T ds,
-			Annotations annos) {
-		NodeRevisionBackup rev = createBasicRev(ds);
-		rev.setAnnotations(annos);
-		return rev;
-	}
-
-	public static <T extends Entity> NodeRevisionBackup createRevisionV1(T ds,
-			NamedAnnotations annos) {
-		NodeRevisionBackup rev = createBasicRev(ds);
-		rev.setNamedAnnotations(annos);
-		return rev;
-	}
-
-	public static <T extends Entity> NodeRevisionBackup createBasicRev(T ds) {
-		NodeRevisionBackup rev = new NodeRevisionBackup();
-		rev.setRevisionNumber(1l);
-		rev.setNodeId(ds.getId());
-		rev.setLabel("The first version of this object");
-		rev.setComment("I have not comment at this time");
-		return rev;
-	}
 
 	/**
 	 * Add the extra annotations from the object plus a few more.
@@ -292,38 +158,5 @@ public class SerializationUseCases {
 //		step.getEnvironmentDescriptors().add(ed);
 
 		return step;
-	}
-
-	public static void main(String[] args) {
-		// project v0
-		NodeRevisionBackup rev = createV0ProjectRevision();
-		StringWriter writer = new StringWriter();
-		NodeSerializerUtil.writeNodeRevision(rev, writer);
-		System.out.println("project v0 xml");
-		System.out.println(writer.toString());
-		// dataset v0
-		rev = createV0DatasetRevision();
-		writer = new StringWriter();
-		NodeSerializerUtil.writeNodeRevision(rev, writer);
-		System.out.println("dataset v0 xml");
-		System.out.println(writer.toString());
-		// project v1
-		rev = createV1ProjectRevision();
-		writer = new StringWriter();
-		NodeSerializerUtil.writeNodeRevision(rev, writer);
-		System.out.println("project v1 xml");
-		System.out.println(writer.toString());
-		// project v1
-		rev = createV1DatasetRevision();
-		writer = new StringWriter();
-		NodeSerializerUtil.writeNodeRevision(rev, writer);
-		System.out.println("dataset v1 xml");
-		System.out.println(writer.toString());
-		// step v1
-		rev = createV1StepRevision();
-		writer = new StringWriter();
-		NodeSerializerUtil.writeNodeRevision(rev, writer);
-		System.out.println("step v1 xml");
-		System.out.println(writer.toString());
 	}
 }
