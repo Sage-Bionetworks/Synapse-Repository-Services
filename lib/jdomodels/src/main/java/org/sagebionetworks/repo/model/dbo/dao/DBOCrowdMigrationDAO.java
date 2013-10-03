@@ -16,7 +16,11 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupParentsCache;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -42,6 +46,9 @@ public class DBOCrowdMigrationDAO {
 
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
+	
+	@Autowired
+	private DBOBasicDao basicDAO;
 
 	@Autowired
 	private SimpleJdbcTemplate simpleCrowdJdbcTemplate;
@@ -67,14 +74,19 @@ public class DBOCrowdMigrationDAO {
 	private static final String OFFSET_PARAM_NAME = "offset";
 	
 	private static final String SELECT_USERS_PAGINATED = 
-			"SELECT " + COL_USER_NAME + ", " + COL_CREATED_DATE + ", " + COL_FIRST_NAME+ ", " + COL_LAST_NAME + ", " + COL_ATTRIBUTE_VALUE + 
-			" FROM " + TABLE_CROWD_USER + ", " + TABLE_CROWD_USER_ATTRIBUTE + 
-			" WHERE " + TABLE_CROWD_USER + ".ID" + " = " + TABLE_CROWD_USER_ATTRIBUTE + ".USER_ID" + 
-				" AND ATTRIBUTE_NAME = \"" + AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE + "\"" + 
+			"SELECT " + COL_USER_NAME + ", " + COL_CREATED_DATE + ", " + COL_FIRST_NAME+ ", " + COL_LAST_NAME +
+			" FROM " + TABLE_CROWD_USER +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_COUNT_OF_USERS = 
 			"SELECT COUNT(" + COL_USER_NAME + ") FROM " + TABLE_CROWD_USER;
+	
+	private static final String SELECT_TOU_OF_USER = 
+			"SELECT " + COL_ATTRIBUTE_VALUE + 
+			" FROM " + TABLE_CROWD_USER + ", " + TABLE_CROWD_USER_ATTRIBUTE + 
+			" WHERE " + TABLE_CROWD_USER + ".ID" + " = " + TABLE_CROWD_USER_ATTRIBUTE + ".USER_ID" + 
+				" AND " + COL_USER_NAME + " = :" + USERNAME_PARAM_NAME + 
+				" AND ATTRIBUTE_NAME = \"" + AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE + "\"";
 	
 	private static final String SELECT_SECRET_KEY_OF_USER = 
 			"SELECT " + COL_ATTRIBUTE_VALUE + 
@@ -90,7 +102,7 @@ public class DBOCrowdMigrationDAO {
 	private static final String SELECT_GROUPS_OF_USER = 
 			"SELECT " + COL_PARENT_NAME + 
 			" FROM " + TABLE_CROWD_USER + ", " + TABLE_CROWD_MEMBERSHIP + 
-			"WHERE CHILD_ID = " + TABLE_CROWD_USER + ".ID" + 
+			" WHERE CHILD_ID = " + TABLE_CROWD_USER + ".ID" + 
 				" AND GROUP_TYPE = \"GROUP\"" + 
 				" AND " + COL_USER_NAME + " = :" + USERNAME_PARAM_NAME;
 	
@@ -103,8 +115,6 @@ public class DBOCrowdMigrationDAO {
 			user.setCreationDate(rs.getDate(COL_CREATED_DATE));
 			user.setFname(rs.getString(COL_FIRST_NAME));
 			user.setLname(rs.getString(COL_LAST_NAME));
-			String acceptToU = rs.getString(COL_ATTRIBUTE_VALUE);
-			user.setAgreesToTermsOfUse(Boolean.parseBoolean(acceptToU));
 			return user;
 		}
 		
@@ -121,7 +131,7 @@ public class DBOCrowdMigrationDAO {
 
 	/**
 	 * Returns a list of names of users residing in Crowd
-	 * Note: Only the displayName, creationDate, firstName, lastName, and ToU fields 
+	 * Note: Only the displayName, creationDate, firstName, and lastName fields 
 	 *   of the returned users will be populated. 
 	 */
 	public List<User> getUsersFromCrowd(long limit, long offset) {
@@ -155,7 +165,7 @@ public class DBOCrowdMigrationDAO {
 		user.setId(ug.getId());
 
 		// Create the user's profile if necessary
-		ensureUserProfileExists(user);
+		ensureSecondaryRowsExist(user);
 
 		// Convert the boolean ToU acceptance state in User to a timestamp in the UserProfile
 		// This will coincidentally re-serialize the profile's blob via the non-deprecated method
@@ -179,7 +189,10 @@ public class DBOCrowdMigrationDAO {
 	/**
 	 * Creates a default UserProfile for the user if necessary
 	 */
-	protected void ensureUserProfileExists(User user) throws InvalidModelException {
+	protected void ensureSecondaryRowsExist(User user) throws InvalidModelException {
+		Long principalId = Long.parseLong(user.getId());
+		
+		// User profile
 		try {
 			userProfileDAO.get(user.getId());
 		} catch (NotFoundException e) {
@@ -191,16 +204,49 @@ public class DBOCrowdMigrationDAO {
 			userProfile.setDisplayName(user.getDisplayName());
 			userProfileDAO.create(userProfile);
 		}
+		
+		// Group parents cache
+		try {
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue("groupId", principalId);
+			basicDAO.getObjectByPrimaryKey(DBOGroupParentsCache.class, param);
+		} catch (NotFoundException e) {
+			// Create a row for the parents cache
+			DBOGroupParentsCache cacheDBO = new DBOGroupParentsCache();
+			cacheDBO.setGroupId(principalId);
+			basicDAO.createNew(cacheDBO);
+		}
+		
+		// Credentials
+		try {
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue("principalId", principalId);
+			basicDAO.getObjectByPrimaryKey(DBOCredential.class, param);
+		} catch (NotFoundException e) {
+			// Create a row for the authentication DAO
+			DBOCredential credDBO = new DBOCredential();
+			credDBO.setPrincipalId(principalId);
+			credDBO.setSecretKey(HMACUtils.newHMACSHA1Key());
+			basicDAO.createNew(credDBO);
+		}
 	}
 	/**
 	 * Converts the boolean user.isAgreesToTermsOfUse() to a timestamp stored in the UserProfile
 	 */
 	protected void migrateToU(User user) throws NotFoundException {
-		UserProfile userProfile = userProfileDAO.get(user.getId());
+		// Find out whether the user has accepted the terms
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(USERNAME_PARAM_NAME, user.getDisplayName());
+		Boolean acceptedToU = false;
+		try {
+			String toU = simpleCrowdJdbcTemplate.queryForObject(SELECT_TOU_OF_USER, String.class, param);
+			acceptedToU = Boolean.parseBoolean(toU);
+		} catch (EmptyResultDataAccessException e) { }
 
 		// Migrate the boolean for the Terms of Use over
+		UserProfile userProfile = userProfileDAO.get(user.getId());
 		long termsTimeStamp;
-		if (user.isAgreesToTermsOfUse() && user.getCreationDate() != null) {
+		if (acceptedToU && user.getCreationDate() != null) {
 			termsTimeStamp = user.getCreationDate().getTime() / 1000;
 		} else {
 			termsTimeStamp = 0L;
@@ -250,36 +296,35 @@ public class DBOCrowdMigrationDAO {
 	 * Synchronizes the group's memberships from Crowd to RDS
 	 */
 	protected void migrateGroups(User user) throws NotFoundException {
+		// Get the parent groups of the user
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USERNAME_PARAM_NAME, user.getDisplayName());
 		List<String> parentGroups = simpleCrowdJdbcTemplate.query(SELECT_GROUPS_OF_USER, groupNameRowMapper, param);
 		List<String> parentIds = new ArrayList<String>();
 		
+		// Parent groups must be created if necessary
 		for (String parent : parentGroups) {
 			parentIds.add(ensureGroupExists(parent));
 		}
 		
-		// Add/remove the minimal number of elements from each group
-		List<UserGroup> existing = groupMembersDAO.getMembers(user.getId());
+		List<String> userId = new ArrayList<String>();
+		userId.add(user.getId());
+		List<UserGroup> existing = groupMembersDAO.getUsersGroups(user.getId());
 		List<UserGroup> newbies = userGroupDAO.get(parentIds);
 
+		// Remove any groups the user is not part of
 		Set<UserGroup> toDelete = new HashSet<UserGroup>(existing);
 		toDelete.removeAll(newbies);
+		for (UserGroup toRemove : toDelete) {
+			groupMembersDAO.removeMembers(toRemove.getId(), userId);
+		}
 
+		// Add any groups the user is part of
 		Set<UserGroup> toAdd = new HashSet<UserGroup>(newbies);
 		toAdd.removeAll(existing);
-
-		List<String> operator = new ArrayList<String>();
-		for (UserGroup ug : toDelete) {
-			operator.add(ug.getId());
+		for (UserGroup toJoin : toAdd) {
+			groupMembersDAO.addMembers(toJoin.getId(), userId);
 		}
-		groupMembersDAO.removeMembers(user.getId(), operator);
-
-		operator.clear();
-		for (UserGroup ug : toAdd) {
-			operator.add(ug.getId());
-		}
-		groupMembersDAO.addMembers(user.getId(), operator);
 	}
 
 	protected String ensureGroupExists(String groupName) {
