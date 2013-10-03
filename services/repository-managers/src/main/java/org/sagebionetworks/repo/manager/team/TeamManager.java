@@ -1,13 +1,17 @@
 package org.sagebionetworks.repo.manager.team;
 
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -34,16 +38,7 @@ public interface TeamManager {
 	 */
 	public QueryResults<Team> get(long offset, long limit) throws DatastoreException;
 
-	/**
-	 * Retrieve the Teams whose names match the given nameFragment, paginated
-	 * @param nameFragment
-	 * @param offset
-	 * @param limit
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public QueryResults<Team> getByNameFragment(String nameFragment, long offset, long limit) throws DatastoreException;
-
+	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
 	/**
 	 * Retrieve the Teams to which the given user belongs, paginated
 	 * @param principalId
@@ -97,15 +92,6 @@ public interface TeamManager {
 	 * @throws NotFoundException
 	 */
 	public void addMember(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Get the members of a Team matching a name fragment, paginated
-	 * @param nameFragment, if null then all members are returned
-	 * @param limit
-	 * @param offset
-	 * @return
-	 */
-	public QueryResults<Team> getMembersByNameFragment(String nameFragment, long offset, long limit);
 	
 	/**
 	 * Remove a member from a Team

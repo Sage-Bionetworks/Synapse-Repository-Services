@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -20,19 +21,25 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.amazonaws.services.dynamodb.model.QueryResult;
 
 /**
  * @author brucehoff
@@ -48,11 +55,17 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
 	@Autowired
+	private UserGroupDAO userGroupDAO;
+	@Autowired
 	private UserManager userManager;
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private FileHandleManager fileHandlerManager;
+	@Autowired
+	private MembershipInvitationManager membershipInvitationManager;
+	@Autowired
+	private MembershipRequestManager membershipRequestManager;
 	
 	public static void validateForCreate(Team team) {
 		if (team.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
@@ -145,15 +158,6 @@ public class TeamManagerImpl implements TeamManager {
 		return queryResults;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByNameFragment(java.lang.String, long, long)
-	 */
-	@Override
-	public QueryResults<Team> getByNameFragment(String nameFragment,
-			long offset, long limit) throws DatastoreException {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
@@ -197,15 +201,41 @@ public class TeamManagerImpl implements TeamManager {
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, id, ObjectType.TEAM, ACCESS_TYPE.DELETE)) throw new UnauthorizedException("Cannot delete Team.");
-		// TODO delete ACL
-		// TODO delete Team
-		// TODO delete userGroup
-
+		// delete ACL
+		aclDAO.delete(id);
+		// delete Team
+		teamDAO.delete(id);
+		// delete userGroup
+		userGroupDAO.delete(id);
 	}
 	
-	public boolean canAddTeamMember(UserInfo userInfo, String teamId, String principalId) {
-		// TODO
-		return true;
+	/**
+	 * Either:
+		principalId is self and membership invitation has been extended, or
+    	principalId is self and have MEMBERSHIP permission on Team, or
+    	have MEMBERSHIP permission on Team and membership request has been created for principalId
+	 * @param userInfo
+	 * @param teamId the ID of the team
+	 * @param principalId the ID of the one to be added to the team
+	 * @return
+	 */
+	public boolean canAddTeamMember(UserInfo userInfo, String teamId, String principalId) throws NotFoundException {
+		if (userInfo.isAdmin()) return true;
+		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
+		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP);
+		if (principalIsSelf) {
+			// trying to add myself to Team.  
+			if (amTeamAdmin) return true;
+			// if I'm not a team admin, then I need to have an invitation
+			QueryResults<MembershipInvitation> openInvitations = membershipInvitationManager.getOpenForUserInRange(principalId,0,1);
+			return openInvitations.getTotalNumberOfResults()>0L;
+		} else {
+			// the member to be added is someone other than me
+			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
+			// can't add someone unless they are asking to be added
+			QueryResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(principalId, teamId, 0, 1);
+			return openRequests.getTotalNumberOfResults()>0L;
+		}
 	}
 
 	/* (non-Javadoc)
@@ -217,21 +247,21 @@ public class TeamManagerImpl implements TeamManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!canAddTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot add member to Team.");
 		groupMembersDAO.addMembers(teamId, Arrays.asList(new String[]{principalId}));
-
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getMembersByNameFragment(java.lang.String, long, long)
+	/**
+	 * MEMBERSHIP permission on group OR user issuing request is the one being removed.
+	 * @param userInfo
+	 * @param teamId
+	 * @param principalId
+	 * @return
 	 */
-	@Override
-	public QueryResults<Team> getMembersByNameFragment(String nameFragment,
-			long offset, long limit) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public boolean canRemoveTeamMember(UserInfo userInfo, String teamId, String principalId) {
-		// TODO
+	public boolean canRemoveTeamMember(UserInfo userInfo, String teamId, String principalId) throws NotFoundException {
+		if (userInfo.isAdmin()) return true;
+		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
+		if (principalIsSelf) return true;
+		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP);
+		if (amTeamAdmin) return true;
 		return true;
 	}
 
@@ -243,9 +273,8 @@ public class TeamManagerImpl implements TeamManager {
 	public void removeMember(UserInfo userInfo, String teamId,
 			String principalId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		// TODO check authorization:  is the user the member in question?  is the user a Team admin?
-		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot add member to Team.");
-
+		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
+		groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 	}
 
 	/* (non-Javadoc)
@@ -274,6 +303,12 @@ public class TeamManagerImpl implements TeamManager {
 		Team team = teamDAO.get(teamId);
 		String handleId = team.getIcon();
 		return fileHandlerManager.getRedirectURLForFileHandle(handleId);
+	}
+
+	@Override
+	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers()
+			throws DatastoreException {
+		return teamDAO.getAllTeamsAndMembers();
 	}
 
 }

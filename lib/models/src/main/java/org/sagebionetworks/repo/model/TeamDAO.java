@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -31,6 +32,13 @@ public interface TeamDAO {
 	 * 
 	 */
 	public List<Team> getInRange(long offset, long limit) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
 	
 	/**
 	 * 
