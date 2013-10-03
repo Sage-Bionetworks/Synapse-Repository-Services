@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -79,7 +80,39 @@ public class DBOColumnModelImplTest {
 		} catch (NotFoundException e) {
 			// expected
 		}
-		
+	}
+	
+	@Test
+	public void testGetList() throws DatastoreException, NotFoundException{
+		// One
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = columnModelDao.createColumnModel(one);
+		toDelete.add(one.getId());
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName("two");
+		two.setColumnType(ColumnType.STRING);
+		two = columnModelDao.createColumnModel(two);
+		toDelete.add(two.getId());
+		// three
+		ColumnModel three = new ColumnModel();
+		three.setName("three");
+		three.setColumnType(ColumnType.STRING);
+		three = columnModelDao.createColumnModel(three);
+		toDelete.add(three.getId());
+		// Get the list
+		List<String> ids = new LinkedList<String>();
+		// ask for the rows out of order.
+		ids.add(three.getId());
+		ids.add(one.getId());
+		List<ColumnModel> list = columnModelDao.getColumnModel(ids);
+		assertNotNull(list);
+		assertEquals(2, list.size());
+		// The rows should be alphabetical order by name.
+		assertEquals(one, list.get(0));
+		assertEquals(three, list.get(1));
 	}
 
 }

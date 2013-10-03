@@ -51,6 +51,15 @@ public interface ColumnModelDAO {
 	public ColumnModel getColumnModel(String id) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get a a list of ColumnModel from a list of columnModel ID strings
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
 	 * 
 	 * @param id

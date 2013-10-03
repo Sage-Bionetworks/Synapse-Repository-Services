@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_HASH;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN_MODEL;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -39,6 +41,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	private static RowMapper<DBOColumnModel> ROW_MAPPER = new DBOColumnModel().getTableMapping();
 
 	@Override
 	public List<ColumnModel> listColumnModels(String namePrefix, long limit,
@@ -104,6 +108,19 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("ids", ids);
+		List<DBOColumnModel> dbos = simpleJdbcTemplate.query("SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME, ROW_MAPPER, parameters);
+		// Convert to DTOs
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(DBOColumnModel dbo: dbos){
+			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
+		}
+		return results;
 	}
 
 }
