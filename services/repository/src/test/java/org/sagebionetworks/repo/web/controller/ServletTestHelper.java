@@ -9,6 +9,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -1152,5 +1153,22 @@ public class ServletTestHelper {
 
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				EntityHeader.class);
+	}
+
+	public static List<String> migrateFromCrowd(HttpServlet dispatchServlet,
+			String username, Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ADMIN_MIGRATE_FROM_CROWD, username, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		JSONArray list = new JSONArray(response.getContentAsString());
+		List<String> messages = new ArrayList<String>();
+		for (int i = 0; i < list.length(); i++) {
+			messages.add(list.getString(i));
+		}
+		return messages;
 	}
 }

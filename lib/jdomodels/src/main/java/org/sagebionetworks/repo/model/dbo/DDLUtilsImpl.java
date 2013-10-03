@@ -26,7 +26,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$s'";
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	StackConfiguration stackConfiguration;
 	
@@ -42,7 +42,7 @@ public class DDLUtilsImpl implements DDLUtils{
 		log.debug("Schema: "+schema);
 		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema);
 		log.debug("About to execute: "+sql);
-		List<Map<String, Object>> list = simpleJdbcTempalte.queryForList(sql);
+		List<Map<String, Object>> list = simpleJdbcTemplate.queryForList(sql);
 		// If the table does not exist then create it.
 		if(list.size() > 1) throw new RuntimeException("Found more than one table named: "+mapping.getTableName());
 		if(list.size() == 0){
@@ -52,9 +52,9 @@ public class DDLUtilsImpl implements DDLUtils{
 			if(log.isDebugEnabled()){
 				log.debug(tableDDL);
 			}
-			simpleJdbcTempalte.update(tableDDL);
+			simpleJdbcTemplate.update(tableDDL);
 			// Make sure it exists
-			List<Map<String, Object>> second = simpleJdbcTempalte.queryForList(sql);
+			List<Map<String, Object>> second = simpleJdbcTemplate.queryForList(sql);
 			if(second.size() != 1){
 				throw new RuntimeException("Failed to create the table: "+mapping.getTableName()+" using connection: "+url);
 			}
@@ -104,7 +104,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public int dropTable(String tableName) {
 		try{
-			return simpleJdbcTempalte.update("DROP TABLE "+tableName);
+			return simpleJdbcTemplate.update("DROP TABLE "+tableName);
 		}catch (BadSqlGrammarException e){
 			// This means the table does not exist
 			return 0;			
