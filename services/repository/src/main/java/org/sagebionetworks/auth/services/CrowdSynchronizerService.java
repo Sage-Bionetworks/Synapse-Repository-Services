@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOCrowdMigrationDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,12 @@ public class CrowdSynchronizerService {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private SemaphoreDao semaphoreDAO;
+	
+	private static final String SEMAPHORE_KEY = "CrowdSyncService";
+	private static final long LOCK_TIME_MS = 60 * 1000;
 
 	/**
 	 * Pulls data from Crowd into RDS 
@@ -42,6 +49,10 @@ public class CrowdSynchronizerService {
 		} catch (NotFoundException e1) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
+		
+		// Although it may only result in deadlocks
+		// This service should not be allowed to run concurrently with itself 
+		String semaphoreToken = semaphoreDAO.attemptToAcquireLock(SEMAPHORE_KEY, LOCK_TIME_MS);
 		
 		// Keep track of success and errors
 		List<String> messages = new ArrayList<String>();
@@ -67,6 +78,8 @@ public class CrowdSynchronizerService {
 			
 			messages.add(new String(resultbuffer.toByteArray()));
 		}
+		
+		semaphoreDAO.releaseLock(SEMAPHORE_KEY, semaphoreToken);
 		
 		return messages;
 	}
