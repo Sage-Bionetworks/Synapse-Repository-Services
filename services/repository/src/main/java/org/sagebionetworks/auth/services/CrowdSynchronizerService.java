@@ -5,14 +5,21 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOCrowdMigrationDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CrowdSynchronizerService {
 
 	@Autowired
 	private DBOCrowdMigrationDAO crowdMigrationDAO;
+	
+	@Autowired
+	private UserManager userManager;
 
 	/**
 	 * Pulls data from Crowd into RDS 
@@ -25,7 +32,18 @@ public class CrowdSynchronizerService {
 	 * - Password hashes
 	 * - Group membership 
 	 */
-	public List<String> migrateSomeUsers(long limit, long offset) {
+	public List<String> migrateSomeUsers(String username, long limit, long offset) {
+		// Service is restricted to admins
+		try {
+			UserInfo userInfo = userManager.getUserInfo(username);
+			if (!userInfo.isAdmin()) {
+				throw new UnauthorizedException("Must be an admin to use this service");
+			}
+		} catch (NotFoundException e1) {
+			throw new UnauthorizedException("Must be an admin to use this service");
+		}
+		
+		// Keep track of success and errors
 		List<String> messages = new ArrayList<String>();
 		
 		List<User> toBeMigrated = crowdMigrationDAO.getUsersFromCrowd(limit, offset);
@@ -37,7 +55,14 @@ public class CrowdSynchronizerService {
 				resultStream.println("Successfully migrated " + user.getDisplayName());
 			} catch (Exception e) {
 				resultStream.println("Could not migrate " + user.getDisplayName() + " because:");
-				e.printStackTrace(resultStream);
+
+				// Print out some debug info
+				resultStream.println(e);
+                for (StackTraceElement st : e.getStackTrace()) {
+                	if (st.getClassName().contains("sagebionetworks")) {
+                		resultStream.println("  " + st);
+                	}
+                }
 			}
 			
 			messages.add(new String(resultbuffer.toByteArray()));

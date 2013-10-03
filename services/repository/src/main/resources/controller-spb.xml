@@ -91,6 +91,9 @@
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
 
+	<!-- The temporary Crowd Synchronizer Service -->
+	<bean id="crowdSyncService" class="org.sagebionetworks.auth.services.CrowdSynchronizerService" />
+
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 

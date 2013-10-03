@@ -594,6 +594,11 @@ public class UrlHelpers {
 	 * API for clearing the specified dynamo table.
 	 */
 	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
+	
+	/**
+	 * Temporary API for migrating users from Crowd into RDS
+	 */
+	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions
