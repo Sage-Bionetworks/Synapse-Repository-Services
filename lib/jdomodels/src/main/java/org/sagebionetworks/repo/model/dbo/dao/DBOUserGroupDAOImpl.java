@@ -282,11 +282,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		cacheDBO.setGroupId(dbo.getId());
 		basicDao.createNew(cacheDBO);
 		
-		// Create a row for the authentication DAO
-		DBOCredential credDBO = new DBOCredential();
-		credDBO.setPrincipalId(dbo.getId());
-		credDBO.setSecretKey(HMACUtils.newHMACSHA1Key());
-		basicDao.createNew(credDBO);
+		Boolean isIndividual = dbo.getIsIndividual();
+		if (isIndividual != null && isIndividual.booleanValue()) {
+			// Create a row for the authentication DAO
+			DBOCredential credDBO = new DBOCredential();
+			credDBO.setPrincipalId(dbo.getId());
+			credDBO.setSecretKey(HMACUtils.newHMACSHA1Key());
+			basicDao.createNew(credDBO);
+		}
 		
 		return dbo.getId().toString();
 	}
