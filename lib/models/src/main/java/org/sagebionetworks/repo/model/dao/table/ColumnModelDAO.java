@@ -67,24 +67,31 @@ public interface ColumnModelDAO {
 	public void delete(String id);
 	
 	/**
-	 * Bind a ColumnModel to an object. This indicates that the passed object now depends on this passed column.
+	 * Bind a set of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
 	 * Once an object is bound to a column it cannot be unbound.  A ColumnModel can no longer be deleted once bound to an object.
 	 * @param columnId The ID of the column to bind.
 	 * @param objectId The ID of the object to bind.
 	 * 
 	 * @return True if the this object was not already bound to this object.
 	 */
-	public boolean bindColumnToObject(String columnId, String objectId);
+	public int bindColumnToObject(Set<String> columnIds, String objectId);
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.
 	 * 
-	 * @param columnIds
+	 * @param columnIds The list of column IDs.
+	 * @param currentOnly When true, only objects that are currently using the IDs will be returned.  
 	 * @param limit - Pagination parameter to limit the number of columns returned.
 	 * @param offset - Pagination parameter that is the index of the first column in the page to be returned.
 	 * @return
 	 */
-	public List<String> listObjectsBoundToColumn(Set<String> columnIds, long limit, long offest);
+	public List<String> listObjectsBoundToColumn(Set<String> columnIds, boolean currentOnly, long limit, long offest);
+	
+	/**
+	 * This should only be called by tests.
+	 * 
+	 */
+	public void truncateBoundColumns();
 	
 
 }

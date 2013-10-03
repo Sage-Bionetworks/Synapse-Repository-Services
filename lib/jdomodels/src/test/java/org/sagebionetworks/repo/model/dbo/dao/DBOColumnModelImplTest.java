@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -27,14 +30,36 @@ public class DBOColumnModelImplTest {
 	@Autowired
 	ColumnModelDAO columnModelDao;
 	List<String> toDelete;
+	ColumnModel one;
+	ColumnModel two;
+	ColumnModel three;
 	
 	@Before
-	public void before(){
+	public void before() throws DatastoreException, NotFoundException{
 		toDelete = new LinkedList<String>();
+		// One
+		one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = columnModelDao.createColumnModel(one);
+		toDelete.add(one.getId());
+		// two
+		two = new ColumnModel();
+		two.setName("two");
+		two.setColumnType(ColumnType.STRING);
+		two = columnModelDao.createColumnModel(two);
+		toDelete.add(two.getId());
+		// three
+		three = new ColumnModel();
+		three.setName("three");
+		three.setColumnType(ColumnType.STRING);
+		three = columnModelDao.createColumnModel(three);
+		toDelete.add(three.getId());
 	}
 	
 	@After
 	public void after(){
+		columnModelDao.truncateBoundColumns();
 		if(toDelete != null){
 			for(String id: toDelete){
 				columnModelDao.delete(id);
@@ -84,24 +109,6 @@ public class DBOColumnModelImplTest {
 	
 	@Test
 	public void testGetList() throws DatastoreException, NotFoundException{
-		// One
-		ColumnModel one = new ColumnModel();
-		one.setName("one");
-		one.setColumnType(ColumnType.STRING);
-		one = columnModelDao.createColumnModel(one);
-		toDelete.add(one.getId());
-		// two
-		ColumnModel two = new ColumnModel();
-		two.setName("two");
-		two.setColumnType(ColumnType.STRING);
-		two = columnModelDao.createColumnModel(two);
-		toDelete.add(two.getId());
-		// three
-		ColumnModel three = new ColumnModel();
-		three.setName("three");
-		three.setColumnType(ColumnType.STRING);
-		three = columnModelDao.createColumnModel(three);
-		toDelete.add(three.getId());
 		// Get the list
 		List<String> ids = new LinkedList<String>();
 		// ask for the rows out of order.
@@ -114,5 +121,87 @@ public class DBOColumnModelImplTest {
 		assertEquals(one, list.get(0));
 		assertEquals(three, list.get(1));
 	}
+	
+	@Test
+	public void testBindColumns() throws DatastoreException, NotFoundException{
+		// Now bind one column
+		Set<String> toBind = new HashSet<String>();
+		toBind.add(two.getId());
+		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+		assertTrue(count > 0);
+		// Now bind the next two
+		toBind.clear();
+		toBind.add(one.getId());
+		toBind.add(three.getId());
+		count = columnModelDao.bindColumnToObject(toBind, "syn123");
+		assertTrue(count > 0);
+	}
+	
+	@Test
+	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
+		// bind two columns to two objects
+		Set<String> toBind = new HashSet<String>();
+		toBind.add(two.getId());
+		toBind.add(one.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn123");
+		// make only one the current
+		toBind.clear();
+		toBind.add(one.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn123");
+		
+		// bind to the other object
+		toBind.clear();
+		toBind.add(two.getId());
+		toBind.add(three.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn456");
+		// make only two the current
+		toBind.clear();
+		toBind.add(two.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn456");
+		
+		// None are bound to all three
+		Set<String> filter = new HashSet<String>();
+		filter.add(one.getId());
+		filter.add(two.getId());
+		filter.add(three.getId());
+		List<String> results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
+		assertNotNull(results);
+		assertEquals(0, results.size());
+		
+		// Two is is used by both but is is only current for syn456;
+		filter.clear();
+		filter.add(two.getId());
+		results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
+		assertEquals(2, results.size());
+		// The should be in order by object id.
+		assertEquals("syn123", results.get(0));
+		assertEquals("syn456", results.get(1));
+		// Now for current only we should only get syn456
+		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
+		assertEquals(1, results.size());
+		assertEquals("syn456", results.get(0));
+		
+		// now bind one to syn456
+		// make only two the current
+		toBind.clear();
+		toBind.add(one.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn456");
+		
+		// now filter one and two.
+		filter.clear();
+		filter.add(one.getId());
+		filter.add(two.getId());
+		results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
+		assertEquals(2, results.size());
+		// The should be in order by object id.
+		assertEquals("syn123", results.get(0));
+		assertEquals("syn456", results.get(1));
+		
+		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
+		assertEquals(0, results.size());
+ 	}
 
 }

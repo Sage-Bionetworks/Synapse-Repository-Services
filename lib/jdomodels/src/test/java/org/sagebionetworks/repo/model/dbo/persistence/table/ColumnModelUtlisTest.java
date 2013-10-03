@@ -3,7 +3,10 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 import static org.junit.Assert.*;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -81,5 +84,64 @@ public class ColumnModelUtlisTest {
 		ColumnModel clone = ColumnModelUtlis.createDTOFromDBO(dbo);
 		assertEquals(normlaized, clone);
 	}
+	
+	@Test
+	public void testPrepareNewBoundColumnsAllNew(){
+		long objectId = 123l;
+		Set<String> toAdd = new HashSet<String>();
+		toAdd.add("9");
+		toAdd.add("4");
+		toAdd.add("1");
+		// Nothing on the existing list
+		List<DBOBoundColumn> existing = new LinkedList<DBOBoundColumn>();
+		List<DBOBoundColumn> results = ColumnModelUtlis.prepareNewBoundColumns(objectId, existing, toAdd);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		// Validate the order and state of each row.
+		List<DBOBoundColumn> expected = new LinkedList<DBOBoundColumn>();
+		expected.add(createBound(objectId, 1l, true));
+		expected.add(createBound(objectId, 4l, true));
+		expected.add(createBound(objectId, 9l, true));
+		assertEquals(expected, results);
+	}
+	
+	@Test
+	public void testPrepareNewBoundColumnsOldAndNew(){
+		long objectId = 123l;
+		Set<String> toAdd = new HashSet<String>();
+		toAdd.add("9");
+		toAdd.add("4");
+		toAdd.add("1");
+		List<DBOBoundColumn> existing = new LinkedList<DBOBoundColumn>();
+		// 2 is not part of the add and current
+		existing.add(createBound(objectId, 2L, true));
+		// 3 is not part of the add and not current
+		existing.add(createBound(objectId, 3L, false));
+		// 9 is part of the add and not current
+		existing.add(createBound(objectId, 9l, false));
+		// 4 is part of the add and current
+		existing.add(createBound(objectId, 4l, true));
+		// Run the prepare
+		List<DBOBoundColumn> results = ColumnModelUtlis.prepareNewBoundColumns(objectId, existing, toAdd);
+		assertNotNull(results);
+		assertEquals(5, results.size());
+		// Validate the order and state of each row.
+		List<DBOBoundColumn> expected = new LinkedList<DBOBoundColumn>();
+		expected.add(createBound(objectId, 1l, true));
+		expected.add(createBound(objectId, 2l, false));
+		expected.add(createBound(objectId, 3l, false));
+		expected.add(createBound(objectId, 4l, true));
+		expected.add(createBound(objectId, 9l, true));
+		assertEquals(expected, results);
+	}
+	
+	private DBOBoundColumn createBound(Long objectId, Long columnId, Boolean current){
+		DBOBoundColumn dbo = new DBOBoundColumn();
+		dbo.setColumnId(columnId);
+		dbo.setObjectId(objectId);
+		dbo.setIsCurrent(current);
+		return dbo;
+	}
+	
 
 }

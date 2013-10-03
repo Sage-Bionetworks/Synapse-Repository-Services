@@ -72,6 +72,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitee" />
 				<!-- Table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
