@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -91,12 +92,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public boolean canAccess(UserInfo userInfo, final String nodeId, ACCESS_TYPE accessType) 
-		throws NotFoundException, DatastoreException {
-		return canAccess(userInfo, nodeId, ObjectType.ENTITY, accessType);
-	}
-
-	@Override
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
 		if (userInfo.isAdmin()) {
@@ -106,7 +101,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (parentId == null) {
 			return false;
 		}
-		return canAccess(userInfo, parentId, ACCESS_TYPE.CREATE);
+		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 	}
 
 	@Override
@@ -133,7 +128,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			for(Reference ref : generatedBy.getResults()) {
 				String nodeId = ref.getTargetId();
 				try {
-					if(canAccess(userInfo, nodeId, ACCESS_TYPE.READ)) {
+					if(canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ)) {
 						return true;
 					}
 				} catch (Exception e) {
@@ -198,8 +193,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (entityIds.size()==0) return false;
 		if (entityIds.size()>1) return false;
 		String entityId = entityIds.iterator().next();
-		if (!canAccess(userInfo, entityId, ACCESS_TYPE.CREATE) &&
-				!canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE)) return false;
+		if (!canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE) &&
+				!canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE)) return false;
 		return true;
 	}
 
@@ -278,6 +273,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			throw new NotFoundException("Unexpected object type: "+subjectId.getType());
 		}
 		return true;
+	}
+
+	// The rule is:  any authenticated user can create a team
+	@Override
+	public boolean canCreateTeam(UserInfo userInfo, Team team) {
+		return !AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId());
 	}
 	
 }

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.team;
 
+import java.net.URL;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -19,8 +21,9 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
-	public Team create(UserInfo userInfo, Team team) throws  DatastoreException, InvalidModelException, UnauthorizedException;
+	public Team create(UserInfo userInfo, Team team) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Retrieve the Teams in the system, paginated
@@ -136,6 +139,12 @@ public interface TeamManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public AccessControlList updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
+	/**
+	 * return the URL for the icon of the given Team
+	 * @param teamId
+	 * @return
+	 */
+	public URL getIconURL(String teamId) throws NotFoundException;
 }

@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -25,20 +26,6 @@ public interface AuthorizationManager {
 	 */
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
-	/**
-	 * Check user access to a Node (default type)
-	 * 
-	 * @param userInfo
-	 * @param nodeId
-	 * @param accessType
-	 * 
-	 * @return true iff the given user has the given access to the given node
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
-	 */
-	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 	throws NotFoundException, DatastoreException;
-	
 	/**
      * Checks whether the given user can create the given node.
      *
@@ -105,7 +92,21 @@ public interface AuthorizationManager {
 	 */
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 
+	/**
+	 * 
+	 * @param userInfo
+	 * @param subjectId
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 */
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
-	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param team
+	 * @return
+	 */
+	public boolean canCreateTeam(UserInfo userInfo, Team team);
 }

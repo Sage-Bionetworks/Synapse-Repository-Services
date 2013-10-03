@@ -63,7 +63,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		UserInfo currentUser = userManager.getUserInfo(currentUserName);
 		UserInfo.validateUserInfo(currentUser);
 		String userId = currentUser.getUser().getUserId();
-		if (!authorizationManager.canAccess(currentUser, entityId, ACCESS_TYPE.UPDATE)) {
+		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
 		}
 
@@ -193,7 +193,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		UserInfo.validateUserInfo(currentUser);
 		String userName = currentUser.getUser().getUserId();
-		if (!authorizationManager.canAccess(currentUser, entityId, ACCESS_TYPE.READ)) {
+		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 

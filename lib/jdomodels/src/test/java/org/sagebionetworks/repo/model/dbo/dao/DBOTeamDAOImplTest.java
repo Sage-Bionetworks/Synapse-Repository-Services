@@ -78,14 +78,18 @@ public class DBOTeamDAOImplTest {
 				
 		assertEquals(1, teamDAO.getInRange(0, 1).size());
 		assertEquals(0, teamDAO.getInRange(1, 2).size());
+		assertEquals(1, teamDAO.getCount());
 		
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 0, 1).size());
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 3).size());
+		assertEquals(0, teamDAO.getCountForMember(""+id));
+		
 		// need an arbitrary user to add to the group
 		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
 		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
 		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 0, 1).size());
 		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 1, 3).size());
+		assertEquals(1, teamDAO.getCountForMember(pg.getId()));
 		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
 		
 		// delete the team

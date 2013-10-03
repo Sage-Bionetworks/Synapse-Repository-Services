@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.ids.ETagGenerator;
@@ -53,6 +54,14 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_SQL_PAGINATED = 
 			"SELECT * FROM "+TABLE_TEAM+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_COUNT_FOR_MEMBER_SQL = 
+			"SELECT count(*) FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
+			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
+			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
+
+	private static final String SELECT_COUNT_SQL = 
+			"SELECT COUNT(*) FROM "+TABLE_TEAM;
 
 	private static final String SELECT_GROUPS_OF_MEMBER = 
 			"SELECT t.* FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
@@ -60,7 +69,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")"+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
-	private static final String SELECT_FOR_UPDATE_SQL = "select "+COL_TEAM_ETAG+" from "+TABLE_TEAM+" where "+COL_TEAM_ID+
+	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
 
 	/* (non-Javadoc)
@@ -107,6 +116,11 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return dtos;
 	}
 
+	@Override
+	public long getCount() throws DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SELECT_COUNT_SQL);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#getForMemberInRange(java.lang.String, long, long)
 	 */
@@ -124,6 +138,13 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		return dtos;
 	}
 
+	@Override
+	public long getCountForMember(String principalId) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
+		return simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_MEMBER_SQL, param);
+	}
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.TeamDAO#update(org.sagebionetworks.repo.model.Team)
 	 */
@@ -133,19 +154,27 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_TEAM_ID, dto.getId());
-		String oldEtag = null;
+		DBOTeam dbo = null;
 		try{
-			oldEtag = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, String.class, param);
+			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, teamRowMapper, param);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
-
+		
+		String oldEtag = dbo.getEtag();
 		// check dbo's etag against dto's etag
 		// if different rollback and throw a meaningful exception
 		if (!oldEtag.equals(dto.getEtag())) {
 			throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
-		DBOTeam dbo = new DBOTeam();		
+
+		{
+			Team deserializedProperties = TeamUtils.copyFromSerializedField(dbo);
+			if (dto.getCreatedBy()==null) dto.setCreatedBy(deserializedProperties.getCreatedBy());
+			if (dto.getCreatedOn()==null) dto.setCreatedOn(deserializedProperties.getCreatedOn());
+			if (!dto.getName().equals(deserializedProperties.getName())) throw new InvalidModelException("Cannot modify team name.");
+		}
+		
 		TeamUtils.copyDtoToDbo(dto, dbo);
 		// Update with a new e-tag
 		dbo.setEtag(eTagGenerator.generateETag());
