@@ -6,8 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -17,13 +15,10 @@ import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.springframework.http.HttpStatus;
 
 
 /**
@@ -319,54 +314,44 @@ public class IT990CrowdAuthentication {
 	public boolean get() {return b;}
 	}
 	
-	public static byte[] executeRequest(HttpURLConnection conn, HttpStatus expectedRc, String failureReason) throws Exception {
-		int rc = conn.getResponseCode();
-		if (expectedRc.value()==rc) {
-			byte[] respBody = (CrowdAuthUtil.readInputStream((InputStream)conn.getContent())).getBytes();
-			return respBody;
-		} else {
-			byte[] respBody = (CrowdAuthUtil.readInputStream((InputStream)conn.getErrorStream())).getBytes();
-			throw new AuthenticationException(rc, failureReason, new Exception(new String(respBody)));
-		}
-	}
-	
-	// this is meant to recreate the problem described in PLFM-292
-	// http://sagebionetworks.jira.com/browse/PLFM-292
+	/**
+	 * This is meant to recreate the problem described in
+	 * http://sagebionetworks.jira.com/browse/PLFM-292
+	 * But since Crowd is being removed, we may want to remove the test too
+	 */
+	@Ignore
 	@Test 
 	public void testMultipleLogins() throws Exception {
-
-	CrowdAuthUtil.acceptAllCertificates();
-	int n = 100;
-	Set<Long> sortedTimes = new TreeSet<Long>();
-	long elapsed = 0;
-	for (int i=0; i<n; i++) {
-		final MutableBoolean b = new MutableBoolean();
-	 	Thread thread = new Thread() {
-			public void run() {
-				try {
-					authenticate();
-					b.set(true);
-				} catch (Exception e) {
-					e.printStackTrace(); // 'fail' will be thrown below
+		int n = 100;
+		Set<Long> sortedTimes = new TreeSet<Long>();
+		long elapsed = 0;
+		for (int i=0; i<n; i++) {
+			final MutableBoolean b = new MutableBoolean();
+		 	Thread thread = new Thread() {
+				public void run() {
+					try {
+						authenticate();
+						b.set(true);
+					} catch (Exception e) {
+						e.printStackTrace(); // 'fail' will be thrown below
+					}
 				}
+			};
+			thread.start();
+			long start = System.currentTimeMillis();
+			try {
+				thread.join(20000L); // time out
+			} catch (InterruptedException ie) {
+				// as expected
 			}
-		};
-		thread.start();
-		long start = System.currentTimeMillis();
-		try {
-			thread.join(20000L); // time out
-		} catch (InterruptedException ie) {
-			// as expected
+			long t = System.currentTimeMillis()-start;
+			elapsed += t;
+			sortedTimes.add(t);
+			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
 		}
-		long t = System.currentTimeMillis()-start;
-		elapsed += t;
-		sortedTimes.add(t);
-		assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
-	}
-	System.out.println(n+" authentication request response time (sec): min "+
-			((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/n/1000L)+
-			" max "+((float)getLast(sortedTimes)/1000L));
-	
+		System.out.println(n+" authentication request response time (sec): min "+
+				((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/n/1000L)+
+				" max "+((float)getLast(sortedTimes)/1000L));
 	}
 	
 	class MutableLong {
@@ -382,47 +367,44 @@ public class IT990CrowdAuthentication {
 	
 	@Test 
 	public void testMultipleLoginsMultiThreaded() throws Exception {
-
-	CrowdAuthUtil.acceptAllCertificates();
-
-	for (int n : new int[]{100}) {
-		Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
-		for (int i=0; i<n; i++) {
-			final MutableLong L = new MutableLong();
-			times.put(i, L);
-		 	Thread thread = new Thread() {
-				public void run() {
-					try {
-						long start = System.currentTimeMillis();
-						authenticate();
-						L.set(System.currentTimeMillis()-start);
-					} catch (Exception e) {
-						//fail(e.toString());
-						e.printStackTrace(); // 'fail' will be thrown below
+		for (int n : new int[]{100}) {
+			Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
+			for (int i=0; i<n; i++) {
+				final MutableLong L = new MutableLong();
+				times.put(i, L);
+			 	Thread thread = new Thread() {
+					public void run() {
+						try {
+							long start = System.currentTimeMillis();
+							authenticate();
+							L.set(System.currentTimeMillis()-start);
+						} catch (Exception e) {
+							//fail(e.toString());
+							e.printStackTrace(); // 'fail' will be thrown below
+						}
+					}
+				};
+				thread.start();
+			}
+			int count = 0;
+			long elapsed = 0L;
+			Set<Long> sortedTimes = new TreeSet<Long>();
+			long uberTimeOut = System.currentTimeMillis()+UBER_TIMEOUT;
+			while (!times.isEmpty() && System.currentTimeMillis()<uberTimeOut) {
+				for (int i: times.keySet()) {
+					long L = times.get(i).get();
+					if (L!=0) {
+						elapsed += L;
+						sortedTimes.add(L);
+						count++;
+						times.remove(i);
+						break;
 					}
 				}
-			};
-			thread.start();
-		}
-		int count = 0;
-		long elapsed = 0L;
-		Set<Long> sortedTimes = new TreeSet<Long>();
-		long uberTimeOut = System.currentTimeMillis()+UBER_TIMEOUT;
-		while (!times.isEmpty() && System.currentTimeMillis()<uberTimeOut) {
-			for (int i: times.keySet()) {
-				long L = times.get(i).get();
-				if (L!=0) {
-					elapsed += L;
-					sortedTimes.add(L);
-					count++;
-					times.remove(i);
-					break;
-				}
 			}
-		}
-		System.out.println(count+" authentication request response time (sec): min "+
-				((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/count/1000L)+
-				" max "+((float)getLast(sortedTimes)/1000L));
+			System.out.println(count+" authentication request response time (sec): min "+
+					((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/count/1000L)+
+					" max "+((float)getLast(sortedTimes)/1000L));
 	}
 	}
 	

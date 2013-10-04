@@ -67,8 +67,8 @@
 	</filter-mapping>
 
 	<filter>
-		<filter-name>CrowdAuth</filter-name>
-		<filter-class>org.sagebionetworks.authutil.CrowdAuthenticationFilter</filter-class>
+		<filter-name>authFilter</filter-name>
+		<filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
 		<init-param>
 			<param-name>allow-anonymous</param-name>
 			<param-value>true</param-value>
@@ -76,14 +76,12 @@
 	</filter>
 
 	<filter-mapping>
-		<filter-name>CrowdAuth</filter-name>
+		<filter-name>authFilter</filter-name>
 		<url-pattern>/auth/v1/user</url-pattern>
 		<url-pattern>/auth/v1/userPassword</url-pattern>
 		<url-pattern>/auth/v1/changeEmail</url-pattern>
 		<url-pattern>/auth/v1/apiPasswordEmail</url-pattern>
 		<url-pattern>/auth/v1/secretKey</url-pattern>
-		<url-pattern>/auth/v1/resourceAccess/*</url-pattern>
-		<url-pattern>/auth/v1/resourceSession/*</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 	</filter-mapping>
