@@ -61,7 +61,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	
 	private static final String INVITEE_ID_COLUMN_LABEL = "INVITEE_ID";
 
-	private static final String SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED_CORE = 
+	private static final String SELECT_OPEN_INVITATIONS_BY_USER_CORE = 
 			" FROM "+
 					TABLE_MEMBERSHIP_INVITATION_SUBMISSION+" mis, "+
 					TABLE_MEMBERSHIP_INVITEE+" mi "+
@@ -71,24 +71,24 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" ) "+
 			" AND ( mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON+" IS NULL OR mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON+" ) ";
 	
-	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED_CORE = 
-			SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED_CORE+
+	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE = 
+			SELECT_OPEN_INVITATIONS_BY_USER_CORE+
 			" AND mis."+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID;
 
 	private static final String SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED = 
-			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED_CORE+
+			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+SELECT_OPEN_INVITATIONS_BY_USER_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED_COUNT = 
-			"SELECT COUNT(*) "+ SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED_CORE;
+	private static final String SELECT_OPEN_INVITATIONS_BY_USER_COUNT = 
+			"SELECT COUNT(*) "+ SELECT_OPEN_INVITATIONS_BY_USER_CORE;
 	
 	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED = 
 			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+
-					SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED_CORE+
+					SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE+
 					" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED_COUNT = 
-			"SELECT COUNT(*) "+SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED_CORE;
+	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
@@ -185,22 +185,22 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	}
 
 	@Override
-	public long getOpenByUserInRangeCount(long userId, long now)
+	public long getOpenByUserCount(long userId, long now)
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITEE_INVITEE_ID, userId);	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED_COUNT, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_USER_COUNT, param);
 	}
 
 	@Override
-	public long getOpenByTeamAndUserInRangeCount(long teamId, long userId,
+	public long getOpenByTeamAndUserCount(long teamId, long userId,
 			long now) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_INVITEE_INVITEE_ID, userId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED_COUNT, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param);
 	}
 
 }

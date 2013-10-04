@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.dynamo;
 
-import static org.mockito.Matchers.eq;
-
 import java.util.ArrayList;
 import java.util.List;
 

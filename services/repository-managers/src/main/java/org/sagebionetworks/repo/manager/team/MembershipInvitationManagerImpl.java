@@ -91,7 +91,7 @@ public class MembershipInvitationManagerImpl implements
 		Date now = new Date();
 		long principalIdAsLong = Long.parseLong(principalId);
 		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(principalIdAsLong, now.getTime(), offset, limit);
-		long count = membershipInvtnSubmissionDAO.getOpenByUserInRangeCount(principalIdAsLong, now.getTime());
+		long count = membershipInvtnSubmissionDAO.getOpenByUserCount(principalIdAsLong, now.getTime());
 		QueryResults<MembershipInvitation> results = new QueryResults<MembershipInvitation>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
@@ -109,7 +109,7 @@ public class MembershipInvitationManagerImpl implements
 		long principalIdAsLong = Long.parseLong(principalId);
 		long teamIdAsLong = Long.parseLong(teamId);
 		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), offset, limit);
-		long count = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRangeCount(teamIdAsLong, principalIdAsLong, now.getTime());
+		long count = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamIdAsLong, principalIdAsLong, now.getTime());
 		QueryResults<MembershipInvitation> results = new QueryResults<MembershipInvitation>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
