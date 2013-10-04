@@ -61,9 +61,8 @@ public interface AuthenticationService {
 	
 	/**
 	 * Changes the password of the user
-	 * Does not check ToU-related fields
 	 */
-	public void changePassword(NewUser credential)
+	public void changePassword(String username, String newPassword)
 			throws NotFoundException;
 	
 	/**
@@ -105,6 +104,7 @@ public interface AuthenticationService {
 	
 	/**
 	 * Sends a password-related email to the user
+	 * This method assumes that the required authentication has passed for the user
 	 */
 	public void sendUserPasswordEmail(String username, PW_MODE mode)
 			 throws NotFoundException;

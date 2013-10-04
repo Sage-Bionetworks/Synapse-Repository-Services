@@ -1,14 +1,10 @@
 package org.sagebionetworks.auth;
 
-import java.io.PrintWriter;
-
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.User;
@@ -16,6 +12,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -66,39 +63,29 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(@RequestBody NewUser credentials,
-			HttpServletRequest request) throws Exception {
+			HttpServletRequest request) throws NotFoundException {
 		return authenticationService.authenticate(credentials, true, true);
-	}
-	
-	// this is just for testing
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/sso", method = RequestMethod.GET)
-	public
-	void redirectTarget(
-			HttpServletRequest request,
-			HttpServletResponse response) throws Exception {
-		PrintWriter pw = response.getWriter();
-		pw.println(request.getRequestURI());
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)
-	public void revalidate(@RequestBody Session session) throws Exception {
+	public void revalidate(@RequestBody Session session) throws NotFoundException {
 		authenticationService.revalidate(session.getSessionToken());
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
-	public void deauthenticate(HttpServletRequest request) throws Exception {
+	public void deauthenticate(HttpServletRequest request) {
 		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		authenticationService.invalidateSessionToken(sessionToken);
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public void createUser(@RequestBody NewUser user) throws Exception {
+	public void createUser(@RequestBody NewUser user) throws NotFoundException {
 		authenticationService.createUser(user);
 		
+		// Don't send a password email for integration testing
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu != null && user.getEmail().equals(itu));
 		if (!isITU) {
@@ -108,42 +95,38 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(username)) {
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), 
-					"No user info for " + AuthorizationConstants.ANONYMOUS_USER_ID, null);
-		}
+	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+			throws NotFoundException {
 		return authenticationService.getUserInfo(username).getUser();
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody NewUser credential) throws Exception {
-		authenticationService.authenticate(credential, false, false);
+	public void sendChangePasswordEmail(@RequestBody NewUser credential) throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+					throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
 	public void setPassword(@RequestBody ChangeUserPassword changeUserPassword,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
-		NewUser credential = new NewUser();
-		credential.setEmail(username);
-		credential.setPassword(changeUserPassword.getNewPassword());
-		authenticationService.changePassword(credential);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+					throws NotFoundException {
+		authenticationService.changePassword(username, changeUserPassword.getNewPassword());
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/changeEmail", method = RequestMethod.POST)
 	public void changeEmail(@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String newUsername) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String newUsername) 
+					throws NotFoundException {
 		authenticationService.updateEmail(registrationInfo, newUsername);
 	}
 	
@@ -151,24 +134,23 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/registeringUserPassword", method = RequestMethod.POST)
 	public void setRegisteringUserPassword(@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+					throws NotFoundException {
 		String registrationToken = registrationInfo.getRegistrationToken();
 		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
 		String realUserId = authenticationService.revalidate(sessionToken);
 		String realUsername = authenticationService.getUserInfo(realUserId).getIndividualGroup().getName();
 
 		// Set the password
-		NewUser credential = new NewUser();
-		credential.setEmail(realUsername);
-		credential.setPassword(registrationInfo.getPassword());
-		authenticationService.changePassword(credential);
+		authenticationService.changePassword(realUsername, registrationInfo.getPassword());
 		authenticationService.invalidateSessionToken(sessionToken);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
 	public @ResponseBody SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+					throws NotFoundException {
 		SecretKey secret = new SecretKey();
 		secret.setSecretKey(authenticationService.getSecretKey(username));
 		return secret;
@@ -178,7 +160,8 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+					throws NotFoundException {
 		authenticationService.deleteSecretKey(username);
 	}
 }

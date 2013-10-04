@@ -1,4 +1,4 @@
-package org.sagebionetworks.authutil;
+package org.sagebionetworks.auth.services;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
 
@@ -32,9 +32,11 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.authutil.MyProvider;
+import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;

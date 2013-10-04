@@ -6,10 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.xml.xpath.XPathExpressionException;
 
 import org.json.JSONException;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -131,17 +129,7 @@ public class UserProfileController extends BaseController {
 	 * otherwise an Unauthorized response will occur.</p>
 	 * @param userId
 	 * 		The user that is making the request.
-	 * @param header
-	 * @param request
 	 * @return The updated <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a>
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException Thrown when there is a server-side problem.
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws IOException
-	 * @throws AuthenticationException
-	 * @throws XPathExpressionException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.PUT)
@@ -151,7 +139,7 @@ public class UserProfileController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
+			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
 

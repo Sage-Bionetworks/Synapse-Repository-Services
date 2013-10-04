@@ -19,13 +19,12 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 
 /**
  * This filter authenticates incoming requests:
@@ -84,7 +83,7 @@ public class AuthenticationFilter implements Filter {
 			try {
 				String secretKey = authenticationService.getSecretKey(username);
 				matchHMACSHA1Signature(req, secretKey);
-			} catch (AuthenticationException e) {
+			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse)servletResponse, e.getMessage());
 				return;
 			} catch (NotFoundException e) {
@@ -122,7 +121,7 @@ public class AuthenticationFilter implements Filter {
 	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
 	 * passed in then an AuthenticationException is thrown.
 	 */
-	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws AuthenticationException {
+	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws UnauthorizedException {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
 		String uri = request.getRequestURI();
 		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
@@ -134,14 +133,12 @@ public class AuthenticationFilter implements Filter {
     	int timeDiff = Minutes.minutesBetween(new DateTime(), timeStamp).getMinutes();
 
     	if (Math.abs(timeDiff) > MAX_TIMESTAMP_DIFF_MIN) {
-    		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
-    				"Timestamp in request, "+date+", is out of date.", null);
+    		throw new UnauthorizedException("Timestamp in request, " + date + ", is out of date");
     	}
 
     	String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, uri, date, secretKey);
     	if (!expectedSignature.equals(signature)) {
-       		throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), 
-       				"Invalid digital signature: "+signature, null);
+       		throw new UnauthorizedException("Invalid digital signature: " + signature);
     	}
 	}
 

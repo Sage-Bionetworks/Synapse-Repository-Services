@@ -1,4 +1,4 @@
-package org.sagebionetworks.authutil;
+package org.sagebionetworks.auth.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;

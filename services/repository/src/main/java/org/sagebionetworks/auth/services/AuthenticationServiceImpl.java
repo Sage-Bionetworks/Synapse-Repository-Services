@@ -16,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.services.simpleworkflow.model.OperationNotPermittedException;
+
 public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
@@ -39,10 +41,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Session authenticate(NewUser credential, boolean validatePassword, boolean validateToU) 
 			throws NotFoundException {
+		if (credential.getEmail() == null) {
+			throw new UnauthorizedException("Username may not be null");
+		}
+		
+		// Fetch the user's session token, checking the password if required
 		Session session;
 		if (validatePassword) {
 			if (credential.getPassword() == null) {
-				throw new UnauthorizedException("Username or password may not be empty");
+				throw new UnauthorizedException("Password may not be null");
 			}
 			session = authManager.authenticate(credential.getEmail(), credential.getPassword());
 		} else {
@@ -77,6 +84,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void invalidateSessionToken(String sessionToken) {
+		if (sessionToken == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
 		authManager.invalidateSessionToken(sessionToken);
 	}
 
@@ -91,31 +101,45 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void createUser(NewUser user) {
+		if (user == null || user.getEmail() == null) {
+			throw new IllegalArgumentException("Required fields are missing for user creation");
+		}
 		userManager.createUser(user);
 	}
 	
 	@Override
 	public UserInfo getUserInfo(String username) throws NotFoundException {
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(username)) {
+			throw new NotFoundException("No user info for " + AuthorizationConstants.ANONYMOUS_USER_ID);
+		}
 		return userManager.getUserInfo(username);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(NewUser credential) throws NotFoundException {
-		if (credential.getEmail() == null) {
+	public void changePassword(String username, String newPassword) throws NotFoundException {
+		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
-		if (credential.getPassword() == null) { 			
+		if (newPassword == null) { 			
 			throw new IllegalArgumentException("Password may not be null");
 		}
 		
-		UserInfo user = userManager.getUserInfo(credential.getEmail());
-		authManager.changePassword(user.getIndividualGroup().getId(), credential.getPassword());
+		UserInfo user = userManager.getUserInfo(username);
+		authManager.changePassword(user.getIndividualGroup().getId(), newPassword);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void updateEmail(RegistrationInfo registrationInfo, String newEmail) throws NotFoundException {
+		
+		// The mapping between usernames and user IDs is currently done on a one-to-one basis.
+		// This means that changing the email associated with an ID in the UserGroup table 
+		//   introduces an inconsistency between the UserGroup table and ID Generator table.
+		// Until the Named ID Generator supports a one-to-many mapping, this method is disabled.   
+		throw new OperationNotPermittedException("This service is currently unavailable");
+		
+		/*
 		// User must be logged in to make this request
 		if (newEmail == null) {
 			throw new IllegalArgumentException("New email may not be null");
@@ -130,16 +154,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		String realUsername = getUsername(realUserId);
 		
 		// Set the password
-		NewUser credential = new NewUser();
-		credential.setEmail(realUsername);
-		credential.setPassword(registrationInfo.getPassword());
-		changePassword(credential);
+		changePassword(realUsername, registrationInfo.getPassword());
 		
 		// Update the pre-existing user to the new email address
 		UserInfo userInfo = userManager.getUserInfo(realUsername);
 		userManager.updateEmail(userInfo, newEmail);
 		
 		invalidateSessionToken(sessionToken);
+		*/
 	}
 	
 	@Override
@@ -177,21 +199,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
+		// Get the user's info and session token (which is refreshed)
 		UserInfo user = userManager.getUserInfo(username);
 		username = user.getIndividualGroup().getName();
-		String sessionToken = authManager.getSessionToken(username).getSessionToken();
-		
-		Long principalId = authManager.checkSessionToken(sessionToken);
-		if (principalId == null) {
-			throw new UnauthorizedException("Session token (" + sessionToken + ") is invalid");
-		}
-		
+		String sessionToken = authManager.authenticate(username, null).getSessionToken();
+
+		// Send the password email with username and session token info
 		NewUser mailTarget = new NewUser();
 		mailTarget.setDisplayName(user.getUser().getDisplayName());
 		mailTarget.setEmail(user.getIndividualGroup().getName());
 		mailTarget.setFirstName(user.getUser().getFname());
 		mailTarget.setLastName(user.getUser().getLname());
-		// now send the reset password email, filling in the user name and session token
 		SendMail sendMail = new SendMail();
 		switch (mode) {
 			case SET_PW:

@@ -6,7 +6,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.springframework.http.HttpStatus;
@@ -19,26 +18,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class BaseController {
 	private static final Logger log = LogManager.getLogger(BaseController.class
 			.getName());
-	
-	/**
-	 * This is thrown when there are problems authenticating the user
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
-	 */
-	@ExceptionHandler(AuthenticationException.class)
-	public @ResponseBody
-	ErrorResponse handleAuthenticationException(AuthenticationException ex,
-			HttpServletRequest request,
-			HttpServletResponse response) {
-		if (null!=ex.getAuthURL()) response.setHeader("AuthenticationURL", ex.getAuthURL());
-		response.setStatus(ex.getRespStatus());
-		return handleException(ex, request, false);
-	}
 
 	@ExceptionHandler(UnauthorizedException.class)
 	public @ResponseBody

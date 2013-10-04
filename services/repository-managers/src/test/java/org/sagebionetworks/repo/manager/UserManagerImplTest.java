@@ -29,10 +29,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class UserManagerImplTest {
 	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 	
 	private List<String> groupsToDelete = null;
 	
