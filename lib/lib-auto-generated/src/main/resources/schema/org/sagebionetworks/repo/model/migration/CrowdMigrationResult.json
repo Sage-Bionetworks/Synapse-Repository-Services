@@ -1,0 +1,28 @@
+{
+	"description": "The result of migrating a single user from Crowd to RDS",
+	"properties": {
+		"username":{
+			"type":"string", 
+			"description":"The user's name in Crowd"
+		}, 
+		"userId":{
+			"type":"integer", 
+			"description":"The user's ID in RDS.  Only populated if successful"
+		}, 
+		"resultType": {
+			"type": "string",
+			"description": "The type of migration that occurred",
+			"name": "CrowdMigrationResultType",
+			"id": "org.sagebionetworks.repo.model.migration.CrowdMigrationResultType",
+			"enum": [
+				"SUCCESS",
+				"ABORT",
+				"FAILURE"
+			]
+		}, 
+		"message":{
+			"type":"string", 
+			"description":"Description of success or failure"
+		}
+	}
+}

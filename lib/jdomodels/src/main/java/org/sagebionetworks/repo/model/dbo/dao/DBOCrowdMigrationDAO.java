@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupParentsCache;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,33 +152,38 @@ public class DBOCrowdMigrationDAO {
 	 * Migrates the user's info from Crowd into RDS
 	 * Note: this method will not migrate users that do not exist in RDS
 	 * @param user See {@link #getUsersFromCrowd(long, long)} for the expected, populated fields
+	 * @return The user's ID in RDS, only if successful (otherwise null)
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void migrateUser(User user) throws NotFoundException {
+	public String migrateUser(User user) {
 		if (!userGroupDAO.doesPrincipalExist(user.getDisplayName())) {
-			throw new NotFoundException("User " + user.getDisplayName() + " does not exist in RDS so will not be migrated");
+			return null;
 		}
 		
-		// Get the user's ID in RDS
-		UserGroup ug = userGroupDAO.findGroup(user.getDisplayName(), true);
-		user.setId(ug.getId());
-
-		// Create the user's profile if necessary
-		ensureSecondaryRowsExist(user);
-
-		// Convert the boolean ToU acceptance state in User to a timestamp in the UserProfile
-		// This will coincidentally re-serialize the profile's blob via the non-deprecated method
-		// See: https://sagebionetworks.jira.com/browse/PLFM-1756
-		migrateToU(user);
-
-		// Get the user's secret key and stash it
-		migrateSecretKey(user);
-
-		// Get the user's password hash and stash it
-		migratePasswordHash(user);
+		try {
+			// Get the user's ID in RDS
+			UserGroup ug = userGroupDAO.findGroup(user.getDisplayName(), true);
+			user.setId(ug.getId());
+	
+			// Create the rows in other tables if necessary
+			ensureSecondaryRowsExist(user);
+	
+			// Convert the boolean ToU acceptance state in User to a timestamp in the UserProfile
+			// This will coincidentally re-serialize the profile's blob via the non-deprecated method
+			// See: https://sagebionetworks.jira.com/browse/PLFM-1756
+			migrateToU(user);
+	
+			// Get the user's secret key, password hash, and group memberships and stash it
+			migrateSecretKey(user);
+			migratePasswordHash(user);
+			migrateGroups(user);
+			
+		} catch (Exception e) {
+			// Make sure the transaction is rolled back
+			throw new RuntimeException(e);
+		}
 		
-		// Get the user's group memberships and stash it
-		migrateGroups(user);
+		return user.getId();
 	}
 	
 	/////////////////////////////////////////////
@@ -187,7 +191,8 @@ public class DBOCrowdMigrationDAO {
 	/////////////////////////////////////////////
 	
 	/**
-	 * Creates a default UserProfile for the user if necessary
+	 * Creates a default UserProfile for the user, if necessary
+	 * Also create a row for the user in the Credential table, if necessary
 	 */
 	protected void ensureSecondaryRowsExist(User user) throws InvalidModelException {
 		Long principalId = Long.parseLong(user.getId());
@@ -203,18 +208,6 @@ public class DBOCrowdMigrationDAO {
 			userProfile.setLastName(user.getLname());
 			userProfile.setDisplayName(user.getDisplayName());
 			userProfileDAO.create(userProfile);
-		}
-		
-		// Group parents cache
-		try {
-			MapSqlParameterSource param = new MapSqlParameterSource();
-			param.addValue("groupId", principalId);
-			basicDAO.getObjectByPrimaryKey(DBOGroupParentsCache.class, param);
-		} catch (NotFoundException e) {
-			// Create a row for the parents cache
-			DBOGroupParentsCache cacheDBO = new DBOGroupParentsCache();
-			cacheDBO.setGroupId(principalId);
-			basicDAO.createNew(cacheDBO);
 		}
 		
 		// Credentials
@@ -252,8 +245,11 @@ public class DBOCrowdMigrationDAO {
 			termsTimeStamp = 0L;
 		}
 
-		userProfile.setAgreesToTermsOfUse(termsTimeStamp);
-		userProfileDAO.update(userProfile);
+		// Don't needlessly update the profile if nothing has changed
+		if (userProfile.getAgreesToTermsOfUse() == null || termsTimeStamp != userProfile.getAgreesToTermsOfUse()) {
+			userProfile.setAgreesToTermsOfUse(termsTimeStamp);
+			userProfileDAO.update(userProfile);
+		}
 	}
 
 	/**

@@ -9,7 +9,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -39,6 +38,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -1155,7 +1155,7 @@ public class ServletTestHelper {
 				EntityHeader.class);
 	}
 
-	public static List<String> migrateFromCrowd(HttpServlet dispatchServlet,
+	public static PaginatedResults<CrowdMigrationResult> migrateFromCrowd(HttpServlet dispatchServlet,
 			String username, Map<String, String> extraParams) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.ADMIN_MIGRATE_FROM_CROWD, username, null);
@@ -1163,12 +1163,8 @@ public class ServletTestHelper {
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		JSONArray list = new JSONArray(response.getContentAsString());
-		List<String> messages = new ArrayList<String>();
-		for (int i = 0; i < list.length(); i++) {
-			messages.add(list.getString(i));
-		}
-		return messages;
+		
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				CrowdMigrationResult.class);
 	}
 }

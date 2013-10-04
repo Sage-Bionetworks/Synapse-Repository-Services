@@ -23,9 +23,11 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -126,9 +128,9 @@ public class AdministrationControllerTest {
 		Map<String, String> extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", "10");
-		List<String> messages = ServletTestHelper.migrateFromCrowd(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), extraParams);
+		PaginatedResults<CrowdMigrationResult> messages = ServletTestHelper.migrateFromCrowd(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), extraParams);
 		// Should get as many messages as user migrations requested
-		Assert.assertEquals(10, messages.size());
+		Assert.assertEquals(10, messages.getResults().size());
 	}
 
 	@Test(expected=UnauthorizedException.class)
