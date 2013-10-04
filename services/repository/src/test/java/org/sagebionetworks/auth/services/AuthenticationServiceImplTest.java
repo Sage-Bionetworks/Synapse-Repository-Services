@@ -43,8 +43,10 @@ public class AuthenticationServiceImplTest {
 		
 		mockUserManager = Mockito.mock(UserManager.class);
 		when(mockUserManager.getUserInfo(anyString())).thenReturn(userInfo);
+		
 		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), anyString())).thenReturn(new UserProfile());
+		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		
 		service = new AuthenticationServiceImpl(mockUserManager, mockUserProfileManager, mockAuthenticationManager);
@@ -52,12 +54,12 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testAuthenticate() throws Exception {
-		// Don't do ToU checking
+		// Check password but not ToU
 		service.authenticate(credential, true, false);
 		verify(mockAuthenticationManager).authenticate(eq("foo"), eq("bar"));
 		verify(mockUserManager, times(0)).getUserInfo(anyString());
 		
-		// ToU checking passes
+		// Check ToU but not password
 		credential.setAcceptsTermsOfUse(true);
 		userInfo.getUser().setAgreesToTermsOfUse(true);
 		service.authenticate(credential, false, true);
@@ -75,8 +77,13 @@ public class AuthenticationServiceImplTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testAuthenticateToUFail() throws Exception {
-		// ToU checking fails
+		// ToU checking should fail
 		credential.setAcceptsTermsOfUse(false);
 		service.authenticate(credential, false, true);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testRevalidateToUFail() throws Exception {
+		
 	}
 }
