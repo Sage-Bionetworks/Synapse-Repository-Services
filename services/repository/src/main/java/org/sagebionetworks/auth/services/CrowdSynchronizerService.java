@@ -1,17 +1,18 @@
 package org.sagebionetworks.auth.services;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOCrowdMigrationDAO;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResultType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CrowdSynchronizerService {
@@ -21,12 +22,6 @@ public class CrowdSynchronizerService {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private SemaphoreDao semaphoreDAO;
-	
-	private static final String SEMAPHORE_KEY = "CrowdSyncService";
-	private static final long LOCK_TIME_MS = 60 * 1000;
 
 	/**
 	 * Pulls data from Crowd into RDS 
@@ -39,7 +34,7 @@ public class CrowdSynchronizerService {
 	 * - Password hashes
 	 * - Group membership 
 	 */
-	public List<String> migrateSomeUsers(String username, long limit, long offset) {
+	public PaginatedResults<CrowdMigrationResult> migrateSomeUsers(String username, long limit, long offset, String servletPath) {
 		// Service is restricted to admins
 		try {
 			UserInfo userInfo = userManager.getUserInfo(username);
@@ -50,37 +45,47 @@ public class CrowdSynchronizerService {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
 		
-		// Although it may only result in deadlocks
-		// This service should not be allowed to run concurrently with itself 
-		String semaphoreToken = semaphoreDAO.attemptToAcquireLock(SEMAPHORE_KEY, LOCK_TIME_MS);
-		
 		// Keep track of success and errors
-		List<String> messages = new ArrayList<String>();
+		List<CrowdMigrationResult> messages = new ArrayList<CrowdMigrationResult>();
 		
 		List<User> toBeMigrated = crowdMigrationDAO.getUsersFromCrowd(limit, offset);
 		for (User user : toBeMigrated) {
-			ByteArrayOutputStream resultbuffer = new ByteArrayOutputStream();
-			PrintStream resultStream = new PrintStream(resultbuffer);
+			CrowdMigrationResult result = new CrowdMigrationResult();
+			result.setUsername(user.getDisplayName());
+			String userId;
+			String message;
+			
+			// Try to migrate and construct the result for each of the three cases (success, failure, abort)
 			try {
-				crowdMigrationDAO.migrateUser(user);
-				resultStream.println("Successfully migrated " + user.getDisplayName());
+				userId = crowdMigrationDAO.migrateUser(user);
+				if (userId != null) {
+					result.setResultType(CrowdMigrationResultType.SUCCESS);
+					message = "Successfully migrated " + user.getDisplayName();
+					result.setUserId(Long.parseLong(userId));
+					
+				} else {
+					result.setResultType(CrowdMigrationResultType.ABORT);
+					message = "User " + user.getDisplayName() + " does not exist in RDS so will not be migrated";
+				}
+				
 			} catch (Exception e) {
-				resultStream.println("Could not migrate " + user.getDisplayName() + " because:");
-
-				// Print out some debug info
-				resultStream.println(e);
-                for (StackTraceElement st : e.getStackTrace()) {
-                	if (st.getClassName().contains("sagebionetworks")) {
-                		resultStream.println("  " + st);
-                	}
-                }
+				result.setResultType(CrowdMigrationResultType.FAILURE);
+				message = "Could not migrate " + user.getDisplayName() + " because:\n";
+				message += e + "\n";
+	            for (StackTraceElement st : e.getStackTrace()) {
+	            	if (st.getClassName().contains("sagebionetworks")) {
+	            		message += "  " + st + "\n";
+	            	}
+	            }
 			}
 			
-			messages.add(new String(resultbuffer.toByteArray()));
+			result.setMessage(message);
+			messages.add(result);
 		}
 		
-		semaphoreDAO.releaseLock(SEMAPHORE_KEY, semaphoreToken);
-		
-		return messages;
+		return new PaginatedResults<CrowdMigrationResult>(
+				servletPath + UrlHelpers.ADMIN_MIGRATE_FROM_CROWD,
+				messages, crowdMigrationDAO.getCount(), offset, limit, "",
+				false);
 	}
 }

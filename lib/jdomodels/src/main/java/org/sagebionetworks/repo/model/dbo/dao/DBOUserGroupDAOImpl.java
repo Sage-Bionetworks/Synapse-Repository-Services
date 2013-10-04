@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupParentsCache;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -276,11 +275,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		} catch (Exception e) {
 			throw new DatastoreException("id=" + dbo.getId() + " name="+dto.getName(), e);
 		}
-		
-		// Create a row for the parents cache
-		DBOGroupParentsCache cacheDBO = new DBOGroupParentsCache();
-		cacheDBO.setGroupId(dbo.getId());
-		basicDao.createNew(cacheDBO);
 		
 		Boolean isIndividual = dbo.getIsIndividual();
 		if (isIndividual != null && isIndividual.booleanValue()) {
