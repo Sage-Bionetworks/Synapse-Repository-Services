@@ -24,17 +24,24 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class MembershipRequestManagerImpl implements MembershipRequestManager {
-	@Autowired
-	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	
+	public MembershipRequestManagerImpl() {}
+	
+	// for testing
+	public MembershipRequestManagerImpl(
+			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
+			) {
+		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
+	}
 	
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {
 		if (mrs.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mrs.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
 		if (mrs.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
 		if (!userInfo.isAdmin() && mrs.getUserId()!=null && !mrs.getUserId().equals(userInfo.getIndividualGroup().getId())) 
-			throw new InvalidModelException("May now specify a user id other than yourself.");
+			throw new InvalidModelException("May not specify a user id other than yourself.");
 		if (mrs.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 

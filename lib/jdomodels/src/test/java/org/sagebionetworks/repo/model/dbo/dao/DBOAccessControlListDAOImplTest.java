@@ -116,7 +116,6 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(nodeId, acl.getId());
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
-		ra.setGroupName(group.getName()); 
 		ra.setPrincipalId(Long.parseLong(group.getId()));
 		//ra.setDisplayName(group.getName());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(

@@ -61,25 +61,25 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	private static final RowMapper<DBOTeam> teamRowMapper = (new DBOTeam()).getTableMapping();
 	
-	private static final String SELECT_SQL_PAGINATED = 
+	private static final String SELECT_PAGINATED = 
 			"SELECT * FROM "+TABLE_TEAM+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_COUNT_FOR_MEMBER_SQL_CORE = 
+	private static final String SELECT_COUNT = 
+			"SELECT COUNT(*) FROM "+TABLE_TEAM;
+
+	private static final String SELECT_FOR_MEMBER_SQL_CORE = 
 			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_TEAM+" t "+
 			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+" AND "+
 			" gm."+COL_GROUP_MEMBERS_MEMBER_ID+" IN (:"+COL_GROUP_MEMBERS_MEMBER_ID+")";
 
-	private static final String SELECT_COUNT_FOR_MEMBER_SQL = 
-			"SELECT count(*) "+SELECT_COUNT_FOR_MEMBER_SQL_CORE;
-
-	private static final String SELECT_COUNT_SQL = 
-			"SELECT COUNT(*) FROM "+TABLE_TEAM;
-
-	private static final String SELECT_GROUPS_OF_MEMBER = 
-			"SELECT t.* "+SELECT_COUNT_FOR_MEMBER_SQL_CORE+
+	private static final String SELECT_FOR_MEMBER_PAGINATED = 
+			"SELECT t.* "+SELECT_FOR_MEMBER_SQL_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	private static final String SELECT_FOR_MEMBER_COUNT = 
+			"SELECT count(*) "+SELECT_FOR_MEMBER_SQL_CORE;
+
 	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
 
 	private static final String SELECT_ALL_TEAMS_AND_MEMBERS =
@@ -129,7 +129,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_SQL_PAGINATED, teamRowMapper, param);
+		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, teamRowMapper, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
@@ -137,7 +137,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		return simpleJdbcTemplate.queryForLong(SELECT_COUNT_SQL);
+		return simpleJdbcTemplate.queryForLong(SELECT_COUNT);
 	}
 
 	/* (non-Javadoc)
@@ -151,7 +151,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_GROUPS_OF_MEMBER, teamRowMapper, param);
+		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_FOR_MEMBER_PAGINATED, teamRowMapper, param);
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;
@@ -161,7 +161,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public long getCountForMember(String principalId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
-		return simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_MEMBER_SQL, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_FOR_MEMBER_COUNT, param);
 	}
 
 	/* (non-Javadoc)
@@ -256,6 +256,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 					ugh.setLastName(up.getLastName());
 					ugh.setOwnerId(up.getOwnerId());
 					ugh.setPic(up.getPic());
+					ugh.setEmail(up.getEmail());
 				} else {
 					ugh.setIsIndividual(false);
 				}
@@ -265,8 +266,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 
 	@Override
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers()
-			throws DatastoreException {
+	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException {
 		List<TeamMemberPair> results = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
 		Map<TeamHeader, List<UserGroupHeader>> map = new HashMap<TeamHeader, List<UserGroupHeader>>();
 		for (TeamMemberPair tmp : results) {

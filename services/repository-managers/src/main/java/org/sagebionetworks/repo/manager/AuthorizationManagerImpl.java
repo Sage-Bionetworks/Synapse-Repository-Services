@@ -283,11 +283,4 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		return true;
 	}
-
-	// The rule is:  any authenticated user can create a team
-	@Override
-	public boolean canCreateTeam(UserInfo userInfo, Team team) {
-		return !AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId());
-	}
-	
 }

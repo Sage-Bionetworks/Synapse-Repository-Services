@@ -5,10 +5,9 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -101,12 +100,4 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 */
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
-	
-	/**
-	 * 
-	 * @param userInfo
-	 * @param team
-	 * @return
-	 */
-	public boolean canCreateTeam(UserInfo userInfo, Team team);
 }
