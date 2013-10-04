@@ -25,6 +25,13 @@ public interface ColumnModelDAO {
 	public List<ColumnModel> listColumnModels(String namePrefix, long limit, long offset);
 	
 	/**
+	 * Used for pagination to count the number of rows that meet a query.
+	 * @param namePrefix
+	 * @return
+	 */
+	public long listColumnModelsCount(String namePrefix);
+	
+	/**
 	 * Create a new column model.  Column models are immutable and cannot be deleted once they are used.
 	 * @param model
 	 * @return
@@ -86,6 +93,12 @@ public interface ColumnModelDAO {
 	 * @return
 	 */
 	public List<String> listObjectsBoundToColumn(Set<String> columnIds, boolean currentOnly, long limit, long offest);
+	
+	/**
+	 * Used for pagination to determine the total number of results for this query.
+	 * @return
+	 */
+	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly);
 	
 	/**
 	 * This should only be called by tests.

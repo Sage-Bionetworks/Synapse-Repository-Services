@@ -165,9 +165,13 @@ public class DBOColumnModelImplTest {
 		filter.add(two.getId());
 		filter.add(three.getId());
 		List<String> results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
+		long count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
 		assertNotNull(results);
 		assertEquals(0, results.size());
+		assertEquals(0, count);
 		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
+		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
+		assertEquals(0, count);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 		
@@ -175,12 +179,16 @@ public class DBOColumnModelImplTest {
 		filter.clear();
 		filter.add(two.getId());
 		results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
+		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
+		assertEquals(2, count);
 		assertEquals(2, results.size());
 		// The should be in order by object id.
 		assertEquals("syn123", results.get(0));
 		assertEquals("syn456", results.get(1));
 		// Now for current only we should only get syn456
 		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
+		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
+		assertEquals(1, count);
 		assertEquals(1, results.size());
 		assertEquals("syn456", results.get(0));
 		
@@ -195,6 +203,8 @@ public class DBOColumnModelImplTest {
 		filter.add(one.getId());
 		filter.add(two.getId());
 		results = columnModelDao.listObjectsBoundToColumn(filter, false, Long.MAX_VALUE, 0l);
+		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
+		assertEquals(2, count);
 		assertEquals(2, results.size());
 		// The should be in order by object id.
 		assertEquals("syn123", results.get(0));
@@ -220,8 +230,10 @@ public class DBOColumnModelImplTest {
 		assertTrue(results.size() >= 5);
 		// Now filter by 'a'
 		results = columnModelDao.listColumnModels("A", Long.MAX_VALUE, 0l);
+		long count = columnModelDao.listColumnModelsCount("A");
 		assertNotNull(results);
 		assertEquals(5, results.size());
+		assertEquals(5, count);
 		// The should be ordered by name
 		assertEquals(cols.get(0).getId(), results.get(0).getId());
 		assertEquals(cols.get(2).getId(), results.get(2).getId());
@@ -232,14 +244,18 @@ public class DBOColumnModelImplTest {
 		assertEquals(cols.get(2).getId(), results.get(0).getId());
 		// more filtering
 		results = columnModelDao.listColumnModels("Aa", Long.MAX_VALUE, 0l);
+		count = columnModelDao.listColumnModelsCount("Aa");
 		assertNotNull(results);
 		assertEquals(3, results.size());
+		assertEquals(3, count);
 		assertEquals(cols.get(2).getId(), results.get(2).getId());
 		
 		// more filtering
 		results = columnModelDao.listColumnModels("Ab", Long.MAX_VALUE, 0l);
+		count = columnModelDao.listColumnModelsCount("Ab");
 		assertNotNull(results);
 		assertEquals(2, results.size());
+		assertEquals(2, count);
 		assertEquals(cols.get(4).getId(), results.get(1).getId());
 	}
 	

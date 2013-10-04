@@ -45,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
+	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ORDER BY "+COL_CM_NAME+" LIMIT ? OFFSET ?";
 	private static final String SQL_TRUNCATE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" >= 0";
 	private static final String SQL_SELECT_EXISTING_BOUND_FOR_OBJECT_ID = "SELECT * FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ? ";
@@ -71,10 +72,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Override
 	public List<ColumnModel> listColumnModels(String namePrefix, long limit, long offset) {
-		if(namePrefix == null){
-			namePrefix = "";
-		}
-		String likeString = namePrefix.toLowerCase()+"%";
+		String likeString = preparePrefix(namePrefix);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
 		// Convert to DTOs
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
@@ -82,6 +80,24 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
 		}
 		return results;
+	}
+
+	/**
+	 * @param namePrefix
+	 * @return
+	 */
+	public String preparePrefix(String namePrefix) {
+		if(namePrefix == null){
+			namePrefix = "";
+		}
+		String likeString = namePrefix.toLowerCase()+"%";
+		return likeString;
+	}
+	
+	@Override
+	public long listColumnModelsCount(String namePrefix) {
+		String likeString = preparePrefix(namePrefix);
+		return simpleJdbcTemplate.queryForLong(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT, likeString);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -177,9 +193,18 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	public List<String> listObjectsBoundToColumn(Set<String> columnIds,	boolean currentOnly, long limit, long offset) {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
-		String sql = builderListObjectsSql(columnIds, currentOnly, limit, offset, parameters);
+		String sql = builderListObjectsSql(columnIds, currentOnly, limit, offset, parameters, false);
 		// Run the query
 		return simpleJdbcTemplate.query(sql, ENTITY_ID_MAPPER, parameters);
+	}
+	
+	@Override
+	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly) {
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		// With currently only we have one additional condition.
+		String sql = builderListObjectsSql(columnIds, currentOnly, -1, -1, parameters, true);
+		System.out.println(sql);
+		return simpleJdbcTemplate.queryForLong(sql, parameters);
 	}
 
 	/**
@@ -192,9 +217,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	 * @param parameters
 	 * @return
 	 */
-	private static String builderListObjectsSql(Set<String> columnIds,	boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters){
-		parameters.addValue("limit", limit);
-		parameters.addValue("offset", offset);
+	private static String builderListObjectsSql(Set<String> columnIds,	boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters, boolean count){
 		// We build the from, where, and join at the same time with a single loop.
 		StringBuilder from = new StringBuilder();
 		from.append(" FROM");
@@ -219,11 +242,20 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		}
 		// put all of the parts together.
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT DISTINCT A0."+COL_BOUND_CM_OBJECT_ID);
+		builder.append("SELECT");
+		if(count){
+			builder.append(" COUNT(DISTINCT A0."+COL_BOUND_CM_OBJECT_ID+")");
+		}else{
+			builder.append(" DISTINCT A0."+COL_BOUND_CM_OBJECT_ID);
+		}
 		builder.append(from.toString());
 		builder.append(where.toString());
 		builder.append(join.toString());
-		builder.append(" ORDER BY A0."+COL_BOUND_CM_OBJECT_ID+" LIMIT :limit OFFSET :offset");
+		if(!count){
+			builder.append(" ORDER BY A0."+COL_BOUND_CM_OBJECT_ID+" LIMIT :limit OFFSET :offset");
+			parameters.addValue("limit", limit);
+			parameters.addValue("offset", offset);
+		}
 		return builder.toString();
 	}
 }
