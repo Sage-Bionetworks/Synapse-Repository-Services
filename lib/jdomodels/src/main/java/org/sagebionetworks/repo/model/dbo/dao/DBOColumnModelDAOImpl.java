@@ -45,10 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
-	private static final String SQL_SELECT_BOUND_TO_COLS_PRFIX = "SELECT "+COL_BOUND_CM_OBJECT_ID+" FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" IN ( :ids )";
-	private static final String SQL_SELECT_BOUND_TO_COLS_SUFFIX = " ORDER BY "+COL_BOUND_CM_OBJECT_ID+" LIMIT :limit OFFSET :offset";
-	private static final String SQL_SELECT_BOUND_TO_COLS = SQL_SELECT_BOUND_TO_COLS_PRFIX + SQL_SELECT_BOUND_TO_COLS_SUFFIX;
-	private static final String SQL_SELECT_BOUND_TO_COLS_CURRENT_ONLY = SQL_SELECT_BOUND_TO_COLS_PRFIX +" AND "+COL_BOUND_CM_IS_CURRENT+" = TRUE"+ SQL_SELECT_BOUND_TO_COLS_SUFFIX;
+	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ORDER BY "+COL_CM_NAME+" LIMIT ? OFFSET ?";
 	private static final String SQL_TRUNCATE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" >= 0";
 	private static final String SQL_SELECT_EXISTING_BOUND_FOR_OBJECT_ID = "SELECT * FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ? ";
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
@@ -74,8 +71,17 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Override
 	public List<ColumnModel> listColumnModels(String namePrefix, long limit, long offset) {
-		// TODO Auto-generated method stub
-		return null;
+		if(namePrefix == null){
+			namePrefix = "";
+		}
+		String likeString = namePrefix.toLowerCase()+"%";
+		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
+		// Convert to DTOs
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(DBOColumnModel dbo: dbos){
+			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
+		}
+		return results;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -189,6 +195,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private static String builderListObjectsSql(Set<String> columnIds,	boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters){
 		parameters.addValue("limit", limit);
 		parameters.addValue("offset", offset);
+		// We build the from, where, and join at the same time with a single loop.
 		StringBuilder from = new StringBuilder();
 		from.append(" FROM");
 		StringBuilder join = new StringBuilder();

@@ -200,8 +200,67 @@ public class DBOColumnModelImplTest {
 		assertEquals("syn123", results.get(0));
 		assertEquals("syn456", results.get(1));
 		
+		// with limit and offset
+		results = columnModelDao.listObjectsBoundToColumn(filter, false, 1, 0l);
+		assertEquals(1, results.size());
+		assertEquals("syn123", results.get(0));
+		results = columnModelDao.listObjectsBoundToColumn(filter, false, 1, 1l);
+		assertEquals(1, results.size());
+		assertEquals("syn456", results.get(0));
+		
 		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
 		assertEquals(0, results.size());
  	}
+	
+	@Test
+	public void testListColumnModels() throws DatastoreException, NotFoundException{
+		List<ColumnModel> cols = createColumsWithName(new String[]{"aaa","aab","aac", "abb", "abc"});
+		List<ColumnModel> results = columnModelDao.listColumnModels(null, Long.MAX_VALUE, 0l);
+		assertNotNull(results);
+		assertTrue(results.size() >= 5);
+		// Now filter by 'a'
+		results = columnModelDao.listColumnModels("A", Long.MAX_VALUE, 0l);
+		assertNotNull(results);
+		assertEquals(5, results.size());
+		// The should be ordered by name
+		assertEquals(cols.get(0).getId(), results.get(0).getId());
+		assertEquals(cols.get(2).getId(), results.get(2).getId());
+		// Now pagination
+		results = columnModelDao.listColumnModels("A", 1, 2l);
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		assertEquals(cols.get(2).getId(), results.get(0).getId());
+		// more filtering
+		results = columnModelDao.listColumnModels("Aa", Long.MAX_VALUE, 0l);
+		assertNotNull(results);
+		assertEquals(3, results.size());
+		assertEquals(cols.get(2).getId(), results.get(2).getId());
+		
+		// more filtering
+		results = columnModelDao.listColumnModels("Ab", Long.MAX_VALUE, 0l);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertEquals(cols.get(4).getId(), results.get(1).getId());
+	}
+	
+	/**
+	 * Helper to create columns by name
+	 * @param names
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	private List<ColumnModel> createColumsWithName(String[] names) throws DatastoreException, NotFoundException{
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(String name: names){
+			ColumnModel cm  = new ColumnModel();
+			cm.setName(name);
+			cm.setColumnType(ColumnType.STRING);
+			cm = columnModelDao.createColumnModel(cm);
+			results.add(cm);
+			toDelete.add(cm.getId());
+		}
+		return results;
+	}
 
 }
