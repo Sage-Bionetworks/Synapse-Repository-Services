@@ -95,9 +95,6 @@
 		depends-on="userGroupDAO" 
 		init-method="bootstrapProfiles" />
 	
-	<bean id="crowdGroupMembersDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
-	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" />
 	<bean id="authDAO"
@@ -233,5 +230,8 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
+		
+	<bean id="crowdMigrationDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOCrowdMigrationDAO" />
 
 </beans>
