@@ -154,9 +154,7 @@
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 
-	<bean id="userDAO" class="org.sagebionetworks.repo.util.UserDAOProxy"
-		scope="singleton" />
-	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO"
+	<bean id="userDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserDAOImpl"
 		scope="singleton" />
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
