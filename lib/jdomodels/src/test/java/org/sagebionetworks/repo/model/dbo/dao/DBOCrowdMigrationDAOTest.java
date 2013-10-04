@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupParentsCache;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -218,10 +217,35 @@ public class DBOCrowdMigrationDAOTest {
 		Assert.assertEquals(numUsers, new Long(users.size()));
 	}
 
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testAbortNotInRDS() throws Exception {
 		createCrowdUser(randUsername);
+		String userId = crowdMigrationDAO.migrateUser(user);
+		Assert.assertNull(userId);
+	}
+	
+	@Test
+	public void testMigrationIdempotent() throws Exception {
+		createCrowdUser(randUsername);
+		createRDSUser(randUsername);
+		
+		// Migrate once
 		crowdMigrationDAO.migrateUser(user);
+		
+		// Check for correctness
+		UserProfile userProfile = userProfileDAO.get(user.getId());
+		String secretKey = authDAO.getSecretKey(user.getId());
+		String passHash = PBKDF2Utils.hashPassword(password, authDAO.getPasswordSalt(randUsername));
+		authDAO.checkEmailAndPassword(randUsername, passHash);
+		
+		// Migrate again
+		crowdMigrationDAO.migrateUser(user);
+
+		// The values should remain the same
+		Assert.assertEquals(userProfile, userProfileDAO.get(user.getId()));
+		Assert.assertEquals(secretKey, authDAO.getSecretKey(user.getId()));
+		passHash = PBKDF2Utils.hashPassword(password, authDAO.getPasswordSalt(randUsername));
+		authDAO.checkEmailAndPassword(randUsername, passHash);
 	}
 
 	@Test
@@ -239,7 +263,6 @@ public class DBOCrowdMigrationDAOTest {
 		groupsToDeleteFromRDS.add(ug.getId().toString());
 
 		long startUserProfileCount = basicDAO.getCount(DBOUserProfile.class);
-		long startGroupParentsCacheCount = basicDAO.getCount(DBOGroupParentsCache.class);
 		long startCredentialCount = basicDAO.getCount(DBOCredential.class);
 		
 		user.setId(ug.getId().toString());
@@ -247,7 +270,6 @@ public class DBOCrowdMigrationDAOTest {
 
 		// There should be one more of each row
 		Assert.assertEquals(startUserProfileCount + 1, basicDAO.getCount(DBOUserProfile.class));
-		Assert.assertEquals(startGroupParentsCacheCount + 1, basicDAO.getCount(DBOGroupParentsCache.class));
 		Assert.assertEquals(startCredentialCount + 1, basicDAO.getCount(DBOCredential.class));
 	}
 
