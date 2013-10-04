@@ -187,7 +187,7 @@ public class DBOColumnModelImplTest {
 		assertEquals("syn456", results.get(1));
 		// Now for current only we should only get syn456
 		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
-		count = columnModelDao.listObjectsBoundToColumnCount(filter, false);
+		count = columnModelDao.listObjectsBoundToColumnCount(filter, true);
 		assertEquals(1, count);
 		assertEquals(1, results.size());
 		assertEquals("syn456", results.get(0));
@@ -220,6 +220,8 @@ public class DBOColumnModelImplTest {
 		
 		results = columnModelDao.listObjectsBoundToColumn(filter, true, Long.MAX_VALUE, 0l);
 		assertEquals(0, results.size());
+		count = columnModelDao.listObjectsBoundToColumnCount(filter, true);
+		assertEquals(0, count);
  	}
 	
 	@Test
