@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -28,9 +27,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class UserManagerImpl implements UserManager {
-	
-	@Autowired
-	private UserDAO userDAO;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -86,9 +82,6 @@ public class UserManagerImpl implements UserManager {
 				throw new RuntimeException(e);
 			}
 		}
-		
-		// Make some authentication info
-		authDAO.create(individualGroup.getId(), user.getPassword());
 	}
 
 	/**
@@ -100,7 +93,7 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public UserInfo getUserInfo(String userName) throws DatastoreException,
 			NotFoundException {		
-		User user = userDAO.getUser(userName);
+		User user = getUser(userName);
 		UserGroup individualGroup = userGroupDAO.findGroup(userName, true);
 		
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
@@ -132,6 +125,41 @@ public class UserManagerImpl implements UserManager {
 		ui.setUser(user);
 		ui.setGroups(groups);
 		return ui;
+	}
+	
+	/**
+	 * Constructs a User object out of information from the UserGroup and UserProfile
+	 */
+	private User getUser(String userName) throws DatastoreException,
+			NotFoundException {
+		User user = new User();
+		user.setUserId(userName);
+		user.setId(userName); // i.e. username == user id
+
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
+			return user;
+		}
+
+		UserGroup ug = userGroupDAO.findGroup(userName, true);
+		if (ug == null) {
+			throw new NotFoundException("User " + userName + " does not exist");
+		}
+		user.setCreationDate(ug.getCreationDate());
+
+		// The migrator may delete its own profile during testing
+		// But those details do not matter for this user
+		if (userName.equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
+			return user;
+		}
+
+		UserProfile up = userProfileDAO.get(ug.getId());
+		user.setFname(up.getFirstName());
+		user.setLname(up.getLastName());
+		user.setDisplayName(up.getDisplayName());
+		user.setAgreesToTermsOfUse(up.getAgreesToTermsOfUse() != null
+				&& up.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		return user;
 	}
 
 	/**

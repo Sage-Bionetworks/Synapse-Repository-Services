@@ -85,8 +85,6 @@ public class MigrationServiceImpl implements MigrationService {
 		MigrationTypeCount tc = new MigrationTypeCount();
 		tc.setCount(count);
 		tc.setType(type);
-		// Make sure the user cache is cleared because we could have deleted users.
-		userManager.clearCache();
 		return tc;
 	}
 

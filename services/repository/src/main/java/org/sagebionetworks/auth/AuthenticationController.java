@@ -169,10 +169,6 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
 	public @ResponseBody SecretKey newSecretKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws Exception {
-		if (username == null) { 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		}
-
 		SecretKey secret = new SecretKey();
 		secret.setSecretKey(authenticationService.getSecretKey(username));
 		return secret;
