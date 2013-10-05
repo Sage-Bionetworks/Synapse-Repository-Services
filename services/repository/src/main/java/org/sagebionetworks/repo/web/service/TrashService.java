@@ -10,8 +10,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * A service for entities in the trash can.
- *
- * @author Eric Wu
  */
 public interface TrashService {
 

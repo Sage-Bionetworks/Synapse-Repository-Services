@@ -4,8 +4,6 @@ import org.sagebionetworks.repo.model.TaggableEntity;
 
 /**
  * Generates e-tags for taggable entities.
- *
- * @author Eric Wu
  */
 public interface ETagGenerator {
 
