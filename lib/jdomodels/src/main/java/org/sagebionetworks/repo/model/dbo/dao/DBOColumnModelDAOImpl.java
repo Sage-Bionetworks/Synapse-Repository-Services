@@ -203,7 +203,6 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, -1, -1, parameters, true);
-		System.out.println(sql);
 		return simpleJdbcTemplate.queryForLong(sql, parameters);
 	}
 
