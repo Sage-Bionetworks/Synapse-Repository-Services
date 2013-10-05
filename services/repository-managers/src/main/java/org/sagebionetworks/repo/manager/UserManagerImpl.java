@@ -84,11 +84,6 @@ public class UserManagerImpl implements UserManager {
 		}
 	}
 
-	/**
-	 * NOTE: This method has the side effect of creating the user's individual group
-	 * and the user's profile iff the user has authenticated and the two entities do 
-	 * not already exist.  
-	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(String userName) throws DatastoreException,
@@ -115,7 +110,7 @@ public class UserManagerImpl implements UserManager {
 		for (UserGroup group : groups) {
 			if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(group.getName())) {
 				isAdmin = true;
-				continue;
+				break;
 			}
 		}
 		
@@ -164,10 +159,6 @@ public class UserManagerImpl implements UserManager {
 
 	/**
 	 * Lazy fetch of the default groups.
-	 * 
-	 * @param group
-	 * @return
-	 * @throws DatastoreException
 	 */
 	@Override
 	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group)
@@ -183,9 +174,6 @@ public class UserManagerImpl implements UserManager {
 		return userGroupDAO.findGroup(name, b);
 	}
 
-	/**
-	 * Does a principal exist with this name?
-	 */
 	@Override
 	public boolean doesPrincipalExist(String name) {
 		return userGroupDAO.doesPrincipalExist(name);
