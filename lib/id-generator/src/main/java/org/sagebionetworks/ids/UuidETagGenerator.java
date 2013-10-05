@@ -8,8 +8,6 @@ import org.springframework.beans.factory.InitializingBean;
 /**
  * Generates a UUID as an ETag. Note that the UUID
  * is generated randomly independent of the entity.
- *
- * @author Eric Wu
  */
 public class UuidETagGenerator implements ETagGenerator, InitializingBean {
 

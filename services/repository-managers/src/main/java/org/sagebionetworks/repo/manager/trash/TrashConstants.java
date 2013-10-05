@@ -4,8 +4,6 @@ import org.sagebionetworks.StackConfiguration;
 
 /**
  * Constants for the trash and trash cans.
- *
- * @author Eric Wu
  */
 public class TrashConstants {
 
