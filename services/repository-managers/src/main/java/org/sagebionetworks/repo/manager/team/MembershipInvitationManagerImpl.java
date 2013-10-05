@@ -32,6 +32,17 @@ public class MembershipInvitationManagerImpl implements
 	@Autowired 
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	
+	public MembershipInvitationManagerImpl() {}
+	
+	// for testing
+	public MembershipInvitationManagerImpl(
+			AuthorizationManager authorizationManager,
+			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO
+			) {
+		this.authorizationManager = authorizationManager;
+		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
+	}
+	
 	public static void validateForCreate(MembershipInvtnSubmission mis) {
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
