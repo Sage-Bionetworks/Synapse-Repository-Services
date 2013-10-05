@@ -12,8 +12,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Manages entities in the trash can.
- *
- * @author Eric Wu
  */
 public interface TrashManager {
 

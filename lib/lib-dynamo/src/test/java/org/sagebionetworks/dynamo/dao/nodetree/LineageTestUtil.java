@@ -9,8 +9,6 @@ import org.sagebionetworks.dynamo.KeyValueSplitter;
 
 /**
  * Test utils.
- *
- * @author Eric Wu
  */
 class LineageTestUtil {
 

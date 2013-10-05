@@ -18,8 +18,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Default implementation of the node tree update manager.
- *
- * @author Eric Wu
  */
 public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 
