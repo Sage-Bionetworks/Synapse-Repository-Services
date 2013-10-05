@@ -20,10 +20,7 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testValidateNewTableModel(){
-		TableEntity table = new TableEntity();
-		List<ColumnModel> columns = new LinkedList<ColumnModel>();
-		table.setColumns(columns);
-		
+		TableEntity table = new TableEntity();		
 		TableModelUtils.validateNewTableModel(table);
 	}
 }

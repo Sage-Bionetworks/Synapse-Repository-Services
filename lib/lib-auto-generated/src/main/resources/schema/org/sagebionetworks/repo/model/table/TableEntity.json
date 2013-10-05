@@ -1,17 +1,17 @@
 {
     "title":"Table",
-    "description":"JSON schema for Table POJO",
+    "description":"A TableEntity represent the metadata of a table.",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Versionable"
         }
     ],
     "properties":{
-		"columns": {
-			"contentEncoding": "binary",
+		"columnIds": {
+		    "description":"The list of ColumnModel IDs that define the schema for this table.",
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+				"type": "string"
 			}
 		}
     }

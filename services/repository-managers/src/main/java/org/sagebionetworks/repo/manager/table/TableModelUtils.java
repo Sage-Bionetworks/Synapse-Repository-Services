@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager.table;
 
-import java.util.List;
-
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableEntity;
 
 public class TableModelUtils {
@@ -14,14 +11,14 @@ public class TableModelUtils {
 	public static void validateNewTableModel(TableEntity toValidate){
 		if(toValidate == null) throw new IllegalArgumentException("TableEntity cannot be null");
 		// Issue an ID for each column
-		List<ColumnModel> models = toValidate.getColumns();
-		if(models != null){
-			for(int i=0; i<models.size();i++){
-				ColumnModel mod = models.get(i);
-				// Use the index as the ID for all new models
-				mod.setId(""+i);	
-			}
-		}
+//		List<ColumnModel> models = toValidate.getColumns();
+//		if(models != null){
+//			for(int i=0; i<models.size();i++){
+//				ColumnModel mod = models.get(i);
+//				// Use the index as the ID for all new models
+//				mod.setId(""+i);	
+//			}
+//		}
 	}
 	
 	/**
