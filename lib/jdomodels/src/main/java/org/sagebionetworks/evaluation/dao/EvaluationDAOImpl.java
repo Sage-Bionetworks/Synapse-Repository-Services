@@ -156,10 +156,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	@Override
-	public List<Evaluation> getByContentSource(String projectId, long limit, long offset) 
+	public List<Evaluation> getByContentSource(String id, long limit, long offset) 
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);	
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, rowMapper, params);
@@ -199,9 +199,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	@Override
-	public long getCountByContentSource(String projectId) throws DatastoreException {
+	public long getCountByContentSource(String id) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(projectId));
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
 	}
 

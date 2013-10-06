@@ -8,17 +8,22 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.NamedIdGenerator;
+import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,6 +40,12 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private DBOBasicDao basicDAO;
+	
+	@Autowired
+	private NamedIdGenerator idGenerator;
 
 	private static final String TEST_GROUP_NAME = "testGroupOfDOOOOM";
 	private static final Integer NUM_USERS = 3; // Need at least 2 for testgetUserGroups()
@@ -223,6 +234,21 @@ public class DBOGroupMembersDAOImplTest {
 	}
 	
 	@Test
+	public void testGroupParentsCacheNullTolerant() throws Exception {
+		String randUsername = "BogusUser" + UUID.randomUUID();
+		
+		DBOUserGroup ug = new DBOUserGroup();
+		ug.setId(idGenerator.generateNewId(randUsername, NamedType.USER_GROUP_ID));
+		ug.setName(randUsername);
+		ug.setEtag(UUID.randomUUID().toString());
+		ug = basicDAO.createNew(ug);
+		groupsToDelete.add(ug.getId().toString());
+		
+		// This should not fail with an EmptyResultDataAccessException
+		groupMembersDAO.getUsersGroups(ug.getId().toString());
+	}
+	
+	@Test
 	public void testGetUserGroups() throws Exception {
 		// Setup two groups
 		String childGroupName = TEST_GROUP_NAME + "Two";
@@ -275,7 +301,7 @@ public class DBOGroupMembersDAOImplTest {
 	}
 	
 	@Test
-	public void testBootstrapGroups() throws Exception{
+	public void testBootstrapGroups() throws Exception {
 		if (!StackConfiguration.isProductionStack()) {
 			String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
 			List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);

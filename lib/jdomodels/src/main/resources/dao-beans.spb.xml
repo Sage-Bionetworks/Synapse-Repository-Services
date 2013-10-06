@@ -95,11 +95,11 @@
 		depends-on="userGroupDAO" 
 		init-method="bootstrapProfiles" />
 	
-	<bean id="crowdGroupMembersDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.CrowdGroupMembersDAO" />
-	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" />
+	<bean id="authDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
+		depends-on="userGroupDAO" />
 
 	<bean id="accessRequirementDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
@@ -166,6 +166,11 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.StorageQuotaAdminDaoImpl"
 		scope="singleton">
 	</bean>
+	
+	<bean id="columnModelDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOColumnModelDAOImpl"
+		scope="singleton">
+	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
@@ -225,5 +230,8 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
+		
+	<bean id="crowdMigrationDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOCrowdMigrationDAO" />
 
 </beans>

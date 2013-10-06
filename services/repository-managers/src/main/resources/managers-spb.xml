@@ -158,6 +158,9 @@
 		scope="singleton" />
 	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO"
 		scope="singleton" />
+		
+	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
+
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
 	

@@ -27,7 +27,7 @@ public interface EvaluationManager {
 	/**
 	 * Gets all Synapse Evaluations tied to the given project
 	 */
-	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String projectId, long limit, long offset)
+	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**

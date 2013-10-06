@@ -1,9 +1,11 @@
 package org.sagebionetworks.client;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -116,4 +118,9 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Migrates a few users from Crowd to RDS
+	 */
+	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit, long offset) throws SynapseException, JSONObjectAdapterException;
 }

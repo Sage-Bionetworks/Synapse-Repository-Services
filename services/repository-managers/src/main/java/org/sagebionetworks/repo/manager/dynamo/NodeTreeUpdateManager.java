@@ -4,8 +4,6 @@ import java.util.Date;
 
 /**
  * Updates the node tree in DynamoDB.
- *
- * @author Eric Wu
  */
 public interface NodeTreeUpdateManager {
 

@@ -7,8 +7,6 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 
 /**
  * Storage location data from unpacked blobs.
- *
- * @author ewu
  */
 public class StorageLocations {
 
@@ -118,6 +116,5 @@ public class StorageLocations {
 			return false;
 		return true;
 	}
-	
-	
 }
+

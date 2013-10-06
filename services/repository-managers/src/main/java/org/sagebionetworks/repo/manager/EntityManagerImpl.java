@@ -336,7 +336,6 @@ public class EntityManagerImpl implements EntityManager {
 			}
 		}
 
-		
 		final boolean newVersionFinal = newVersion;
 		
 		// Set activityId if new version or if not changing versions and activityId is defined

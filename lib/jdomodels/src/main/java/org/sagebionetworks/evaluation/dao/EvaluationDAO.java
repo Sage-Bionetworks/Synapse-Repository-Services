@@ -39,7 +39,7 @@ public interface EvaluationDAO {
 	/**
 	 * Retrieves all evaluations (subject to limit and offset) drawing content from the project
 	 */
-	public List<Evaluation> getByContentSource(String projectId, long limit, long offset) throws DatastoreException, NotFoundException;
+	public List<Evaluation> getByContentSource(String id, long limit, long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get all Evaluations, in a given range. Note that Evaluations of all
@@ -65,7 +65,7 @@ public interface EvaluationDAO {
 	/**
 	 * Gets the total count of evaluations tied to a project
 	 */
-	public long getCountByContentSource(String projectId) throws DatastoreException;
+	public long getCountByContentSource(String id) throws DatastoreException;
 	
 	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException;
 

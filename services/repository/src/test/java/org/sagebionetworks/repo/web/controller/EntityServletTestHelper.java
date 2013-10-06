@@ -436,10 +436,10 @@ public class EntityServletTestHelper {
 	}
 
 	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
-			String username, String projectId, long limit, long offset)
+			String username, String id, long limit, long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION + "/project/" + projectId,
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.EVALUATION,
 				username, null);
 		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
 				+ offset);
