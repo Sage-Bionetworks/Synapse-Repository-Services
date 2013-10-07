@@ -1,5 +1,8 @@
 package org.sagebionetworks.auth.services;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -63,7 +66,7 @@ public interface AuthenticationService {
 	 * Changes the password of the user
 	 */
 	public void changePassword(String username, String newPassword)
-			throws NotFoundException;
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
 	
 	/**
 	 * Changes the email of a user to another email

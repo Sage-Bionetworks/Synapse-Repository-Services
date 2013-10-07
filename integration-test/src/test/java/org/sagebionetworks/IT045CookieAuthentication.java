@@ -56,23 +56,26 @@ public class IT045CookieAuthentication {
 	
 	@Test
 	public void testFileCookieAutheticate(){
-		// Use the cookie to upload a file
+		//TODO Use the cookie to upload a file
 		HttpClient client = DefaultHttpClientSingleton.getInstance();
+		
 	    // Create a local instance of cookie store
 	    CookieStore cookieStore = new BasicCookieStore();
 	     
 	    // Create local HTTP context
 	    HttpContext localContext = new BasicHttpContext();
+	    
 	    // Bind custom cookie store to the local context
 	    localContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
 	    cookieStore.addCookie(cookie);
 	    HttpGet httpget = new HttpGet("http://www.google.com/"); 
 		
+	    //TODO
 	}
 
 	@Test
 	public void testRepoCookieAuthenticate(){
-		// Can we make a repository call with a cookie
+		//TODO Can we make a repository call with a cookie
 		
 		
 	}

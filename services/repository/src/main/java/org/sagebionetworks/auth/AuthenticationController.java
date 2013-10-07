@@ -1,5 +1,8 @@
 package org.sagebionetworks.auth;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.StackConfiguration;
@@ -7,7 +10,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
-import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
@@ -96,10 +99,17 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public @ResponseBody
-	User getUser(
+	NewUser getUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
 			throws NotFoundException {
-		return authenticationService.getUserInfo(username).getUser();
+		UserInfo userInfo = authenticationService.getUserInfo(username);
+		NewUser user = new NewUser();
+		user.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
+		user.setDisplayName(userInfo.getUser().getDisplayName());
+		user.setEmail(userInfo.getIndividualGroup().getName());
+		user.setFirstName(userInfo.getUser().getFname());
+		user.setLastName(userInfo.getUser().getLname());
+		return user;
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -122,7 +132,7 @@ public class AuthenticationController extends BaseController {
 	public void setPassword(
 			@RequestBody ChangeUserPassword changeUserPassword,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException {
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		authenticationService.changePassword(username, changeUserPassword.getNewPassword());
 	}
 	
@@ -140,11 +150,11 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = "/registeringUserPassword", method = RequestMethod.POST)
 	public void setRegisteringUserPassword(
 			@RequestBody RegistrationInfo registrationInfo)
-			throws NotFoundException {
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		String registrationToken = registrationInfo.getRegistrationToken();
 		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
 		String realUserId = authenticationService.revalidate(sessionToken);
-		String realUsername = authenticationService.getUserInfo(realUserId).getIndividualGroup().getName();
+		String realUsername = authenticationService.getUsername(realUserId);
 
 		// Set the password
 		authenticationService.changePassword(realUsername, registrationInfo.getPassword());

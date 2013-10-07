@@ -1,10 +1,14 @@
 package org.sagebionetworks.auth.services;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -57,6 +61,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		if (validateToU) {
+			// The ToU field might not be explicitly specified in the credential object
+			if (credential.getAcceptsTermsOfUse() == null) {
+				UserInfo userInfo = userManager.getUserInfo(credential.getEmail());
+				credential.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
+			}
+			
 			// Check for ToU acceptance
 			if (!credential.getAcceptsTermsOfUse()) {
 				throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
@@ -104,7 +114,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Required fields are missing for user creation");
 		}
-		userManager.createUser(user);
+		try {
+			userManager.createUser(user);
+		} catch (DatastoreException e) {
+			throw new IllegalArgumentException("User '" + user.getEmail() + "' already exists");
+		}
 	}
 	
 	@Override
@@ -117,7 +131,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String username, String newPassword) throws NotFoundException {
+	public void changePassword(String username, String newPassword) throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}

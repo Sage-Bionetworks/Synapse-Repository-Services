@@ -15,9 +15,9 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 
@@ -63,14 +63,14 @@ public class IT990AuthenticationController {
 		assertTrue(session.has(SESSION_TOKEN_LABEL));
 	}
 	
-	@Test(expected = SynapseBadRequestException.class)
+	@Test(expected = SynapseForbiddenException.class)
 	public void testCreateSessionBadCredentials() throws Exception {
 		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		loginRequest.put("email", username);
 		loginRequest.put("password", "incorrectPassword");
 	
-		// should throw SynapseBadRequestException
+		// Should throw SynapseForbiddenException
 		synapse.createAuthEntity("/session", loginRequest);
 	}
 	
@@ -82,7 +82,7 @@ public class IT990AuthenticationController {
 		loginRequest.put("email", username);
 		loginRequest.put("password", password);
 	
-		// should throw SynapseBadRequestException
+		// Should throw SynapseForbiddenException
 		synapse.createAuthEntity("/session", loginRequest);
 	}
 	
@@ -106,7 +106,7 @@ public class IT990AuthenticationController {
 		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
 	}
 	
-	@Test(expected=SynapseNotFoundException.class)
+	@Test(expected=SynapseForbiddenException.class)
 	public void testRevalidateBadTokenSvc() throws Exception {
 		// Start session
 		JSONObject loginRequest = new JSONObject();
@@ -139,7 +139,7 @@ public class IT990AuthenticationController {
 	}
 	
 	
-	@Test(expected = SynapseBadRequestException.class)
+	@Test(expected = SynapseServiceException.class)
 	public void testCreateExistingUser() throws Exception {	
 		// Start session
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
@@ -153,7 +153,7 @@ public class IT990AuthenticationController {
 		userRequest.put("lastName", "usr");
 		userRequest.put("displayName", "dev usr");
 
-		// Expect exception
+		// Expect SynapseServiceException
 		synapse.createAuthEntity("/user", userRequest);
 	}
 	
@@ -162,10 +162,10 @@ public class IT990AuthenticationController {
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
 		JSONObject user = synapse.getSynapseEntity(authEndpoint, "/user");
-		assertEquals(StackConfiguration.getIntegrationTestUserThreeEmail(), user.getString("email"));
-		assertEquals("dev", user.getString("firstName"));
-		assertEquals("usr3", user.getString("lastName"));
-		assertEquals("dev usr3", user.getString("displayName"));
+		assertEquals(username, user.getString("email"));
+		assertEquals("First-" + username, user.getString("firstName"));
+		assertEquals("Last-" + username, user.getString("lastName"));
+		assertEquals(username, user.getString("displayName"));
 	}
 	
 	@Test
@@ -246,7 +246,7 @@ public class IT990AuthenticationController {
 	}
 	
 	
-	@Test(expected = SynapseBadRequestException.class)
+	@Test(expected = SynapseNotFoundException.class)
 	public void testSendEmailInvalidUser() throws Exception {
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
@@ -291,7 +291,7 @@ public class IT990AuthenticationController {
 		assertFalse(secretKey.equals(secondKey));
 	}
 
-	private static long UBER_TIMEOUT = 5*60*1000L;
+	private static long UBER_TIMEOUT = 60 * 1000L;
 	private class MutableLong {
 		long L = 0L;
 
@@ -309,6 +309,7 @@ public class IT990AuthenticationController {
 		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
 	}
 	
+	@Ignore
 	@Test
 	public void testMultipleLoginsMultiThreaded() throws Exception {
 		for (int n : new int[] { 100 }) {

@@ -94,15 +94,18 @@ public class AuthenticationFilter implements Filter {
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse)servletResponse, e.getMessage());
+				log.warn("Invalid HMAC signature", e);
 				return;
 			} catch (NotFoundException e) {
 				reject(req, (HttpServletResponse)servletResponse, e.getMessage());
+				log.warn("Invalid HMAC signature", e);
 				return;
 			}
 		}
 		if (username == null && !allowAnonymous) {
 			String reason = "The session token provided was missing, invalid or expired.";
 			reject(req, (HttpServletResponse)servletResponse, reason);
+			log.warn("Anonymous not allowed");
 			return;
 		}
 		if (username == null) {

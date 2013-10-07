@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -18,6 +19,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class BaseController {
 	private static final Logger log = LogManager.getLogger(BaseController.class
 			.getName());
+
+	@ExceptionHandler(NotFoundException.class)
+	public @ResponseBody
+	ErrorResponse handleForbiddenException(NotFoundException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		response.setStatus(HttpStatus.NOT_FOUND.value());
+		return handleException(ex, request, false);
+	}
 
 	@ExceptionHandler(UnauthorizedException.class)
 	public @ResponseBody
