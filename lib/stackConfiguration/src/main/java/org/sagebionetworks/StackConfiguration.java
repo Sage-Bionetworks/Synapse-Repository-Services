@@ -257,6 +257,20 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.id.generator.database.driver");
 	}
+	
+	
+	public String getCrowdDatabaseConnectionUrl() {
+		return configuration
+				.getProperty("org.sagebionetworks.crowd.database.connection.url");
+	}
+	public String getCrowdDatabaseUsername() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.crowd.database.username");
+	}
+	public String getCrowdDatabasePassword() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.crowd.database.password");
+	}
 
 	/**
 	 * All of these keys are used to build up a map of JDO configurations passed

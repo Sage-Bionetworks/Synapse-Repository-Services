@@ -297,6 +297,21 @@ public class SqlConstants {
 	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
 	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
 	
+	// The column model table
+	public static final String TABLE_COLUMN_MODEL			= "COLUMN_MODEL";
+	public static final String COL_CM_ID					= "ID";
+	public static final String COL_CM_NAME					= "NAME";
+	public static final String COL_CM_HASH					= "HASH";
+	public static final String COL_CM_BYTES					= "BYTES";
+	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
+	
+	// The bound column model table
+	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
+	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
+	public static final String COL_BOUND_CM_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_BOUND_CM_IS_CURRENT		= "IS_CURRENT";
+	public static final String DDL_BOUND_COLUMN = "schema/BoundColumn-ddl.sql";
+	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
@@ -403,6 +418,15 @@ public class SqlConstants {
 	public static final String COL_STORAGE_QUOTA_ETAG         = "ETAG";
 	public static final String COL_STORAGE_QUOTA_QUOTA_IN_MB  = "QUOTA_IN_MB";
 	public static final String DDL_FILE_STORAGE_QUOTA         ="schema/StorageQuota-ddl.sql";
+	
+	// Credential
+	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
+	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
+	public static final String COL_CREDENTIAL_VALIDATED_ON  = "VALIDATED_ON";
+	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
+	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
+	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
+	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";

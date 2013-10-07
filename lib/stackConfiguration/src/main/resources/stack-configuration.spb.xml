@@ -27,6 +27,10 @@
 	<bean id="stackConfiguration.repositoryDatabaseUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.repositoryDatabasePassword" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<bean id="stackConfiguration.crowdDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.crowdDatabaseUsername" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.crowdDatabasePassword" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 	<!-- The connection pool properties -->
 	<bean id="stackConfiguration.databaseConnectionPoolShouldValidate" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.databaseConnectionPoolValidateSql" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

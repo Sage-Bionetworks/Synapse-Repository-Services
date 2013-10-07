@@ -72,8 +72,31 @@
 	</bean>
 
 
-	<bean id="simpleJdbcTempalte" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
+	<bean id="simpleJdbcTemplate" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
+	</bean>
+
+	<!-- This is the database Crowd uses -->
+	<bean id="crowdDataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close" depends-on="stackConfiguration">
+		<property name="driverClassName" ref="stackConfiguration.repositoryDatabaseDriver" />
+		<property name="url"
+			ref="stackConfiguration.crowdDatabaseConnectionUrl" />
+		<property name="username"
+			ref="stackConfiguration.crowdDatabaseUsername" />
+		<property name="password"
+			ref="stackConfiguration.crowdDatabasePassword" />
+		<property name="minIdle"
+			ref="stackConfiguration.databaseConnectionPoolMinNumberConnections" />
+		<property name="maxActive"
+			ref="stackConfiguration.databaseConnectionPoolMaxNumberConnections" />
+		<property name="testOnBorrow"
+			ref="stackConfiguration.databaseConnectionPoolShouldValidate" />
+		<property name="validationQuery"
+			ref="stackConfiguration.databaseConnectionPoolValidateSql" />
+	</bean>
+	<bean id="simpleCrowdJdbcTemplate" class="org.springframework.jdbc.core.simple.SimpleJdbcTemplate">
+		<constructor-arg ref="crowdDataSourcePool"></constructor-arg>
 	</bean>
 
 </beans>

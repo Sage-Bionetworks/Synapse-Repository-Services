@@ -530,7 +530,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS = "evalId";
 	public static final String EVALUATION_ID_PATH_VAR = "{"+EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS+"}";
 	public static final String EVALUATION_WITH_ID = EVALUATION + "/" + EVALUATION_ID_PATH_VAR;
-	public static final String EVALUATION_WITH_CONTENT_SOURCE = EVALUATION + "/project/{projectId}";
+	public static final String EVALUATION_WITH_CONTENT_SOURCE = ENTITY_ID + EVALUATION;
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";
 	public static final String EVALUATION_AVAILABLE = EVALUATION+"/available";
@@ -594,6 +594,11 @@ public class UrlHelpers {
 	 * API for clearing the specified dynamo table.
 	 */
 	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
+	
+	/**
+	 * Temporary API for migrating users from Crowd into RDS
+	 */
+	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions

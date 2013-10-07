@@ -9,8 +9,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Database operations on the trash can table.
- *
- * @author Eric Wu
  */
 public interface TrashCanDao {
 

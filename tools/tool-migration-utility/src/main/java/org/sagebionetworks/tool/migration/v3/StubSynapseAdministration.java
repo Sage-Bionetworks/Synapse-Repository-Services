@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -2123,6 +2124,14 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
+			long offset) throws SynapseException, JSONObjectAdapterException {
 		// TODO Auto-generated method stub
 		return null;
 	}

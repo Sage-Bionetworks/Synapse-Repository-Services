@@ -21,8 +21,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * A trashed entity in the trash can. It keeps track of who deleted the item and when.
- *
- * @author Eric Wu
  */
 public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEntity, DBOTrashedEntity> {
 
