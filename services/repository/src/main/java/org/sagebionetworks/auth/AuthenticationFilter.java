@@ -42,6 +42,15 @@ public class AuthenticationFilter implements Filter {
 	
 	private boolean allowAnonymous = false;
 	
+	public AuthenticationFilter() {}
+	
+	/**
+	 * For testing
+	 */
+	public AuthenticationFilter(AuthenticationService authenticationService) {
+		this.authenticationService = authenticationService;
+	}
+	
 	@Override
 	public void destroy() { }
 	
