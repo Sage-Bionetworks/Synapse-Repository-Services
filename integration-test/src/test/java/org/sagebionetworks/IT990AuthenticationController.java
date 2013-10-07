@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,21 +20,13 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 
 
-/**
- * CrowdAuthUtil
- */
-
-public class IT990CrowdAuthentication {
+public class IT990AuthenticationController {
 	private static SynapseClientImpl synapse = null;
 	private static String authEndpoint = null;
 	private static String repoEndpoint = null;
-	/**
-	 * @throws Exception
-	 * 
-	 */
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		synapse = new SynapseClientImpl();
@@ -80,7 +71,6 @@ public class IT990CrowdAuthentication {
 	
 		// should throw SynapseBadRequestException
 		synapse.createAuthEntity("/session", loginRequest);
-
 	}
 	
 	@Test(expected = SynapseForbiddenException.class)
@@ -93,13 +83,12 @@ public class IT990CrowdAuthentication {
 	
 		// should throw SynapseBadRequestException
 		synapse.createAuthEntity("/session", loginRequest);
-
 	}
 	
 	
 	@Test
 	public void testRevalidateSvc() throws Exception {
-		// start session
+		// Start session
 		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
@@ -109,7 +98,8 @@ public class IT990CrowdAuthentication {
 		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
 		assertTrue(session.has(SESSION_TOKEN_LABEL));
 		String token = session.getString(SESSION_TOKEN_LABEL);
-		// revalidate
+		
+		// Revalidate
 		session = new JSONObject();
 		session.put(SESSION_TOKEN_LABEL, token);
 		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
@@ -117,7 +107,7 @@ public class IT990CrowdAuthentication {
 	
 	@Test(expected=SynapseNotFoundException.class)
 	public void testRevalidateBadTokenSvc() throws Exception {
-		// start session
+		// Start session
 		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
@@ -128,7 +118,8 @@ public class IT990CrowdAuthentication {
 		assertTrue(session.has(SESSION_TOKEN_LABEL));
 		String token = session.getString(SESSION_TOKEN_LABEL);
 		assertNotNull(token);
-		// revalidate
+		
+		// Revalidate
 		session = new JSONObject();
 		session.put(SESSION_TOKEN_LABEL, "invalid-session-token");
 		
@@ -137,19 +128,19 @@ public class IT990CrowdAuthentication {
 	
 	@Test
 	public void testCreateSessionThenLogout() throws Exception {
-		// start session
+		// Start session
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-
 		synapse.login(username, password);
-		// logout
+		
+		// Logout
 		synapse.deleteUri(authEndpoint, "/session");
 	}
 	
 	
 	@Test(expected = SynapseBadRequestException.class)
 	public void testCreateExistingUser() throws Exception {	
-		// start session
+		// Start session
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
 
@@ -161,44 +152,9 @@ public class IT990CrowdAuthentication {
 		userRequest.put("lastName", "usr");
 		userRequest.put("displayName", "dev usr");
 
-		// expect exception
+		// Expect exception
 		synapse.createAuthEntity("/user", userRequest);
 	}
-	
-	@Ignore
-	@Test
-	public void testCreateNewUser() throws Exception {
-		// delete the user
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-		// this says 'delete me'.  It only works for the specified integration test user
-		synapse.deleteUri(authEndpoint, "/user");
-		
-		// verify that can't log in
-		// expect exception
-		try {
-			synapse.login(username, password);
-			fail("exception expected");
-		} catch (SynapseBadRequestException e) {
-			// as expected
-		}
-		
-		// now recreate it
-		JSONObject userRequest = new JSONObject();
-
-		userRequest.put("email", username);
-		userRequest.put("password", password);
-		userRequest.put("firstName", "dev");
-		userRequest.put("lastName", "usr3");
-		userRequest.put("displayName", "dev usr3");
-
-		synapse.createAuthEntity("/user", userRequest);
-		
-		// now log in to verify it's there
-		synapse.login(username, password);
-	}
-	
 	
 	@Test
 	public void testGetUser() throws Exception {
@@ -222,20 +178,18 @@ public class IT990CrowdAuthentication {
 		obj.put("newPassword", testNewPassword);
 		synapse.createAuthEntity("/userPassword", obj);
 		
-		// to check the password, we have to try to log-in:
-		// logout...
+		// To check the password, we have to try to log-in:
 		synapse.deleteUri(authEndpoint, "/session");
-		// ... login
 		synapse.login(username, testNewPassword);
 		
-		// restore original password
+		// Restore original password
 		obj = new JSONObject();
 		obj.put("newPassword", password);
 		synapse.createAuthEntity("/userPassword", obj);
 		
 	}
 	
-	// can't expect to do this regularly, as it generates email messages
+	// Can't expect to do this regularly, as it generates email messages
 	@Ignore
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
@@ -249,7 +203,7 @@ public class IT990CrowdAuthentication {
 	}
 	
 	
-	// can't expect to do this regularly, as it generates email messages
+	// Can't expect to do this regularly, as it generates email messages
 	@Ignore
 	@Test
 	public void testSetAPIPasswordEmail() throws Exception {
@@ -295,69 +249,30 @@ public class IT990CrowdAuthentication {
 		String secretKey = response.getString("secretKey");
 		assertNotNull(secretKey);
 	
-		// now invalidate the key
+		// Invalidate the key
 		synapse.deleteUri(authEndpoint, "/secretKey");
 		
-		// now get the key again...
+		// Get the key again
 		response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
 		assertTrue(response.has("secretKey"));
 		String secondKey = response.getString("secretKey");
 		assertNotNull(secondKey);
 		
-		// ... should be different from the first one
+		// Should be different from the first one
 		assertFalse(secretKey.equals(secondKey));
 	}
-	
-	class MutableBoolean {
-	boolean b = false;
-	public void set(boolean b) {this.b=b;}
-	public boolean get() {return b;}
-	}
-	
-	/**
-	 * This is meant to recreate the problem described in
-	 * http://sagebionetworks.jira.com/browse/PLFM-292
-	 * But since Crowd is being removed, we may want to remove the test too
-	 */
-	@Ignore
-	@Test 
-	public void testMultipleLogins() throws Exception {
-		int n = 100;
-		Set<Long> sortedTimes = new TreeSet<Long>();
-		long elapsed = 0;
-		for (int i=0; i<n; i++) {
-			final MutableBoolean b = new MutableBoolean();
-		 	Thread thread = new Thread() {
-				public void run() {
-					try {
-						authenticate();
-						b.set(true);
-					} catch (Exception e) {
-						e.printStackTrace(); // 'fail' will be thrown below
-					}
-				}
-			};
-			thread.start();
-			long start = System.currentTimeMillis();
-			try {
-				thread.join(20000L); // time out
-			} catch (InterruptedException ie) {
-				// as expected
-			}
-			long t = System.currentTimeMillis()-start;
-			elapsed += t;
-			sortedTimes.add(t);
-			assertTrue("Failed or timed out after "+i+" iterations.", b.get()); // should have been set to 'true' if successful
+
+	private static long UBER_TIMEOUT = 5*60*1000L;
+	private class MutableLong {
+		long L = 0L;
+
+		public void set(long L) {
+			this.L = L;
 		}
-		System.out.println(n+" authentication request response time (sec): min "+
-				((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/n/1000L)+
-				" max "+((float)getLast(sortedTimes)/1000L));
-	}
-	
-	class MutableLong {
-	long L = 0L;
-	public void set(long L) {this.L=L;}
-	public long get() {return L;}
+
+		public long get() {
+			return L;
+		}
 	}
 	
 	private void authenticate() throws Exception {
@@ -365,21 +280,21 @@ public class IT990CrowdAuthentication {
 		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
 	}
 	
-	@Test 
+	@Test
 	public void testMultipleLoginsMultiThreaded() throws Exception {
-		for (int n : new int[]{100}) {
+		for (int n : new int[] { 100 }) {
 			Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
-			for (int i=0; i<n; i++) {
+			for (int i = 0; i < n; i++) {
 				final MutableLong L = new MutableLong();
 				times.put(i, L);
-			 	Thread thread = new Thread() {
+				Thread thread = new Thread() {
 					public void run() {
 						try {
 							long start = System.currentTimeMillis();
 							authenticate();
-							L.set(System.currentTimeMillis()-start);
+							L.set(System.currentTimeMillis() - start);
 						} catch (Exception e) {
-							//fail(e.toString());
+							// fail(e.toString());
 							e.printStackTrace(); // 'fail' will be thrown below
 						}
 					}
@@ -389,11 +304,11 @@ public class IT990CrowdAuthentication {
 			int count = 0;
 			long elapsed = 0L;
 			Set<Long> sortedTimes = new TreeSet<Long>();
-			long uberTimeOut = System.currentTimeMillis()+UBER_TIMEOUT;
-			while (!times.isEmpty() && System.currentTimeMillis()<uberTimeOut) {
-				for (int i: times.keySet()) {
+			long uberTimeOut = System.currentTimeMillis() + UBER_TIMEOUT;
+			while (!times.isEmpty() && System.currentTimeMillis() < uberTimeOut) {
+				for (int i : times.keySet()) {
 					long L = times.get(i).get();
-					if (L!=0) {
+					if (L != 0) {
 						elapsed += L;
 						sortedTimes.add(L);
 						count++;
@@ -402,13 +317,13 @@ public class IT990CrowdAuthentication {
 					}
 				}
 			}
-			System.out.println(count+" authentication request response time (sec): min "+
-					((float)sortedTimes.iterator().next()/1000L)+" avg "+((float)elapsed/count/1000L)+
-					" max "+((float)getLast(sortedTimes)/1000L));
+			System.out.println(count
+					+ " authentication request response time (sec): min "
+					+ ((float) sortedTimes.iterator().next() / 1000L) + " avg "
+					+ ((float) elapsed / count / 1000L) + " max "
+					+ ((float) getLast(sortedTimes) / 1000L));
+		}
 	}
-	}
-	
-	private static long UBER_TIMEOUT = 5*60*1000L;
 	
 	private static <T> T getLast(Set<T> set) {
 		T ans = null;
