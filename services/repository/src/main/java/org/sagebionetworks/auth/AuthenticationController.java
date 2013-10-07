@@ -79,7 +79,7 @@ public class AuthenticationController extends BaseController {
 		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		authenticationService.invalidateSessionToken(sessionToken);
 	}
-	
+
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user) throws NotFoundException {
@@ -95,47 +95,52 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
+	public @ResponseBody
+	User getUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
 			throws NotFoundException {
 		return authenticationService.getUserInfo(username).getUser();
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody NewUser credential) throws NotFoundException {
+	public void sendChangePasswordEmail(@RequestBody NewUser credential)
+			throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
-					throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
-	public void setPassword(@RequestBody ChangeUserPassword changeUserPassword,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
-					throws NotFoundException {
+	public void setPassword(
+			@RequestBody ChangeUserPassword changeUserPassword,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
 		authenticationService.changePassword(username, changeUserPassword.getNewPassword());
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/changeEmail", method = RequestMethod.POST)
-	public void changeEmail(@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String newUsername) 
-					throws NotFoundException {
+	public void changeEmail(
+			@RequestBody RegistrationInfo registrationInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String newUsername)
+			throws NotFoundException {
 		authenticationService.updateEmail(registrationInfo, newUsername);
 	}
 	
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/registeringUserPassword", method = RequestMethod.POST)
-	public void setRegisteringUserPassword(@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
-					throws NotFoundException {
+	public void setRegisteringUserPassword(
+			@RequestBody RegistrationInfo registrationInfo)
+			throws NotFoundException {
 		String registrationToken = registrationInfo.getRegistrationToken();
 		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
 		String realUserId = authenticationService.revalidate(sessionToken);
@@ -148,9 +153,10 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
-	public @ResponseBody SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
-					throws NotFoundException {
+	public @ResponseBody
+	SecretKey newSecretKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
 		SecretKey secret = new SecretKey();
 		secret.setSecretKey(authenticationService.getSecretKey(username));
 		return secret;
@@ -160,8 +166,8 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) 
-					throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
 		authenticationService.deleteSecretKey(username);
 	}
 }

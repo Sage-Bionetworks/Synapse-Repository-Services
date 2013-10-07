@@ -18,6 +18,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 
 public class IT990AuthenticationController {
@@ -186,7 +187,35 @@ public class IT990AuthenticationController {
 		obj = new JSONObject();
 		obj.put("newPassword", password);
 		synapse.createAuthEntity("/userPassword", obj);
+	}
+	
+	@Test
+	public void testRegisterChangePassword() throws Exception {
+		// Get a session token
+		JSONObject loginRequest = new JSONObject();
+		String username = StackConfiguration.getIntegrationTestUserThreeName();
+		String password = StackConfiguration.getIntegrationTestUserThreePassword();
+		loginRequest.put("email", username);
+		loginRequest.put("password", password);
+
+		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
+		assertTrue(session.has(SESSION_TOKEN_LABEL));
+		String token = session.getString(SESSION_TOKEN_LABEL);
+
+		String testNewPassword = "newPassword";
+		JSONObject registrationInfo = new JSONObject();
+		registrationInfo.put("registrationToken", AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + token);
+		registrationInfo.put("password", testNewPassword);
+		synapse.createAuthEntity("/registeringUserPassword", registrationInfo);
 		
+		// To check the password, we have to try to log-in:
+		synapse.deleteUri(authEndpoint, "/session");
+		synapse.login(username, testNewPassword);
+		
+		// Restore original password
+		JSONObject obj = new JSONObject();
+		obj.put("newPassword", password);
+		synapse.createAuthEntity("/userPassword", obj);
 	}
 	
 	// Can't expect to do this regularly, as it generates email messages
