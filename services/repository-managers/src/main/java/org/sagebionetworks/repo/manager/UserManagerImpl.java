@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,9 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.xml.xpath.XPathExpressionException;
-
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -36,11 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserManagerImpl implements UserManager {
 	
 	@Autowired
-	UserDAO userDAO;
+	private UserDAO userDAO;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;	
+	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
-	UserProfileDAO userProfileDAO;
+	private UserProfileDAO userProfileDAO;
 	
 	private static Map<String, UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
@@ -68,8 +66,10 @@ public class UserManagerImpl implements UserManager {
 		this.userGroupDAO = userGroupDAO;
 	}
 	
-	// adds the existing groups to the 'groups' collection passed in
-	// returns true iff the user 'userName' is an administrator
+	/** 
+	 * Adds the existing groups to the 'groups' collection passed in
+	 * Returns true iff the user 'userName' is an administrator
+	 */
 	private  boolean addGroups(String userName, Collection<UserGroup> groups) throws NotFoundException, DatastoreException {
 		Collection<String> groupNames = userDAO.getUserGroupNames(userName);
 		// Filter out bad group names
@@ -202,10 +202,8 @@ public class UserManagerImpl implements UserManager {
 	
 	/**
 	 * Filter out any group name that is invalid
-	 * @param groupNames
-	 * @return
 	 */
-	public static Collection<String> filterInvalidGroupNames(Collection<String> groupNames){
+	public static Collection<String> filterInvalidGroupNames(Collection<String> groupNames) {
 		ArrayList<String> newList = new ArrayList<String>();
 		Iterator<String> it = groupNames.iterator();
 		while(it.hasNext()){
@@ -229,10 +227,6 @@ public class UserManagerImpl implements UserManager {
 
 	/**
 	 * Lazy fetch of the default groups.
-	 * 
-	 * @param group
-	 * @return
-	 * @throws DatastoreException
 	 */
 	@Override
 	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group)
@@ -241,15 +235,6 @@ public class UserManagerImpl implements UserManager {
 		if (ug == null)
 			throw new DatastoreException(group + " should exist.");
 		return ug;
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void deleteUser(String id) throws DatastoreException, NotFoundException {
-		// Clear the cache when we delete a users.
-		clearCache();
-		userDAO.delete(id);
-
 	}
 
 	@Override
@@ -308,7 +293,7 @@ public class UserManagerImpl implements UserManager {
 	}
 	
 	@Override
-	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException {
+	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException {
 		if (userInfo != null) {
 			UserGroup userGroup = userGroupDAO.get(userInfo.getIndividualGroup().getId());
 			userGroup.setName(newEmail);
@@ -324,7 +309,8 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	@Override
-	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
+	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) 
+			throws DatastoreException, UnauthorizedException {
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
