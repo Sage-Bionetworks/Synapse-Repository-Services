@@ -356,19 +356,21 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(ID_PARAM_NAME, id);
 		basicDao.deleteObjectByPrimaryKey(DBOUserGroup.class, param);
 	}
-
-	// initialization of UserGroups
+	
+	/**
+	 * This is called by Spring after all properties are set
+	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapUsers() throws Exception {
 		// Boot strap all users and groups
-		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
+		if (this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
 		// For each one determine if it exists, if not create it
-		for(UserGroupInt ug: this.bootstrapUsers){
-			if(ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
-			if(ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
+		for (UserGroupInt ug: this.bootstrapUsers) {
+			if (ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if (ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
 			Long id = Long.parseLong(ug.getId());
-			if(!this.doesIdExist(id)){
+			if (!this.doesIdExist(id)) {
 				UserGroup newUg = new UserGroup();
 				newUg.setId(ug.getId());
 				newUg.setName(ug.getName());
@@ -386,7 +388,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		// A few additional users are required for testing
 		if (!StackConfiguration.isProductionStack()) {
 			String testUsers[] = new String[]{ 
-					AuthorizationConstants.ADMIN_GROUP_NAME, 
 					StackConfiguration.getIntegrationTestUserAdminName(), 
 					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
 					StackConfiguration.getIntegrationTestUserOneEmail(), 
@@ -399,8 +400,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				if (!this.doesPrincipalExist(username)) {
 					UserGroup ug = new UserGroup();
 					ug.setName(username);
-					ug.setIsIndividual(!username.equals(AuthorizationConstants.ADMIN_GROUP_NAME) 
-							&& !username.equals(AuthorizationConstants.TEST_GROUP_NAME));
+					ug.setIsIndividual(!username.equals(AuthorizationConstants.TEST_GROUP_NAME));
 					ug.setId(this.create(ug));
 				}
 				UserGroup ug = new UserGroup();
