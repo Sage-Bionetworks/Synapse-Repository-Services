@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -59,6 +61,10 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			"SELECT * FROM "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" FOR UPDATE";
+	
+	private static final String INSERT_NEW_PARENTS_CACHE_ROW = 
+			"INSERT IGNORE INTO "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
+			" VALUES (:"+GROUP_ID_PARAM_NAME+", NULL)";
 	
 	private static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
 			"UPDATE "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
@@ -232,12 +238,28 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		// Check the cache for the parents, this also locks the row
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		DBOGroupParentsCache dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
+		DBOGroupParentsCache dbo;
+		try {
+			dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
+		} catch (EmptyResultDataAccessException e) {
+			try {
+				// A row doesn't exist for this user, so make one
+				MapSqlParameterSource insertParam = new MapSqlParameterSource();
+				insertParam.addValue(GROUP_ID_PARAM_NAME, principalId);
+				simpleJdbcTemplate.update(INSERT_NEW_PARENTS_CACHE_ROW, insertParam);
+				
+			// If someone else inserts the row first, then use that one
+			} catch (DeadlockLoserDataAccessException deadlock) { }
+			
+			// Since a fresh row was just inserted, the state of the row is known (null cache)
+			dbo = new DBOGroupParentsCache();
+			dbo.setGroupId(Long.parseLong(principalId));
+		}
 
 		// Use the zipped up parents
 		if (dbo.getParents() != null) {
 			try {
-			return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
+				return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}

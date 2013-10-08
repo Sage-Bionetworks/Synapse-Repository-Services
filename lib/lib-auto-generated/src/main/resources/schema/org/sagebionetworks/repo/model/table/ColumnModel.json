@@ -24,12 +24,11 @@
 				"DOUBLE",
 				"LONG",
 				"BOOLEAN",
-				"FILEHANDLEID",
-				"ENUM"
+				"FILEHANDLEID"
 			]
 		},
 		"enumValues": {
-			"description": "For a column type that is an enumeration this is the list of values",
+			"description": "Columns type of STRING can be constrained to an enumeration values set on this list.",
 			"type": "array",
 			"items": {
 				"type": "string"

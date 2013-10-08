@@ -305,6 +305,13 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// The bound column model table
+	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
+	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
+	public static final String COL_BOUND_CM_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_BOUND_CM_IS_CURRENT		= "IS_CURRENT";
+	public static final String DDL_BOUND_COLUMN = "schema/BoundColumn-ddl.sql";
+	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";

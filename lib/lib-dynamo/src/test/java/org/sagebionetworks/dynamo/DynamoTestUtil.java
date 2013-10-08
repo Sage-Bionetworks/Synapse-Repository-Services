@@ -10,8 +10,6 @@ import org.junit.Test;
 
 /**
  * Utility class helping run Dynamo tests.
- *
- * @author Eric Wu
  */
 public class DynamoTestUtil {
 

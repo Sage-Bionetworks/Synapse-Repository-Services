@@ -4,17 +4,20 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.auth.services.CrowdSynchronizerService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -39,7 +42,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class AdministrationController extends BaseController {
 	
 	@Autowired
-	ServiceProvider serviceProvider;
+	private ServiceProvider serviceProvider;
+
+	@Autowired
+	private CrowdSynchronizerService crowdSyncService;
 	
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
@@ -237,5 +243,19 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = ServiceConstants.DYNAMO_RANGE_KEY_NAME_PARAM, required = true) String rangeKeyName,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 		serviceProvider.getAdministrationService().clearDynamoTable(userId, tableName, hashKeyName, rangeKeyName);
+	}
+
+	/**
+	 * Migrates some users from Crowd into RDS
+	 */
+	@RequestMapping(value = {UrlHelpers.ADMIN_MIGRATE_FROM_CROWD}, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.OK)
+	public @ResponseBody
+	PaginatedResults<CrowdMigrationResult> migrateFromCrowd(
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			HttpServletRequest request) {
+		return crowdSyncService.migrateSomeUsers(username, limit, offset, request.getServletPath());
 	}
 }
