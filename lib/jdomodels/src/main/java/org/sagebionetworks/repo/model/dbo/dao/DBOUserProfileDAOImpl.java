@@ -8,7 +8,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.ETagGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -175,14 +177,14 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	public void bootstrapProfiles(){
 		// Boot strap all users and groups
 		if (userGroupDAO.getBootstrapUsers() == null) {
-			throw new IllegalArgumentException("bootstrapUsers cannot be null");
+			throw new IllegalArgumentException("Bootstrap users cannot be null");
 		}
 		
 		// For each one determine if it exists, if not create it
 		for (UserGroupInt ug: userGroupDAO.getBootstrapUsers()) {
-			if(ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
-			if(ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
-			if(ug.getIsIndividual()){
+			if (ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if (ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
+			if (ug.getIsIndividual()) {
 				Long.parseLong(ug.getId());
 				UserProfile userProfile = null;
 				try {
@@ -190,12 +192,15 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 				} catch (NotFoundException nfe) {
 					userProfile = new UserProfile();
 					userProfile.setOwnerId(ug.getId());
-					userProfile.setFirstName(ug.getName());
-					userProfile.setLastName(ug.getName());
+					userProfile.setFirstName("First-" + ug.getName());
+					userProfile.setLastName("Last-" + ug.getName());
 					userProfile.setDisplayName(ug.getName());
 
-					// Pretend the integration test users have already signed the terms of use
-					userProfile.setAgreesToTermsOfUse(Long.MAX_VALUE);
+					// Bootstrapped users do not need to sign the terms of use
+					if (!ug.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)
+							&& !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())) {
+						userProfile.setAgreesToTermsOfUse(Long.MAX_VALUE);
+					}
 					this.create(userProfile);
 				}
 			}
