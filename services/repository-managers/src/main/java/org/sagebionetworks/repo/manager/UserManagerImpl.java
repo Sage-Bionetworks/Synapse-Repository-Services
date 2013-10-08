@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +42,12 @@ public class UserManagerImpl implements UserManager {
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+	
+	@Autowired
+	private AuthenticationDAO authDAO;
 	
 	private static Map<String, UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
@@ -66,10 +75,50 @@ public class UserManagerImpl implements UserManager {
 		this.userGroupDAO = userGroupDAO;
 	}
 	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void createUser(NewUser user) throws DatastoreException {
+		UserGroup individualGroup = new UserGroup();
+		individualGroup.setName(user.getEmail());
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		try {
+			String id = userGroupDAO.create(individualGroup);
+			individualGroup = userGroupDAO.get(id);
+		} catch (NotFoundException ime) {
+			// shouldn't happen!
+			throw new DatastoreException(ime);
+		} catch (InvalidModelException ime) {
+			// shouldn't happen!
+			throw new DatastoreException(ime);
+		}
+		
+		// Make a user profile for this individual
+		UserProfile userProfile = null;
+		try {
+			userProfile = userProfileDAO.get(individualGroup.getId());
+		} catch (NotFoundException nfe) {
+			userProfile = null;
+		}
+		if (userProfile==null) {
+			userProfile = new UserProfile();
+			userProfile.setOwnerId(individualGroup.getId());
+			userProfile.setFirstName(user.getFirstName());
+			userProfile.setLastName(user.getLastName());
+			userProfile.setDisplayName(user.getDisplayName());
+			try {
+				userProfileDAO.create(userProfile);
+			} catch (InvalidModelException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
 	/** 
 	 * Adds the existing groups to the 'groups' collection passed in
 	 * Returns true iff the user 'userName' is an administrator
 	 */
+	@Deprecated
 	private  boolean addGroups(String userName, Collection<UserGroup> groups) throws NotFoundException, DatastoreException {
 		Collection<String> groupNames = userDAO.getUserGroupNames(userName);
 		// Filter out bad group names

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserManager {
@@ -33,6 +34,13 @@ public interface UserManager {
 	/**
 	 * Creates a new user
 	 */
+	public void createUser(NewUser user);
+	
+	/**
+	 * Creates a new user
+	 * To be replaced with createUser
+	 */
+	@Deprecated
 	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException;
 	
 	
@@ -57,7 +65,12 @@ public interface UserManager {
 	 */
 	public String getGroupName(String principalId) throws NotFoundException;
 
+	/**
+	 * To be removed soon
+	 */
+	@Deprecated
 	public void clearCache();
+	
 	/**
 	 * Changes the user's email
 	 */
