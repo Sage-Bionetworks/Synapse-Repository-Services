@@ -60,7 +60,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
-	private FileHandleManager fileHandlerManager;
+	private FileHandleManager fileHandleManager;
 	@Autowired
 	private MembershipInvitationManager membershipInvitationManager;
 	@Autowired
@@ -86,7 +86,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.userGroupDAO = userGroupDAO;
 		this.userManager = userManager;
 		this.aclDAO = aclDAO;
-		this.fileHandlerManager = fileHandlerManager;
+		this.fileHandleManager = fileHandlerManager;
 		this.membershipInvitationManager = membershipInvitationManager;
 		this.membershipRequestManager = membershipRequestManager;
 	}
@@ -277,7 +277,7 @@ public class TeamManagerImpl implements TeamManager {
 			// the member to be added is someone other than me
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
-			QueryResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(principalId, teamId, 0, 1);
+			QueryResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(teamId, principalId, 0, 1);
 			return openRequests.getTotalNumberOfResults()>0L;
 		}
 	}
@@ -342,8 +342,7 @@ public class TeamManagerImpl implements TeamManager {
 	public AccessControlList getACL(UserInfo userInfo, String teamId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.READ)) throw new UnauthorizedException("Cannot read Team ACL.");
-		AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
-		return acl;
+		return aclDAO.get(teamId, ObjectType.TEAM);
 	}
 
 	/* (non-Javadoc)
@@ -360,7 +359,7 @@ public class TeamManagerImpl implements TeamManager {
 	public URL getIconURL(String teamId) throws NotFoundException {
 		Team team = teamDAO.get(teamId);
 		String handleId = team.getIcon();
-		return fileHandlerManager.getRedirectURLForFileHandle(handleId);
+		return fileHandleManager.getRedirectURLForFileHandle(handleId);
 	}
 
 	@Override
