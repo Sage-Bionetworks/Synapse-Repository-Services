@@ -105,7 +105,7 @@ public interface ColumnModelDAO {
 	 * This should only be called by tests.
 	 * 
 	 */
-	public void truncateBoundColumns();
-	
+	public boolean truncateAllColumnData();
+		
 
 }

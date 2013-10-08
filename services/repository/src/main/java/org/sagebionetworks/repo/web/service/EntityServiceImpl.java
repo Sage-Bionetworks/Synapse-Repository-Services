@@ -301,7 +301,7 @@ public class EntityServiceImpl implements EntityService {
 		String entityId = updatedEntity.getId();
 		// Now do the update
 		entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
-		// Return the udpated entity
+		// Return the updated entity
 		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
 	

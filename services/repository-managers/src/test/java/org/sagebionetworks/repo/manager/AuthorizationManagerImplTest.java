@@ -20,6 +20,7 @@ import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -577,5 +579,13 @@ public class AuthorizationManagerImplTest {
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
 		assertFalse(canAccess);
+	}
+	
+	@Test
+	public void testIsAnonymousUser() throws DatastoreException, NotFoundException{
+		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		assertNotNull(anonymous);
+		assertTrue(authorizationManager.isAnonymousUser(anonymous));
+		assertFalse(authorizationManager.isAnonymousUser(userInfo));
 	}
 }

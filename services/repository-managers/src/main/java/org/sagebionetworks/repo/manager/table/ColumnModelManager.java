@@ -1,8 +1,15 @@
 package org.sagebionetworks.repo.manager.table;
 
-import org.sagebionetworks.repo.model.PaginatedResults;
+import java.util.List;
+import java.util.Set;
+
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.PaginatedIds;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ColumnModelManager {
 
@@ -14,7 +21,7 @@ public interface ColumnModelManager {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<ColumnModel> listColumnModels(UserInfo user, String namePrefix, long limit, long offset);
+	public PaginatedColumnModels listColumnModels(UserInfo user, String namePrefix, long limit, long offset);
 	
 	/**
 	 * Create a new immutable ColumnModel object.
@@ -22,8 +29,48 @@ public interface ColumnModelManager {
 	 * @param user
 	 * @param columnModel
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws UnauthorizedException 
 	 */
-	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel);
+	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException;
+	
+	/**
+	 * Get a list of column models for the given list of IDs
+	 * @param ids
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Bind a set of columns to an object.
+	 * @param user
+	 * @param columnIds
+	 * @param objectId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public boolean bindColumnToObject(UserInfo user, Set<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
 	
 	
+	/**
+	 * List all of the objects that are bound to the given column IDs.
+	 * @param user
+	 * @param columnIds
+	 * @param currentOnly
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedIds listObjectsBoundToColumn(UserInfo user, Set<String> columnIds, boolean currentOnly, long limit, long offset);
+	
+	/**
+	 * Clear all data for tests.
+	 * @param user
+	 */
+	public boolean truncateAllColumnData(UserInfo user);
 }
+

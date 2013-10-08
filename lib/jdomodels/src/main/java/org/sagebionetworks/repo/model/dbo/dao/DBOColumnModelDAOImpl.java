@@ -49,6 +49,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ORDER BY "+COL_CM_NAME+" LIMIT ? OFFSET ?";
 	private static final String SQL_TRUNCATE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" >= 0";
+	private static final String SQL_TRUNCATE_COLUMN_MODEL= "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" >= 0";
 	private static final String SQL_SELECT_EXISTING_BOUND_FOR_OBJECT_ID = "SELECT * FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ? ";
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
 	private static final String SQL_SELECT_ID_WHERE_HASH_EQUALS = "SELECT "+COL_CM_ID+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_HASH+" = ?";
@@ -194,10 +195,13 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return results;
 	}
 
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void truncateBoundColumns() {
-		simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMNS);
+	public boolean truncateAllColumnData() {
+		int count = simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMNS);
+		count += simpleJdbcTemplate.update(SQL_TRUNCATE_COLUMN_MODEL);
+		return count >0;
 	}
 
 	@Override

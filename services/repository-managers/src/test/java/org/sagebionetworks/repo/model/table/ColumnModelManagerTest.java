@@ -1,19 +1,29 @@
 package org.sagebionetworks.repo.model.table;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
-import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -24,16 +34,19 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class ColumnModelManagerTest {
 	
 	ColumnModelDAO mockColumnModelDAO;
+	AuthorizationManager mockauthorizationManager;
 	ColumnModelManagerImpl columnModelManager;
 	UserInfo user;
 	
 	@Before
 	public void before(){
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
+		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
 		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false);
 		user.setIndividualGroup(new UserGroup());
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
+		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
 	}
 	
 	@Test
@@ -47,9 +60,109 @@ public class ColumnModelManagerTest {
 		when(mockColumnModelDAO.listColumnModelsCount(prefix)).thenReturn(1l);
 		
 		// make the call
-		PaginatedResults<ColumnModel> page = columnModelManager.listColumnModels(user, prefix, Long.MAX_VALUE, 0);
+		PaginatedColumnModels page = columnModelManager.listColumnModels(user, prefix, Long.MAX_VALUE, 0);
 		assertNotNull(page);
-		assertEquals(1l, page.getTotalNumberOfResults());
+		assertEquals(new Long(1), page.getTotalNumberOfResults());
 		assertEquals(results, page.getResults());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testCreateColumnModelAnonymous() throws UnauthorizedException, DatastoreException, NotFoundException{
+		ColumnModel cm = new ColumnModel();
+		cm.setName("abb");
+		// Setup the anonymous users
+		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(true);
+		columnModelManager.createColumnModel(user, cm);
+	}
+	
+	@Test
+	public void testCreateColumnModelHappy() throws DatastoreException, NotFoundException{
+		ColumnModel in = new ColumnModel();
+		in.setName("abb");
+		ColumnModel out = new ColumnModel();
+		out.setName("abb");
+		out.setId("21");
+		// Setup the anonymous users
+		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
+		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(out);
+		ColumnModel results = columnModelManager.createColumnModel(user, in);
+		assertEquals(out, results);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
+		List<String> ids = new LinkedList<String>();
+		columnModelManager.getColumnModel(null, ids);
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
+		columnModelManager.getColumnModel(user, null);
+	}
+	
+	@Test
+	public void testGetColumnsHappy() throws DatastoreException, NotFoundException{
+		List<String> ids = new LinkedList<String>();
+		ids.add("123");
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("abb");
+		cm.setId("123");
+		results.add(cm);
+		when(mockColumnModelDAO.getColumnModel(ids)).thenReturn(results);
+		columnModelManager.getColumnModel(user, ids);
+		List<ColumnModel> out  = columnModelManager.getColumnModel(user, ids);
+		assertNotNull(out);
+		assertEquals(results, out);
+	}
+
+	
+	@Test
+	public void testBindColumnToObjectHappy() throws DatastoreException, NotFoundException{
+		String objectId = "syn123";
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		Set<String> ids = new HashSet<String>();
+		ids.add("123");
+		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
+		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));
+	}
+	
+	@Test (expected =IllegalArgumentException.class)
+	public void testListObjectsBoundToColumnNullUser(){
+		Set<String> columnId = new HashSet<String>();
+		columnModelManager.listObjectsBoundToColumn(null, columnId, true, Long.MAX_VALUE, 0);
+	}
+	
+	@Test (expected =IllegalArgumentException.class)
+	public void testListObjectsBoundToColumnNullSet(){
+		Set<String> columnId = new HashSet<String>();
+		columnModelManager.listObjectsBoundToColumn(user, null, true, Long.MAX_VALUE, 0);
+	}
+	
+	@Test
+	public void testListObjectsBoundToColumnHappy(){
+		Set<String> columnIds = new HashSet<String>();
+		columnIds.add("134");
+		List<String> resultList = new LinkedList<String>();
+		resultList.add("syn987");
+		when(mockColumnModelDAO.listObjectsBoundToColumn(columnIds, false, Long.MAX_VALUE, 0)).thenReturn(resultList);
+		when(mockColumnModelDAO.listObjectsBoundToColumnCount(columnIds, false)).thenReturn(1l);
+		PaginatedIds page = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, Long.MAX_VALUE, 0);
+		assertNotNull(page);
+		assertEquals(resultList, page.getResults());
+		assertEquals(new Long(1), page.getTotalNumberOfResults());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testTruncateAllDataUnauthroized(){
+		UserInfo user = new UserInfo(false);
+		columnModelManager.truncateAllColumnData(user);
+	}
+	
+	@Test
+	public void testTruncateAllDataHappy(){
+		UserInfo user = new UserInfo(true);
+		when(mockColumnModelDAO.truncateAllColumnData()).thenReturn(true);
+		assertTrue(columnModelManager.truncateAllColumnData(user));
 	}
 }
