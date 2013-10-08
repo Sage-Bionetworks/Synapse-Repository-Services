@@ -138,6 +138,22 @@ public class DBOColumnModelImplTest {
 	}
 	
 	@Test
+	public void testBindColumnsDoesNotExist() throws Exception {
+		// Now bind one column
+		Set<String> toBind = new HashSet<String>();
+		// This should not exist
+		String fakeId = "999999999999";
+		toBind.add(fakeId);
+		try{
+			int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+			fail("Should have thrown an exception");
+		}catch(NotFoundException e){
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().contains(fakeId));
+		}
+	}
+	
+	@Test
 	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
 		// bind two columns to two objects
 		Set<String> toBind = new HashSet<String>();

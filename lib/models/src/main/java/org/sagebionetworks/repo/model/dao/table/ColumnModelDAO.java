@@ -80,8 +80,9 @@ public interface ColumnModelDAO {
 	 * @param objectId The ID of the object to bind.
 	 * 
 	 * @return True if the this object was not already bound to this object.
+	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(Set<String> columnIds, String objectId);
+	public int bindColumnToObject(Set<String> columnIds, String objectId) throws NotFoundException;
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.

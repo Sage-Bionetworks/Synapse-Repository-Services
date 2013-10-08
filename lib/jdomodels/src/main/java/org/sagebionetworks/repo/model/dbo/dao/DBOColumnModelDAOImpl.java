@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -137,7 +138,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public int bindColumnToObject(Set<String> newCurrentColumnIds, String objectIdString) {
+	public int bindColumnToObject(Set<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
 		if(newCurrentColumnIds == null) throw new IllegalArgumentException("columnIds cannot be null");
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
 		Long objectId = KeyFactory.stringToKey(objectIdString);
@@ -151,13 +152,23 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			namedParameters[i] = new BeanPropertySqlParameterSource(newRows.get(i));
 		}
 		// execute the batch
-		int [] results = simpleJdbcTemplate.batchUpdate(SQL_CREATE_OR_UPDATE_BOUND_COLUMN_BATCH, namedParameters);
-		// How many rows changed
-		int count = 0;
-		for(int rowcount: results){
-			count+=rowcount;
+		int[] results;
+		try {
+			results = simpleJdbcTemplate.batchUpdate(SQL_CREATE_OR_UPDATE_BOUND_COLUMN_BATCH, namedParameters);
+			// How many rows changed
+			int count = 0;
+			for(int rowcount: results){
+				count+=rowcount;
+			}
+			return count;
+		} catch (DataIntegrityViolationException e) {
+			// Check to see if the COL_MODEL_FK constraint was triggered.
+			if(e.getMessage().contains("COL_MODEL_FK")){
+				throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+newCurrentColumnIds.toString());
+			}else{
+				throw e;
+			}
 		}
-		return count;
 	}
 
 	@Override
