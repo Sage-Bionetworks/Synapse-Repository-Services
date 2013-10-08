@@ -66,6 +66,31 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private MembershipRequestManager membershipRequestManager;
 	
+	public TeamManagerImpl() {}
+	
+	// for testing
+	public TeamManagerImpl(
+			AuthorizationManager authorizationManager,
+			TeamDAO teamDAO,
+			GroupMembersDAO groupMembersDAO,
+			UserGroupDAO userGroupDAO,
+			UserManager userManager,
+			AccessControlListDAO aclDAO,
+			FileHandleManager fileHandlerManager,
+			MembershipInvitationManager membershipInvitationManager,
+			MembershipRequestManager membershipRequestManager
+			) {
+		this.authorizationManager = authorizationManager;
+		this.teamDAO = teamDAO;
+		this.groupMembersDAO = groupMembersDAO;
+		this.userGroupDAO = userGroupDAO;
+		this.userManager = userManager;
+		this.aclDAO = aclDAO;
+		this.fileHandlerManager = fileHandlerManager;
+		this.membershipInvitationManager = membershipInvitationManager;
+		this.membershipRequestManager = membershipRequestManager;
+	}
+	
 	public static void validateForCreate(Team team) {
 		if (team.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (team.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
@@ -106,7 +131,7 @@ public class TeamManagerImpl implements TeamManager {
 	private static final ACCESS_TYPE[] NON_ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
 		ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE};
 
-	private static AccessControlList createAdminAcl(
+	public static AccessControlList createAdminAcl(
 			final UserInfo creator, 
 			final String teamId, 
 			final Date creationDate) {
@@ -122,7 +147,10 @@ public class TeamManagerImpl implements TeamManager {
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId(teamId);
+		acl.setCreatedBy(creator.getIndividualGroup().getId());
 		acl.setCreationDate(creationDate);
+		acl.setModifiedBy(creator.getIndividualGroup().getId());
+		acl.setModifiedOn(creationDate);
 		acl.setResourceAccess(raSet);
 
 		return acl;
@@ -133,6 +161,7 @@ public class TeamManagerImpl implements TeamManager {
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(accessTypes));
 		ra.setAccessType(accessSet);
 		ra.setPrincipalId(Long.parseLong(principalId));
+		acl.getResourceAccess().add(ra);
 	}
 
 		/* (non-Javadoc)

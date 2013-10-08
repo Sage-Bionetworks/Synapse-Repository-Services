@@ -1,19 +1,20 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
-
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
@@ -45,10 +46,6 @@ public class MembershipRequestManagerImplTest {
 		userInfo.setIndividualGroup(individualGroup);
 		adminInfo = new UserInfo(true);
 		adminInfo.setIndividualGroup(individualGroup);
-	}
-
-	@After
-	public void tearDown() throws Exception {
 	}
 	
 	private void validateForCreateExpectFailure(MembershipRqstSubmission mrs, UserInfo userInfo) {
