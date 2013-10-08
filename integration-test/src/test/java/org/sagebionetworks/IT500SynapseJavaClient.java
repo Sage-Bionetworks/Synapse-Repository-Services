@@ -383,7 +383,6 @@ public class IT500SynapseJavaClient {
 		List<Long> foundPrincipals = new ArrayList<Long>();
 		for (ResourceAccess ra : ras) {
 			assertNotNull(ra.getPrincipalId());
-			assertNull(ra.getGroupName()); // deprecated, so should be null
 			foundPrincipals.add(ra.getPrincipalId());
 			if (ra.getPrincipalId().equals(Long.parseLong(profile.getOwnerId()))) {
 				foundit=true;
