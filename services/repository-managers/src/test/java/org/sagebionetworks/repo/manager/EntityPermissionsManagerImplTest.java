@@ -117,8 +117,6 @@ public class EntityPermissionsManagerImplTest {
 		assertEquals(project.getId(), acl.getId());
 		assertEquals(1, acl.getResourceAccess().size());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
-			// ra should have pId but not 'groupName' which is deprecated
-			assertNull(ra.getGroupName());
 			assertNotNull(ra.getPrincipalId());
 		}
 		// retrieve child acl.  should get parent's
@@ -135,7 +133,6 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testValidateACLContent() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setGroupName(userInfo.getIndividualGroup().getName());
 		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
@@ -184,7 +181,6 @@ public class EntityPermissionsManagerImplTest {
 	@Test(expected = InvalidModelException.class)
 	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setGroupName(userInfo.getIndividualGroup().getName());
 		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.READ);
@@ -474,8 +470,7 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(collaboratorAccess);
-		ra.setPrincipalId(new Long(userInfo.getIndividualGroup().getId()));
-		ra.setGroupName(userInfo.getIndividualGroup().getName());		
+		ra.setPrincipalId(new Long(userInfo.getIndividualGroup().getId()));	
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		

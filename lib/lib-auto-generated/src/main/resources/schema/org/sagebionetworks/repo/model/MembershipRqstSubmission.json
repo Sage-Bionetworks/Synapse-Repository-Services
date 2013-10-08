@@ -15,10 +15,6 @@
 			"type": "string",
 			"description": "The id of the user for whom membership is requested."
 		},
-		"etag": {
-			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a MembershipRqstSubmission is updated it is used to detect when a client's current representation of a MembershipRqstSubmission is out-of-date."
-		},
 		"message": {
 			"type": "string",
 			"description": "The request message."

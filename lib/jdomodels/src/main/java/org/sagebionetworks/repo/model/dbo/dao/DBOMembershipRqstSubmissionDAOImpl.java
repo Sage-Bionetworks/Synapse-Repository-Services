@@ -10,13 +10,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_REQUEST_SUBMISSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -24,7 +21,6 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -32,8 +28,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,28 +49,34 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	private ETagGenerator eTagGenerator;
-	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
 	
-	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
-			"SELECT mrs.* FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_CORE = 
+			" FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
 			" mrs WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
 			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+" ) "+
-			" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) "+
+			" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) ";
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
+			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_CORE;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE = 
+			SELECT_OPEN_REQUESTS_BY_TEAM_CORE+
+			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
+	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED = 
-			"SELECT mrs.* FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
-			" mrs WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
-			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+
-			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
-				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+" ) "+
-				" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) "+
+			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
@@ -88,7 +88,6 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		DBOMembershipRqstSubmission dbo = new DBOMembershipRqstSubmission();
 		MembershipRqstSubmissionUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		dbo.setEtag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
 		MembershipRqstSubmission result = MembershipRqstSubmissionUtils.copyDboToDto(dbo);
 		return result;
@@ -144,6 +143,15 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	}
 
 	@Override
+	public long getOpenByTeamCount(long teamId, long now)
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_COUNT, param);
+	}
+
+	@Override
 	public List<MembershipRequest> getOpenByTeamAndRequestorInRange(
 			long teamId, long requestorId, long now, long offset, long limit)
 			throws DatastoreException, NotFoundException {
@@ -155,6 +163,17 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED, membershipRequestRowMapper, param);
+	}
+
+	@Override
+	public long getOpenByTeamAndRequestorCount(long teamId,
+			long requestorId, long now) throws DatastoreException,
+			NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requestorId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT, param);
 	}
 
 }

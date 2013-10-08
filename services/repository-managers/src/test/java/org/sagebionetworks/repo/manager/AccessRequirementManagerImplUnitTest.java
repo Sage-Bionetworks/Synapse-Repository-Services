@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -73,8 +74,8 @@ public class AccessRequirementManagerImplUnitTest {
 		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
 		
 		// by default the user is authorized to create, edit.  individual tests may override these settings
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.CREATE)).thenReturn(true);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(true);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 	}
 	
 	private AccessRequirement createExpectedAR() {
@@ -112,8 +113,8 @@ public class AccessRequirementManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementNoAuthority() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.CREATE)).thenReturn(false);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(false);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
