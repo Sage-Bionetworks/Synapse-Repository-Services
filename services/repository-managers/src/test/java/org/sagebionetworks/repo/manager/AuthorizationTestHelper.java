@@ -8,7 +8,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 
-public class AuthorizationHelper {
+public class AuthorizationTestHelper {
 	/**
 	 * Helper to add an access type for a given UserGroup to an existing ACL.
 	 * @param acl

@@ -206,7 +206,7 @@ public class EntityPermissionsManagerImplTest {
 		// Check the etag before
 		String etagBefore = acl.getEtag();
 		assertNotNull(etagBefore);
-		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// The etag should have changed
 		assertNotNull(acl.getEtag());
@@ -244,7 +244,7 @@ public class EntityPermissionsManagerImplTest {
 	public void testUpdateInvalidACL() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		acl.setId(project.getId());
 		// ...group id is null...
@@ -433,9 +433,9 @@ public class EntityPermissionsManagerImplTest {
 		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
 		
 		// authorize test user to change permissions of parent and child nodes
-		parentAcl = AuthorizationHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		parentAcl = entityPermissionsManager.updateACL(parentAcl, adminUserInfo);
-		childAcl = AuthorizationHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		childAcl = entityPermissionsManager.updateACL(childAcl, adminUserInfo);
 		
 		// apply inheritance to children as test user
