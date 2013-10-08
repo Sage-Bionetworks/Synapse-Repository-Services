@@ -391,7 +391,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessTeam() throws Exception {
 		String teamId = "123";
-		ACCESS_TYPE accessType = ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE;
+		ACCESS_TYPE accessType = ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE;
 		// admin can always access
 		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType));
 		// non admin can access if acl says so

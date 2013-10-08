@@ -137,14 +137,14 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminCreate() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(null);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		membershipInvitationManagerImpl.create(userInfo, mis);
 	}
 	
 	@Test
 	public void testAdminCreate() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(null);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		membershipInvitationManagerImpl.create(userInfo, mis);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).create(mis);
 	}
@@ -152,7 +152,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminGet() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.get(userInfo, MIS_ID);
 	}
@@ -160,7 +160,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testAdminGet() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		assertEquals(mis, membershipInvitationManagerImpl.get(userInfo, MIS_ID));
 	}
@@ -168,7 +168,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminDelete() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 	}
@@ -176,7 +176,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testAdminDelete() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 		Mockito.verify(mockMembershipInvtnSubmissionDAO).delete(MIS_ID);

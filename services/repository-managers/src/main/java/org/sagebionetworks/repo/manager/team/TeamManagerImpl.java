@@ -125,7 +125,7 @@ public class TeamManagerImpl implements TeamManager {
 		ACCESS_TYPE.READ, 
 		ACCESS_TYPE.UPDATE, 
 		ACCESS_TYPE.DELETE, 
-		ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE, 
+		ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
 		ACCESS_TYPE.SEND_MESSAGE};
 
 	private static final ACCESS_TYPE[] NON_ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
@@ -275,7 +275,7 @@ public class TeamManagerImpl implements TeamManager {
 	public boolean canAddTeamMember(UserInfo userInfo, String teamId, String principalId) throws NotFoundException {
 		if (userInfo.isAdmin()) return true;
 		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
-		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE);
+		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (principalIsSelf) {
 			// trying to add myself to Team.  
 			if (amTeamAdmin) return true;
@@ -325,7 +325,7 @@ public class TeamManagerImpl implements TeamManager {
 		if (userInfo.isAdmin()) return true;
 		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
 		if (principalIsSelf) return true;
-		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE);
+		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (amTeamAdmin) return true;
 		return false;
 	}

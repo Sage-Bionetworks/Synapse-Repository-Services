@@ -190,7 +190,7 @@ public class TeamManagerImplTest {
 				ACCESS_TYPE.READ, 
 				ACCESS_TYPE.UPDATE, 
 				ACCESS_TYPE.DELETE, 
-				ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE, 
+				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
 				ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
 		assertEquals((Long)Long.parseLong(MEMBER_PRINCIPAL_ID), ra.getPrincipalId());
 	}
@@ -200,10 +200,10 @@ public class TeamManagerImplTest {
 		AccessControlList acl = new AccessControlList();
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(ras);
-		TeamManagerImpl.addToACL(acl, MEMBER_PRINCIPAL_ID, new ACCESS_TYPE[] {ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE});
+		TeamManagerImpl.addToACL(acl, MEMBER_PRINCIPAL_ID, new ACCESS_TYPE[] {ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE});
 		assertEquals(1, acl.getResourceAccess().size());
 		ResourceAccess ra = acl.getResourceAccess().iterator().next();
-		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE})), ra.getAccessType());
+		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE})), ra.getAccessType());
 		assertEquals((Long)Long.parseLong(MEMBER_PRINCIPAL_ID), ra.getPrincipalId());
 	}
 	
@@ -301,11 +301,11 @@ public class TeamManagerImplTest {
 	@Test
 	public void testCanAddTeamMemberSELF() throws Exception {
 		// I can add myself if I'm an admin on the Team
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 
 		// I canNOT add myself if I'm not an admin on the Team if I haven't been invited
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		QueryResults<MembershipInvitation> qr = new QueryResults<MembershipInvitation>();
 		qr.setTotalNumberOfResults(0L);
 		when(mockMembershipInvitationManager.getOpenForUserInRange(MEMBER_PRINCIPAL_ID,0,1)).thenReturn(qr);
@@ -316,19 +316,19 @@ public class TeamManagerImplTest {
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		
 		// I can add myself if I'm a Synapse admin
-		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertTrue(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo.getIndividualGroup().getId()));
 	}
 	
 	@Test
 	public void testCanAddTeamMemberOTHER() throws Exception {
 		// I can add someone else if I'm a Synapse admin
-		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertTrue(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		
 		// I can't add someone else if they haven't requested it
 		//	 I am an admin for the team
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		//	 there has been no membership request
 		QueryResults<MembershipRequest> qr = new QueryResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(0L);
@@ -340,14 +340,14 @@ public class TeamManagerImplTest {
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
 		
 		// also, I can't add them even though there's a request if I'm not an admin on the team
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
 	}
 	
 	@Test
 	public void testAddMember() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		QueryResults<MembershipRequest> qr = new QueryResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(1L);
 		String principalId = "987";
@@ -362,7 +362,7 @@ public class TeamManagerImplTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testAddMemberAlreadyOnTeam() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		QueryResults<MembershipRequest> qr = new QueryResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(1L);
 		String principalId = "987";
@@ -380,20 +380,20 @@ public class TeamManagerImplTest {
 		// admin can do anything
 		assertTrue(teamManagerImpl.canRemoveTeamMember(adminInfo, TEAM_ID, "987"));
 		// anyone can remove self
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		// team admin can remove anyone
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
 		// not self or team admin, can't do it
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertFalse(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
 	}
 	
 	@Test
 	public void testRemoveMember() throws Exception {
 		String memberPrincipalId = "987";
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		UserGroup ug = new UserGroup();
 		ug.setId(memberPrincipalId);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
@@ -412,14 +412,14 @@ public class TeamManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testRemoveMemberUnathorized() throws Exception {
 		String memberPrincipalId = "987";
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testRemoveMemberNotInTeam() throws Exception {
 		String memberPrincipalId = "987";
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TRAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{}));
 		AccessControlList acl = new AccessControlList();
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
