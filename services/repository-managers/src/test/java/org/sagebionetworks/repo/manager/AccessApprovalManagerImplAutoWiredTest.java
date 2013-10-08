@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -197,12 +198,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Test
 	public void testHappyPath() throws Exception {
 		// can't download at first
-		assertFalse(authorizationManager.canAccess(testUserInfo, entityId, ACCESS_TYPE.DOWNLOAD));
+		assertFalse(authorizationManager.canAccess(testUserInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
 		// then he signs the terms of use for the data
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), testUserInfo.getIndividualGroup().getId());
 		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
 		// now he *can* download the data
-		assertTrue(authorizationManager.canAccess(testUserInfo, entityId, ACCESS_TYPE.DOWNLOAD));
+		assertTrue(authorizationManager.canAccess(testUserInfo, entityId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
 	}
 		
 	public void testCreateAccessApprovalAndFillInUser() throws Exception {

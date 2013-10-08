@@ -1,0 +1,15 @@
+{
+	"title": "TeamHeader",
+	"description": "JSON schema for TeamHeader POJO",
+
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of the Team."
+		},
+		"name": {
+			"type": "string",
+			"description": "The name of the Team."
+		}
+	}
+}

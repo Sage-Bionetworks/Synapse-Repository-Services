@@ -111,8 +111,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		// check authority
-		if (!(authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.CREATE) &&
-				authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE))) 
+		if (!(authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE) &&
+				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE))) 
 			throw new UnauthorizedException();
 		
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();

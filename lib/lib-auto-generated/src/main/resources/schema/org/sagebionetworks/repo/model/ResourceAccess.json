@@ -3,9 +3,6 @@
 	"description": "JSON schema for a ResourceAccess POJO",
 	"name": "ResourceAccess",
 	"properties": {
-		"groupName": {
-			"type": "string"
-		},
 		"principalId": {
 			"type": "integer",
 			"description": "The id of the principal who is granted access"

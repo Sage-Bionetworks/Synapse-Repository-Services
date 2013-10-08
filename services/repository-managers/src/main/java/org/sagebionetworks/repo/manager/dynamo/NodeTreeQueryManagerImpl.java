@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -217,7 +218,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 		if (!currUserInfo.isAdmin()) {
 			try {
 				if (!this.authorizationManager.canAccess(
-						currUserInfo, nodeId, ACCESS_TYPE.READ)) {
+						currUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 					throw new UnauthorizedException(currUserName
 							+ " does not have read access to the requested entity.");
 				}

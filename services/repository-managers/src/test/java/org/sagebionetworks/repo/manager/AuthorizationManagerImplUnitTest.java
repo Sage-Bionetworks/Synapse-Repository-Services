@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
@@ -53,6 +54,7 @@ public class AuthorizationManagerImplUnitTest {
 	private EvaluationDAO mockEvaluationDAO;
 	private UserManager mockUserManager;
 	private EntityPermissionsManager mockEntityPermissionsManager;
+	private AccessControlListDAO mockAclDAO;
 
 	private static String USER_PRINCIPAL_ID = "123";
 	private static String EVAL_OWNER_PRINCIPAL_ID = "987";
@@ -75,6 +77,7 @@ public class AuthorizationManagerImplUnitTest {
 		mockFileHandleDao = mock(FileHandleDao.class);
 		mockEvaluationDAO = mock(EvaluationDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
+		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -85,6 +88,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "fileHandleDao", mockFileHandleDao);
 		ReflectionTestUtils.setField(authorizationManager, "evaluationDAO", mockEvaluationDAO);
 		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
+		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
 
 		actTeam = new UserGroup();
 		actTeam.setId("101");
@@ -103,7 +107,10 @@ public class AuthorizationManagerImplUnitTest {
 		adminUser = new UserInfo(true);
 		UserGroup adminInfoGroup = new UserGroup();
 		adminInfoGroup.setId("456");
-		adminUser.setIndividualGroup(adminInfoGroup);	
+		adminUser.setIndividualGroup(adminInfoGroup);
+		User aUser = new User();
+		aUser.setUserId(adminInfoGroup.getId());
+		adminUser.setUser(aUser);
 
 		evaluation = new Evaluation();
 		evaluation.setId(EVAL_ID);
@@ -379,5 +386,19 @@ public class AuthorizationManagerImplUnitTest {
 		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
 		userInfo.getIndividualGroup().setId(EVAL_OWNER_PRINCIPAL_ID);
 		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
+	}
+	
+	@Test
+	public void testCanAccessTeam() throws Exception {
+		String teamId = "123";
+		ACCESS_TYPE accessType = ACCESS_TYPE.MEMBERSHIP;
+		// admin can always access
+		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType));
+		// non admin can access if acl says so
+		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, accessType)).thenReturn(true);
+		assertTrue(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType));
+		// otherwise not
+		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, accessType)).thenReturn(false);
+		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType));
 	}
 }
