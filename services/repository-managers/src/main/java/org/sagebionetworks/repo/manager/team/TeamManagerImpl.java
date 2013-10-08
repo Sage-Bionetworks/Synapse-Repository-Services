@@ -163,6 +163,15 @@ public class TeamManagerImpl implements TeamManager {
 		ra.setPrincipalId(Long.parseLong(principalId));
 		acl.getResourceAccess().add(ra);
 	}
+	
+	public static void removeFromACL(AccessControlList acl, Long principalId) {
+		Set<ResourceAccess> origRA = acl.getResourceAccess();
+		Set<ResourceAccess> newRA = new HashSet<ResourceAccess>();
+		for (ResourceAccess ra: origRA) {
+			if (!principalId.equals((Long)ra.getPrincipalId())) newRA.add(ra);
+		}
+		acl.setResourceAccess(newRA);
+	}
 
 		/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.Team)
@@ -318,7 +327,7 @@ public class TeamManagerImpl implements TeamManager {
 		if (principalIsSelf) return true;
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP);
 		if (amTeamAdmin) return true;
-		return true;
+		return false;
 	}
 
 	/* (non-Javadoc)
@@ -330,9 +339,14 @@ public class TeamManagerImpl implements TeamManager {
 			String principalId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
-		// TODO check that member is actually in Team
+		// check that member is actually in Team
+		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
+			throw new IllegalArgumentException("Member is not in Team.");
 		groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
-		// TODO remove from ACL
+		// remove from ACL
+		AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
+		removeFromACL(acl, (Long)Long.parseLong(principalId));
+		aclDAO.update(acl);
 	}
 
 	/* (non-Javadoc)

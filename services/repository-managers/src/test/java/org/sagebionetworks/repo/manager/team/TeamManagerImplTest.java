@@ -385,11 +385,48 @@ public class TeamManagerImplTest {
 		// team admin can remove anyone
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP)).thenReturn(true);
 		assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
+		// not self or team admin, can't do it
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP)).thenReturn(false);
+		assertFalse(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
 	}
 	
 	@Test
 	public void testRemoveMember() throws Exception {
-		// TODO
+		String memberPrincipalId = "987";
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP)).thenReturn(true);
+		UserGroup ug = new UserGroup();
+		ug.setId(memberPrincipalId);
+		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
+		AccessControlList acl = new AccessControlList();
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(memberPrincipalId));
+		acl.getResourceAccess().add(ra);
+		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
+		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
+		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
+		verify(mockAclDAO).update((AccessControlList)any());
+		assertEquals(0, acl.getResourceAccess().size());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testRemoveMemberUnathorized() throws Exception {
+		String memberPrincipalId = "987";
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP)).thenReturn(false);
+		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testRemoveMemberNotInTeam() throws Exception {
+		String memberPrincipalId = "987";
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.MEMBERSHIP)).thenReturn(true);
+		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{}));
+		AccessControlList acl = new AccessControlList();
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
+		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
+		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
+		verify(mockAclDAO).update((AccessControlList)any());		
 	}
 	
 	@Test
