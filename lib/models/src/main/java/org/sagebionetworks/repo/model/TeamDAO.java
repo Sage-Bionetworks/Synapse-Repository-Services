@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -31,7 +32,21 @@ public interface TeamDAO {
 	 * 
 	 */
 	public List<Team> getInRange(long offset, long limit) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @return the number of teams in the system
+	 * @throws DatastoreException
+	 */
+	public long getCount() throws DatastoreException;
 
+	/**
+	 * This is used to build up the team and member prefix caches
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
+	
 	/**
 	 * Get the Teams a member belongs to
 	 * @param princialId the team member
@@ -43,7 +58,16 @@ public interface TeamDAO {
 	public List<Team> getForMemberInRange(String principalId, long offset, long limit) throws DatastoreException;
 	
 	/**
+	 * 
+	 * @param principalId
+	 * @return the number of teams the given member belongs to
+	 * @throws DatastoreException
+	 */
+	public long getCountForMember(String principalId) throws DatastoreException;
+	
+	/**
 	 * Updates the 'shallow' properties of an object.
+	 * Note:  leaving createdBy and createdOn null in the dto tells the DAO to use the currently stored values
 	 *
 	 * @param dto
 	 * @throws DatastoreException

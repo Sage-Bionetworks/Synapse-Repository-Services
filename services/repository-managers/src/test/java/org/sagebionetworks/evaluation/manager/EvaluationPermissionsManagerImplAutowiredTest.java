@@ -125,8 +125,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		ra.setPrincipalId(principalId);
 		Iterator<UserGroup> iterator = userInfo.getGroups().iterator();
-		String groupName = iterator.next().getName();
-		ra.setGroupName(groupName);
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
@@ -359,8 +357,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		while (iterator.hasNext()) {
 			ResourceAccess ra = new ResourceAccess();
 			ra.setPrincipalId(principalId);
-			String groupName = iterator.next().getName();
-			ra.setGroupName(groupName);
 			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 			accessType.add(ACCESS_TYPE.PARTICIPATE);
 			ra.setAccessType(accessType);
@@ -389,8 +385,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		while (iterator.hasNext()) {
 			ResourceAccess ra = new ResourceAccess();
 			ra.setPrincipalId(principalId);
-			String groupName = iterator.next().getName();
-			ra.setGroupName(groupName);
 			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 			accessType.add(ACCESS_TYPE.READ);
 			ra.setAccessType(accessType);
@@ -432,8 +426,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		while (iterator.hasNext()) {
 			ResourceAccess ra = new ResourceAccess();
 			ra.setPrincipalId(principalId);
-			String groupName = iterator.next().getName();
-			ra.setGroupName(groupName);
 			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 			accessType.add(ACCESS_TYPE.PARTICIPATE);
 			ra.setAccessType(accessType);

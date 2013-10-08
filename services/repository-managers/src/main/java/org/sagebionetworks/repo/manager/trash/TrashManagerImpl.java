@@ -74,7 +74,7 @@ public class TrashManagerImpl implements TrashManager {
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
 		String userName = currentUser.getUser().getUserId();
-		if (!this.authorizationManager.canAccess(currentUser, nodeId, ACCESS_TYPE.DELETE)) {
+		if (!this.authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
@@ -149,7 +149,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize on the new parent
 		String userName = currentUser.getUser().getUserId();
-		if (!this.authorizationManager.canAccess(currentUser, newParentId, ACCESS_TYPE.CREATE)) {
+		if (!this.authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 

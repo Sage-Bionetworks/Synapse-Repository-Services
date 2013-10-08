@@ -135,7 +135,6 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testValidateACLContent() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setGroupName(userInfo.getIndividualGroup().getName());
 		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
@@ -184,7 +183,6 @@ public class EntityPermissionsManagerImplTest {
 	@Test(expected = InvalidModelException.class)
 	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setGroupName(userInfo.getIndividualGroup().getName());
 		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.READ);

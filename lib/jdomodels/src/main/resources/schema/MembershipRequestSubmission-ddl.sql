@@ -1,6 +1,5 @@
 CREATE TABLE `MEMBERSHIP_REQUEST_SUBMISSION` (
   `ID` bigint(20) NOT NULL,
-  `ETAG` char(36) NOT NULL,
   `TEAM_ID` bigint(20) NOT NULL,
   `USER_ID` bigint(20) NOT NULL,
   `EXPIRES_ON` bigint(20),
