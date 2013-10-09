@@ -74,4 +74,8 @@ public interface AuthenticationDAO {
 	@Deprecated
 	public void changeSecretKey(String id, String secretKey);
 
+	/**
+	 * Ensure the bootstrap users have sufficient credentials to authenticate
+	 */
+	public void bootstrapCredentials() throws Exception;
 }

@@ -5,7 +5,9 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.UUID;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -225,5 +227,39 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		param.addValue(ID_PARAM_NAME, id);
 		param.addValue(TOKEN_PARAM_NAME, secretKey);
 		simpleJdbcTemplate.update(UPDATE_SECRET_KEY, param);
+	}
+	
+	@Override
+	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	public void bootstrapCredentials() throws Exception {
+		// This is a special user that can only access a limited set of API's
+		// but it can do so on behalf of other users
+		String portalUserId = userGroupDAO.findGroup(StackConfiguration.getPortalUsername(), true).getId();
+		changeSecretKey(portalUserId, StackConfiguration.getPortalAPIKey());
+		
+		if (StackConfiguration.isProductionStack()) {
+			// The migration admin should only be used in specific, non-development stacks
+			String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
+			changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
+		
+		} else {
+			String testUsers[] = new String[] { 
+					StackConfiguration.getIntegrationTestUserAdminName(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
+					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestUserTwoName(), 
+					StackConfiguration.getIntegrationTestUserThreeEmail() };
+			String testPasswords[] = new String[] { 
+					StackConfiguration.getIntegrationTestUserAdminPassword(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
+					StackConfiguration.getIntegrationTestUserOnePassword(), 
+					StackConfiguration.getIntegrationTestUserTwoPassword(), 
+					StackConfiguration.getIntegrationTestUserThreePassword() };
+			for (int i = 0; i < testUsers.length; i++) {
+				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], null);
+				String userId = userGroupDAO.findGroup(testUsers[i], true).getId();
+				changePassword(userId, passHash);
+			}
+		}
 	}
 }

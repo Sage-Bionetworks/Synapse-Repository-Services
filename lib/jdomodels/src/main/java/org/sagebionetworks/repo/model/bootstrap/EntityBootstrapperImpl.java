@@ -11,6 +11,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -47,9 +48,13 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	private GroupMembersDAO groupMembersDAO;
 	
 	@Autowired
-	private AccessControlListDAO aclDAO;
+	private AuthenticationDAO authDAO;
+	
 	@Autowired
-	NodeInheritanceDAO nodeInheritanceDao;
+	private AccessControlListDAO aclDAO;
+	
+	@Autowired
+	private NodeInheritanceDAO nodeInheritanceDao;
 
 	private List<EntityBootstrapData> bootstrapEntities;
 	/**
@@ -60,10 +65,11 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void bootstrapAll() throws Exception {
-		// Make sure users and profiles have been bootstrapped
+		// Make sure users have been bootstrapped
 		userGroupDAO.bootstrapUsers();
 		userProfileDAO.bootstrapProfiles();
 		groupMembersDAO.bootstrapGroups();
+		authDAO.bootstrapCredentials();
 		
 		// First make sure the nodeDao has been bootstrapped
 		nodeDao.boostrapAllNodeTypes();
