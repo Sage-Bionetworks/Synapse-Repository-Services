@@ -16,9 +16,10 @@ public interface MembershipInvitationService {
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
+	 * @throws NotFoundException 
 	 */
 	public MembershipInvtnSubmission create(String userId,
-			MembershipInvtnSubmission dto) throws UnauthorizedException, InvalidModelException;
+			MembershipInvtnSubmission dto) throws UnauthorizedException, InvalidModelException, NotFoundException;
 	
 	/**
 	 * 
@@ -28,9 +29,10 @@ public interface MembershipInvitationService {
 	 * @param offset
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public PaginatedResults<MembershipInvitation> getOpenInvitations(String inviteeId, String teamId, long limit, long offset)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -49,6 +51,7 @@ public interface MembershipInvitationService {
 	 * @param dtoId
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
-	public void delete(String userId, String dtoId) throws DatastoreException, UnauthorizedException;
+	public void delete(String userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 }

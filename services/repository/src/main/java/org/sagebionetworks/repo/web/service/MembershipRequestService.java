@@ -16,9 +16,11 @@ public interface MembershipRequestService {
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	public MembershipRqstSubmission create(String userId,
-			MembershipRqstSubmission dto) throws UnauthorizedException, InvalidModelException;
+			MembershipRqstSubmission dto) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -29,9 +31,10 @@ public interface MembershipRequestService {
 	 * @param offset
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public PaginatedResults<MembershipRequest> getOpenRequests(String userId, String requestorId, String teamId, long limit, long offset)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * 

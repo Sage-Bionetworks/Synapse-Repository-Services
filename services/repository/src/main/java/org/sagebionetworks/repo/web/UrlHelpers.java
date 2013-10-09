@@ -585,6 +585,10 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
 
+	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
+	public static final String OPEN_MEMBERSHIP_INVITATION = "/user/{id}/openInvitation";
+	
+	
 	/**
 	 * APIs for DynamoDB related operations.
 	 */

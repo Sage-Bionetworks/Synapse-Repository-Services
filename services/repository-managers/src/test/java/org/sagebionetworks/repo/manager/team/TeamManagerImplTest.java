@@ -1,6 +1,13 @@
 package org.sagebionetworks.repo.manager.team;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -11,9 +18,6 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
-
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -25,11 +29,12 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -76,9 +81,15 @@ public class TeamManagerImplTest {
 		userInfo = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setId(MEMBER_PRINCIPAL_ID);
+		User user = new User();
+		user.setUserId(MEMBER_PRINCIPAL_ID);
+		userInfo.setUser(user);
 		userInfo.setIndividualGroup(individualGroup);
 		adminInfo = new UserInfo(true);
 		adminInfo.setIndividualGroup(individualGroup);
+		User adminUser  = new User();
+		adminUser.setUserId("-1");
+		adminInfo.setUser(adminUser);
 	}
 	
 	private static Team createTeam(String id, String name, String description, String etag, String icon, 
@@ -184,15 +195,21 @@ public class TeamManagerImplTest {
 		assertEquals(TEAM_ID, acl.getId());
 		assertEquals(MEMBER_PRINCIPAL_ID, acl.getModifiedBy());
 		assertEquals(now, acl.getModifiedOn());
-		assertEquals(1, acl.getResourceAccess().size());
-		ResourceAccess ra = acl.getResourceAccess().iterator().next();
-		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
-				ACCESS_TYPE.READ, 
-				ACCESS_TYPE.UPDATE, 
-				ACCESS_TYPE.DELETE, 
-				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
-				ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
-		assertEquals((Long)Long.parseLong(MEMBER_PRINCIPAL_ID), ra.getPrincipalId());
+		assertEquals(2, acl.getResourceAccess().size());
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra.getPrincipalId().toString().equals(MEMBER_PRINCIPAL_ID)) {
+				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ, 
+						ACCESS_TYPE.UPDATE, 
+						ACCESS_TYPE.DELETE, 
+						ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
+						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
+			} else if (ra.getPrincipalId().toString().equals(TEAM_ID)) {
+				
+			} else {
+				fail("Unexpected principal ID"+ra.getPrincipalId());
+			}
+		}
 	}
 	
 	@Test
@@ -248,7 +265,7 @@ public class TeamManagerImplTest {
 		List<Team> teamList = Arrays.asList(new Team[]{team});
 		when(mockTeamDAO.getInRange(0, 10)).thenReturn(teamList);
 		when(mockTeamDAO.getCount()).thenReturn(1L);
-		QueryResults<Team> result = teamManagerImpl.get(0,10);
+		PaginatedResults<Team> result = teamManagerImpl.get(0,10);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 	}
@@ -259,7 +276,7 @@ public class TeamManagerImplTest {
 		List<Team> teamList = Arrays.asList(new Team[]{team});
 		when(mockTeamDAO.getForMemberInRange(MEMBER_PRINCIPAL_ID, 0, 10)).thenReturn(teamList);
 		when(mockTeamDAO.getCountForMember(MEMBER_PRINCIPAL_ID)).thenReturn(1L);
-		QueryResults<Team> result = teamManagerImpl.getByMember(MEMBER_PRINCIPAL_ID, 0,10);
+		PaginatedResults<Team> result = teamManagerImpl.getByMember(MEMBER_PRINCIPAL_ID, 0,10);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 
@@ -306,7 +323,7 @@ public class TeamManagerImplTest {
 
 		// I canNOT add myself if I'm not an admin on the Team if I haven't been invited
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
-		QueryResults<MembershipInvitation> qr = new QueryResults<MembershipInvitation>();
+		PaginatedResults<MembershipInvitation> qr = new PaginatedResults<MembershipInvitation>();
 		qr.setTotalNumberOfResults(0L);
 		when(mockMembershipInvitationManager.getOpenForUserInRange(MEMBER_PRINCIPAL_ID,0,1)).thenReturn(qr);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
@@ -330,10 +347,10 @@ public class TeamManagerImplTest {
 		//	 I am an admin for the team
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		//	 there has been no membership request
-		QueryResults<MembershipRequest> qr = new QueryResults<MembershipRequest>();
+		PaginatedResults<MembershipRequest> qr = new PaginatedResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(0L);
 		String otherPrincipalId = "987";
-		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(TEAM_ID, otherPrincipalId,0,1)).thenReturn(qr);
+		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, otherPrincipalId,0,1)).thenReturn(qr);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
 		//	 now there IS a membership request
 		qr.setTotalNumberOfResults(3L);
@@ -348,25 +365,24 @@ public class TeamManagerImplTest {
 	public void testAddMember() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		QueryResults<MembershipRequest> qr = new QueryResults<MembershipRequest>();
+		PaginatedResults<MembershipRequest> qr = new PaginatedResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(1L);
 		String principalId = "987";
-		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(TEAM_ID, principalId,0,1)).thenReturn(qr);
+		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, principalId,0,1)).thenReturn(qr);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
 			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalId);
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
-		verify(mockAclDAO).update((AccessControlList)any());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testAddMemberAlreadyOnTeam() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		QueryResults<MembershipRequest> qr = new QueryResults<MembershipRequest>();
+		PaginatedResults<MembershipRequest> qr = new PaginatedResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(1L);
 		String principalId = "987";
-		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(TEAM_ID, principalId,0,1)).thenReturn(qr);
+		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, principalId,0,1)).thenReturn(qr);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
 			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		UserGroup ug = new UserGroup();

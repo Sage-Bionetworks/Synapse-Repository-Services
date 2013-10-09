@@ -19,13 +19,13 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -213,11 +213,11 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#get(long, long)
 	 */
 	@Override
-	public QueryResults<Team> get(long offset, long limit)
+	public PaginatedResults<Team> get(long offset, long limit)
 			throws DatastoreException {
 		List<Team> results = teamDAO.getInRange(offset, limit);
 		long count = teamDAO.getCount();
-		QueryResults<Team> queryResults = new QueryResults<Team>();
+		PaginatedResults<Team> queryResults = new PaginatedResults<Team>();
 		queryResults.setResults(results);
 		queryResults.setTotalNumberOfResults(count);
 		return queryResults;
@@ -228,11 +228,11 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<Team> getByMember(String principalId, long offset,
+	public PaginatedResults<Team> getByMember(String principalId, long offset,
 			long limit) throws DatastoreException {
 		List<Team> results = teamDAO.getForMemberInRange(principalId, offset, limit);
 		long count = teamDAO.getCountForMember(principalId);
-		QueryResults<Team> queryResults = new QueryResults<Team>();
+		PaginatedResults<Team> queryResults = new PaginatedResults<Team>();
 		queryResults.setResults(results);
 		queryResults.setTotalNumberOfResults(count);
 		return queryResults;
@@ -293,13 +293,13 @@ public class TeamManagerImpl implements TeamManager {
 			// trying to add myself to Team.  
 			if (amTeamAdmin) return true;
 			// if I'm not a team admin, then I need to have an invitation
-			QueryResults<MembershipInvitation> openInvitations = membershipInvitationManager.getOpenForUserInRange(principalId,0,1);
+			PaginatedResults<MembershipInvitation> openInvitations = membershipInvitationManager.getOpenForUserInRange(principalId,0,1);
 			return openInvitations.getTotalNumberOfResults()>0L;
 		} else {
 			// the member to be added is someone other than me
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
-			QueryResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(teamId, principalId, 0, 1);
+			PaginatedResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, principalId, 0, 1);
 			return openRequests.getTotalNumberOfResults()>0L;
 		}
 	}
@@ -314,19 +314,13 @@ public class TeamManagerImpl implements TeamManager {
 	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void addMember(UserInfo userInfo, String teamId, String principalId, boolean isAdmin)
+	public void addMember(UserInfo userInfo, String teamId, String principalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!canAddTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot add member to Team.");
 		// check that user is not already in Team
 		if (userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
 			throw new IllegalArgumentException("Member is already in Team.");
 		groupMembersDAO.addMembers(teamId, Arrays.asList(new String[]{principalId}));
-		// if admin, also add member to ACL
-		if (isAdmin) {
-			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
-			addToACL(acl, principalId,ADMIN_TEAM_PERMISSIONS);
-			aclDAO.update(acl);
-		}
 	}
 	
 	/**

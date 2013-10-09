@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -96,14 +96,14 @@ public class MembershipInvitationManagerImpl implements
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#getOpenForUserInRange(java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<MembershipInvitation> getOpenForUserInRange(
+	public PaginatedResults<MembershipInvitation> getOpenForUserInRange(
 			String principalId, long offset, long limit)
 			throws DatastoreException, NotFoundException {
 		Date now = new Date();
 		long principalIdAsLong = Long.parseLong(principalId);
 		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(principalIdAsLong, now.getTime(), offset, limit);
 		long count = membershipInvtnSubmissionDAO.getOpenByUserCount(principalIdAsLong, now.getTime());
-		QueryResults<MembershipInvitation> results = new QueryResults<MembershipInvitation>();
+		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
 		return results;
@@ -113,7 +113,7 @@ public class MembershipInvitationManagerImpl implements
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#getOpenForUserAndTeamInRange(java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<MembershipInvitation> getOpenForUserAndTeamInRange(
+	public PaginatedResults<MembershipInvitation> getOpenForUserAndTeamInRange(
 			String principalId, String teamId, long offset, long limit)
 			throws DatastoreException, NotFoundException {
 		Date now = new Date();
@@ -121,7 +121,7 @@ public class MembershipInvitationManagerImpl implements
 		long teamIdAsLong = Long.parseLong(teamId);
 		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), offset, limit);
 		long count = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamIdAsLong, principalIdAsLong, now.getTime());
-		QueryResults<MembershipInvitation> results = new QueryResults<MembershipInvitation>();
+		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
 		return results;
