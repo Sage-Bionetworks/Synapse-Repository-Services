@@ -63,6 +63,8 @@
 
 	<!-- The Wiki Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
+	
+	<bean id="tableServices" class="org.sagebionetworks.repo.web.service.table.TableServicesImpl" />
 
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"

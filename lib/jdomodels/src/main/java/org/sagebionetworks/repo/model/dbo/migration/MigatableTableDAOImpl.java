@@ -152,7 +152,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		// The batch insert or update sql
 		String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
 		this.insertOrUpdateSqlMap.put(type, sql);
-		// If this object has a sub table then regeister the sub table as well
+		// If this object has a sub table then register the sub table as well
 		if(dbo.getSecondaryTypes() != null){
 			Iterator<MigratableDatabaseObject> it = dbo.getSecondaryTypes().iterator();
 			while(it.hasNext()){

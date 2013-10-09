@@ -10,7 +10,7 @@
 		},
 		"totalNumberOfResults":{
 			"description":"The total number of results",
-			"type": "integer",
+			"type": "integer"
 		}
     }
 }

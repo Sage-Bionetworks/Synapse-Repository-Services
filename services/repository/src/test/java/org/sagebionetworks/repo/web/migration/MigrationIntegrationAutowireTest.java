@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -64,6 +67,7 @@ import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -77,6 +81,8 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
@@ -117,9 +123,6 @@ public class MigrationIntegrationAutowireTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private EvaluationDAO evaluationDAO;
-	
-	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
 	@Autowired
@@ -157,6 +160,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	
+	@Autowired
+	private ColumnModelDAO columnModelDao;
 
 	UserInfo userInfo;
 	private String userName;
@@ -198,6 +204,8 @@ public class MigrationIntegrationAutowireTest {
 	// Favorite
 	Favorite favorite;
 	
+	ColumnModel columnModel;
+	
 	// UserGroups 
 	List<UserGroup> nonVitalUserGroups;
 	
@@ -226,6 +234,19 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials();
+		createColumnModel();
+	}
+
+
+	private void createColumnModel() throws DatastoreException, NotFoundException {
+		columnModel = new ColumnModel();
+		columnModel.setName("MigrationTest");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel = columnModelDao.createColumnModel(columnModel);
+		// bind this column to an entity.
+		Set<String> toBind = new HashSet<String>();
+		toBind.add(columnModel.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn123");
 	}
 
 
