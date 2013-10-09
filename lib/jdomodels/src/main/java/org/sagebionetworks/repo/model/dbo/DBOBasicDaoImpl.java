@@ -50,7 +50,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	 * We cache the SQL for each object type.
 	 */
 	private Map<Class<? extends DatabaseObject>, String> insertMap = new HashMap<Class<? extends DatabaseObject>, String>();
-	private Map<Class<? extends DatabaseObject>, String> insertOrUpdateMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> fetchMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> countMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
@@ -203,18 +202,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private String getInsertSQL(Class<? extends DatabaseObject> clazz){
 		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
 		String sql = this.insertMap.get(clazz);
-		if(sql == null) throw new IllegalArgumentException("Cannot find the insert SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
-		return sql;
-	}
-	
-	/**
-	 * Get the insert or update sql for a given class.;
-	 * @param clazz
-	 * @return
-	 */
-	private String getInsertOrUpdateSQL(Class<? extends DatabaseObject> clazz) {
-		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
-		String sql = this.insertOrUpdateMap.get(clazz);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the insert SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
 		return sql;
 	}

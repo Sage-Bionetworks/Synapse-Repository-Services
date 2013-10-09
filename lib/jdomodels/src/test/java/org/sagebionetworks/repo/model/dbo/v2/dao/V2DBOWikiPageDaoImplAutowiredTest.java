@@ -113,7 +113,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	public void testCreate() throws NotFoundException{
 		// Create a new wiki page with a single attachment
 		V2WikiPage page = new V2WikiPage();
-		String ownerId = "syn181";
+		String ownerId = "syn182";
 		ObjectType ownerType = ObjectType.ENTITY;
 		page.setTitle("Title");
 		page.setCreatedBy(creatorUserGroupId);
@@ -168,7 +168,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testUpdateAndRestore() throws NotFoundException, InterruptedException{
 		V2WikiPage page = new V2WikiPage();
-		String ownerId = "syn1081";
+		String ownerId = "syn1082";
 		ObjectType ownerType = ObjectType.EVALUATION;
 		page.setTitle("Title");
 		page.setCreatedBy(creatorUserGroupId);
@@ -244,7 +244,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testCreateChildPage() throws NotFoundException{
 		V2WikiPage root = new V2WikiPage();
-		String ownerId = "syn2081";
+		String ownerId = "syn2082";
 		ObjectType ownerType = ObjectType.ENTITY;
 		root.setTitle("Root");
 		root.setCreatedBy(creatorUserGroupId);
@@ -297,7 +297,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testDelete() throws NotFoundException, InterruptedException{
 		V2WikiPage page = new V2WikiPage();
-		String ownerId = "syn2081";
+		String ownerId = "syn2082";
 		ObjectType ownerType = ObjectType.EVALUATION;
 		page.setTitle("Title");
 		page.setCreatedBy(creatorUserGroupId);
@@ -346,7 +346,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testGetWikiFileHandleIds() throws NotFoundException{
 		V2WikiPage root = new V2WikiPage();
-		String ownerId = "syn3081";
+		String ownerId = "syn3082";
 		ObjectType ownerType = ObjectType.ENTITY;
 		root.setTitle("Root");
 		root.setCreatedBy(creatorUserGroupId);
@@ -401,7 +401,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Test
 	public void testgetWikiAttachmentFileHandleForFileName() throws Exception{
 		V2WikiPage root = new V2WikiPage();
-		String ownerId = "syn4081";
+		String ownerId = "syn4082";
 		ObjectType ownerType = ObjectType.ENTITY;
 		root.setTitle("Root");
 		root.setCreatedBy(creatorUserGroupId);
