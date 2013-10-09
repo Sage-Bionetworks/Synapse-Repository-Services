@@ -1,13 +1,14 @@
-package org.sagebionetworks.repo.model.dao;
+package org.sagebionetworks.repo.model.v2.dao;
 
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.wiki.WikiHeader;
-import org.sagebionetworks.repo.model.v2.wiki.WikiPage;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -27,7 +28,7 @@ public interface V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public WikiPage create(WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException;
+	public V2WikiPage create(V2WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException;
 	
 	/**
 	 * Update a wikipage.
@@ -39,7 +40,7 @@ public interface V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public WikiPage updateWikiPage(WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
+	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
 		
 	/**
 	 * Get a wiki page.
@@ -47,7 +48,7 @@ public interface V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public WikiPage get(WikiPageKey key) throws NotFoundException;
+	public V2WikiPage get(WikiPageKey key) throws NotFoundException;
 	
 	/**
 	 * Get the ID of the root wiki page for a given Object.
@@ -63,6 +64,12 @@ public interface V2WikiPageDao {
 	 * @param id
 	 */
 	public void delete(WikiPageKey key);
+	
+	/**
+	 * Get history (markdown, attachments etc) of a wiki page.
+	 * @param key
+	 */
+	public List<V2WikiPage> getWikiHistory(WikiPageKey key) throws NotFoundException;
 
 	/**
 	 * Get the entire tree of wiki pages for a given owner.
@@ -71,7 +78,7 @@ public interface V2WikiPageDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	List<WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType) throws DatastoreException, NotFoundException;
+	List<V2WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Lock for update, returning the current etag

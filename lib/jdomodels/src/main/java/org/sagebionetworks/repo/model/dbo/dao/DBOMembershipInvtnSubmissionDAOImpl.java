@@ -116,7 +116,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 			mi.setInviteeId(Long.parseLong(inviteeId));
 			mis.add(mi);
 		}
-		basicDao.createBatch(mis, false);
+		basicDao.createBatch(mis);
 	}
 	
 

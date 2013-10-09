@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.v2.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MARKDOWN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID;
@@ -28,12 +29,12 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMarkdown, V2DBOWikiMarkdown> {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("wikiId", V2_COL_WIKI_MARKDOWN_ID).withIsBackupId(true),
+		new FieldColumn("wikiId", V2_COL_WIKI_MARKDOWN_ID, true).withIsBackupId(true),
 		new FieldColumn("fileHandleId", V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID),
-		new FieldColumn("markdownVersion", V2_COL_WIKI_MARKDOWN_VERSION_NUM),
+		new FieldColumn("markdownVersion", V2_COL_WIKI_MARKDOWN_VERSION_NUM, true),
 		new FieldColumn("modifiedOn", V2_COL_WIKI_MARKDOWN_MODIFIED_ON),
 		new FieldColumn("modifiedBy", V2_COL_WIKI_MARKDOWN_MODIFIED_BY),
-		new FieldColumn("attachmentList", V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST),
+		new FieldColumn("attachmentIdList", V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST),
 	};
 	
 	private Long wikiId;
@@ -41,7 +42,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	private Long markdownVersion;
 	private Long modifiedOn;
 	private Long modifiedBy;
-	private String attachmentIdList;
+	private byte[] attachmentIdList;
 
 	@Override
 	public TableMapping<V2DBOWikiMarkdown> getTableMapping() {
@@ -55,7 +56,11 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 				result.setFileHandleId(rs.getLong(V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID));
 				result.setMarkdownVersion(rs.getLong(V2_COL_WIKI_MARKDOWN_VERSION_NUM));
 				result.setModifiedOn(rs.getLong(V2_COL_WIKI_MARKDOWN_MODIFIED_ON));
-				result.setAttachmentIdList(rs.getString(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST));
+				result.setModifiedBy(rs.getLong(V2_COL_WIKI_MARKDOWN_MODIFIED_BY));
+				java.sql.Blob blob = rs.getBlob(V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST);
+				if(blob != null){
+					result.setAttachmentIdList(blob.getBytes(1, (int) blob.length()));
+				}
 				return result;
 			}
 
@@ -159,11 +164,11 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 		this.modifiedBy = modifiedBy;
 	}
 	
-	public String getAttachmentIdList() {
+	public byte[] getAttachmentIdList() {
 		return attachmentIdList;
 	}
 	
-	public void setAttachmentIdList(String attachmentIdList) {
+	public void setAttachmentIdList(byte[] attachmentIdList) {
 		this.attachmentIdList = attachmentIdList;
 	}
 	

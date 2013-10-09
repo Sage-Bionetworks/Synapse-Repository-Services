@@ -355,7 +355,7 @@ public class SqlConstants {
 	public static final String V2_TABLE_WIKI_ATTACHMENT_RESERVATION					= "V2_WIKI_ATTACHMENT_RESERVATION";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_ID				= "WIKI_ID";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
-	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP 		= "TIMESTAMP";
+	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP 		= "TIME_STAMP";
 	public static final String V2_DDL_FILE_WIKI_ATTATCHMENT_RESERVATION				= "schema/v2-WikiAttachmentReservation-ddl.sql";
 
 	// The wiki owners table

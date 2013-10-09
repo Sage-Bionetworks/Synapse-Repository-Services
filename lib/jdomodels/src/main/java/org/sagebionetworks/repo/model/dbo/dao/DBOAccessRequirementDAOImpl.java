@@ -204,7 +204,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			batch.add(nar);
 		}
 			
-		if (batch.size()>0) basicDao.createBatch(batch, false);
+		if (batch.size()>0) basicDao.createBatch(batch);
 
 	}
 

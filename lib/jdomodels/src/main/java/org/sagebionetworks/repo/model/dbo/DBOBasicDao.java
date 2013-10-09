@@ -28,20 +28,10 @@ public interface DBOBasicDao {
 	 * Do a batch create.
 	 * @param <T>
 	 * @param batch
-	 * @param updateOnDuplicate TODO
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch, boolean updateOnDuplicate) throws DatastoreException;
-	
-	/**
-	 * Do a batch create and update where there are duplicates.
-	 * @param <T>
-	 * @param batch
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public <T extends DatabaseObject<T>> List<T> createBatchOrUpdate(List<T> batch) throws DatastoreException;
+	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch) throws DatastoreException;
 	
 	/**
 	 * Update an existing object.

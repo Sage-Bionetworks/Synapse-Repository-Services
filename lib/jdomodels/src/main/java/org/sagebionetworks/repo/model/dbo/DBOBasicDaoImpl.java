@@ -72,9 +72,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			// Create the Insert SQL
 			String insertSQL = DMLUtils.createInsertStatement(mapping);
 			this.insertMap.put(mapping.getDBOClass(), insertSQL);
-			// The batchInsertOrUpdate SQL
-			String insertOrUpdateSQL = DMLUtils.createBatchInsertOrUpdateStatement(mapping);
-			this.insertOrUpdateMap.put(mapping.getDBOClass(), insertOrUpdateSQL);
 			// The get SQL
 			String getSQL = DMLUtils.createGetByIDStatement(mapping);
 			this.fetchMap.put(mapping.getDBOClass(), getSQL);
@@ -117,16 +114,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch, boolean updateOnDuplicate)	throws DatastoreException {
+	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
 		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
 		// Lookup the insert SQL
-		String sql;
-		if(updateOnDuplicate) {
-			sql = getInsertOrUpdateSQL(batch.get(0).getClass());
-		} else {
-			sql = getInsertSQL(batch.get(0).getClass());
-		}
+		String sql = getInsertSQL(batch.get(0).getClass());
+		
 //		System.out.println(insertSQl);
 //		System.out.println(toCreate);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
@@ -152,13 +145,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}catch(DataIntegrityViolationException e){
 			throw new IllegalArgumentException(e);
 		}
-	}
-	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public <T extends DatabaseObject<T>> List<T> createBatchOrUpdate(
-			List<T> batch) throws DatastoreException {
-		return createBatch(batch, true);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

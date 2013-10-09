@@ -81,7 +81,7 @@ public class DBOExampleTest {
 			batch.add(example);
 		}
 
-		batch = dboBasicDao.createBatch(batch, false);
+		batch = dboBasicDao.createBatch(batch);
 		// Make sure each has an id
 		for(DBOExample created: batch){
 			assertNotNull(created.getId());

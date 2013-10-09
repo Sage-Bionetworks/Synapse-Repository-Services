@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.v2.wiki.WikiPage;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
@@ -29,7 +29,7 @@ public class V2WikiTranslationUtils {
 	 * @param dto
 	 * @return
 	 */
-	public static V2DBOWikiPage createDBOFromDTO(WikiPage dto){
+	public static V2DBOWikiPage createDBOFromDTO(V2WikiPage dto){
 		if(dto == null) throw new IllegalArgumentException("DTO cannot be null");
 		V2DBOWikiPage dbo = new V2DBOWikiPage();
 		if(dto.getId() != null) {
@@ -61,8 +61,8 @@ public class V2WikiTranslationUtils {
 	 * @param attachments
 	 * @return
 	 */
-	public static WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<V2DBOWikiAttachmentReservation> dtoAttachments){
-		WikiPage page = new WikiPage();
+	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<V2DBOWikiAttachmentReservation> dtoAttachments, Long markdownFileHandleId){
+		V2WikiPage page = new V2WikiPage();
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.setId(dtoPage.getId().toString());
 		page.setEtag(dtoPage.getEtag());
@@ -78,9 +78,7 @@ public class V2WikiTranslationUtils {
 		if(dtoPage.getParentId() != null){
 			page.setParentWikiId(dtoPage.getParentId().toString());
 		}
-		if(dtoPage.getMarkdownVersion() != null){
-			page.setMarkdownFileHandleId(dtoPage.getMarkdownVersion().toString());
-		}
+		page.setMarkdownFileHandleId(markdownFileHandleId.toString());
 		for(V2DBOWikiAttachmentReservation attachment: dtoAttachments) {
 			page.getAttachmentFileHandleIds().add(attachment.getFileHandleId().toString());
 		}
@@ -132,19 +130,28 @@ public class V2WikiTranslationUtils {
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null"); 
 		if(markdownFileHandleId == null) throw new IllegalArgumentException("markdownFileHandleId cannot be null");
 		
-		// Build a string list of [fileHandleId:fileName] entries 
-		StringBuffer attachmentIdList = new StringBuffer();
-		for(String fileName: fileNameToFileHandleMap.keySet()) {
-			attachmentIdList.append("[");
-			attachmentIdList.append(fileNameToFileHandleMap.get(fileName) + ":");
-			attachmentIdList.append(fileName + "],");
-		}
-		attachmentIdList.setLength(attachmentIdList.length() - 1);
-		
 		V2DBOWikiMarkdown dbo = new V2DBOWikiMarkdown();
 		dbo.setWikiId(wikiId);
 		dbo.setFileHandleId(markdownFileHandleId);
-		dbo.setAttachmentIdList(attachmentIdList.toString());
+
+		// Build a list of <fileHandleId:fileName> entries 
+		StringBuffer attachmentIdList = new StringBuffer();
+		for(String fileName: fileNameToFileHandleMap.keySet()) {
+			attachmentIdList.append("<");
+			attachmentIdList.append(fileNameToFileHandleMap.get(fileName).getId() + ":");
+			attachmentIdList.append(fileName + ">,");
+		}
+		int bufferLength = attachmentIdList.length();
+		if(bufferLength > 0) {
+			// Remove fencepost ','
+			attachmentIdList.setLength(bufferLength - 1);
+		}
+		String listString = attachmentIdList.toString();
+		try {
+			dbo.setAttachmentIdList(listString.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 		return dbo;
 	}
 
