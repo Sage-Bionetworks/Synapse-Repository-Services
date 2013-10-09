@@ -75,6 +75,14 @@ public interface AuthenticationService {
 	
 	/**
 	 * Changes the email of a user to another email
+	 * To be replaced with the other updateEmail() method
+	 */
+	@Deprecated
+	public void updateEmail(String oldUserId, String newUserId) 
+			throws DatastoreException, NotFoundException, XPathExpressionException, IOException, AuthenticationException;
+	
+	/**
+	 * Changes the email of a user to another email
 	 */
 	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo)
 			throws NotFoundException;
