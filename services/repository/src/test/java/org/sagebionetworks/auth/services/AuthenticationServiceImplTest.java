@@ -99,11 +99,12 @@ public class AuthenticationServiceImplTest {
 	public void testAuthenticatePortalUser() throws Exception {
 		// Password and ToU checking is disabled for the portal user
 		userInfo.getUser().setAgreesToTermsOfUse(false);
+		credential.setAcceptsTermsOfUse(false);
 		service.authenticate(StackConfiguration.getPortalUsername(), credential, true, true);
 		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
 		
 		// But it is enabled for non-portal users
-		userInfo.getUser().setAgreesToTermsOfUse(true);
+		credential.setAcceptsTermsOfUse(true);
 		service.authenticate("Not the portal user", credential, true, true);
 		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
 	}
