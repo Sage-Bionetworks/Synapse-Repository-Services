@@ -403,6 +403,30 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * @return The API key of the migration admin
+	 */
+	public static String getMigrationAdminAPIKey() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
+	}
+
+	/**
+	 * @return The username of the portal user
+	 */
+	public static String getPortalUsername() {
+		return configuration
+				.getProperty("org.sagebionetworks.portal.username");
+	}
+
+	/**
+	 * @return The API key of the portal user
+	 */
+	public static String getPortalAPIKey() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.portal.apikey");
+	}
+
+	/**
 	 * @return The name of a user for integration tests
 	 */
 	public static String getIntegrationTestUserOneName() {

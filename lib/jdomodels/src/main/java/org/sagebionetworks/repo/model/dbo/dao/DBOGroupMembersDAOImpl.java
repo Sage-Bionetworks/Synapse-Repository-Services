@@ -323,23 +323,30 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		return ascendents;
 	}
 
+	/**
+	 * This is called by Spring after all properties are set
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void bootstrapGroups() throws Exception {
+		// Add the bootstrap admins to the appropriate admin group
+		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		List<String> adminUserIdList = new ArrayList<String>();
+		adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId());
+		
+		// For testing
 		if (!StackConfiguration.isProductionStack()) {
-			// Add the boot strap admins to the appropriate admin group
-			String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
-			
-			List<String> adminUserIdList = new ArrayList<String>();
+			// These two are admins used in the tests
 			adminUserIdList.add(userGroupDAO.findGroup(StackConfiguration.getIntegrationTestUserAdminName(), true).getId());
-			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId());
 			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.ADMIN_USER_NAME, true).getId());
-			this.addMembers(adminGroupId, adminUserIdList);
 			
 			// Add the test user to the test group
 			String testGroupId = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false).getId();
 			List<String> testUserIdList = new ArrayList<String>();
 			testUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true).getId());
-			this.addMembers(testGroupId, testUserIdList);
+			addMembers(testGroupId, testUserIdList);
 		}
+		
+		addMembers(adminGroupId, adminUserIdList);
 	}
 }
