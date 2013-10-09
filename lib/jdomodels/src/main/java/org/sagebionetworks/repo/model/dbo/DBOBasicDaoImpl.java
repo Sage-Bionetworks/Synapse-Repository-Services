@@ -117,8 +117,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
 		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
 		// Lookup the insert SQL
-		String sql = getInsertSQL(batch.get(0).getClass());
-		
+		String insertSQl = getInsertSQL(batch.get(0).getClass());
 //		System.out.println(insertSQl);
 //		System.out.println(toCreate);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
@@ -126,7 +125,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
 		}
 		try{
-			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(sql, namedParameters);
+			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(insertSQl, namedParameters);
 			for(int count: updatedCountArray){
 				if(count != 1) throw new DatastoreException("Failed to insert without error");
 			}
