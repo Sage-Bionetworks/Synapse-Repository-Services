@@ -70,7 +70,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String id, String passHash) {
+	public void changePassword(String id, String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(id, passHash);
 	}
 	
