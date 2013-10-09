@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.xml.xpath.XPathExpressionException;
 
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -71,8 +69,7 @@ public interface UserProfileService {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException;
+			ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException;
 
 	/**
 	 * Create a security token for use for a particular with a particular
