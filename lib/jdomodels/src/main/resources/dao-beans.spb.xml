@@ -64,6 +64,16 @@
 			<property name="isIndividual" value="true" />
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="2" />
+			<property name="name" value="Administrators" />
+			<property name="isIndividual" value="false" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="3" />
+			<property name="name" value="portal@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="273948" />
 			<property name="name" value="AUTHENTICATED_USERS" />
 			<property name="isIndividual" value="false" />
@@ -96,10 +106,14 @@
 		init-method="bootstrapProfiles" />
 	
 	<bean id="groupMembersDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl" />
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl"
+		depends-on="userGroupDAO" 
+		init-method="bootstrapGroups" />
+		
 	<bean id="authDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
-		depends-on="userGroupDAO" />
+		depends-on="userGroupDAO"
+		init-method="bootstrapCredentials" />
 
 	<bean id="accessRequirementDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />

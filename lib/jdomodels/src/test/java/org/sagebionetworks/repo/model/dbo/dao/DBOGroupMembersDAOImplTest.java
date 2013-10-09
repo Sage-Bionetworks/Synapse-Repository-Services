@@ -312,6 +312,12 @@ public class DBOGroupMembersDAOImplTest {
 			
 			assertTrue(adminNames.contains(StackConfiguration.getIntegrationTestUserAdminName()));
 			assertTrue(adminNames.contains(AuthorizationConstants.MIGRATION_USER_NAME));
+			assertTrue(adminNames.contains(AuthorizationConstants.ADMIN_USER_NAME));
+			
+			String testGroupId = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false).getId();
+			List<UserGroup> testUsers = groupMembersDAO.getMembers(testGroupId);
+			assertEquals(1, testUsers.size());
+			assertEquals(AuthorizationConstants.TEST_USER_NAME, testUsers.get(0).getName());
 		}
 	}
 
