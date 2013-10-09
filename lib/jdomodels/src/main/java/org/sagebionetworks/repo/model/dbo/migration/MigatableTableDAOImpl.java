@@ -119,10 +119,12 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param dbo
 	 */
 	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
+		if(dbo == null) throw new IllegalArgumentException("MigratableDatabaseObject cannot be null");
 		if(dbo instanceof AutoIncrementDatabaseObject<?>) throw new IllegalArgumentException("AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "+dbo.getClass().getName());
 		TableMapping mapping = dbo.getTableMapping();
 		DMLUtils.validateMigratableTableMapping(mapping);
 		MigrationType type = dbo.getMigratableTableType();
+		if(type == null) throw new IllegalArgumentException("MigrationType was null for class: "+dbo.getClass().getName());
 		// Build up the SQL cache.
 		String delete = DMLUtils.createBatchDelete(mapping);
 		deleteSqlMap.put(type, delete);
