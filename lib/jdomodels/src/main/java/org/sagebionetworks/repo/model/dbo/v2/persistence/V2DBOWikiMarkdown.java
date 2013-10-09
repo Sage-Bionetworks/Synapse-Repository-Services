@@ -88,7 +88,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.V2_WIKI_MARKDOWN;
+		return null;
 	}
 
 	@Override

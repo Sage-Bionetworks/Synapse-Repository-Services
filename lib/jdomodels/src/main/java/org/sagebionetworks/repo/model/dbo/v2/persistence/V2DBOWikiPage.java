@@ -277,7 +277,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.V2_WIKI_PAGE;
+		return null;
 	}
 
 	@Override

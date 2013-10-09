@@ -147,7 +147,7 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.V2_WIKI_OWNERS;
+		return null;
 	}
 
 	@Override
