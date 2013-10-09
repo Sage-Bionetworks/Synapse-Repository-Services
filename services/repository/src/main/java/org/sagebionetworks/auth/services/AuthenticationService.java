@@ -1,9 +1,13 @@
 package org.sagebionetworks.auth.services;
 
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
+import javax.xml.xpath.XPathExpressionException;
+
 import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
