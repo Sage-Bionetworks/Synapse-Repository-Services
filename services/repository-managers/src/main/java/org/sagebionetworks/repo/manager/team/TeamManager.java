@@ -83,15 +83,15 @@ public interface TeamManager {
 
 	/**
 	 * Add a member to a Team
-	 * 
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalId
+	 * @param isAdmin
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void addMember(UserInfo userInfo, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * Remove a member from a Team

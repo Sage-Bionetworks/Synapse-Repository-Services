@@ -178,7 +178,7 @@ public class TeamManagerImplTest {
 	@Test
 	public void testCreateAdminAcl() throws Exception {
 		Date now = new Date();
-		AccessControlList acl = TeamManagerImpl.createAdminAcl(userInfo, TEAM_ID, now);
+		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, now);
 		assertEquals(MEMBER_PRINCIPAL_ID, acl.getCreatedBy());
 		assertEquals(now, acl.getCreationDate());
 		assertEquals(TEAM_ID, acl.getId());
@@ -353,7 +353,7 @@ public class TeamManagerImplTest {
 		String principalId = "987";
 		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(TEAM_ID, principalId,0,1)).thenReturn(qr);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
-			thenReturn(TeamManagerImpl.createAdminAcl(userInfo, TEAM_ID, new Date()));
+			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalId);
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockAclDAO).update((AccessControlList)any());
@@ -368,7 +368,7 @@ public class TeamManagerImplTest {
 		String principalId = "987";
 		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(TEAM_ID, principalId,0,1)).thenReturn(qr);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
-			thenReturn(TeamManagerImpl.createAdminAcl(userInfo, TEAM_ID, new Date()));
+			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		UserGroup ug = new UserGroup();
 		ug.setId(principalId);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));

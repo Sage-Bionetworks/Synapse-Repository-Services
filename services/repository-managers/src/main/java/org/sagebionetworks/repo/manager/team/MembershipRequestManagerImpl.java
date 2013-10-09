@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.manager.team;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.AuthorizationHelper;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -58,7 +59,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
 			InvalidModelException, UnauthorizedException {
-		if (userInfo.getIndividualGroup().getId().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) 
+		if (AuthorizationHelper.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mrs, userInfo);
 		Date now = new Date();
