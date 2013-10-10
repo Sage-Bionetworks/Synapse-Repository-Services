@@ -203,11 +203,6 @@
 
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>auth-util</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
 			<scope>provided</scope>

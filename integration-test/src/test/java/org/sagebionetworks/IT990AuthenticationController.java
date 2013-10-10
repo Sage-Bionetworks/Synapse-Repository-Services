@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -12,14 +13,14 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -27,7 +28,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 
 public class IT990AuthenticationController {
-	private static SynapseClientImpl synapse = null;
+	private static SynapseClient synapse = null;
 	private static String authEndpoint = null;
 	private static String repoEndpoint = null;
 
@@ -56,30 +57,17 @@ public class IT990AuthenticationController {
 		assertTrue(session.has(SESSION_TOKEN_LABEL));
 	}
 	
-	@Test
-	public void testCreateSessionSigningTermsOfUse() throws Exception {
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-
-		JSONObject session = synapse.createAuthEntity("/session?acceptsTermsOfUse=true", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
-	}
-	
-	@Test(expected = SynapseForbiddenException.class)
+	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateSessionBadCredentials() throws Exception {
 		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		loginRequest.put("email", username);
 		loginRequest.put("password", "incorrectPassword");
 	
-		// Should throw SynapseForbiddenException
 		synapse.createAuthEntity("/session", loginRequest);
 	}
 	
-	@Test(expected = SynapseForbiddenException.class)
+	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
 		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
@@ -87,7 +75,6 @@ public class IT990AuthenticationController {
 		loginRequest.put("email", username);
 		loginRequest.put("password", password);
 	
-		// Should throw SynapseForbiddenException
 		synapse.createAuthEntity("/session", loginRequest);
 	}
 	
@@ -111,7 +98,7 @@ public class IT990AuthenticationController {
 		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
 	}
 	
-	@Test(expected=SynapseForbiddenException.class)
+	@Test(expected=SynapseUnauthorizedException.class)
 	public void testRevalidateBadTokenSvc() throws Exception {
 		// Start session
 		JSONObject loginRequest = new JSONObject();
@@ -143,7 +130,7 @@ public class IT990AuthenticationController {
 		synapse.deleteUri(authEndpoint, "/session");
 	}
 	
-	@Test(expected = SynapseBadRequestException.class)
+	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateExistingUser() throws Exception {	
 		// Start session
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
@@ -157,13 +144,12 @@ public class IT990AuthenticationController {
 		userRequest.put("lastName", "usr");
 		userRequest.put("displayName", "dev usr");
 
-		// Expect SynapseBadRequestException
 		synapse.createAuthEntity("/user", userRequest);
 	}
 	
 	
-	@Test(expected=SynapseTermsOfUseException.class)
-	public void testCreateUser() throws Exception {	
+	@Test
+	public void testCreateUserAndAcceptToU() throws Exception {	
 		String username = "integration@test." + UUID.randomUUID();
 		String password = "password";
 
@@ -177,7 +163,17 @@ public class IT990AuthenticationController {
 		synapse.createAuthEntity("/user", userRequest);
 		
 		// Expect a ToU failure here, which means the user was created
-		synapse.login(username, password);
+		try {
+			synapse.login(username, password);
+			Assert.fail();
+		} catch (SynapseUnauthorizedException e) { 
+			assertTrue(e.getMessage().contains("Terms of Use"));
+		}
+		
+		// Now accept the terms and get a session token
+		userRequest.put("acceptsTermsOfUse", "true");
+		JSONObject session = synapse.createAuthEntity("/session", userRequest);
+		assertTrue(session.has(SESSION_TOKEN_LABEL));
 	}
 	
 	@Test
@@ -321,8 +317,8 @@ public class IT990AuthenticationController {
 		
 		// Make another client to use the authentication information of the Portal-user
 		SynapseClient otherSynapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
+		otherSynapse.setAuthEndpoint(authEndpoint);
+		otherSynapse.setRepositoryEndpoint(repoEndpoint);
 		String username = StackConfiguration.getPortalUsername();
 		String apikey = StackConfiguration.getPortalAPIKey();
 		otherSynapse.setUserName(username);
@@ -331,9 +327,7 @@ public class IT990AuthenticationController {
 		// As the Portal-user, get the other user's token
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", pretender);
-		JSONObject sameSession = otherSynapse.createAuthEntity("/session/portal?"
-				+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
-				+ pretender, loginRequest);
+		JSONObject sameSession = otherSynapse.createAuthEntity("/session/portal", loginRequest);
 		
 		// The tokens should match
 		assertEquals(sessionToken, sameSession.get("sessionToken"));
@@ -349,19 +343,20 @@ public class IT990AuthenticationController {
 		
 		// Make another client to use the authentication information of the Portal-user
 		SynapseClient otherSynapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
+		otherSynapse.setAuthEndpoint(authEndpoint);
+		otherSynapse.setRepositoryEndpoint(repoEndpoint);
 		String username = StackConfiguration.getPortalUsername();
 		String apikey = StackConfiguration.getPortalAPIKey();
 		otherSynapse.setUserName(username);
 		otherSynapse.setApiKey(apikey);
 		
-		// As the Portal-user, get the other user's token
+		// As the Portal-user, get the other user's info
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", pretender);
-		NewUser sameInfo = new NewUser(new JSONObjectAdapterImpl(otherSynapse.getAuthEntity("/user?"
-				+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
-				+ pretender)));
+		NewUser sameInfo = new NewUser(new JSONObjectAdapterImpl(
+				otherSynapse.getAuthEntity("/user?"
+						+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
+						+ URLEncoder.encode(pretender, "UTF-8"))));
 		
 		// The info should match
 		assertEquals(pretendInfo, sameInfo);
@@ -385,6 +380,10 @@ public class IT990AuthenticationController {
 		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
 	}
 	
+	/**
+	 * Without Crowd in place, this test may or may not be needed anymore
+	 */
+	@Ignore
 	@Test
 	public void testMultipleLoginsMultiThreaded() throws Exception {
 		for (int n : new int[] { 100 }) {
