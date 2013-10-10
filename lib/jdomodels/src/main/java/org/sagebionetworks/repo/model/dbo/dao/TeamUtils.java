@@ -36,11 +36,15 @@ public class TeamUtils {
 		}
 	}
 	
-	public static Team copyFromSerializedField(DBOTeam dbo) throws DatastoreException {
+	public static Team deserialize(byte[] b) {		
 		try {
-			return (Team)JDOSecondaryPropertyUtils.decompressedObject(dbo.getProperties());
+			return (Team)JDOSecondaryPropertyUtils.decompressedObject(b);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	public static Team copyFromSerializedField(DBOTeam dbo) throws DatastoreException {
+		return deserialize(dbo.getProperties());
 	}
 }

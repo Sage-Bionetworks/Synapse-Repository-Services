@@ -124,9 +124,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		ResourceAccess ra = new ResourceAccess();
 		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		ra.setPrincipalId(principalId);
-		Iterator<UserGroup> iterator = userInfo.getGroups().iterator();
-		String groupName = iterator.next().getName();
-		ra.setGroupName(groupName);
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
@@ -354,18 +351,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// Update the ACL to add 'user', PARTICIPATE
 		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
-		Iterator<UserGroup> iterator = userInfo.getGroups().iterator();
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		while (iterator.hasNext()) {
-			ResourceAccess ra = new ResourceAccess();
-			ra.setPrincipalId(principalId);
-			String groupName = iterator.next().getName();
-			ra.setGroupName(groupName);
-			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
-			accessType.add(ACCESS_TYPE.PARTICIPATE);
-			ra.setAccessType(accessType);
-			raSet.add(ra);
-		}
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.PARTICIPATE);
+		ra.setAccessType(accessType);
+		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);
@@ -384,18 +376,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		// Set 'public read' for anonymous user
 		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		principalId = Long.parseLong(anonymous.getIndividualGroup().getId());
-		iterator = anonymous.getGroups().iterator();
 		raSet = new HashSet<ResourceAccess>();
-		while (iterator.hasNext()) {
-			ResourceAccess ra = new ResourceAccess();
-			ra.setPrincipalId(principalId);
-			String groupName = iterator.next().getName();
-			ra.setGroupName(groupName);
-			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
-			accessType.add(ACCESS_TYPE.READ);
-			ra.setAccessType(accessType);
-			raSet.add(ra);
-		}
+		ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.READ);
+		ra.setAccessType(accessType);
+		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);
@@ -427,18 +414,13 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// Update the ACL to add ('user', PARTICIPATE)
 		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
-		Iterator<UserGroup> iterator = userInfo.getGroups().iterator();
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		while (iterator.hasNext()) {
-			ResourceAccess ra = new ResourceAccess();
-			ra.setPrincipalId(principalId);
-			String groupName = iterator.next().getName();
-			ra.setGroupName(groupName);
-			Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
-			accessType.add(ACCESS_TYPE.PARTICIPATE);
-			ra.setAccessType(accessType);
-			raSet.add(ra);
-		}
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.PARTICIPATE);
+		ra.setAccessType(accessType);
+		raSet.add(ra);
 		acl.setResourceAccess(raSet);
 		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
 		assertNotNull(acl);

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -120,7 +121,7 @@ public class NodeManagerAuthorizationTest {
 		String fileHandleId = "123456";
 		String oldFileHandleId = "9876";
 		// The user can update the node.
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		// The old file handle does not match the new file handle.
 		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(oldFileHandleId);
 		// The user did not create the file handle.
@@ -147,8 +148,8 @@ public class NodeManagerAuthorizationTest {
 	public void testAuthorizedUpdateNodeFileHandleNotChanged() throws DatastoreException, NotFoundException{
 		String fileHandleId = "123456";
 		// The user can update the node.
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.UPDATE)).thenReturn(true);
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		// The file handle was already set on this node so it is not changing with this update.
 		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(fileHandleId);
 		// If the user were to set this file handle it would fail as they are not the creator of the file handle.
@@ -171,8 +172,8 @@ public class NodeManagerAuthorizationTest {
 		String fileHandleId = "123456";
 		String oldFileHandleId = "9876";
 		// The user can update the node.
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.UPDATE)).thenReturn(true);
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		// The current file handle on the node does not match the new handle.
 		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(oldFileHandleId);
 		// The user can access the new file handle.
@@ -194,9 +195,9 @@ public class NodeManagerAuthorizationTest {
 	public void testUnauthorizedGetFileHandle1() throws DatastoreException, NotFoundException{
 		String fileHandleId = "123456";
 		// The user has access to read the node
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		// The user does not have permission to dowload the file
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
 		nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
 	}
 	
@@ -207,16 +208,16 @@ public class NodeManagerAuthorizationTest {
 	 */
 	@Test (expected=NotFoundException.class)
 	public void testNotFoundGetFileHandle() throws DatastoreException, NotFoundException{
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
 		when(mockNodeDao.getFileHandleIdForCurrentVersion( mockNode.getId())).thenReturn(null);
 		nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
 	}
 	
 	@Test
 	public void testGetFileHandleIdForCurrentVersion() throws DatastoreException, NotFoundException{
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
 		String expectedFileHandleId = "999999";
 		when(mockNodeDao.getFileHandleIdForCurrentVersion( mockNode.getId())).thenReturn(expectedFileHandleId);
 		String handleId = nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
@@ -232,16 +233,16 @@ public class NodeManagerAuthorizationTest {
 	public void testUnauthorizedGetFileHandle2() throws DatastoreException, NotFoundException{
 		String fileHandleId = "123456";
 		// The user does not have access to read the node
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// The user does have permission to dowload the file
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
 		nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedDeleteNode() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.DELETE)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(false);
 		// Should fail
 		nodeManager.delete(mockUserInfo, id);
 	}
@@ -249,7 +250,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedGetNode() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.get(mockUserInfo, id);
 	}
@@ -257,7 +258,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedGetNodeForVersionNumber() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.getNodeForVersionNumber(mockUserInfo, id, new Long(1));
 	}
@@ -265,7 +266,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedUpdate() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// Should fail
 		nodeManager.update(mockUserInfo, mockNode);
 	}
@@ -273,7 +274,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedUpdate2() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// Should fail
 		nodeManager.update(mockUserInfo, mockNode, mockNamed, true);
 	}
@@ -281,7 +282,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedGetAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.getAnnotations(mockUserInfo, id);
 	}
@@ -289,7 +290,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetGetAnnotationsForVersion() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.getAnnotationsForVersion(mockUserInfo, id, new Long(2));
 	}
@@ -297,7 +298,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetUpdateAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// Should fail
 		nodeManager.updateAnnotations(mockUserInfo, id, mockAnnotations, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 	}
@@ -305,7 +306,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetGetChildren() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.getChildren(mockUserInfo, id);
 	}
@@ -313,7 +314,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetGetAllVersionNumbersForNode() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.getAllVersionNumbersForNode(mockUserInfo, id);
 	}
@@ -321,7 +322,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetGetNodeType() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		// Should fail
 		nodeManager.getNodeType(mockUserInfo, id);
 	}
@@ -329,7 +330,7 @@ public class NodeManagerAuthorizationTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedetDeleteVersion() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
-		when(mockAuthDao.canAccess(mockUserInfo, id, ACCESS_TYPE.DELETE)).thenReturn(false);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(false);
 		// Should fail
 		nodeManager.deleteVersion(mockUserInfo, id, new Long(12));
 	}

@@ -106,7 +106,7 @@ public class DataAccessAudit {
 					profileName = access.getPrincipalId().toString();
 					email = "";
 				}
-				System.out.format("\t%s - %s - %s - %s%n", access.getGroupName(),
+				System.out.format("\t%s - %s - %s - %s%n", access.getPrincipalId(),
 						profileName, email, access.getAccessType());
 			}
 		}
