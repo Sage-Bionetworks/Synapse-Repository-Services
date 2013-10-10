@@ -139,13 +139,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		UserInfo user = userManager.getUserInfo(username);
 		authManager.changePassword(user.getIndividualGroup().getId(), newPassword);
 	}
-
-	@Override
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(oldUserId);
-		userManager.updateEmail(userInfo, newUserId);
-	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

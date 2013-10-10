@@ -23,7 +23,7 @@ public interface AuthenticationService {
 	}
 	/**
 	 * Authenticates a user/password combination, returning a session token if valid
-	 *   
+	 * 
 	 * @param caller Optional parameter.  Only used to determine when the portal is making the call.
 	 *   When the portal is the caller, password and ToU checking is relaxed.
 	 *   This allows independently validated users to get a session token without supplying complete credentials. 
@@ -68,13 +68,6 @@ public interface AuthenticationService {
 	public void changePassword(String username, String newPassword)
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
 	
-	/**
-	 * Changes the email of a user to another email
-	 * To be replaced with the other updateEmail() method
-	 */
-	@Deprecated
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws NotFoundException;
 	
 	/**
 	 * Changes the email of a user to another email
