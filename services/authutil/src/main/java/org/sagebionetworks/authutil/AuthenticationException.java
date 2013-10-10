@@ -2,6 +2,7 @@ package org.sagebionetworks.authutil;
 
 
 @SuppressWarnings("serial")
+@Deprecated
 public class AuthenticationException extends Exception {
 	private String authURL;
 	private int respStatus;

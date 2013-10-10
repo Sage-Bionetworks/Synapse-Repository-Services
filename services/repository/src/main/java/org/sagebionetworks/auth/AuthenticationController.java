@@ -7,7 +7,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
@@ -41,7 +40,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(@RequestBody NewUser credentials) throws NotFoundException {
-		return authenticationService.authenticate(null, credentials, true, true);
+		return authenticationService.authenticate(credentials, null);
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -64,14 +63,16 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION_PORTAL, method = RequestMethod.POST)
 	public @ResponseBody
-	Session authenticatePortal(@RequestBody NewUser credentials, 
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username) throws NotFoundException {
-		return authenticationService.authenticate(username, credentials, true, true);
+	Session authenticatePortal(
+			@RequestBody NewUser credentials,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
+		return authenticationService.authenticate(credentials, username);
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
-	public void createUser(@RequestBody NewUser user) throws NotFoundException, AuthenticationException {
+	public void createUser(@RequestBody NewUser user) throws NotFoundException {
 		authenticationService.createUser(user);
 		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
 	}

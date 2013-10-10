@@ -136,7 +136,7 @@ public class AuthenticationFilter implements Filter {
 	
 	/**
 	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
-	 * passed in then an AuthenticationException is thrown.
+	 * passed in then an UnauthorizedException is thrown.
 	 */
 	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws UnauthorizedException {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);

@@ -23,7 +23,7 @@ public interface AuthenticationService {
 	}
 	/**
 	 * Authenticates a user/password combination, returning a session token if valid
-	 * 
+	 *   
 	 * @param caller Optional parameter.  Only used to determine when the portal is making the call.
 	 *   When the portal is the caller, password and ToU checking is relaxed.
 	 *   This allows independently validated users to get a session token without supplying complete credentials. 
