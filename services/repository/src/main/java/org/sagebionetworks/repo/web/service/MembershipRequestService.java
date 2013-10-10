@@ -53,6 +53,7 @@ public interface MembershipRequestService {
 	 * @param dtoId
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
-	public void delete(String userId, String dtoId) throws DatastoreException, UnauthorizedException;
+	public void delete(String userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 }

@@ -25,7 +25,7 @@ public class MembershipInvitationServiceImpl implements
 	@Autowired
 	private MembershipInvitationManager membershipInvitationManager;
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipInvtnSubmission)

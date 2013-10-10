@@ -24,7 +24,7 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	@Autowired
 	private MembershipRequestManager membershipRequestManager;
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#create(java.lang.String, org.sagebionetworks.repo.model.MembershipRqstSubmission)
@@ -44,10 +44,11 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	public PaginatedResults<MembershipRequest> getOpenRequests(String userId,
 			String requestorId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (requestorId==null) {
-			return membershipRequestManager.getOpenByTeamInRange(teamId, offset, limit);
+			return membershipRequestManager.getOpenByTeamInRange(userInfo, teamId, offset, limit);
 		} else {
-			return membershipRequestManager.getOpenByTeamAndRequestorInRange(teamId, requestorId, offset, limit);
+			return membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, requestorId, offset, limit);
 		}
 	}
 
@@ -57,8 +58,8 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	@Override
 	public MembershipRqstSubmission get(String userId, String dtoId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		// TODO Auto-generated method stub
-		return null;
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return membershipRequestManager.get(userInfo, dtoId);
 	}
 
 	/* (non-Javadoc)
@@ -66,9 +67,9 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 */
 	@Override
 	public void delete(String userId, String dtoId) throws DatastoreException,
-			UnauthorizedException {
-		// TODO Auto-generated method stub
-
+			UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		membershipRequestManager.delete(userInfo, dtoId);
 	}
 
 }

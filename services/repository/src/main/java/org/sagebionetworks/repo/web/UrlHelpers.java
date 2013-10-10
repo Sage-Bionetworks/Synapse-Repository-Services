@@ -585,8 +585,28 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
 
+	
+	// Team
+	public static final String TEAM = "/team";
+	public static final String TEAM_ID = TEAM+ID;
+	public static final String USER_TEAM = USER+ID+TEAM;
+	public static final String NAME_FRAGMENT_FILTER = "fragment";
+	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
+	private static final String MEMBER = "/member";
+	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
+	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";
+	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
+	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
+	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
-	public static final String OPEN_MEMBERSHIP_INVITATION = "/user/{id}/openInvitation";
+	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;
+	public static final String OPEN_MEMBERSHIP_INVITATION = USER+ID+"/openInvitation";
+	public static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	// membership request
+	public static final String MEMBERSHIP_REQUEST = "/membershipRequest";
+	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;
+	public static final String OPEN_MEMBERSHIP_REQUEST = TEAM_ID+"/openRequest";
+	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 	
 	
 	/**

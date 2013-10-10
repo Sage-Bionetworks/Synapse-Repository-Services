@@ -18,9 +18,11 @@ public interface TeamService {
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	public Team create(String userId,
-			Team team) throws UnauthorizedException, InvalidModelException;
+			Team team) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -91,20 +93,20 @@ public interface TeamService {
 	 * @param teamId
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
-	public void delete(String userId, String teamId) throws DatastoreException, UnauthorizedException;
+	public void delete(String userId, String teamId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 
 	 * @param userId
 	 * @param teamId
 	 * @param principalId
-	 * @param isAdmin
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(String userId, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void addMember(String userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 
