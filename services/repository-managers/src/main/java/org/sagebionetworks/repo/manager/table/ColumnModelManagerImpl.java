@@ -31,6 +31,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public PaginatedColumnModels listColumnModels(UserInfo user, String namePrefix, long limit, long offset) {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
+		validateLimitOffset(limit, offset);
 		// First call is to list the columns.
 		List<ColumnModel> list = columnModelDao.listColumnModels(namePrefix, limit, offset);
 		// second to get the total number of results with this prefix
@@ -39,6 +40,12 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		pcm.setResults(list);
 		pcm.setTotalNumberOfResults(totalNumberOfResults);
 		return pcm;
+	}
+
+	private void validateLimitOffset(long limit, long offset) {
+		if(limit < 0) throw new IllegalArgumentException("Limit cannot be less than zero");
+		if(limit > 100) throw new IllegalArgumentException("Limit cannot be greater than 100");
+		if(offset < 0) throw new IllegalArgumentException("Offset cannot be less than zero");
 	}
 
 	@Override
@@ -80,6 +87,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	@Override
 	public PaginatedIds listObjectsBoundToColumn(UserInfo user,	Set<String> columnIds, boolean currentOnly, long limit, long offset) {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
+		validateLimitOffset(limit, offset);
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		List<String> results = columnModelDao.listObjectsBoundToColumn(columnIds, currentOnly, limit, offset);
 		long totalCount = columnModelDao.listObjectsBoundToColumnCount(columnIds, currentOnly);

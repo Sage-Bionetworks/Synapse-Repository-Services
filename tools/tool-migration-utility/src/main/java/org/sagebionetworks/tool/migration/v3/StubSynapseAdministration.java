@@ -98,6 +98,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -2147,6 +2148,22 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 	@Override
 	public ColumnModel getColumnModel(String columnId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedColumnModels listColumnModels(String prefix, Long limit,
+			Long offset) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -12,7 +12,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
@@ -65,6 +64,22 @@ public class ColumnModelManagerTest {
 		assertEquals(new Long(1), page.getTotalNumberOfResults());
 		assertEquals(results, page.getResults());
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testListColumnModelsLimitNegative(){
+		PaginatedColumnModels page = columnModelManager.listColumnModels(user, "aa", -1, 0);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testListColumnModelsLimitTooLarge(){
+		PaginatedColumnModels page = columnModelManager.listColumnModels(user, "aa", 101, 0);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testListColumnModelsOffsetNegative(){
+		PaginatedColumnModels page = columnModelManager.listColumnModels(user, "aa", 1, -1);
+	}
+	
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateColumnModelAnonymous() throws UnauthorizedException, DatastoreException, NotFoundException{
@@ -156,9 +171,9 @@ public class ColumnModelManagerTest {
 		columnIds.add("134");
 		List<String> resultList = new LinkedList<String>();
 		resultList.add("syn987");
-		when(mockColumnModelDAO.listObjectsBoundToColumn(columnIds, false, Long.MAX_VALUE, 0)).thenReturn(resultList);
+		when(mockColumnModelDAO.listObjectsBoundToColumn(columnIds, false, 10, 0)).thenReturn(resultList);
 		when(mockColumnModelDAO.listObjectsBoundToColumnCount(columnIds, false)).thenReturn(1l);
-		PaginatedIds page = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, Long.MAX_VALUE, 0);
+		PaginatedIds page = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 10, 0);
 		assertNotNull(page);
 		assertEquals(resultList, page.getResults());
 		assertEquals(new Long(1), page.getTotalNumberOfResults());

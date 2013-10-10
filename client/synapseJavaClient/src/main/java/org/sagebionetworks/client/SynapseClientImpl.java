@@ -121,6 +121,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -4521,4 +4522,64 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId) throws SynapseException {
+		if(tableEntityId == null) throw new IllegalArgumentException("tableEntityId cannot be null");
+		String url = ENTITY+"/"+tableEntityId+COLUMN;
+		try {
+			PaginatedColumnModels pcm =  getJSONEntity(url, PaginatedColumnModels.class);
+			return pcm.getResults();
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException {
+		String url = buildListColumnModelUrl(prefix, limit, offset);
+		try {
+			return  getJSONEntity(url, PaginatedColumnModels.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Build up the URL for listing all ColumnModels
+	 * @param prefix
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	static String buildListColumnModelUrl(String prefix, Long limit, Long offset) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(COLUMN);
+		int count =0;
+		if(prefix != null || limit != null || offset != null){
+			builder.append("?");
+		}
+		if(prefix != null){
+			builder.append("prefix=");
+			builder.append(prefix);
+			count++;
+		}
+		if(limit != null){
+			if(count > 0){
+				builder.append("&");
+			}
+			builder.append("limit=");
+			builder.append(limit);
+			count++;
+		}
+		if(offset != null){
+			if(count > 0){
+				builder.append("&");
+			}
+			builder.append("offset=");
+			builder.append(offset);
+		}
+		return builder.toString();
+	}
+	
 }

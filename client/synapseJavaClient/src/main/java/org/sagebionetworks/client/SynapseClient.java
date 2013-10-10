@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -737,4 +738,22 @@ public interface SynapseClient {
 	 */
 	ColumnModel getColumnModel(String columnId) throws SynapseException;
 
+	/**
+	 * Get the List of ColumnModels for TableEntity given the TableEntity's ID.
+	 * 
+	 * @param tableEntityId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId) throws SynapseException;
+	
+	/**
+	 * List all of the ColumnModes in Synapse with pagination.
+	 * @param prefix - When provided, only ColumnModels with names that start with this prefix will be returned.
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException 
+	 */
+	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
 }

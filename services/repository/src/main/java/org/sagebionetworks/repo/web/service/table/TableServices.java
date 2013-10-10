@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service.table;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -34,5 +35,25 @@ public interface TableServices {
 	 */
 	public ColumnModel getColumnModel(String userId, String columnId) throws DatastoreException, NotFoundException;
 	
-	
+	/**
+	 * Get the ColumnModels for a TableEntity
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public PaginatedColumnModels getColumnModelsForTableEntity(String userId, String entityId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * List all of the the ColumnModels.
+	 * @param userId
+	 * @param prefix
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedColumnModels listColumnModels(String userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException;
 }

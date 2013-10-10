@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -1204,5 +1205,50 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(instance, request, HttpStatus.OK);
 		return ServletTestHelperUtils.readResponse(response, ColumnModel.class);
+	}
+	
+	/**
+	 * Get the list of ColumnModles for a given TableEntity ID.
+	 * @param instance
+	 * @param entityId
+	 * @param user
+	 * @return
+	 * @throws Exception 
+	 */
+	public static List<ColumnModel> getColumnModelsForTableEntity(DispatcherServlet instance, String entityId, String user) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.COLUMN, user, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.OK);
+		PaginatedColumnModels pcm =  ServletTestHelperUtils.readResponse(response, PaginatedColumnModels.class);
+		return pcm.getResults();
+	}
+	
+	/**
+	 * List all of the ColumnModels in Synapse.
+	 * @param instance
+	 * @param user
+	 * @param prefix
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws Exception
+	 */
+	public static PaginatedColumnModels listColumnModels(DispatcherServlet instance, String user, String prefix, Long limit, Long offset) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.COLUMN, user, null);
+		if(prefix != null){
+			request.addParameter("prefix", prefix);
+		}
+		if(limit != null){
+			request.addParameter("limit", limit.toString());
+		}
+		if(offset != null){
+			request.addParameter("offset", offset.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.OK);
+		PaginatedColumnModels pcm =  ServletTestHelperUtils.readResponse(response, PaginatedColumnModels.class);
+		return pcm;
 	}
 }

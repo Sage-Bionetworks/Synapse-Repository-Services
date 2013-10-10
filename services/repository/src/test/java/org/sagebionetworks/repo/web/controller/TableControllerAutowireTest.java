@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -88,6 +89,52 @@ public class TableControllerAutowireTest {
 		TableEntity clone = ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), TableEntity.class, table.getId(), testUser);
 		assertNotNull(clone);
 		assertEquals(table, clone);
+		// Now make sure we can get the list of columns for this entity
+		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(), testUser);
+		assertNotNull(cols);
+		assertEquals(2, cols.size());
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		expected.add(one);
+		expected.add(two);
+		assertEquals(expected, cols);
 	}
 
+	@Test
+	public void testListColumnModels() throws ServletException, Exception{
+		ColumnModel one = new ColumnModel();
+		String prefix = UUID.randomUUID().toString();
+		one.setName(prefix+"a");
+		one.setColumnType(ColumnType.STRING);
+		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, testUser);
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName(prefix+"b");
+		two.setColumnType(ColumnType.STRING);
+		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, testUser);
+		// three
+		ColumnModel three = new ColumnModel();
+		three.setName(prefix+"bb");
+		three.setColumnType(ColumnType.STRING);
+		three = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), three, testUser);
+		// Now make sure we can find our columns
+		PaginatedColumnModels pcm = ServletTestHelper.listColumnModels(DispatchServletSingleton.getInstance(), testUser, null, null, null);
+		assertNotNull(pcm);
+		assertTrue(pcm.getTotalNumberOfResults() >= 3);
+		// filter by our prefix
+		pcm = ServletTestHelper.listColumnModels(DispatchServletSingleton.getInstance(), testUser, prefix, null, null);
+		assertNotNull(pcm);
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		expected.add(one);
+		expected.add(two);
+		expected.add(three);
+		assertEquals(new Long(3), pcm.getTotalNumberOfResults());
+		assertEquals(expected, pcm.getResults());
+		// Now try pagination.
+		pcm = ServletTestHelper.listColumnModels(DispatchServletSingleton.getInstance(), testUser, prefix, 1l, 2l);
+		assertNotNull(pcm);
+		assertEquals(new Long(3), pcm.getTotalNumberOfResults());
+		expected.clear();
+		expected.add(three);
+		assertEquals(expected, pcm.getResults());
+	}
 }
