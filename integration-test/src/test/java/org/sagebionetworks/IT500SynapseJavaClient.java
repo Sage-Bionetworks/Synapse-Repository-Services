@@ -12,9 +12,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,8 +33,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -56,6 +58,10 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -63,6 +69,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -73,6 +80,7 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -1283,5 +1291,266 @@ public class IT500SynapseJavaClient {
 	public void testRetrieveApiKey() throws SynapseException {
 		String apiKey = synapse.retrieveApiKey();
 		assertNotNull(apiKey);		
+	}
+	
+	private Team teamToDelete = null;
+	private S3FileHandle fileHandleToDelete = null;
+	
+	// there shouldn't be any Teams floating around in the system
+	// the Team tests assume there are no Teams to start.  So before
+	// running the tests, we clean up all the teams
+	@Before
+	public void deleteAllTeams() throws SynapseException {
+		long numTeams = 0L;
+		do {
+			PaginatedResults<Team> teams = synapse.getTeams(null, 0, 10);
+			numTeams = teams.getTotalNumberOfResults();
+			for (Team team : teams.getResults()) {
+				synapse.deleteTeam(team.getId());
+			}
+		} while (numTeams>0);
+	}
+	
+	@After
+	public void cleanUpTeamTests() throws SynapseException {
+		if (teamToDelete!=null) {
+			synapse.deleteTeam(teamToDelete.getId());
+			teamToDelete = null;
+		}
+		if (fileHandleToDelete!=null) {
+			synapse.deleteFileHandle(fileHandleToDelete.getId());
+			fileHandleToDelete = null;
+		}
+	}
+	
+	private String getSomeGroup(String notThisOne) throws SynapseException {
+		PaginatedResults<UserGroup> groups = synapse.getGroups(0,100);
+		String somePrincipalId = null;
+		for (UserGroup ug : groups.getResults()) {
+			if (ug.getId()!=notThisOne) { // don't want to use the team itself!
+				somePrincipalId = ug.getId();
+				break;
+			}
+		}
+		assertNotNull(somePrincipalId);
+		return somePrincipalId;
+	}
+	
+	@Test
+	public void testTeamAPI() throws SynapseException, IOException {
+		// create a Team
+		String name = "Test-Team-Name";
+		String description = "Test-Team-Description";
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		assertNotNull(myPrincipalId);
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapse.createTeam(team);
+		// schedule Team for deletion
+		this.teamToDelete = createdTeam;
+		assertNotNull(createdTeam.getId());
+		assertEquals(name, createdTeam.getName());
+		assertEquals(description, createdTeam.getDescription());
+		assertNotNull(createdTeam.getCreatedOn());
+		assertNotNull(team.getModifiedOn());
+		assertEquals(myPrincipalId, team.getCreatedBy());
+		assertEquals(myPrincipalId, team.getModifiedBy());
+		assertNotNull(team.getEtag());
+		assertNull(team.getIcon());
+		// get the Team
+		Team retrievedTeam = synapse.getTeam(createdTeam.getId());
+		assertEquals(createdTeam, retrievedTeam);
+		// upload an icon and get the file handle
+		
+		PrintWriter pw = null;
+		File file = File.createTempFile("testIcon", null);
+		try {
+			FileOutputStream fos = new FileOutputStream(file);
+			pw = new PrintWriter(fos);
+			pw.println("test");
+		} finally {
+			if (pw!=null) pw.close();
+		}
+		S3FileHandle fileHandle = synapse.createFileHandle(file, "text/plain");
+		// update the Team with the icon
+		createdTeam.setIcon(fileHandle.getId());
+		Team updatedTeam = synapse.updateTeam(createdTeam);
+		// get the icon url
+		URL url = synapse.getTeamIcon(updatedTeam.getId(), false);
+		assertNotNull(url);
+		// query for all teams
+		PaginatedResults<Team> teams = synapse.getTeams(null, 0, 1);
+		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(updatedTeam, teams.getResults().get(0));
+		// make sure pagination works
+		teams = synapse.getTeams(null, 1, 10);
+		assertEquals(0L, teams.getResults().size());
+		// query for all teams, based on name fragment
+		teams = synapse.getTeams(name.substring(0, 3), 0, 1);
+		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(updatedTeam, teams.getResults().get(0));
+		// again, make sure pagination works
+		teams = synapse.getTeams(name.substring(0, 3), 1, 10);
+		assertEquals(0L, teams.getResults().size());
+		
+		// query for team members.  should get just the creator
+		PaginatedResults<UserGroupHeader> members = synapse.getTeamMembers(updatedTeam.getId(), 0, 1);
+		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(myPrincipalId, members.getResults().get(0).getOwnerId());
+		// add a member to the team
+		// need someone to add.  Go through the user groups to find any group (e.g. authenticated users
+		String somePrincipalId = getSomeGroup(createdTeam.getId());
+		synapse.addTeamMember(updatedTeam.getId(), somePrincipalId);
+		// query for team members.  should get member back
+		members = synapse.getTeamMembers(updatedTeam.getId(), 0, 1);
+		assertEquals(2L, members.getTotalNumberOfResults());
+		// query for teams based on member's id
+		teams = synapse.getTeamsForUser(somePrincipalId, 0, 1);
+		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(updatedTeam, teams.getResults().get(0));
+		// remove the member from the team
+		synapse.removeTeamMember(updatedTeam.getId(), somePrincipalId);
+		// query for teams based on member's id (should get nothing)
+		teams = synapse.getTeamsForUser(somePrincipalId, 0, 1);
+		assertEquals(0L, teams.getTotalNumberOfResults());
+		// delete Team
+		synapse.deleteTeam(updatedTeam.getId());
+		// delete the Team again (should be idempotent)
+		synapse.deleteTeam(updatedTeam.getId());
+		// retrieve the Team (should get a 404)
+		try {
+			synapse.getTeam(updatedTeam.getId());
+			fail("Failed to delete Team "+updatedTeam.getId());
+		} catch (SynapseException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testMembershipInvitationAPI() throws SynapseException {
+		// create a Team
+		String name = "Test-Team-Name";
+		String description = "Test-Team-Description";
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		assertNotNull(myPrincipalId);
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapse.createTeam(team);
+		// schedule Team for deletion (which will cascde to any created invitations)
+		this.teamToDelete = createdTeam;
+		// create an invitation
+		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		String somePrincipalId = getSomeGroup(createdTeam.getId());
+		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
+		dto.setExpiresOn(expiresOn);
+		dto.setInvitees(Arrays.asList(new String[]{somePrincipalId}));
+		String message = "Please accept this invitation";
+		dto.setMessage(message);
+		dto.setTeamId(createdTeam.getId());
+		MembershipInvtnSubmission created = synapse.createMembershipInvitation(dto);
+		assertEquals(myPrincipalId, created.getCreatedBy());
+		assertNotNull(created.getCreatedOn());
+		assertEquals(expiresOn, created.getExpiresOn());
+		assertNotNull(created.getId());
+		assertEquals(Arrays.asList(new String[]{somePrincipalId}), created.getInvitees());
+		assertEquals(message, created.getMessage());
+		assertEquals(createdTeam.getId(), created.getTeamId());
+		// get the invitation
+		MembershipInvtnSubmission retrieved = synapse.getMembershipInvitation(created.getId());
+		assertEquals(created, retrieved);
+		// query for invitations based on team
+		PaginatedResults<MembershipInvitation> invitations = synapse.getOpenMembershipInvitations(somePrincipalId, null, 0, 1);
+		assertEquals(1L, invitations.getTotalNumberOfResults());
+		MembershipInvitation invitation = invitations.getResults().get(0);
+		assertEquals(expiresOn, invitation.getExpiresOn());
+		assertEquals(message, invitation.getMessage());
+		assertEquals(createdTeam.getId(), invitation.getTeamId());
+		assertEquals(somePrincipalId, invitation.getUserId());
+		// check pagination
+		invitations = synapse.getOpenMembershipInvitations(somePrincipalId, null, 1, 2);
+		assertEquals(1L, invitations.getResults().size());
+		// query for invitations based on team and member
+		invitations = synapse.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 0, 1);
+		assertEquals(1L, invitations.getTotalNumberOfResults());
+		MembershipInvitation invitation2 = invitations.getResults().get(0);
+		assertEquals(invitation, invitation2);
+		// again, check pagination
+		invitations = synapse.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 1, 2);
+		assertEquals(1L, invitations.getTotalNumberOfResults());
+		assertEquals(0L, invitations.getResults().size());
+		// delete the invitation
+		synapse.deleteMembershipInvitation(created.getId());
+		try {
+			synapse.getMembershipInvitation(created.getId());
+			fail("Failed to delete membership invitation.");
+		} catch (SynapseException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testMembershipRequestAPI() throws SynapseException {
+		// create a Team
+		String name = "Test-Team-Name";
+		String description = "Test-Team-Description";
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		assertNotNull(myPrincipalId);
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapse.createTeam(team);
+		// schedule Team for deletion (which will cascde to any created requests)
+		this.teamToDelete = createdTeam;
+		// create a request
+		MembershipRqstSubmission dto = new MembershipRqstSubmission();
+		String somePrincipalId = getSomeGroup(createdTeam.getId());
+		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
+		dto.setExpiresOn(expiresOn);
+		String message = "Please accept this request";
+		dto.setMessage(message);
+		dto.setTeamId(createdTeam.getId());
+		MembershipRqstSubmission created = synapse.createMembershipRequest(dto);
+		assertEquals(myPrincipalId, created.getCreatedBy());
+		assertNotNull(created.getCreatedOn());
+		assertEquals(expiresOn, created.getExpiresOn());
+		assertNotNull(created.getId());
+		assertEquals(myPrincipalId, created.getUserId());
+		assertEquals(message, created.getMessage());
+		assertEquals(createdTeam.getId(), created.getTeamId());
+		// get the request
+		MembershipRqstSubmission retrieved = synapse.getMembershipRequest(created.getId());
+		assertEquals(created, retrieved);
+		// query for requests based on team
+		PaginatedResults<MembershipRequest> requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 0, 1);
+		// query for requests based on team and member
+		assertEquals(1L, requests.getTotalNumberOfResults());
+		MembershipRequest request = requests.getResults().get(0);
+		assertEquals(expiresOn, request.getExpiresOn());
+		assertEquals(message, request.getMessage());
+		assertEquals(createdTeam.getId(), request.getTeamId());
+		assertEquals(somePrincipalId, request.getUserId());
+		// check pagination
+		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 1, 2);
+		assertEquals(1L, requests.getResults().size());
+		// query for invitations based on team and member
+		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), somePrincipalId, 0, 1);
+		assertEquals(1L, requests.getTotalNumberOfResults());
+		MembershipRequest request2 = requests.getResults().get(0);
+		assertEquals(request, request2);
+		// again, check pagination
+		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), somePrincipalId, 1, 2);
+		assertEquals(1L, requests.getTotalNumberOfResults());
+		assertEquals(0L, requests.getResults().size());
+		
+		// delete the request
+		synapse.deleteMembershipRequest(created.getId());
+		try {
+			synapse.getMembershipRequest(created.getId());
+			fail("Failed to delete membership request.");
+		} catch (SynapseException e) {
+			// as expected
+		}
 	}
 }

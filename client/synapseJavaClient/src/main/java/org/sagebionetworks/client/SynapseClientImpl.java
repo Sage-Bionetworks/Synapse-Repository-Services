@@ -4727,7 +4727,7 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<MembershipRequest> getMembershipRequests(
+	public PaginatedResults<MembershipRequest> getOpenMembershipRequests(
 			String teamId, String requestorId, long limit, long offset)
 			throws SynapseException {
 		String uri = null;

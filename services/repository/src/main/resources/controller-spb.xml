@@ -94,7 +94,11 @@
 	<!-- The temporary Crowd Synchronizer Service -->
 	<bean id="crowdSyncService" class="org.sagebionetworks.auth.services.CrowdSynchronizerService" />
 
-	<!-- The Location helper -->
+	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
+	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
+	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
+		
+		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />

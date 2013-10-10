@@ -743,8 +743,9 @@ public interface SynapseClient {
 	
 	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request) throws SynapseException;
 	MembershipRqstSubmission getMembershipRequest(String requestId) throws SynapseException;
-	PaginatedResults<MembershipRequest> getMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
+	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
 	void deleteMembershipRequest(String requestId) throws SynapseException;
+
 	
 	
 
