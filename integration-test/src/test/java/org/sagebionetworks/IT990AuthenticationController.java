@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -14,14 +15,16 @@ import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -65,7 +68,7 @@ public class IT990CrowdAuthentication {
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
-	@Test(expected = SynapseForbiddenException.class)
+	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateSessionBadCredentials() throws Exception {
 		synapse.login(username, "incorrectPassword");
 	}
@@ -84,7 +87,7 @@ public class IT990CrowdAuthentication {
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
-	@Test(expected=SynapseForbiddenException.class)
+	@Test(expected=SynapseUnauthorizedException.class)
 	public void testRevalidateBadTokenSvc() throws Exception {
 		synapse.setSessionToken("invalid-session-token");
 		synapse.revalidateSession();
@@ -96,7 +99,7 @@ public class IT990CrowdAuthentication {
 		assertNull(synapse.getCurrentSessionToken());
 	}
 	
-	@Test(expected = SynapseBadRequestException.class)
+	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateExistingUser() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(username);
@@ -108,8 +111,8 @@ public class IT990CrowdAuthentication {
 	}
 	
 	
-	@Test(expected=SynapseTermsOfUseException.class)
-	public void testCreateUser() throws Exception {	
+	@Test
+	public void testCreateUserAndAcceptToU() throws Exception {	
 		String username = "integration@test." + UUID.randomUUID();
 		String password = "password";
 		
@@ -256,8 +259,8 @@ public class IT990CrowdAuthentication {
 		
 		// Make another client to use the authentication information of the Portal-user
 		SynapseClient otherSynapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
+		otherSynapse.setAuthEndpoint(authEndpoint);
+		otherSynapse.setRepositoryEndpoint(repoEndpoint);
 		String username = StackConfiguration.getPortalUsername();
 		String apikey = StackConfiguration.getPortalAPIKey();
 		otherSynapse.setUserName(username);
@@ -266,9 +269,7 @@ public class IT990CrowdAuthentication {
 		// As the Portal-user, get the other user's token
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", pretender);
-		JSONObject sameSession = otherSynapse.createAuthEntity("/session/portal?"
-				+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
-				+ pretender, loginRequest);
+		JSONObject sameSession = otherSynapse.createAuthEntity("/session/portal", loginRequest);
 		
 		// The tokens should match
 		assertEquals(sessionToken, sameSession.get("sessionToken"));
@@ -284,19 +285,20 @@ public class IT990CrowdAuthentication {
 		
 		// Make another client to use the authentication information of the Portal-user
 		SynapseClient otherSynapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
+		otherSynapse.setAuthEndpoint(authEndpoint);
+		otherSynapse.setRepositoryEndpoint(repoEndpoint);
 		String username = StackConfiguration.getPortalUsername();
 		String apikey = StackConfiguration.getPortalAPIKey();
 		otherSynapse.setUserName(username);
 		otherSynapse.setApiKey(apikey);
 		
-		// As the Portal-user, get the other user's token
+		// As the Portal-user, get the other user's info
 		JSONObject loginRequest = new JSONObject();
 		loginRequest.put("email", pretender);
-		NewUser sameInfo = new NewUser(new JSONObjectAdapterImpl(otherSynapse.getAuthEntity("/user?"
-				+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
-				+ pretender)));
+		NewUser sameInfo = new NewUser(new JSONObjectAdapterImpl(
+				otherSynapse.getAuthEntity("/user?"
+						+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
+						+ URLEncoder.encode(pretender, "UTF-8"))));
 		
 		// The info should match
 		assertEquals(pretendInfo, sameInfo);
@@ -320,6 +322,10 @@ public class IT990CrowdAuthentication {
 		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
 	}
 	
+	/**
+	 * Without Crowd in place, this test may or may not be needed anymore
+	 */
+	@Ignore
 	@Test
 	public void testMultipleLoginsMultiThreaded() throws Exception {
 		for (int n : new int[] { 100 }) {

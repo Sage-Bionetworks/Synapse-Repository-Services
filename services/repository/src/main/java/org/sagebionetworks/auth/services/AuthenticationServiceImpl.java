@@ -59,9 +59,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Fetch the user's session token
-		if (credential.getPassword() == null) {
-			throw new UnauthorizedException("Password may not be null");
-		}
+			if (credential.getPassword() == null) {
+				throw new UnauthorizedException("Password may not be null");
+			}
 		Session session = authManager.authenticate(credential.getEmail(), credential.getPassword());
 		
 		// Only hand back the session token if ToU has been accepted
