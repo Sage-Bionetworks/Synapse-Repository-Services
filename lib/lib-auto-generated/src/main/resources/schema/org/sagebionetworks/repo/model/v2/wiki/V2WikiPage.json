@@ -1,0 +1,50 @@
+{
+	"description": "The WikiPage model object represent a single user managed wiki page.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The ID of this wiki page."
+		},
+		"etag": {
+			"type": "string",
+			"description": "The title etag of this object"
+		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this page was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The id of the user that created this page."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this page was last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description":"The id of the user that last modified this page."
+		},		
+		"parentWikiId": {
+			"type": "string",
+			"description": "When set, the WikiPage is a sub-page of the indicated parent WikiPage."
+		},
+		"title": {
+			"type": "string",
+			"description": "The title to of this page."
+		},
+		"markdownFileHandleId": {
+			"type": "string",
+			"description": "The file handle id for the file that contains the markdown."
+		},
+		"attachmentFileHandleIds": {
+			"type": "array",
+			"description": "The list of attachment file handle ids of this page.",
+            "items":{
+                "type":"string"
+            }
+		}
+	}
+}
