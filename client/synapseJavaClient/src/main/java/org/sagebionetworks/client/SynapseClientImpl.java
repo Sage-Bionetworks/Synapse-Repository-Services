@@ -259,6 +259,21 @@ public class SynapseClientImpl implements SynapseClient {
 	protected static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	protected static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
+	// Team
+	protected static final String TEAM = "/team";
+	protected static final String USER = "/user";
+	protected static final String NAME_FRAGMENT_FILTER = "fragment";
+	protected static final String ICON = "/icon";
+	protected static final String MEMBER = "/member";
+	// membership invitation
+	protected static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
+	protected static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
+	protected static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	// membership request
+	protected static final String MEMBERSHIP_REQUEST = "/membershipRequest";
+	protected static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
+	protected static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+
 	
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -4507,21 +4522,6 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 
-	// Team
-	private static final String TEAM = "/team";
-	private static final String USER = "/user";
-	private static final String NAME_FRAGMENT_FILTER = "fragment";
-	private static final String ICON = "/icon";
-	private static final String MEMBER = "/member";
-	// membership invitation
-	private static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
-	private static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
-	private static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
-	// membership request
-	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
-	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
-	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-
 	@Override
 	public Team createTeam(Team team)  throws SynapseException {
 		try {
@@ -4621,80 +4621,137 @@ public class SynapseClientImpl implements SynapseClient {
 	@Override
 	public void addTeamMember(String teamId, String memberId)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		
+		putJSONObject(TEAM+"/"+teamId+MEMBER+"/"+memberId, new JSONObject(), new HashMap<String,String>());
 	}
 
 	@Override
 	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId,
 			long limit, long offset) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		String uri = TEAM+"/"+teamId+MEMBER+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<UserGroupHeader> results = new PaginatedResults<UserGroupHeader>(UserGroupHeader.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public void removeTeamMember(String teamId, String memberId)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		
+		deleteUri(TEAM+"/"+teamId+MEMBER+"/"+memberId);
 	}
 
 	@Override
 	public MembershipInvtnSubmission createMembershipInvitation(
 			MembershipInvtnSubmission invitation) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(invitation);
+			jsonObj = createJSONObject(MEMBERSHIP_INVITATION, jsonObj);
+			return initializeFromJSONObject(jsonObj, MembershipInvtnSubmission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public MembershipInvtnSubmission getMembershipInvitation(String invitationId)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		JSONObject jsonObj = getEntity(MEMBERSHIP_INVITATION+"?id="+invitationId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MembershipInvtnSubmission results = new MembershipInvtnSubmission();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(
 			String memberId, String teamId, long limit, long offset)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		
+		String uri = null;
+		if (teamId==null) {
+			uri = USER+"/"+memberId+OPEN_MEMBERSHIP_INVITATION+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = USER+"/"+memberId+OPEN_MEMBERSHIP_INVITATION+"?"+TEAM_ID_REQUEST_PARAMETER+"="+teamId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>(MembershipInvitation.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public void deleteMembershipInvitation(String invitationId)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		
+		deleteUri(MEMBERSHIP_INVITATION+"/"+invitationId);
 	}
 
 	@Override
 	public MembershipRqstSubmission createMembershipRequest(
 			MembershipRqstSubmission request) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(request);
+			jsonObj = createJSONObject(MEMBERSHIP_INVITATION, jsonObj);
+			return initializeFromJSONObject(jsonObj, MembershipRqstSubmission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public MembershipRqstSubmission getMembershipRequest(String requestId)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		JSONObject jsonObj = getEntity(MEMBERSHIP_REQUEST+"?id="+requestId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MembershipRqstSubmission results = new MembershipRqstSubmission();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public PaginatedResults<MembershipRequest> getMembershipRequests(
 			String teamId, String requestorId, long limit, long offset)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
+		String uri = null;
+		if (requestorId==null) {
+			uri = TEAM+"/"+teamId+OPEN_MEMBERSHIP_REQUEST+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = TEAM+"/"+teamId+OPEN_MEMBERSHIP_REQUEST+"?"+REQUESTOR_ID_REQUEST_PARAMETER+"="+requestorId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>(MembershipRequest.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
 	public void deleteMembershipRequest(String requestId)
 			throws SynapseException {
-		// TODO Auto-generated method stub
-		
+		deleteUri(MEMBERSHIP_REQUEST+"/"+requestId);
 	}
 
 
