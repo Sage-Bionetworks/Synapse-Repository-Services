@@ -121,12 +121,12 @@ public class DBOTeamDAOImplTest {
 		clone.setEtag(updated.getEtag()); // for comparison
 		assertEquals(clone, updated);
 				
-		assertEquals(1, teamDAO.getInRange(0, 1).size());
-		assertEquals(0, teamDAO.getInRange(1, 2).size());
+		assertEquals(1, teamDAO.getInRange(1, 0).size());
+		assertEquals(0, teamDAO.getInRange(2, 1).size());
 		assertEquals(1, teamDAO.getCount());
 		
-		assertEquals(0, teamDAO.getForMemberInRange(""+id, 0, 1).size());
-		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 3).size());
+		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
 		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
@@ -135,8 +135,8 @@ public class DBOTeamDAOImplTest {
 		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
 		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
 		teamMemberPairToDelete = new String[] {""+id, pg.getId()};
-		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 0, 1).size());
-		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 1, 3).size());
+		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 3, 1).size());
 		assertEquals(1, teamDAO.getCountForMember(pg.getId()));
 		
 		UserProfile up = createUserProfileForGroup(pg);

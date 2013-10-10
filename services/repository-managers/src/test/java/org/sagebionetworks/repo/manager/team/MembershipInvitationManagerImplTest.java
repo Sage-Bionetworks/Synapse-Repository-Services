@@ -191,7 +191,7 @@ public class MembershipInvitationManagerImplTest {
 		when(mockMembershipInvtnSubmissionDAO.getOpenByUserInRange(eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
 		when(mockMembershipInvtnSubmissionDAO.getOpenByUserCount(eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn((long)expected.size());
-		PaginatedResults<MembershipInvitation> actual = membershipInvitationManagerImpl.getOpenForUserInRange(MEMBER_PRINCIPAL_ID,0,1);
+		PaginatedResults<MembershipInvitation> actual = membershipInvitationManagerImpl.getOpenForUserInRange(MEMBER_PRINCIPAL_ID,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
@@ -203,7 +203,7 @@ public class MembershipInvitationManagerImplTest {
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn((long)expected.size());
-		PaginatedResults<MembershipInvitation> actual = membershipInvitationManagerImpl.getOpenForUserAndTeamInRange(MEMBER_PRINCIPAL_ID, TEAM_ID, 0,1);
+		PaginatedResults<MembershipInvitation> actual = membershipInvitationManagerImpl.getOpenForUserAndTeamInRange(MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}

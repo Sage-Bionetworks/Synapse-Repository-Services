@@ -46,9 +46,9 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (requestorId==null) {
-			return membershipRequestManager.getOpenByTeamInRange(userInfo, teamId, offset, limit);
+			return membershipRequestManager.getOpenByTeamInRange(userInfo, teamId, limit, offset);
 		} else {
-			return membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, requestorId, offset, limit);
+			return membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, requestorId, limit, offset);
 		}
 	}
 

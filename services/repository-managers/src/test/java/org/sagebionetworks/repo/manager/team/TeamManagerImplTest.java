@@ -263,9 +263,9 @@ public class TeamManagerImplTest {
 	public void testGetBatch() throws Exception {
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
 		List<Team> teamList = Arrays.asList(new Team[]{team});
-		when(mockTeamDAO.getInRange(0, 10)).thenReturn(teamList);
+		when(mockTeamDAO.getInRange(10, 0)).thenReturn(teamList);
 		when(mockTeamDAO.getCount()).thenReturn(1L);
-		PaginatedResults<Team> result = teamManagerImpl.get(0,10);
+		PaginatedResults<Team> result = teamManagerImpl.get(10,0);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 	}
@@ -274,9 +274,9 @@ public class TeamManagerImplTest {
 	public void testGetByMember() throws Exception {
 		Team team = createTeam(TEAM_ID, "name", "description", "etag", "101", null, null, null, null);
 		List<Team> teamList = Arrays.asList(new Team[]{team});
-		when(mockTeamDAO.getForMemberInRange(MEMBER_PRINCIPAL_ID, 0, 10)).thenReturn(teamList);
+		when(mockTeamDAO.getForMemberInRange(MEMBER_PRINCIPAL_ID, 10, 0)).thenReturn(teamList);
 		when(mockTeamDAO.getCountForMember(MEMBER_PRINCIPAL_ID)).thenReturn(1L);
-		PaginatedResults<Team> result = teamManagerImpl.getByMember(MEMBER_PRINCIPAL_ID, 0,10);
+		PaginatedResults<Team> result = teamManagerImpl.getByMember(MEMBER_PRINCIPAL_ID,10,0);
 		assertEquals(teamList, result.getResults());
 		assertEquals(1L, result.getTotalNumberOfResults());
 
@@ -325,7 +325,7 @@ public class TeamManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		PaginatedResults<MembershipInvitation> qr = new PaginatedResults<MembershipInvitation>();
 		qr.setTotalNumberOfResults(0L);
-		when(mockMembershipInvitationManager.getOpenForUserInRange(MEMBER_PRINCIPAL_ID,0,1)).thenReturn(qr);
+		when(mockMembershipInvitationManager.getOpenForUserInRange(MEMBER_PRINCIPAL_ID,1,0)).thenReturn(qr);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		
 		// I can add myself if I'm not an admin on the team if I've been invited
@@ -350,7 +350,7 @@ public class TeamManagerImplTest {
 		PaginatedResults<MembershipRequest> qr = new PaginatedResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(0L);
 		String otherPrincipalId = "987";
-		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, otherPrincipalId,0,1)).thenReturn(qr);
+		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, otherPrincipalId,1,0)).thenReturn(qr);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
 		//	 now there IS a membership request
 		qr.setTotalNumberOfResults(3L);
@@ -368,7 +368,7 @@ public class TeamManagerImplTest {
 		PaginatedResults<MembershipRequest> qr = new PaginatedResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(1L);
 		String principalId = "987";
-		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, principalId,0,1)).thenReturn(qr);
+		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, principalId,1,0)).thenReturn(qr);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
 			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalId);
@@ -382,7 +382,7 @@ public class TeamManagerImplTest {
 		PaginatedResults<MembershipRequest> qr = new PaginatedResults<MembershipRequest>();
 		qr.setTotalNumberOfResults(1L);
 		String principalId = "987";
-		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, principalId,0,1)).thenReturn(qr);
+		when(mockMembershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, TEAM_ID, principalId,1,0)).thenReturn(qr);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
 			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
 		UserGroup ug = new UserGroup();

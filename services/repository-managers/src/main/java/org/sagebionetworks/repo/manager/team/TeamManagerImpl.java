@@ -213,9 +213,9 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#get(long, long)
 	 */
 	@Override
-	public PaginatedResults<Team> get(long offset, long limit)
+	public PaginatedResults<Team> get(long limit, long offset)
 			throws DatastoreException {
-		List<Team> results = teamDAO.getInRange(offset, limit);
+		List<Team> results = teamDAO.getInRange(limit, offset);
 		long count = teamDAO.getCount();
 		PaginatedResults<Team> queryResults = new PaginatedResults<Team>();
 		queryResults.setResults(results);
@@ -228,9 +228,9 @@ public class TeamManagerImpl implements TeamManager {
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<Team> getByMember(String principalId, long offset,
-			long limit) throws DatastoreException {
-		List<Team> results = teamDAO.getForMemberInRange(principalId, offset, limit);
+	public PaginatedResults<Team> getByMember(String principalId,
+			long limit, long offset) throws DatastoreException {
+		List<Team> results = teamDAO.getForMemberInRange(principalId, limit, offset);
 		long count = teamDAO.getCountForMember(principalId);
 		PaginatedResults<Team> queryResults = new PaginatedResults<Team>();
 		queryResults.setResults(results);
@@ -293,13 +293,13 @@ public class TeamManagerImpl implements TeamManager {
 			// trying to add myself to Team.  
 			if (amTeamAdmin) return true;
 			// if I'm not a team admin, then I need to have an invitation
-			PaginatedResults<MembershipInvitation> openInvitations = membershipInvitationManager.getOpenForUserInRange(principalId,0,1);
+			PaginatedResults<MembershipInvitation> openInvitations = membershipInvitationManager.getOpenForUserInRange(principalId,1,0);
 			return openInvitations.getTotalNumberOfResults()>0L;
 		} else {
 			// the member to be added is someone other than me
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
-			PaginatedResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, principalId, 0, 1);
+			PaginatedResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, principalId,1,0);
 			return openRequests.getTotalNumberOfResults()>0L;
 		}
 	}

@@ -46,7 +46,7 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> get(long limit, long offset)
 			throws DatastoreException {
-		return teamManager.get(offset, limit);
+		return teamManager.get(limit, offset);
 	}
 
 	/* (non-Javadoc)
@@ -56,7 +56,7 @@ public class TeamServiceImpl implements TeamService {
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
 			throws DatastoreException {
 		if (fragment==null) {
-			return teamManager.get(offset, limit);
+			return teamManager.get(limit, offset);
 		} else {
 			// TODO fragment search
 			return null;
@@ -80,7 +80,7 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> getByMember(String principalId, long limit,
 			long offset) throws DatastoreException {
-		return teamManager.getByMember(principalId, offset, limit);
+		return teamManager.getByMember(principalId, limit, offset);
 	}
 
 	/* (non-Javadoc)

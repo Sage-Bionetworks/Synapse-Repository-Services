@@ -97,11 +97,11 @@ public class MembershipInvitationManagerImpl implements
 	 */
 	@Override
 	public PaginatedResults<MembershipInvitation> getOpenForUserInRange(
-			String principalId, long offset, long limit)
+			String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Date now = new Date();
 		long principalIdAsLong = Long.parseLong(principalId);
-		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(principalIdAsLong, now.getTime(), offset, limit);
+		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(principalIdAsLong, now.getTime(), limit, offset);
 		long count = membershipInvtnSubmissionDAO.getOpenByUserCount(principalIdAsLong, now.getTime());
 		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
 		results.setResults(miList);
@@ -114,12 +114,12 @@ public class MembershipInvitationManagerImpl implements
 	 */
 	@Override
 	public PaginatedResults<MembershipInvitation> getOpenForUserAndTeamInRange(
-			String principalId, String teamId, long offset, long limit)
+			String principalId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Date now = new Date();
 		long principalIdAsLong = Long.parseLong(principalId);
 		long teamIdAsLong = Long.parseLong(teamId);
-		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), offset, limit);
+		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), limit, offset);
 		long count = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamIdAsLong, principalIdAsLong, now.getTime());
 		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
 		results.setResults(miList);

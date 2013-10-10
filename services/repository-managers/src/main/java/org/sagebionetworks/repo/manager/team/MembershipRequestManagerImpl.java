@@ -102,7 +102,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 */
 	@Override
 	public PaginatedResults<MembershipRequest> getOpenByTeamInRange(UserInfo userInfo, 
-			String teamId, long offset, long limit)
+			String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
@@ -120,13 +120,13 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 */
 	@Override
 	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequestorInRange(UserInfo userInfo, 
-			String teamId, String requestorId, long offset, long limit)
+			String teamId, String requestorId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
 		long requestorIdAsLong = Long.parseLong(requestorId);
-		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), offset, limit);
+		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), limit, offset);
 		long count = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamIdAsLong, requestorIdAsLong, now.getTime());
 		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>();
 		results.setResults(mrList);

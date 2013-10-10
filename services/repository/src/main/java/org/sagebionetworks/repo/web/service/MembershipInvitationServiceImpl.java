@@ -48,9 +48,9 @@ public class MembershipInvitationServiceImpl implements
 			String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (teamId==null) {
-			return membershipInvitationManager.getOpenForUserInRange(inviteeId, offset, limit);
+			return membershipInvitationManager.getOpenForUserInRange(inviteeId, limit, offset);
 		} else {
-			return membershipInvitationManager.getOpenForUserAndTeamInRange(inviteeId, teamId, offset, limit);
+			return membershipInvitationManager.getOpenForUserAndTeamInRange(inviteeId, teamId, limit, offset);
 		}
 		
 	}

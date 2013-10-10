@@ -53,7 +53,7 @@ public interface MembershipRequestManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<MembershipRequest> getOpenByTeamInRange(UserInfo userInfo, String teamId, long offset, long limit) throws DatastoreException, NotFoundException;
+	public PaginatedResults<MembershipRequest> getOpenByTeamInRange(UserInfo userInfo, String teamId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the Requests for the given user, to join the given team
@@ -64,6 +64,6 @@ public interface MembershipRequestManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequestorInRange(UserInfo userInfo, String teamId, String requestorId, long offset, long limit) throws DatastoreException, NotFoundException;
+	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequestorInRange(UserInfo userInfo, String teamId, String requestorId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 }

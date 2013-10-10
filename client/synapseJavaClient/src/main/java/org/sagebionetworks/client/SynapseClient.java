@@ -733,7 +733,7 @@ public interface SynapseClient {
 	Team updateTeam(Team team) throws SynapseException;
 	void deleteTeam(String teamId) throws SynapseException;
 	void addTeamMember(String teamId, String memberId) throws SynapseException;
-	PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, long limit, long offset) throws SynapseException;
+	PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
 	void removeTeamMember(String teamId, String memberId) throws SynapseException;
 	
 	MembershipInvtnSubmission createMembershipInvitation(MembershipInvtnSubmission invitation) throws SynapseException;

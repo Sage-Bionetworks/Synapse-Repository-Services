@@ -4553,7 +4553,7 @@ public class SynapseClientImpl implements SynapseClient {
 		if (fragment==null) {
 			uri = TEAM+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = TEAM+"?"+NAME_FRAGMENT_FILTER+"="+fragment+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAM+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -4623,11 +4623,25 @@ public class SynapseClientImpl implements SynapseClient {
 			throws SynapseException {
 		putJSONObject(TEAM+"/"+teamId+MEMBER+"/"+memberId, new JSONObject(), new HashMap<String,String>());
 	}
+	
+	private static String urlEncode(String s) {
+		try {
+			return URLEncoder.encode(s, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Override
-	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId,
+	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment,
 			long limit, long offset) throws SynapseException {
-		String uri = TEAM+"/"+teamId+MEMBER+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		String uri = null;
+		if (fragment==null) {
+			uri = TEAM+"/"+teamId+MEMBER+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = TEAM+"/"+teamId+MEMBER+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+
+					"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<UserGroupHeader> results = new PaginatedResults<UserGroupHeader>(UserGroupHeader.class);

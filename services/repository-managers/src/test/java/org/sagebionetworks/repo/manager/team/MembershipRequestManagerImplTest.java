@@ -216,7 +216,7 @@ public class MembershipRequestManagerImplTest {
 			thenReturn(expected);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamCount(eq(teamId), anyLong())).thenReturn((long)expected.size());
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,0,1);
+		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
@@ -225,7 +225,7 @@ public class MembershipRequestManagerImplTest {
 	public void testGetOpenByTeamUnauthorized() throws Exception {
 		long teamId = 101L;
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
-		membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,0,1);
+		membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 	}
 	
 	@Test
@@ -240,7 +240,7 @@ public class MembershipRequestManagerImplTest {
 			thenReturn(expected);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId, 0,1);
+		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
@@ -250,7 +250,7 @@ public class MembershipRequestManagerImplTest {
 		long userId = 333L;
 		long teamId = 101L;
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
-		membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId, 0,1);
+		membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
 	}
 
 }
