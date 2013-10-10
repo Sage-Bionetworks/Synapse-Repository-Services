@@ -64,13 +64,6 @@ public interface AuthenticationService {
 	public void changePassword(String username, String newPassword)
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
 	
-	/**
-	 * Changes the email of a user to another email
-	 * To be replaced with the other updateEmail() method
-	 */
-	@Deprecated
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws NotFoundException;
 	
 	/**
 	 * Changes the email of a user to another email
