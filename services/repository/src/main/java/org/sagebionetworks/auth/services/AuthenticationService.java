@@ -1,13 +1,9 @@
 package org.sagebionetworks.auth.services;
 
-import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
-import javax.xml.xpath.XPathExpressionException;
-
 import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -76,14 +72,6 @@ public interface AuthenticationService {
 	 */
 	public void changePassword(String username, String newPassword)
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
-	
-	/**
-	 * Changes the email of a user to another email
-	 * To be replaced with the other updateEmail() method
-	 */
-	@Deprecated
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws DatastoreException, NotFoundException, XPathExpressionException, IOException, AuthenticationException;
 	
 	/**
 	 * Changes the email of a user to another email

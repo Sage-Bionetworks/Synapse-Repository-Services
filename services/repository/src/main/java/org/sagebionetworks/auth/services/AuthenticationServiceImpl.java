@@ -1,10 +1,7 @@
 package org.sagebionetworks.auth.services;
 
-import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-
-import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -166,13 +163,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		UserInfo user = userManager.getUserInfo(username);
 		authManager.changePassword(user.getIndividualGroup().getId(), newPassword);
-	}
-
-	@Override
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws DatastoreException, NotFoundException, XPathExpressionException, IOException, AuthenticationException {
-		UserInfo userInfo = userManager.getUserInfo(oldUserId);
-		userManager.updateEmail(userInfo, newUserId);
 	}
 	
 	@Override
