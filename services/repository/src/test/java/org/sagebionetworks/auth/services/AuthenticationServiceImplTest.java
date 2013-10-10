@@ -67,23 +67,14 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testAuthenticate() throws Exception {
-		// Check password but not ToU
-		service.authenticate(null, credential, true, false);
-		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
-		verify(mockUserManager, times(0)).getUserInfo(anyString());
-		
-		// Check ToU but not password
-		credential.setAcceptsTermsOfUse(true);
-		userInfo.getUser().setAgreesToTermsOfUse(true);
-		service.authenticate(null, credential, false, true);
-		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
-		verify(mockUserManager).getUserInfo(anyString());
-		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
-		
-		// ToU acceptance must be updated
+		// Check password and update the ToU acceptance
 		credential.setAcceptsTermsOfUse(true);
 		userInfo.getUser().setAgreesToTermsOfUse(false);
-		service.authenticate(null, credential, false, true);
+		
+		service.authenticate(credential, null);
+		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
+		verify(mockUserManager).getUserInfo(anyString());
+		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
 		verify(mockUserProfileManager).agreeToTermsOfUse(eq(userInfo));
 		
 	}
@@ -92,7 +83,7 @@ public class AuthenticationServiceImplTest {
 	public void testAuthenticateToUFail() throws Exception {
 		// ToU checking should fail
 		credential.setAcceptsTermsOfUse(false);
-		service.authenticate(null, credential, false, true);
+		service.authenticate(credential, null);
 	}
 	
 	@Test
@@ -100,12 +91,12 @@ public class AuthenticationServiceImplTest {
 		// Password and ToU checking is disabled for the portal user
 		userInfo.getUser().setAgreesToTermsOfUse(false);
 		credential.setAcceptsTermsOfUse(false);
-		service.authenticate(StackConfiguration.getPortalUsername(), credential, true, true);
+		service.authenticate(credential, StackConfiguration.getPortalUsername());
 		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
 		
 		// But it is enabled for non-portal users
 		credential.setAcceptsTermsOfUse(true);
-		service.authenticate("Not the portal user", credential, true, true);
+		service.authenticate(credential, "Not the portal user");
 		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
 	}
 	

@@ -51,7 +51,7 @@ public class AuthenticationFilter implements Filter {
 	private static final String PORTAL_USER_NAME = StackConfiguration.getPortalUsername();
 	private static final String AUTH_PATH = "/auth/v1";
 	private static final List<String> VALID_PORTAL_CALLS = Arrays
-			.asList(new String[] { AUTH_PATH + UrlHelpers.AUTH_USER, AUTH_PATH + UrlHelpers.AUTH_SESSION_PORTAL });
+			.asList(new String[] { UrlHelpers.AUTH_USER, UrlHelpers.AUTH_SESSION_PORTAL });
 	
 	private boolean allowAnonymous = false;
 	
@@ -69,10 +69,13 @@ public class AuthenticationFilter implements Filter {
 	
 	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason) throws IOException {
 		resp.setStatus(401);
+
+		// This header is required according to RFC-2612
+		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2
+		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
+		//      http://www.ietf.org/rfc/rfc2617.txt
+		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
 		resp.getWriter().println("{\"reason\", \""+reason+"\"}");
-		
-		//TODO What does this header do?
-		resp.setHeader("WWW-Authenticate", "authenticate repo");
 	}
 
 	@Override
@@ -137,8 +140,18 @@ public class AuthenticationFilter implements Filter {
 				return;
 			}
 			
-			if (VALID_PORTAL_CALLS.contains(req.getRequestURI())) {
+			// Match the portion of the URI after /auth/v1 to a set of allowed values
+			String reqURI = req.getRequestURI();
+			int authPathIndex = reqURI.indexOf(AUTH_PATH);
+			if (authPathIndex >= 0) {
+				reqURI = reqURI.substring(authPathIndex + AUTH_PATH.length());
+			}
+			
+			if (VALID_PORTAL_CALLS.contains(reqURI)) {
+				// For some calls, the username of the caller is inferred from the session token or secret key signature
+				// This extra parameter allows that inference to be overriden with the portal's choice of user
 				String pretender = req.getParameter(AuthorizationConstants.PORTAL_MASQUERADE_PARAM);
+				log.debug("Portal request made to " + req.getRequestURI() + " on behalf of " + pretender);
 				if (pretender != null) {
 					username = pretender;
 				}
@@ -169,7 +182,7 @@ public class AuthenticationFilter implements Filter {
 	
 	/**
 	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
-	 * passed in then an AuthenticationException is thrown.
+	 * passed in then an UnauthorizedException is thrown.
 	 */
 	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws UnauthorizedException {
 		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);

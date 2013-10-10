@@ -6,7 +6,6 @@ import java.security.spec.InvalidKeySpecException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -21,7 +20,6 @@ import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,19 +47,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(String username, NewUser credential, boolean validatePassword, boolean validateToU) 
+	public Session authenticate(NewUser credential, String caller) 
 			throws NotFoundException {
 		if (credential.getEmail() == null) {
 			throw new UnauthorizedException("Username may not be null");
 		}
 
-		// Password checking is disabled for the user corresponding to the portal
-		// Also, the ToU does not prevent the portal user from getting a session token
-		boolean isPortalUser = PORTAL_USER_NAME.equals(username);
+		boolean isPortalUser = PORTAL_USER_NAME.equals(caller);
 		
 		// Fetch the user's session token, checking the password if required
+		// Password checking is disabled for the user corresponding to the portal
 		Session session;
-		if (validatePassword && !isPortalUser) {
+		if (!isPortalUser) {
 			if (credential.getPassword() == null) {
 				throw new UnauthorizedException("Password may not be null");
 			}
@@ -69,25 +66,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		} else {
 			session = authManager.authenticate(credential.getEmail(), null);
 		}
+
+		// The ToU field might not be explicitly specified in the credential object
+		if (credential.getAcceptsTermsOfUse() == null) {
+			UserInfo userInfo = userManager.getUserInfo(credential.getEmail());
+			credential.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
+		}
 		
-		if (validateToU) {
-			// The ToU field might not be explicitly specified in the credential object
-			if (credential.getAcceptsTermsOfUse() == null) {
-				UserInfo userInfo = userManager.getUserInfo(credential.getEmail());
-				credential.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
-			}
-			
-			// Check for ToU acceptance
-			if (!credential.getAcceptsTermsOfUse() && !isPortalUser) {
-				throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-			}
-			
-			// If the user is accepting the terms in this request, save the time of acceptance
-			if (credential.getAcceptsTermsOfUse()) {
-				UserInfo user = userManager.getUserInfo(credential.getEmail());
-				if (!user.getUser().isAgreesToTermsOfUse()) {
-					userProfileManager.agreeToTermsOfUse(user);
-				}
+		// Check for ToU acceptance
+		// The ToU does not prevent the portal user from getting a session token
+		if (!credential.getAcceptsTermsOfUse() && !isPortalUser) {
+			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+		}
+		
+		// If the user is accepting the terms in this request, save the time of acceptance
+		if (credential.getAcceptsTermsOfUse()) {
+			UserInfo user = userManager.getUserInfo(credential.getEmail());
+			if (!user.getUser().isAgreesToTermsOfUse()) {
+				userProfileManager.agreeToTermsOfUse(user);
 			}
 		}
 		return session;
@@ -122,14 +118,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user) throws AuthenticationException {
+	public void createUser(NewUser user) {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Required fields are missing for user creation");
 		}
 		try {
 			userManager.createUser(user);
 		} catch (DatastoreException e) {
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "User '" + user.getEmail() + "' already exists", e);
+			throw new UnauthorizedException("User '" + user.getEmail() + "' already exists", e);
 		}
 		
 		// For integration test to confirm that a user can be created
