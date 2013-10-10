@@ -147,6 +147,11 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
 		scope="singleton">
 	</bean>
+	
+	<bean id="v2wikiPageDAO"
+		class="org.sagebionetworks.repo.model.dbo.v2.dao.V2DBOWikiPageDaoImpl"
+		scope="singleton">
+	</bean>
 
 	<bean id="doiDao" class="org.sagebionetworks.repo.model.dbo.dao.DBODoiDaoImpl"
 		scope="singleton">

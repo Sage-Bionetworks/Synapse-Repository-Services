@@ -51,6 +51,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
+				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation" />
+				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown" />
+				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
