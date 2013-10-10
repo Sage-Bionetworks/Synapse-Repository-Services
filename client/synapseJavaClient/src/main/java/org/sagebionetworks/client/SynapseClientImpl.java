@@ -120,6 +120,7 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -207,6 +208,8 @@ public class SynapseClientImpl implements SynapseClient {
 	protected static final String STATUS_SUFFIX = "?status=";
 	protected static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	protected static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	
+	protected static final String COLUMN = "/column";
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -4496,6 +4499,24 @@ public class SynapseClientImpl implements SynapseClient {
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		try {
 			return new UserEvaluationPermissions(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
+		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
+		String url = COLUMN;
+		return createJSONEntity(url, model);
+	}
+
+	@Override
+	public ColumnModel getColumnModel(String columnId) throws SynapseException {
+		if(columnId == null) throw new IllegalArgumentException("ColumnId cannot be null");
+		String url = COLUMN+"/"+columnId;
+		try {
+			return getJSONEntity(url, ColumnModel.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

@@ -119,6 +119,15 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Override
 	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) {
 		validateUser(user);
+		// If this type has secondary types then delete them first
+		List<MigratableDatabaseObject> secondary = this.migratableTableDao.getObjectForType(type).getSecondaryTypes();
+		if(secondary != null){
+			for(int i=secondary.size()-1; i >= 0; i--){
+				MigrationType secondaryType = secondary.get(i).getMigratableTableType();
+				deleteObjectsById(user, secondaryType, idList);
+			}
+		}
+		
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Delete must be done in reverse dependency order, so we must get the row metadata for 
 		// the input list

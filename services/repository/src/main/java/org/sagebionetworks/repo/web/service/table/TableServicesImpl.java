@@ -27,4 +27,10 @@ public class TableServicesImpl implements TableServices {
 		return columnModelManager.createColumnModel(user, columnModel);
 	}
 
+	@Override
+	public ColumnModel getColumnModel(String userId, String columnId) throws DatastoreException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return columnModelManager.getColumnModel(user, columnId);
+	}
+
 }

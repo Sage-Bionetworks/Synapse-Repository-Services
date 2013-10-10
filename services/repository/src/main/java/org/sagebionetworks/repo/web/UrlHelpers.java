@@ -584,9 +584,12 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
+	
 	// Tables
-	public static final String COLUMN = "column";
-
+	public static final String COLUMN = "/column";
+	public static final String COLUMN_ID = COLUMN+"/{columnId}";
+	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
+	
 	/**
 	 * APIs for DynamoDB related operations.
 	 */

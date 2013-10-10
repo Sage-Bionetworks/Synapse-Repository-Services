@@ -71,6 +71,7 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -717,5 +718,23 @@ public interface SynapseClient {
 
 	UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException;
+	
+	/**
+	 * Create a new ColumnModel. If a column already exists with the same parameters,
+	 * that column will be returned.
+	 * @param model
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ColumnModel createColumnModel(ColumnModel model) throws SynapseException;
+	
+	/**
+	 * Get a ColumnModel from its ID.
+	 * 
+	 * @param columnId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ColumnModel getColumnModel(String columnId) throws SynapseException;
 
 }

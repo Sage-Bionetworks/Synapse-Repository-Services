@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -19,9 +21,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * The Synapse <a
- * href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
- * model object represents the metadata of a relational-like table.
+ * A Synapse <a href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
+ * model object represents the metadata of a table.  Each TableEntity is defined
+ * by a list of <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels</a> IDs.
  * </p>
  * 
  */
@@ -37,19 +39,15 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel
 	 * </a> that can be used as a column of a <a
 	 * href="${org.sagebionetworks.repo.model.table.TableEntity}"
-	 * >TableEntity</a>.
+	 * >TableEntity</a>.  ColumnModels are immutable and reusable.
 	 * 
 	 * @param userId
 	 *            The user's id.
-	 * @param ownerId
-	 *            The ID of the owner Entity.
 	 * @param toCreate
-	 *            The WikiPage to create.
+	 *            The ColumnModel to create.
 	 * @return -
 	 * @throws DatastoreException
 	 *             - Synapse error.
-	 * @throws NotFoundException
-	 *             - returned if the user or owner does not exist.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.POST)
@@ -58,7 +56,32 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody ColumnModel toCreate) throws DatastoreException,
 			NotFoundException {
-		return serviceProvider.getTableServices().createColumnModel(userId,
-				toCreate);
+		return serviceProvider.getTableServices().createColumnModel(userId,	toCreate);
+	}
+	
+	/**
+	 * Get a <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a> using its ID.
+	 * @param userId
+	 * @param columnId The ID of the ColumnModel to get.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.COLUMN_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	ColumnModel getColumnModel(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String columnId) throws DatastoreException, NotFoundException{
+		return serviceProvider.getTableServices().getColumnModel(userId, columnId);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_COLUMNS, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedColumnModels getColumnForTable(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ID){
+		return null;
 	}
 }

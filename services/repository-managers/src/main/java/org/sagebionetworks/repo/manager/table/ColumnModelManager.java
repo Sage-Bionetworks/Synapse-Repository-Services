@@ -45,6 +45,15 @@ public interface ColumnModelManager {
 	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get a single ColumnModel
+	 * @param user
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Bind a set of columns to an object.
 	 * @param user
 	 * @param columnIds
@@ -72,5 +81,6 @@ public interface ColumnModelManager {
 	 * @param user
 	 */
 	public boolean truncateAllColumnData(UserInfo user);
+
 }
 

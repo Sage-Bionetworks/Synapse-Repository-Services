@@ -51,6 +51,13 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		// Pass it along to the DAO.
 		return columnModelDao.createColumnModel(columnModel);
 	}
+	
+	@Override
+	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {
+		if(user == null) throw new IllegalArgumentException("User cannot be null");
+		if(columnId == null) throw new IllegalArgumentException("ColumnId cannot be null");
+		return columnModelDao.getColumnModel(columnId);
+	}
 
 	@Override
 	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids)
@@ -59,6 +66,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(ids == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		return columnModelDao.getColumnModel(ids);
 	}
+	
 
 	@Override
 	public boolean bindColumnToObject(UserInfo user, Set<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
