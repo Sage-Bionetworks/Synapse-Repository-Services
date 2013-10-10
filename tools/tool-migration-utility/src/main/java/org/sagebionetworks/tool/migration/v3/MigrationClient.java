@@ -427,11 +427,11 @@ public class MigrationClient {
 		SynapseAdminClient client = factory.createNewDestinationClient();
 		long offset = 100;
 		PaginatedResults<CrowdMigrationResult> res = client.migrateFromCrowd(100, 0);
-		boolean batchFailed = this.checkMigratedCrowdBatch(res.getResults());
+		boolean batchFailed = this.containsFailure(res.getResults());
 		long crowdTotalNumRes = res.getTotalNumberOfResults();
 		while (offset <= crowdTotalNumRes) {
 			res = client.migrateFromCrowd(500, offset);
-			if (this.checkMigratedCrowdBatch(res.getResults())) {
+			if (this.containsFailure(res.getResults())) {
 				batchFailed = true;
 			}
 			offset += 500;
@@ -441,7 +441,7 @@ public class MigrationClient {
 		}
 	}
 	
-	public boolean checkMigratedCrowdBatch(List<CrowdMigrationResult> batch) {
+	public boolean containsFailure(List<CrowdMigrationResult> batch) {
 		boolean failed = false;
 		for (CrowdMigrationResult r: batch) {
 			if (r.getResultType() != CrowdMigrationResultType.SUCCESS) {
