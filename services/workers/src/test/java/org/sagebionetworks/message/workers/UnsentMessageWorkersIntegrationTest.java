@@ -26,7 +26,7 @@ public class UnsentMessageWorkersIntegrationTest {
 	 * Enough time for both the Queuer (10 sec) and Popper (30 sec) to fire
 	 * Plus some extra time just in case
 	 */
-	public static long MAX_WAIT = 1000*50; 
+	public static long MAX_WAIT = 1000*90; 
 
 	@Autowired
 	private UnsentMessageQueuer unsentMessageQueuer;
