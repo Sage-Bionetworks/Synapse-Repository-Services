@@ -55,11 +55,12 @@ public class ColumnModelManagerTest {
 		ColumnModel cm = new ColumnModel();
 		cm.setName("abb");
 		results.add(cm);
-		when(mockColumnModelDAO.listColumnModels(prefix, Long.MAX_VALUE, 0)).thenReturn(results);
+		long limitMax = 100;
+		when(mockColumnModelDAO.listColumnModels(prefix, limitMax, 0)).thenReturn(results);
 		when(mockColumnModelDAO.listColumnModelsCount(prefix)).thenReturn(1l);
 		
 		// make the call
-		PaginatedColumnModels page = columnModelManager.listColumnModels(user, prefix, Long.MAX_VALUE, 0);
+		PaginatedColumnModels page = columnModelManager.listColumnModels(user, prefix, limitMax, 0);
 		assertNotNull(page);
 		assertEquals(new Long(1), page.getTotalNumberOfResults());
 		assertEquals(results, page.getResults());
