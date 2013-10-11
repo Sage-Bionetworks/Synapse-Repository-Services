@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
-import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -27,19 +27,19 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class MigatableTableDAOImplAutowireTest {
+public class MigratableTableDAOImplAutowireTest {
 
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 
 	@Autowired
-	MigatableTableDAO migatableTableDAO;
+	private MigratableTableDAO migratableTableDAO;
 	
 	private List<String> toDelete;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
 	@Before
 	public void before(){
@@ -60,7 +60,7 @@ public class MigatableTableDAOImplAutowireTest {
 	@Test
 	public void testMigrationRoundTrip() throws Exception {
 		long startCount = fileHandleDao.getCount();
-		long migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
+		long migrationCount = migratableTableDAO.getCount(MigrationType.FILE_HANDLE);
 		assertEquals(startCount, migrationCount);
 		long startMax = fileHandleDao.getMaxId();
 		// The one will have a preview
@@ -97,7 +97,7 @@ public class MigatableTableDAOImplAutowireTest {
 		withPreview2 = (S3FileHandle) fileHandleDao.get(withPreview2.getId());
 		
 		// Now list all of the objects
-		RowMetadataResult totalList = migatableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, 1000, startCount);
+		RowMetadataResult totalList = migratableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, 1000, startCount);
 		assertNotNull(totalList);
 		assertEquals(new Long(startCount+4),  totalList.getTotalCount());
 		assertNotNull(totalList.getList());
@@ -129,7 +129,7 @@ public class MigatableTableDAOImplAutowireTest {
 		List<Long> idsToBackup1 = new LinkedList<Long>();
 		idsToBackup1.add(Long.parseLong(preview.getId()));
 		idsToBackup1.add(Long.parseLong(preview2.getId()));
-		List<DBOFileHandle> backupList1 = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup1);
+		List<DBOFileHandle> backupList1 = migratableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup1);
 		assertNotNull(backupList1);
 		assertEquals(2, backupList1.size());
 		//with preview.
@@ -143,7 +143,7 @@ public class MigatableTableDAOImplAutowireTest {
 		List<Long> idsToBackup2 = new LinkedList<Long>();
 		idsToBackup2.add(Long.parseLong(withPreview.getId()));
 		idsToBackup2.add(Long.parseLong(withPreview2.getId()));
-		List<DBOFileHandle> backupList2 = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup2);
+		List<DBOFileHandle> backupList2 = migratableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup2);
 		assertNotNull(backupList2);
 		assertEquals(2, backupList2.size());
 		// withPreview.
@@ -154,22 +154,22 @@ public class MigatableTableDAOImplAutowireTest {
 		assertEquals(withPreview2.getId(), ""+dbfh.getId());
 		
 		// Now delete all of the data
-		int count = migatableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup1);
+		int count = migratableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup1);
 		assertEquals(2, count);
-		count = migatableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup2);
+		count = migratableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup2);
 		assertEquals(2, count);
-		assertEquals(startCount, migatableTableDAO.getCount(MigrationType.FILE_HANDLE));
-		assertEquals(startMax, migatableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
+		assertEquals(startCount, migratableTableDAO.getCount(MigrationType.FILE_HANDLE));
+		assertEquals(startMax, migratableTableDAO.getMaxId(MigrationType.FILE_HANDLE));
 		// Now restore the data
-		List<Long> results = migatableTableDAO.createOrUpdateBatch(backupList1);
+		List<Long> results = migratableTableDAO.createOrUpdateBatch(backupList1);
 		assertNotNull(results);
 		assertEquals(idsToBackup1, results);
-		results = migatableTableDAO.createOrUpdateBatch(backupList2);
+		results = migratableTableDAO.createOrUpdateBatch(backupList2);
 		assertNotNull(results);
 		assertEquals(idsToBackup2, results);
 		// Now make sure if we update again it works
 		backupList1.get(0).setBucketName("updateBucketName");
-		results = migatableTableDAO.createOrUpdateBatch(backupList1);
+		results = migratableTableDAO.createOrUpdateBatch(backupList1);
 		assertNotNull(results);
 		assertEquals(idsToBackup1, results);
 	}
@@ -180,7 +180,7 @@ public class MigatableTableDAOImplAutowireTest {
 		// because the resulting 'in' clause is empty.
 		List<Long> list = new LinkedList<Long>();
 		// pass the empty list should return an empty result
-		List<RowMetadata> results = migatableTableDAO.listDeltaRowMetadata(MigrationType.ACCESS_APPROVAL, list);
+		List<RowMetadata> results = migratableTableDAO.listDeltaRowMetadata(MigrationType.ACCESS_APPROVAL, list);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -191,7 +191,7 @@ public class MigatableTableDAOImplAutowireTest {
 		// because the resulting 'in' clause is empty.
 		List<Long> list = new LinkedList<Long>();
 		// pass the empty list should return an empty result
-		int result = migatableTableDAO.deleteObjectsById(MigrationType.ACCESS_APPROVAL, list);
+		int result = migratableTableDAO.deleteObjectsById(MigrationType.ACCESS_APPROVAL, list);
 		assertEquals(0, result);
 	}
 	
@@ -201,7 +201,7 @@ public class MigatableTableDAOImplAutowireTest {
 		// because the resulting 'in' clause is empty.
 		List<Long> list = new LinkedList<Long>();
 		// pass the empty list should return an empty result
-		List<DBOFileHandle> results = migatableTableDAO.getBackupBatch(DBOFileHandle.class, list);
+		List<DBOFileHandle> results = migratableTableDAO.getBackupBatch(DBOFileHandle.class, list);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -212,7 +212,7 @@ public class MigatableTableDAOImplAutowireTest {
 		// because the resulting 'in' clause is empty.
 		List<DBOFileHandle> list = new LinkedList<DBOFileHandle>();
 		// pass the empty list should return an empty result
-		List<Long> results = migatableTableDAO.createOrUpdateBatch(list);
+		List<Long> results = migratableTableDAO.createOrUpdateBatch(list);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
@@ -251,7 +251,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
-		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
+		List<MigrationType> primary = migratableTableDAO.getPrimaryMigrationTypes();
 		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
