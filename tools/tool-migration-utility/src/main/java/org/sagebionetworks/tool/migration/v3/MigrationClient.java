@@ -444,7 +444,7 @@ public class MigrationClient {
 	public boolean containsFailure(List<CrowdMigrationResult> batch) {
 		boolean failed = false;
 		for (CrowdMigrationResult r: batch) {
-			if (r.getResultType() != CrowdMigrationResultType.SUCCESS) {
+			if (r.getResultType() == CrowdMigrationResultType.FAILURE) {
 				log.error("Crowd migration failed for " + r.getUsername() + " / " + r.getUserId() + " with error '" + r.getMessage() + "'");
 				failed = true;
 			}
