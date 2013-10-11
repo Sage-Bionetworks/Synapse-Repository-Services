@@ -194,7 +194,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		// Get the results from the cache
 		SortedMap<String, Collection<UserGroupHeader>> matched = userGroupHeadersNamePrefixCache.prefixMap(prefix.toLowerCase());
-		List<UserGroupHeader> fullList = flatten(matched);
+		List<UserGroupHeader> fullList = PrefixCacheHelper.flatten(matched);
 		QueryResults<UserGroupHeader> eqr = new QueryResults<UserGroupHeader>(fullList, limitInt, offsetInt);
 		UserGroupHeaderResponsePage results = new UserGroupHeaderResponsePage();
 		results.setChildren(eqr.getResults());
@@ -369,35 +369,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		header.setOwnerId(group.getId());
 		header.setIsIndividual(group.getIsIndividual());
 		return header;
-	}
-
-	/**
-	 * The Trie contains collections of UserGroupHeaders for a given name. This
-	 * method flattens the collections into a single list of UserGroupHeaders.
-	 * 
-	 * @param prefixMap
-	 * @return
-	 */
-	private List<UserGroupHeader> flatten (
-			SortedMap<String, Collection<UserGroupHeader>> prefixMap) {
-		//gather all unique UserGroupHeaders
-		Set<UserGroupHeader> set = new HashSet<UserGroupHeader>();
-		for (Collection<UserGroupHeader> headersOfOneName : prefixMap.values()) {
-			for (UserGroupHeader header : headersOfOneName) {
-				set.add(header);
-			}
-		}
-		//put them in a list
-		List<UserGroupHeader> returnList = new ArrayList<UserGroupHeader>();
-		returnList.addAll(set);
-		//return in a logical order
-		Collections.sort(returnList, new Comparator<UserGroupHeader>() {
-			@Override
-			public int compare(UserGroupHeader o1, UserGroupHeader o2) {
-				return o1.getDisplayName().compareTo(o2.getDisplayName());
-			}
-		});
-		return returnList;
 	}
 
 }

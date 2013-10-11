@@ -127,7 +127,12 @@
 		<!-- This filter should only be used on publicly accessible methods to 
 			minimize the risks of Cross-site request forgery (CSRF) associated with JSONP. 
 			Only add patterns that are public! -->
+			
 		<url-pattern>/repo/v1/userGroupHeaders/*</url-pattern>
+		<!--  This is the uri for looking up teams by name fragment -->
+		<url-pattern>/repo/v1/team</url-pattern>
+		<!--  This is the uri for looking up team members by name fragment -->
+		<url-pattern>/repo/v1/team/*/member</url-pattern>
 	</filter-mapping>
 
 	<servlet>

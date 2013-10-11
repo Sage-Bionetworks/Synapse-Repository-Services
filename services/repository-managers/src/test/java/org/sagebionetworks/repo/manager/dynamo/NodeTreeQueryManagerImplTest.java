@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,10 +57,10 @@ public class NodeTreeQueryManagerImplTest {
 		when(userMan.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
 
 		AuthorizationManager auMan = mock(AuthorizationManager.class);
-		when(auMan.canAccess(userInfo, nodeRoot, ACCESS_TYPE.READ)).thenReturn(false);
-		when(auMan.canAccess(userInfo, nodeCanAccessX, ACCESS_TYPE.READ)).thenReturn(true);
-		when(auMan.canAccess(userInfo, nodeCanAccessY, ACCESS_TYPE.READ)).thenReturn(true);
-		when(auMan.canAccess(userInfo, nodeCannotAccess, ACCESS_TYPE.READ)).thenReturn(false);
+		when(auMan.canAccess(userInfo, nodeRoot, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(auMan.canAccess(userInfo, nodeCanAccessX, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(auMan.canAccess(userInfo, nodeCanAccessY, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(auMan.canAccess(userInfo, nodeCannotAccess, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 
 		NodeTreeQueryDao ntDao = mock(NodeTreeQueryDao.class);
 		when(ntDao.isRoot(KeyFactory.stringToKey(nodeRoot).toString())).thenReturn(true);

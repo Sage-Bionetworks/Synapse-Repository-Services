@@ -117,8 +117,6 @@ public class EntityPermissionsManagerImplTest {
 		assertEquals(project.getId(), acl.getId());
 		assertEquals(1, acl.getResourceAccess().size());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
-			// ra should have pId but not 'groupName' which is deprecated
-			assertNull(ra.getGroupName());
 			assertNotNull(ra.getPrincipalId());
 		}
 		// retrieve child acl.  should get parent's
@@ -135,7 +133,6 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testValidateACLContent() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setGroupName(userInfo.getIndividualGroup().getName());
 		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
@@ -184,7 +181,6 @@ public class EntityPermissionsManagerImplTest {
 	@Test(expected = InvalidModelException.class)
 	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setGroupName(userInfo.getIndividualGroup().getName());
 		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.READ);
@@ -210,7 +206,7 @@ public class EntityPermissionsManagerImplTest {
 		// Check the etag before
 		String etagBefore = acl.getEtag();
 		assertNotNull(etagBefore);
-		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// The etag should have changed
 		assertNotNull(acl.getEtag());
@@ -248,7 +244,7 @@ public class EntityPermissionsManagerImplTest {
 	public void testUpdateInvalidACL() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		acl.setId(project.getId());
 		// ...group id is null...
@@ -437,9 +433,9 @@ public class EntityPermissionsManagerImplTest {
 		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
 		
 		// authorize test user to change permissions of parent and child nodes
-		parentAcl = AuthorizationHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		parentAcl = entityPermissionsManager.updateACL(parentAcl, adminUserInfo);
-		childAcl = AuthorizationHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		childAcl = entityPermissionsManager.updateACL(childAcl, adminUserInfo);
 		
 		// apply inheritance to children as test user
@@ -474,8 +470,7 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(collaboratorAccess);
-		ra.setPrincipalId(new Long(userInfo.getIndividualGroup().getId()));
-		ra.setGroupName(userInfo.getIndividualGroup().getName());		
+		ra.setPrincipalId(new Long(userInfo.getIndividualGroup().getId()));	
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		
