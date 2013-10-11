@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -87,7 +87,12 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(id);
+		MembershipInvtnSubmission mis = null;
+		try {
+			mis = membershipInvtnSubmissionDAO.get(id);
+		} catch (NotFoundException e) {
+			return;
+		}
 		if (!authorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot delete membership invitation.");
 		membershipInvtnSubmissionDAO.delete(id);
 	}
@@ -96,14 +101,14 @@ public class MembershipInvitationManagerImpl implements
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#getOpenForUserInRange(java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<MembershipInvitation> getOpenForUserInRange(
-			String principalId, long offset, long limit)
+	public PaginatedResults<MembershipInvitation> getOpenForUserInRange(
+			String principalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Date now = new Date();
 		long principalIdAsLong = Long.parseLong(principalId);
-		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(principalIdAsLong, now.getTime(), offset, limit);
+		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByUserInRange(principalIdAsLong, now.getTime(), limit, offset);
 		long count = membershipInvtnSubmissionDAO.getOpenByUserCount(principalIdAsLong, now.getTime());
-		QueryResults<MembershipInvitation> results = new QueryResults<MembershipInvitation>();
+		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
 		return results;
@@ -113,15 +118,15 @@ public class MembershipInvitationManagerImpl implements
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#getOpenForUserAndTeamInRange(java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<MembershipInvitation> getOpenForUserAndTeamInRange(
-			String principalId, String teamId, long offset, long limit)
+	public PaginatedResults<MembershipInvitation> getOpenForUserAndTeamInRange(
+			String principalId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		Date now = new Date();
 		long principalIdAsLong = Long.parseLong(principalId);
 		long teamIdAsLong = Long.parseLong(teamId);
-		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), offset, limit);
+		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), limit, offset);
 		long count = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamIdAsLong, principalIdAsLong, now.getTime());
-		QueryResults<MembershipInvitation> results = new QueryResults<MembershipInvitation>();
+		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
 		return results;

@@ -31,7 +31,7 @@ public interface TeamDAO {
 	 * @param limit
 	 * 
 	 */
-	public List<Team> getInRange(long offset, long limit) throws DatastoreException;
+	public List<Team> getInRange(long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * 
@@ -55,7 +55,7 @@ public interface TeamDAO {
 	 * @return the Teams this principal belongs to
 	 * @throws DatastoreException 
 	 */
-	public List<Team> getForMemberInRange(String principalId, long offset, long limit) throws DatastoreException;
+	public List<Team> getForMemberInRange(String principalId, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * 
