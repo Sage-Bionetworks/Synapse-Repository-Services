@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -41,7 +40,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(@RequestBody NewUser credentials) throws NotFoundException {
-		return authenticationService.authenticate(credentials, null);
+		return authenticationService.authenticate(credentials);
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -55,20 +54,6 @@ public class AuthenticationController extends BaseController {
 	public void deauthenticate(HttpServletRequest request) {
 		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		authenticationService.invalidateSessionToken(sessionToken);
-	}
-	
-	/**
-	 * This service should only be used by the web client.  
-	 * Otherwise the same as <a href="${POST.session}">POST /session</a>
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.AUTH_SESSION_PORTAL, method = RequestMethod.POST)
-	public @ResponseBody
-	Session authenticatePortal(
-			@RequestBody NewUser credentials,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException {
-		return authenticationService.authenticate(credentials, username);
 	}
 
 	@ResponseStatus(HttpStatus.CREATED)
