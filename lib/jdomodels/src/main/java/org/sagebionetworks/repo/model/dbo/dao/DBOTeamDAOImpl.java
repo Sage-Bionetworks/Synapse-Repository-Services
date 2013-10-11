@@ -123,7 +123,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 * @see org.sagebionetworks.repo.model.TeamDAO#getInRange(long, long)
 	 */
 	@Override
-	public List<Team> getInRange(long offset, long limit)
+	public List<Team> getInRange(long limit, long offset)
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(OFFSET_PARAM_NAME, offset);
@@ -144,8 +144,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	 * @see org.sagebionetworks.repo.model.TeamDAO#getForMemberInRange(java.lang.String, long, long)
 	 */
 	@Override
-	public List<Team> getForMemberInRange(String principalId, long offset,
-			long limit) throws DatastoreException {
+	public List<Team> getForMemberInRange(String principalId,
+			long limit, long offset) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
 		param.addValue(OFFSET_PARAM_NAME, offset);

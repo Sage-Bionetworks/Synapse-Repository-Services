@@ -275,4 +275,8 @@
 		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
 		scope="singleton" />
 
+	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" scope="singleton" />
+	<bean id="membershipInvitationManager" class="org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl" scope="singleton" />
+	<bean id="membershipRequestManager" class="org.sagebionetworks.repo.manager.team.MembershipRequestManagerImpl" scope="singleton" />
+			
 </beans>

@@ -44,5 +44,10 @@ public interface ServiceProvider {
 	
 	public MigrationService getMigrationService();
 	
+	public TeamService getTeamService();
+	
+	public MembershipInvitationService getMembershipInvitationService();
+	
+	public MembershipRequestService getMembershipRequestService();
 	
 }

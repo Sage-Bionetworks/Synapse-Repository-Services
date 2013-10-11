@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
+import org.sagebionetworks.repo.manager.AuthorizationHelper;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -195,8 +196,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private boolean canAccess(final UserInfo userInfo, final String evalId,
 			final ACCESS_TYPE accessType) throws NotFoundException {
 
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(
-				userInfo.getUser().getUserId())) {
+		if (AuthorizationHelper.isUserAnonymous(
+				userInfo)) {
 			if (!READ.equals(accessType)) {
 				return false;
 			}
