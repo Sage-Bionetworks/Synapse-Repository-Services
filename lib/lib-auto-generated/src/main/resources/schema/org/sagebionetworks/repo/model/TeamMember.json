@@ -1,0 +1,19 @@
+{
+	"title": "Team Member",
+	"description": "JSON schema for Team Member, which bundles UserGroupHeader and isAdmin",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of the Team."
+		},
+		"userGroupHeader": {
+			"type": "object",
+			"description": "The team member information",
+			"$ref": "org.sagebionetworks.repo.model.UserGroupHeader"
+		},
+		"isAdmin": {
+			"type": "boolean",
+			"description": "True iff the user is an administrator in the Team."
+		}
+	}
+}
