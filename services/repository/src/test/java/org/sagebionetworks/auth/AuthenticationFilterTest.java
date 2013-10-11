@@ -142,53 +142,6 @@ public class AuthenticationFilterTest {
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		Assert.assertEquals(username, passedAlongUsername);
 	}
-	
-	@Test
-	public void testPortalMasquerade_valid() throws Exception {		
-		String pretender = "SomeUser@not.sagebase.org";
-		String portalUsername = StackConfiguration.getPortalUsername();
-		String portalApikey = StackConfiguration.getPortalAPIKey();
-		
-		Mockito.when(mockAuthService.getSecretKey(Mockito.eq(portalUsername))).thenReturn(portalApikey);
-		
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		signRequest(request, "/auth/v1/user", portalUsername, portalApikey);
-		request.setParameter(AuthorizationConstants.PORTAL_MASQUERADE_PARAM, pretender);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockFilterChain filterChain = new MockFilterChain();
-		
-		filter.doFilter(request, response, filterChain);
-
-		// Signature should match
-		Mockito.verify(mockAuthService, Mockito.times(1)).getSecretKey(Mockito.eq(StackConfiguration.getPortalUsername()));
-		ServletRequest modRequest = filterChain.getRequest();
-		Assert.assertNotNull(modRequest);
-		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		Assert.assertEquals(pretender, passedAlongUsername);
-	}
-	
-	@Test
-	public void testPortalMasquerade_invalidURI() throws Exception {		
-		String pretender = "SomeUser@not.sagebase.org";
-		String portalUsername = StackConfiguration.getPortalUsername();
-		String portalApikey = StackConfiguration.getPortalAPIKey();
-		
-		Mockito.when(mockAuthService.getSecretKey(Mockito.eq(portalUsername))).thenReturn(portalApikey);
-		
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		signRequest(request, "/auth/v1/secretKey", portalUsername, portalApikey);
-		request.setParameter(AuthorizationConstants.PORTAL_MASQUERADE_PARAM, pretender);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockFilterChain filterChain = new MockFilterChain();
-		
-		filter.doFilter(request, response, filterChain);
-
-		// Call should be rejected
-		Assert.assertEquals(401, response.getStatus());
-		Assert.assertTrue(response.getContentAsString().contains("portal cannot make"));
-	}
 
 	/**
 	 * Adds signed headers to the request

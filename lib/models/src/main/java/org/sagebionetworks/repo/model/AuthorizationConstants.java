@@ -188,8 +188,4 @@ public class AuthorizationConstants {
 	 */
 	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
 	
-	/**
-	 * Defines a URL parameter the portal should use in order to make requests on behalf of other users
-	 */
-	public static final String PORTAL_MASQUERADE_PARAM = "portalOnBehalfOf";
 }
