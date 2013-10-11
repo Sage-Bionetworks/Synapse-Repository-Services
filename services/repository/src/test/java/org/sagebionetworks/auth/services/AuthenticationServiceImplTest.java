@@ -7,12 +7,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.auth.services.AuthenticationServiceImpl;
+import org.sagebionetworks.authutil.OpenIDInfo;
+import org.sagebionetworks.authutil.BasicOpenIDConsumer;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -67,23 +71,14 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testAuthenticate() throws Exception {
-		// Check password but not ToU
-		service.authenticate(null, credential, true, false);
-		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
-		verify(mockUserManager, times(0)).getUserInfo(anyString());
-		
-		// Check ToU but not password
-		credential.setAcceptsTermsOfUse(true);
-		userInfo.getUser().setAgreesToTermsOfUse(true);
-		service.authenticate(null, credential, false, true);
-		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
-		verify(mockUserManager).getUserInfo(anyString());
-		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
-		
-		// ToU acceptance must be updated
+		// Check password and update the ToU acceptance
 		credential.setAcceptsTermsOfUse(true);
 		userInfo.getUser().setAgreesToTermsOfUse(false);
-		service.authenticate(null, credential, false, true);
+		
+		service.authenticate(credential);
+		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
+		verify(mockUserManager).getUserInfo(anyString());
+		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
 		verify(mockUserProfileManager).agreeToTermsOfUse(eq(userInfo));
 		
 	}
@@ -92,21 +87,7 @@ public class AuthenticationServiceImplTest {
 	public void testAuthenticateToUFail() throws Exception {
 		// ToU checking should fail
 		credential.setAcceptsTermsOfUse(false);
-		service.authenticate(null, credential, false, true);
-	}
-	
-	@Test
-	public void testAuthenticatePortalUser() throws Exception {
-		// Password and ToU checking is disabled for the portal user
-		userInfo.getUser().setAgreesToTermsOfUse(false);
-		credential.setAcceptsTermsOfUse(false);
-		service.authenticate(StackConfiguration.getPortalUsername(), credential, true, true);
-		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
-		
-		// But it is enabled for non-portal users
-		credential.setAcceptsTermsOfUse(true);
-		service.authenticate("Not the portal user", credential, true, true);
-		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
+		service.authenticate(credential);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -116,5 +97,42 @@ public class AuthenticationServiceImplTest {
 
 		userInfo.getUser().setAgreesToTermsOfUse(false);
 		service.revalidate("Some session token");
+	}
+	
+	@Test
+	public void testOpenIDAuthentication_newUser() throws Exception {
+		// This user does not exist yet
+		when(mockUserManager.doesPrincipalExist(eq(username))).thenReturn(false);
+		userInfo.getUser().setAgreesToTermsOfUse(false);
+		
+		OpenIDInfo info = new OpenIDInfo();
+		info.setMap(new HashMap<String, List<String>>());
+		info.getMap().put(BasicOpenIDConsumer.AX_EMAIL, Arrays.asList(new String[] { username }));
+		
+		service.authenticateViaOpenID(info, null);
+		
+		// The user should be created
+		verify(mockUserManager).createUser(any(NewUser.class));
+		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
+	}
+	
+	@Test
+	public void testOpenIDAuthentication_acceptToU() throws Exception {
+		// This user is returning to accept the ToU
+		when(mockUserManager.doesPrincipalExist(eq(username))).thenReturn(true);
+		userInfo.getUser().setAgreesToTermsOfUse(false);
+		
+		OpenIDInfo info = new OpenIDInfo();
+		info.setMap(new HashMap<String, List<String>>());
+		info.getMap().put(BasicOpenIDConsumer.AX_EMAIL, Arrays.asList(new String[] { username }));
+		
+		service.authenticateViaOpenID(info, true);
+		
+		// User should not be created, ToU should be updated
+		verify(mockUserManager, times(0)).createUser(any(NewUser.class));
+		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
+		verify(mockUserManager).getUserInfo(anyString());
+		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
+		verify(mockUserProfileManager).agreeToTermsOfUse(eq(userInfo));
 	}
 }

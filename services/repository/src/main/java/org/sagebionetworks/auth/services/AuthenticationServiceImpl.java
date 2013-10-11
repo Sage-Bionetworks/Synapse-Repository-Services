@@ -3,6 +3,8 @@ package org.sagebionetworks.auth.services;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.List;
+import java.util.Map;
 
 import javax.xml.xpath.XPathExpressionException;
 
@@ -10,6 +12,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.OpenIDInfo;
+import org.sagebionetworks.authutil.BasicOpenIDConsumer;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -24,14 +28,12 @@ import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	private Log log = LogFactory.getLog(AuthenticationServiceImpl.class);
-	private static final String PORTAL_USER_NAME = StackConfiguration.getPortalUsername();
 
 	@Autowired
 	private UserManager userManager;
@@ -52,47 +54,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(String username, NewUser credential, boolean validatePassword, boolean validateToU) 
-			throws NotFoundException {
+	public Session authenticate(NewUser credential) throws NotFoundException {
 		if (credential.getEmail() == null) {
 			throw new UnauthorizedException("Username may not be null");
 		}
-
-		// Password checking is disabled for the user corresponding to the portal
-		// Also, the ToU does not prevent the portal user from getting a session token
-		boolean isPortalUser = PORTAL_USER_NAME.equals(username);
 		
-		// Fetch the user's session token, checking the password if required
-		Session session;
-		if (validatePassword && !isPortalUser) {
-			if (credential.getPassword() == null) {
-				throw new UnauthorizedException("Password may not be null");
-			}
-			session = authManager.authenticate(credential.getEmail(), credential.getPassword());
-		} else {
-			session = authManager.authenticate(credential.getEmail(), null);
+		// Fetch the user's session token
+		if (credential.getPassword() == null) {
+			throw new UnauthorizedException("Password may not be null");
 		}
+		Session session = authManager.authenticate(credential.getEmail(), credential.getPassword());
 		
-		if (validateToU) {
-			// The ToU field might not be explicitly specified in the credential object
-			if (credential.getAcceptsTermsOfUse() == null) {
-				UserInfo userInfo = userManager.getUserInfo(credential.getEmail());
-				credential.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
-			}
-			
-			// Check for ToU acceptance
-			if (!credential.getAcceptsTermsOfUse() && !isPortalUser) {
-				throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-			}
-			
-			// If the user is accepting the terms in this request, save the time of acceptance
-			if (credential.getAcceptsTermsOfUse()) {
-				UserInfo user = userManager.getUserInfo(credential.getEmail());
-				if (!user.getUser().isAgreesToTermsOfUse()) {
-					userProfileManager.agreeToTermsOfUse(user);
-				}
-			}
-		}
+		// Only hand back the session token if ToU has been accepted
+		handleTermsOfUse(credential.getEmail(), credential.getAcceptsTermsOfUse());
 		return session;
 	}
 	
@@ -125,14 +99,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user) throws AuthenticationException {
+	public void createUser(NewUser user) throws UnauthorizedException {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Required fields are missing for user creation");
 		}
 		try {
 			userManager.createUser(user);
 		} catch (DatastoreException e) {
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "User '" + user.getEmail() + "' already exists", e);
+			throw new UnauthorizedException("User '" + user.getEmail() + "' already exists", e);
 		}
 		
 		// For integration test to confirm that a user can be created
@@ -275,5 +249,72 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				sendMail.sendSetAPIPasswordMail(mailTarget, sessionToken);
 				break;
 		}
+	}
+	
+	/**
+	 * Checks to see if the given user has accepted the terms of use
+	 * 
+	 * Note: Could be made into a public service sometime in the future
+	 * @param acceptsTermsOfUse Will fail if set to false.  Will check stored data on user if set to null.
+	 */
+	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) throws NotFoundException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		
+		// The ToU field might not be explicitly specified
+		if (acceptsTermsOfUse == null) {
+			acceptsTermsOfUse = userInfo.getUser().isAgreesToTermsOfUse();
+		}
+		
+		// Check for ToU acceptance
+		if (!acceptsTermsOfUse) {
+			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+		}
+		
+		// If the user is accepting the terms in this request, save the time of acceptance
+		if (acceptsTermsOfUse) {
+			if (!userInfo.getUser().isAgreesToTermsOfUse()) {
+				userProfileManager.agreeToTermsOfUse(userInfo);
+			}
+		}
+	}
+	
+	@Override
+	public Session authenticateViaOpenID(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException {
+		if (info == null) {
+			throw new UnauthorizedException("Unable to authenticate");
+		}
+		Map<String, List<String>> mappings = info.getMap();
+		
+		// Get some info about the user
+		List<String> emails = mappings.get(BasicOpenIDConsumer.AX_EMAIL);
+		List<String> fnames = mappings.get(BasicOpenIDConsumer.AX_FIRST_NAME);
+		List<String> lnames = mappings.get(BasicOpenIDConsumer.AX_LAST_NAME);
+		String email = (emails == null || emails.size() < 1 ? null : emails.get(0));
+		String fname = (fnames == null || fnames.size() < 1 ? null : fnames.get(0));
+		String lname = (lnames == null || lnames.size() < 1 ? null : lnames.get(0));
+
+		if (email == null) {
+			throw new UnauthorizedException("Unable to authenticate");
+		}
+		
+		if (!userManager.doesPrincipalExist(email)) {
+			// A new user must be created
+			NewUser user = new NewUser();
+			user.setEmail(email);
+			user.setFirstName(fname);
+			user.setLastName(lname);
+			if (fname != null && lname != null) {
+				user.setDisplayName(fname + " " + lname);
+			}
+			userManager.createUser(user);
+		}
+		
+		// The user does not need to accept the terms of use to get a session token via OpenID
+		try {
+			handleTermsOfUse(email, acceptsTermsOfUse);
+		} catch (UnauthorizedException e) { }
+		
+		// Open ID is successful
+		return authManager.authenticate(email, null);
 	}
 }

@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -17,14 +18,17 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
+import org.sagebionetworks.authutil.OpenIDInfo;
+import org.sagebionetworks.authutil.BasicOpenIDConsumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -329,6 +333,26 @@ public class AuthenticationController extends BaseController {
 			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
 			CrowdAuthUtil.setUserAttributes(userId, userAttributes);
 		}
+	}
+	
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
+	public Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
+		// Verify that the OpenID request is valid
+		OpenIDInfo openIDInfo = BasicOpenIDConsumer.verifyResponse(request);
+		
+		// Dig out a ToU boolean from the request cookies
+		Boolean acceptsTermsOfUse = null;
+		Cookie[] cookies = request.getCookies();
+		for (Cookie c : cookies) {
+			if (OpenIDInfo.ACCEPTS_TERMS_OF_USE_COOKIE_NAME.equals(c.getName())) {
+				acceptsTermsOfUse = Boolean.parseBoolean(c.getValue());
+			}
+		}
+		
+		// Pass the request information to the auth service for a session token
+		return authenticationService.authenticateViaOpenID(openIDInfo, acceptsTermsOfUse);
 	}
 }
 
