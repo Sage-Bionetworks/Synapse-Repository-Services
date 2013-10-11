@@ -225,11 +225,11 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
-	public void testGetBatchInsertOrUdpateKeyOnly(){
+	public void testGetBatchInsertOrUdpatePrimaryKeyOnly(){
 		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("INSERT INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
+		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 	
 }
