@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.logging.s3.LogDAO;
@@ -53,6 +54,7 @@ public class LoggingIntegrationTest {
 		ThreadContext.clear();
 	}
 	
+	@Ignore
 	@Test
 	public void testRoundTrip() throws InterruptedException, IOException{
 		// This test writes data to the log and then attempts to find that data S3 after the logs have been swept.
