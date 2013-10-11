@@ -135,7 +135,7 @@ public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return null;
+		return MigrationType.V2_WIKI_ATTACHMENT_RESERVATION;
 	}
 
 	@Override

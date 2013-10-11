@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -51,6 +52,24 @@ public interface V2WikiPageDao {
 	public V2WikiPage get(WikiPageKey key) throws NotFoundException;
 	
 	/**
+	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getMarkdownHandleIdFromHistory(WikiPageKey key, Long version) throws NotFoundException;
+	
+	/**
+	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public List<String> getWikiFileHandleIdsFromHistory(WikiPageKey key, Long version) throws NotFoundException;
+	
+	/**
 	 * Get the ID of the root wiki page for a given Object.
 	 * @param ownerId
 	 * @param ownerType
@@ -66,10 +85,12 @@ public interface V2WikiPageDao {
 	public void delete(WikiPageKey key);
 	
 	/**
-	 * Get history (markdown, attachments etc) of a wiki page.
+	 * Get snapshots of a wiki page's history.
 	 * @param key
+	 * @param limit TODO
+	 * @param offset TODO
 	 */
-	public List<V2WikiPage> getWikiHistory(WikiPageKey key) throws NotFoundException;
+	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, int limit, int offset) throws NotFoundException;
 
 	/**
 	 * Get the entire tree of wiki pages for a given owner.
