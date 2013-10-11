@@ -30,7 +30,12 @@ public class DMLUtils {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("DBOMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
-		main.append("INSERT INTO ");
+		main.append("INSERT ");
+		// If a table consists only of primary keys, inserting a duplicate should not result in failure 
+		if (!hasNonPrimaryKeyColumns(mapping)) {
+			main.append("IGNORE ");
+		}
+		main.append("INTO ");
 		main.append(mapping.getTableName());
 
 		// Build up the columns and values.
@@ -63,7 +68,7 @@ public class DMLUtils {
 	public static String getBatchInsertOrUdpate(TableMapping mapping){
 		StringBuilder builder = new StringBuilder();
 		builder.append(createInsertStatement(mapping));
-		if(hasNonPrimaryKeyColumns(mapping)){
+		if (hasNonPrimaryKeyColumns(mapping)) {
 			builder.append(" ON DUPLICATE KEY UPDATE ");
 			buildUpdateBody(mapping, builder);
 		}
