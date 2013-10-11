@@ -1,10 +1,8 @@
 package org.sagebionetworks.auth;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -20,13 +18,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -43,15 +39,6 @@ public class AuthenticationFilter implements Filter {
 	
 	@Autowired
 	private AuthenticationService authenticationService;
-
-	/**
-	 * Defines a few security exceptions for a user representing the web port
-	 * Allows handling of the OpenID handshake on the web client
-	 */
-	private static final String PORTAL_USER_NAME = StackConfiguration.getPortalUsername();
-	private static final String AUTH_PATH = "/auth/v1";
-	private static final List<String> VALID_PORTAL_CALLS = Arrays
-			.asList(new String[] { AUTH_PATH + UrlHelpers.AUTH_USER, AUTH_PATH + UrlHelpers.AUTH_SESSION_PORTAL });
 	
 	private boolean allowAnonymous = false;
 	
@@ -69,10 +56,13 @@ public class AuthenticationFilter implements Filter {
 	
 	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason) throws IOException {
 		resp.setStatus(401);
+
+		// This header is required according to RFC-2612
+		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2
+		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
+		//      http://www.ietf.org/rfc/rfc2617.txt
+		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
 		resp.getWriter().println("{\"reason\", \""+reason+"\"}");
-		
-		//TODO What does this header do?
-		resp.setHeader("WWW-Authenticate", "authenticate repo");
 	}
 
 	@Override
@@ -125,29 +115,6 @@ public class AuthenticationFilter implements Filter {
 		}
 		if (username == null) {
 			username = AuthorizationConstants.ANONYMOUS_USER_ID;
-		}
-		
-		// Special case for the user corresponding to the portal
-		// This user can pretend to be another user for a limited set of requests
-		if (username.equals(PORTAL_USER_NAME)) {
-			if (!isSigned(req)) {
-				String reason = "Requests made by the portal must use a secret key";
-				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("Portal request not signed");
-				return;
-			}
-			
-			if (VALID_PORTAL_CALLS.contains(req.getRequestURI())) {
-				String pretender = req.getParameter(AuthorizationConstants.PORTAL_MASQUERADE_PARAM);
-				if (pretender != null) {
-					username = pretender;
-				}
-			} else {
-				String reason = "The portal cannot make a call to " + req.getRequestURI();
-				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("Forbidden portal request made to " + req.getRequestURI());
-				return;
-			}
 		}
 
 		// Pass along, including the user ID

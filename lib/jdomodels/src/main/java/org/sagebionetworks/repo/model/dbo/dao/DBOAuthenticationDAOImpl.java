@@ -232,11 +232,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void bootstrapCredentials() throws Exception {
-		// This is a special user that can only access a limited set of API's
-		// but it can do so on behalf of other users
-		String portalUserId = userGroupDAO.findGroup(StackConfiguration.getPortalUsername(), true).getId();
-		changeSecretKey(portalUserId, StackConfiguration.getPortalAPIKey());
-		
 		if (StackConfiguration.isProductionStack()) {
 			// The migration admin should only be used in specific, non-development stacks
 			String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
