@@ -32,7 +32,7 @@ public class PreviewWorker implements Runnable{
 	/**
 	 * The max dimentions of a preview image.
 	 */
-	private static int MAX_PREVIEW_PIXELS = StackConfiguration.getMaximumPreivewPixels();
+	private static int MAX_PREVIEW_PIXELS = StackConfiguration.getMaximumAttachmentPreviewPixels();
 	
 	AmazonS3Utility s3Utility;
 	AttachmentData data;

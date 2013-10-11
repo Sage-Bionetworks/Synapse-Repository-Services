@@ -11,6 +11,7 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 import org.imgscalr.Scalr;
+import org.imgscalr.Scalr.Mode;
 import org.sagebionetworks.StackConfiguration;
 
 /**
@@ -52,8 +53,20 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 			throw new IllegalArgumentException("The passed input stream was not an image");
 		}
 		// Let image scalar do the heavy lifting!
-		BufferedImage thumbnail = Scalr.resize(image, StackConfiguration.getMaximumPreivewPixels());
-		ImageIO.write(thumbnail, "png", to);
+		int maxWidthPixels = StackConfiguration.getMaximumPreviewWidthPixels();
+		int maxHeightPixels = StackConfiguration.getMaximumPreviewHeightPixels();
+		//only resize if original image is bigger than our preview max size
+		int height = image.getHeight();
+		int width = image.getWidth();
+		if (height > maxHeightPixels || width > maxWidthPixels) {
+			if (width > maxWidthPixels ) {
+				image = Scalr.resize(image, Mode.FIT_TO_WIDTH, maxWidthPixels);
+				height = image.getHeight();
+			}
+			if (height > maxHeightPixels)
+				image = Scalr.resize(image, Mode.FIT_TO_HEIGHT, maxHeightPixels);
+		} 
+		ImageIO.write(image, "png", to);
 		// the resulting image is a png
 		return new PreviewOutputMetadata(IMAGE_PNG, ".png");
 	}
