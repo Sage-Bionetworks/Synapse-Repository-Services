@@ -108,12 +108,12 @@ public class AuthorizationConstants {
 	 */
 	public static final String USER_ID_PARAM = "userId";
 	
-	
 	/**
 	 * A reserved parameter name for passing in a user id (not necessarily the name of the requestor,
 	 * which is given by USER_ID_PARAM)
 	 */
 	public static final String USER_NAME_PARAM = "userName";
+	
 	/**
 	 * The header for the session token
 	 */
@@ -127,16 +127,19 @@ public class AuthorizationConstants {
 	/**
 	 * This is the name of the attribute in Crowd for the creation date for a User
 	 */
+	@Deprecated
 	public static final String CREATION_DATE_FIELD = "creationDate";
 	
 	/**
 	 * Used to set a mock crowd.
 	 */
+	@Deprecated
 	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";
 	
 	/**
 	 * Accept all SSL certificates, when acting as an HTTPS client.
 	 */
+	@Deprecated
 	public static final String ACCEPT_ALL_CERTS = "ACCEPT_ALL_CERTS";
 	
 	/**
@@ -145,18 +148,30 @@ public class AuthorizationConstants {
 	 * 
 	 * A value of zero means that caching is not used.
 	 */
+	@Deprecated
 	public static final String AUTH_CACHE_TIMEOUT_MILLIS = "org.sagebionetworks.authCacheTimeoutMillis";
 	
 	/**
 	 * The default auth cache invalidation interval
 	 */
+	@Deprecated
 	public static final long AUTH_CACHE_TIMEOUT_DEFAULT = 60000L;
 	
 	/**
 	 * Request parameter for an optimistic concurrency control (OCC) eTag.
 	 */
+	@Deprecated
 	public static final String ETAG_PARAM = "etag";
 	
+	/**
+	 * Identifies a token as related to registering a new user
+	 */
+	public static final String REGISTRATION_TOKEN_PREFIX = "register_";
+	
+	/**
+	 * Identifies a token as related to changing a user's email
+	 */
+	public static final String CHANGE_EMAIL_TOKEN_PREFIX = "change_email_";
 
 	/**
 	 * A test user that is bootstrapped for testing on non-production stacks
@@ -173,4 +188,8 @@ public class AuthorizationConstants {
 	 */
 	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
 	
+	/**
+	 * Defines a URL parameter the portal should use in order to make requests on behalf of other users
+	 */
+	public static final String PORTAL_MASQUERADE_PARAM = "portalOnBehalfOf";
 }
