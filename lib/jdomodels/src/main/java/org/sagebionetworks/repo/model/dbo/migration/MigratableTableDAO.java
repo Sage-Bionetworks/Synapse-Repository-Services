@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
  * @author John
  *
  */
-public interface MigatableTableDAO {
+public interface MigratableTableDAO {
 	
 	/**
 	 * The total number of rows in the table.
