@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -22,9 +21,6 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 
 public class IT990AuthenticationController {
@@ -305,61 +301,6 @@ public class IT990AuthenticationController {
 		
 		// Should be different from the first one
 		assertFalse(secretKey.equals(secondKey));
-	}
-	
-	@Test
-	public void testGetSessionAsPortalUser() throws Exception {
-		// Fetch the session token of a user
-		String pretender = StackConfiguration.getIntegrationTestUserOneEmail();
-		String pretenderPassword = StackConfiguration.getIntegrationTestUserOnePassword();
-		UserSessionData session = synapse.login(pretender, pretenderPassword);
-		String sessionToken = session.getSessionToken();
-		
-		// Make another client to use the authentication information of the Portal-user
-		SynapseClient otherSynapse = new SynapseClientImpl();
-		otherSynapse.setAuthEndpoint(authEndpoint);
-		otherSynapse.setRepositoryEndpoint(repoEndpoint);
-		String username = StackConfiguration.getPortalUsername();
-		String apikey = StackConfiguration.getPortalAPIKey();
-		otherSynapse.setUserName(username);
-		otherSynapse.setApiKey(apikey);
-		
-		// As the Portal-user, get the other user's token
-		JSONObject loginRequest = new JSONObject();
-		loginRequest.put("email", pretender);
-		JSONObject sameSession = otherSynapse.createAuthEntity("/session/portal", loginRequest);
-		
-		// The tokens should match
-		assertEquals(sessionToken, sameSession.get("sessionToken"));
-	}
-	
-	@Test
-	public void testGetUserInfoAsPortalUser() throws Exception {
-		// Fetch the user info of a user
-		String pretender = StackConfiguration.getIntegrationTestUserOneEmail();
-		String pretenderPassword = StackConfiguration.getIntegrationTestUserOnePassword();
-		synapse.login(pretender, pretenderPassword);
-		NewUser pretendInfo = new NewUser(new JSONObjectAdapterImpl(synapse.getAuthEntity("/user")));
-		
-		// Make another client to use the authentication information of the Portal-user
-		SynapseClient otherSynapse = new SynapseClientImpl();
-		otherSynapse.setAuthEndpoint(authEndpoint);
-		otherSynapse.setRepositoryEndpoint(repoEndpoint);
-		String username = StackConfiguration.getPortalUsername();
-		String apikey = StackConfiguration.getPortalAPIKey();
-		otherSynapse.setUserName(username);
-		otherSynapse.setApiKey(apikey);
-		
-		// As the Portal-user, get the other user's info
-		JSONObject loginRequest = new JSONObject();
-		loginRequest.put("email", pretender);
-		NewUser sameInfo = new NewUser(new JSONObjectAdapterImpl(
-				otherSynapse.getAuthEntity("/user?"
-						+ AuthorizationConstants.PORTAL_MASQUERADE_PARAM + "="
-						+ URLEncoder.encode(pretender, "UTF-8"))));
-		
-		// The info should match
-		assertEquals(pretendInfo, sameInfo);
 	}
 
 	private static long UBER_TIMEOUT = 60 * 1000L;
