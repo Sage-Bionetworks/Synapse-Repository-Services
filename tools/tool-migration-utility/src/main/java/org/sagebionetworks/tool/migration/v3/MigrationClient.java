@@ -160,9 +160,6 @@ public class MigrationClient {
 		log.info("End counts:");
 		printCounts(endSourceCounts.getList(), endDestCounts.getList());
 		
-		log.info("Migrating crowd");
-		migrateCrowd();
-
 		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
 			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
 			this.dumpDeferredExceptions();

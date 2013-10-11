@@ -46,6 +46,10 @@ public class MigrationClientMain {
 		if (failed) {
 			System.exit(-1);
 		} else {
+			// Only attempt to migrate crowd if we successfully migrated everything
+			log.info("Migrating crowd");
+			client.migrateCrowd();
+
 			System.exit(0);
 		}
 	}
