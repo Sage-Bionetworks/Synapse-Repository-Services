@@ -87,7 +87,12 @@ public class MembershipInvitationManagerImpl implements
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(id);
+		MembershipInvtnSubmission mis = null;
+		try {
+			mis = membershipInvtnSubmissionDAO.get(id);
+		} catch (NotFoundException e) {
+			return;
+		}
 		if (!authorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot delete membership invitation.");
 		membershipInvtnSubmissionDAO.delete(id);
 	}

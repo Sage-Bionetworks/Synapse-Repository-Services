@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -375,7 +376,7 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testAddMemberAlreadyOnTeam() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
@@ -389,6 +390,7 @@ public class TeamManagerImplTest {
 		ug.setId(principalId);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalId);
+		verify(mockGroupMembersDAO, times(0)).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 	}
 	
 	@Test
@@ -432,7 +434,7 @@ public class TeamManagerImplTest {
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);		
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testRemoveMemberNotInTeam() throws Exception {
 		String memberPrincipalId = "987";
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
@@ -441,8 +443,8 @@ public class TeamManagerImplTest {
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
-		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO).update((AccessControlList)any());		
+		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
+		verify(mockAclDAO, times(0)).update((AccessControlList)any());		
 	}
 	
 	@Test

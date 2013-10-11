@@ -83,6 +83,7 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -119,7 +120,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -4535,7 +4535,7 @@ public class SynapseClientImpl implements SynapseClient {
 
 	@Override
 	public Team getTeam(String id) throws SynapseException {
-		JSONObject jsonObj = getEntity(TEAM+"?id="+id);
+		JSONObject jsonObj = getEntity(TEAM+"/"+id);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		Team results = new Team();
 		try {
@@ -4586,12 +4586,12 @@ public class SynapseClientImpl implements SynapseClient {
 			throws SynapseException {
 		String uri = null;
 		if (redirect==null) {
-			uri = TEAM+teamId+ICON;
+			uri = TEAM+"/"+teamId+ICON;
 		} else {
-			uri = TEAM+teamId+ICON+"?"+REDIRECT_PARAMETER+redirect;
+			uri = TEAM+"/"+teamId+ICON+"?"+REDIRECT_PARAMETER+redirect;
 		}
 		try {
-			return getUrl(uri);
+			return getUrl(getRepoEndpoint()+uri);
 		} catch (IOException e) {
 			throw new SynapseException(e);
 		}
@@ -4674,7 +4674,7 @@ public class SynapseClientImpl implements SynapseClient {
 	@Override
 	public MembershipInvtnSubmission getMembershipInvitation(String invitationId)
 			throws SynapseException {
-		JSONObject jsonObj = getEntity(MEMBERSHIP_INVITATION+"?id="+invitationId);
+		JSONObject jsonObj = getEntity(MEMBERSHIP_INVITATION+"/"+invitationId);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MembershipInvtnSubmission results = new MembershipInvtnSubmission();
 		try {
@@ -4719,7 +4719,7 @@ public class SynapseClientImpl implements SynapseClient {
 			MembershipRqstSubmission request) throws SynapseException {
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(request);
-			jsonObj = createJSONObject(MEMBERSHIP_INVITATION, jsonObj);
+			jsonObj = createJSONObject(MEMBERSHIP_REQUEST, jsonObj);
 			return initializeFromJSONObject(jsonObj, MembershipRqstSubmission.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -4729,7 +4729,7 @@ public class SynapseClientImpl implements SynapseClient {
 	@Override
 	public MembershipRqstSubmission getMembershipRequest(String requestId)
 			throws SynapseException {
-		JSONObject jsonObj = getEntity(MEMBERSHIP_REQUEST+"?id="+requestId);
+		JSONObject jsonObj = getEntity(MEMBERSHIP_REQUEST+"/"+requestId);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MembershipRqstSubmission results = new MembershipRqstSubmission();
 		try {

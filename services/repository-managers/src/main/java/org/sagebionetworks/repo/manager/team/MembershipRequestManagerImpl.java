@@ -91,7 +91,12 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		MembershipRqstSubmission mrs = membershipRqstSubmissionDAO.get(id);
+		MembershipRqstSubmission mrs = null;
+		try {
+			mrs = membershipRqstSubmissionDAO.get(id);
+		} catch (NotFoundException e) {
+			return;
+		}
 		if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(mrs.getUserId()))
 			throw new UnauthorizedException("Cannot delete membership request for another user.");
 		membershipRqstSubmissionDAO.delete(id);
@@ -107,7 +112,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
-		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamInRange(teamIdAsLong, now.getTime(), offset, limit);
+		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamInRange(teamIdAsLong, now.getTime(), limit, offset);
 		long count = membershipRqstSubmissionDAO.getOpenByTeamCount(teamIdAsLong, now.getTime());
 		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>();
 		results.setResults(mrList);

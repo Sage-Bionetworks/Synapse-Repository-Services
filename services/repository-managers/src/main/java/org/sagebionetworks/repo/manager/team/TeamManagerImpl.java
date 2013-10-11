@@ -266,6 +266,11 @@ public class TeamManagerImpl implements TeamManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
+		try {
+			teamDAO.get(id);
+		} catch (NotFoundException e) {
+			return;
+		}
 		if (!authorizationManager.canAccess(userInfo, id, ObjectType.TEAM, ACCESS_TYPE.DELETE)) throw new UnauthorizedException("Cannot delete Team.");
 		// delete ACL
 		aclDAO.delete(id);
@@ -318,9 +323,8 @@ public class TeamManagerImpl implements TeamManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!canAddTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot add member to Team.");
 		// check that user is not already in Team
-		if (userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
-			throw new IllegalArgumentException("Member is already in Team.");
-		groupMembersDAO.addMembers(teamId, Arrays.asList(new String[]{principalId}));
+		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
+			groupMembersDAO.addMembers(teamId, Arrays.asList(new String[]{principalId}));
 	}
 	
 	/**
@@ -349,13 +353,13 @@ public class TeamManagerImpl implements TeamManager {
 			UnauthorizedException, NotFoundException {
 		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
 		// check that member is actually in Team
-		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
-			throw new IllegalArgumentException("Member is not in Team.");
-		groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
-		// remove from ACL
-		AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
-		removeFromACL(acl, (Long)Long.parseLong(principalId));
-		aclDAO.update(acl);
+		if (userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId)) {
+			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
+			// remove from ACL
+			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
+			removeFromACL(acl, (Long)Long.parseLong(principalId));
+			aclDAO.update(acl);
+		}
 	}
 
 	/* (non-Javadoc)
@@ -382,6 +386,7 @@ public class TeamManagerImpl implements TeamManager {
 	public URL getIconURL(String teamId) throws NotFoundException {
 		Team team = teamDAO.get(teamId);
 		String handleId = team.getIcon();
+		if (handleId==null) return null;
 		return fileHandleManager.getRedirectURLForFileHandle(handleId);
 	}
 
