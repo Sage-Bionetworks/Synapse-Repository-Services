@@ -633,6 +633,7 @@ public class UrlHelpers {
 	public static final String AUTH_CHANGE_EMAIL = "/changeEmail";
 	public static final String AUTH_REGISTERING_USER_PASSWORD = "/registeringUserPassword";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
+	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 
 	
 	static {

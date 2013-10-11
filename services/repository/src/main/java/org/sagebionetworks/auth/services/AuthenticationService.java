@@ -7,6 +7,7 @@ import java.security.spec.InvalidKeySpecException;
 import javax.xml.xpath.XPathExpressionException;
 
 import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -27,26 +28,20 @@ public interface AuthenticationService {
 	}
 	/**
 	 * Authenticates a user/password combination, returning a session token if valid
-	 * 
-	 * The option validatePassword=false is available for SSO applications:  
-	 *   A service which has independently validated the user may use this 
-	 *   variation to get a session token for the named user. 
 	 *   
-	 * The option validateToU is available for user creation, since the user cannot accept
-	 *   any terms before they have entries in the DB.  
-	 *   
-	 * @param username Optional parameter.  Only used to determine when the portal is making the call.
-	 *   And when the portal is the caller, password and ToU checking is disabled
+	 * @param caller Optional parameter.  Only used to determine when the portal is making the call.
+	 *   When the portal is the caller, password and ToU checking is relaxed.
+	 *   This allows independently validated users to get a session token without supplying complete credentials. 
+	 * @throws UnauthorizedException If the credentials are incorrect
 	 */
-	public Session authenticate(String username, NewUser credential, boolean validatePassword, boolean validateToU)
-			throws NotFoundException;
+	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Revalidates a session token and checks whether the user has accepted the terms of use
 	 * @return The principalId of the user holding the token
 	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
 	 */
-	public String revalidate(String sessionToken) throws NotFoundException;
+	public String revalidate(String sessionToken) throws NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Invalidates a session token
@@ -61,9 +56,10 @@ public interface AuthenticationService {
 	
 	/**
 	 * Initializes a new user into the system
+	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
 	public void createUser(NewUser user)
-			throws AuthenticationException;
+			throws UnauthorizedException;
 	
 	/**
 	 * Returns information on the user
@@ -129,4 +125,10 @@ public interface AuthenticationService {
 	 */
 	public void sendUserPasswordEmail(String username, PW_MODE mode)
 			 throws NotFoundException;
+	
+	/**
+	 * Uses the pre-validated OpenID information to fetch a session token
+	 * Will create a user if necessary 
+	 */
+	public Session authenticateViaOpenID(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException;
 }

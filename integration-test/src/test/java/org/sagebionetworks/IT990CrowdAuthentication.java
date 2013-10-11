@@ -23,6 +23,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.springframework.http.HttpStatus;
 
 
@@ -432,5 +433,16 @@ public class IT990CrowdAuthentication {
 		T ans = null;
 		for (T v : set) ans=v;
 		return ans;
+	}
+	
+	/**
+	 * Since we don't know Google's private OpenID information, this is a bit difficult to integration test
+	 * At best, this test makes sure the service is wired up
+	 * 
+	 * Expect a 401, not a 404
+	 */
+	@Test(expected=SynapseUnauthorizedException.class)
+	public void testOpenIDCallback() throws Exception {
+		synapse.createAuthEntity("/openIdCallback", new JSONObject());
 	}
 }
