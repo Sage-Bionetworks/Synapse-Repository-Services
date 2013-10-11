@@ -141,7 +141,7 @@ public class UserManagerImpl implements UserManager {
 		}
 		user.setCreationDate(ug.getCreationDate());
 
-		// The migrator may delete its own profile during testing
+		// The migrator may delete its own profile during migration
 		// But those details do not matter for this user
 		if (userName.equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
 			return user;
