@@ -10,4 +10,7 @@
 
   <context:annotation-config />
   
+  <!-- Load the authFilter -->
+  <import resource="classpath:authentication-services-spb.xml" />
+  
 </beans>

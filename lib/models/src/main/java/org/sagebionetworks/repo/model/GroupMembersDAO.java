@@ -40,7 +40,6 @@ public interface GroupMembersDAO {
 
 	/**
 	 * Ensure the bootstrap users are in the correct bootstrap groups
-	 * Only used for testing purposes (hence no arguments)
 	 */
 	public void bootstrapGroups() throws Exception;
 }

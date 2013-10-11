@@ -234,7 +234,6 @@ public class MigrationIntegrationAutowireTest {
 		migrationManager.deleteAllData(userInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
-		userManager.clearCache();
 		storageQuotaAdminDao.clear();
 	}
 
