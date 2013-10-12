@@ -119,7 +119,7 @@ public class TableEntityMetadataProviderTest {
 		// Before we start nothing should be bound to the column one
 		Set<String> columnIds = new HashSet<String>();
 		columnIds.add(one.getId());
-		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, Long.MAX_VALUE, 0);
+		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(0), results.getTotalNumberOfResults());
 		// Create a table entity
@@ -133,7 +133,7 @@ public class TableEntityMetadataProviderTest {
 		// Now this table should be listed as bound to the column\
 		List<String> expectedIds = new LinkedList<String>();
 		expectedIds.add("syn123");
-		results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, Long.MAX_VALUE, 0);
+		results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(1), results.getTotalNumberOfResults());
 		assertEquals(expectedIds, results.getResults());
@@ -144,7 +144,7 @@ public class TableEntityMetadataProviderTest {
 		// Before we start nothing should be bound to the column one
 		Set<String> columnIds = new HashSet<String>();
 		columnIds.add(one.getId());
-		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, Long.MAX_VALUE, 0);
+		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(0), results.getTotalNumberOfResults());
 		// Create a table entity
@@ -158,7 +158,7 @@ public class TableEntityMetadataProviderTest {
 		// Now this table should be listed as bound to the column\
 		List<String> expectedIds = new LinkedList<String>();
 		expectedIds.add("syn123");
-		results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, Long.MAX_VALUE, 0);
+		results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(1), results.getTotalNumberOfResults());
 		assertEquals(expectedIds, results.getResults());
