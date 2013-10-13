@@ -6,8 +6,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TeamService {
@@ -118,7 +118,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<UserGroupHeader> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

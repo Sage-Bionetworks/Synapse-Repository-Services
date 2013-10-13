@@ -3,17 +3,7 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBERSHIP_REQUEST_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -62,6 +52,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
 			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_CORE+
+			" ORDER BY "+COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON+" DESCENDING "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_COUNT = 
@@ -73,6 +64,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED = 
 			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE+
+			" ORDER BY "+COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON+" DESCENDING "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT = 

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public interface TeamDAO {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
+	public Map<TeamHeader, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException;
 	
 	/**
 	 * Get the Teams a member belongs to

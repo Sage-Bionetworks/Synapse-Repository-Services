@@ -18,6 +18,7 @@ public class MembershipRqstSubmissionUtils {
 
 	public static void copyDtoToDbo(MembershipRqstSubmission dto, DBOMembershipRqstSubmission dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		if(dto.getExpiresOn()==null) dbo.setExpiresOn(null); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
 		dbo.setTeamId(Long.parseLong(dto.getTeamId()));
 		dbo.setUserId(Long.parseLong(dto.getUserId()));
@@ -27,6 +28,7 @@ public class MembershipRqstSubmissionUtils {
 	public static MembershipRqstSubmission copyDboToDto(DBOMembershipRqstSubmission dbo) throws DatastoreException {
 		MembershipRqstSubmission dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		if (dbo.getExpiresOn()==null) dto.setExpiresOn(null);else dto.setExpiresOn(new Date(dbo.getExpiresOn()));
 		dto.setTeamId(dbo.getTeamId().toString());
 		dto.setUserId(dbo.getUserId().toString());

@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +21,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -142,15 +145,28 @@ public class DBOTeamDAOImplTest {
 		UserProfile up = createUserProfileForGroup(pg);
 		userProfileDAO.create(up);
 		upToDelete = Long.parseLong(up.getOwnerId());
-		Map<TeamHeader,List<UserGroupHeader>> allTeamsAndMembers = new HashMap<TeamHeader,List<UserGroupHeader>>();
+		Map<TeamHeader,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<TeamHeader,Collection<TeamMember>>();
 		TeamHeader th = createTeamHeaderFromTeam(updated);
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
-		List<UserGroupHeader> ughList = new ArrayList<UserGroupHeader>();
-		ughList.add(ugh);
-		allTeamsAndMembers.put(th,  ughList);
+		TeamMember tm = new TeamMember();
+		tm.setIsAdmin(false);
+		tm.setMember(ugh);
+		tm.setTeamId(""+id);
+		List<TeamMember> tmList = new ArrayList<TeamMember>();
+		tmList.add(tm);
+		expectedAllTeamsAndMembers.put(th,  tmList);
 		
-		assertEquals(allTeamsAndMembers, teamDAO.getAllTeamsAndMembers());
-		
+		// we have to check 'equals' on the pieces because a global 'assertEquals' fails
+		Map<TeamHeader,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
+		assertEquals(expectedAllTeamsAndMembers.size(), actualAllTeamsAndMembers.size());
+		for (TeamHeader t : expectedAllTeamsAndMembers.keySet()) {
+			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);
+			Collection<TeamMember> actualTeamMembers = actualAllTeamsAndMembers.get(t);
+			assertEquals(expectedTeamMembers.size(), actualTeamMembers.size());
+			for (TeamMember m : expectedTeamMembers) {
+				assertTrue(actualTeamMembers.contains(m));
+			}
+		}
 		
 		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
 		teamMemberPairToDelete = null; // no longer need to schedule for deletion

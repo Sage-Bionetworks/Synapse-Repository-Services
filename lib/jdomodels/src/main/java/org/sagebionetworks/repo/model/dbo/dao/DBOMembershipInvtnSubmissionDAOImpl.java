@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES;
@@ -77,6 +78,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 
 	private static final String SELECT_OPEN_INVITATIONS_BY_USER_PAGINATED = 
 			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+SELECT_OPEN_INVITATIONS_BY_USER_CORE+
+			" ORDER BY "+COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON+" DESCENDING "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_OPEN_INVITATIONS_BY_USER_COUNT = 
@@ -85,6 +87,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_PAGINATED = 
 			"SELECT mis.*, mi."+COL_MEMBERSHIP_INVITEE_INVITEE_ID+" as "+INVITEE_ID_COLUMN_LABEL+" "+
 					SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE+
+					" ORDER BY "+COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON+" DESCENDING "+
 					" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT = 

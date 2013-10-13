@@ -26,15 +26,14 @@ import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -203,6 +202,7 @@ public class TeamManagerImpl implements TeamManager {
 		Date now = new Date();
 		populateCreationFields(userInfo, team, now);
 		Team created = teamDAO.create(team);
+		groupMembersDAO.addMembers(id, Arrays.asList(new String[]{userInfo.getIndividualGroup().getId()}));
 		// create ACL, adding the current user to the team, as an admin
 		AccessControlList acl = createInitialAcl(userInfo, id, now);
 		aclDAO.create(acl);
@@ -386,12 +386,12 @@ public class TeamManagerImpl implements TeamManager {
 	public URL getIconURL(String teamId) throws NotFoundException {
 		Team team = teamDAO.get(teamId);
 		String handleId = team.getIcon();
-		if (handleId==null) return null;
+		if (handleId==null) throw new NotFoundException("Team "+teamId+" has no icon file handle.");
 		return fileHandleManager.getRedirectURLForFileHandle(handleId);
 	}
 
 	@Override
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers()
+	public Map<TeamHeader, Collection<TeamMember>> getAllTeamsAndMembers()
 			throws DatastoreException {
 		return teamDAO.getAllTeamsAndMembers();
 	}

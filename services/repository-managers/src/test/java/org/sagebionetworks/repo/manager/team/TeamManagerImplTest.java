@@ -235,7 +235,9 @@ public class TeamManagerImplTest {
 		assertEquals(team, created);
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
+		verify(mockTeamDAO).create(team);
 		verify(mockAclDAO).create((AccessControlList)any());
+		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
 		// verify that ID and dates are set in returned team
 		assertNotNull(created.getCreatedOn());
 		assertNotNull(created.getModifiedOn());

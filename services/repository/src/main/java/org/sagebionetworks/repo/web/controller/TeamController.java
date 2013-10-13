@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -88,7 +88,6 @@ public class TeamController extends BaseController {
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
 		URL redirectUrl = serviceProvider.getTeamService().getIconURL(id);
-		if (redirectUrl==null) throw new NotFoundException("Team has no icon.");
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -124,7 +123,7 @@ public class TeamController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER, method = RequestMethod.GET)
 	public  @ResponseBody 
-	PaginatedResults<UserGroupHeader> getTeamMembers(
+	PaginatedResults<TeamMember> getTeamMembers(
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,

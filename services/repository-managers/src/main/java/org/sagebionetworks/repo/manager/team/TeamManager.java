@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.manager.team;
 
 import java.net.URL;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamHeader;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -39,7 +38,7 @@ public interface TeamManager {
 	 */
 	public PaginatedResults<Team> get(long limit, long offset) throws DatastoreException;
 
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
+	public Map<TeamHeader, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException;
 	/**
 	 * Retrieve the Teams to which the given user belongs, paginated
 	 * @param principalId

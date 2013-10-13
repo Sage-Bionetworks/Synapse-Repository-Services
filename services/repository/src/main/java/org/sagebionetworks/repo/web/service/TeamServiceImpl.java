@@ -6,14 +6,13 @@ package org.sagebionetworks.repo.web.service;
 import java.net.URL;
 
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +66,7 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#getMembers(java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<UserGroupHeader> getMembers(String teamId,
+	public PaginatedResults<TeamMember> getMembers(String teamId,
 			String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		// TODO Auto-generated method stub

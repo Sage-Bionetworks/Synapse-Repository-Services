@@ -92,6 +92,7 @@ import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -4633,7 +4634,7 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment,
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment,
 			long limit, long offset) throws SynapseException {
 		String uri = null;
 		if (fragment==null) {
@@ -4644,7 +4645,7 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<UserGroupHeader> results = new PaginatedResults<UserGroupHeader>(UserGroupHeader.class);
+		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(TeamMember.class);
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;

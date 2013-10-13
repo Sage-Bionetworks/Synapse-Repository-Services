@@ -1,6 +1,7 @@
 CREATE TABLE `MEMBERSHIP_REQUEST_SUBMISSION` (
   `ID` bigint(20) NOT NULL,
   `TEAM_ID` bigint(20) NOT NULL,
+  `CREATED_ON` bigint(20) NOT NULL,
   `USER_ID` bigint(20) NOT NULL,
   `EXPIRES_ON` bigint(20),
   `PROPERTIES` mediumblob,
