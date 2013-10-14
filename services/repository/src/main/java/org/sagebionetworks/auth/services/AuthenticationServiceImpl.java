@@ -244,7 +244,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 * Checks to see if the given user has accepted the terms of use
 	 * 
 	 * Note: Could be made into a public service sometime in the future
-	 * @param acceptsTermsOfUse Will fail if set to false.  Will check stored data on user if set to null.
+	 * @param acceptsTermsOfUse Will check stored data on user if set to null or false
 	 */
 	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) throws NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(username);
