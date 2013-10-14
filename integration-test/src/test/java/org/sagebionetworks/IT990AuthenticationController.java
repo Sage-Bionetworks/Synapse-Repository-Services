@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +20,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
@@ -204,6 +206,26 @@ public class IT990AuthenticationController {
 		synapse.createAuthEntity("/userPassword", obj);
 	}
 	
+	@Test(expected=SynapseNotFoundException.class)
+	public void testChangeEmail() throws Exception {
+		// Get a session token
+		JSONObject loginRequest = new JSONObject();
+		String username = StackConfiguration.getIntegrationTestUserThreeName();
+		String password = StackConfiguration.getIntegrationTestUserThreePassword();
+		loginRequest.put("email", username);
+		loginRequest.put("password", password);
+
+		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
+		assertTrue(session.has(SESSION_TOKEN_LABEL));
+		String token = session.getString(SESSION_TOKEN_LABEL);
+		synapse.setSessionToken(token);
+
+		JSONObject obj = new JSONObject();
+		obj.put("registrationToken", AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + token);
+		obj.put("password", password); // Don't change the password
+		synapse.createAuthEntity("/changeEmail", obj);
+	}
+	
 	@Test
 	public void testRegisterChangePassword() throws Exception {
 		// Get a session token
@@ -383,7 +405,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-		synapse.createAuthEntity("/openIdCallback", new JSONObject());
+			synapse.createAuthEntity("/openIdCallback", new JSONObject());
 			fail();
 		} catch (SynapseServiceException e) {
 			// This is the result of a failed argument check
