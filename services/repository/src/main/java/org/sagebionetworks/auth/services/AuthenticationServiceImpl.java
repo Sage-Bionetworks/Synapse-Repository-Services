@@ -1,19 +1,15 @@
 package org.sagebionetworks.auth.services;
 
-import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.xpath.XPathExpressionException;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.BasicOpenIDConsumer;
+import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -144,22 +140,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public void updateEmail(String oldUserId, String newUserId) 
-			throws DatastoreException, NotFoundException, XPathExpressionException, IOException, AuthenticationException {
+			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(oldUserId);
 		userManager.updateEmail(userInfo, newUserId);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException {
-		
-		// The mapping between usernames and user IDs is currently done on a one-to-one basis.
-		// This means that changing the email associated with an ID in the UserGroup table 
-		//   introduces an inconsistency between the UserGroup table and ID Generator table.
-		// Until the Named ID Generator supports a one-to-many mapping, this method is disabled.   
-		throw new NotFoundException("This service is currently unavailable");
-		
-		/*
+	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		// User must be logged in to make this request
 		if (oldEmail == null) {
 			throw new UnauthorizedException("Not authorized");
@@ -181,7 +169,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		userManager.updateEmail(userInfo, realUsername);
 		
 		invalidateSessionToken(sessionToken);
-		*/
 	}
 	
 	@Override
