@@ -14,7 +14,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationHelper;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -57,8 +56,6 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private FileHandleManager fileHandleManager;
@@ -75,7 +72,6 @@ public class TeamManagerImpl implements TeamManager {
 			TeamDAO teamDAO,
 			GroupMembersDAO groupMembersDAO,
 			UserGroupDAO userGroupDAO,
-			UserManager userManager,
 			AccessControlListDAO aclDAO,
 			FileHandleManager fileHandlerManager,
 			MembershipInvitationManager membershipInvitationManager,
@@ -85,7 +81,6 @@ public class TeamManagerImpl implements TeamManager {
 		this.teamDAO = teamDAO;
 		this.groupMembersDAO = groupMembersDAO;
 		this.userGroupDAO = userGroupDAO;
-		this.userManager = userManager;
 		this.aclDAO = aclDAO;
 		this.fileHandleManager = fileHandlerManager;
 		this.membershipInvitationManager = membershipInvitationManager;
@@ -198,7 +193,10 @@ public class TeamManagerImpl implements TeamManager {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
-		String id = userManager.createPrincipal(team.getName(), /*isIndividual*/false);
+		UserGroup ug = new UserGroup();
+		ug.setName(team.getName());
+		ug.setIsIndividual(false);
+		String id = userGroupDAO.create(ug);
 		team.setId(id);
 		Date now = new Date();
 		populateCreationFields(userInfo, team, now);

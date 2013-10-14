@@ -58,7 +58,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -213,9 +212,6 @@ public class MigrationIntegrationAutowireTest {
 	// Favorite
 	Favorite favorite;
 	
-	// UserGroups 
-	List<UserGroup> nonVitalUserGroups;
-	
 	HttpServletRequest mockRequest;
 	
 	@Before
@@ -226,7 +222,6 @@ public class MigrationIntegrationAutowireTest {
 		userName = AuthorizationConstants.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
-		nonVitalUserGroups = new ArrayList<UserGroup>();
 		resetDatabase();
 		createFileHandles();
 		createActivity();
@@ -241,7 +236,7 @@ public class MigrationIntegrationAutowireTest {
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
-		createCredentials();
+		createCredentials(sampleGroup);
 	}
 
 
@@ -250,7 +245,6 @@ public class MigrationIntegrationAutowireTest {
 		migrationManager.deleteAllData(userInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
-		userManager.clearCache();
 		storageQuotaAdminDao.clear();
 	}
 
@@ -521,27 +515,11 @@ public class MigrationIntegrationAutowireTest {
 		adder.add(childUser.getId());
 		groupMembersDAO.addMembers(nestedGroup.getId(), adder);
 		
-		// Since the migrator does not delete users by default, 
-		// All the users and groups not used by the migration process should be deleted
-		List<String> excluded = new ArrayList<String>();
-		excluded.add(AuthorizationConstants.MIGRATION_USER_NAME);
-		nonVitalUserGroups.addAll(userGroupDAO.getAllExcept(true, excluded));
-		excluded.clear();
-		excluded.add(AuthorizationConstants.ADMIN_GROUP_NAME);
-		excluded.add(DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
-		excluded.add(DEFAULT_GROUPS.PUBLIC.name());
-		excluded.add(DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP.name());
-		nonVitalUserGroups.addAll(userGroupDAO.getAllExcept(false, excluded));
-
-		// Made by the bootstrapper
-		nonVitalUserGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
 		return parentGroup;
 	}
 	
-	private void createCredentials() throws Exception {
-		// Use a user created for another migration task
-		assertTrue(nonVitalUserGroups.size() > 0);
-		String principalId = nonVitalUserGroups.get(0).getId();
+	private void createCredentials(UserGroup group) throws Exception {
+		String principalId = group.getId();
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
 		authDAO.changeSessionToken(principalId, null);
@@ -603,32 +581,34 @@ public class MigrationIntegrationAutowireTest {
 		
 		// This test will backup all data, delete it, then restore it.
 		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
-		for(MigrationType type: primaryTypesList.getList()){
+		for (MigrationType type : primaryTypesList.getList()) {
 			// Backup each type
 			backupList.addAll(backupAllOfType(type));
 		}
-		// We will delete the data when all object are ready
 		
 		// Now delete all data in reverse order
-		for(int i=primaryTypesList.getList().size()-1; i >= 1; i--){
+		for (int i = primaryTypesList.getList().size() - 1; i >= 0; i--) {
 			MigrationType type = primaryTypesList.getList().get(i);
 			deleteAllOfType(type);
 		}
 		
-		// Delete the temp UserGroups manually
-		for (UserGroup nonVital : nonVitalUserGroups) {
-			userGroupDAO.delete(nonVital.getId());
-		}
-		
-		// after deleting, the counts should be null
+		// After deleting, the counts should be 0 except for a few special cases
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for (int i = 1; i < afterDeleteCounts.getList().size(); i++) {
+		
+		for (int i = 0; i < afterDeleteCounts.getList().size(); i++) {
 			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
 
 			// Special cases for the not-deleted migration admin
-			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS 
+			if (afterDelete.getType() == MigrationType.PRINCIPAL) {
+				assertEquals("There should be 4 UserGroups remaining after the delete: "
+								+ AuthorizationConstants.MIGRATION_USER_NAME + ", "
+								+ AuthorizationConstants.ADMIN_GROUP_NAME + ", "
+								+ AuthorizationConstants.DEFAULT_GROUPS.PUBLIC + ", and "
+								+ AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS,
+						new Long(4), afterDelete.getCount());
+			} else if (afterDelete.getType() == MigrationType.GROUP_MEMBERS 
 					|| afterDelete.getType() == MigrationType.CREDENTIAL) {
 				assertEquals("Counts do not match for: " + afterDelete.getType().name(), new Long(1), afterDelete.getCount());
 				
@@ -649,7 +629,6 @@ public class MigrationIntegrationAutowireTest {
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			// Special case for not-deleted admins
 			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
 		}
 	}

@@ -6,9 +6,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,31 +21,36 @@ public class BaseController {
 			.getName());
 	
 	/**
-	 * This is thrown when there are problems authenticating the user
+	 * This is thrown whenever a requested object is not found
 	 * 
-	 * @param ex
-	 *            the exception to be handled
 	 * @param request
 	 *            the client request
 	 * @return an ErrorResponse object containing the exception reason or some
 	 *         other human-readable response
 	 */
-	@ExceptionHandler(AuthenticationException.class)
+	@ExceptionHandler(NotFoundException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleAuthenticationException(AuthenticationException ex,
+	ErrorResponse handleNotFoundException(NotFoundException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
-		if (null!=ex.getAuthURL()) response.setHeader("AuthenticationURL", ex.getAuthURL());
-		response.setStatus(ex.getRespStatus());
 		return handleException(ex, request, false);
 	}
-
+	
+	/**
+	 * This is thrown when there are problems authenticating the user
+	 * 
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
 	@ExceptionHandler(UnauthorizedException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
 	ErrorResponse handleForbiddenException(UnauthorizedException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
-		response.setStatus(HttpStatus.FORBIDDEN.value());
 		return handleException(ex, request, false);
 	}
 
@@ -85,14 +90,16 @@ public class BaseController {
 	 */
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullStackTrace) {
-		if(fullStackTrace){
-			log.error("Handling " + request.toString(), ex);
-		}else{
-			log.error("Handling " + request.toString());
+		if (fullStackTrace) {
+			log.error("Handling exception " + ex + " from " 
+					+ request.toString(), ex);
+		} else {
+			log.error("Handling exception " + ex + " from "
+					+ request.toString());
 		}
 
 		ErrorResponse response = new ErrorResponse();
-		response.setReason(ex.getMessage());
+		response.setReason(ex.getMessage() + "\n");
 		return response;
 	}
 

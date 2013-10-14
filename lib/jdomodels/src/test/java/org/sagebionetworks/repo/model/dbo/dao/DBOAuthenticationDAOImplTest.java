@@ -13,6 +13,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -116,7 +117,6 @@ public class DBOAuthenticationDAOImplTest {
 		// Delete
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		System.out.println(session);
 		Assert.assertNull(session.getSessionToken());
 		
 		// Change to a string
@@ -195,5 +195,27 @@ public class DBOAuthenticationDAOImplTest {
 		// Compare the salts
 		byte[] passedSalt = authDAO.getPasswordSalt(GROUP_NAME);
 		Assert.assertArrayEquals(salt, passedSalt);
+	}
+	
+	@Test
+	public void testBootstrapCredentials() throws Exception {
+		if (StackConfiguration.isProductionStack()) {
+			String testUsers[] = new String[] { 
+					StackConfiguration.getIntegrationTestUserAdminName(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
+					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestUserTwoName(), 
+					StackConfiguration.getIntegrationTestUserThreeEmail() };
+			String testPasswords[] = new String[] { 
+					StackConfiguration.getIntegrationTestUserAdminPassword(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
+					StackConfiguration.getIntegrationTestUserOnePassword(), 
+					StackConfiguration.getIntegrationTestUserTwoPassword(), 
+					StackConfiguration.getIntegrationTestUserThreePassword() };
+			for (int i = 0; i < testUsers.length; i++) {
+				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], null);
+				authDAO.checkEmailAndPassword(testUsers[i], passHash);
+			}
+		}
 	}
 }
