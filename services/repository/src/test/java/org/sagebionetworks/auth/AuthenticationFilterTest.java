@@ -16,7 +16,6 @@ import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -123,6 +122,23 @@ public class AuthenticationFilterTest {
 		Assert.assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		Assert.assertEquals(username, sessionUsername);
+	}
+	
+	@Test
+	public void testSessionToken_isNull() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addParameter(AuthorizationConstants.SESSION_TOKEN_PARAM, (String) null);
+		
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		MockFilterChain filterChain = new MockFilterChain();
+		
+		filter.doFilter(request, response, filterChain);
+
+		// Session token should not be recognized
+		ServletRequest modRequest = filterChain.getRequest();
+		Assert.assertNotNull(modRequest);
+		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		Assert.assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, sessionUsername);
 	}
 	
 	@Test
