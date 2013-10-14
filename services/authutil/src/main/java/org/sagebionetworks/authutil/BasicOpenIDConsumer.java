@@ -141,11 +141,12 @@ public class BasicOpenIDConsumer {
 		//TODO Modification is needed to get it working with hosted google apps
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
 
-		DiscoveryInformation discovered = decryptingDeserializer(httpReq.getParameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME));
-		if (discovered == null) {
+		String discoveryParam = httpReq.getParameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
+		if (discoveryParam == null) {
 			throw new RuntimeException(
 					"OpenID authentication failure: Missing required discovery information.");
 		}
+		DiscoveryInformation discovered = decryptingDeserializer(discoveryParam);
 		
 		try {
 			authSuccess = AuthSuccess.createAuthSuccess(response);

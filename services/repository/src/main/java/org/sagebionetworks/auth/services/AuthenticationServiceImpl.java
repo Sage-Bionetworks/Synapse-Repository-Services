@@ -162,7 +162,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		String realUsername = getUsername(realUserId);
 		
 		// Set the password
-		changePassword(realUsername, registrationInfo.getPassword());
+		if (registrationInfo.getPassword() != null) {
+			changePassword(realUsername, registrationInfo.getPassword());
+		}
 		
 		// Update the pre-existing user to the new email address
 		UserInfo userInfo = userManager.getUserInfo(oldEmail);
