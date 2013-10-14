@@ -12,6 +12,12 @@ public class OpenIDInfo {
 	public static final String REDIRECT_MODE_COOKIE_NAME = "org.sagebionetworks.auth.redirectMode";
 	public static final int COOKIE_MAX_AGE_SECONDS = 600; // seconds
 
+	public static final String DISCOVERY_INFO_COOKIE_NAME = "org.sagebionetworks.auth.discoveryInfoCookie";
+	public static final int DISCOVERY_INFO_COOKIE_MAX_AGE = 60; // seconds
+	
+	public static final String DISCOVERY_INFO_PARAM_NAME = "discoveryInfoParam";
+	public static final String ACCEPTS_TERMS_OF_USE_PARAM_NAME = "acceptsTermsOfUse";
+
 	public OpenIDInfo() { }
 
 	public OpenIDInfo(String i, Map<String, List<String>> m) {

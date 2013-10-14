@@ -260,8 +260,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) throws NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		
-		// The ToU field might not be explicitly specified
-		if (acceptsTermsOfUse == null) {
+		// The ToU field might not be explicitly specified or false
+		if (acceptsTermsOfUse == null || !acceptsTermsOfUse) {
 			acceptsTermsOfUse = userInfo.getUser().isAgreesToTermsOfUse();
 		}
 		

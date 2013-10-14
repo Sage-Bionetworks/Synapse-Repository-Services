@@ -9,17 +9,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.BasicOpenIDConsumer;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
 import org.sagebionetworks.authutil.OpenIDInfo;
-import org.sagebionetworks.authutil.BasicOpenIDConsumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -342,14 +341,8 @@ public class AuthenticationController extends BaseController {
 		// Verify that the OpenID request is valid
 		OpenIDInfo openIDInfo = BasicOpenIDConsumer.verifyResponse(request);
 		
-		// Dig out a ToU boolean from the request cookies
-		Boolean acceptsTermsOfUse = null;
-		Cookie[] cookies = request.getCookies();
-		for (Cookie c : cookies) {
-			if (OpenIDInfo.ACCEPTS_TERMS_OF_USE_COOKIE_NAME.equals(c.getName())) {
-				acceptsTermsOfUse = Boolean.parseBoolean(c.getValue());
-			}
-		}
+		// Dig out a ToU boolean from the request
+		Boolean acceptsTermsOfUse = new Boolean(request.getParameter(OpenIDInfo.ACCEPTS_TERMS_OF_USE_PARAM_NAME));
 		
 		// Pass the request information to the auth service for a session token
 		return authenticationService.authenticateViaOpenID(openIDInfo, acceptsTermsOfUse);
