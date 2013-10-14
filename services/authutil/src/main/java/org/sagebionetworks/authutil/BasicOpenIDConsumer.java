@@ -38,6 +38,21 @@ public class BasicOpenIDConsumer {
 	public static final String AX_LAST_NAME = "LastName";
 
 	private static final String encryptionKey = StackConfiguration.getEncryptionKey();
+	
+	private static ConsumerManager manager;
+	
+	/**
+	 * Allows mocking of the underlying Open ID library
+	 */
+	public static void setConsumerManager(ConsumerManager otherManager) {
+		manager = otherManager;
+	}
+	
+	private static void ensureManagerExists() {
+		if (manager == null) {
+			manager = new ConsumerManager();
+		}
+	}
 
 	/**
 	 * Serializes, encrypts and Base-64 encodes an object, so that it can be
@@ -85,7 +100,7 @@ public class BasicOpenIDConsumer {
 	public static void authRequest(String userSuppliedString,
 			String returnToUrl, HttpServletRequest httpReq,
 			HttpServletResponse httpResp) throws IOException, OpenIDException {
-		ConsumerManager manager = new ConsumerManager();
+		ensureManagerExists();
 
 		// Perform discovery on the user-supplied identifier
 		@SuppressWarnings("unchecked")
@@ -128,15 +143,11 @@ public class BasicOpenIDConsumer {
 	 */
 	public static OpenIDInfo verifyResponse(HttpServletRequest httpReq)
 			throws IOException, UnauthorizedException {
-		ConsumerManager manager = new ConsumerManager();
+		ensureManagerExists();
 		
 		// Extract the parameters from the authentication response
 		// (which comes in as a HTTP request from the OpenID provider)
 		ParameterList response = new ParameterList(httpReq.getParameterMap());
-
-		AuthSuccess authSuccess = null;
-		boolean success = false;
-		OpenIDInfo result = new OpenIDInfo();
 		
 		//TODO Modification is needed to get it working with hosted google apps
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
@@ -149,15 +160,14 @@ public class BasicOpenIDConsumer {
 		DiscoveryInformation discovered = decryptingDeserializer(discoveryParam);
 		
 		try {
-			authSuccess = AuthSuccess.createAuthSuccess(response);
-			boolean nonceVerified = manager.verifyNonce(authSuccess, discovered);
-			success = nonceVerified;
-			if (success) {
-				result.setIdentifier(httpReq.getParameter("openid.identity"));
-			}
-
+			AuthSuccess authSuccess = AuthSuccess.createAuthSuccess(response);
+			boolean success = manager.verifyNonce(authSuccess, discovered);
+			
 			// Examine the verification result and extract the verified identifier
 			if (success) {
+				OpenIDInfo result = new OpenIDInfo();
+				result.setIdentifier(httpReq.getParameter("openid.identity"));
+				
 				if (authSuccess.hasExtension(AxMessage.OPENID_NS_AX)) {
 					FetchResponse fetchResp = (FetchResponse) authSuccess
 							.getExtension(AxMessage.OPENID_NS_AX);
