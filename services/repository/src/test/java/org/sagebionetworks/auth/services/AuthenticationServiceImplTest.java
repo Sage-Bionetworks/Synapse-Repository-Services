@@ -15,17 +15,19 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.BasicOpenIDConsumer;
+import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 
 public class AuthenticationServiceImplTest {
 
@@ -134,5 +136,26 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).getUserInfo(anyString());
 		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
 		verify(mockUserProfileManager).agreeToTermsOfUse(eq(userInfo));
+	}
+	
+	@Deprecated
+	@Test
+	public void testUpdateEmail() throws Exception {
+		String newEmail = "newEmail@sagebase.org";
+		service.updateEmail(username, newEmail);
+		verify(mockUserManager).getUserInfo(eq(username));
+		verify(mockUserManager).updateEmail(eq(userInfo), eq(newEmail));
+	}
+	
+	@Test
+	public void testChangeEmail() throws Exception {
+		userInfo.getUser().setAgreesToTermsOfUse(true);
+		
+		RegistrationInfo registrationInfo = new RegistrationInfo();
+		registrationInfo.setPassword(password);
+		registrationInfo.setRegistrationToken(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + sessionToken);
+		service.updateEmail(username, registrationInfo);
+		verify(mockUserManager, times(3)).getUserInfo(eq(username));
+		verify(mockUserManager).updateEmail(eq(userInfo), eq(username));
 	}
 }

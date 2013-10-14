@@ -343,11 +343,20 @@ public class UserManagerImpl implements UserManager {
 	
 	@Override
 	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException {
+		
+		// The mapping between usernames and user IDs is currently done on a one-to-one basis.
+		// This means that changing the email associated with an ID in the UserGroup table 
+		//   introduces an inconsistency between the UserGroup table and ID Generator table.
+		// Until the Named ID Generator supports a one-to-many mapping, this method is disabled
+		throw new NotFoundException("This service is currently unavailable");
+		
+		/*
 		if (userInfo != null) {
 			UserGroup userGroup = userGroupDAO.get(userInfo.getIndividualGroup().getId());
 			userGroup.setName(newEmail);
 			userGroupDAO.update(userGroup);
 		}
+		*/
 	}
 
 	@Override
