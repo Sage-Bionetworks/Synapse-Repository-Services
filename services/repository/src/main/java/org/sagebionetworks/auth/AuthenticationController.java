@@ -108,7 +108,7 @@ public class AuthenticationController extends BaseController {
 	public void changeEmail(
 			@RequestBody RegistrationInfo registrationInfo,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException {
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		authenticationService.updateEmail(username, registrationInfo);
 	}
 	

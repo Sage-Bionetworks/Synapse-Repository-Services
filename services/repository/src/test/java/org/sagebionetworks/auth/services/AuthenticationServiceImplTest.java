@@ -138,15 +138,6 @@ public class AuthenticationServiceImplTest {
 		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 	}
 	
-	@Deprecated
-	@Test
-	public void testUpdateEmail() throws Exception {
-		String newEmail = "newEmail@sagebase.org";
-		service.updateEmail(username, newEmail);
-		verify(mockUserManager).getUserInfo(eq(username));
-		verify(mockUserManager).updateEmail(eq(userInfo), eq(newEmail));
-	}
-	
 	@Test
 	public void testChangeEmail() throws Exception {
 		userInfo.getUser().setAgreesToTermsOfUse(true);
