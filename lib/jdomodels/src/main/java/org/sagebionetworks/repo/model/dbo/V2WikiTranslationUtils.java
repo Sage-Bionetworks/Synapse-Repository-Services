@@ -67,13 +67,13 @@ public class V2WikiTranslationUtils {
 	 * @param attachments
 	 * @return
 	 */
-	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<V2DBOWikiAttachmentReservation> dtoAttachments, Long markdownFileHandleId){
+	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<String> fileHandleIds, Long markdownFileHandleId){
 		if(dtoPage == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
-		if(dtoAttachments == null) throw new IllegalArgumentException("List of attachments cannot be null");
+		if(fileHandleIds == null) throw new IllegalArgumentException("List of attachments cannot be null");
 		if(markdownFileHandleId == null) throw new IllegalArgumentException("Markdown file handle id cannot be null");
 		
 		V2WikiPage page = new V2WikiPage();
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.setAttachmentFileHandleIds(fileHandleIds);
 		page.setId(dtoPage.getId().toString());
 		page.setEtag(dtoPage.getEtag());
 		page.setTitle(dtoPage.getTitle());
@@ -89,9 +89,7 @@ public class V2WikiTranslationUtils {
 			page.setParentWikiId(dtoPage.getParentId().toString());
 		}
 		page.setMarkdownFileHandleId(markdownFileHandleId.toString());
-		for(V2DBOWikiAttachmentReservation attachment: dtoAttachments) {
-			page.getAttachmentFileHandleIds().add(attachment.getFileHandleId().toString());
-		}
+		
 		return page;
 	}
 	
