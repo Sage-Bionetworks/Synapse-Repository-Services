@@ -4,15 +4,24 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 
+import org.ardverk.collection.Trie;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +37,22 @@ public class TeamServiceImpl implements TeamService {
 	@Autowired
 	private UserManager userManager;
 	
+	/**
+	 * 
+	 * The following is taken from the cached prefix tree in UserProfileServiceImpl
+	 * 
+	 * These member variables are declared volatile to enforce thread-safe
+	 * cache access. Clients should fetch the latest cache objects for every
+	 * request.
+	 * 
+	 * The cache objects may be *replaced* by new cache objects created in the
+	 * refreshCache() method, but existing cache objects can NOT be modified.
+	 * This is to avoid corruption of cache state during multithreaded read
+	 * operations.
+	 */
+	private volatile Long cachesLastUpdated = 0L;
+	private volatile Trie<String, Collection<TeamHeader>> teamNamePrefixCache;
+
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#create(java.lang.String, org.sagebionetworks.repo.model.Team)
@@ -54,12 +79,28 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
 			throws DatastoreException {
-		if (fragment==null) {
-			return teamManager.get(limit, offset);
-		} else {
-			// TODO fragment search
-			return null;
+		if (fragment==null) return teamManager.get(limit, offset);
+
+		if (teamNamePrefixCache == null || teamNamePrefixCache.size() == 0)
+			refreshCache();
+		
+		int limitInt = 10;
+		if(limit != null){
+			limitInt = limit.intValue();
 		}
+		int offsetInt = 0;
+		if(offset != null){
+			offsetInt = offset.intValue();
+		}
+		// Get the results from the cache
+		SortedMap<String, Collection<UserGroupHeader>> matched = teamNamePrefixCache.prefixMap(fragment.toLowerCase());
+		List<UserGroupHeader> fullList = PrefixCacheHelper.flatten(matched);
+		QueryResults<UserGroupHeader> eqr = new QueryResults<UserGroupHeader>(fullList, limitInt, offsetInt);
+		UserGroupHeaderResponsePage results = new UserGroupHeaderResponsePage();
+		results.setChildren(eqr.getResults());
+		results.setPrefixFilter(fragment);
+		results.setTotalNumberOfResults(new Long(eqr.getTotalNumberOfResults()));
+		return results;
 	}
 
 	/* (non-Javadoc)

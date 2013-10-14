@@ -59,9 +59,9 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -2204,7 +2204,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment,
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment,
 			long limit, long offset) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;

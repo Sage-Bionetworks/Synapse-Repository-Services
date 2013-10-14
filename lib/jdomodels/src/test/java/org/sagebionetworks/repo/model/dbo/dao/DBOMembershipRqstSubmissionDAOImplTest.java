@@ -82,6 +82,7 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		// create the submission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		Date expiresOn = new Date();
+		mrs.setCreatedOn(new Date());
 		mrs.setExpiresOn(expiresOn);
 		mrs.setMessage("Please let me join the team.");
 		mrs.setTeamId(""+teamId);
@@ -165,6 +166,7 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		Long teamId = createTeam();
 		// create the submission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		mrs.setCreatedOn(new Date());
 		mrs.setExpiresOn(null); // NO EXPIRATION DATE
 		mrs.setMessage("Please let me join the team.");
 		mrs.setTeamId(""+teamId);

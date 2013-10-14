@@ -501,7 +501,9 @@ public class MigrationIntegrationAutowireTest {
 		
 		// create a MembershipRqstSubmission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date createdOn = new Date();
 		Date expiresOn = new Date();
+		mrs.setCreatedOn(createdOn);
 		mrs.setExpiresOn(expiresOn);
 		mrs.setMessage("Please let me join the team.");
 		mrs.setTeamId(""+group.getId());
@@ -513,6 +515,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		// create a MembershipInvtnSubmission
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setCreatedOn(createdOn);
 		mis.setExpiresOn(expiresOn);
 		mis.setMessage("Please join the team.");
 		mis.setTeamId(""+group.getId());

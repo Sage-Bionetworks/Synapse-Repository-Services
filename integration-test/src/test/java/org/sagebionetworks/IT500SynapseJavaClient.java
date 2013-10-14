@@ -1541,7 +1541,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(created, retrieved);
 		// query for requests based on team
 		PaginatedResults<MembershipRequest> requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
-		// query for requests based on team and member
 		assertEquals(1L, requests.getTotalNumberOfResults());
 		MembershipRequest request = requests.getResults().get(0);
 		assertEquals(expiresOn, request.getExpiresOn());
@@ -1552,7 +1551,7 @@ public class IT500SynapseJavaClient {
 		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
 		assertEquals(1L, requests.getTotalNumberOfResults());
 		assertEquals(0L, requests.getResults().size());
-		// query for invitations based on team and member
+		// query for requests based on team and member
 		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), myPrincipalId, 1, 0);
 		assertEquals(1L, requests.getTotalNumberOfResults());
 		MembershipRequest request2 = requests.getResults().get(0);
