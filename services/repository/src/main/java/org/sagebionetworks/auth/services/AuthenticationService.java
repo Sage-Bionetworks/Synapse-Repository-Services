@@ -68,7 +68,6 @@ public interface AuthenticationService {
 	public void changePassword(String username, String newPassword)
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
 	
-	
 	/**
 	 * Changes the email of a user to another email
 	 * Simultaneously changes the user's password
