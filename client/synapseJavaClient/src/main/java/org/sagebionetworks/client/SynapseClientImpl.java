@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -108,7 +109,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -155,90 +156,87 @@ public class SynapseClientImpl implements SynapseClient {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-	protected static final Logger log = LogManager.getLogger(SynapseClientImpl.class.getName());
+	private static final Logger log = LogManager.getLogger(SynapseClientImpl.class.getName());
 	
-	protected static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
+	private static final long MAX_UPLOAD_DAEMON_MS = 60*1000;
 
-	protected static final int JSON_INDENT = 2;
-	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
-	protected static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
-	protected static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
-	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
-	protected static final String REQUEST_PROFILE_DATA = "profile_request";
-	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
+	private static final int JSON_INDENT = 2;
+	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
+	private static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
+	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
+	private static final String SESSION_TOKEN_HEADER = "sessionToken";
+	private static final String REQUEST_PROFILE_DATA = "profile_request";
+	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 
-	protected static final String PASSWORD_FIELD = "password";
-	protected static final String PARAM_GENERATED_BY = "generatedBy";
+	private static final String PASSWORD_FIELD = "password";
+	private static final String PARAM_GENERATED_BY = "generatedBy";
 	
-	protected static final String QUERY_URI = "/query?query=";
-	protected static final String REPO_SUFFIX_PATH = "/path";	
-	protected static final String REPO_SUFFIX_VERSION = "/version";
-	protected static final String ANNOTATION_URI_SUFFIX = "annotations";
-	protected static final String ADMIN = "/admin";
-	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
-	protected static final String ENTITY = "/entity";
-	protected static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
-	protected static final String ATTACHMENT_URL = "/attachmentUrl";
-	protected static final String GENERATED_BY_SUFFIX = "/generatedBy";
+	private static final String QUERY_URI = "/query?query=";
+	private static final String REPO_SUFFIX_VERSION = "/version";
+	private static final String ANNOTATION_URI_SUFFIX = "annotations";
+	private static final String ADMIN = "/admin";
+	private static final String STACK_STATUS = ADMIN + "/synapse/status";
+	private static final String ENTITY = "/entity";
+	private static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
+	private static final String ATTACHMENT_URL = "/attachmentUrl";
+	private static final String GENERATED_BY_SUFFIX = "/generatedBy";
 
-	protected static final String ENTITY_URI_PATH = "/entity";
-	protected static final String STORAGE_DETAILS_PATH = "/storageDetails"+ENTITY_URI_PATH;
-	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
-	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
-	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
-	protected static final String BUNDLE = "/bundle";
-	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
-	protected static final String ACTIVITY_URI_PATH = "/activity";
-	protected static final String GENERATED_PATH = "/generated";
-	protected static final String FAVORITE_URI_PATH = "/favorite";
+	private static final String ENTITY_URI_PATH = "/entity";
+	private static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
+	private static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
+	private static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
+	private static final String BUNDLE = "/bundle";
+	private static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
+	private static final String ACTIVITY_URI_PATH = "/activity";
+	private static final String GENERATED_PATH = "/generated";
+	private static final String FAVORITE_URI_PATH = "/favorite";
 	
-	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
-	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
-	protected static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
-	protected static final String ATTACHMENT_HANDLES = "/attachmenthandles";
-	protected static final String ATTACHMENT_FILE = "/attachment";
-	protected static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
-	protected static final String FILE_NAME_PARAMETER = "?fileName=";
-	protected static final String REDIRECT_PARAMETER = "redirect=";
-	protected static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
-	protected static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
+	private static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
+	private static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
+	private static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
+	private static final String ATTACHMENT_HANDLES = "/attachmenthandles";
+	private static final String ATTACHMENT_FILE = "/attachment";
+	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
+	private static final String FILE_NAME_PARAMETER = "?fileName=";
+	private static final String REDIRECT_PARAMETER = "redirect=";
+	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
+	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
 
-	protected static final String EVALUATION_URI_PATH = "/evaluation";
-	protected static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
-	protected static final String COUNT = "count";
-	protected static final String NAME = "name";
-	protected static final String ALL = "/all";
-	protected static final String STATUS = "/status";
-	protected static final String PARTICIPANT = "participant";
-	protected static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
-	protected static final String SUBMISSION = "submission";
-	protected static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
-	protected static final String SUBMISSION_ALL = SUBMISSION + ALL;
-	protected static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
-	protected static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
-	protected static final String STATUS_SUFFIX = "?status=";
-	protected static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
-	protected static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	private static final String EVALUATION_URI_PATH = "/evaluation";
+	private static final String AVAILABLE_EVALUATION_URI_PATH = "/evaluation/available";
+	private static final String NAME = "name";
+	private static final String ALL = "/all";
+	private static final String STATUS = "/status";
+	private static final String PARTICIPANT = "participant";
+	private static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
+	private static final String SUBMISSION = "submission";
+	private static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
+	private static final String SUBMISSION_ALL = SUBMISSION + ALL;
+	private static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
+	private static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
+	private static final String STATUS_SUFFIX = "?status=";
+	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
+	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
 	
 	protected static final String COLUMN = "/column";
 
-	protected static final String USER_PROFILE_PATH = "/userProfile";
+	private static final String USER_PROFILE_PATH = "/userProfile";
 	
-	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
+	private static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
 	
-	protected static final String USER_GROUP_HEADER_PREFIX_PATH = "/userGroupHeaders?prefix=";
+	private static final String USER_GROUP_HEADER_PREFIX_PATH = "/userGroupHeaders?prefix=";
 
-	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
+	private static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
-	protected static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	private static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	
-	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
+	private static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
 	
-	protected static final String ACCESS_APPROVAL = "/accessApproval";
+	private static final String ACCESS_APPROVAL = "/accessApproval";
 	
-	protected static final String VERSION_INFO = "/version";
+	private static final String VERSION_INFO = "/version";
 	
-	protected static final String FILE_HANDLE = "/fileHandle";
+	private static final String FILE_HANDLE = "/fileHandle";
 	private static final String FILE = "/file";
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
@@ -261,11 +259,11 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String ETAG = "etag";
 
 	// web request pagination parameters
-	protected static final String LIMIT = "limit";
-	protected static final String OFFSET = "offset";
+	private static final String LIMIT = "limit";
+	private static final String OFFSET = "offset";
 
-	protected static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
-	protected static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
+	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
+	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
 	// Team
 	protected static final String TEAM = "/team";
@@ -282,28 +280,28 @@ public class SynapseClientImpl implements SynapseClient {
 
 	
 	// membership invitation
-	protected static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
-	protected static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
-	protected static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	private static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
+	private static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
+	private static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
 	// membership request
-	protected static final String MEMBERSHIP_REQUEST = "/membershipRequest";
-	protected static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
-	protected static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
+	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
+	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 
 	
-	protected String repoEndpoint;
-	protected String authEndpoint;
-	protected String fileEndpoint;
+	private String repoEndpoint;
+	private String authEndpoint;
+	private String fileEndpoint;
 
-	protected Map<String, String> defaultGETDELETEHeaders;
-	protected Map<String, String> defaultPOSTPUTHeaders;
+	private Map<String, String> defaultGETDELETEHeaders;
+	private Map<String, String> defaultPOSTPUTHeaders;
 
-	protected JSONObject profileData;
-	protected boolean requestProfile;
-	protected HttpClientProvider clientProvider;
-	protected DataUploader dataUploader;
+	private JSONObject profileData;
+	private boolean requestProfile;
+	private HttpClientProvider clientProvider;
+	private DataUploader dataUploader;
 
-	protected AutoGenFactory autoGenFactory = new AutoGenFactory();
+	private AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
 	/**
 	 * The maximum number of threads that should be used to upload asynchronous file chunks.
@@ -487,8 +485,8 @@ public class SynapseClientImpl implements SynapseClient {
 		return this.profileData;
 	}
 	
-	protected String userName;
-	protected String apiKey;
+	private String userName;
+	private String apiKey;
 	
 
 	/**
@@ -603,6 +601,13 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void logout() throws SynapseException {
+		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
+		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
+		deleteUri(authEndpoint, "/session");
+	}
+	
+	@Override
 	public UserSessionData getUserSessionData() throws SynapseException {
 		//get the UserSessionData if the session token is set
 		UserSessionData userData = null;
@@ -614,6 +619,7 @@ public class SynapseClientImpl implements SynapseClient {
 		userData.setProfile(profile);
 		return userData;
 	}
+	
 	@Override
 	public boolean revalidateSession() throws SynapseException {
 		JSONObject sessionInfo = new JSONObject();
@@ -1354,7 +1360,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @param id
 	 * @return
 	 */
-	protected static String createEntityUri(String prefix, String id) {
+	private static String createEntityUri(String prefix, String id) {
 		StringBuilder uri = new StringBuilder();
 		uri.append(prefix);
 		uri.append("/");
@@ -2270,7 +2276,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @throws IOException
 	 * @throws MalformedURLException
 	 */
-	protected URL getUrl(String uri) throws ClientProtocolException, IOException,
+	private URL getUrl(String uri) throws ClientProtocolException, IOException,
 			MalformedURLException {
 		HttpGet get = new HttpGet(uri);
 		for(String headerKey: this.defaultGETDELETEHeaders.keySet()){
@@ -2929,12 +2935,6 @@ public class SynapseClientImpl implements SynapseClient {
 		jsonObject = createJSONObject(uri, jsonObject);
 		return EntityFactory.createEntityFromJSONObject(jsonObject, S3AttachmentToken.class);
 	}
-	
-	@Override
-	public Session performLoginForSessionToken(NewUser userInfo) throws SynapseException, JSONObjectAdapterException {
-		JSONObject session = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(userInfo));
-		return EntityFactory.createEntityFromJSONObject(session, Session.class);
-	}
 
 	/******************** Mid Level Authorization Service APIs ********************/
 
@@ -2999,7 +2999,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @throws SynapseException 
 	 */
 	@SuppressWarnings("unchecked")
-	protected <T extends JSONEntity> T createJSONEntity (String endpoint, String uri, T entity) throws JSONObjectAdapterException, SynapseException{
+	private <T extends JSONEntity> T createJSONEntity (String endpoint, String uri, T entity) throws JSONObjectAdapterException, SynapseException{
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
@@ -3026,7 +3026,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
-	protected <T extends JSONEntity> T updateJSONEntity(String endpoint, String uri, T entity) throws JSONObjectAdapterException, SynapseException{
+	private <T extends JSONEntity> T updateJSONEntity(String endpoint, String uri, T entity) throws JSONObjectAdapterException, SynapseException{
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
@@ -3052,7 +3052,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	protected <T extends JSONEntity> T getJSONEntity(String endpoint, String uri, Class<? extends T> clazz) throws JSONObjectAdapterException, SynapseException{
+	private <T extends JSONEntity> T getJSONEntity(String endpoint, String uri, Class<? extends T> clazz) throws JSONObjectAdapterException, SynapseException{
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
@@ -3206,7 +3206,7 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 	
-	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
+	private JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
 		if (apiKey!=null) {
@@ -3238,7 +3238,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @param requestHeaders
 	 * @return
 	 */
-	protected JSONObject dispatchSynapseRequest(String endpoint, String uri,
+	private JSONObject dispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
 
@@ -4799,4 +4799,59 @@ public class SynapseClientImpl implements SynapseClient {
 		postUri(TEAM_UPDATE_SEARCH_CACHE);
 	}
 
+	@Override
+	public void createUser(NewUser user) throws SynapseException, JSONObjectAdapterException {
+		JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+		createAuthEntity("/user", obj);
+	}
+	
+	@Override
+	public NewUser getAuthUserInfo() throws SynapseException, JSONObjectAdapterException {
+		JSONObject obj = getSynapseEntity(authEndpoint, "/user");
+		return EntityFactory.createEntityFromJSONObject(obj, NewUser.class);
+	}
+	
+	@Override
+	public void changePassword(String newPassword) throws SynapseException, JSONObjectAdapterException {
+		ChangeUserPassword change = new ChangeUserPassword();
+		change.setNewPassword(newPassword);
+		
+		JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
+		createAuthEntity("/userPassword", obj);
+	}
+	
+	@Override
+	public void changePassword(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException {
+		RegistrationInfo info = new RegistrationInfo();
+		info.setRegistrationToken(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
+		info.setPassword(newPassword);
+		
+		JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
+		createAuthEntity("/registeringUserPassword", obj);
+	}
+	
+	@Override
+	public void changeEmail(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException {
+		RegistrationInfo info = new RegistrationInfo();
+		info.setRegistrationToken(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + sessionToken);
+		info.setPassword(newPassword);
+		
+		JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
+		createAuthEntity("/changeEmail", obj);
+	}
+	
+	@Override
+	public void sendPasswordResetEmail() throws SynapseException {
+		createAuthEntity("/apiPasswordEmail", new JSONObject());	
+	}
+	
+	@Override
+	public void sendPasswordResetEmail(String email) throws SynapseException, JSONObjectAdapterException {
+		NewUser user = new NewUser();
+		user.setEmail(email);
+		
+		JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+		createAuthEntity("/userPasswordEmail", obj);
+	}
 }
+

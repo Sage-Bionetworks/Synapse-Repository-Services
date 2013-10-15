@@ -59,7 +59,6 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -191,6 +190,11 @@ public interface SynapseClient {
 	 */
 	public void loginWithNoProfile(String userName, String password)
 			throws SynapseException;
+	
+	/**
+	 * Log out of Synapse
+	 */
+	public void logout() throws SynapseException;
 
 	public UserSessionData getUserSessionData() throws SynapseException;
 
@@ -554,9 +558,6 @@ public interface SynapseClient {
 			AttachmentType attachmentType, S3AttachmentToken token)
 			throws JSONObjectAdapterException, SynapseException;
 	
-	public Session performLoginForSessionToken(NewUser userInfo)
-			throws SynapseException, JSONObjectAdapterException;
-
 	public String getSynapseTermsOfUse() throws SynapseException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
@@ -986,4 +987,39 @@ public interface SynapseClient {
 
 	public void deleteMembershipRequest(String requestId) throws SynapseException;
 
+	/**
+	 * Creates a user
+	 */
+	public void createUser(NewUser user) throws SynapseException, JSONObjectAdapterException;
+
+	/**
+	 * Retrieves the bare-minimum amount of information about the current user
+	 * i.e. email and name
+	 */
+	public NewUser getAuthUserInfo() throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Changes the current user's password
+	 */
+	public void changePassword(String newPassword) throws SynapseException, JSONObjectAdapterException;
+
+	/**
+	 * Changes the registering user's password
+	 */
+	public void changePassword(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Changes the current user's email to the email corresponding to the supplied session token
+	 */
+	public void changeEmail(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Sends a password reset email to the current user 
+	 */
+	public void sendPasswordResetEmail() throws SynapseException;
+	
+	/**
+	 * Sends a password reset email to the given user
+	 */
+	public void sendPasswordResetEmail(String email) throws SynapseException, JSONObjectAdapterException;
 }
