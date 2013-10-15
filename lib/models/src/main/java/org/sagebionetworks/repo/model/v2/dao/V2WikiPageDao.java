@@ -34,11 +34,11 @@ public interface V2WikiPageDao {
 	/**
 	 * Update a wikipage.
 	 * @param toUpdate
-	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage.
+	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage/keeps track of which files this wiki contains
 	 * @param ownerId
 	 * @param ownerType
 	 * @param keepEtag
-	 * @param newFileHandleIds TODO
+	 * @param newFileHandleIds - Identifies which files are to be inserted. Ensures that only new files are added to the database.
 	 * @return
 	 * @throws NotFoundException
 	 */
@@ -97,10 +97,10 @@ public interface V2WikiPageDao {
 	/**
 	 * Get snapshots of a wiki page's history.
 	 * @param key
-	 * @param limit TODO
-	 * @param offset TODO
+	 * @param limit
+	 * @param offset
 	 */
-	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException;
+	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the entire tree of wiki pages for a given owner.

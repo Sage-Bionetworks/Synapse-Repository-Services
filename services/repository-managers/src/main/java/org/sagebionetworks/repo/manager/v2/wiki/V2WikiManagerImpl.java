@@ -292,7 +292,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	@Override
 	public PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(
 			UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset)
-			throws NotFoundException {
+			throws NotFoundException, DatastoreException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(type == null) throw new IllegalArgumentException("ownerId cannot be null");

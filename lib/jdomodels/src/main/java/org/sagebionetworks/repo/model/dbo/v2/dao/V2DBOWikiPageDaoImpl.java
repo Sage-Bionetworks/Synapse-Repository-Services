@@ -418,12 +418,17 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 	
 	@Override
-	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException {
+	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws DatastoreException, NotFoundException {
 		if(key == null) throw new IllegalArgumentException("WikiPage key cannot be null");
-		// Get all versions of a wiki page
-		List<V2WikiHistorySnapshot> history = simpleJdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
-		if(history.size() < 1) throw new NotFoundException("No history is found for a wiki page of id: " + key.getWikiPageId());
-		return history;
+		if(doesExist(key.getWikiPageId())) {
+			// Get all versions of a wiki page
+			List<V2WikiHistorySnapshot> history = simpleJdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
+			if(history.size() < 1) throw new DatastoreException("No history is found for a wiki page of id: " + key.getWikiPageId());
+			return history;
+		} else {
+			throw new NotFoundException("Wiki page with id: " + key.getWikiPageId() + " does not exist.");
+	
+		}
 	}
 	
 	@Override

@@ -127,6 +127,6 @@ public interface V2WikiManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset) throws NotFoundException;
+	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(UserInfo user, String ownerId, ObjectType type, WikiPageKey wikiPageKey, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
 }
