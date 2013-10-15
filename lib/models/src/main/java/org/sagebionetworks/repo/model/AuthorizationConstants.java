@@ -71,10 +71,9 @@ public class AuthorizationConstants {
 	public static final String ACCESS_AND_COMPLIANCE_TEAM_NAME = "Synpase ACT Team";
 	
 	/**
-	 * The reserved userId for an anonymous user.
+	 * The reserved username for an anonymous user.
 	 */
 	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";
-	public static final String ANONYMOUS_USER_DISPLAY_NAME = "Anonymous";
 	
 	/**
 	 * Per http://sagebionetworks.jira.com/browse/PLFM-192

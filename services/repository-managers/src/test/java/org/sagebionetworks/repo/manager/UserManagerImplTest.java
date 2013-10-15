@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -69,9 +70,10 @@ public class UserManagerImplTest {
 	@Test
 	public void testGetAnonymous() throws Exception {
 		UserInfo ui = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, ui.getUser().getUserId());
+		assertTrue(AuthorizationUtils.isUserAnonymous(ui));
+		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getIndividualGroup()));
+		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getUser().getUserId()));
 		assertNotNull(ui.getUser().getId());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, ui.getIndividualGroup().getName());
 		assertEquals(2, ui.getGroups().size());
 		assertTrue(ui.getGroups().contains(ui.getIndividualGroup()));
 		//assertEquals(ui.getIndividualGroup(), ui.getGroups().iterator().next());
