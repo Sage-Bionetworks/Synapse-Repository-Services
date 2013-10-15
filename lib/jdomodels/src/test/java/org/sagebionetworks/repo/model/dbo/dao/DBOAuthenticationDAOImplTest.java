@@ -213,7 +213,7 @@ public class DBOAuthenticationDAOImplTest {
 					StackConfiguration.getIntegrationTestUserTwoPassword(), 
 					StackConfiguration.getIntegrationTestUserThreePassword() };
 			for (int i = 0; i < testUsers.length; i++) {
-				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], null);
+				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], authDAO.getPasswordSalt(testUsers[i]));
 				authDAO.checkEmailAndPassword(testUsers[i], passHash);
 			}
 		}
