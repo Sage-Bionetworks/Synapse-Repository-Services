@@ -27,6 +27,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.swing.plaf.basic.BasicOptionPaneUI;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
@@ -110,6 +112,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -602,9 +605,9 @@ public class SynapseClientImpl implements SynapseClient {
 
 	@Override
 	public void logout() throws SynapseException {
+		deleteUri(authEndpoint, "/session");
 		defaultGETDELETEHeaders.remove(SESSION_TOKEN_HEADER);
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
-		deleteUri(authEndpoint, "/session");
 	}
 	
 	@Override
@@ -4393,6 +4396,13 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public void invalidateApiKey() throws SynapseException {
+		deleteUri(authEndpoint, "/secretKey");
+		setApiKey(null);
+	}
+	
 	@Override
 	public AccessControlList updateEvaluationAcl(AccessControlList acl) throws SynapseException {
 
@@ -4800,44 +4810,64 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void createUser(NewUser user) throws SynapseException, JSONObjectAdapterException {
-		JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-		createAuthEntity("/user", obj);
+	public void createUser(NewUser user) throws SynapseException {
+		try {
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+			createAuthEntity("/user", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	@Override
-	public NewUser getAuthUserInfo() throws SynapseException, JSONObjectAdapterException {
-		JSONObject obj = getSynapseEntity(authEndpoint, "/user");
-		return EntityFactory.createEntityFromJSONObject(obj, NewUser.class);
+	public NewUser getAuthUserInfo() throws SynapseException {
+		try {
+			JSONObject obj = getSynapseEntity(authEndpoint, "/user");
+			return EntityFactory.createEntityFromJSONObject(obj, NewUser.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	@Override
-	public void changePassword(String newPassword) throws SynapseException, JSONObjectAdapterException {
-		ChangeUserPassword change = new ChangeUserPassword();
-		change.setNewPassword(newPassword);
-		
-		JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
-		createAuthEntity("/userPassword", obj);
+	public void changePassword(String newPassword) throws SynapseException {
+		try {
+			ChangeUserPassword change = new ChangeUserPassword();
+			change.setNewPassword(newPassword);
+			
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
+			createAuthEntity("/userPassword", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	@Override
-	public void changePassword(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException {
-		RegistrationInfo info = new RegistrationInfo();
-		info.setRegistrationToken(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
-		info.setPassword(newPassword);
-		
-		JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
-		createAuthEntity("/registeringUserPassword", obj);
+	public void changePassword(String sessionToken, String newPassword) throws SynapseException {
+		try {
+			RegistrationInfo info = new RegistrationInfo();
+			info.setRegistrationToken(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
+			info.setPassword(newPassword);
+			
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
+			createAuthEntity("/registeringUserPassword", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	@Override
-	public void changeEmail(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException {
-		RegistrationInfo info = new RegistrationInfo();
-		info.setRegistrationToken(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + sessionToken);
-		info.setPassword(newPassword);
-		
-		JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
-		createAuthEntity("/changeEmail", obj);
+	public void changeEmail(String sessionToken, String newPassword) throws SynapseException {
+		try {
+			RegistrationInfo info = new RegistrationInfo();
+			info.setRegistrationToken(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + sessionToken);
+			info.setPassword(newPassword);
+			
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
+			createAuthEntity("/changeEmail", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	@Override
@@ -4846,12 +4876,29 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void sendPasswordResetEmail(String email) throws SynapseException, JSONObjectAdapterException {
-		NewUser user = new NewUser();
-		user.setEmail(email);
-		
-		JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-		createAuthEntity("/userPasswordEmail", obj);
+	public void sendPasswordResetEmail(String email) throws SynapseException {
+		try {
+			NewUser user = new NewUser();
+			user.setEmail(email);
+			
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+			createAuthEntity("/userPasswordEmail", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
+	public Session passThroughOpenIDParameters(String queryString) throws SynapseException {
+		try {
+			URI uri = new URI(null, null, "/openIdCallback", queryString, null);
+			JSONObject session = createAuthEntity(uri.toString(), new JSONObject());
+			return EntityFactory.createEntityFromJSONObject(session, Session.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		} catch (URISyntaxException e) {
+			throw new SynapseException(e);
+		}
 	}
 }
 

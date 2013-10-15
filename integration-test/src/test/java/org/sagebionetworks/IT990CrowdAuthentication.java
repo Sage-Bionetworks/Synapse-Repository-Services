@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -30,7 +29,6 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.http.HttpStatus;
 
@@ -200,47 +198,24 @@ public class IT990CrowdAuthentication {
 	
 	@Test(expected = SynapseBadRequestException.class)
 	public void testSendEmailInvalidUser() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject obj = new JSONObject();
-		obj.put("email", "invalid-user-name@sagebase.org");
-		synapse.createAuthEntity("/userPasswordEmail", obj);
+		// There's no way a user like this exists :D
+		synapse.sendPasswordResetEmail("invalid-user-name@sagebase.org" + UUID.randomUUID());
 	}
 	
 	@Test
 	public void testGetSecretKey() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
-		assertTrue(response.has("secretKey"));
+		String apikey = synapse.retrieveApiKey();
+		assertNotNull(apikey);
 	}
 	
 	@Test
 	public void testInvalidateSecretKey() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
-		assertTrue(response.has("secretKey"));
-		String secretKey = response.getString("secretKey");
-		assertNotNull(secretKey);
-	
-		// Invalidate the key
-		synapse.deleteUri(authEndpoint, "/secretKey");
-		
-		// Get the key again
-		response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
-		assertTrue(response.has("secretKey"));
-		String secondKey = response.getString("secretKey");
-		assertNotNull(secondKey);
+		String apikey = synapse.retrieveApiKey();
+		synapse.invalidateApiKey();
+		String secondKey = synapse.retrieveApiKey();
 		
 		// Should be different from the first one
-		assertFalse(secretKey.equals(secondKey));
+		assertFalse(apikey.equals(secondKey));
 	}
 	
 	class MutableBoolean {
@@ -371,7 +346,7 @@ public class IT990CrowdAuthentication {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-			synapse.createAuthEntity("/openIdCallback", new JSONObject());
+			synapse.passThroughOpenIDParameters("");
 			fail();
 		} catch (SynapseServiceException e) {
 			// This is the result of a failed argument check

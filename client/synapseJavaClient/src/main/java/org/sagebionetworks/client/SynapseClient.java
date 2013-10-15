@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -714,6 +715,8 @@ public interface SynapseClient {
 
 	public String retrieveApiKey() throws SynapseException;
 
+	public void invalidateApiKey() throws SynapseException;
+	
 	public AccessControlList updateEvaluationAcl(AccessControlList acl)
 			throws SynapseException;
 
@@ -990,28 +993,28 @@ public interface SynapseClient {
 	/**
 	 * Creates a user
 	 */
-	public void createUser(NewUser user) throws SynapseException, JSONObjectAdapterException;
+	public void createUser(NewUser user) throws SynapseException;
 
 	/**
 	 * Retrieves the bare-minimum amount of information about the current user
 	 * i.e. email and name
 	 */
-	public NewUser getAuthUserInfo() throws SynapseException, JSONObjectAdapterException;
+	public NewUser getAuthUserInfo() throws SynapseException;
 	
 	/**
 	 * Changes the current user's password
 	 */
-	public void changePassword(String newPassword) throws SynapseException, JSONObjectAdapterException;
+	public void changePassword(String newPassword) throws SynapseException;
 
 	/**
 	 * Changes the registering user's password
 	 */
-	public void changePassword(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException;
+	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
 	
 	/**
 	 * Changes the current user's email to the email corresponding to the supplied session token
 	 */
-	public void changeEmail(String sessionToken, String newPassword) throws SynapseException, JSONObjectAdapterException;
+	public void changeEmail(String sessionToken, String newPassword) throws SynapseException;
 	
 	/**
 	 * Sends a password reset email to the current user 
@@ -1021,5 +1024,7 @@ public interface SynapseClient {
 	/**
 	 * Sends a password reset email to the given user
 	 */
-	public void sendPasswordResetEmail(String email) throws SynapseException, JSONObjectAdapterException;
+	public void sendPasswordResetEmail(String email) throws SynapseException;
+	
+	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
 }
