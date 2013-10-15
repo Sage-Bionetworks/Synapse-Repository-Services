@@ -41,7 +41,7 @@ public class PBKDF2Utils {
 	 * @return A string with LDAP password format {PREFIX}[data]
 	 *   where [data] is a 64 character, base64 encoded string containing a salt and password checksum 
 	 */
-	public static String hashPassword(String password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException {
+	public static String hashPassword(String password, byte[] salt) {
 		if (password == null) {
 			// Note: the hashing scheme allows null passwords
 			throw new IllegalArgumentException("Password may not be null");
@@ -55,9 +55,16 @@ public class PBKDF2Utils {
 			throw new IllegalArgumentException("Salt must be 16 bytes");
 		}
 		
-		SecretKeyFactory factory = SecretKeyFactory.getInstance(HASHING_ALGORITHM);
-		KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, HASHING_ITERATIONS, PBEKEYSPEC_KEYLENGTH);
-		SecretKey hash = factory.generateSecret(spec);
+		SecretKey hash;
+		try {
+			SecretKeyFactory factory = SecretKeyFactory.getInstance(HASHING_ALGORITHM);
+			KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, HASHING_ITERATIONS, PBEKEYSPEC_KEYLENGTH);
+			hash = factory.generateSecret(spec);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		} catch (InvalidKeySpecException e) {
+			throw new RuntimeException(e);
+		}
 		
 		// Append the password hash to the salt
 		byte[] checksum = hash.getEncoded();

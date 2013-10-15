@@ -199,7 +199,7 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testBootstrapCredentials() throws Exception {
-		if (StackConfiguration.isProductionStack()) {
+		if (!StackConfiguration.isProductionStack()) {
 			String testUsers[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminName(), 
 					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
