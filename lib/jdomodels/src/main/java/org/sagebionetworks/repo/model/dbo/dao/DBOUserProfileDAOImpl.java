@@ -10,7 +10,6 @@ import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.ETagGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -197,7 +196,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 					userProfile.setDisplayName(ug.getName());
 
 					// Bootstrapped users do not need to sign the terms of use
-					if (!ug.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)
+					if (!AuthorizationUtils.isUserAnonymous(ug.getName())
 							&& !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())) {
 						userProfile.setAgreesToTermsOfUse(Long.MAX_VALUE);
 					}

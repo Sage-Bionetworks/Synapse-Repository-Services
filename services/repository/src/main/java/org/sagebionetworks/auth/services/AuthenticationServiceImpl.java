@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -118,7 +119,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public UserInfo getUserInfo(String username) throws NotFoundException {
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(username)) {
+		if (AuthorizationUtils.isUserAnonymous(username)) {
 			throw new NotFoundException("No user info for " + AuthorizationConstants.ANONYMOUS_USER_ID);
 		}
 		return userManager.getUserInfo(username);

@@ -138,7 +138,7 @@ public class MembershipRequestManagerImplTest {
 	public void testAnonymousCreate() throws Exception {
 		UserInfo anonymousInfo = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(AuthorizationConstants.ANONYMOUS_USER_ID);
+		individualGroup.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
 		anonymousInfo.setIndividualGroup(individualGroup);
 		User user = new User();
 		user.setUserId(AuthorizationConstants.ANONYMOUS_USER_ID);
