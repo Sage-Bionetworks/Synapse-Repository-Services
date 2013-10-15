@@ -116,7 +116,8 @@ public class UserManagerImplTest {
 	
 	/**
 	 * This test is extremely troublesome without the TestUserDAO in place
-	 * It can be reactivated once Crowd is removed
+	 * It can be reactivated once Crowd is removed and once the Named ID generator
+	 * supports a one-to-many mapping
 	 */
 	@Ignore 
 	@Test

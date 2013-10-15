@@ -8,17 +8,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PrefixConst;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Versionable;
 
 /**
@@ -623,14 +622,22 @@ public class UrlHelpers {
 	 * Temporary API for migrating users from Crowd into RDS
 	 */
 	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
+	
+	// Authentication
+	public static final String AUTH_SESSION = "/session";
+	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
+	public static final String AUTH_USER = "/user";
+	public static final String AUTH_USER_PASSWORD_EMAIL = "/userPasswordEmail";
+	public static final String AUTH_API_PASSWORD_EMAIL = "/apiPasswordEmail";
+	public static final String AUTH_USER_PASSWORD = "/userPassword";
+	public static final String AUTH_CHANGE_EMAIL = "/changeEmail";
+	public static final String AUTH_REGISTERING_USER_PASSWORD = "/registeringUserPassword";
+	public static final String AUTH_SECRET_KEY = "/secretKey";
+	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 
-	/**
-	 * This is a memoized cache for our URL regular expressions
-	 */
-	private static Map<Class, Pattern> MODEL2REGEX = new HashMap<Class, Pattern>();
-
+	
 	static {
-
+		@SuppressWarnings("rawtypes")
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
