@@ -140,7 +140,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * information see the following:
  * <ul>
  * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
- * <li><a href="${POST.entity}">POST /entity/{id}</a>
+ * <li><a href="${POST.entity}">POST /entity</a>
  * <li><a href="${PUT.entity.id}">PUT /entity/{id}</a>
  * <li><a href="${GET.entity.id.file}">GET /entity/{id}/file</a>
  * <li><a href="${GET.entity.id.version.versionNumber.file}">GET /entity/{id}/version/{versionNumber}/file</a>
