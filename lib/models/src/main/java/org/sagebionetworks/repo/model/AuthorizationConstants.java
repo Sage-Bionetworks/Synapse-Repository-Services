@@ -40,7 +40,7 @@ public class AuthorizationConstants {
 	 * BOOTSTRAP group must always have the same ID to allow stack migration
 	 * 
 	 */
-//	public static final String BOOTSTRAP_USER_GROUP_ID = "0";
+	// public static final String BOOTSTRAP_USER_GROUP_ID = "0";
 	
 	/**
 	 * A scheme that describes how an ACL should be applied to an entity.
@@ -54,7 +54,7 @@ public class AuthorizationConstants {
 	 * The group name for a system defined group which allows access to its
 	 * resources to all (including anonymous users)
 	 */
-//	public static final String PUBLIC_GROUP_NAME = "Identified Users";
+	// public static final String PUBLIC_GROUP_NAME = "Identified Users";
 	@Deprecated
 	public static final String PUBLIC_GROUP_NAME = DEFAULT_GROUPS.PUBLIC.name();
 	
@@ -85,6 +85,7 @@ public class AuthorizationConstants {
 	public static final String SIGNATURE_TIMESTAMP = "signatureTimestamp";
 	public static final String SIGNATURE = "signature";	
 
+	@Deprecated
 	public static final String CROWD_SECRET_KEY_ATTRIBUTE = "AuthenticationSecretKey";
 	
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
@@ -97,6 +98,8 @@ public class AuthorizationConstants {
 	 *   as long as the user has a creation date (enforced by migration from Crowd)
 	 */
 	public static final long MOST_RECENT_TERMS_OF_USE = 1L;
+	
+	@Deprecated
 	public static final String ACCEPTS_TERMS_OF_USE_ATTRIBUTE = "org.sagebionetworks.termsOfUseAgreement.AcceptsTermsOfUse";
 
 
