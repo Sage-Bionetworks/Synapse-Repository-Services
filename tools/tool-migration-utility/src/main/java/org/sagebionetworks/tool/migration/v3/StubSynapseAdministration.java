@@ -71,6 +71,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -303,16 +305,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return result;
 	}
 
-	private Long maxId(List<RowMetadata> vals) {
-		Long m = vals.get(0).getId();
-		for (RowMetadata v: vals) {
-			if (v.getId() > m) {
-				m = v.getId();
-			}
-		}
-		return m;
-	}
-
 	@Override
 	public MigrationTypeList getPrimaryTypes() throws SynapseException,
 			JSONObjectAdapterException {
@@ -470,6 +462,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	 * @param req
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	private List<RowMetadata> readRestoreFile(RestoreSubmission req) {
 		try {
 			File placeHolder = File.createTempFile("notUsed", ".tmp");
@@ -850,13 +843,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public JSONObject getEntity(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException {
 		// TODO Auto-generated method stub
@@ -1075,43 +1061,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public JSONObject updateEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public <T extends Entity> T putEntity(T entity, String activityId)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-
-	@Override
-	public JSONObject putJSONObject(String uri, JSONObject entity,
-			Map<String, String> headers) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject postUri(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void deleteUri(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
-
+	
 	@Override
 	public <T extends Entity> void deleteEntity(T entity)
 			throws SynapseException {
@@ -1568,86 +1524,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	public S3AttachmentToken createAttachmentS3Token(String id,
 			AttachmentType attachmentType, S3AttachmentToken token)
 			throws JSONObjectAdapterException, SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject createAuthEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject getAuthEntity(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject putAuthEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject createJSONObjectEntity(String endpoint, String uri,
-			JSONObject entity) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject getSynapseEntity(String endpoint, String uri)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject putJSONObject(String endpoint, String uri,
-			JSONObject entity, Map<String, String> headers)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject postUri(String endpoint, String uri)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject querySynapse(String endpoint, String query)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void deleteUri(String endpoint, String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
-
-	@Override
-	public <T extends JSONEntity> T getJSONEntity(String uri,
-			Class<? extends T> clazz) throws SynapseException,
-			JSONObjectAdapterException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -2333,6 +2209,79 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	public void updateTeamSearchCache() throws SynapseException {
 		// TODO Auto-generated method stub
 		
+	}
+
+
+	@Override
+	public void logout() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void invalidateApiKey() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void createUser(NewUser user) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public NewUser getAuthUserInfo() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void changePassword(String newPassword) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void changePassword(String sessionToken, String newPassword)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void changeEmail(String sessionToken, String newPassword)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void sendPasswordResetEmail() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void sendPasswordResetEmail(String email) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
