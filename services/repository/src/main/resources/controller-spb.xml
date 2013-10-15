@@ -207,10 +207,26 @@
 	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
 	</bean>
 	
+	<bean id="refreshTeamMemberCache" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="teamService" />
+		<property name="targetMethod" value="refreshCache" />		
+	    <property name="concurrent" value="false" />
+	</bean>
+
+	<bean id="refreshTeamMemberCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	    <property name="jobDetail" ref="refreshTeamMemberCache" />
+	    <!-- build cache immediately -->
+    	<property name="startDelay" value="0" />
+	    <!-- repeat every 5 minutes -->
+	    <property name="repeatInterval" value="300000" />
+	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
+	</bean>
+	
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 	    <property name="triggers">
 	        <list>
 	            <ref bean="refreshUserGroupCacheTrigger" />
+	            <ref bean="refreshTeamMemberCacheTrigger" />
 	           	<ref bean="repoLogSweeperTrigger" />
 	        </list>
 	    </property>

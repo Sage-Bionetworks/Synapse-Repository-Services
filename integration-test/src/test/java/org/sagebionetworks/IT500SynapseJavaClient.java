@@ -1522,22 +1522,26 @@ public class IT500SynapseJavaClient {
 		// schedule Team for deletion (which will cascade to any created requests)
 		this.teamToDelete = createdTeam;
 		// create a request
+		SynapseClient otherUser = createSynapseClient(
+				StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+		String otherPrincipalId = otherUser.getMyProfile().getOwnerId();
 		MembershipRqstSubmission dto = new MembershipRqstSubmission();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
 		String message = "Please accept this request";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipRqstSubmission created = synapse.createMembershipRequest(dto);
-		assertEquals(myPrincipalId, created.getCreatedBy());
+		MembershipRqstSubmission created = otherUser.createMembershipRequest(dto);
+		assertEquals(otherPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
 		assertNotNull(created.getId());
-		assertEquals(myPrincipalId, created.getUserId());
+		assertEquals(otherPrincipalId, created.getUserId());
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		// get the request
-		MembershipRqstSubmission retrieved = synapse.getMembershipRequest(created.getId());
+		MembershipRqstSubmission retrieved = otherUser.getMembershipRequest(created.getId());
 		assertEquals(created, retrieved);
 		// query for requests based on team
 		PaginatedResults<MembershipRequest> requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
@@ -1546,25 +1550,25 @@ public class IT500SynapseJavaClient {
 		assertEquals(expiresOn, request.getExpiresOn());
 		assertEquals(message, request.getMessage());
 		assertEquals(createdTeam.getId(), request.getTeamId());
-		assertEquals(myPrincipalId, request.getUserId());
+		assertEquals(otherPrincipalId, request.getUserId());
 		// check pagination
 		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
 		assertEquals(1L, requests.getTotalNumberOfResults());
 		assertEquals(0L, requests.getResults().size());
 		// query for requests based on team and member
-		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), myPrincipalId, 1, 0);
+		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 1, 0);
 		assertEquals(1L, requests.getTotalNumberOfResults());
 		MembershipRequest request2 = requests.getResults().get(0);
 		assertEquals(request, request2);
 		// again, check pagination
-		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), myPrincipalId, 2, 1);
+		requests = synapse.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 2, 1);
 		assertEquals(1L, requests.getTotalNumberOfResults());
 		assertEquals(0L, requests.getResults().size());
 		
 		// delete the request
-		synapse.deleteMembershipRequest(created.getId());
+		otherUser.deleteMembershipRequest(created.getId());
 		try {
-			synapse.getMembershipRequest(created.getId());
+			otherUser.getMembershipRequest(created.getId());
 			fail("Failed to delete membership request.");
 		} catch (SynapseException e) {
 			// as expected

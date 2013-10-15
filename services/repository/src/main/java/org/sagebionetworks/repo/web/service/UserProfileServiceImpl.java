@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
@@ -318,17 +316,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = new ArrayList<String>();
-		String lowerCaseDisplayName = header.getDisplayName().toLowerCase();
-		String[] namePrefixes = lowerCaseDisplayName.split(" ");
-		
-		for (String namePrefix : namePrefixes) {
-			prefixes.add(namePrefix);				
-		}
-		//if it was split, also include the entire name
-		if (prefixes.size() > 1) {
-			prefixes.add(lowerCaseDisplayName);
-		}
+		List<String> prefixes = PrefixCacheHelper.getPrefixes(header.getDisplayName());
 		
 		if (unobfuscatedEmailAddress != null && unobfuscatedEmailAddress.length() > 0)
 			prefixes.add(unobfuscatedEmailAddress.toLowerCase());

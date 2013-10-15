@@ -29,8 +29,8 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -175,11 +175,11 @@ public class TeamManagerImpl implements TeamManager {
 		acl.getResourceAccess().add(ra);
 	}
 	
-	public static void removeFromACL(AccessControlList acl, Long principalId) {
+	public static void removeFromACL(AccessControlList acl, String principalId) {
 		Set<ResourceAccess> origRA = acl.getResourceAccess();
 		Set<ResourceAccess> newRA = new HashSet<ResourceAccess>();
 		for (ResourceAccess ra: origRA) {
-			if (!principalId.equals((Long)ra.getPrincipalId())) newRA.add(ra);
+			if (!principalId.equals(ra.getPrincipalId().toString())) newRA.add(ra);
 		}
 		acl.setResourceAccess(newRA);
 	}
@@ -223,6 +223,20 @@ public class TeamManagerImpl implements TeamManager {
 		return queryResults;
 	}
 
+
+	/**
+	 * 
+	 */
+	@Override
+	public PaginatedResults<TeamMember> getMembers(String teamId, long limit,
+			long offset) throws DatastoreException {
+		List<TeamMember> results = teamDAO.getMembersInRange(teamId, limit, offset);
+		long count = teamDAO.getMembersCount(teamId);
+		PaginatedResults<TeamMember> queryResults = new PaginatedResults<TeamMember>();
+		queryResults.setResults(results);
+		queryResults.setTotalNumberOfResults(count);
+		return queryResults;
+	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
@@ -357,7 +371,7 @@ public class TeamManagerImpl implements TeamManager {
 			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
-			removeFromACL(acl, (Long)Long.parseLong(principalId));
+			removeFromACL(acl, principalId);
 			aclDAO.update(acl);
 		}
 	}
@@ -378,7 +392,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	public void updateACL(UserInfo userInfo, AccessControlList acl)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, acl.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot read Team ACL.");
+		if (!authorizationManager.canAccess(userInfo, acl.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot change Team permissions.");
 		aclDAO.update(acl);
 	}
 
@@ -391,9 +405,42 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public Map<TeamHeader, Collection<TeamMember>> getAllTeamsAndMembers()
+	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers()
 			throws DatastoreException {
 		return teamDAO.getAllTeamsAndMembers();
+	}
+
+	@Override
+	public void setPermissions(UserInfo userInfo, String teamId,
+			String principalId, boolean isAdmin) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot change Team permissions.");
+		AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
+		// first, remove the principal's entries from the ACL
+		removeFromACL(acl, principalId);
+		// now, if isAdmin is false, the team membership is enough to give the user basic permissions
+		if (isAdmin) {
+			// if isAdmin is true, then we add the specified admin permissions
+			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
+		}
+		// finally, update the ACL
+		aclDAO.update(acl);
+	}
+
+	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo,
+			String teamId, String principalId) throws DatastoreException,
+			NotFoundException {
+		TeamMembershipStatus tms = new TeamMembershipStatus();
+		tms.setTeamId(teamId);
+		tms.setUserId(principalId);
+		tms.setIsMember(userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId));
+		PaginatedResults<MembershipInvitation> mis = membershipInvitationManager.getOpenForUserAndTeamInRange(principalId, teamId, 1, 0);
+		tms.setHasOpenInvitation(mis.getTotalNumberOfResults()>0);
+		PaginatedResults<MembershipRequest> mrs = membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, principalId, 1, 0);
+		tms.setHasOpenRequest(mrs.getTotalNumberOfResults()>0);
+		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalId));
+		return tms;
 	}
 
 }

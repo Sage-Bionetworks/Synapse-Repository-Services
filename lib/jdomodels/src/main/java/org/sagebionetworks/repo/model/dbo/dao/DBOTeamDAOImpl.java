@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TeamHeader;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -113,6 +112,20 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='"+ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE+"'";
 	
+	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
+			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+", gm."+COL_GROUP_MEMBERS_GROUP_ID+
+			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_USER_PROFILE+" up "+
+			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+" "+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_MEMBERS_OF_TEAM_COUNT =
+			"SELECT COUNT(*) FROM "+TABLE_GROUP_MEMBERS+" gm "+
+			" WHERE gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+	
+	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM =
+			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and t."+COL_TEAM_ID+"=:"+COL_TEAM_ID;
+	
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
 
@@ -152,7 +165,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(OFFSET_PARAM_NAME, offset);
-		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, teamRowMapper, param);
 		List<Team> dtos = new ArrayList<Team>();
@@ -174,7 +187,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
 		param.addValue(OFFSET_PARAM_NAME, offset);
-		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<DBOTeam> dbos = simpleJdbcTemplate.query(SELECT_FOR_MEMBER_PAGINATED, teamRowMapper, param);
 		List<Team> dtos = new ArrayList<Team>();
@@ -241,13 +254,13 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	}
 
 	public static class TeamMemberPair {
-		private TeamHeader teamHeader;
+		private Team team;
 		private TeamMember teamMember;
-		public TeamHeader getTeamHeader() {
-			return teamHeader;
+		public Team getTeam() {
+			return team;
 		}
-		public void setTeamHeader(TeamHeader teamHeader) {
-			this.teamHeader = teamHeader;
+		public void setTeam(Team team) {
+			this.team = team;
 		}
 		public TeamMember getTeamMember() {
 			return teamMember;
@@ -262,31 +275,25 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		@Override
 		public TeamMemberPair mapRow(ResultSet rs, int rowNum) throws SQLException {
 			TeamMemberPair tmp = new TeamMemberPair();
-			TeamHeader teamHeader = new TeamHeader();
-			tmp.setTeamHeader(teamHeader);
-			teamHeader.setId(rs.getString(COL_TEAM_ID));
+			Team team = null;
 			{
 				Blob teamProperties = rs.getBlob(COL_TEAM_PROPERTIES);
-				Team team = TeamUtils.deserialize(teamProperties.getBytes(1, (int) teamProperties.length()));
-				teamHeader.setName(team.getName());
+				team = TeamUtils.deserialize(teamProperties.getBytes(1, (int) teamProperties.length()));
 			}
+			team.setId(rs.getString(COL_TEAM_ID));
+			tmp.setTeam(team);
 			{
 				UserGroupHeader ugh = new UserGroupHeader();
 				TeamMember tm = new TeamMember();
 				tm.setMember(ugh);
-				tm.setTeamId(teamHeader.getId());
+				tm.setTeamId(team.getId());
 				tm.setIsAdmin(false);
 				tmp.setTeamMember(tm);
 				Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
 				if (upProperties!=null) {
 					ugh.setIsIndividual(true);
 					ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-					UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
-					ugh.setDisplayName(up.getDisplayName());
-					ugh.setFirstName(up.getFirstName());
-					ugh.setLastName(up.getLastName());
-					ugh.setPic(up.getPic());
-					ugh.setEmail(up.getEmail());
+					fillUserGroupHeaderFromUpserProfileBlob(upProperties, ugh);
 				} else {
 					ugh.setIsIndividual(false);
 				}
@@ -294,6 +301,15 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			return tmp;
 		}
 	};
+	
+	private static void fillUserGroupHeaderFromUpserProfileBlob(Blob upProperties, UserGroupHeader ugh) throws SQLException {
+		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
+		ugh.setDisplayName(up.getDisplayName());
+		ugh.setFirstName(up.getFirstName());
+		ugh.setLastName(up.getLastName());
+		ugh.setPic(up.getPic());
+		ugh.setEmail(up.getEmail());		
+	}
 	
 	public static class TeamMemberId {
 		private Long teamId;
@@ -323,18 +339,18 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 
 	@Override
-	public Map<TeamHeader, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
+	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
 		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
-		Map<Long, TeamHeader> teamHeaderMap = new HashMap<Long, TeamHeader>();
+		Map<Long, Team> teamMap = new HashMap<Long, Team>();
 		Map<Long, Map<Long,TeamMember>> teamMemberMap = new HashMap<Long, Map<Long,TeamMember>>();
 		for (TeamMemberPair tmp : queryResults) {
-			long teamHeaderId = Long.parseLong(tmp.getTeamHeader().getId());
-			teamHeaderMap.put(teamHeaderId, tmp.getTeamHeader());
-			Map<Long,TeamMember> tms = teamMemberMap.get(teamHeaderId);
+			long teamId = Long.parseLong(tmp.getTeam().getId());
+			teamMap.put(teamId, tmp.getTeam());
+			Map<Long,TeamMember> tms = teamMemberMap.get(teamId);
 			if (tms==null) {
 				tms = new HashMap<Long,TeamMember>();
-				teamMemberMap.put(teamHeaderId, tms);
+				teamMemberMap.put(teamId, tms);
 			}
 			tms.put(Long.parseLong(tmp.getTeamMember().getMember().getOwnerId()), tmp.getTeamMember());
 		}
@@ -348,16 +364,67 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			if (tm==null) throw new IllegalStateException("No member found for team ID: "+tmi.getTeamId()+", member ID: "+tmi.getMemberId());
 			tm.setIsAdmin(true);
 		}
-		Map<TeamHeader, Collection<TeamMember>> results = new HashMap<TeamHeader, Collection<TeamMember>>();
+		Map<Team, Collection<TeamMember>> results = new HashMap<Team, Collection<TeamMember>>();
 		// finally, create the results to return
-		for (Long teamId : teamHeaderMap.keySet()) {
-			TeamHeader teamHeader = teamHeaderMap.get(teamId);
-			if (teamHeader==null) throw new IllegalStateException("Missing TeamHeader for team ID: "+teamId);
+		for (Long teamId : teamMap.keySet()) {
+			Team team = teamMap.get(teamId);
+			if (team==null) throw new IllegalStateException("Missing TeamHeader for team ID: "+teamId);
 			Collection<TeamMember> teamMembers = teamMemberMap.get(teamId).values();
 			if (teamMembers.isEmpty()) throw new IllegalStateException("Missing team members for team ID :"+teamId);
-			results.put(teamHeader, teamMembers);
+			results.put(team, teamMembers);
 		}
 		return results;
+	}
+
+	private static final RowMapper<TeamMember> teamMemberRowMapper = new RowMapper<TeamMember>(){
+		@Override
+		public TeamMember mapRow(ResultSet rs, int rowNum) throws SQLException {
+			UserGroupHeader ugh = new UserGroupHeader();
+			TeamMember tm = new TeamMember();
+			tm.setMember(ugh);
+			tm.setTeamId(rs.getString(COL_GROUP_MEMBERS_GROUP_ID));
+			tm.setIsAdmin(false);
+			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
+			if (upProperties!=null) {
+				ugh.setIsIndividual(true);
+				ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
+				fillUserGroupHeaderFromUpserProfileBlob(upProperties, ugh);
+			} else {
+				ugh.setIsIndividual(false);
+			}
+			return tm;
+		}
+	};
+	
+	@Override
+	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset)
+			throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		param.addValue(OFFSET_PARAM_NAME, offset);
+		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_MEMBERS_OF_TEAM_PAGINATED, teamMemberRowMapper, param);
+		Map<Long, TeamMember> teamMemberMap = new HashMap<Long, TeamMember>();
+		for (TeamMember tm : teamMembers) teamMemberMap.put(Long.parseLong(tm.getMember().getOwnerId()), tm);
+
+		// now update the 'isAdmin' field for those members that are admins on the team
+		param = new MapSqlParameterSource();
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAM, teamMemberIdRowMapper, param);
+		for (TeamMemberId id : adminTeamMembers) {
+			TeamMember tm = teamMemberMap.get(id.getMemberId());
+			if (tm!=null) tm.setIsAdmin(true);
+		}
+		
+		return teamMembers;
+	}
+
+	@Override
+	public long getMembersCount(String teamId) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		return simpleJdbcTemplate.queryForLong(SELECT_MEMBERS_OF_TEAM_COUNT, teamMemberRowMapper, param);
 	}
 
 }

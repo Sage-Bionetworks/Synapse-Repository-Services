@@ -157,7 +157,7 @@ public class DBOTeamDAOImplTest {
 		expectedAllTeamsAndMembers.put(th,  tmList);
 		
 		// we have to check 'equals' on the pieces because a global 'assertEquals' fails
-		Map<TeamHeader,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
+		Map<Team,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
 		assertEquals(expectedAllTeamsAndMembers.size(), actualAllTeamsAndMembers.size());
 		for (TeamHeader t : expectedAllTeamsAndMembers.keySet()) {
 			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);

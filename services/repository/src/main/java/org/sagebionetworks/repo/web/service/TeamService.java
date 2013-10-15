@@ -41,9 +41,10 @@ public interface TeamService {
 	 * @param offset
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -130,4 +131,12 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public void removeMember(String userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @return
+	 */
+	Long millisSinceLastCacheUpdate();
+
+	void refreshCache() throws DatastoreException, NotFoundException;
 }
