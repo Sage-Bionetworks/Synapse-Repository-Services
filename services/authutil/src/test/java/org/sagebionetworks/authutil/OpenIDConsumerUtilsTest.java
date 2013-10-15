@@ -13,7 +13,7 @@ import static org.mockito.Mockito.when;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.openid4java.consumer.ConsumerManager;
@@ -26,10 +26,9 @@ import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.FetchRequest;
 import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.springframework.mock.web.MockHttpServletRequest;
 
 public class OpenIDConsumerUtilsTest {
-	
+
 	private static final String openIDEndpoint = "FOOBAR";
 	private static final String openIDEndpointURL = "https://www.FOOBAR.com/openid";
 	private static final String openIDCallback = "/callback/of/DOOM";
@@ -55,21 +54,20 @@ public class OpenIDConsumerUtilsTest {
 		// This is the minimal amount of parameters required to get past the static call to AuthSuccess.createAuthSuccess()
 		// The resulting object is inconsequential to the mocking test
 		// See: https://code.google.com/p/openid4java/source/browse/trunk/src/org/openid4java/message/AuthSuccess.java
-        MockHttpServletRequest mockRequest = new MockHttpServletRequest();
-		mockRequest.setParameter("openid.mode", "id_res");
-		mockRequest.setParameter("openid.return_to", openIDEndpointURL);
-		mockRequest.setParameter("openid.assoc_handle", "dunno");
-		mockRequest.setParameter("openid.signed", "return_to,identity");
-		mockRequest.setParameter("openid.sig", "dunno");
-		mockRequest.setParameter("openid.identity", "dunno");
-		mockRequestParameters = new ParameterList(mockRequest.getParameterMap());
+		mockRequestParameters = new ParameterList();
+		mockRequestParameters.set(new Parameter("openid.mode", "id_res"));
+		mockRequestParameters.set(new Parameter("openid.return_to", openIDEndpointURL));
+		mockRequestParameters.set(new Parameter("openid.assoc_handle", "dunno"));
+		mockRequestParameters.set(new Parameter("openid.signed", "return_to,identity"));
+		mockRequestParameters.set(new Parameter("openid.sig", "dunno"));
+		mockRequestParameters.set(new Parameter("openid.identity", mockDiscInfo.getClaimedIdentifier().toString()));
 
         // Use the mock
         OpenIDConsumerUtils.setConsumerManager(mockManager);
 	}
 	
-	@After
-	public void teardown() throws Exception {
+	@AfterClass
+	public static void teardown() throws Exception {
 		// Get rid of the mock
 		OpenIDConsumerUtils.setConsumerManager(new ConsumerManager());
 	}
@@ -138,5 +136,6 @@ public class OpenIDConsumerUtilsTest {
 		
 		verify(mockManager).verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class));
 		assertNotNull(result);
+		assertEquals(mockDiscInfo.getClaimedIdentifier().toString(), result.getIdentifier());
     }
 }

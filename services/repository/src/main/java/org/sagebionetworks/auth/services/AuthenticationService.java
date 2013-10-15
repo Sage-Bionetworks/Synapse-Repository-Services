@@ -3,7 +3,7 @@ package org.sagebionetworks.auth.services;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
-import org.sagebionetworks.authutil.OpenIDInfo;
+import org.openid4java.message.ParameterList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -122,5 +122,5 @@ public interface AuthenticationService {
 	 * Uses the pre-validated OpenID information to fetch a session token
 	 * Will create a user if necessary 
 	 */
-	public Session authenticateViaOpenID(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException;
+	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException, UnauthorizedException;
 }

@@ -1,5 +1,6 @@
 package org.sagebionetworks.auth.services;
 
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
@@ -269,13 +271,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public Session authenticateViaOpenID(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException {
-		if (info == null) {
+	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException, UnauthorizedException {
+		// Verify that the OpenID request is valid
+		OpenIDInfo openIDInfo;
+		try {
+			openIDInfo = OpenIDConsumerUtils.verifyResponse(parameters);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		if (openIDInfo == null) {
 			throw new UnauthorizedException("Unable to authenticate");
 		}
-		Map<String, List<String>> mappings = info.getMap();
 		
+		// Dig out a ToU boolean from the request
+		String toUParam = parameters.getParameterValue(OpenIDInfo.ACCEPTS_TERMS_OF_USE_PARAM_NAME);
+		Boolean acceptsTermsOfUse = new Boolean(toUParam);
+		
+		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse);
+	}
+	
+	/**
+	 * Returns the session token of the user described by the OpenID information
+	 */
+	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException {
 		// Get some info about the user
+		Map<String, List<String>> mappings = info.getMap();
 		List<String> emails = mappings.get(OpenIDConsumerUtils.AX_EMAIL);
 		List<String> fnames = mappings.get(OpenIDConsumerUtils.AX_FIRST_NAME);
 		List<String> lnames = mappings.get(OpenIDConsumerUtils.AX_LAST_NAME);
@@ -300,6 +320,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// The user does not need to accept the terms of use to get a session token via OpenID
+		//TODO This should not be the case
 		try {
 			handleTermsOfUse(email, acceptsTermsOfUse);
 		} catch (UnauthorizedException e) { }

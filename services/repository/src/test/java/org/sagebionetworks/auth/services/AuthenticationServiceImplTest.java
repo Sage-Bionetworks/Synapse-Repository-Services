@@ -111,7 +111,7 @@ public class AuthenticationServiceImplTest {
 		info.setMap(new HashMap<String, List<String>>());
 		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
 		
-		service.authenticateViaOpenID(info, null);
+		service.processOpenIDInfo(info, null);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));
@@ -128,7 +128,7 @@ public class AuthenticationServiceImplTest {
 		info.setMap(new HashMap<String, List<String>>());
 		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
 		
-		service.authenticateViaOpenID(info, true);
+		service.processOpenIDInfo(info, true);
 		
 		// User should not be created, ToU should be updated
 		verify(mockUserManager, times(0)).createUser(any(NewUser.class));
