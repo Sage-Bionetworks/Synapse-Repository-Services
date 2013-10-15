@@ -7,6 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamHeader;
@@ -36,7 +37,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public QueryResults<Team> get(long offset, long limit) throws DatastoreException;
+	public PaginatedResults<Team> get(long limit, long offset) throws DatastoreException;
 
 	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
 	/**
@@ -47,7 +48,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public QueryResults<Team> getByMember(String principalId, long offset, long limit) throws DatastoreException;
+	public PaginatedResults<Team> getByMember(String principalId, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * Get a Team by its ID
@@ -83,7 +84,6 @@ public interface TeamManager {
 
 	/**
 	 * Add a member to a Team
-	 * 
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalId

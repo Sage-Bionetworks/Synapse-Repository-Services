@@ -159,8 +159,8 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	
 
 	@Override
-	public List<MembershipInvitation> getOpenByUserInRange(long userId, long now,
-			long offset, long limit) throws DatastoreException {
+	public List<MembershipInvitation> getOpenByUserInRange(long userId, long now, long limit,
+			long offset) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITEE_INVITEE_ID, userId);
 		param.addValue(OFFSET_PARAM_NAME, offset);
@@ -172,7 +172,7 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 
 	@Override
 	public List<MembershipInvitation> getOpenByTeamAndUserInRange(
-			long teamId, long userId, long now, long offset, long limit)
+			long teamId, long userId, long now, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);

@@ -33,7 +33,7 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @param limit
 	 * 
 	 */
-	public List<MembershipInvitation> getOpenByUserInRange(long userId, long now, long offset, long limit) throws DatastoreException, NotFoundException;
+	public List<MembershipInvitation> getOpenByUserInRange(long userId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -55,7 +55,7 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @param limit
 	 * 
 	 */
-	public List<MembershipInvitation> getOpenByTeamAndUserInRange(long teamId, long userId, long now, long offset, long limit) throws DatastoreException, NotFoundException;
+	public List<MembershipInvitation> getOpenByTeamAndUserInRange(long teamId, long userId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 

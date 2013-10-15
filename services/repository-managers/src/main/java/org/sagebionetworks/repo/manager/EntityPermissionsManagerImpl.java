@@ -206,7 +206,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return canDownload(userInfo, entityId);
 		}
 		// Anonymous can at most READ
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+		if (AuthorizationHelper.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ) {
 				return false;
 			}
@@ -249,7 +249,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		final boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
 			permissions.setCanEnableInheritance(!parentIsRoot);
-		} else if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+		} else if (AuthorizationHelper.isUserAnonymous(userInfo)) {
 			permissions.setCanEnableInheritance(false);
 		} else {
 			permissions.setCanEnableInheritance(!parentIsRoot && permissions.getCanChangePermissions());
@@ -284,7 +284,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		User user = userInfo.getUser();
 		if (user==null) return false;
 		// can't agree if you are anonymous
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(user.getUserId())) return false;
+		if (AuthorizationHelper.isUserAnonymous(userInfo)) return false;
 		return user.isAgreesToTermsOfUse();
 	}
 }

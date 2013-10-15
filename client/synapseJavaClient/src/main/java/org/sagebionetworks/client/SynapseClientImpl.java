@@ -79,6 +79,11 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -86,8 +91,10 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -113,7 +120,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -256,6 +262,21 @@ public class SynapseClientImpl implements SynapseClient {
 
 	protected static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	protected static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
+
+	// Team
+	protected static final String TEAM = "/team";
+	protected static final String USER = "/user";
+	protected static final String NAME_FRAGMENT_FILTER = "fragment";
+	protected static final String ICON = "/icon";
+	protected static final String MEMBER = "/member";
+	// membership invitation
+	protected static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
+	protected static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
+	protected static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	// membership request
+	protected static final String MEMBERSHIP_REQUEST = "/membershipRequest";
+	protected static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
+	protected static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 
 	
 	protected String repoEndpoint;
@@ -4522,7 +4543,7 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
-
+	
 	@Override
 	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId) throws SynapseException {
 		if(tableEntityId == null) throw new IllegalArgumentException("tableEntityId cannot be null");
@@ -4534,12 +4555,13 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
-
+	
 	@Override
 	public PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException {
 		String url = buildListColumnModelUrl(prefix, limit, offset);
 		try {
 			return  getJSONEntity(url, PaginatedColumnModels.class);
+			
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4582,4 +4604,251 @@ public class SynapseClientImpl implements SynapseClient {
 		return builder.toString();
 	}
 	
+	@Override
+	public Team createTeam(Team team)  throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(team);
+			jsonObj = createJSONObject(TEAM, jsonObj);
+			return initializeFromJSONObject(jsonObj, Team.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public Team getTeam(String id) throws SynapseException {
+		JSONObject jsonObj = getEntity(TEAM+"/"+id);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		Team results = new Team();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+
+	@Override
+	public PaginatedResults<Team> getTeams(String fragment, long limit,
+			long offset) throws SynapseException {
+		String uri = null;
+		if (fragment==null) {
+			uri = TEAM+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = TEAM+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Team> results = new PaginatedResults<Team>(Team.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<Team> getTeamsForUser(String memberId, long limit,
+			long offset) throws SynapseException {
+		String uri = USER+"/"+memberId+TEAM+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Team> results = new PaginatedResults<Team>(Team.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
+	public URL getTeamIcon(String teamId, Boolean redirect)
+			throws SynapseException {
+		String uri = null;
+		if (redirect==null) {
+			uri = TEAM+"/"+teamId+ICON;
+		} else {
+			uri = TEAM+"/"+teamId+ICON+"?"+REDIRECT_PARAMETER+redirect;
+		}
+		try {
+			return getUrl(getRepoEndpoint()+uri);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public Team updateTeam(Team team) throws SynapseException {
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(team.writeToJSONObject(toUpdateAdapter).toJSONString());
+			JSONObject jsonObj = putJSONObject(TEAM, obj, new HashMap<String,String>());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new Team(adapter);
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+
+	@Override
+	public void deleteTeam(String teamId) throws SynapseException {
+		deleteUri(TEAM+"/"+teamId);
+	}
+
+	@Override
+	public void addTeamMember(String teamId, String memberId)
+			throws SynapseException {
+		putJSONObject(TEAM+"/"+teamId+MEMBER+"/"+memberId, new JSONObject(), new HashMap<String,String>());
+	}
+	
+	private static String urlEncode(String s) {
+		try {
+			return URLEncoder.encode(s, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment,
+			long limit, long offset) throws SynapseException {
+		String uri = null;
+		if (fragment==null) {
+			uri = TEAM+"/"+teamId+MEMBER+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = TEAM+"/"+teamId+MEMBER+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+
+					"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<UserGroupHeader> results = new PaginatedResults<UserGroupHeader>(UserGroupHeader.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public void removeTeamMember(String teamId, String memberId)
+			throws SynapseException {
+		deleteUri(TEAM+"/"+teamId+MEMBER+"/"+memberId);
+	}
+
+	@Override
+	public MembershipInvtnSubmission createMembershipInvitation(
+			MembershipInvtnSubmission invitation) throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(invitation);
+			jsonObj = createJSONObject(MEMBERSHIP_INVITATION, jsonObj);
+			return initializeFromJSONObject(jsonObj, MembershipInvtnSubmission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public MembershipInvtnSubmission getMembershipInvitation(String invitationId)
+			throws SynapseException {
+		JSONObject jsonObj = getEntity(MEMBERSHIP_INVITATION+"/"+invitationId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MembershipInvtnSubmission results = new MembershipInvtnSubmission();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(
+			String memberId, String teamId, long limit, long offset)
+			throws SynapseException {
+		
+		String uri = null;
+		if (teamId==null) {
+			uri = USER+"/"+memberId+OPEN_MEMBERSHIP_INVITATION+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = USER+"/"+memberId+OPEN_MEMBERSHIP_INVITATION+"?"+TEAM_ID_REQUEST_PARAMETER+"="+teamId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>(MembershipInvitation.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public void deleteMembershipInvitation(String invitationId)
+			throws SynapseException {
+		deleteUri(MEMBERSHIP_INVITATION+"/"+invitationId);
+	}
+
+	@Override
+	public MembershipRqstSubmission createMembershipRequest(
+			MembershipRqstSubmission request) throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(request);
+			jsonObj = createJSONObject(MEMBERSHIP_REQUEST, jsonObj);
+			return initializeFromJSONObject(jsonObj, MembershipRqstSubmission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public MembershipRqstSubmission getMembershipRequest(String requestId)
+			throws SynapseException {
+		JSONObject jsonObj = getEntity(MEMBERSHIP_REQUEST+"/"+requestId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MembershipRqstSubmission results = new MembershipRqstSubmission();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<MembershipRequest> getOpenMembershipRequests(
+			String teamId, String requestorId, long limit, long offset)
+			throws SynapseException {
+		String uri = null;
+		if (requestorId==null) {
+			uri = TEAM+"/"+teamId+OPEN_MEMBERSHIP_REQUEST+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = TEAM+"/"+teamId+OPEN_MEMBERSHIP_REQUEST+"?"+REQUESTOR_ID_REQUEST_PARAMETER+"="+requestorId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>(MembershipRequest.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public void deleteMembershipRequest(String requestId)
+			throws SynapseException {
+		deleteUri(MEMBERSHIP_REQUEST+"/"+requestId);
+	}
+
 }

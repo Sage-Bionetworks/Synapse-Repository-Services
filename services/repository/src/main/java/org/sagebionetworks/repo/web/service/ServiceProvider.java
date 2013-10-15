@@ -48,5 +48,10 @@ public interface ServiceProvider {
 
 	public TableServices getTableServices();
 	
+	public TeamService getTeamService();
+	
+	public MembershipInvitationService getMembershipInvitationService();
+	
+	public MembershipRequestService getMembershipRequestService();
 	
 }

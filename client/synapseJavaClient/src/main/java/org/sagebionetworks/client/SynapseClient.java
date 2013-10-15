@@ -37,12 +37,19 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -65,7 +72,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -737,6 +743,29 @@ public interface SynapseClient {
 	 * @throws SynapseException
 	 */
 	ColumnModel getColumnModel(String columnId) throws SynapseException;
+	
+	// Team services
+	Team createTeam(Team team) throws SynapseException;
+	Team getTeam(String id) throws SynapseException;
+	PaginatedResults<Team> getTeams(String fragment, long limit, long offset) throws SynapseException;
+	PaginatedResults<Team> getTeamsForUser(String memberId, long limit, long offset) throws SynapseException;
+	URL getTeamIcon(String teamId, Boolean redirect) throws SynapseException;
+	Team updateTeam(Team team) throws SynapseException;
+	void deleteTeam(String teamId) throws SynapseException;
+	void addTeamMember(String teamId, String memberId) throws SynapseException;
+	PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+	void removeTeamMember(String teamId, String memberId) throws SynapseException;
+	
+	MembershipInvtnSubmission createMembershipInvitation(MembershipInvtnSubmission invitation) throws SynapseException;
+	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
+	PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(String memberId, String teamId, long limit, long offset) throws SynapseException;
+	void deleteMembershipInvitation(String invitationId) throws SynapseException;
+	
+	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request) throws SynapseException;
+	MembershipRqstSubmission getMembershipRequest(String requestId) throws SynapseException;
+	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
+	void deleteMembershipRequest(String requestId) throws SynapseException;
+
 
 	/**
 	 * Get the List of ColumnModels for TableEntity given the TableEntity's ID.

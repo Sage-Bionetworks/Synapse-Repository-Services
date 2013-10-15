@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletException;
@@ -68,6 +69,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.IdList;
@@ -82,6 +84,8 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
@@ -162,6 +166,8 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Autowired
 	private ColumnModelDAO columnModelDao;
+	@Autowired
+	private V2WikiPageDao wikiPageDao;
 
 	UserInfo userInfo;
 	private String userName;
@@ -170,6 +176,7 @@ public class MigrationIntegrationAutowireTest {
 	// To delete
 	List<String> entityToDelete;
 	List<WikiPageKey> wikiToDelete;
+	List<WikiPageKey> v2WikiToDelete;
 	List<String> fileHandlesToDelete;
 	// Activity
 	Activity activity;
@@ -188,9 +195,16 @@ public class MigrationIntegrationAutowireTest {
 	WikiPage subWiki;
 	WikiPageKey rootWikiKey;
 	WikiPageKey subWikiKey;
+	
+	// V2 Wiki page
+	V2WikiPage v2RootWiki;
+	V2WikiPage v2SubWiki;
+	WikiPageKey v2RootWikiKey;
+	WikiPageKey v2SubWikiKey;
 
 	// File Handles
 	S3FileHandle handleOne;
+	S3FileHandle markdownOne;
 	PreviewFileHandle preview;
 	
 	// Evaluation
@@ -228,6 +242,7 @@ public class MigrationIntegrationAutowireTest {
 		createAccessRequirement();
 		createAccessApproval();
 		creatWikiPages();
+		createV2WikiPages();
 		createDoi();
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups();
@@ -362,6 +377,36 @@ public class MigrationIntegrationAutowireTest {
 		subWiki = serviceProvider.getWikiService().createWikiPage(userName, fileEntity.getId(), ObjectType.ENTITY, subWiki);
 		subWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, subWiki.getId());
 	}
+	
+	public void createV2WikiPages() throws NotFoundException {
+		// Using wikiPageDao until wiki service is created
+		
+		v2WikiToDelete = new LinkedList<WikiPageKey>();
+		// Create a V2 Wiki page
+		v2RootWiki = new V2WikiPage();
+		v2RootWiki.setCreatedBy(adminId);
+		v2RootWiki.setModifiedBy(adminId);
+		v2RootWiki.setAttachmentFileHandleIds(new LinkedList<String>());
+		v2RootWiki.getAttachmentFileHandleIds().add(handleOne.getId());
+		v2RootWiki.setTitle("Root title");
+		v2RootWiki.setMarkdownFileHandleId(markdownOne.getId());
+		
+		Map<String, FileHandle> map = new HashMap<String, FileHandle>();
+		map.put(handleOne.getFileName(), handleOne);
+		v2RootWiki = wikiPageDao.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY);
+		v2RootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2RootWiki.getId());
+		wikiToDelete.add(v2RootWikiKey);
+		
+		// Create a child
+		v2SubWiki = new V2WikiPage();
+		v2SubWiki.setCreatedBy(adminId);
+		v2SubWiki.setModifiedBy(adminId);
+		v2SubWiki.setParentWikiId(v2RootWiki.getId());
+		v2SubWiki.setTitle("V2 Sub-wiki-title");
+		v2SubWiki.setMarkdownFileHandleId(markdownOne.getId());
+		v2SubWiki = wikiPageDao.create(v2SubWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY);
+		v2SubWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2SubWiki.getId()); 
+	}
 
 
 	/**
@@ -422,6 +467,15 @@ public class MigrationIntegrationAutowireTest {
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
 		handleOne = fileMetadataDao.createFile(handleOne);
+		// Create markdown content
+		markdownOne = new S3FileHandle();
+		markdownOne.setCreatedBy(adminId);
+		markdownOne.setCreatedOn(new Date());
+		markdownOne.setBucketName("bucket");
+		markdownOne.setKey("markdownFileKey");
+		markdownOne.setEtag("etag");
+		markdownOne.setFileName("markdown1");
+		markdownOne = fileMetadataDao.createFile(markdownOne);
 		// Create a preview
 		preview = new PreviewFileHandle();
 		preview.setCreatedBy(adminId);
