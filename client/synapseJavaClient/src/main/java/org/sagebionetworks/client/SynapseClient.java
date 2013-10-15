@@ -58,6 +58,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -551,6 +553,9 @@ public interface SynapseClient {
 	public S3AttachmentToken createAttachmentS3Token(String id,
 			AttachmentType attachmentType, S3AttachmentToken token)
 			throws JSONObjectAdapterException, SynapseException;
+	
+	public Session performLoginForSessionToken(NewUser userInfo)
+			throws SynapseException, JSONObjectAdapterException;
 
 	public String getSynapseTermsOfUse() throws SynapseException;
 

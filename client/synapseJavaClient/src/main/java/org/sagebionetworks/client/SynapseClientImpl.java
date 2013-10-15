@@ -107,6 +107,8 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -813,18 +815,6 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Get a dataset, layer, preview, annotations, etc...
-	 * 
-	 * @param uri
-	 * @return the retrieved entity
-	 * @throws SynapseException
-	 */
-	@Override
-	public JSONObject getEntity(String uri) throws SynapseException {
-		return getSynapseEntity(repoEndpoint, uri);
-	}
-
-	/**
 	 * Get an entity using its ID.
 	 * @param entityId
 	 * @return the entity
@@ -1211,6 +1201,7 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	private static Class<AccessRequirement> getAccessRequirementClassFromType(String s) {
 		try {
 			return (Class<AccessRequirement>)Class.forName(s);
@@ -1218,6 +1209,7 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new RuntimeException(e);
 		}
 	}
+	@SuppressWarnings("unchecked")
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
 		
@@ -1289,6 +1281,7 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private static Class<AccessApproval> getAccessApprovalClassFromType(String s) {
 		try {
 			return (Class<AccessApproval>)Class.forName(s);
@@ -1297,6 +1290,7 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
 		
@@ -1314,6 +1308,15 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 		
+	}
+
+	/**
+	 * Get a dataset, layer, preview, annotations, etc...
+	 * 
+	 * @return the retrieved entity
+	 */
+	private JSONObject getEntity(String uri) throws SynapseException {
+		return getSynapseEntity(repoEndpoint, uri);
 	}
 
 	/**
@@ -1362,31 +1365,6 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
 	 * 
-	 * This convenience method first grabs a copy of the currently stored
-	 * entity, then overwrites fields from the entity passed in on top of the
-	 * stored entity we retrieved and then PUTs the entity. This essentially
-	 * does a partial update from the point of view of the user of this API.
-	 * 
-	 * Note that users of this API may want to inspect what they are overwriting
-	 * before they do so. Another approach would be to do a GET, display the
-	 * field to the user, allow them to edit the fields, and then do a PUT.
-	 * 
-	 * @param uri
-	 * @param entity
-	 * @return the updated entity
-	 * @throws SynapseException
-	 */
-	@Override
-	@Deprecated
-	// Use putEntity
-	public JSONObject updateEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		return updateSynapseEntity(repoEndpoint, uri, entity);
-	}
-
-	/**
-	 * Update a dataset, layer, preview, annotations, etc...
-	 * 
 	 * @param <T>
 	 * @param entity
 	 * @return the updated entity
@@ -1429,37 +1407,25 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
 	 * 
-	 * @param uri
-	 * @param entity
 	 * @return the updated entity
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject putJSONObject(String uri, JSONObject entity, Map<String,String> headers)
+	private JSONObject putJSONObject(String uri, JSONObject entity, Map<String,String> headers)
 			throws SynapseException {
 		return putJSONObject(repoEndpoint, uri, entity, headers);
 	}
 	
 	/**
-	 * Create a dataset, layer, etc..
-	 * 
-	 * @param uri
-	 * @throws SynapseException
+	 * Create a dataset, layer, etc...
 	 */
-	@Override
-	public JSONObject postUri(String uri) throws SynapseException {
+	private JSONObject postUri(String uri) throws SynapseException {
 		return postUri(repoEndpoint, uri);
 	}
 
 
 	/**
-	 * Delete a dataset, layer, etc..
-	 * 
-	 * @param uri
-	 * @throws SynapseException
+	 * Delete a dataset, layer, etc...
 	 */
-	@Override
-	public void deleteUri(String uri) throws SynapseException {
+	private void deleteUri(String uri) throws SynapseException {
 		deleteUri(repoEndpoint, uri);
 		return;
 	}
@@ -2963,30 +2929,26 @@ public class SynapseClientImpl implements SynapseClient {
 		jsonObject = createJSONObject(uri, jsonObject);
 		return EntityFactory.createEntityFromJSONObject(jsonObject, S3AttachmentToken.class);
 	}
+	
+	@Override
+	public Session performLoginForSessionToken(NewUser userInfo) throws SynapseException, JSONObjectAdapterException {
+		JSONObject session = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(userInfo));
+		return EntityFactory.createEntityFromJSONObject(session, Session.class);
+	}
 
 	/******************** Mid Level Authorization Service APIs ********************/
 
 	/**
 	 * Create a new login, etc ...
 	 * 
-	 * @param uri
-	 * @param entity
 	 * @return the newly created entity
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject createAuthEntity(String uri, JSONObject entity)
+	private JSONObject createAuthEntity(String uri, JSONObject entity)
 			throws SynapseException {
 		return createJSONObjectEntity(authEndpoint, uri, entity);
 	}
 
-	@Override
-	public JSONObject getAuthEntity(String uri)
-			throws SynapseException {
-		return getSynapseEntity(authEndpoint, uri);
-	}
-	@Override
-	public JSONObject putAuthEntity(String uri, JSONObject entity)
+	private JSONObject putAuthEntity(String uri, JSONObject entity)
 			throws SynapseException {
 		if (null == authEndpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
@@ -3007,14 +2969,9 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Create a new dataset, layer, etc ...
 	 * 
-	 * @param endpoint
-	 * @param uri
-	 * @param entity
 	 * @return the newly created entity
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject createJSONObjectEntity(String endpoint, String uri,
+	private JSONObject createJSONObjectEntity(String endpoint, String uri,
 			JSONObject entity) throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
@@ -3114,13 +3071,9 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 
-	 * @param endpoint
-	 * @param uri
 	 * @return the retrieved entity
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject getSynapseEntity(String endpoint, String uri)
+	private JSONObject getSynapseEntity(String endpoint, String uri)
 			throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
@@ -3186,14 +3139,9 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
 	 * 
-	 * @param endpoint
-	 * @param uri
-	 * @param entity
 	 * @return the updated entity
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject putJSONObject(String endpoint, String uri,
+	private JSONObject putJSONObject(String endpoint, String uri,
 			JSONObject entity, Map<String,String> headers) throws SynapseException {
 			if (null == endpoint) {
 				throw new IllegalArgumentException("must provide endpoint");
@@ -3214,26 +3162,16 @@ public class SynapseClientImpl implements SynapseClient {
 	
 	/**
 	 * Call Create on any URI
-	 * 
-	 * @param endpoint
-	 * @param uri
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject postUri(String endpoint, String uri) throws SynapseException {
+	private JSONObject postUri(String endpoint, String uri) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
 		return signAndDispatchSynapseRequest(endpoint, uri, "POST", null, defaultPOSTPUTHeaders);
 	}
 
 	/**
 	 * Call Delete on any URI
-	 * 
-	 * @param endpoint
-	 * @param uri
-	 * @throws SynapseException
 	 */
-	@Override
-	public void deleteUri(String endpoint, String uri) throws SynapseException {
+	private void deleteUri(String endpoint, String uri) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
 		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders);
 	}
@@ -3241,14 +3179,11 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Perform a query
 	 * 
-	 * @param endpoint
 	 * @param query
 	 *            the query to perform
 	 * @return the query result
-	 * @throws SynapseException
 	 */
-	@Override
-	public JSONObject querySynapse(String endpoint, String query)
+	private JSONObject querySynapse(String endpoint, String query)
 			throws SynapseException {
 		try {
 			if (null == endpoint) {
@@ -3434,30 +3369,6 @@ public class SynapseClientImpl implements SynapseClient {
 		JSONObject json = getEntity(STACK_STATUS);
 		return EntityFactory
 				.createEntityFromJSONObject(json, StackStatus.class);
-	}
-	
-	/**
-	 * Get a dataset, layer, preview, annotations, etc...
-	 * 
-	 * @param <T>
-	 * 
-	 * @param uri
-	 * @param clazz
-	 * @return the retrieved entity
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	@Override
-	public <T extends JSONEntity> T getJSONEntity(String uri,
-			Class<? extends T> clazz) throws SynapseException,
-			JSONObjectAdapterException {
-		JSONObject jsonObject = getEntity(uri);
-		try {
-			return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
-		} catch (Exception e) {
-			throw new SynapseException("Failed to create an Entity for <<"+jsonObject+">>", e);
-		}
-		
 	}
 	
 	@Override

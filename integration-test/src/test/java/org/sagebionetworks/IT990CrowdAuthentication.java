@@ -24,26 +24,23 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.springframework.http.HttpStatus;
-
 
 /**
  * CrowdAuthUtil
  */
-
 public class IT990CrowdAuthentication {
-	private static SynapseClientImpl synapse = null;
-	private static String authEndpoint = null;
-	private static String repoEndpoint = null;
-	/**
-	 * @throws Exception
-	 * 
-	 */
+	private static SynapseClientImpl synapse;
+	
+	private static final String username = StackConfiguration.getIntegrationTestUserThreeName();
+	private static final String password = StackConfiguration.getIntegrationTestUserThreePassword();
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
-		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		String authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
+		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(authEndpoint);
 		synapse.setRepositoryEndpoint(repoEndpoint);
@@ -51,25 +48,20 @@ public class IT990CrowdAuthentication {
 				StackConfiguration.getIntegrationTestUserThreePassword());
 	}
 
-	private static final String SESSION_TOKEN_LABEL = "sessionToken";
-	
 	@Test
 	public void testCreateSession() throws Exception {
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
+		NewUser userInfo = new NewUser();
+		userInfo.setEmail(username);
+		userInfo.setPassword(password);
 
-		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
+		Session session = synapse.performLoginForSessionToken(userInfo);
+		assertNotNull(session);
+		assertNotNull(session.getSessionToken());
 	}
 	
 	@Test
 	public void testCreateSessionSigningTermsOfUse() throws Exception {
 		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
 		loginRequest.put("email", username);
 		loginRequest.put("password", password);
 
