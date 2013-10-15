@@ -103,27 +103,23 @@ public class V2WikiTranslationUtils {
 	 * 
 	 * @return
 	 */
-	public static List<V2DBOWikiAttachmentReservation> createDBOAttachmentReservationFromDTO(Map<String, FileHandle> fileNameToFileHandleMap, 
+	public static List<V2DBOWikiAttachmentReservation> createDBOAttachmentReservationFromDTO(List<String> fileHandleIdsToInsert, 
 			Long wikiId, Long timestamp){
 		
-		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
+		if(fileHandleIdsToInsert == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null"); 
 		if(timestamp == null) throw new IllegalArgumentException("timestamp cannot be null");
 		
 		List<V2DBOWikiAttachmentReservation> list = new LinkedList<V2DBOWikiAttachmentReservation>();
-		if(fileNameToFileHandleMap != null){
-			for(String fileName: fileNameToFileHandleMap.keySet()) {
-				V2DBOWikiAttachmentReservation attachmentEntry = new V2DBOWikiAttachmentReservation();
-				FileHandle handle = fileNameToFileHandleMap.get(fileName);
-				if(handle == null) throw new IllegalArgumentException("FileHandle is null for fileName: "+fileName);
-				if(handle.getId() == null) throw new IllegalArgumentException("FileHandle.getId id null for fileName: "+fileName);
-				
-				attachmentEntry.setWikiId(wikiId);
-				attachmentEntry.setFileHandleId(Long.parseLong(handle.getId()));
-				attachmentEntry.setTimeStamp(new Timestamp(timestamp));
-				list.add(attachmentEntry);
-			}
+		for(String id: fileHandleIdsToInsert) {
+			V2DBOWikiAttachmentReservation attachmentEntry = new V2DBOWikiAttachmentReservation();
+			
+			attachmentEntry.setWikiId(wikiId);
+			attachmentEntry.setFileHandleId(Long.parseLong(id));
+			attachmentEntry.setTimeStamp(new Timestamp(timestamp));
+			list.add(attachmentEntry);
 		}
+		
 		return list;
 	}
 	

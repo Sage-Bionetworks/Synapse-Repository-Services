@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,19 +48,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class V2DBOWikiPageDaoImplAutowiredTest {
 
-	private static final String SQL_GET_RESERVATION_OF_ATTACHMENT_IDS = "SELECT "+V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_ATTACHMENT_RESERVATION+" WHERE "+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+" = ?";
 	private static final String SQL_GET_ROOT_ID = "SELECT "+V2_COL_WIKI_ROOT_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
-	
-	/**
-	 * Maps to the id of a file handle from the attachments reservation
-	 */
-	private static final RowMapper<Long> WIKI_ATTACHMENT_RESERVATION_MAPPER = new RowMapper<Long>() {
-		@Override
-		public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-			Long id = rs.getLong(V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID);
-			return id;
-		}
-	};
 
 	@Autowired
 	FileHandleDao fileMetadataDao;
@@ -240,7 +229,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		String startEtag = clone.getEtag();
 		Long startModifiedOn = clone.getModifiedOn().getTime();
 		
-		List<Long> reservationIdsBeforeUpdate = simpleJdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, WIKI_ATTACHMENT_RESERVATION_MAPPER, clone.getId());	
+		List<Long> reservationIdsBeforeUpdate = wikiPageDao.getFileHandleReservationForWiki(key);
 		// The archive should have one entry
 		assertTrue(reservationIdsBeforeUpdate.size() == 1);
 		
@@ -251,8 +240,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachTwo.getId());
+		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false, newIds);
 		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		
@@ -264,15 +256,15 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// Make sure the attachments for this wiki are updated to have 2 files
 		assertEquals(clone.getAttachmentFileHandleIds(), clone2.getAttachmentFileHandleIds());
 		
-		List<Long> reservationIds = simpleJdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, WIKI_ATTACHMENT_RESERVATION_MAPPER, clone2.getId());
+		List<Long> reservationIds = wikiPageDao.getFileHandleReservationForWiki(key);
 		// The archive should have only added one more entry
 		assertTrue(reservationIds.size() == 2);
 
 		clone2.setMarkdownFileHandleId(markdownTwo.getId());
 		// Update with same fileNameMap
-		V2WikiPage clone3 = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, false);
+		V2WikiPage clone3 = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, false, new ArrayList<String>());
 		
-		List<Long> reservationIds2 = simpleJdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, WIKI_ATTACHMENT_RESERVATION_MAPPER, clone3.getId());		
+		List<Long> reservationIds2 = wikiPageDao.getFileHandleReservationForWiki(key);		
 		// the toInsert list of attachments should be 0 and the archive should still be size 2
 		assertTrue(reservationIds2.size() == 2);
 	}
@@ -308,14 +300,17 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
 		
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachTwo.getId());
+		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false, newIds);
 		assertNotNull(clone2);
 		assertTrue(clone2.getMarkdownFileHandleId().equals(markdownTwo.getId()));
 
 		// At this point, the markdown database has two versions for this wiki page
 		// Make sure history is accurate
-		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, 10, 0);
+		List<V2WikiHistorySnapshot> history = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(history.size() == 2);
 		
 		// history.get(0) is the most recent snapshot (the recently updated page)
@@ -345,14 +340,14 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		fileNameMap.remove(attachTwo.getFileName());
 		
 		// Update
-		V2WikiPage restored = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, false);
+		V2WikiPage restored = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, false, new ArrayList<String>());
 		assertNotNull(restored);
 		
 		assertTrue(restored.getMarkdownFileHandleId().equals(markdownOne.getId()));
 		assertTrue(restored.getAttachmentFileHandleIds().size() == 1);
 		
 		// At this point, the restored wiki is the third version of the markdown/attachments
-		List<V2WikiHistorySnapshot> historyAfterRestoration = wikiPageDao.getWikiHistory(key, 10, 0);
+		List<V2WikiHistorySnapshot> historyAfterRestoration = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyAfterRestoration.size() == 3);
 		
 	}
@@ -491,7 +486,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
-		List<V2WikiHistorySnapshot> historyBeforeUpdate = wikiPageDao.getWikiHistory(key, 10, 0);
+		List<V2WikiHistorySnapshot> historyBeforeUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyBeforeUpdate.size() == 1);
 		
 		Thread.sleep(1000);
@@ -501,18 +496,21 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachTwo.getId());
+		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false, newIds);
 		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		
-		List<V2WikiHistorySnapshot> historyAfterUpdate = wikiPageDao.getWikiHistory(key, 10, 0);
+		List<V2WikiHistorySnapshot> historyAfterUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyAfterUpdate.size() == 2);
 		
 		// Check cascade delete
 		wikiPageDao.delete(key);
 		try {
-			wikiPageDao.getWikiHistory(key, 10, 0);
+			wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 			fail("Should not be able to access history of a deleted wiki.");
 		} catch(NotFoundException e) {
 			// expected

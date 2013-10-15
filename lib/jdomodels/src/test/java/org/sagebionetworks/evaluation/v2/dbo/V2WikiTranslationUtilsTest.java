@@ -97,10 +97,11 @@ public class V2WikiTranslationUtilsTest {
 		S3FileHandle handleOne = new S3FileHandle();
 		handleOne.setId("1974");
 		Long id = Long.parseLong("1974");
-		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
-		fileNameMap.put(handleOne.getFileName(), handleOne);
 		
-		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(fileNameMap, wikiId, timeStamp);
+		List<String> newFileHandlesToInsert = new ArrayList<String>();
+		newFileHandlesToInsert.add(handleOne.getId());
+		
+		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandlesToInsert, wikiId, timeStamp);
 		assertTrue(attachments.size() == 1);
 		V2DBOWikiAttachmentReservation attachment = attachments.get(0);
 		assertTrue(attachment.getFileHandleId().equals(id));

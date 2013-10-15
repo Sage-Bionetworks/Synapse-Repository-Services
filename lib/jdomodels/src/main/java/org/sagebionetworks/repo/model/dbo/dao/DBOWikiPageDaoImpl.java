@@ -355,6 +355,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.

@@ -38,10 +38,11 @@ public interface V2WikiPageDao {
 	 * @param ownerId
 	 * @param ownerType
 	 * @param keepEtag
+	 * @param newFileHandleIds TODO
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
+	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag, List<String> newFileHandleIds) throws NotFoundException;
 		
 	/**
 	 * Get a wiki page.
@@ -70,6 +71,15 @@ public interface V2WikiPageDao {
 	public List<String> getWikiFileHandleIdsFromHistory(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
+	 * Get ALL the file handle ids used (in the past/currently) for a wiki page.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public List<Long> getFileHandleReservationForWiki(WikiPageKey key);
+	
+	/**
 	 * Get the ID of the root wiki page for a given Object.
 	 * @param ownerId
 	 * @param ownerType
@@ -90,7 +100,7 @@ public interface V2WikiPageDao {
 	 * @param limit TODO
 	 * @param offset TODO
 	 */
-	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, int limit, int offset) throws NotFoundException;
+	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException;
 
 	/**
 	 * Get the entire tree of wiki pages for a given owner.
