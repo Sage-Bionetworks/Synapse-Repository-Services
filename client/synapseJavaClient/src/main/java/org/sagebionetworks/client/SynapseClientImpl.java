@@ -27,8 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.swing.plaf.basic.BasicOptionPaneUI;
-
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
@@ -177,8 +175,8 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String QUERY_URI = "/query?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
-	private static final String ADMIN = "/admin";
-	private static final String STACK_STATUS = ADMIN + "/synapse/status";
+	protected static final String ADMIN = "/admin";
+	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
 	private static final String ENTITY = "/entity";
 	private static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
 	private static final String ATTACHMENT_URL = "/attachmentUrl";
@@ -262,8 +260,8 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String ETAG = "etag";
 
 	// web request pagination parameters
-	private static final String LIMIT = "limit";
-	private static final String OFFSET = "offset";
+	public static final String LIMIT = "limit";
+	public static final String OFFSET = "offset";
 
 	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
@@ -292,12 +290,12 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 
 	
-	private String repoEndpoint;
-	private String authEndpoint;
-	private String fileEndpoint;
+	protected String repoEndpoint;
+	protected String authEndpoint;
+	protected String fileEndpoint;
 
-	private Map<String, String> defaultGETDELETEHeaders;
-	private Map<String, String> defaultPOSTPUTHeaders;
+	protected Map<String, String> defaultGETDELETEHeaders;
+	protected Map<String, String> defaultPOSTPUTHeaders;
 
 	private JSONObject profileData;
 	private boolean requestProfile;
@@ -1426,7 +1424,7 @@ public class SynapseClientImpl implements SynapseClient {
 	/**
 	 * Create a dataset, layer, etc...
 	 */
-	private JSONObject postUri(String uri) throws SynapseException {
+	protected JSONObject postUri(String uri) throws SynapseException {
 		return postUri(repoEndpoint, uri);
 	}
 
@@ -3047,15 +3045,9 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 	
 	/**
-	 * Get a JSONEntity.
-	 * @param endpoint
-	 * @param uri
-	 * @param clazz
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
+	 * Get a JSONEntity
 	 */
-	private <T extends JSONEntity> T getJSONEntity(String endpoint, String uri, Class<? extends T> clazz) throws JSONObjectAdapterException, SynapseException{
+	protected <T extends JSONEntity> T getJSONEntity(String endpoint, String uri, Class<? extends T> clazz) throws JSONObjectAdapterException, SynapseException{
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
@@ -3209,7 +3201,7 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 	
-	private JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
+	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
 		if (apiKey!=null) {
@@ -3241,7 +3233,7 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @param requestHeaders
 	 * @return
 	 */
-	private JSONObject dispatchSynapseRequest(String endpoint, String uri,
+	protected JSONObject dispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
 
