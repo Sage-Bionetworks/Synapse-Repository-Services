@@ -1,18 +1,12 @@
 package org.sagebionetworks.authutil;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.codec.binary.Base64;
 import org.openid4java.OpenIDException;
 import org.openid4java.consumer.ConsumerManager;
 import org.openid4java.discovery.Discovery;
@@ -23,21 +17,20 @@ import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.AxMessage;
 import org.openid4java.message.ax.FetchRequest;
 import org.openid4java.message.ax.FetchResponse;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * Modified "Relying Party" implementation
  * Taken from: http://code.google.com/p/openid4java/wiki/QuickStart
  */
-public class BasicOpenIDConsumer {
+public class OpenIDConsumerUtils {
 
 	public static final String AX_EMAIL = "Email";
 	public static final String AX_FIRST_NAME = "FirstName";
 	public static final String AX_LAST_NAME = "LastName";
-
-	private static final String encryptionKey = StackConfiguration.getEncryptionKey();
 	
 	private static ConsumerManager manager;
 	
@@ -55,67 +48,34 @@ public class BasicOpenIDConsumer {
 	}
 
 	/**
-	 * Serializes, encrypts and Base-64 encodes an object, so that it can be
-	 * safely put in a cookie.
-	 * 
-	 * Note: Encryption/decryption doesn't seem to work on the binary serialized
-	 * object directly, so we Base64 encode it one extra time before encrypting.
-	 * For small objects this doesn't add a performance burden.
+	 * Determines the redirect URL needed to perform the first part of the OpenID handshake
 	 */
-	public static <T> String encryptingSerializer(T o) throws IOException {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		ObjectOutputStream oos = new ObjectOutputStream(out);
-		oos.writeObject(o);
-		oos.close();
-		byte[] serializedAndBase64Encoded = Base64.encodeBase64(out
-				.toByteArray());
-		StringEncrypter se = new StringEncrypter(encryptionKey);
-		String encrypted = se.encrypt(new String(serializedAndBase64Encoded));
-		return encrypted;
-	}
-
-	/**
-	 * Decrypts and deserializes an object. See 'encryptingSerializer' for details.
-	 */
-	@SuppressWarnings("unchecked")
-	public static <T> T decryptingDeserializer(String s) throws IOException {
-		String encryptedDI = s;
-		StringEncrypter se = new StringEncrypter(encryptionKey);
-		String serializedAndBase64EncodedDI = se.decrypt(encryptedDI);
-		byte[] serializedByteArray = Base64
-				.decodeBase64(serializedAndBase64EncodedDI.getBytes());
-		ByteArrayInputStream bais = new ByteArrayInputStream(
-				serializedByteArray);
-		ObjectInputStream ois = new ObjectInputStream(bais);
-		try {
-			return (T) ois.readObject();
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	/**
-	 * Places an OpenID request
-	 */
-	public static void authRequest(String userSuppliedString,
-			String returnToUrl, HttpServletRequest httpReq,
-			HttpServletResponse httpResp) throws IOException, OpenIDException {
+	public static String authRequest(String openIdProvider,
+			String returnToUrl) throws IOException, OpenIDException {
 		ensureManagerExists();
 
 		// Perform discovery on the user-supplied identifier
 		@SuppressWarnings("unchecked")
-		List<Discovery> discoveries = (List<Discovery>) manager
-				.discover(userSuppliedString);
+		List<Discovery> discoveries = (List<Discovery>) manager.discover(openIdProvider);
 
 		// Attempt to associate with the OpenID provider
 		// and retrieve one service endpoint for authentication
 		DiscoveryInformation discovered = manager.associate(discoveries);
-
-		// Write it to a cookie
-		String encryptedDI = encryptingSerializer(discovered);
-		Cookie cookie = new Cookie(OpenIDInfo.DISCOVERY_INFO_COOKIE_NAME, encryptedDI);
-		cookie.setMaxAge(OpenIDInfo.DISCOVERY_INFO_COOKIE_MAX_AGE);
-		httpResp.addCookie(cookie);
+		
+		// Convert the information into a URL-parameter friendly form
+		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(discovered);
+		String discInfo;
+		try {
+			discInfo = URLEncoder.encode(EntityFactory.createJSONStringForEntity(dto), "UTF-8");
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		
+		try {
+			returnToUrl = addRequestParameter(returnToUrl, OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + discInfo);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
 
 		// Obtain a AuthRequest message to be sent to the OpenID provider
 		AuthRequest authReq = manager.authenticate(discovered, returnToUrl);
@@ -132,41 +92,44 @@ public class BasicOpenIDConsumer {
 		// GET HTTP-redirect to the OpenID Provider endpoint
 		// The only method supported in OpenID 1.x redirect-URL 
 		// Usually limited ~2048 bytes
-		httpResp.sendRedirect(authReq.getDestinationUrl(true));
+		return authReq.getDestinationUrl(true);
 	}
 
 	/**
-	 * Fetches Open ID information from the request
-	 * Note: Discovery information should be placed in the query string, not a cookie
+	 * Fetches Open ID information from the request after verifying it
 	 * 
 	 * @throws UnauthorizedException If the request is invalid
 	 */
-	public static OpenIDInfo verifyResponse(HttpServletRequest httpReq)
+	public static OpenIDInfo verifyResponse(ParameterList parameters)
 			throws IOException, UnauthorizedException {
 		ensureManagerExists();
-		
-		// Extract the parameters from the authentication response
-		// (which comes in as a HTTP request from the OpenID provider)
-		ParameterList response = new ParameterList(httpReq.getParameterMap());
 		
 		//TODO Modification is needed to get it working with hosted google apps
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
 
-		String discoveryParam = httpReq.getParameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
+		String discoveryParam = parameters.getParameterValue(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
 		if (discoveryParam == null) {
 			throw new RuntimeException(
 					"OpenID authentication failure: Missing required discovery information.");
 		}
-		DiscoveryInformation discovered = decryptingDeserializer(discoveryParam);
+		
+		// Convert the information into the form taken by the OpenID library
+		DiscoveryInfo discInfo;
+		try {
+			discInfo = EntityFactory.createEntityFromJSONString(discoveryParam, DiscoveryInfo.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		DiscoveryInformation discovered = DiscoveryInfoUtils.convertDTOToObject(discInfo);
 		
 		try {
-			AuthSuccess authSuccess = AuthSuccess.createAuthSuccess(response);
+			AuthSuccess authSuccess = AuthSuccess.createAuthSuccess(parameters);
 			boolean success = manager.verifyNonce(authSuccess, discovered);
 			
 			// Examine the verification result and extract the verified identifier
 			if (success) {
 				OpenIDInfo result = new OpenIDInfo();
-				result.setIdentifier(httpReq.getParameter("openid.identity"));
+				result.setIdentifier(parameters.getParameterValue("openid.identity"));
 				
 				if (authSuccess.hasExtension(AxMessage.OPENID_NS_AX)) {
 					FetchResponse fetchResp = (FetchResponse) authSuccess
@@ -185,5 +148,28 @@ public class BasicOpenIDConsumer {
 		
 		// not verified
 		return null;
+	}
+
+	
+	/**
+	 * Add a new query parameter to an existing url
+	 */
+	public static String addRequestParameter(String urlString, String queryParameter) 
+			throws URISyntaxException {
+		URI uri = new URI(urlString);
+		String query = uri.getQuery();
+		if (query == null || query.length() == 0) {
+			query = queryParameter;
+		} else {
+			query += "&" + queryParameter;
+		}
+		URI uriMod = new URI(uri.getScheme(), 
+				uri.getUserInfo(),
+				uri.getHost(),
+				uri.getPort(), 
+				uri.getPath(), 
+				query, 
+				uri.getFragment());
+		return uriMod.toString();
 	}
 }

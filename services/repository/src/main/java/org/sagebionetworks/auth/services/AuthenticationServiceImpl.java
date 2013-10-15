@@ -8,7 +8,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.authutil.BasicOpenIDConsumer;
+import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -276,9 +276,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		Map<String, List<String>> mappings = info.getMap();
 		
 		// Get some info about the user
-		List<String> emails = mappings.get(BasicOpenIDConsumer.AX_EMAIL);
-		List<String> fnames = mappings.get(BasicOpenIDConsumer.AX_FIRST_NAME);
-		List<String> lnames = mappings.get(BasicOpenIDConsumer.AX_LAST_NAME);
+		List<String> emails = mappings.get(OpenIDConsumerUtils.AX_EMAIL);
+		List<String> fnames = mappings.get(OpenIDConsumerUtils.AX_FIRST_NAME);
+		List<String> lnames = mappings.get(OpenIDConsumerUtils.AX_LAST_NAME);
 		String email = (emails == null || emails.size() < 1 ? null : emails.get(0));
 		String fname = (fnames == null || fnames.size() < 1 ? null : fnames.get(0));
 		String lname = (lnames == null || lnames.size() < 1 ? null : lnames.get(0));

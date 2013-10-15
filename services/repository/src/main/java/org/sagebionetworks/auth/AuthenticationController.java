@@ -15,7 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.authutil.BasicOpenIDConsumer;
+import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
 import org.sagebionetworks.authutil.OpenIDInfo;
@@ -339,7 +339,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
 	public Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
 		// Verify that the OpenID request is valid
-		OpenIDInfo openIDInfo = BasicOpenIDConsumer.verifyResponse(request);
+		OpenIDInfo openIDInfo = OpenIDConsumerUtils.verifyResponse(request);
 		
 		// Dig out a ToU boolean from the request
 		Boolean acceptsTermsOfUse = new Boolean(request.getParameter(OpenIDInfo.ACCEPTS_TERMS_OF_USE_PARAM_NAME));

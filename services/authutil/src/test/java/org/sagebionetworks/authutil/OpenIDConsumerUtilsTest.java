@@ -10,10 +10,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.List;
-
-import javax.servlet.http.Cookie;
 
 import org.junit.After;
 import org.junit.Before;
@@ -23,11 +21,14 @@ import org.openid4java.discovery.Discovery;
 import org.openid4java.discovery.DiscoveryInformation;
 import org.openid4java.message.AuthRequest;
 import org.openid4java.message.AuthSuccess;
+import org.openid4java.message.Parameter;
+import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.FetchRequest;
+import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 
-public class BasicOpenIDConsumerTest {
+public class OpenIDConsumerUtilsTest {
 	
 	private static final String openIDEndpoint = "FOOBAR";
 	private static final String openIDEndpointURL = "https://www.FOOBAR.com/openid";
@@ -36,94 +37,104 @@ public class BasicOpenIDConsumerTest {
 	private ConsumerManager mockManager;
 	private AuthRequest mockAuthRequest;
 	private DiscoveryInformation mockDiscInfo;
-	private MockHttpServletRequest mockRequest;
-	private MockHttpServletResponse mockResponse;
+	private String mockDiscInfoString;
+	private ParameterList mockRequestParameters;
 	
 	@Before
 	public void setup() throws Exception {
 		mockManager = mock(ConsumerManager.class);
 		mockAuthRequest = mock(AuthRequest.class);
-		mockDiscInfo = mock(DiscoveryInformation.class);
-		mockRequest = new MockHttpServletRequest();
-		mockResponse = new MockHttpServletResponse();
+		mockDiscInfo = DiscoveryInfoUtils.convertDTOToObject(DiscoveryInfoUtilsTest.getTestingDTO());
+		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(mockDiscInfo);
+		mockDiscInfoString = EntityFactory.createJSONStringForEntity(dto);
 		
 		when(mockManager.discover(eq(openIDEndpoint))).thenReturn(new ArrayList<Discovery>());
 		when(mockManager.associate(anyList())).thenReturn(mockDiscInfo);
-        when(mockManager.authenticate(eq(mockDiscInfo), eq(openIDCallback))).thenReturn(mockAuthRequest);
-        when(mockAuthRequest.getDestinationUrl(eq(true))).thenReturn(openIDEndpointURL);
+        when(mockManager.authenticate(any(DiscoveryInformation.class), any(String.class))).thenReturn(mockAuthRequest);
 		
 		// This is the minimal amount of parameters required to get past the static call to AuthSuccess.createAuthSuccess()
 		// The resulting object is inconsequential to the mocking test
 		// See: https://code.google.com/p/openid4java/source/browse/trunk/src/org/openid4java/message/AuthSuccess.java
+        MockHttpServletRequest mockRequest = new MockHttpServletRequest();
 		mockRequest.setParameter("openid.mode", "id_res");
 		mockRequest.setParameter("openid.return_to", openIDEndpointURL);
 		mockRequest.setParameter("openid.assoc_handle", "dunno");
 		mockRequest.setParameter("openid.signed", "return_to,identity");
 		mockRequest.setParameter("openid.sig", "dunno");
 		mockRequest.setParameter("openid.identity", "dunno");
+		mockRequestParameters = new ParameterList(mockRequest.getParameterMap());
 
         // Use the mock
-        BasicOpenIDConsumer.setConsumerManager(mockManager);
+        OpenIDConsumerUtils.setConsumerManager(mockManager);
 	}
 	
 	@After
 	public void teardown() throws Exception {
 		// Get rid of the mock
-		BasicOpenIDConsumer.setConsumerManager(new ConsumerManager());
+		OpenIDConsumerUtils.setConsumerManager(new ConsumerManager());
 	}
-	
-	@Test 
-	public void testSerializationRoundTrip() throws Exception {
-		List<Integer> o = new ArrayList<Integer>();
-		o.add(1);
-		o.add(2);
-		o.add(100);
-		o.add(-10000);
-		
-		String e = BasicOpenIDConsumer.encryptingSerializer(o);
 
-		ArrayList<Integer> o2 = BasicOpenIDConsumer.decryptingDeserializer(e);
-		assertEquals(o, o2);
+	@Test
+	public void testAddQueryParameter() throws Exception {
+		String queryParameter = "org.sagebionetworks.auth.sessionToken=2u362864826428";
+		
+		// Simple case
+		String url = "https://foo.bar.com";
+		assertEquals(url+"?"+queryParameter, OpenIDConsumerUtils.addRequestParameter(url, queryParameter));
+		
+		// Adding to existing param's
+		url = "https://foo.bar.com?bas=blah";
+		assertEquals(url+"&"+queryParameter, OpenIDConsumerUtils.addRequestParameter(url, queryParameter));
+		
+		// Inserting BEFORE a fragment
+		url = "https://foo.bar.com?bas=blah";
+		assertEquals(url+"&"+queryParameter+"#frag", OpenIDConsumerUtils.addRequestParameter(url+"#frag", queryParameter));
+
+		// Url encoding required
+		queryParameter = "sessionToken";
+		String queryValue = "2u36286#826.28";
+		String urlEncodedQueryValue = URLEncoder.encode(queryValue, "UTF-8");
+		url = "https://foo.bar.com";
+		assertEquals(url+"?"+queryParameter+"="+urlEncodedQueryValue, OpenIDConsumerUtils.addRequestParameter(url, queryParameter+"="+queryValue));
 	}
 	
 	@Test
 	public void testAuthRequest() throws Exception {
-		BasicOpenIDConsumer.authRequest(openIDEndpoint, openIDCallback, mockRequest, mockResponse);
+		// Expected modification to the return URL
+		String expectedURL = OpenIDConsumerUtils.addRequestParameter(openIDCallback, 
+				OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + URLEncoder.encode(mockDiscInfoString, "UTF-8"));
+		
+		OpenIDConsumerUtils.authRequest(openIDEndpoint, openIDCallback);
 		
 		verify(mockManager).discover(eq(openIDEndpoint));
 		verify(mockManager).associate(anyList());
-		verify(mockManager).authenticate(eq(mockDiscInfo), eq(openIDCallback));
+		verify(mockManager).authenticate(any(DiscoveryInformation.class), eq(expectedURL));
 		verify(mockAuthRequest).addExtension(any(FetchRequest.class));
-		
-		// Must be present
-		Cookie discInfoCookie = mockResponse.getCookie(OpenIDInfo.DISCOVERY_INFO_COOKIE_NAME);
-		assertNotNull(discInfoCookie);
-		
-		assertEquals(openIDEndpointURL, mockResponse.getRedirectedUrl());
 	}
 
 	@Test(expected=RuntimeException.class)
     public void testVerifyResponse_NeedsDiscoveryInfoParam() throws Exception {
-		BasicOpenIDConsumer.verifyResponse(mockRequest);
+		OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
     }
+	
 
 	@Test
     public void testVerifyResponse_badInfo() throws Exception {
-		mockRequest.setParameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME, BasicOpenIDConsumer.encryptingSerializer(mockDiscInfo));
+		mockRequestParameters.set(new Parameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME, mockDiscInfoString));
 		when(mockManager.verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class))).thenReturn(false);
 		
-		OpenIDInfo result = BasicOpenIDConsumer.verifyResponse(mockRequest);
+		OpenIDInfo result = OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
 		
 		verify(mockManager).verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class));
 		assertNull(result);
     }
-
+	
 	@Test
     public void testVerifyResponse_success() throws Exception {
-		mockRequest.setParameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME, BasicOpenIDConsumer.encryptingSerializer(mockDiscInfo));
+		mockRequestParameters.set(new Parameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME, mockDiscInfoString));
 		when(mockManager.verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class))).thenReturn(true);
 		
-		OpenIDInfo result = BasicOpenIDConsumer.verifyResponse(mockRequest);
+		OpenIDInfo result = OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
 		
 		verify(mockManager).verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class));
 		assertNotNull(result);

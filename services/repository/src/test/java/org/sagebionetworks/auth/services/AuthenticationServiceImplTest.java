@@ -15,7 +15,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.BasicOpenIDConsumer;
+import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -109,7 +109,7 @@ public class AuthenticationServiceImplTest {
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setMap(new HashMap<String, List<String>>());
-		info.getMap().put(BasicOpenIDConsumer.AX_EMAIL, Arrays.asList(new String[] { username }));
+		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
 		
 		service.authenticateViaOpenID(info, null);
 		
@@ -126,7 +126,7 @@ public class AuthenticationServiceImplTest {
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setMap(new HashMap<String, List<String>>());
-		info.getMap().put(BasicOpenIDConsumer.AX_EMAIL, Arrays.asList(new String[] { username }));
+		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
 		
 		service.authenticateViaOpenID(info, true);
 		
