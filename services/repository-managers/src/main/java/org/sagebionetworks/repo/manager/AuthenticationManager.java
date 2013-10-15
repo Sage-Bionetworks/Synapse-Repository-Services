@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,7 +28,7 @@ public interface AuthenticationManager {
 	/**
 	 * Changes a user's password
 	 */
-	public void changePassword(String id, String password) throws NoSuchAlgorithmException, InvalidKeySpecException;
+	public void changePassword(String id, String password);
 	
 	/** 
 	 * Gets the user's secret key

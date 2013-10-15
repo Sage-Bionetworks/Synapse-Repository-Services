@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -39,14 +36,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		// This will throw an UnauthorizedException if invalid
 		if (password != null) {
 			byte[] salt = authDAO.getPasswordSalt(email);
-			String passHash;
-			try {
-				passHash = PBKDF2Utils.hashPassword(password, salt);
-			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException(e);
-			} catch (InvalidKeySpecException e) {
-				throw new RuntimeException(e);
-			}
+			String passHash = PBKDF2Utils.hashPassword(password, salt);
 			authDAO.checkEmailAndPassword(email, passHash);
 		}
 		
@@ -70,7 +60,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String id, String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+	public void changePassword(String id, String password) {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
 		authDAO.changePassword(id, passHash);
 	}

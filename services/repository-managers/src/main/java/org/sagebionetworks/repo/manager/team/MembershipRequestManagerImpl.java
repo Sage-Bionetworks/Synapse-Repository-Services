@@ -6,7 +6,6 @@ package org.sagebionetworks.repo.manager.team;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.AuthorizationHelper;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -18,6 +17,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -65,7 +65,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
 			InvalidModelException, UnauthorizedException {
-		if (AuthorizationHelper.isUserAnonymous(userInfo)) 
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mrs, userInfo);
 		Date now = new Date();
