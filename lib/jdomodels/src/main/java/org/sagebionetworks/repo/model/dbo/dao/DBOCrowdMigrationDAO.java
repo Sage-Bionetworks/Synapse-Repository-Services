@@ -347,13 +347,6 @@ public class DBOCrowdMigrationDAO {
 	/*
 	 * Note: the following code is based heavily on code in TeamManagerImpl.create(...)
 	 */
-	
-	private static final ACCESS_TYPE[] ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
-		ACCESS_TYPE.READ, 
-		ACCESS_TYPE.UPDATE, 
-		ACCESS_TYPE.DELETE, 
-		ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
-		ACCESS_TYPE.SEND_MESSAGE};
 
 	private static final ACCESS_TYPE[] NON_ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
 		ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE};
@@ -380,12 +373,6 @@ public class DBOCrowdMigrationDAO {
 		
 		// Add some basic permissions
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		
-		// The migration admin gets all privileges
-		ResourceAccess adminRa = new ResourceAccess();
-		adminRa.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ADMIN_TEAM_PERMISSIONS)));
-		adminRa.setPrincipalId(Long.parseLong(migrationAdminId));
-		raSet.add(adminRa);
 		
 		// The team itself gets basic privileges
 		ResourceAccess teamRa = new ResourceAccess();

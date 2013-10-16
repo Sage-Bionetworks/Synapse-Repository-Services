@@ -414,7 +414,7 @@ public class DBOCrowdMigrationDAOTest {
 		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, acl.getCreatedBy());
 		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, acl.getModifiedBy());
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
-		assertEquals(2, raSet.size());
+		assertEquals(1, raSet.size());
 	}
 	
 	@Test
