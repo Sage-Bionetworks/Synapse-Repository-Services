@@ -63,6 +63,8 @@
 
 	<!-- The Wiki Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
+	
+	<bean id="tableServices" class="org.sagebionetworks.repo.web.service.table.TableServicesImpl" />
 
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"
@@ -135,6 +137,9 @@
 	<bean id="locationableMetadataProvider"
 		class="org.sagebionetworks.repo.web.controller.metadata.LocationableMetadataProvider"
 		scope="singleton" />
+	<bean id="tableEntityMetadataProvider"
+		class="org.sagebionetworks.repo.web.controller.metadata.TableEntityMetadataProvider"
+		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
 		enum -->
@@ -172,6 +177,9 @@
 				</entry>
 				<entry key="file">
 					<bean class= "org.sagebionetworks.repo.web.controller.metadata.FileEntityMetadataProvider"/> 
+				</entry>
+				<entry key="table">
+					<ref bean="tableEntityMetadataProvider"/>
 				</entry>
 			</map>
 		</property>

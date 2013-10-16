@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
@@ -57,6 +59,10 @@ public class NodeUtilsTest {
 		node.setReferences(new HashMap<String, Set<Reference>>());
 		node.setActivityId("1234");
 		node.setFileHandleId("9999888777");
+		List<String> columnIds = new LinkedList<String>();
+		columnIds.add("2");
+		columnIds.add("1");
+		node.setColumnModelIds(columnIds);
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();

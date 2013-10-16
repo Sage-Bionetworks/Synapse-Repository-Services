@@ -582,8 +582,11 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID =EVALUATION_OWNER_ID + WIKI_WITH_ID;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
-	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
-
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;	
+	// Tables
+	public static final String COLUMN = "/column";
+	public static final String COLUMN_ID = COLUMN+"/{columnId}";
+	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	
 	// Team
 	public static final String TEAM = "/team";
@@ -606,7 +609,6 @@ public class UrlHelpers {
 	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;
 	public static final String OPEN_MEMBERSHIP_REQUEST = TEAM_ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-	
 	
 	/**
 	 * APIs for DynamoDB related operations.

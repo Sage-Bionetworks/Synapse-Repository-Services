@@ -126,6 +126,8 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -213,6 +215,8 @@ public class SynapseClientImpl implements SynapseClient {
 	protected static final String STATUS_SUFFIX = "?status=";
 	protected static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	protected static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	
+	protected static final String COLUMN = "/column";
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -4523,6 +4527,84 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
+		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
+		String url = COLUMN;
+		return createJSONEntity(url, model);
+	}
+
+	@Override
+	public ColumnModel getColumnModel(String columnId) throws SynapseException {
+		if(columnId == null) throw new IllegalArgumentException("ColumnId cannot be null");
+		String url = COLUMN+"/"+columnId;
+		try {
+			return getJSONEntity(url, ColumnModel.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
+	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId) throws SynapseException {
+		if(tableEntityId == null) throw new IllegalArgumentException("tableEntityId cannot be null");
+		String url = ENTITY+"/"+tableEntityId+COLUMN;
+		try {
+			PaginatedColumnModels pcm =  getJSONEntity(url, PaginatedColumnModels.class);
+			return pcm.getResults();
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
+	public PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException {
+		String url = buildListColumnModelUrl(prefix, limit, offset);
+		try {
+			return  getJSONEntity(url, PaginatedColumnModels.class);
+			
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Build up the URL for listing all ColumnModels
+	 * @param prefix
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	static String buildListColumnModelUrl(String prefix, Long limit, Long offset) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(COLUMN);
+		int count =0;
+		if(prefix != null || limit != null || offset != null){
+			builder.append("?");
+		}
+		if(prefix != null){
+			builder.append("prefix=");
+			builder.append(prefix);
+			count++;
+		}
+		if(limit != null){
+			if(count > 0){
+				builder.append("&");
+			}
+			builder.append("limit=");
+			builder.append(limit);
+			count++;
+		}
+		if(offset != null){
+			if(count > 0){
+				builder.append("&");
+			}
+			builder.append("offset=");
+			builder.append(offset);
+		}
+		return builder.toString();
+	}
+	
+	@Override
 	public Team createTeam(Team team)  throws SynapseException {
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(team);
@@ -4545,6 +4627,7 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+
 
 	@Override
 	public PaginatedResults<Team> getTeams(String fragment, long limit,
@@ -4580,7 +4663,7 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
-
+	
 	@Override
 	public URL getTeamIcon(String teamId, Boolean redirect)
 			throws SynapseException {
@@ -4767,6 +4850,5 @@ public class SynapseClientImpl implements SynapseClient {
 			throws SynapseException {
 		deleteUri(MEMBERSHIP_REQUEST+"/"+requestId);
 	}
-
 
 }

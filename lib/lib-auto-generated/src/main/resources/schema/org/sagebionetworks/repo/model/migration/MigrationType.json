@@ -31,11 +31,13 @@
         "SUBMISSION_STATUS",
         "TRASH_CAN",
         "DOI",
-        "STORAGE_QUOTA",
         "TEAM",
         "MEMBERSHIP_INVITATION_SUBMISSION",
         "MEMBERSHIP_INVITEE",
         "MEMBERSHIP_REQUEST_SUBMISSION",
+        "COLUMN_MODEL",
+        "BOUND_COLUMN",
+        "STORAGE_QUOTA",
         "CHANGE"
     ]
 }

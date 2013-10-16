@@ -82,6 +82,7 @@ public class NodeTranslationUtils {
 		nameConvertion.put("creationDate", "createdOn");
 		nameConvertion.put("etag", "eTag");
 		nameConvertion.put("dataFileHandleId", "fileHandleId");
+		nameConvertion.put("columnIds", "columnModelIds");
 		// build the primary field cache
 		buildPrimaryFieldCache();
 	}
@@ -498,6 +499,21 @@ public class NodeTranslationUtils {
 					Object value = annos.getSingleValue(name);
 					// First handle references
 					if (TYPE.ARRAY == propSchema.getType()) {
+						
+//						if(TYPE.STRING.equals(propSchema.getItems().getType())){
+//							List<String> list = (List<String>) field.get(base);
+//							if(list == null){
+//								list = new LinkedList<String>();
+//								field.set(base, list);
+//							}
+//							if(value instanceof Collection){
+//								list.addAll((Collection) value);
+//							}else{
+//								list.add((String) value);
+//							}
+//							continue;
+//						}
+						
 						// Is this a reference
 						if (Reference.class.getName().equals(
 								propSchema.getItems().getId())) {
@@ -566,7 +582,7 @@ public class NodeTranslationUtils {
 							continue;
 						}
 
-						if (field.getType().isAssignableFrom(Collection.class)) {
+						if (field.getType().isAssignableFrom(Collection.class) ) {
 							List<Object> list = new ArrayList<Object>();
 							list.add(value);
 							field.set(base, list);

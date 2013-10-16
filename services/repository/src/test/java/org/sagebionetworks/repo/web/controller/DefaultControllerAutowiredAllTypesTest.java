@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -50,7 +51,11 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -86,6 +91,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	@Autowired
+	private ColumnModelDAO columnModelDao;
 
 	private static HttpServlet dispatchServlet;
 	
@@ -94,6 +101,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 
 	private List<String> toDelete;
 	S3FileHandle handleOne;
+	ColumnModel columnModelOne;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
@@ -111,6 +119,11 @@ public class DefaultControllerAutowiredAllTypesTest {
 		handleOne.setEtag("etag");
 		handleOne.setFileName("foo.bar");
 		handleOne = fileMetadataDao.createFile(handleOne);
+		// create a column model
+		columnModelOne = new ColumnModel();
+		columnModelOne.setName("one");
+		columnModelOne.setColumnType(ColumnType.STRING);
+		columnModelOne = columnModelDao.createColumnModel(columnModelOne);
 	}
 
 	@After
@@ -207,6 +220,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 				if(object instanceof FileEntity){
 					FileEntity file = (FileEntity) object;
 					file.setDataFileHandleId(handleOne.getId());
+				}
+				if(object instanceof TableEntity){
+					TableEntity table = (TableEntity) object;
+					List<String> idList = new LinkedList<String>();
+					idList.add(columnModelOne.getId());
+					table.setColumnIds(idList);
 				}
 				Entity clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
