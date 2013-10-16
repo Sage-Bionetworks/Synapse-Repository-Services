@@ -263,7 +263,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// If the user is accepting the terms in this request, save the time of acceptance
 		if (acceptsTermsOfUse) {
 			if (!userInfo.getUser().isAgreesToTermsOfUse()) {
-				userProfileManager.agreeToTermsOfUse(userInfo);
+				authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTermsOfUse);
 			}
 		}
 	}

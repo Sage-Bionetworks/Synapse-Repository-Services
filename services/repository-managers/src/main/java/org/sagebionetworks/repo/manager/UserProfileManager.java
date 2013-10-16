@@ -76,10 +76,4 @@ public interface UserProfileManager {
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
-	
-	/**
-	 * Marks the user as having accepted the most recent terms of use
-	 */
-	public void agreeToTermsOfUse(UserInfo userInfo) throws NotFoundException;
-
 }

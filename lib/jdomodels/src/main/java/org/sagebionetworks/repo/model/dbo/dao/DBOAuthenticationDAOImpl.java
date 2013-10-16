@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -45,6 +47,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	private static final String PASSWORD_PARAM_NAME = "password";
 	private static final String TOKEN_PARAM_NAME = "token";
 	private static final String TIME_PARAM_NAME = "time";
+	private static final String TOU_PARAM_NAME = "tou";
 	
 	private static final String SELECT_ID_BY_EMAIL_AND_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+
@@ -64,12 +67,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 					SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
 	
+	private static final String IF_VALID_SUFFIX = 
+			" AND "+SqlConstants.COL_CREDENTIAL_VALIDATED_ON+">:"+TIME_PARAM_NAME+
+			" AND "+SqlConstants.COL_CREDENTIAL_TOU+"=1";
+	
 	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+
 				" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
 				" AND "+SqlConstants.COL_USER_GROUP_NAME+"=:"+EMAIL_PARAM_NAME+
-				" AND "+SqlConstants.COL_CREDENTIAL_VALIDATED_ON+">:"+TIME_PARAM_NAME;
+				IF_VALID_SUFFIX;
 	
 	private static final String NULLIFY_SESSION_TOKEN = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
@@ -79,7 +86,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_CREDENTIAL+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME+
-				" AND "+SqlConstants.COL_CREDENTIAL_VALIDATED_ON+">:"+TIME_PARAM_NAME;
+				IF_VALID_SUFFIX;
 	
 	private static final String SELECT_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PASS_HASH+
@@ -100,6 +107,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	private static final String UPDATE_SECRET_KEY = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
 			SqlConstants.COL_CREDENTIAL_SECRET_KEY+"=:"+TOKEN_PARAM_NAME+
+			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
+	
+	private static final String SELECT_TOU_ACCEPTANCE = 
+			"SELECT "+SqlConstants.COL_CREDENTIAL_TOU+
+			" FROM "+SqlConstants.TABLE_CREDENTIAL+
+		" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
+	
+	private static final String UPDATE_TERMS_OF_USE_ACCEPTANCE = 
+			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
+			SqlConstants.COL_CREDENTIAL_TOU+"=:"+TOU_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
 			
 	
@@ -228,6 +245,26 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		param.addValue(TOKEN_PARAM_NAME, secretKey);
 		simpleJdbcTemplate.update(UPDATE_SECRET_KEY, param);
 	}
+
+	@Override
+	public boolean hasUserAcceptedToU(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, id);
+		Boolean acceptance = simpleJdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, param);
+		if (acceptance == null) {
+			return false;
+		}
+		return acceptance;
+	}
+	
+	@Override
+	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
+	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(TOU_PARAM_NAME, acceptance);
+		simpleJdbcTemplate.update(UPDATE_TERMS_OF_USE_ACCEPTANCE, param);
+	}
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
@@ -254,6 +291,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], null);
 				String userId = userGroupDAO.findGroup(testUsers[i], true).getId();
 				changePassword(userId, passHash);
+			}
+		}
+		
+		// With the exception of anonymous and one integration test user
+		// bootstrapped users should not need to sign the terms of use
+		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
+		for (UserGroupInt ug : ugs) {
+			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())
+					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
+				setTermsOfUseAcceptance(ug.getId(), true);
 			}
 		}
 	}

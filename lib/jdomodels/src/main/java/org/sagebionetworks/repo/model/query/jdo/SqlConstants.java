@@ -427,6 +427,7 @@ public class SqlConstants {
 	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
 	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
 	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
+	public static final String COL_CREDENTIAL_TOU           = "AGREES_TO_TERMS_OF_USE";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 
 	// The Team table

@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -9,7 +13,6 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,11 +21,13 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -68,6 +73,7 @@ public class DBOAuthenticationDAOImplTest {
 		secretRow.setSessionToken("Hsssssss...");
 		secretRow.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		secretRow.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		secretRow.setAgreesToTermsOfUse(true);
 	}
 
 	@After
@@ -83,7 +89,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Valid combination
 		Long principalId = authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
-		Assert.assertEquals(secretRow.getPrincipalId(), principalId);
+		assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Invalid combinations
 		try {
@@ -108,28 +114,40 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Get by username
 		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertEquals(secretRow.getSessionToken(), session.getSessionToken());
+		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
 		// Get by token
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
-		Assert.assertEquals(secretRow.getPrincipalId(), id);
+		assertEquals(secretRow.getPrincipalId(), id);
 		
 		// Delete
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertNull(session.getSessionToken());
+		assertNull(session.getSessionToken());
 		
 		// Change to a string
 		String foobarSessionToken = "foobar";
 		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), foobarSessionToken);
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertEquals(foobarSessionToken, session.getSessionToken());
+		assertEquals(foobarSessionToken, session.getSessionToken());
 		
 		// Change to a UUID
 		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), null);
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertFalse(foobarSessionToken.equals(session.getSessionToken()));
-		Assert.assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
+		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
+		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
+	}
+	
+	@Test
+	public void testGetWithoutToUAcceptance() throws Exception {
+		secretRow.setAgreesToTermsOfUse(false);
+		basicDAO.update(secretRow);
+		
+		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		assertNull(session);
+		
+		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
+		assertNull(id);
 	}
 	
 	@Test
@@ -141,19 +159,19 @@ public class DBOAuthenticationDAOImplTest {
 
 		// A second hasn't passed yet
 		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertNotNull(session);
-		Assert.assertEquals(secretRow.getSessionToken(), session.getSessionToken());
+		assertNotNull(session);
+		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
 		Thread.sleep(1500);
 		
 		// Session should no longer be valid
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertNull(session);
+		assertNull(session);
 
 		// Session is valid again
 		authDAO.revalidateSessionToken(secretRow.getPrincipalId().toString());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		Assert.assertEquals(secretRow.getSessionToken(), session.getSessionToken());
+		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -161,7 +179,7 @@ public class DBOAuthenticationDAOImplTest {
 		// The original credentials should authenticate correctly
 		basicDAO.update(secretRow);
 		Long principalId = authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
-		Assert.assertEquals(secretRow.getPrincipalId(), principalId);
+		assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Change the password and try to authenticate again
 		authDAO.changePassword(secretRow.getPrincipalId().toString(), "Bibbity Boppity BOO!");
@@ -194,7 +212,30 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Compare the salts
 		byte[] passedSalt = authDAO.getPasswordSalt(GROUP_NAME);
-		Assert.assertArrayEquals(salt, passedSalt);
+		assertArrayEquals(salt, passedSalt);
+	}
+	
+	@Test
+	public void testSetToU() throws Exception {
+		basicDAO.update(secretRow);
+		String userId = secretRow.getPrincipalId().toString();
+		
+		// Reject the terms
+		authDAO.setTermsOfUseAcceptance(userId, false);
+		assertFalse(authDAO.hasUserAcceptedToU(userId));
+		assertNull(authDAO.getSessionTokenIfValid(GROUP_NAME));
+		
+		// Accept the terms
+		authDAO.setTermsOfUseAcceptance(userId, true);
+		assertTrue(authDAO.hasUserAcceptedToU(userId));
+		
+		// Pretend we haven't had a chance to see the terms yet
+		authDAO.setTermsOfUseAcceptance(userId, null);
+		assertFalse(authDAO.hasUserAcceptedToU(userId));
+		
+		// Accept the terms again
+		authDAO.setTermsOfUseAcceptance(userId, true);
+		assertTrue(authDAO.hasUserAcceptedToU(userId));
 	}
 	
 	@Test
@@ -215,6 +256,19 @@ public class DBOAuthenticationDAOImplTest {
 			for (int i = 0; i < testUsers.length; i++) {
 				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], authDAO.getPasswordSalt(testUsers[i]));
 				authDAO.checkEmailAndPassword(testUsers[i], passHash);
+			}
+		}
+		
+		// Most bootstrapped users should have signed the terms
+		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
+		for (UserGroupInt ug : ugs) {
+			if (ug.getIsIndividual() 
+					&& !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())
+					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
+				MapSqlParameterSource param = new MapSqlParameterSource();
+				param.addValue("principalId", ug.getId());
+				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param);
+				assertTrue(creds.getAgreesToTermsOfUse());
 			}
 		}
 	}
