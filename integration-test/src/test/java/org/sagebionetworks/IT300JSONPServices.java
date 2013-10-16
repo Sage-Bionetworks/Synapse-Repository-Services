@@ -19,7 +19,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -140,8 +140,7 @@ public class IT300JSONPServices {
 		// Make a simple call to the repository service 
 		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
 		String callbackName = "parseMe";
-		String teamId = makeATeam();
-		urlBuilder.append("/team/"+teamId+"?callback="); 
+		urlBuilder.append("/teams"+"?callback="); 
 		urlBuilder.append(callbackName);
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
 		assertNotNull(response);
@@ -150,7 +149,7 @@ public class IT300JSONPServices {
 		String responseBody = EntityUtils.toString(response.getEntity());
 		String expectedPrefix = callbackName+"(";
 		String expectedSuffix = ");";
-		assertTrue(responseBody.startsWith(expectedPrefix));
+		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results		
@@ -168,7 +167,7 @@ public class IT300JSONPServices {
 		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
 		String callbackName = "parseMe";
 		String teamId = makeATeam();
-		urlBuilder.append("/team/"+teamId+"/member?callback="); 
+		urlBuilder.append("/teamMembers/"+teamId+"?callback="); 
 		urlBuilder.append(callbackName);
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
 		assertNotNull(response);
@@ -177,13 +176,13 @@ public class IT300JSONPServices {
 		String responseBody = EntityUtils.toString(response.getEntity());
 		String expectedPrefix = callbackName+"(";
 		String expectedSuffix = ");";
-		assertTrue(responseBody.startsWith(expectedPrefix));
+		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
 		assertTrue(responseBody.endsWith(expectedSuffix));
 		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
 		// Make sure we can parse the results		
 		JSONObject jsonObj = new JSONObject(extractedJson);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<UserGroupHeader> results = new PaginatedResults<UserGroupHeader>(UserGroupHeader.class);
+		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(TeamMember.class);
 		results.initializeFromJSONObject(adapter);
 		assertNotNull(results.getTotalNumberOfResults());
 	}

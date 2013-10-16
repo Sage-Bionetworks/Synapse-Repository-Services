@@ -600,6 +600,9 @@ public class UrlHelpers {
 	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
 	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";
 	public static final String TEAM_ID_MEMBER_ID_MEMBERSHIP_STATUS = TEAM_ID_MEMBER+PRINCIPAL_ID+"/membershipStatus";
+	// 	Team URIs for JSONP
+	public static final String TEAMS = "/teams";
+	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
 	
 	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";

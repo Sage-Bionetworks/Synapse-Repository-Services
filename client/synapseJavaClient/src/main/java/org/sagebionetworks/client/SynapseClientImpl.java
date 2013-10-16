@@ -263,9 +263,11 @@ public class SynapseClientImpl implements SynapseClient {
 
 	// Team
 	protected static final String TEAM = "/team";
+	protected static final String TEAMS = "/teams";
 	protected static final String USER = "/user";
 	protected static final String NAME_FRAGMENT_FILTER = "fragment";
 	protected static final String ICON = "/icon";
+	protected static final String TEAM_MEMBERS = "/teamMembers";
 	protected static final String MEMBER = "/member";
 	protected static final String PERMISSION = "/permission";
 	protected static final String MEMBERSHIP_STATUS = "/membershipStatus";
@@ -3392,7 +3394,7 @@ public class SynapseClientImpl implements SynapseClient {
 				} else if (statusCode >= 400 && statusCode < 500) {
 					throw new SynapseUserException(exceptionContent);
 				} else {
-					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent);
+					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
 				}
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
@@ -4557,9 +4559,9 @@ public class SynapseClientImpl implements SynapseClient {
 			long offset) throws SynapseException {
 		String uri = null;
 		if (fragment==null) {
-			uri = TEAM+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAMS+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = TEAM+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAMS+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -4643,9 +4645,9 @@ public class SynapseClientImpl implements SynapseClient {
 			long limit, long offset) throws SynapseException {
 		String uri = null;
 		if (fragment==null) {
-			uri = TEAM+"/"+teamId+MEMBER+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAM_MEMBERS+"/"+teamId+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = TEAM+"/"+teamId+MEMBER+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+
+			uri = TEAM_MEMBERS+"/"+teamId+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+
 					"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);

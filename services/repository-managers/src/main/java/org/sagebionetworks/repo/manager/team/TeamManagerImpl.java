@@ -22,8 +22,8 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -62,9 +62,9 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	@Autowired
-	private MembershipInvitationManager membershipInvitationManager;
+	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	@Autowired
-	private MembershipRequestManager membershipRequestManager;
+	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 	
 	public TeamManagerImpl() {}
 	
@@ -77,8 +77,8 @@ public class TeamManagerImpl implements TeamManager {
 			UserManager userManager,
 			AccessControlListDAO aclDAO,
 			FileHandleManager fileHandlerManager,
-			MembershipInvitationManager membershipInvitationManager,
-			MembershipRequestManager membershipRequestManager
+			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
+			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -87,8 +87,8 @@ public class TeamManagerImpl implements TeamManager {
 		this.userManager = userManager;
 		this.aclDAO = aclDAO;
 		this.fileHandleManager = fileHandlerManager;
-		this.membershipInvitationManager = membershipInvitationManager;
-		this.membershipRequestManager = membershipRequestManager;
+		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
+		this.membershipRqstSubmissionDAO = membershipRqstSubmissionDAO;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -121,7 +121,7 @@ public class TeamManagerImpl implements TeamManager {
 		team.setModifiedOn(now);
 	}
 	
-	private static final ACCESS_TYPE[] ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
+	public static final ACCESS_TYPE[] ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
 		ACCESS_TYPE.READ, 
 		ACCESS_TYPE.UPDATE, 
 		ACCESS_TYPE.DELETE, 
@@ -197,6 +197,7 @@ public class TeamManagerImpl implements TeamManager {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
+		if (!userManager.doesPrincipalExist(team.getName())) throw new InvalidModelException("Name "+team.getName()+" is already used.");
 		String id = userManager.createPrincipal(team.getName(), /*isIndividual*/false);
 		team.setId(id);
 		Date now = new Date();
@@ -296,9 +297,9 @@ public class TeamManagerImpl implements TeamManager {
 	
 	/**
 	 * Either:
-		principalId is self and membership invitation has been extended, or
+		principalId is self and membership invitation has been extended (and not yet accepted), or
     	principalId is self and have MEMBERSHIP permission on Team, or
-    	have MEMBERSHIP permission on Team and membership request has been created for principalId
+    	have MEMBERSHIP permission on Team and membership request has been created (but not yet accepted) for principalId
 	 * @param userInfo
 	 * @param teamId the ID of the team
 	 * @param principalId the ID of the one to be added to the team
@@ -308,18 +309,19 @@ public class TeamManagerImpl implements TeamManager {
 		if (userInfo.isAdmin()) return true;
 		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		long now = System.currentTimeMillis();
 		if (principalIsSelf) {
 			// trying to add myself to Team.  
 			if (amTeamAdmin) return true;
-			// if I'm not a team admin, then I need to have an invitation
-			PaginatedResults<MembershipInvitation> openInvitations = membershipInvitationManager.getOpenForUserInRange(principalId,1,0);
-			return openInvitations.getTotalNumberOfResults()>0L;
+			// if I'm not a team admin, then I need to have an open invitation
+			long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+			return openInvitationCount>0L;
 		} else {
 			// the member to be added is someone other than me
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
-			PaginatedResults<MembershipRequest> openRequests = membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, principalId,1,0);
-			return openRequests.getTotalNumberOfResults()>0L;
+			long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+			return openRequestCount>0L;
 		}
 	}
 	
@@ -435,12 +437,14 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setTeamId(teamId);
 		tms.setUserId(principalId);
 		tms.setIsMember(userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId));
-		PaginatedResults<MembershipInvitation> mis = membershipInvitationManager.getOpenForUserAndTeamInRange(principalId, teamId, 1, 0);
-		tms.setHasOpenInvitation(mis.getTotalNumberOfResults()>0);
-		PaginatedResults<MembershipRequest> mrs = membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, principalId, 1, 0);
-		tms.setHasOpenRequest(mrs.getTotalNumberOfResults()>0);
+		long now = System.currentTimeMillis();
+		long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+		tms.setHasOpenInvitation(openInvitationCount>0L);
+		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+		tms.setHasOpenRequest(openRequestCount>0L);
 		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalId));
 		return tms;
 	}
+	
 
 }

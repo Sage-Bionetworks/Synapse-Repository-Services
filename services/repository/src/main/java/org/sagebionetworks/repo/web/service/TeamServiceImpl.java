@@ -62,6 +62,9 @@ public class TeamServiceImpl implements TeamService {
 	private volatile Trie<String, Collection<Team>> teamNamePrefixCache;
 	// key is team id, value is a prefix cache for the team's members
 	private volatile Map<String, Trie<String, Collection<TeamMember>>> teamMemberPrefixCache;
+	
+	// for testing (e.g. setting a mocked manager
+	public void setTeamManager(TeamManager teamManager) {this.teamManager=teamManager;}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#create(java.lang.String, org.sagebionetworks.repo.model.Team)

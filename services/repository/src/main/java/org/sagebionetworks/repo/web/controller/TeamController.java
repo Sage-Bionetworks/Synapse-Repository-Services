@@ -51,7 +51,7 @@ public class TeamController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.TEAM, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.TEAMS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Team> getTeamsByNameFragment(
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
@@ -145,7 +145,7 @@ public class TeamController extends BaseController {
 	
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.TEAM_MEMBERS_ID, method = RequestMethod.GET)
 	public  @ResponseBody 
 	PaginatedResults<TeamMember> getTeamMembers(
 			@PathVariable String id,
