@@ -81,7 +81,7 @@ public class TableControllerAutowireTest {
 		table.setParentId(parent.getId());
 		List<String> idList = new LinkedList<String>();
 		idList.add(one.getId());
-//		idList.add(two.getId());
+		idList.add(two.getId());
 		table.setColumnIds(idList);
 		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, testUser);
 		assertNotNull(table);
