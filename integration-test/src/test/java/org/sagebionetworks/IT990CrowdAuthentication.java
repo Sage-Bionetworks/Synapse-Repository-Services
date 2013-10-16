@@ -51,7 +51,7 @@ public class IT990CrowdAuthentication {
 	}
 	
 	@Before
-	public static void setup() throws Exception {
+	public void setup() throws Exception {
 		synapse.login(username, password);
 	}
 
