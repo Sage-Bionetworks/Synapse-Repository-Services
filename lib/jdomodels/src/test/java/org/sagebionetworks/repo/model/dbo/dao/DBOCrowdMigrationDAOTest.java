@@ -24,10 +24,16 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -63,6 +69,12 @@ public class DBOCrowdMigrationDAOTest {
 	
 	@Autowired
 	private AuthenticationDAO authDAO;
+	
+	@Autowired
+	private TeamDAO teamDAO;
+	
+	@Autowired
+	private AccessControlListDAO aclDAO;
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
@@ -392,6 +404,20 @@ public class DBOCrowdMigrationDAOTest {
 		List<UserGroup> clubby = groupMembersDAO.getMembers(notSoExclusiveAnymore.getId());
 		assertEquals("There should be one member", 1, clubby.size());
 		assertEquals("The one member should be the Spanlish one", randUsername, clubby.get(0).getName());
+		
+		// There should be a team too
+		Team team = teamDAO.get(notSoExclusiveAnymore.getId());
+		assertNotNull(team);
+		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, team.getCreatedBy());
+		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, team.getModifiedBy());
+		
+		// And an ACL for the team
+		AccessControlList acl = aclDAO.get(notSoExclusiveAnymore.getId(), ObjectType.TEAM);
+		assertNotNull(acl);
+		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, acl.getCreatedBy());
+		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, acl.getModifiedBy());
+		Set<ResourceAccess> raSet = acl.getResourceAccess();
+		assertEquals(2, raSet.size());
 	}
 	
 	@Test
