@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -157,12 +156,5 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getIndividualGroup().getId(), limit, offset);
-	}
-
-	@Override
-	public void agreeToTermsOfUse(UserInfo userInfo) throws NotFoundException {
-		UserProfile profile = userProfileDAO.get(userInfo.getIndividualGroup().getId());
-		profile.setAgreesToTermsOfUse(new Date().getTime());
-		userProfileDAO.update(profile);
 	}
 }

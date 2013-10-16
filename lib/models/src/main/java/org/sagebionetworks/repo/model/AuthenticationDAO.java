@@ -73,6 +73,16 @@ public interface AuthenticationDAO {
 	 */
 	@Deprecated
 	public void changeSecretKey(String id, String secretKey);
+	
+	/**
+	 * Returns whether the user has accepted the terms of use
+	 */
+	public boolean hasUserAcceptedToU(String id);
+	
+	/**
+	 * Sets whether the user has accepted, rejected, or not seen the terms of use
+	 */
+	public void setTermsOfUseAcceptance(String id, Boolean acceptance);
 
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate

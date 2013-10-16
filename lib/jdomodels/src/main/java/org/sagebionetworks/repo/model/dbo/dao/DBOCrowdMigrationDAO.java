@@ -237,18 +237,11 @@ public class DBOCrowdMigrationDAO {
 		} catch (EmptyResultDataAccessException e) { }
 
 		// Migrate the boolean for the Terms of Use over
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		long termsTimeStamp;
-		if (acceptedToU && user.getCreationDate() != null) {
-			termsTimeStamp = user.getCreationDate().getTime() / 1000;
-		} else {
-			termsTimeStamp = 0L;
-		}
-
-		// Don't needlessly update the profile if nothing has changed
-		if (userProfile.getAgreesToTermsOfUse() == null || termsTimeStamp != userProfile.getAgreesToTermsOfUse()) {
-			userProfile.setAgreesToTermsOfUse(termsTimeStamp);
-			userProfileDAO.update(userProfile);
+		// Note: it is implied that not having the ToU accepted 
+		//   is equivalent to not having seen the ToU ever
+		//   since the CrowdAuthUtils does not transmit that info to Crowd
+		if (acceptedToU) {
+			authDAO.setTermsOfUseAcceptance(user.getId(), acceptedToU);
 		}
 	}
 

@@ -98,5 +98,19 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		return session;
 	}
+
+	@Override
+	public boolean hasUserAcceptedTermsOfUse(String id) {
+		return authDAO.hasUserAcceptedToU(id);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
+		if (acceptance == null) {
+			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
+		}
+		authDAO.setTermsOfUseAcceptance(id, acceptance);
+	}
 	
 }

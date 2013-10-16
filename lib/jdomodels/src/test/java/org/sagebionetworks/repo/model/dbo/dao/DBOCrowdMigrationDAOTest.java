@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -13,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
@@ -214,14 +214,14 @@ public class DBOCrowdMigrationDAOTest {
 			users.addAll(crowdMigrationDAO.getUsersFromCrowd(1, i));
 		}
 		
-		Assert.assertEquals(numUsers, new Long(users.size()));
+		assertEquals(numUsers, new Long(users.size()));
 	}
 
 	@Test
 	public void testAbortNotInRDS() throws Exception {
 		createCrowdUser(randUsername);
 		String userId = crowdMigrationDAO.migrateUser(user);
-		Assert.assertNull(userId);
+		assertNull(userId);
 	}
 	
 	@Test
@@ -242,8 +242,8 @@ public class DBOCrowdMigrationDAOTest {
 		crowdMigrationDAO.migrateUser(user);
 
 		// The values should remain the same
-		Assert.assertEquals(userProfile, userProfileDAO.get(user.getId()));
-		Assert.assertEquals(secretKey, authDAO.getSecretKey(user.getId()));
+		assertEquals(userProfile, userProfileDAO.get(user.getId()));
+		assertEquals(secretKey, authDAO.getSecretKey(user.getId()));
 		passHash = PBKDF2Utils.hashPassword(password, authDAO.getPasswordSalt(randUsername));
 		authDAO.checkEmailAndPassword(randUsername, passHash);
 	}
@@ -269,8 +269,8 @@ public class DBOCrowdMigrationDAOTest {
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 
 		// There should be one more of each row
-		Assert.assertEquals(startUserProfileCount + 1, basicDAO.getCount(DBOUserProfile.class));
-		Assert.assertEquals(startCredentialCount + 1, basicDAO.getCount(DBOCredential.class));
+		assertEquals(startUserProfileCount + 1, basicDAO.getCount(DBOUserProfile.class));
+		assertEquals(startCredentialCount + 1, basicDAO.getCount(DBOCredential.class));
 	}
 
 	@Test
@@ -283,9 +283,8 @@ public class DBOCrowdMigrationDAOTest {
 		user.setCreationDate(new Date());
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 		crowdMigrationDAO.migrateToU(user);
-		
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		Assert.assertTrue(userProfile.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		assertTrue(authDAO.hasUserAcceptedToU(ug.getId()));
 	}
 
 	@Test
@@ -300,9 +299,8 @@ public class DBOCrowdMigrationDAOTest {
 		user.setCreationDate(ug.getCreationDate());
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 		crowdMigrationDAO.migrateToU(user);
-		
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		Assert.assertTrue(userProfile.getAgreesToTermsOfUse() < AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		assertFalse(authDAO.hasUserAcceptedToU(ug.getId()));
 	}
 
 	@Test
@@ -314,9 +312,8 @@ public class DBOCrowdMigrationDAOTest {
 		user.setCreationDate(ug.getCreationDate());
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 		crowdMigrationDAO.migrateToU(user);
-		
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		Assert.assertTrue(userProfile.getAgreesToTermsOfUse() < AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		assertFalse(authDAO.hasUserAcceptedToU(ug.getId()));
 	}
 
 	@Test
@@ -339,7 +336,7 @@ public class DBOCrowdMigrationDAOTest {
 		user.setId(ug.getId());
 		crowdMigrationDAO.migrateSecretKey(user);
 		
-		Assert.assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
+		assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
 	}
 
 	@Test
@@ -354,7 +351,7 @@ public class DBOCrowdMigrationDAOTest {
 		crowdMigrationDAO.migrateSecretKey(user);
 		
 		// Key should be unchanged
-		Assert.assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
+		assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
 	}
 	
 	@Test

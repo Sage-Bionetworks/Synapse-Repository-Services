@@ -76,4 +76,9 @@ public class AuthenticationManagerImplUnitTest {
 		Mockito.when(authDAO.getPrincipalIfValid(Mockito.eq(sessionToken))).thenReturn(null);
 		authManager.checkSessionToken(sessionToken).toString();
 	}
+	
+	@Test(expected=IllegalArgumentException.class) 
+	public void testUnseeTermsOfUse() throws Exception {
+		authManager.setTermsOfUseAcceptance(userId, null);
+	}
 }

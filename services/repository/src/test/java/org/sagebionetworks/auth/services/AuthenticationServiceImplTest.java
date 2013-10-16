@@ -81,7 +81,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
 		verify(mockUserManager).getUserInfo(anyString());
 		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
-		verify(mockUserProfileManager).agreeToTermsOfUse(eq(userInfo));
+		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 		
 	}
 	
@@ -135,7 +135,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
 		verify(mockUserManager).getUserInfo(anyString());
 		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
-		verify(mockUserProfileManager).agreeToTermsOfUse(eq(userInfo));
+		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 	}
 	
 	@Deprecated
