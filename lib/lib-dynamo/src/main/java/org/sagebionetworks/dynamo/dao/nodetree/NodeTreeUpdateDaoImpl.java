@@ -171,11 +171,9 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 		final int curPathLength = curPath.size();
 		final int newPathLength = newPath.size();
 		while (i < curPathLength && i < newPathLength) {
-			NodeLineage nodeOnCurPath = curPath.get(i);
-			NodeLineage nodeOnNewPath = newPath.get(i);
-			String currNode = nodeOnCurPath.getNodeId();
-			String newNode = nodeOnNewPath.getNodeId();
-			if (!currNode.equals(newNode)) {
+			String nodeOnCurPath = curPath.get(i).getNodeId();
+			String nodeOnNewPath = newPath.get(i).getNodeId();
+			if (!nodeOnCurPath.equals(nodeOnNewPath)) {
 				break;
 			}
 			i++;
