@@ -34,10 +34,12 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class TeamManagerImplTest {
@@ -493,7 +495,21 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO).getAllTeamsAndMembers();
 	}
 	
-			
+	@Test
+	public void testGetMembers() throws Exception {
+		TeamMember tm = new TeamMember();
+		tm.setTeamId(TEAM_ID);
+		UserGroupHeader ugh = new UserGroupHeader();
+		ugh.setOwnerId("101");
+		tm.setMember(ugh);
+		tm.setIsAdmin(false);
+		List<TeamMember> tms = Arrays.asList(new TeamMember[]{tm});
+		when(mockTeamDAO.getMembersInRange(TEAM_ID, 10, 0)).thenReturn(tms);
+		when(mockTeamDAO.getMembersCount(TEAM_ID)).thenReturn(1L);
+		PaginatedResults<TeamMember> pg = teamManagerImpl.getMembers(TEAM_ID, 10, 0);
+		assertEquals(tms, pg.getResults());
+		assertEquals(1L, pg.getTotalNumberOfResults());
+	}
 	
 	
 	

@@ -3,7 +3,7 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
@@ -113,7 +113,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='"+ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE+"'";
 	
 	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
-			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+", gm."+COL_GROUP_MEMBERS_GROUP_ID+
+			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
+			", up."+COL_USER_PROFILE_ID+
+			", gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_USER_PROFILE+" up "+
 			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+" "+
 			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
@@ -124,7 +126,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			" WHERE gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
 	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM =
-			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and t."+COL_TEAM_ID+"=:"+COL_TEAM_ID;
+			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
@@ -385,9 +387,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			tm.setTeamId(rs.getString(COL_GROUP_MEMBERS_GROUP_ID));
 			tm.setIsAdmin(false);
 			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
+			ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
 			if (upProperties!=null) {
 				ugh.setIsIndividual(true);
-				ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
 				fillUserGroupHeaderFromUpserProfileBlob(upProperties, ugh);
 			} else {
 				ugh.setIsIndividual(false);
@@ -424,7 +426,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	public long getMembersCount(String teamId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
-		return simpleJdbcTemplate.queryForLong(SELECT_MEMBERS_OF_TEAM_COUNT, teamMemberRowMapper, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_MEMBERS_OF_TEAM_COUNT, param);
 	}
 
 }

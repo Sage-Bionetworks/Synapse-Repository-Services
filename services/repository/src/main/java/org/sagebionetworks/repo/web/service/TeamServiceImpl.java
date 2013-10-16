@@ -95,6 +95,8 @@ public class TeamServiceImpl implements TeamService {
 	@Override
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException  {
+		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
+		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
 		if (fragment==null) return teamManager.get(limit, offset);
 
 		if (teamNamePrefixCache == null || teamNamePrefixCache.size() == 0 )
@@ -106,7 +108,7 @@ public class TeamServiceImpl implements TeamService {
 		PaginatedResults<Team> results = new PaginatedResults<Team>();
 		results.setTotalNumberOfResults(fullList.size());
 		List<Team> page = new ArrayList<Team>((int)limit);
-		for (int i=(int)offset; i<offset+limit; i++) page.add(fullList.get(i));
+		for (int i=(int)offset; i<offset+limit && i<fullList.size(); i++) page.add(fullList.get(i));
 		results.setResults(page);
 		return results;
 	}
@@ -197,6 +199,9 @@ public class TeamServiceImpl implements TeamService {
 			String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		
+		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
+		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
+
 		if (fragment==null) return teamManager.getMembers(teamId, limit, offset);
 		
 		if (teamMemberPrefixCache == null || teamMemberPrefixCache.size() == 0 )
@@ -211,7 +216,7 @@ public class TeamServiceImpl implements TeamService {
 		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>();
 		results.setTotalNumberOfResults(fullList.size());
 		List<TeamMember> page = new ArrayList<TeamMember>((int)limit);
-		for (int i=(int)offset; i<offset+limit; i++) page.add(fullList.get(i));
+		for (int i=(int)offset; i<offset+limit && i<fullList.size(); i++) page.add(fullList.get(i));
 		results.setResults(page);
 		return results;
 	}

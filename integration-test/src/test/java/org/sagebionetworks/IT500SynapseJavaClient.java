@@ -35,7 +35,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -70,6 +69,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -103,18 +103,6 @@ public class IT500SynapseJavaClient {
 	private static Project project = null;
 	private static Study dataset = null;
 	
-	private static SynapseClient createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
-		// Return a proxy
-		return SynapseProfileProxy.createProfileProxy(synapse);
-	}
-	
 	/**
 	 * @throws Exception
 	 * 
@@ -122,7 +110,7 @@ public class IT500SynapseJavaClient {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
+		synapse = SynapseClientHelper.createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 	}
 	
@@ -355,7 +343,7 @@ public class IT500SynapseJavaClient {
 		ar.setTermsOfUse("play nice");
 		ar = synapse.createAccessRequirement(ar);
 		
-		SynapseClient otherUser = createSynapseClient(
+		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
@@ -857,7 +845,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		
-		SynapseClient otherUser = createSynapseClient(
+		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
@@ -1398,31 +1386,36 @@ public class IT500SynapseJavaClient {
 		teams = synapse.getTeams(null, 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		// query for all teams, based on name fragment
-		// TODO NOT YET IMPLEMENTED teams = synapse.getTeams(name.substring(0, 3),1, 0);
-		// TODO assertEquals(1L, teams.getTotalNumberOfResults());
-		// TODO assertEquals(updatedTeam, teams.getResults().get(0));
+		teams = synapse.getTeams(name.substring(0, 3),1, 0);
+		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(updatedTeam, teams.getResults().get(0));
 		// again, make sure pagination works
-		// TODO NOT YET IMPLEMENTED teams = synapse.getTeams(name.substring(0, 3), 10, 1);
-		// TODO assertEquals(0L, teams.getResults().size());
+		teams = synapse.getTeams(name.substring(0, 3), 10, 1);
+		assertEquals(0L, teams.getResults().size());
 		
 		// query for team members.  should get just the creator
-		// TODO NOT YET IMPLEMENTED PaginatedResults<UserGroupHeader> members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
-		// TODO assertEquals(1L, members.getTotalNumberOfResults());
-		// TODO assertEquals(myPrincipalId, members.getResults().get(0).getOwnerId());
+		PaginatedResults<TeamMember> members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
+		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		// add a member to the team
-		SynapseClient otherUser = createSynapseClient(
+		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
-		String otherPrincipalId = otherUser.getMyProfile().getOwnerId();
+		UserProfile otherUp = otherUser.getMyProfile();
+		String otherLName = otherUp.getLastName();
+		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(createdTeam.getId());
 		otherUser.createMembershipRequest(mrs);
 		synapse.addTeamMember(updatedTeam.getId(), otherPrincipalId);
 		// query for team members.  should get member back
-		// TODO members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
-		// TODO assertEquals(2L, members.getTotalNumberOfResults());
-		// TODO query for team members using name fragment NOT YET IMPLEMENTED
+		members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
+		assertEquals(2L, members.getTotalNumberOfResults());
+		// query for team members using name fragment
+		members = synapse.getTeamMembers(createdTeam.getId(), otherLName.substring(0,4), 1, 0);
+		assertEquals(1L, members.getTotalNumberOfResults());
+		
 		// query for teams based on member's id
 		teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
@@ -1522,7 +1515,7 @@ public class IT500SynapseJavaClient {
 		// schedule Team for deletion (which will cascade to any created requests)
 		this.teamToDelete = createdTeam;
 		// create a request
-		SynapseClient otherUser = createSynapseClient(
+		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		String otherPrincipalId = otherUser.getMyProfile().getOwnerId();

@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -2282,6 +2283,22 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		
+	}
+
+
+	@Override
+	public void setTeamMemberPermissions(String teamId, String memberId,
+			boolean isAdmin) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
+			String principalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
