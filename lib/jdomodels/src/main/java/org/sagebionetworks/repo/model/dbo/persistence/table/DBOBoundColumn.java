@@ -91,8 +91,7 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		// TODO Auto-generated method stub
-		return null;
+		return MigrationType.BOUND_COLUMN;
 	}
 
 	@Override

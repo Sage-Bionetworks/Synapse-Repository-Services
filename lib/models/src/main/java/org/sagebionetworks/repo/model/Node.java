@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,6 +29,7 @@ public class Node {
 	private Map<String, Set<Reference>> references;
 	private String activityId;
 	private String fileHandleId;
+	private List<String> columnModelIds;
 
 	public Long getCreatedByPrincipalId() {
 		return createdByPrincipalId;
@@ -172,6 +174,13 @@ public class Node {
 	public void setFileHandleId(String fileHandleId) {
 		this.fileHandleId = fileHandleId;
 	}
+	
+	public List<String> getColumnModelIds() {
+		return columnModelIds;
+	}
+	public void setColumnModelIds(List<String> columnModelIds) {
+		this.columnModelIds = columnModelIds;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -180,6 +189,8 @@ public class Node {
 				+ ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result
 				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
+		result = prime * result
+				+ ((columnModelIds == null) ? 0 : columnModelIds.hashCode());
 		result = prime
 				* result
 				+ ((createdByPrincipalId == null) ? 0 : createdByPrincipalId
@@ -231,6 +242,11 @@ public class Node {
 			if (other.benefactorId != null)
 				return false;
 		} else if (!benefactorId.equals(other.benefactorId))
+			return false;
+		if (columnModelIds == null) {
+			if (other.columnModelIds != null)
+				return false;
+		} else if (!columnModelIds.equals(other.columnModelIds))
 			return false;
 		if (createdByPrincipalId == null) {
 			if (other.createdByPrincipalId != null)
@@ -309,6 +325,7 @@ public class Node {
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
 		return "Node [id=" + id + ", name=" + name + ", description="

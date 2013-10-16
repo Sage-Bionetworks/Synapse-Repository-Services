@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
@@ -43,6 +43,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("modifiedBy", COL_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_REVISION_MODIFIED_ON),
 		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID),
+		new FieldColumn("columnModelIds", COL_REVISION_COLUMN_MODEL_IDS),
 		new FieldColumn("annotations", COL_REVISION_ANNOS_BLOB),
 		new FieldColumn("references", COL_REVISION_REFS_BLOB),
 		};
@@ -72,6 +73,10 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 				blob = rs.getBlob(COL_REVISION_REFS_BLOB);
 				if(blob != null){
 					rev.setReferences(blob.getBytes(1, (int) blob.length()));
+				}
+				blob = rs.getBlob(COL_REVISION_COLUMN_MODEL_IDS);
+				if(blob != null){
+					rev.setColumnModelIds(blob.getBytes(1, (int) blob.length()));
 				}
 				return rev;
 			}
@@ -105,6 +110,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private Long modifiedBy;
 	private Long modifiedOn;
 	private Long fileHandleId;
+	private byte[] columnModelIds;
 	private byte[] annotations;
 	private byte[] references;
 
@@ -163,6 +169,12 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		this.activityId = activityId;
 	}
 	
+	public byte[] getColumnModelIds() {
+		return columnModelIds;
+	}
+	public void setColumnModelIds(byte[] columnModelIds) {
+		this.columnModelIds = columnModelIds;
+	}
 	public Long getFileHandleId() {
 		return fileHandleId;
 	}
