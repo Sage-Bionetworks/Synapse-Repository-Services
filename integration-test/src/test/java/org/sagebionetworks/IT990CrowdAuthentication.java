@@ -25,9 +25,9 @@ import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.http.HttpStatus;
@@ -72,7 +72,7 @@ public class IT990CrowdAuthentication {
 		synapse.login(username, "incorrectPassword");
 	}
 	
-	@Test(expected = SynapseForbiddenException.class)
+	@Test(expected = SynapseTermsOfUseException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();

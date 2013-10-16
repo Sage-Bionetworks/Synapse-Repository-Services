@@ -99,7 +99,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/session", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Session authenticate(@RequestBody NewUser credentials,
 			HttpServletRequest request) throws Exception {
@@ -137,7 +137,7 @@ public class AuthenticationController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/session", method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
 	public void revalidate(@RequestBody Session session) throws Exception {
 		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
 		if (!CrowdAuthUtil.acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
@@ -146,7 +146,7 @@ public class AuthenticationController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
 	public void deauthenticate(HttpServletRequest request) throws Exception {
 		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		if (null == sessionToken) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
@@ -166,7 +166,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/user", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createNewUser(@RequestBody NewUser user) throws Exception {
 		String itu = getIntegrationTestNewUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
@@ -182,7 +182,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/user", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
 	public @ResponseBody NewUser getNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userId)) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
@@ -192,7 +192,7 @@ public class AuthenticationController extends BaseController {
 	
 	// for integration testing
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void deleteNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		String itu = getIntegrationTestNewUser();
 		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
@@ -212,7 +212,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody NewUser user) throws Exception {
 		sendNewUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
 	}
@@ -228,7 +228,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
 	public void setPassword(@RequestBody ChangeUserPassword changeNewUserPassword,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (userId==null) 
@@ -242,7 +242,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/changeEmail", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_CHANGE_EMAIL, method = RequestMethod.POST)
 	public void changeEmail(@RequestBody RegistrationInfo registrationInfo,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		//user must be logged in to make this request
@@ -269,7 +269,7 @@ public class AuthenticationController extends BaseController {
 	
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/registeringNewUserPassword", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_PASSWORD, method = RequestMethod.POST)
 	public void setRegisteringNewUserPassword(@RequestBody RegistrationInfo registrationInfo,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		String registrationToken = registrationInfo.getRegistrationToken();
@@ -288,7 +288,7 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody SecretKey newSecretKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (userId==null) 
@@ -316,7 +316,7 @@ public class AuthenticationController extends BaseController {
 	
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/secretKey", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (userId==null) 
