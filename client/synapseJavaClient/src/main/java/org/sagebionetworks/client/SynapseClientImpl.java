@@ -93,6 +93,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -266,6 +267,10 @@ public class SynapseClientImpl implements SynapseClient {
 	protected static final String NAME_FRAGMENT_FILTER = "fragment";
 	protected static final String ICON = "/icon";
 	protected static final String MEMBER = "/member";
+	protected static final String PERMISSION = "/permission";
+	protected static final String MEMBERSHIP_STATUS = "/membershipStatus";
+	protected static final String TEAM_MEMBERSHIP_PERMISSION = "isAdmin";
+	
 	// membership invitation
 	protected static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	protected static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
@@ -4659,6 +4664,28 @@ public class SynapseClientImpl implements SynapseClient {
 			throws SynapseException {
 		deleteUri(TEAM+"/"+teamId+MEMBER+"/"+memberId);
 	}
+	
+	@Override
+	public void setTeamMemberPermissions(String teamId, String memberId,
+			boolean isAdmin) throws SynapseException {
+		putJSONObject(TEAM+"/"+teamId+MEMBER+"/"+memberId+
+				PERMISSION+"?"+TEAM_MEMBERSHIP_PERMISSION+"="+isAdmin, 
+				new JSONObject(), new HashMap<String,String>());
+	}
+
+	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
+			String principalId) throws SynapseException {
+		JSONObject jsonObj = getEntity(TEAM+"/"+teamId+MEMBER+"/"+principalId+MEMBERSHIP_STATUS);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		TeamMembershipStatus results = new TeamMembershipStatus();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 
 	@Override
 	public MembershipInvtnSubmission createMembershipInvitation(
@@ -4768,6 +4795,4 @@ public class SynapseClientImpl implements SynapseClient {
 			throws SynapseException {
 		deleteUri(MEMBERSHIP_REQUEST+"/"+requestId);
 	}
-
-
 }

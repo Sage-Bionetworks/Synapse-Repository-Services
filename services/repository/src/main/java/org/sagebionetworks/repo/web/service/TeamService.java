@@ -7,7 +7,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TeamService {
@@ -138,5 +140,34 @@ public interface TeamService {
 	 */
 	Long millisSinceLastCacheUpdate();
 
+	/**
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	void refreshCache() throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param teamId
+	 * @param principalId
+	 * @param isAdmin
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public void setPermissions(String userId, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public TeamMembershipStatus getTeamMembershipStatus(String userId, String teamId, String principalId) throws DatastoreException, NotFoundException;
+	
 }

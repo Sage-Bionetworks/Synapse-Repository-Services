@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -814,6 +815,24 @@ public interface SynapseClient {
 	 */
 	void removeTeamMember(String teamId, String memberId) throws SynapseException;
 	
+	/**
+	 * 
+	 * @param teamId
+	 * @param memberId
+	 * @param isAdmin
+	 * @throws SynapseException
+	 */
+	void setTeamMemberPermissions(String teamId, String memberId, boolean isAdmin) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws SynapseException
+	 */
+	TeamMembershipStatus getTeamMembershipStatus(String teamId, String principalId) throws SynapseException;
+
 	/**
 	 * 
 	 * @param invitation

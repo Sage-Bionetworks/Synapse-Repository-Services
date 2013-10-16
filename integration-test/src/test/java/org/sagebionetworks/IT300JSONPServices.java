@@ -11,12 +11,17 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 
 /**
@@ -99,4 +104,29 @@ public class IT300JSONPServices {
 		assertEquals("http://synapse.sagebase.org/ontology#11291", crp.getUri());
 	}
 
+	@Test
+	public void testTeamJSONP() throws Exception {
+		// Make a simple call to the repository service 
+		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		String callbackName = "parseMe";
+		String teamId = "101"; // TODO make a team
+		urlBuilder.append("/team/"+teamId+"?callback="); 
+		urlBuilder.append(callbackName);
+		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
+		assertNotNull(response);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		assertNotNull(response.getEntity());
+		String responseBody = EntityUtils.toString(response.getEntity());
+		String expectedPrefix = callbackName+"(";
+		String expectedSuffix = ");";
+		assertTrue(responseBody.startsWith(expectedPrefix));
+		assertTrue(responseBody.endsWith(expectedSuffix));
+		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
+		// Make sure we can parse the results		
+		JSONObject jsonObj = new JSONObject(extractedJson);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Team> results = new PaginatedResults<Team>(Team.class);
+		results.initializeFromJSONObject(adapter);
+		assertNotNull(results.getTotalNumberOfResults());
+	}
 }

@@ -232,9 +232,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			if (!dto.getName().equals(deserializedProperties.getName())) throw new InvalidModelException("Cannot modify team name.");
 		}
 		
-		TeamUtils.copyDtoToDbo(dto, dbo);
 		// Update with a new e-tag
-		dbo.setEtag(eTagGenerator.generateETag());
+		dto.setEtag(eTagGenerator.generateETag());
+		TeamUtils.copyDtoToDbo(dto, dbo);
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating Team in database.");

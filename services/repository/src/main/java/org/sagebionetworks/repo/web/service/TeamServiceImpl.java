@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -280,6 +281,22 @@ public class TeamServiceImpl implements TeamService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.removeMember(userInfo, teamId, principalId);
+	}
+
+	@Override
+	public void setPermissions(String userId, String teamId,
+			String principalId, boolean isAdmin) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		teamManager.setPermissions(userInfo, teamId, principalId, isAdmin);
+	}
+
+	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(String userId,
+			String teamId, String principalId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return teamManager.getTeamMembershipStatus(userInfo, teamId, principalId);
 	}
 
 }

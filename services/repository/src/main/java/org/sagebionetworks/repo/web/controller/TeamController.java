@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -119,6 +120,29 @@ public class TeamController extends BaseController {
 			) throws NotFoundException {
 		serviceProvider.getTeamService().addMember(userId, id, principalId);
 	}
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID_PERMISSION, method = RequestMethod.PUT)
+	public void setTeamAdmin(
+			@PathVariable String id,
+			@PathVariable String principalId,
+			@RequestParam(value = UrlHelpers.TEAM_PERMISSION_REQUEST_PARAMETER, required = true) Boolean isAdmin,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) throws NotFoundException {
+		serviceProvider.getTeamService().setPermissions(userId, id, principalId, isAdmin);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID_MEMBERSHIP_STATUS, method = RequestMethod.GET)
+	public @ResponseBody 
+	TeamMembershipStatus getTeamMembershipStatus(
+			@PathVariable String id,
+			@PathVariable String principalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) throws NotFoundException {
+		return serviceProvider.getTeamService().getTeamMembershipStatus(userId, id, principalId);
+	}
+	
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER, method = RequestMethod.GET)

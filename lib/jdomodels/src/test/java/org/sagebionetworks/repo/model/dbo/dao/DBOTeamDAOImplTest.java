@@ -123,6 +123,9 @@ public class DBOTeamDAOImplTest {
 		Team updated = teamDAO.update(clone);
 		clone.setEtag(updated.getEtag()); // for comparison
 		assertEquals(clone, updated);
+		
+		Team retrieved = teamDAO.get(updated.getId());
+		assertEquals(updated, retrieved);
 				
 		assertEquals(1, teamDAO.getInRange(1, 0).size());
 		assertEquals(0, teamDAO.getInRange(2, 1).size());
@@ -145,8 +148,7 @@ public class DBOTeamDAOImplTest {
 		UserProfile up = createUserProfileForGroup(pg);
 		userProfileDAO.create(up);
 		upToDelete = Long.parseLong(up.getOwnerId());
-		Map<TeamHeader,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<TeamHeader,Collection<TeamMember>>();
-		TeamHeader th = createTeamHeaderFromTeam(updated);
+		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
 		TeamMember tm = new TeamMember();
 		tm.setIsAdmin(false);
@@ -154,14 +156,15 @@ public class DBOTeamDAOImplTest {
 		tm.setTeamId(""+id);
 		List<TeamMember> tmList = new ArrayList<TeamMember>();
 		tmList.add(tm);
-		expectedAllTeamsAndMembers.put(th,  tmList);
+		expectedAllTeamsAndMembers.put(updated,  tmList);
 		
 		// we have to check 'equals' on the pieces because a global 'assertEquals' fails
 		Map<Team,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
 		assertEquals(expectedAllTeamsAndMembers.size(), actualAllTeamsAndMembers.size());
-		for (TeamHeader t : expectedAllTeamsAndMembers.keySet()) {
+		for (Team t : expectedAllTeamsAndMembers.keySet()) {
 			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);
 			Collection<TeamMember> actualTeamMembers = actualAllTeamsAndMembers.get(t);
+			assertNotNull("Missing key "+t, actualTeamMembers);
 			assertEquals(expectedTeamMembers.size(), actualTeamMembers.size());
 			for (TeamMember m : expectedTeamMembers) {
 				assertTrue(actualTeamMembers.contains(m));

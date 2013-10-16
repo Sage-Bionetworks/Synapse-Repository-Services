@@ -154,6 +154,15 @@ public interface TeamManager {
 	 */
 	public void setPermissions(UserInfo userInfo, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, NotFoundException;
 	
 	/**
