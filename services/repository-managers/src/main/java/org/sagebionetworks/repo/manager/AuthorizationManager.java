@@ -100,4 +100,11 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 */
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
+	
+	/**
+	 * Is this the AnonymousUser?
+	 * @param userInfo
+	 * @return
+	 */
+	public boolean isAnonymousUser(UserInfo userInfo);
 }

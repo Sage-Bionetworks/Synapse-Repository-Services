@@ -226,6 +226,9 @@
 	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl"
 		scope="singleton" />
 
+	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
+		scope="singleton" />
+
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
 		<constructor-arg index="0" ref="nodeTreeUpdateDao" />
 		<constructor-arg index="1" ref="nodeDao" />

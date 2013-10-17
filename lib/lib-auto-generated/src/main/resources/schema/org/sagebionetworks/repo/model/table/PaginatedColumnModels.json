@@ -1,0 +1,16 @@
+{
+    "description":"Paginated results of a ColumnModel",
+    "properties":{
+		"results": {
+		    "description":"The list of ColumnModels for this page",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		},
+		"totalNumberOfResults":{
+			"description":"The total number of results",
+			"type": "integer"
+		}
+    }
+}

@@ -313,6 +313,11 @@ public class EntityManagerImplAutowireTest {
 		}
 	}
 	
+	@Test
+	public void testCreateTableEntity(){
+		
+	}
+	
 	/**
 	 * Create a dataset with all of its fields filled in.
 	 * @return

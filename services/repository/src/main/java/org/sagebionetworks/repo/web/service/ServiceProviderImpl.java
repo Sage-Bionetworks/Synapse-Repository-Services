@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -50,6 +52,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private DoiService doiService;
 	@Autowired
 	private MigrationService migrationService;
+	@Autowired
+	private TableServices tableServices;
 	@Autowired
 	private TeamService teamService;
 	@Autowired
@@ -125,6 +129,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public MigrationService getMigrationService() {
 		return migrationService;
+	}
+	@Override
+	public TableServices getTableServices() {
+		return tableServices;
 	}
 	@Override
 	public TeamService getTeamService() {

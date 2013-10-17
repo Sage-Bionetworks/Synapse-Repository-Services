@@ -490,6 +490,44 @@ public class SynapseTest {
 		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
  	}
 	
+	@Test
+	public void testBuildListColumnModelUrl(){
+		String prefix = null;
+		Long limit = null;
+		Long offset = null;
+		String expected ="/column";
+		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+		
+		prefix = "abc";
+		limit = null;
+		offset = null;
+		expected ="/column?prefix=abc";
+		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+		
+		prefix = null;
+		limit = 123l;
+		offset = null;
+		expected ="/column?limit=123";
+		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+		
+		prefix = null;
+		limit = null;
+		offset = 44l;
+		expected ="/column?offset=44";
+		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+		
+		prefix = null;
+		limit = 123l;
+		offset = 44l;
+		expected ="/column?limit=123&offset=44";
+		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+		
+		prefix = "abc";
+		limit = 123l;
+		offset = 44l;
+		expected ="/column?prefix=abc&limit=123&offset=44";
+		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+	}
 	
 	
 	/*

@@ -63,7 +63,13 @@
 		},
 		"isIndividual": {
 			"type": "boolean",
-			"description": "True if this is a user, false if it is a group"
+			"description": "True if this is a user, false if it is a group",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		}
 	}
 }

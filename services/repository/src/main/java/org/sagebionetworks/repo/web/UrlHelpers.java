@@ -8,12 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -583,8 +580,11 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID =EVALUATION_OWNER_ID + WIKI_WITH_ID;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
-	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
-
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;	
+	// Tables
+	public static final String COLUMN = "/column";
+	public static final String COLUMN_ID = COLUMN+"/{columnId}";
+	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	// V2 Wiki URL
 	public static final String WIKI_V2 = "/wiki2";
 	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
@@ -626,6 +626,14 @@ public class UrlHelpers {
 	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";
 	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
 	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
+	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
+	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";
+	public static final String TEAM_ID_MEMBER_ID_MEMBERSHIP_STATUS = TEAM_ID_MEMBER+PRINCIPAL_ID+"/membershipStatus";
+	public static final String TEAM_UPDATE_SEARCH_CACHE = "updateTeamSearchCache";
+	// 	Team URIs for JSONP
+	public static final String TEAMS = "/teams";
+	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
+	
 	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;
@@ -636,7 +644,6 @@ public class UrlHelpers {
 	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;
 	public static final String OPEN_MEMBERSHIP_REQUEST = TEAM_ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
-	
 	
 	/**
 	 * APIs for DynamoDB related operations.
@@ -652,14 +659,22 @@ public class UrlHelpers {
 	 * Temporary API for migrating users from Crowd into RDS
 	 */
 	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
+	
+	// Authentication
+	public static final String AUTH_SESSION = "/session";
+	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
+	public static final String AUTH_USER = "/user";
+	public static final String AUTH_USER_PASSWORD_EMAIL = "/userPasswordEmail";
+	public static final String AUTH_API_PASSWORD_EMAIL = "/apiPasswordEmail";
+	public static final String AUTH_USER_PASSWORD = "/userPassword";
+	public static final String AUTH_CHANGE_EMAIL = "/changeEmail";
+	public static final String AUTH_REGISTERING_USER_PASSWORD = "/registeringUserPassword";
+	public static final String AUTH_SECRET_KEY = "/secretKey";
+	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 
-	/**
-	 * This is a memoized cache for our URL regular expressions
-	 */
-	private static Map<Class, Pattern> MODEL2REGEX = new HashMap<Class, Pattern>();
-
+	
 	static {
-
+		@SuppressWarnings("rawtypes")
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);

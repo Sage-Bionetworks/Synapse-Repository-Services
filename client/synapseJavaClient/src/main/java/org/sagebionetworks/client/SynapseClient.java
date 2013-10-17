@@ -47,9 +47,10 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -77,6 +78,8 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -724,29 +727,222 @@ public interface SynapseClient {
 	UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException;
 	
+	/**
+	 * Create a new ColumnModel. If a column already exists with the same parameters,
+	 * that column will be returned.
+	 * @param model
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ColumnModel createColumnModel(ColumnModel model) throws SynapseException;
+	
+	/**
+	 * Get a ColumnModel from its ID.
+	 * 
+	 * @param columnId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ColumnModel getColumnModel(String columnId) throws SynapseException;
+	
 	// Team services
+	
+	/**
+	 * 
+	 * @param team
+	 * @return
+	 * @throws SynapseException
+	 */
 	Team createTeam(Team team) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 * @throws SynapseException
+	 */
 	Team getTeam(String id) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param fragment if null then return all teams
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
 	PaginatedResults<Team> getTeams(String fragment, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param memberId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
 	PaginatedResults<Team> getTeamsForUser(String memberId, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param redirect
+	 * @return
+	 * @throws SynapseException if no icon for team (service throws 404)
+	 */
 	URL getTeamIcon(String teamId, Boolean redirect) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param team
+	 * @return
+	 * @throws SynapseException
+	 */
 	Team updateTeam(Team team) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @throws SynapseException
+	 */
 	void deleteTeam(String teamId) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param memberId
+	 * @throws SynapseException
+	 */
 	void addTeamMember(String teamId, String memberId) throws SynapseException;
-	PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * Return the members of the given team matching the given name fragment.
+	 * 
+	 * @param teamId
+	 * @param fragment if null then return all members in the team
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
+	 * @param teamId
+	 * @param memberId
+	 * @throws SynapseException
+	 */
 	void removeTeamMember(String teamId, String memberId) throws SynapseException;
 	
+	/**
+	 * 
+	 * @param teamId
+	 * @param memberId
+	 * @param isAdmin
+	 * @throws SynapseException
+	 */
+	void setTeamMemberPermissions(String teamId, String memberId, boolean isAdmin) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws SynapseException
+	 */
+	TeamMembershipStatus getTeamMembershipStatus(String teamId, String principalId) throws SynapseException;
+
+	/**
+	 * 
+	 * @param invitation
+	 * @return
+	 * @throws SynapseException
+	 */
 	MembershipInvtnSubmission createMembershipInvitation(MembershipInvtnSubmission invitation) throws SynapseException;
+
+	/**
+	 * 
+	 * @param invitationId
+	 * @return
+	 * @throws SynapseException
+	 */
 	MembershipInvtnSubmission getMembershipInvitation(String invitationId) throws SynapseException;
+
+	/**
+	 * 
+	 * @param memberId
+	 * @param teamId the team for which the invitations are extended (optional)
+	 * @param limit
+	 * @param offset
+	 * @return a list of open invitations to the given member, optionally filtered by team
+	 * @throws SynapseException
+	 */
 	PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(String memberId, String teamId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
+	 * @param invitationId
+	 * @throws SynapseException
+	 */
 	void deleteMembershipInvitation(String invitationId) throws SynapseException;
 	
+	/**
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
 	MembershipRqstSubmission createMembershipRequest(MembershipRqstSubmission request) throws SynapseException;
+	/**
+	 * 
+	 * @param requestId
+	 * @return
+	 * @throws SynapseException
+	 */
 	MembershipRqstSubmission getMembershipRequest(String requestId) throws SynapseException;
+
+	/**
+	 * 
+	 * @param teamId
+	 * @param requestorId the id of the user requesting membership (optional)
+	 * @param limit
+	 * @param offset
+	 * @return a list of membership requests sent to the given team, optionally filtered by the requestor
+	 * @throws SynapseException
+	 */
 	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
+	 * @param requestId
+	 * @throws SynapseException
+	 */
 	void deleteMembershipRequest(String requestId) throws SynapseException;
 
-	
+
+	/**
+	 * Refesh the prefix-cache for retrieving teams and team members
+	 * @throws SynapseException
+	 */
+	void updateTeamSearchCache() throws SynapseException;
 	
 
+	/** Get the List of ColumnModels for TableEntity given the TableEntity's ID.
+	 * 
+	 * @param tableEntityId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId) throws SynapseException;
+	
+	/**
+	 * List all of the ColumnModes in Synapse with pagination.
+	 * @param prefix - When provided, only ColumnModels with names that start with this prefix will be returned.
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException 
+	 */
+	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
 }

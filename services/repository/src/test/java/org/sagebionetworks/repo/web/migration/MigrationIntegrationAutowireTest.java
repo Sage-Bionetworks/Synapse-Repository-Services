@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -23,7 +25,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -38,6 +39,8 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -58,13 +61,13 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -79,6 +82,8 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -121,9 +126,6 @@ public class MigrationIntegrationAutowireTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private EvaluationDAO evaluationDAO;
-	
-	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
 	@Autowired
@@ -162,6 +164,8 @@ public class MigrationIntegrationAutowireTest {
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	
+	@Autowired
+	private ColumnModelDAO columnModelDao;
 	@Autowired
 	private V2WikiPageDao wikiPageDao;
 
@@ -213,6 +217,8 @@ public class MigrationIntegrationAutowireTest {
 	// Favorite
 	Favorite favorite;
 	
+	ColumnModel columnModel;
+	
 	// UserGroups 
 	List<UserGroup> nonVitalUserGroups;
 	
@@ -242,6 +248,19 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials();
+		createColumnModel();
+	}
+
+
+	private void createColumnModel() throws DatastoreException, NotFoundException {
+		columnModel = new ColumnModel();
+		columnModel.setName("MigrationTest");
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel = columnModelDao.createColumnModel(columnModel);
+		// bind this column to an entity.
+		Set<String> toBind = new HashSet<String>();
+		toBind.add(columnModel.getId());
+		columnModelDao.bindColumnToObject(toBind, "syn123");
 	}
 
 
@@ -556,7 +575,9 @@ public class MigrationIntegrationAutowireTest {
 		
 		// create a MembershipRqstSubmission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date createdOn = new Date();
 		Date expiresOn = new Date();
+		mrs.setCreatedOn(createdOn);
 		mrs.setExpiresOn(expiresOn);
 		mrs.setMessage("Please let me join the team.");
 		mrs.setTeamId(""+group.getId());
@@ -568,6 +589,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		// create a MembershipInvtnSubmission
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setCreatedOn(createdOn);
 		mis.setExpiresOn(expiresOn);
 		mis.setMessage("Please join the team.");
 		mis.setTeamId(""+group.getId());
