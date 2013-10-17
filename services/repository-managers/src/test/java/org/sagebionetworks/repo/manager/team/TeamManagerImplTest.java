@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -46,7 +45,6 @@ public class TeamManagerImplTest {
 	private TeamDAO mockTeamDAO = null;
 	private GroupMembersDAO mockGroupMembersDAO = null;
 	private UserGroupDAO mockUserGroupDAO = null;
-	private UserManager mockUserManager = null;
 	private AccessControlListDAO mockAclDAO = null;
 	private FileHandleManager mockFileHandleManager = null;
 	private MembershipInvitationManager mockMembershipInvitationManager = null;
@@ -64,7 +62,6 @@ public class TeamManagerImplTest {
 		mockTeamDAO = Mockito.mock(TeamDAO.class);
 		mockGroupMembersDAO = Mockito.mock(GroupMembersDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
-		mockUserManager = Mockito.mock(UserManager.class);
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
 		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 		mockMembershipInvitationManager = Mockito.mock(MembershipInvitationManager.class);
@@ -74,7 +71,6 @@ public class TeamManagerImplTest {
 				mockTeamDAO,
 				mockGroupMembersDAO,
 				mockUserGroupDAO,
-				mockUserManager,
 				mockAclDAO,
 				mockFileHandleManager,
 				mockMembershipInvitationManager,
@@ -199,17 +195,17 @@ public class TeamManagerImplTest {
 		assertEquals(2, acl.getResourceAccess().size());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra.getPrincipalId().toString().equals(MEMBER_PRINCIPAL_ID)) {
-				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
-						ACCESS_TYPE.READ, 
-						ACCESS_TYPE.UPDATE, 
-						ACCESS_TYPE.DELETE, 
-						ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
-						ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
+		assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{
+				ACCESS_TYPE.READ, 
+				ACCESS_TYPE.UPDATE, 
+				ACCESS_TYPE.DELETE, 
+				ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE, 
+				ACCESS_TYPE.SEND_MESSAGE})), ra.getAccessType());
 			} else if (ra.getPrincipalId().toString().equals(TEAM_ID)) {
 				
 			} else {
 				fail("Unexpected principal ID"+ra.getPrincipalId());
-			}
+	}
 		}
 	}
 	
@@ -229,8 +225,8 @@ public class TeamManagerImplTest {
 	public void testCreate() throws Exception {
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
 		when(mockTeamDAO.create(team)).thenReturn(team);
-		// mock userManager
-		when(mockUserManager.createPrincipal("name", false)).thenReturn(TEAM_ID);
+		// mock userGroupDAO
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(TEAM_ID);
 		Team created = teamManagerImpl.create(userInfo,team);
 		assertEquals(team, created);
 		// verify that group, acl were created

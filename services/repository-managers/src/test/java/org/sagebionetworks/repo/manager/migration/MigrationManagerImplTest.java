@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
-import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -29,12 +29,12 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequiremen
  */
 public class MigrationManagerImplTest {
 	
-	private MigatableTableDAO mockDao;
+	private MigratableTableDAO mockDao;
 	MigrationManagerImpl manager;
 	
 	@Before
 	public void before(){
-		mockDao = Mockito.mock(MigatableTableDAO.class);
+		mockDao = Mockito.mock(MigratableTableDAO.class);
 		manager = new MigrationManagerImpl(mockDao, 10);
 	}
 	
