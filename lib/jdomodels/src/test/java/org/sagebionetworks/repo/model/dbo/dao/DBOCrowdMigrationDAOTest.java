@@ -417,10 +417,10 @@ public class DBOCrowdMigrationDAOTest {
 		// And an ACL for the team
 		AccessControlList acl = aclDAO.get(notSoExclusiveAnymore.getId(), ObjectType.TEAM);
 		assertNotNull("ACL should exist", acl);
-		assertEquals("ACL should be created by the migration admin.  Got: " + acl, migrationAdminId, acl.getCreatedBy());
-		assertEquals("ACL should be modified by the migration admin.  Got: " + acl, migrationAdminId, acl.getModifiedBy());
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
 		assertEquals("ACL should grant one permission.  Got: " + raSet, 1, raSet.size());
+		ResourceAccess ra = raSet.iterator().next();
+		assertEquals("ACL should be granted to the UserGroup", Long.parseLong(notSoExclusiveAnymore.getId()), ra.getPrincipalId().longValue());
 	}
 	
 	@Test
