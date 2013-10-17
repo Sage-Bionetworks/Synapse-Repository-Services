@@ -272,6 +272,8 @@ public class SynapseClientImpl implements SynapseClient {
 	protected static final String PERMISSION = "/permission";
 	protected static final String MEMBERSHIP_STATUS = "/membershipStatus";
 	protected static final String TEAM_MEMBERSHIP_PERMISSION = "isAdmin";
+	protected static final String TEAM_UPDATE_SEARCH_CACHE = "updateTeamSearchCache";
+
 	
 	// membership invitation
 	protected static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
@@ -4796,5 +4798,10 @@ public class SynapseClientImpl implements SynapseClient {
 	public void deleteMembershipRequest(String requestId)
 			throws SynapseException {
 		deleteUri(MEMBERSHIP_REQUEST+"/"+requestId);
+	}
+	
+	@Override
+	public void updateTeamSearchCache() throws SynapseException {
+		postUri(TEAM_UPDATE_SEARCH_CACHE);
 	}
 }

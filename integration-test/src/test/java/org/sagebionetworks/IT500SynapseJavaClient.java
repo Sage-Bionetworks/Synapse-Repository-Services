@@ -1331,7 +1331,8 @@ public class IT500SynapseJavaClient {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		UserProfile myProfile = synapse.getMyProfile();
+		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
@@ -1387,9 +1388,13 @@ public class IT500SynapseJavaClient {
 		teams = synapse.getTeams(null, 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		// query for all teams, based on name fragment
+		SynapseClient adminClient = SynapseClientHelper.createSynapseClient(
+				StackConfiguration.getIntegrationTestUserAdminName(),
+				StackConfiguration.getIntegrationTestUserAdminPassword());
+		adminClient.updateTeamSearchCache();
 		teams = synapse.getTeams(name.substring(0, 3),1, 0);
-		// TODO BROKEN >>>> assertEquals(1L, teams.getTotalNumberOfResults()); <<< BROKEN
-		// TODO BROKEN >>>> assertEquals(updatedTeam, teams.getResults().get(0)); <<< BROKEN
+		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(updatedTeam, teams.getResults().get(0));
 		// again, make sure pagination works
 		teams = synapse.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
@@ -1397,7 +1402,11 @@ public class IT500SynapseJavaClient {
 		// query for team members.  should get just the creator
 		PaginatedResults<TeamMember> members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
-		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
+		TeamMember tm = members.getResults().get(0);
+		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
+		assertEquals(myProfile.getEmail(), tm.getMember().getEmail());
+		assertEquals(updatedTeam.getId(), tm.getTeamId());
+		assertTrue(tm.getIsAdmin());
 		
 		TeamMembershipStatus tms = synapse.getTeamMembershipStatus(updatedTeam.getId(), myPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1412,6 +1421,8 @@ public class IT500SynapseJavaClient {
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherUp = otherUser.getMyProfile();
+		assertEquals(StackConfiguration.getIntegrationTestUserTwoName(), otherUp.getEmail());
+		assertEquals(StackConfiguration.getIntegrationTestUserTwoName(), otherUp.getDisplayName());
 		String otherLName = otherUp.getLastName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
@@ -1436,7 +1447,15 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getHasOpenRequest());
 		assertFalse(tms.getCanJoin());
 
+		// query for team members using name fragment.  should get team creator back
+		members = synapse.getTeamMembers(updatedTeam.getId(), myProfile.getLastName(), 1, 0);
+		assertEquals(1L, members.getTotalNumberOfResults());
+		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
+		assertTrue(members.getResults().get(0).getIsAdmin());
+
 		synapse.addTeamMember(updatedTeam.getId(), otherPrincipalId);
+		// update the prefix cache
+		adminClient.updateTeamSearchCache();
 		
 		tms = otherUser.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
@@ -1447,28 +1466,36 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getCanJoin());
 
 		// query for team members.  should get member back
-		members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
+		members = synapse.getTeamMembers(updatedTeam.getId(), null, 2, 0);
 		assertEquals(2L, members.getTotalNumberOfResults());
+		assertEquals(2L, members.getResults().size());
+		List<String> teamMembersEmails = new ArrayList<String>();
+		for (TeamMember tm2 : members.getResults()) {
+			teamMembersEmails.add(tm2.getMember().getEmail());
+		}
+		System.out.println(teamMembersEmails);
+		
 		// query for team members using name fragment
-		members = synapse.getTeamMembers(createdTeam.getId(), otherLName.substring(0,4), 1, 0);
+		members = synapse.getTeamMembers(updatedTeam.getId(), otherLName.substring(0,otherLName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		
 		TeamMember otherMember = members.getResults().get(0);
-		// TODO BROKEN >>>> assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
-		// TODO BROKEN >>>> assertFalse(otherMember.getIsAdmin());
+		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
+		assertFalse(otherMember.getIsAdmin());
 		
 		// make the other member an admin
 		synapse.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
 		
-		members = synapse.getTeamMembers(createdTeam.getId(), otherLName.substring(0,4), 1, 0);
+		members = synapse.getTeamMembers(createdTeam.getId(), otherLName.substring(0,otherLName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
-		// TODO BROKEN >>>> assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
-		// TODO BROKEN >>>> assertTrue(otherMember.getIsAdmin());
+		assertEquals(otherPrincipalId, otherMember.getMember().getOwnerId());
+		assertTrue(otherMember.getIsAdmin());
 
 		// remove admin privileges
 		synapse.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
+		adminClient.updateTeamSearchCache();
 		
 		// query for teams based on member's id
 		teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
@@ -1476,6 +1503,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// remove the member from the team
 		synapse.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
+		adminClient.updateTeamSearchCache();
 		// query for teams based on member's id (should get nothing)
 		teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(0L, teams.getTotalNumberOfResults());

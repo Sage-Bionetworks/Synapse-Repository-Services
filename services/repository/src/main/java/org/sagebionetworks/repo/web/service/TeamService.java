@@ -141,11 +141,11 @@ public interface TeamService {
 	Long millisSinceLastCacheUpdate();
 
 	/**
-	 * 
+	 * @param userId
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void refreshCache() throws DatastoreException, NotFoundException;
+	void refreshCache(String userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

@@ -197,7 +197,7 @@ public class TeamManagerImpl implements TeamManager {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
-		if (!userManager.doesPrincipalExist(team.getName())) throw new InvalidModelException("Name "+team.getName()+" is already used.");
+		if (userManager.doesPrincipalExist(team.getName())) throw new InvalidModelException("Name "+team.getName()+" is already used.");
 		String id = userManager.createPrincipal(team.getName(), /*isIndividual*/false);
 		team.setId(id);
 		Date now = new Date();

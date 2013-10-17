@@ -900,7 +900,11 @@ public interface SynapseClient {
 	 */
 	void deleteMembershipRequest(String requestId) throws SynapseException;
 
-	
+	/**
+	 * Refesh the prefix-cache for retrieving teams and team members
+	 * @throws SynapseException
+	 */
+	void updateTeamSearchCache() throws SynapseException;
 	
 
 }

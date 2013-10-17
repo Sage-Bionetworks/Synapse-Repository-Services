@@ -9,11 +9,13 @@ import java.net.URL;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -164,5 +166,13 @@ public class TeamController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
+	}	
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.TEAM_UPDATE_SEARCH_CACHE, method = RequestMethod.POST)
+	public void refreshCache(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) throws NotFoundException, DatastoreException, UnauthorizedException {
+		serviceProvider.getTeamService().refreshCache(userId);
 	}	
 }

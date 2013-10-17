@@ -73,7 +73,9 @@ public class TeamServiceImpl implements TeamService {
 	public Team create(String userId, Team team) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return teamManager.create(userInfo, team);
+		Team result = teamManager.create(userInfo, team);
+		refreshCache();
+		return result;
 	}
 
 	/* (non-Javadoc)
@@ -117,7 +119,13 @@ public class TeamServiceImpl implements TeamService {
 	}
 
 	@Override
-	public void refreshCache() throws DatastoreException, NotFoundException {
+	public void refreshCache(String userId) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Must be a Synapse administrator.");
+		refreshCache();
+	}
+	
+	private void refreshCache() throws DatastoreException, NotFoundException {
 		this.logger.info("refreshCache() started at time " + System.currentTimeMillis());
 
 		// Create and populate local caches. Upon completion, swap them for the
@@ -258,7 +266,9 @@ public class TeamServiceImpl implements TeamService {
 	public Team update(String userId, Team team) throws DatastoreException,
 			UnauthorizedException, NotFoundException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return teamManager.put(userInfo, team);
+		Team result = teamManager.put(userInfo, team);
+		refreshCache();
+		return result;
 	}
 
 	/* (non-Javadoc)
@@ -269,6 +279,7 @@ public class TeamServiceImpl implements TeamService {
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.delete(userInfo, teamId);
+		refreshCache();
 	}
 
 	/* (non-Javadoc)
@@ -279,6 +290,7 @@ public class TeamServiceImpl implements TeamService {
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.addMember(userInfo, teamId, principalId);
+		refreshCache();
 	}
 
 	/* (non-Javadoc)
@@ -289,6 +301,7 @@ public class TeamServiceImpl implements TeamService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.removeMember(userInfo, teamId, principalId);
+		refreshCache();
 	}
 
 	@Override
@@ -297,6 +310,7 @@ public class TeamServiceImpl implements TeamService {
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.setPermissions(userInfo, teamId, principalId, isAdmin);
+		refreshCache();
 	}
 
 	@Override
