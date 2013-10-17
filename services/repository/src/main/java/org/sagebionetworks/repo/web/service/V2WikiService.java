@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.v2.service;
+package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
 

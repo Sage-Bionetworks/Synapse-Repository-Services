@@ -12,7 +12,12 @@ package org.sagebionetworks.repo.model;
  * @author deflaux
  */
 public class ServiceConstants {
-
+	
+	/**
+	 * 
+	 */
+	public static final String WIKI_VERSION = "version";
+	
 	/**
 	 * Request parameter used to indicate the 1-based index of the first result
 	 * to be returned in a set of paginated results

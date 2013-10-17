@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.v2.wiki;
+package org.sagebionetworks.repo.manager.wiki;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -266,6 +266,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public V2WikiPage restoreWikiPage(UserInfo user, String objectId,
 			ObjectType objectType, Long version, V2WikiPage current) throws NotFoundException,

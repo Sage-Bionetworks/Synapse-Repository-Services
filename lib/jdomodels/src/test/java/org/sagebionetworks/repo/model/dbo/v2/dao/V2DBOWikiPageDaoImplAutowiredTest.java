@@ -205,7 +205,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	 * @throws NotFoundException, InterruptedException
 	 */
 	@Test
-	public void testUpdateAndRestore() throws NotFoundException, InterruptedException{
+	public void testUpdate() throws NotFoundException, InterruptedException{
 		V2WikiPage page = new V2WikiPage();
 		String ownerId = "syn1082";
 		ObjectType ownerType = ObjectType.EVALUATION;
@@ -270,7 +270,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	}
 	
 	@Test
-	public void testGetWikiHistory() throws NotFoundException, InterruptedException {
+	public void testGetWikiHistoryAndRestore() throws NotFoundException, InterruptedException {
 		V2WikiPage page = new V2WikiPage();
 		String ownerId = "syn1082";
 		ObjectType ownerType = ObjectType.EVALUATION;

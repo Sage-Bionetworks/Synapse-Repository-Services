@@ -43,6 +43,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private WikiService wikiService;
 	@Autowired
+	private V2WikiService v2WikiService;
+	@Autowired
 	private TrashService trashService;
 	@Autowired
 	private DoiService doiService;
@@ -107,6 +109,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public WikiService getWikiService() {
 		return wikiService;
+	}
+	@Override
+	public V2WikiService getV2WikiService() {
+		return v2WikiService;
 	}
 	@Override
 	public TrashService getTrashService() {

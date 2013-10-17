@@ -64,6 +64,9 @@
 	<!-- The Wiki Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
 
+	<!-- The V2 Wiki Service -->
+	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" />
+
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"
 		class="org.sagebionetworks.repo.web.service.UserProfileServiceImpl" />

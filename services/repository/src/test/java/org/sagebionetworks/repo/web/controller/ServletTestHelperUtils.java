@@ -184,6 +184,14 @@ public class ServletTestHelperUtils {
 		return "/" + key.getOwnerObjectType().name().toLowerCase() + "/"
 				+ key.getOwnerObjectId() + "/wiki/" + key.getWikiPageId();
 	}
+	
+	/**
+	 * Simple helper for creating a URI for a V2WikiPage using its key
+	 */
+	public static String createV2WikiURI(WikiPageKey key) {
+		return "/" + key.getOwnerObjectType().name().toLowerCase() + "/"
+				+ key.getOwnerObjectId() + "/wiki2/" + key.getWikiPageId();
+	}
 
 	/**
 	 * Gets a redirect URL

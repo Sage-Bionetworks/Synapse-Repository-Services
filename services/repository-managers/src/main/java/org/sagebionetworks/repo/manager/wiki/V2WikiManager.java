@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.v2.wiki;
+package org.sagebionetworks.repo.manager.wiki;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;

@@ -1,10 +1,10 @@
-package org.sagebionetworks.repo.web.v2.service;
+package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.v2.wiki.V2WikiManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
