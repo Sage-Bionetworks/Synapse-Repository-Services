@@ -82,7 +82,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		Long teamId = Long.parseLong(team.getId());
 		// create the submission
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-
+		mis.setCreatedOn(new Date());
 		mis.setExpiresOn(null); // NO EXPIRATION DATE
 		mis.setMessage("Please join the team.");
 		mis.setTeamId(""+teamId);
@@ -118,6 +118,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		// create the submission
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		Date expiresOn = new Date();
+		mis.setCreatedOn(new Date());
 		mis.setExpiresOn(expiresOn);
 		mis.setMessage("Please join the team.");
 		mis.setTeamId(""+teamId);

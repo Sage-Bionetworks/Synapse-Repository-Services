@@ -9,10 +9,13 @@ import java.net.URL;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -50,13 +53,13 @@ public class TeamController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.TEAM, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.TEAMS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Team> getTeamsByNameFragment(
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
-			) {
+			) throws NotFoundException {
 		return serviceProvider.getTeamService().get(fragment, limit, offset);
 	}
 	
@@ -88,7 +91,6 @@ public class TeamController extends BaseController {
 			HttpServletResponse response
 			) throws NotFoundException, IOException  {
 		URL redirectUrl = serviceProvider.getTeamService().getIconURL(id);
-		if (redirectUrl==null) throw new NotFoundException("Team has no icon.");
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -121,10 +123,33 @@ public class TeamController extends BaseController {
 		serviceProvider.getTeamService().addMember(userId, id, principalId);
 	}
 	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID_PERMISSION, method = RequestMethod.PUT)
+	public void setTeamAdmin(
+			@PathVariable String id,
+			@PathVariable String principalId,
+			@RequestParam(value = UrlHelpers.TEAM_PERMISSION_REQUEST_PARAMETER, required = true) Boolean isAdmin,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) throws NotFoundException {
+		serviceProvider.getTeamService().setPermissions(userId, id, principalId, isAdmin);
+	}
+	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID_MEMBERSHIP_STATUS, method = RequestMethod.GET)
+	public @ResponseBody 
+	TeamMembershipStatus getTeamMembershipStatus(
+			@PathVariable String id,
+			@PathVariable String principalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) throws NotFoundException {
+		return serviceProvider.getTeamService().getTeamMembershipStatus(userId, id, principalId);
+	}
+	
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_MEMBERS_ID, method = RequestMethod.GET)
 	public  @ResponseBody 
-	PaginatedResults<UserGroupHeader> getTeamMembers(
+	PaginatedResults<TeamMember> getTeamMembers(
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
@@ -141,5 +166,13 @@ public class TeamController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
+	}	
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.TEAM_UPDATE_SEARCH_CACHE, method = RequestMethod.POST)
+	public void refreshCache(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			) throws NotFoundException, DatastoreException, UnauthorizedException {
+		serviceProvider.getTeamService().refreshCache(userId);
 	}	
 }

@@ -92,6 +92,8 @@ import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -265,10 +267,18 @@ public class SynapseClientImpl implements SynapseClient {
 
 	// Team
 	protected static final String TEAM = "/team";
+	protected static final String TEAMS = "/teams";
 	protected static final String USER = "/user";
 	protected static final String NAME_FRAGMENT_FILTER = "fragment";
 	protected static final String ICON = "/icon";
+	protected static final String TEAM_MEMBERS = "/teamMembers";
 	protected static final String MEMBER = "/member";
+	protected static final String PERMISSION = "/permission";
+	protected static final String MEMBERSHIP_STATUS = "/membershipStatus";
+	protected static final String TEAM_MEMBERSHIP_PERMISSION = "isAdmin";
+	protected static final String TEAM_UPDATE_SEARCH_CACHE = "/updateTeamSearchCache";
+
+	
 	// membership invitation
 	protected static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	protected static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
@@ -3390,7 +3400,7 @@ public class SynapseClientImpl implements SynapseClient {
 				} else if (statusCode >= 400 && statusCode < 500) {
 					throw new SynapseUserException(exceptionContent);
 				} else {
-					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent);
+					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
 				}
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
@@ -4634,9 +4644,9 @@ public class SynapseClientImpl implements SynapseClient {
 			long offset) throws SynapseException {
 		String uri = null;
 		if (fragment==null) {
-			uri = TEAM+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAMS+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = TEAM+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAMS+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -4716,18 +4726,18 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId, String fragment,
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment,
 			long limit, long offset) throws SynapseException {
 		String uri = null;
 		if (fragment==null) {
-			uri = TEAM+"/"+teamId+MEMBER+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = TEAM_MEMBERS+"/"+teamId+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = TEAM+"/"+teamId+MEMBER+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+
+			uri = TEAM_MEMBERS+"/"+teamId+"?"+NAME_FRAGMENT_FILTER+"="+urlEncode(fragment)+
 					"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<UserGroupHeader> results = new PaginatedResults<UserGroupHeader>(UserGroupHeader.class);
+		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(TeamMember.class);
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
@@ -4740,6 +4750,28 @@ public class SynapseClientImpl implements SynapseClient {
 	public void removeTeamMember(String teamId, String memberId)
 			throws SynapseException {
 		deleteUri(TEAM+"/"+teamId+MEMBER+"/"+memberId);
+	}
+	
+	@Override
+	public void setTeamMemberPermissions(String teamId, String memberId,
+			boolean isAdmin) throws SynapseException {
+		putJSONObject(TEAM+"/"+teamId+MEMBER+"/"+memberId+
+				PERMISSION+"?"+TEAM_MEMBERSHIP_PERMISSION+"="+isAdmin, 
+				new JSONObject(), new HashMap<String,String>());
+	}
+
+	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
+			String principalId) throws SynapseException {
+		JSONObject jsonObj = getEntity(TEAM+"/"+teamId+MEMBER+"/"+principalId+MEMBERSHIP_STATUS);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		TeamMembershipStatus results = new TeamMembershipStatus();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 
 	@Override
@@ -4849,6 +4881,11 @@ public class SynapseClientImpl implements SynapseClient {
 	public void deleteMembershipRequest(String requestId)
 			throws SynapseException {
 		deleteUri(MEMBERSHIP_REQUEST+"/"+requestId);
+	}
+	
+	@Override
+	public void updateTeamSearchCache() throws SynapseException {
+		postUri(TEAM_UPDATE_SEARCH_CACHE);
 	}
 
 }

@@ -6,8 +6,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TeamService {
@@ -41,9 +43,10 @@ public interface TeamService {
 	 * @param offset
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException 
 	 */
 	public PaginatedResults<Team> get(String fragment, long limit, long offset)
-			throws DatastoreException;
+			throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -118,7 +121,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<UserGroupHeader> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -130,4 +133,49 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public void removeMember(String userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * 
+	 * @return
+	 */
+	Long millisSinceLastCacheUpdate();
+
+	/**
+	 * For use by Quartz
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void refreshCache() throws DatastoreException, NotFoundException;
+	
+	/**
+	 * For use by TeamController, requests from which must be authenticated
+	 * @param userId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void refreshCache(String userId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param teamId
+	 * @param principalId
+	 * @param isAdmin
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public void setPermissions(String userId, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public TeamMembershipStatus getTeamMembershipStatus(String userId, String teamId, String principalId) throws DatastoreException, NotFoundException;
+	
 }

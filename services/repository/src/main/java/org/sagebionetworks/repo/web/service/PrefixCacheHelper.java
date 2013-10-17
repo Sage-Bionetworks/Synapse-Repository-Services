@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.ardverk.collection.Trie;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 
 public class PrefixCacheHelper {
@@ -49,6 +48,21 @@ public class PrefixCacheHelper {
 		return PrefixCacheHelper.flatten(prefixMap, userGroupHeaderComparator);
 	}
 
+	public static List<String> getPrefixes(String s) {
+		List<String> prefixes = new ArrayList<String>();
+		String lowerCaseName = s.toLowerCase();
+		String[] namePrefixes = lowerCaseName.split(" ");
+		
+		for (String namePrefix : namePrefixes) {
+			prefixes.add(namePrefix);				
+		}
+		//if it was split, also include the entire name
+		if (prefixes.size() > 1) {
+			prefixes.add(lowerCaseName);
+		}
+		return prefixes;
+	}
 	
+
 
 }
