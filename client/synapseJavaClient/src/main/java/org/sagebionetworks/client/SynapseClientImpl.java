@@ -4461,7 +4461,7 @@ public class SynapseClientImpl implements SynapseClient {
 		if(columnId == null) throw new IllegalArgumentException("ColumnId cannot be null");
 		String url = COLUMN+"/"+columnId;
 		try {
-			return getJSONEntity(url, ColumnModel.class);
+			return getJSONEntity(repoEndpoint, url, ColumnModel.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4472,7 +4472,7 @@ public class SynapseClientImpl implements SynapseClient {
 		if(tableEntityId == null) throw new IllegalArgumentException("tableEntityId cannot be null");
 		String url = ENTITY+"/"+tableEntityId+COLUMN;
 		try {
-			PaginatedColumnModels pcm =  getJSONEntity(url, PaginatedColumnModels.class);
+			PaginatedColumnModels pcm = getJSONEntity(repoEndpoint, url, PaginatedColumnModels.class);
 			return pcm.getResults();
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -4483,7 +4483,7 @@ public class SynapseClientImpl implements SynapseClient {
 	public PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException {
 		String url = buildListColumnModelUrl(prefix, limit, offset);
 		try {
-			return  getJSONEntity(url, PaginatedColumnModels.class);
+			return  getJSONEntity(repoEndpoint, url, PaginatedColumnModels.class);
 			
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);

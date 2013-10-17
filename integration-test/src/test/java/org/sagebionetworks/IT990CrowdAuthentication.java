@@ -109,6 +109,7 @@ public class IT990CrowdAuthentication {
 		synapse.createUser(user);
 	}
 	
+	@Ignore
 	@Test
 	public void testCreateUserAndAcceptToU() throws Exception {	
 		String username = "integration@test." + UUID.randomUUID();
