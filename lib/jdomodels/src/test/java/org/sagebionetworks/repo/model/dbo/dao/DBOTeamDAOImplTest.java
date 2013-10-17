@@ -38,7 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOTeamDAOImplTest {
 	
 	private long teamToDelete = -1L;
-//	private long upToDelete = -1L;
+
 	private String[] teamMemberPairToDelete = null;
 	
 	@Autowired
@@ -60,10 +60,6 @@ public class DBOTeamDAOImplTest {
 			teamDAO.delete(""+teamToDelete);
 			teamToDelete=-1L;
 		}
-//		if (userProfileDAO!=null && upToDelete!=-1L) {
-//			userProfileDAO.delete(""+upToDelete);
-//			upToDelete = -1L;
-//		}
 		if (groupMembersDAO!=null && teamMemberPairToDelete!=null) {
 			groupMembersDAO.removeMembers(teamMemberPairToDelete[0],  Arrays.asList(new String[]{teamMemberPairToDelete[1]}));
 
@@ -74,13 +70,6 @@ public class DBOTeamDAOImplTest {
 			assertNotNull(userGroupDAO.findGroup(g.name(), false));
 		}
 	}
-	
-//	private static UserProfile createUserProfileForGroup(UserGroup ug) {
-//		UserProfile up = new UserProfile();
-//		up.setEmail(ug.getName());
-//		up.setOwnerId(ug.getId());
-//		return up;
-//	}
 	
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
 		UserGroupHeader ugh = new UserGroupHeader();
