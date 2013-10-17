@@ -189,17 +189,6 @@ public class AuthenticationController extends BaseController {
 		NewUser user = CrowdAuthUtil.getUser(userId);
 		return user;
 	}
-	
-	// for integration testing
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void deleteNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		String itu = getIntegrationTestNewUser();
-		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
-		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
-		CrowdAuthUtil.deleteUser(userId);
-	}
-	
 
 	// reset == true means send the 'reset' message; reset== false means send the 'set' message
 	private static void sendNewUserPasswordEmail(String userEmail, PW_MODE mode) throws Exception {
@@ -212,13 +201,13 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody NewUser user) throws Exception {
 		sendNewUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		if (userId == null)
