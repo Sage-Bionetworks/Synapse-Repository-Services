@@ -134,9 +134,14 @@ public class DBOCrowdMigrationDAOTest {
 		}
 	}
 	
-	private void deleteTestGroupFromRDS(String nameOrId) throws Exception {
+	private void deleteTestGroupFromRDS(String id) throws Exception {
 		try {
-			userGroupDAO.delete(nameOrId);
+			teamDAO.delete(id);
+		} catch (NotFoundException e) {
+			// Good, not in DB
+		}
+		try {
+			userGroupDAO.delete(id);
 		} catch (NotFoundException e) {
 			// Good, not in DB
 		}
@@ -403,16 +408,17 @@ public class DBOCrowdMigrationDAOTest {
 		assertEquals("The one member should be the Spanlish one", randUsername, clubby.get(0).getName());
 		
 		// There should be a team too
+		String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
 		Team team = teamDAO.get(notSoExclusiveAnymore.getId());
 		assertNotNull(team);
-		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, team.getCreatedBy());
-		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, team.getModifiedBy());
+		assertEquals(migrationAdminId, team.getCreatedBy());
+		assertEquals(migrationAdminId, team.getModifiedBy());
 		
 		// And an ACL for the team
 		AccessControlList acl = aclDAO.get(notSoExclusiveAnymore.getId(), ObjectType.TEAM);
 		assertNotNull(acl);
-		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, acl.getCreatedBy());
-		assertEquals(AuthorizationConstants.MIGRATION_USER_NAME, acl.getModifiedBy());
+		assertEquals(migrationAdminId, acl.getCreatedBy());
+		assertEquals(migrationAdminId, acl.getModifiedBy());
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
 		assertEquals(1, raSet.size());
 	}
