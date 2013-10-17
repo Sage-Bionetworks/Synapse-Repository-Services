@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableChange;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -21,7 +21,7 @@ public interface TableRowTruthDAO {
 	 * @param rows
 	 * @return The key of this change set.
 	 */
-	public String storeRowSet(String tableId, List<ColumnModel> schema, RowSet rows);
+	public TableChange storeRowSet(TableChange change, RowSet rows);
 	
 	/**
 	 * Fetch a row set using its key.
@@ -38,7 +38,7 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<String> listRowSetsKeysForTable(String tableId);
+	public List<TableChange> listRowSetsKeysForTable(String tableId);
 	
 	/**
 	 * This should never be called in a production setting.

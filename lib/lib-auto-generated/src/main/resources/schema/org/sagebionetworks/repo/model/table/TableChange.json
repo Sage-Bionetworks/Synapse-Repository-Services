@@ -1,0 +1,21 @@
+{
+    "description":"Metadata about Table row change set.",
+    "properties":{
+        "changeNumber":{
+            "type":"integer",
+            "description":"The immutable ID of this change."
+        },
+        "tableId":{
+            "type":"string",
+            "description":"The ID of the table that this change is for."
+        },
+        "tableVersionNumber":{
+            "type":"string",
+            "description":"The version number of the table at the time of the change"
+        },
+        "fileHandleId":{
+        	"type": "string",
+            "description":"The ID of the FileHandle that contains the raw data of this change"
+        }
+    }
+}

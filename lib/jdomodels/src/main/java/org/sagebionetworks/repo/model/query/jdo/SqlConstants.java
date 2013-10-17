@@ -306,6 +306,14 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// The table changes
+	public static final String TABLE_TABLE_CHANGE			= "TABLE_CHANGE";
+	public static final String COL_TABLE_CHANGE_NUMBER		= "CHANGE_NUMBER";
+	public static final String COL_TABLE_TABLE_ID			= "TABLE_ID";
+	public static final String COL_TABLE_TABLE_VERSION		= "TABLE_VERSION";
+	public static final String COL_TABLE_FILE_HAND_ID		= "FILE_HANDLE_ID";
+	public static final String DDL_TABLE_CHANGE = "schema/TableChange-ddl.sql";
+	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
