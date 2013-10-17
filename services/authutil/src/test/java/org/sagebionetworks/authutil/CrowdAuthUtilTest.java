@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
-@Ignore // <<<<< temporary, to get a clean build!!!!!
 public class CrowdAuthUtilTest {
 	private static final String TEST_USER = "demouser@sagebase.org";
 

@@ -1424,7 +1424,7 @@ public class IT500SynapseJavaClient {
 		UserProfile otherUp = otherUser.getMyProfile();
 		assertEquals(StackConfiguration.getIntegrationTestUserTwoName(), otherUp.getEmail());
 		assertEquals(StackConfiguration.getIntegrationTestUserTwoName(), otherUp.getDisplayName());
-		String otherLName = otherUp.getLastName();
+		String otherDName = otherUp.getDisplayName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
@@ -1449,7 +1449,8 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getCanJoin());
 
 		// query for team members using name fragment.  should get team creator back
-		members = synapse.getTeamMembers(updatedTeam.getId(), myProfile.getLastName(), 1, 0);
+		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getDisplayName();
+		members = synapse.getTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
@@ -1471,13 +1472,9 @@ public class IT500SynapseJavaClient {
 		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
 		List<String> teamMembersEmails = new ArrayList<String>();
-		for (TeamMember tm2 : members.getResults()) {
-			teamMembersEmails.add(tm2.getMember().getEmail());
-		}
-		System.out.println(teamMembersEmails);
 		
 		// query for team members using name fragment
-		members = synapse.getTeamMembers(updatedTeam.getId(), otherLName.substring(0,otherLName.length()-4), 1, 0);
+		members = synapse.getTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		
 		TeamMember otherMember = members.getResults().get(0);
@@ -1488,7 +1485,7 @@ public class IT500SynapseJavaClient {
 		synapse.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
 		adminClient.updateTeamSearchCache();
 		
-		members = synapse.getTeamMembers(createdTeam.getId(), otherLName.substring(0,otherLName.length()-4), 1, 0);
+		members = synapse.getTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
