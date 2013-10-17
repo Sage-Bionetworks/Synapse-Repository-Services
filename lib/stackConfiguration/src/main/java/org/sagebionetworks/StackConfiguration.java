@@ -403,6 +403,14 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * @return The API key of the migration admin
+	 */
+	public static String getMigrationAdminAPIKey() {
+		return configuration
+				.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
+	}
+
+	/**
 	 * @return The name of a user for integration tests
 	 */
 	public static String getIntegrationTestUserOneName() {
@@ -608,14 +616,35 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * The maximum number of pixels used for a preview image height and width
+	 * The maximum number of pixels used for a preview image width
 	 * 
 	 * @return
 	 */
-	public static int getMaximumPreivewPixels() {
+	public static int getMaximumPreviewWidthPixels() {
 		return Integer.valueOf(configuration
-				.getProperty("org.sagebionetworks.preview.image.max.pixels"));
+				.getProperty("org.sagebionetworks.preview.image.max.width.pixels"));
 	}
+	
+	/**
+	 * The maximum number of pixels used for a preview image height
+	 * 
+	 * @return
+	 */
+	public static int getMaximumPreviewHeightPixels() {
+		return Integer.valueOf(configuration
+				.getProperty("org.sagebionetworks.preview.image.max.height.pixels"));
+	}
+
+	/**
+	 * The maximum number of pixels used for an attachment image
+	 * 
+	 * @return
+	 */
+	public static int getMaximumAttachmentPreviewPixels() {
+		return Integer.valueOf(configuration
+				.getProperty("org.sagebionetworks.attachment.preview.image.max.pixels"));
+	}
+
 
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable

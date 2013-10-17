@@ -231,6 +231,8 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_PAGE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_OWNERS);
+		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
+		expectedPrimaryTypes.add(MigrationType.V2_WIKI_OWNERS);
 		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
 		expectedPrimaryTypes.add(MigrationType.NODE);
 		expectedPrimaryTypes.add(MigrationType.EVALUATION);
@@ -246,6 +248,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.TEAM);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list

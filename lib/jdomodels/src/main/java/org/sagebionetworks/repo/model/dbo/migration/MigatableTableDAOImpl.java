@@ -119,10 +119,12 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param dbo
 	 */
 	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
+		if(dbo == null) throw new IllegalArgumentException("MigratableDatabaseObject cannot be null");
 		if(dbo instanceof AutoIncrementDatabaseObject<?>) throw new IllegalArgumentException("AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "+dbo.getClass().getName());
 		TableMapping mapping = dbo.getTableMapping();
 		DMLUtils.validateMigratableTableMapping(mapping);
 		MigrationType type = dbo.getMigratableTableType();
+		if(type == null) throw new IllegalArgumentException("MigrationType was null for class: "+dbo.getClass().getName());
 		// Build up the SQL cache.
 		String delete = DMLUtils.createBatchDelete(mapping);
 		deleteSqlMap.put(type, delete);
@@ -152,7 +154,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		// The batch insert or update sql
 		String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
 		this.insertOrUpdateSqlMap.put(type, sql);
-		// If this object has a sub table then regeister the sub table as well
+		// If this object has a sub table then register the sub table as well
 		if(dbo.getSecondaryTypes() != null){
 			Iterator<MigratableDatabaseObject> it = dbo.getSecondaryTypes().iterator();
 			while(it.hasNext()){

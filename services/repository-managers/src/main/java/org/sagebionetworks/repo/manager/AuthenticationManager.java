@@ -45,4 +45,14 @@ public interface AuthenticationManager {
 	 */
 	public Session getSessionToken(String username) throws NotFoundException;
 	
+	/**
+	 * Returns whether the user has accepted the terms of use
+	 */
+	public boolean hasUserAcceptedTermsOfUse(String id);
+
+	/**
+	 * Sets whether the user has accepted or rejected the terms of use
+	 */
+	public void setTermsOfUseAcceptance(String id, Boolean acceptance);
+	
 }

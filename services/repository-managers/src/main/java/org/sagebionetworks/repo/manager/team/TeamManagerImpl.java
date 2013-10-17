@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.manager.AuthorizationHelper;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -35,6 +34,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -193,7 +193,7 @@ public class TeamManagerImpl implements TeamManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Team create(UserInfo userInfo, Team team) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
-		if (AuthorizationHelper.isUserAnonymous(userInfo))
+		if (AuthorizationUtils.isUserAnonymous(userInfo))
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)

@@ -44,7 +44,6 @@ public class UserProfileUtilsTest {
 		dto.setSummary("My summary");
 		dto.setTeamName("Team A");
 		dto.setUrl("http://link.to.my.page/");
-		dto.setAgreesToTermsOfUse(new Long(123456));
 		AttachmentData picData = new AttachmentData();
 		picData.setName("Fake name");
 		picData.setTokenId("Fake token ID");
@@ -76,7 +75,6 @@ public class UserProfileUtilsTest {
 		dto.setSummary("My summary");
 		dto.setTeamName("Team A");
 		dto.setUrl("http://link.to.my.page/");
-		dto.setAgreesToTermsOfUse(new Long(123456));
 		AttachmentData picData = new AttachmentData();
 		picData.setName("Fake name");
 		picData.setTokenId("Fake token ID");
@@ -93,7 +91,6 @@ public class UserProfileUtilsTest {
 		
 		UserProfile dto2 = UserProfileUtils.convertDboToDto(dbo);
 		
-		dto.setAgreesToTermsOfUse(null); // Unsupported type
 		assertEquals(dto, dto2);
 	}
 

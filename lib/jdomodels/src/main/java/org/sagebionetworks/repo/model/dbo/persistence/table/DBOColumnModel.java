@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -109,8 +110,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		// TODO Auto-generated method stub
-		return null;
+		return MigrationType.COLUMN_MODEL;
 	}
 
 	@Override
@@ -141,7 +141,9 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject> seconday = new LinkedList<MigratableDatabaseObject>();
+		seconday.add(new DBOBoundColumn());
+		return seconday;
 	}
 
 	@Override

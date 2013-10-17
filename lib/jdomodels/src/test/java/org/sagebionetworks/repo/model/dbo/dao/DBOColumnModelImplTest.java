@@ -29,42 +29,32 @@ public class DBOColumnModelImplTest {
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;
-	List<String> toDelete;
 	ColumnModel one;
 	ColumnModel two;
 	ColumnModel three;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
-		toDelete = new LinkedList<String>();
 		// One
 		one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
 		one = columnModelDao.createColumnModel(one);
-		toDelete.add(one.getId());
 		// two
 		two = new ColumnModel();
 		two.setName("two");
 		two.setColumnType(ColumnType.STRING);
 		two = columnModelDao.createColumnModel(two);
-		toDelete.add(two.getId());
 		// three
 		three = new ColumnModel();
 		three.setName("three");
 		three.setColumnType(ColumnType.STRING);
 		three = columnModelDao.createColumnModel(three);
-		toDelete.add(three.getId());
 	}
 	
 	@After
 	public void after(){
-		columnModelDao.truncateBoundColumns();
-		if(toDelete != null){
-			for(String id: toDelete){
-				columnModelDao.delete(id);
-			}
-		}
+		columnModelDao.truncateAllColumnData();
 	}
 	
 	@Test
@@ -81,7 +71,6 @@ public class DBOColumnModelImplTest {
 		ColumnModel result = columnModelDao.createColumnModel(model);
 		assertNotNull(result);
 		assertNotNull(result.getId());
-		toDelete.add(result.getId());
 		assertEquals("column model dao test", result.getName());
 		assertEquals(ColumnType.STRING, result.getColumnType());
 		assertEquals("somedefaultvalue", result.getDefaultValue());
@@ -135,6 +124,22 @@ public class DBOColumnModelImplTest {
 		toBind.add(three.getId());
 		count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
+	}
+	
+	@Test
+	public void testBindColumnsDoesNotExist() throws Exception {
+		// Now bind one column
+		Set<String> toBind = new HashSet<String>();
+		// This should not exist
+		String fakeId = "999999999999";
+		toBind.add(fakeId);
+		try{
+			int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+			fail("Should have thrown an exception");
+		}catch(NotFoundException e){
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().contains(fakeId));
+		}
 	}
 	
 	@Test
@@ -276,7 +281,6 @@ public class DBOColumnModelImplTest {
 			cm.setColumnType(ColumnType.STRING);
 			cm = columnModelDao.createColumnModel(cm);
 			results.add(cm);
-			toDelete.add(cm.getId());
 		}
 		return results;
 	}

@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -206,7 +207,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return canDownload(userInfo, entityId);
 		}
 		// Anonymous can at most READ
-		if (AuthorizationHelper.isUserAnonymous(userInfo)) {
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ) {
 				return false;
 			}
@@ -249,7 +250,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		final boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
 			permissions.setCanEnableInheritance(!parentIsRoot);
-		} else if (AuthorizationHelper.isUserAnonymous(userInfo)) {
+		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			permissions.setCanEnableInheritance(false);
 		} else {
 			permissions.setCanEnableInheritance(!parentIsRoot && permissions.getCanChangePermissions());
@@ -284,7 +285,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		User user = userInfo.getUser();
 		if (user==null) return false;
 		// can't agree if you are anonymous
-		if (AuthorizationHelper.isUserAnonymous(userInfo)) return false;
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) return false;
 		return user.isAgreesToTermsOfUse();
 	}
 }

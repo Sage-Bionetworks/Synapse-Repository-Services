@@ -35,8 +35,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -460,6 +458,19 @@ public class NodeTranslationUtilsTest {
 		List<String> columns = new LinkedList<String>();
 		columns.add("123");
 		columns.add("456");
+		table.setColumnIds(columns);
+		
+		TableEntity clone = cloneUsingNodeTranslation(table);
+		assertNotNull(clone);
+		assertEquals(table, clone);
+	}
+	
+	@Test
+	public void testTableEntityRoundTripOneColumn() throws InstantiationException, IllegalAccessException{
+		TableEntity table = new TableEntity();
+		table.setName("oneTwoThree");
+		List<String> columns = new LinkedList<String>();
+		columns.add("123");
 		table.setColumnIds(columns);
 		
 		TableEntity clone = cloneUsingNodeTranslation(table);

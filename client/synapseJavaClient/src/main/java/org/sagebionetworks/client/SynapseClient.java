@@ -78,6 +78,8 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -725,6 +727,24 @@ public interface SynapseClient {
 	UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException;
 	
+	/**
+	 * Create a new ColumnModel. If a column already exists with the same parameters,
+	 * that column will be returned.
+	 * @param model
+	 * @return
+	 * @throws SynapseException 
+	 */
+	ColumnModel createColumnModel(ColumnModel model) throws SynapseException;
+	
+	/**
+	 * Get a ColumnModel from its ID.
+	 * 
+	 * @param columnId
+	 * @return
+	 * @throws SynapseException
+	 */
+	ColumnModel getColumnModel(String columnId) throws SynapseException;
+	
 	// Team services
 	
 	/**
@@ -900,6 +920,7 @@ public interface SynapseClient {
 	 */
 	void deleteMembershipRequest(String requestId) throws SynapseException;
 
+
 	/**
 	 * Refesh the prefix-cache for retrieving teams and team members
 	 * @throws SynapseException
@@ -907,4 +928,21 @@ public interface SynapseClient {
 	void updateTeamSearchCache() throws SynapseException;
 	
 
+	/** Get the List of ColumnModels for TableEntity given the TableEntity's ID.
+	 * 
+	 * @param tableEntityId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId) throws SynapseException;
+	
+	/**
+	 * List all of the ColumnModes in Synapse with pagination.
+	 * @param prefix - When provided, only ColumnModels with names that start with this prefix will be returned.
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException 
+	 */
+	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
 }

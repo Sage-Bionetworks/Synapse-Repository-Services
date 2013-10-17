@@ -43,6 +43,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
+	public static final String COL_REVISION_COLUMN_MODEL_IDS= "COLUMN_MODEL_IDS";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 
 	// The Reference table
@@ -426,6 +427,7 @@ public class SqlConstants {
 	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
 	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
 	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
+	public static final String COL_CREDENTIAL_TOU           = "AGREES_TO_TERMS_OF_USE";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 
 	// The Team table

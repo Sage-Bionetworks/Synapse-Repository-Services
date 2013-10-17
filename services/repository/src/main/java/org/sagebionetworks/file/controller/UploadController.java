@@ -139,16 +139,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${org.sagebionetworks.repo.model.wiki.WikiPage}">WikiPage</a>. For more
  * information see the following:
  * <ul>
- * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> -
- * <a href="${GET.entity.id.file}">GET /entity/{id}/file</a>, <a
- * href="${GET.entity.id.version.versionNumber.file}">GET
- * /entity/{id}/version/{versionNumber}/file</a>, <a
- * href="${GET.entity.id.filepreview}">GET /entity/{id}/filepreview</a>, <a
- * href="${GET.entity.id.version.versionNumber.filepreview}">GET
- * /entity/{id}/version/{versionNumber}/filepreview</a>, <a
- * href="${GET.entity.id.filehandles}">GET /entity/{id}/filehandles</a>, <a
- * href="${GET.entity.id.version.versionNumber.filehandles}">GET
- * /entity/{id}/version/{versionNumber}/filehandles</a>,</li>
+ * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+ * <li><a href="${POST.entity}">POST /entity</a>
+ * <li><a href="${PUT.entity.id}">PUT /entity/{id}</a>
+ * <li><a href="${GET.entity.id.file}">GET /entity/{id}/file</a>
+ * <li><a href="${GET.entity.id.version.versionNumber.file}">GET /entity/{id}/version/{versionNumber}/file</a>
+ * <li><a href="${GET.entity.id.filepreview}">GET /entity/{id}/filepreview</a>
+ * <li><a href="${GET.entity.id.version.versionNumber.filepreview}">GET /entity/{id}/version/{versionNumber}/filepreview</a>
+ * <li><a href="${GET.entity.id.filehandles}">GET /entity/{id}/filehandles</a>
+ * <li><a href="${GET.entity.id.version.versionNumber.filehandles}">GET /entity/{id}/version/{versionNumber}/filehandles</a>
  * </ul>
  */
 @ControllerInfo(displayName = "File Services", path = "file/v1")

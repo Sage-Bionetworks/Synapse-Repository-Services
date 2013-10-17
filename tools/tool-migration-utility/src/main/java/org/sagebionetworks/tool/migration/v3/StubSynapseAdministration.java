@@ -104,6 +104,8 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -2145,6 +2147,21 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public ColumnModel createColumnModel(ColumnModel model)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ColumnModel getColumnModel(String columnId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public Team createTeam(Team team) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2290,17 +2307,25 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	public void setTeamMemberPermissions(String teamId, String memberId,
 			boolean isAdmin) throws SynapseException {
 		// TODO Auto-generated method stub
-		
+	}
+
+	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 
 	@Override
 	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
 			String principalId) throws SynapseException {
+	}
+	
+	public PaginatedColumnModels listColumnModels(String prefix, Long limit,
+			Long offset) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 
 	@Override
 	public void updateTeamSearchCache() throws SynapseException {
