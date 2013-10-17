@@ -410,17 +410,17 @@ public class DBOCrowdMigrationDAOTest {
 		// There should be a team too
 		String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
 		Team team = teamDAO.get(notSoExclusiveAnymore.getId());
-		assertNotNull(team);
-		assertEquals(migrationAdminId, team.getCreatedBy());
-		assertEquals(migrationAdminId, team.getModifiedBy());
+		assertNotNull("Team should exist", team);
+		assertEquals("Team should be created by the migration admin.  Got: " + team, migrationAdminId, team.getCreatedBy());
+		assertEquals("Team should be modified by the migration admin.  Got: " + team, migrationAdminId, team.getModifiedBy());
 		
 		// And an ACL for the team
 		AccessControlList acl = aclDAO.get(notSoExclusiveAnymore.getId(), ObjectType.TEAM);
-		assertNotNull(acl);
-		assertEquals(migrationAdminId, acl.getCreatedBy());
-		assertEquals(migrationAdminId, acl.getModifiedBy());
+		assertNotNull("ACL should exist", acl);
+		assertEquals("ACL should be created by the migration admin.  Got: " + acl, migrationAdminId, acl.getCreatedBy());
+		assertEquals("ACL should be modified by the migration admin.  Got: " + acl, migrationAdminId, acl.getModifiedBy());
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
-		assertEquals(1, raSet.size());
+		assertEquals("ACL should grant one permission.  Got: " + raSet, 1, raSet.size());
 	}
 	
 	@Test
