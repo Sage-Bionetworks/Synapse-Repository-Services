@@ -1,6 +1,6 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -1353,7 +1353,6 @@ public class IT500SynapseJavaClient {
 		Team retrievedTeam = synapse.getTeam(createdTeam.getId());
 		assertEquals(createdTeam, retrievedTeam);
 		// upload an icon and get the file handle
-		
 		// before setting the icon
 		try {
 			synapse.getTeamIcon(createdTeam.getId(), false);
@@ -1388,6 +1387,8 @@ public class IT500SynapseJavaClient {
 		teams = synapse.getTeams(null, 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		// query for all teams, based on name fragment
+		// need to update cache.  the service to trigger an update
+		// requires admin privileges, so we log in as an admin:
 		SynapseClient adminClient = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
@@ -1404,7 +1405,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
-		assertEquals(myProfile.getEmail(), tm.getMember().getEmail());
+		assertFalse("expected obfuscated email but got "+tm.getMember().getEmail(), myProfile.getEmail().equals(tm.getMember().getEmail())); // unequal since email is obfuscated
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 		
@@ -1465,7 +1466,7 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getHasOpenRequest());
 		assertFalse(tms.getCanJoin());
 
-		// query for team members.  should get member back
+		// query for team members.  should get creator as well as new member back
 		members = synapse.getTeamMembers(updatedTeam.getId(), null, 2, 0);
 		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
@@ -1485,6 +1486,7 @@ public class IT500SynapseJavaClient {
 		
 		// make the other member an admin
 		synapse.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
+		adminClient.updateTeamSearchCache();
 		
 		members = synapse.getTeamMembers(createdTeam.getId(), otherLName.substring(0,otherLName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());

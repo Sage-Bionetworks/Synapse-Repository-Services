@@ -80,6 +80,9 @@ public class TeamServiceTest {
 		// no match
 		pr = teamService.getMembers("101", "bas", 1, 0);
 		assertEquals(0, pr.getTotalNumberOfResults());
+		
+		// in the process of creating the cache the email addresses are obfuscated
+		assertEquals("rog...r@gmail.com", member.getMember().getEmail());
 	}
 	
 

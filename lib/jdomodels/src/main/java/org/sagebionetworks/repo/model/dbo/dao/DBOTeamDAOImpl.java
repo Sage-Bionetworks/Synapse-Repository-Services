@@ -295,7 +295,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				if (upProperties!=null) {
 					ugh.setIsIndividual(true);
 					ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-					fillUserGroupHeaderFromUpserProfileBlob(upProperties, ugh);
+					fillUserGroupHeaderFromUserProfileBlob(upProperties, ugh);
 				} else {
 					ugh.setIsIndividual(false);
 				}
@@ -304,7 +304,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 	};
 	
-	private static void fillUserGroupHeaderFromUpserProfileBlob(Blob upProperties, UserGroupHeader ugh) throws SQLException {
+	private static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, UserGroupHeader ugh) throws SQLException {
 		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
 		ugh.setDisplayName(up.getDisplayName());
 		ugh.setFirstName(up.getFirstName());
@@ -390,7 +390,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
 			if (upProperties!=null) {
 				ugh.setIsIndividual(true);
-				fillUserGroupHeaderFromUpserProfileBlob(upProperties, ugh);
+				fillUserGroupHeaderFromUserProfileBlob(upProperties, ugh);
 			} else {
 				ugh.setIsIndividual(false);
 			}

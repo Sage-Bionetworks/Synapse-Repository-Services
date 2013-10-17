@@ -20,6 +20,7 @@ import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -73,9 +74,7 @@ public class TeamServiceImpl implements TeamService {
 	public Team create(String userId, Team team) throws UnauthorizedException,
 			InvalidModelException, DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		Team result = teamManager.create(userInfo, team);
-		refreshCache();
-		return result;
+		return teamManager.create(userInfo, team);
 	}
 
 	/* (non-Javadoc)
@@ -125,7 +124,8 @@ public class TeamServiceImpl implements TeamService {
 		refreshCache();
 	}
 	
-	private void refreshCache() throws DatastoreException, NotFoundException {
+	@Override
+	public void refreshCache() throws DatastoreException, NotFoundException {
 		this.logger.info("refreshCache() started at time " + System.currentTimeMillis());
 
 		// Create and populate local caches. Upon completion, swap them for the
@@ -154,7 +154,7 @@ public class TeamServiceImpl implements TeamService {
 		cachesLastUpdated = System.currentTimeMillis();
 
 		this.logger.info("refreshCache() completed at time " + System.currentTimeMillis());
-}
+	}
 	
 	private void addToTeamPrefixCache(Trie<String, Collection<Team>> prefixCache, Team team) {
 		//get the collection of prefixes that we want to associate to this Team
@@ -169,6 +169,8 @@ public class TeamServiceImpl implements TeamService {
 		}
 	}
 
+	// NOTE:  A side effect is clearing the private fields of the UserGroupHeader in 'member',
+	// as well as obfuscating the email address.
 	private void addToMemberPrefixCache(Trie<String, Collection<TeamMember>> prefixCache, TeamMember member) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
 		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember().getDisplayName());
@@ -176,6 +178,8 @@ public class TeamServiceImpl implements TeamService {
 		String unobfuscatedEmailAddress = member.getMember().getEmail();
 		if (unobfuscatedEmailAddress != null && unobfuscatedEmailAddress.length() > 0)
 			prefixes.add(unobfuscatedEmailAddress.toLowerCase());
+		
+		UserProfileManagerUtils.clearPrivateFields(null, member.getMember());
 		
 		for (String prefix : prefixes) {
 			Collection<TeamMember> coll = prefixCache.get(prefix);
@@ -213,7 +217,15 @@ public class TeamServiceImpl implements TeamService {
 		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
 		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
 
-		if (fragment==null) return teamManager.getMembers(teamId, limit, offset);
+		// if there is no prefix provided, we just to a regular paginated query
+		// against the database and return the result.  We also clear out the private fields.
+		if (fragment==null) {
+			PaginatedResults<TeamMember>results = teamManager.getMembers(teamId, limit, offset);
+			for (TeamMember teamMember : results.getResults()) {
+				UserProfileManagerUtils.clearPrivateFields(null, teamMember.getMember());
+			}
+			return results;
+		}
 		
 		if (teamMemberPrefixCache == null || teamMemberPrefixCache.size() == 0 )
 			refreshCache();
@@ -266,9 +278,7 @@ public class TeamServiceImpl implements TeamService {
 	public Team update(String userId, Team team) throws DatastoreException,
 			UnauthorizedException, NotFoundException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		Team result = teamManager.put(userInfo, team);
-		refreshCache();
-		return result;
+		return teamManager.put(userInfo, team);
 	}
 
 	/* (non-Javadoc)
@@ -279,7 +289,6 @@ public class TeamServiceImpl implements TeamService {
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.delete(userInfo, teamId);
-		refreshCache();
 	}
 
 	/* (non-Javadoc)
@@ -290,7 +299,6 @@ public class TeamServiceImpl implements TeamService {
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.addMember(userInfo, teamId, principalId);
-		refreshCache();
 	}
 
 	/* (non-Javadoc)
@@ -301,7 +309,6 @@ public class TeamServiceImpl implements TeamService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.removeMember(userInfo, teamId, principalId);
-		refreshCache();
 	}
 
 	@Override
@@ -310,7 +317,6 @@ public class TeamServiceImpl implements TeamService {
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		teamManager.setPermissions(userInfo, teamId, principalId, isAdmin);
-		refreshCache();
 	}
 
 	@Override

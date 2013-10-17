@@ -272,7 +272,7 @@ public class SynapseClientImpl implements SynapseClient {
 	protected static final String PERMISSION = "/permission";
 	protected static final String MEMBERSHIP_STATUS = "/membershipStatus";
 	protected static final String TEAM_MEMBERSHIP_PERMISSION = "isAdmin";
-	protected static final String TEAM_UPDATE_SEARCH_CACHE = "updateTeamSearchCache";
+	protected static final String TEAM_UPDATE_SEARCH_CACHE = "/updateTeamSearchCache";
 
 	
 	// membership invitation

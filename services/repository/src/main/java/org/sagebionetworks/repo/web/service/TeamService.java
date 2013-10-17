@@ -141,6 +141,14 @@ public interface TeamService {
 	Long millisSinceLastCacheUpdate();
 
 	/**
+	 * For use by Quartz
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	void refreshCache() throws DatastoreException, NotFoundException;
+	
+	/**
+	 * For use by TeamController, requests from which must be authenticated
 	 * @param userId
 	 * @throws DatastoreException
 	 * @throws NotFoundException

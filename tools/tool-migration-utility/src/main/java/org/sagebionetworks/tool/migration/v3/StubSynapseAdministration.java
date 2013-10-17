@@ -2301,4 +2301,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+
+	@Override
+	public void updateTeamSearchCache() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
