@@ -2319,6 +2319,8 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
 			String principalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	public PaginatedColumnModels listColumnModels(String prefix, Long limit,
