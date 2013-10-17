@@ -4,18 +4,17 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 
 /**
- * 
+ * This table row DAO is use for random access to row data.
  * @author John
  *
  */
-public interface TableRowRandomAccessDAO {
+public interface TableRowRandomAccessDAO extends SecondaryTableRowDAO {
 
 	/**
-	 * Store a RowSet for random access.
+	 * Given a RowReferenceSet, fetch all of the referenced row data.
 	 * 
-	 * @param toStore
+	 * @param referenceSet
+	 * @return
 	 */
-	public void storeRowSet(RowSet toStore);
-	
 	public RowSet fetchRowSet(RowReferenceSet referenceSet);
 }
