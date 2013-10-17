@@ -13,28 +13,18 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
-import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.springframework.http.HttpStatus;
 
- */
-public class IT990CrowdAuthentication {
+public class IT990AuthenticationController {
 	private static SynapseClient synapse;
 	
 	private static final String username = StackConfiguration.getIntegrationTestUserThreeName();
@@ -71,7 +61,7 @@ public class IT990CrowdAuthentication {
 		synapse.login(username, "incorrectPassword");
 	}
 	
-	@Test(expected = SynapseTermsOfUseException.class)
+	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
@@ -127,7 +117,7 @@ public class IT990CrowdAuthentication {
 		// Expect a ToU failure here, which means the user was created
 		try {
 			synapse.login(username, password);
-			Assert.fail();
+			fail();
 		} catch (SynapseUnauthorizedException e) { 
 			assertTrue(e.getMessage().contains("Terms of Use"));
 		}
@@ -169,35 +159,6 @@ public class IT990CrowdAuthentication {
 		
 		//TODO actually change the email
 		//TODO change the email back
-	}
-	
-	@Test
-	public void testRegisterChangePassword() throws Exception {
-		// Get a session token
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-
-		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
-		String token = session.getString(SESSION_TOKEN_LABEL);
-
-		String testNewPassword = "newPassword";
-		JSONObject registrationInfo = new JSONObject();
-		registrationInfo.put("registrationToken", AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + token);
-		registrationInfo.put("password", testNewPassword);
-		synapse.createAuthEntity("/registeringUserPassword", registrationInfo);
-		
-		// To check the password, we have to try to log-in:
-		synapse.deleteUri(authEndpoint, "/session");
-		synapse.login(username, testNewPassword);
-		
-		// Restore original password
-		JSONObject obj = new JSONObject();
-		obj.put("newPassword", password);
-		synapse.createAuthEntity("/userPassword", obj);
 	}
 	
 	@Test

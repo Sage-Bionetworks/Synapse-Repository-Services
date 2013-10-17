@@ -6,7 +6,6 @@ import java.security.spec.InvalidKeySpecException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.openid4java.message.ParameterList;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;

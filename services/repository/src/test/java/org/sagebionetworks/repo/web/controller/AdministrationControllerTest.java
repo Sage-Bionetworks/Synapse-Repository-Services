@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import org.junit.Ignore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -123,6 +124,7 @@ public class AdministrationControllerTest {
 		assertEquals(setDown, back);
 	}
 
+    @Ignore
 	@Test
 	public void testMigrateFromCrowd() throws Exception {
 		Map<String, String> extraParams = new HashMap<String, String>();
@@ -133,6 +135,7 @@ public class AdministrationControllerTest {
 		Assert.assertEquals(10, messages.getResults().size());
 	}
 
+    @Ignore
 	@Test(expected=UnauthorizedException.class)
 	public void testMigrateFromCrowd_notAdmin() throws Exception {
 		Map<String, String> extraParams = new HashMap<String, String>();

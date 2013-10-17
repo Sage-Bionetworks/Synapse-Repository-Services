@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -93,7 +94,7 @@ public class UserManagerImpl implements UserManager {
 		
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<UserGroup> groups = new HashSet<UserGroup>();
-		if (!AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
+		if (!AuthorizationUtils.isUserAnonymous(userName)) {
 			// All authenticated users belong to the authenticated user group
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS));
 		}
@@ -131,7 +132,7 @@ public class UserManagerImpl implements UserManager {
 		user.setUserId(userName);
 		user.setId(userName); // i.e. username == user id
 
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userName)) {
+		if (AuthorizationUtils.isUserAnonymous(userName)) {
 			return user;
 		}
 
@@ -140,6 +141,9 @@ public class UserManagerImpl implements UserManager {
 			throw new NotFoundException("User " + userName + " does not exist");
 		}
 		user.setCreationDate(ug.getCreationDate());
+		
+		// Get the terms of use acceptance
+		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(ug.getId()));
 
 		// The migrator may delete its own profile during migration
 		// But those details do not matter for this user
@@ -151,8 +155,6 @@ public class UserManagerImpl implements UserManager {
 		user.setFname(up.getFirstName());
 		user.setLname(up.getLastName());
 		user.setDisplayName(up.getDisplayName());
-		user.setAgreesToTermsOfUse(up.getAgreesToTermsOfUse() != null
-				&& up.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
 
 		return user;
 	}
