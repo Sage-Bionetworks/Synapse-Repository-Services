@@ -1,0 +1,30 @@
+{
+ 	"title": "Team Membership Status",
+    "description":"JSON schema for the possible status of a User with respect to Team membership.",
+	"properties": {
+		"teamId": {
+			"type": "string",
+			"description": "The id of the Team."
+		},
+		"userId": {
+			"type": "string",
+			"description": "The principal id of the user."
+		},
+		"isMember": {
+			"type": "boolean",
+			"description": "true iff the user is a member of the team"
+		},
+		"hasOpenInvitation": {
+			"type": "boolean",
+			"description": "true iff the user has an open invitation to join the team"
+		},
+		"hasOpenRequest": {
+			"type": "boolean",
+			"description": "true iff the user has an open request to join the team"
+		},
+		"canJoin": {
+			"type": "boolean",
+			"description": "true iff the user requesting this status information can join the user to the team"
+		}
+	}
+}
