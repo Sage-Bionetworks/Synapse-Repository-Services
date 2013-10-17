@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,6 +83,18 @@ public class TeamServiceTest {
 		
 		// in the process of creating the cache the email addresses are obfuscated
 		assertEquals("rog...r@gmail.com", member.getMember().getEmail());
+	}
+	
+	@Test
+	public void testGetTeamNoFragment() throws Exception {
+		teamService.get(null, 1, 0);
+		verify(mockTeamManager).get(1, 0);
+	}
+	
+	@Test
+	public void testGetTeamMemberNoFragment() throws Exception {
+		teamService.getMembers("101", null, 1, 0);
+		verify(mockTeamManager).getMembers("101", 1, 0);
 	}
 	
 

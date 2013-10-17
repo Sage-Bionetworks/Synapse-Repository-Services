@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
@@ -101,7 +102,7 @@ public class TeamServiceImpl implements TeamService {
 			throws DatastoreException, NotFoundException  {
 		if (limit<1) throw new IllegalArgumentException("'limit' must be at least 1");
 		if (offset<0) throw new IllegalArgumentException("'offset' may not be negative");
-		if (fragment==null) return teamManager.get(limit, offset);
+		if (fragment==null || fragment.trim().length()==0) return teamManager.get(limit, offset);
 
 		if (teamNamePrefixCache == null || teamNamePrefixCache.size() == 0 )
 			refreshCache();
@@ -109,12 +110,7 @@ public class TeamServiceImpl implements TeamService {
 		// Get the results from the cache
 		SortedMap<String, Collection<Team>> matched = teamNamePrefixCache.prefixMap(fragment.toLowerCase());
 		List<Team> fullList = PrefixCacheHelper.flatten(matched, teamComparator);
-		PaginatedResults<Team> results = new PaginatedResults<Team>();
-		results.setTotalNumberOfResults(fullList.size());
-		List<Team> page = new ArrayList<Team>((int)limit);
-		for (int i=(int)offset; i<offset+limit && i<fullList.size(); i++) page.add(fullList.get(i));
-		results.setResults(page);
-		return results;
+		return PaginatedResultsUtil.createPaginatedResults(fullList, limit, offset);
 	}
 
 	@Override
@@ -219,7 +215,7 @@ public class TeamServiceImpl implements TeamService {
 
 		// if there is no prefix provided, we just to a regular paginated query
 		// against the database and return the result.  We also clear out the private fields.
-		if (fragment==null) {
+		if (fragment==null || fragment.trim().length()==0) {
 			PaginatedResults<TeamMember>results = teamManager.getMembers(teamId, limit, offset);
 			for (TeamMember teamMember : results.getResults()) {
 				UserProfileManagerUtils.clearPrivateFields(null, teamMember.getMember());
@@ -236,12 +232,7 @@ public class TeamServiceImpl implements TeamService {
 		// Get the results from the cache
 		SortedMap<String, Collection<TeamMember>> matched = teamSpecificMemberPrefixCache.prefixMap(fragment.toLowerCase());
 		List<TeamMember> fullList = PrefixCacheHelper.flatten(matched, teamMemberComparator);
-		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>();
-		results.setTotalNumberOfResults(fullList.size());
-		List<TeamMember> page = new ArrayList<TeamMember>((int)limit);
-		for (int i=(int)offset; i<offset+limit && i<fullList.size(); i++) page.add(fullList.get(i));
-		results.setResults(page);
-		return results;
+		return PaginatedResultsUtil.createPaginatedResults(fullList, limit, offset);
 	}
 
 	/* (non-Javadoc)
