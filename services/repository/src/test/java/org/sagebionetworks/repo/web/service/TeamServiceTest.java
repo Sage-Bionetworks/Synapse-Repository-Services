@@ -94,6 +94,9 @@ public class TeamServiceTest {
 	
 	@Test
 	public void testGetTeamMemberNoFragment() throws Exception {
+		PaginatedResults<TeamMember>results = new PaginatedResults<TeamMember>();
+		results.setResults(new ArrayList<TeamMember>());
+		when(mockTeamManager.getMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
 		verify(mockTeamManager).getMembers("101", 1, 0);
 	}
