@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * WikiPages are composed of two major parts; the raw markdown text and a list
  * of file attachments. For example, to embed an image from an end-user's
- * machine into a WikiPage, the image file must first be upload to Synapse as <a
+ * machine into a WikiPage, the image file must first be uploaded to Synapse as <a
  * href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> (see
  * <a href="${org.sagebionetworks.file.controller.UploadController}">File
  * Services</a>). The FileHandle ID can then be added to a
