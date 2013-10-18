@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PrefixConst;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Versionable;
 
 /**
@@ -603,7 +605,7 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
-	public static final String ENTITY_WIKI_ID_AND_VERSION = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	// Evaluation
 	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
 	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
@@ -613,7 +615,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
-	public static final String EVALUATION_WIKI_ID_AND_VERSION = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	
 	// Team
 	public static final String TEAM = "/team";

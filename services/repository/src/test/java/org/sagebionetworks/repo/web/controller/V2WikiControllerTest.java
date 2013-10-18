@@ -163,7 +163,7 @@ public class V2WikiControllerTest {
 	 * @throws Exception
 	 */
 	private void doWikiCRUDForOwnerObject(String ownerId, ObjectType ownerType) throws Exception{
-		/*
+		
 		// Create a wiki page
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setTitle("testCreateEntityWikiRoundTrip-"+ownerId+"-"+ownerType);
@@ -171,6 +171,7 @@ public class V2WikiControllerTest {
 		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
 		wiki = entityServletHelper.createV2WikiPage(userName, ownerId, ownerType, wiki);
 		assertNotNull(wiki);
+		/*
 		assertNotNull(wiki.getId());
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
 		toDelete.add(key);
@@ -250,7 +251,7 @@ public class V2WikiControllerTest {
 		assertNotNull(child);
 		assertNotNull(child.getId());
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
-		
+		toDelete.add(childKey);
 		// List the hierarchy
 		PaginatedResults<V2WikiHeader> paginated = entityServletHelper.getV2WikiHeaderTree(userName, ownerId, ownerType);
 		assertNotNull(paginated);
