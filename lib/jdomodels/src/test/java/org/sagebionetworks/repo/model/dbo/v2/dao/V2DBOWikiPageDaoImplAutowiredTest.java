@@ -244,12 +244,10 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		newIds.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false, newIds);
-		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds);		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		
 		// The etag should be new and the modified time should be greater than the previous modified time
-		assertFalse("The etag should have changed",startEtag.equals(clone2.getEtag()));
 		Long endModifiedOn = clone2.getModifiedOn().getTime();
 		assertTrue("Modified On should have change and be greater than the previous timestamp", endModifiedOn > startModifiedOn);
 		
@@ -262,8 +260,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 		clone2.setMarkdownFileHandleId(markdownTwo.getId());
 		// Update with same fileNameMap
-		V2WikiPage clone3 = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, false, new ArrayList<String>());
-		
+		V2WikiPage clone3 = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());		
 		List<Long> reservationIds2 = wikiPageDao.getFileHandleReservationForWiki(key);		
 		// the toInsert list of attachments should be 0 and the archive should still be size 2
 		assertTrue(reservationIds2.size() == 2);
@@ -304,8 +301,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		newIds.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false, newIds);
-		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds);		assertNotNull(clone2);
 		assertTrue(clone2.getMarkdownFileHandleId().equals(markdownTwo.getId()));
 
 		// At this point, the markdown database has two versions for this wiki page
@@ -340,8 +336,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		fileNameMap.remove(attachTwo.getFileName());
 		
 		// Update
-		V2WikiPage restored = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, false, new ArrayList<String>());
-		assertNotNull(restored);
+		V2WikiPage restored = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());		assertNotNull(restored);
 		
 		assertTrue(restored.getMarkdownFileHandleId().equals(markdownOne.getId()));
 		assertTrue(restored.getAttachmentFileHandleIds().size() == 1);
@@ -500,8 +495,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		newIds.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, false, newIds);
-		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds);		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		
 		List<V2WikiHistorySnapshot> historyAfterUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));

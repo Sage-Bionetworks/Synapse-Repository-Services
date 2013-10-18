@@ -27,8 +27,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -217,8 +219,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Override
 	public V2WikiPage updateWikiPage(V2WikiPage wikiPage,
 			Map<String, FileHandle> fileNameToFileHandleMap, String ownerId,
-			ObjectType ownerType, boolean keepEtag, List<String> newFileHandleIds) throws NotFoundException {
-		
+			ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException {
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileHandleMap cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
@@ -237,10 +238,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 		// Update this wiki's entry in the WikiPage database (update version)
 		V2DBOWikiPage newDbo = V2WikiTranslationUtils.createDBOFromDTO(wikiPage);
-		if(!keepEtag){
-			// We keep the etag for migration scenarios.
-			newDbo.setEtag(UUID.randomUUID().toString());
-		}
 		// Set the modifiedon to current.
 		newDbo.setModifiedOn(currentTime);
 		newDbo.setMarkdownVersion(incrementedVersion);
@@ -259,7 +256,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Create the attachments
 		long timeStamp = (currentTime/1000)*1000;
 		List<V2DBOWikiAttachmentReservation> attachmentsToInsert = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandleIds, wikiId, timeStamp);
-		
 		// Insert only unique/new attachments into the reservation
 		// Save them to the attachments archive
 		if(attachmentsToInsert.size() > 0) {
@@ -354,9 +350,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Now get the markdown
 		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), dbo.getMarkdownVersion()); 
 		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
-		// Now get the attachments
-		List<V2DBOWikiAttachmentReservation> attachments = getAttachmentDbos(dbo.getId(), listToString);
-		return V2WikiTranslationUtils.createDTOfromDBO(dbo, attachments, markdownDbo.getFileHandleId());
+		List<String> fileHandleIds = createFileHandleIdsList(listToString);
+		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo.getFileHandleId());
 	}
 	
 	@Override
@@ -527,8 +522,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			// Process the list of attachments into a map for easy searching
 			Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentsList);
 			// Return the associated file handle id if filename exists
-			if(fileNameToIdMap.containsKey(fileName)) {
-				return fileNameToIdMap.get(fileName);
+			String fileHandleId = fileNameToIdMap.get(fileName);
+			if(fileHandleId != null) {
+				return fileHandleId;
 			}
 		}
 		// No attachment with the file name exists for this wiki page

@@ -233,7 +233,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Set etag
 		wikiPage.setEtag(UUID.randomUUID().toString());
 		// Pass to the DAO
-		return wikiPageDao.updateWikiPage(wikiPage, nameToHandleMap, objectId, objectType, false, newFileHandlesToInsert);
+		return wikiPageDao.updateWikiPage(wikiPage, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);
 	}
 
 	@Override

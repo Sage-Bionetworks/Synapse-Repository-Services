@@ -110,7 +110,7 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
-		verify(mockWikiDao, times(1)).updateWikiPage(page,new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, false, new ArrayList<String>());
+		verify(mockWikiDao, times(1)).updateWikiPage(page,new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, new ArrayList<String>());
 		// The lock must be acquired
 		verify(mockWikiDao, times(1)).lockForUpdate("000");
 	}
@@ -476,7 +476,7 @@ public class V2WikiManagerTest {
 		List<String> newIds = new ArrayList<String>();
 		newIds.add(two.getId());
 	
-		verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, false, newIds);
+		verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -529,7 +529,7 @@ public class V2WikiManagerTest {
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), current);
 		verify(mockWikiDao, times(1)).getMarkdownHandleIdFromHistory(key, new Long(0));
 		verify(mockWikiDao, times(1)).getWikiFileHandleIdsFromHistory(key, new Long(0));
-		verify(mockWikiDao, times(1)).updateWikiPage(current, new HashMap<String, FileHandle>(), ownerId, ownerType, false, new ArrayList<String>());
+		verify(mockWikiDao, times(1)).updateWikiPage(current, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
 	}
 	
 	@Test
@@ -618,7 +618,7 @@ public class V2WikiManagerTest {
 		wiki.setMarkdownFileHandleId(markdown.getId());
 		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(wiki);
 		// No new file handle ids are sent to the dao, so send in empty list
-		verify(mockWikiDao, times(1)).updateWikiPage(wiki, fileHandleMap, ownerId, ownerType, false, new ArrayList<String>());
+		verify(mockWikiDao, times(1)).updateWikiPage(wiki, fileHandleMap, ownerId, ownerType, new ArrayList<String>());
 		
 	}
 	
