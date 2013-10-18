@@ -413,6 +413,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void setPermissions(UserInfo userInfo, String teamId,
 			String principalId, boolean isAdmin) throws DatastoreException,
 			UnauthorizedException, NotFoundException {

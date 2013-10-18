@@ -341,6 +341,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 
 	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException {
 		// first get all the Teams and Members, regardless of whether the members are administrators
 		List<TeamMemberPair> queryResults = simpleJdbcTemplate.query(SELECT_ALL_TEAMS_AND_MEMBERS, teamMemberPairRowMapper);
@@ -370,9 +371,9 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		// finally, create the results to return
 		for (Long teamId : teamMap.keySet()) {
 			Team team = teamMap.get(teamId);
-			if (team==null) throw new IllegalStateException("Missing TeamHeader for team ID: "+teamId);
+			if (team==null) throw new IllegalStateException("Missing Team for team ID: "+teamId);
 			Collection<TeamMember> teamMembers = teamMemberMap.get(teamId).values();
-			if (teamMembers.isEmpty()) throw new IllegalStateException("Missing team members for team ID :"+teamId);
+			if (teamMembers==null || teamMembers.isEmpty()) throw new IllegalStateException("Missing team members for team ID :"+teamId);
 			results.put(team, teamMembers);
 		}
 		return results;
@@ -399,6 +400,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	};
 	
 	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset)
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	

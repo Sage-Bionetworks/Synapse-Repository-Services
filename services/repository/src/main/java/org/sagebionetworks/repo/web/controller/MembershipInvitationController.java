@@ -24,7 +24,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * @author brucehoff
+ * The Membership Invitation Services create, retrieve and delete 
+ * membership invitations.  A membership invitation is created by a Team administrator
+ * to invite a Synapse user to join the Team.  Without the invitation it is not possible
+ * for an outside user to join.  For more on Teams, see
+ * <a href="#org.sagebionetworks.repo.web.controller.TeamController">Team Services</a>.
  *
  */
 @ControllerInfo(displayName="Membership Invitation Services", path="repo/v1")
@@ -33,6 +37,16 @@ public class MembershipInvitationController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
+	/**
+	 * Create a membership invitation.  The Team and invitee must be specified.  Optionally,
+	 * the creator may include an invitation message and/or expiration date for the invitation.
+	 * If no expiration date is specified then the invitation never expires.
+	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 * @param userId
+	 * @param invitation
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -43,6 +57,16 @@ public class MembershipInvitationController extends BaseController {
 		return serviceProvider.getMembershipInvitationService().create(userId, invitation);
 	}
 
+	/**
+	 * Retrieve the open invitations to a user, optionally filtering by the Team of origin.
+	 * An invitation is only open if it has not expired and if the user has not joined the Team.
+	 * @param id the ID of the Synapse user to which invitations have been extended.
+	 * @param teamId the ID of the Team extending the invitations (optional)
+	 * @param limit the maximum number of invitations to return (default 10)
+	 * @param offset the starting index of the returned results (default 0)
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION, method = RequestMethod.GET)
 	public @ResponseBody
@@ -55,6 +79,14 @@ public class MembershipInvitationController extends BaseController {
 		return serviceProvider.getMembershipInvitationService().getOpenInvitations(id, teamId, limit, offset);
 	}
 
+	/**
+	 * Retrieve an invitation by ID
+	 * Note:  The client must be an administrator of the specified Team to make this request.
+	 * @param id the ID of the invitation
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -65,6 +97,13 @@ public class MembershipInvitationController extends BaseController {
 		return serviceProvider.getMembershipInvitationService().get(userId, id);
 	}
 
+	/**
+	 * Delete an invitation
+	 * Note:  The client must be an administrator of the Team referenced by the invitation to make this request.
+	 * @param id the ID of the invitation to be deleted
+	 * @param userId
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.DELETE)
 	public void deleteInvitation(
