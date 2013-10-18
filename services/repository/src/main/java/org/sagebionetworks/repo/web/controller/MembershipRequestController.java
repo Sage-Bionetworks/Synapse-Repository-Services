@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <a href="#org.sagebionetworks.repo.web.controller.TeamController">Team Services</a>.
  *
  */
-@ControllerInfo(displayName="Membeship Request Services", path="repo/v1")
+@ControllerInfo(displayName="Membership Request Services", path="repo/v1")
 @Controller
 public class MembershipRequestController extends BaseController {
 	@Autowired

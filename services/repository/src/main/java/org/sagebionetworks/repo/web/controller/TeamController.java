@@ -89,10 +89,15 @@ public class TeamController extends BaseController {
 	}
 
 	/**
-	 * Retrieve a paginated list of Teams matching the supplied name fragment (optional), in alphabetical order by Team name.
+	 * Retrieve a paginated list of Teams matching the supplied name fragment (optional), 
+	 * in alphabetical order by Team name.
+	 * <br>
+	 * Note:  This service has JSONP support:  If the request parameter "callback=jsMethod" is included (where 
+	 * 'jsMethod' is any function name you wish), then the response body will be wrapped in "jsMethod(...);".
 	 * 
 	 * @param fragment a prefix of the Team name, or a prefix of any sub-string in the name preceded by a space.  
-	 * If omitted, all Teams are returned.
+	 * If omitted, all Teams are returned.  
+	 * 
 	 * @param limit the maximum number of Teams to return (default 10)
 	 * @param offset the starting index of the returned results (default 0)
 	 * @return
@@ -262,6 +267,9 @@ public class TeamController extends BaseController {
 	/**
 	 * Retrieve a paginated list of Team members matching the supplied name prefix.  If the prefix 
 	 * is omitted then all members are returned.
+	 * <br>
+	 * Note:  This service has JSONP support:  If the request parameter "callback=jsMethod" is included (where 
+	 * 'jsMethod' is any function name you wish), then the response body will be wrapped in "jsMethod(...);".
 	 * @param id the id of the Team of interest
 	 * @param fragment a prefix of the user's first or last name or email address (optional)
 	 * @param limit the maximum number of members to return (default 10)
