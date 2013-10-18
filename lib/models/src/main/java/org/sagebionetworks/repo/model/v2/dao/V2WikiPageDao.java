@@ -37,11 +37,10 @@ public interface V2WikiPageDao {
 	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage.
 	 * @param ownerId
 	 * @param ownerType
-	 * @param keepEtag
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
+	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException;
 		
 	/**
 	 * Get a wiki page.
