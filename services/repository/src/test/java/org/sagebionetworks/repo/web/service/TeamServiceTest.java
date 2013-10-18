@@ -98,7 +98,7 @@ public class TeamServiceTest {
 		results.setResults(new ArrayList<TeamMember>());
 		when(mockTeamManager.getMembers("101", 1, 0)).thenReturn(results);
 		teamService.getMembers("101", null, 1, 0);
-		verify(mockTeamManager);
+		verify(mockTeamManager).getMembers("101", 1, 0);
 	}
 	
 
