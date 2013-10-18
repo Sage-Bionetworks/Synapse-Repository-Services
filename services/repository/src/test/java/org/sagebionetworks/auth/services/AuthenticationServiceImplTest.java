@@ -15,7 +15,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.BasicOpenIDConsumer;
+import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -109,9 +109,9 @@ public class AuthenticationServiceImplTest {
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setMap(new HashMap<String, List<String>>());
-		info.getMap().put(BasicOpenIDConsumer.AX_EMAIL, Arrays.asList(new String[] { username }));
+		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
 		
-		service.authenticateViaOpenID(info, null);
+		service.processOpenIDInfo(info, null);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));
@@ -126,9 +126,9 @@ public class AuthenticationServiceImplTest {
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setMap(new HashMap<String, List<String>>());
-		info.getMap().put(BasicOpenIDConsumer.AX_EMAIL, Arrays.asList(new String[] { username }));
+		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
 		
-		service.authenticateViaOpenID(info, true);
+		service.processOpenIDInfo(info, true);
 		
 		// User should not be created, ToU should be updated
 		verify(mockUserManager, times(0)).createUser(any(NewUser.class));
