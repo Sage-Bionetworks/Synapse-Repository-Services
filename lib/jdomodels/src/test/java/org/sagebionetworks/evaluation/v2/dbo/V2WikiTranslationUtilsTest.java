@@ -5,8 +5,10 @@ import static org.junit.Assert.*;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -97,10 +99,11 @@ public class V2WikiTranslationUtilsTest {
 		S3FileHandle handleOne = new S3FileHandle();
 		handleOne.setId("1974");
 		Long id = Long.parseLong("1974");
-		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
-		fileNameMap.put(handleOne.getFileName(), handleOne);
 		
-		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(fileNameMap, wikiId, timeStamp);
+		List<String> newFileHandlesToInsert = new ArrayList<String>();
+		newFileHandlesToInsert.add(handleOne.getId());
+		
+		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandlesToInsert, wikiId, timeStamp);
 		assertTrue(attachments.size() == 1);
 		V2DBOWikiAttachmentReservation attachment = attachments.get(0);
 		assertTrue(attachment.getFileHandleId().equals(id));
@@ -127,28 +130,23 @@ public class V2WikiTranslationUtilsTest {
 		wikiDbo.setParentId(null);
 		wikiDbo.setRootId(id);
 		wikiDbo.setTitle("Title");
-		// Wiki's attachment Dbos
-		List<V2DBOWikiAttachmentReservation> attachments = new ArrayList<V2DBOWikiAttachmentReservation>();
-		V2DBOWikiAttachmentReservation reservation = new V2DBOWikiAttachmentReservation();
-		Long fileHandleId = new Long(444);
-		reservation.setFileHandleId(fileHandleId);
-		reservation.setTimeStamp(new Timestamp(time));
-		reservation.setWikiId(id);
-		attachments.add(reservation);
-		
+		// Wiki's attachments
+		List<String> fileHandleIds = new ArrayList<String>();
+		fileHandleIds.add(String.valueOf(new Long(444)));
+
 		try {
-			V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, attachments, null);
+			V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, null);
 			fail("Markdown file handle id should not be allowed");
 		} catch(IllegalArgumentException e) {
 			// expected
 		}
 		
-		V2WikiPage pageClone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, attachments, markdownFileHandleId);
+		V2WikiPage pageClone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, markdownFileHandleId);
 		
 		// WikiPage
 		V2WikiPage page = new V2WikiPage();
 		page.setAttachmentFileHandleIds(new ArrayList<String>());
-		page.getAttachmentFileHandleIds().add(String.valueOf(fileHandleId));
+		page.getAttachmentFileHandleIds().add(String.valueOf(new Long(444)));
 		page.setCreatedBy(String.valueOf(user));
 		page.setCreatedOn(new Date(time));
 		page.setEtag("etag");
@@ -203,5 +201,45 @@ public class V2WikiTranslationUtilsTest {
 		
 		V2DBOWikiPage dbo = V2WikiTranslationUtils.createDBOFromDTO(page);
 		assertTrue(dbo.equals(wikiDbo));
+	}
+	
+	@Test
+	public void testRoundTrip() {
+		S3FileHandle handleOne = new S3FileHandle();
+		handleOne.setId("19,74");
+		handleOne.setFileName("f:oo.bar");
+		S3FileHandle handleTwo = new S3FileHandle();
+		handleTwo.setId("19,75");
+		handleTwo.setFileName("ba:r.txt");
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(handleOne.getFileName(), handleOne);
+		fileNameMap.put(handleTwo.getFileName(), handleTwo);
+		
+		S3FileHandle markdown = new S3FileHandle();
+		markdown.setId("2000");
+		markdown.setFileName("markdownContent");
+		
+		V2WikiPage dto = new V2WikiPage();
+		dto.setId("123");
+		dto.setEtag("etag");
+		dto.setTitle("title");
+		dto.setCreatedBy("456");
+		dto.setCreatedOn(new Date(88l));
+		dto.setModifiedBy("987");
+		dto.setModifiedOn(new Date(99l));
+		dto.setParentWikiId("0");
+		dto.setAttachmentFileHandleIds(new LinkedList<String>());
+		dto.getAttachmentFileHandleIds().add(handleOne.getId());
+		dto.getAttachmentFileHandleIds().add(handleTwo.getId());
+		dto.setMarkdownFileHandleId(markdown.getId());
+		
+		V2DBOWikiPage wikiDbo = V2WikiTranslationUtils.createDBOFromDTO(dto);
+		List<String> fileHandleIds = new ArrayList<String>();
+		fileHandleIds.add(handleOne.getId());
+		fileHandleIds.add(handleTwo.getId());
+		V2WikiPage clone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, Long.valueOf(markdown.getId()));
+		Collections.sort(clone.getAttachmentFileHandleIds());
+		assertNotNull(clone);
+		assertEquals(dto, clone);
 	}
 }
