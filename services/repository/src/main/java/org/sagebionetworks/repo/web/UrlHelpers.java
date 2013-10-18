@@ -583,10 +583,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;	
-	// Tables
-	public static final String COLUMN = "/column";
-	public static final String COLUMN_ID = COLUMN+"/{columnId}";
-	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
+
 	// V2 Wiki URL
 	public static final String WIKI_V2 = "/wiki2";
 	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
@@ -616,6 +613,11 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	
+	// Tables
+	public static final String COLUMN = "/column";
+	public static final String COLUMN_ID = COLUMN+"/{columnId}";
+	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	
 	// Team
 	public static final String TEAM = "/team";

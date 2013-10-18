@@ -18,6 +18,12 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * V2 WikiService implementation.
+ * (Derived from org.sagebionetworks.repo.web.service.WikiServiceImpl)
+ * @author hso
+ *
+ */
 public class V2WikiServiceImpl implements V2WikiService {
 
 	@Autowired

@@ -143,7 +143,7 @@ public class V2WikiControllerTest {
 		doWikiCRUDForOwnerObject(entity.getId(), ObjectType.ENTITY);
 	}
 	
-	//@Test
+	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
 		// create an entity
 		evaluation = new Evaluation();
@@ -171,7 +171,7 @@ public class V2WikiControllerTest {
 		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
 		wiki = entityServletHelper.createV2WikiPage(userName, ownerId, ownerType, wiki);
 		assertNotNull(wiki);
-		/*
+		
 		assertNotNull(wiki.getId());
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
 		toDelete.add(key);
@@ -209,33 +209,37 @@ public class V2WikiControllerTest {
 		assertEquals(cloneUpdated.getAttachmentFileHandleIds().get(0), handleOne.getId());
 		assertFalse("The etag should have changed from the update", currentEtag.equals(cloneUpdated.getEtag()));
 		
-		// Get history (there should be two snapshots returned)
+		// Update one more time
+		cloneUpdated.getAttachmentFileHandleIds().add(handleTwo.getId());
+		String currentEtag2 = cloneUpdated.getEtag();
+		V2WikiPage cloneUpdated2 = entityServletHelper.updateWikiPage(userName, ownerId, ownerType, cloneUpdated);
+		assertNotNull(cloneUpdated2);
+		assertEquals(cloneUpdated2.getMarkdownFileHandleId(), markdownTwo.getId());
+		assertEquals(cloneUpdated2.getAttachmentFileHandleIds().size(), 2);
+		assertFalse("The etag should have changed from the update", currentEtag2.equals(cloneUpdated2.getEtag()));
+		
+		// Get history (there should be three snapshots returned)
 		PaginatedResults<V2WikiHistorySnapshot> historyResults = entityServletHelper.getV2WikiHistory(key, userName, new Long(0), new Long(10));
 		assertNotNull(historyResults);
 		List<V2WikiHistorySnapshot> snapshots = historyResults.getResults();
 		assertNotNull(snapshots);
-		assertEquals(2, snapshots.size());
+		assertEquals(3, snapshots.size());
 		// Results are ordered, descending
 		// First snapshot is the most recent modification/highest version
-		assertEquals("1", snapshots.get(0).getVersion());
-		assertEquals("0", snapshots.get(1).getVersion());
+		assertEquals("2", snapshots.get(0).getVersion());
+		assertEquals("1", snapshots.get(1).getVersion());
+		assertEquals("0", snapshots.get(2).getVersion());
 		
-		// Restore wiki to previous version
-		Long versionToRestore = new Long(0);
-		String currentEtag2 = cloneUpdated.getEtag();
-		V2WikiPage restored = entityServletHelper.restoreWikiPage(userName, ownerId, ownerType, cloneUpdated, versionToRestore);
+		// Restore wiki to version 1 which had markdownTwo and one file attachment
+		Long versionToRestore = new Long(1);
+		String currentEtag3 = cloneUpdated2.getEtag();
+		V2WikiPage restored = entityServletHelper.restoreWikiPage(userName, ownerId, ownerType, cloneUpdated2, versionToRestore);
 		assertNotNull(restored);
-		assertFalse("The etag should have changed from the restore", currentEtag2.equals(restored.getEtag()));
+		assertFalse("The etag should have changed from the restore", currentEtag3.equals(restored.getEtag()));
 		
 		assertEquals(restored.getMarkdownFileHandleId(), markdownTwo.getId());
 		assertEquals(restored.getAttachmentFileHandleIds().size(), 1);
-		
-		versionToRestore = new Long(0);
-		V2WikiPage restored2 = entityServletHelper.restoreWikiPage(userName, ownerId, ownerType, restored, versionToRestore);
-		assertNotNull(restored2);
-		assertEquals(restored2.getMarkdownFileHandleId(), markdown.getId());
-		assertEquals(restored2.getAttachmentFileHandleIds().size(), 0);
-		
+
 		// Add a child wiki
 		V2WikiPage child = new V2WikiPage();
 		child.setTitle("Child");
@@ -266,11 +270,11 @@ public class V2WikiControllerTest {
 		
 		// Check the child header
 		V2WikiHeader childHeader =  paginated.getResults().get(1);
-		assertEquals(childHeader.getId(), childHeader.getId());
-		assertEquals(childHeader.getTitle(), childHeader.getTitle());
+		assertEquals(child.getId(), childHeader.getId());
+		assertEquals(child.getTitle(), childHeader.getTitle());
 		assertEquals(wiki.getId(), childHeader.getParentId());
 		
-		// Check that we can get the FileHandles for each wiki		
+		// Check that we can get the FileHandles	
 		FileHandleResults handles = entityServletHelper.getV2WikiFileHandles(userName, childKey);
 		assertNotNull(handles);
 		assertNotNull(handles.getList());
@@ -317,7 +321,6 @@ public class V2WikiControllerTest {
 		} catch (NotFoundException e) {
 			// this is expected
 		}
-		*/
 	}
 
 }
