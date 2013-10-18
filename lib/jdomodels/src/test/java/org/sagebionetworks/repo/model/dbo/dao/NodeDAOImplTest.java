@@ -12,9 +12,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -1884,6 +1886,23 @@ public class NodeDAOImplTest {
 
 		assertTrue(refs.contains(refN1));
 		assertTrue(refs.contains(refN2));
+	}
+	
+	@Test
+	public void testCreateTableNode() throws DatastoreException, InvalidModelException, NotFoundException{
+		List<String> columnIds = new LinkedList<String>();
+		columnIds.add("123");
+		columnIds.add("456");
+		Node n1 = NodeTestUtils.createNew(UUID.randomUUID().toString(), creatorUserGroupId);
+		n1.setColumnModelIds(columnIds);
+		String id1 = this.nodeDao.createNew(n1);
+		toDelete.add(id1);
+		n1 = nodeDao.getNode(id1);
+		assertNotNull("ColumnModel ID were not saved!",n1.getColumnModelIds());
+		List<String> expected = new LinkedList<String>();
+		expected.add("123");
+		expected.add("456");
+		assertEquals(expected, n1.getColumnModelIds());
 	}
 
 	@Test

@@ -7,15 +7,17 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -24,6 +26,9 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class MembershipRequestManagerImpl implements MembershipRequestManager {
+	
+	@Autowired
+	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 	
@@ -31,8 +36,10 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	
 	// for testing
 	public MembershipRequestManagerImpl(
+			AuthorizationManager authorizationManager,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
 			) {
+		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
 	}
 	
@@ -58,7 +65,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
 			InvalidModelException, UnauthorizedException {
-		if (userInfo.getIndividualGroup().getId().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) 
+		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mrs, userInfo);
 		Date now = new Date();
@@ -84,7 +91,12 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public void delete(UserInfo userInfo, String id) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		MembershipRqstSubmission mrs = membershipRqstSubmissionDAO.get(id);
+		MembershipRqstSubmission mrs = null;
+		try {
+			mrs = membershipRqstSubmissionDAO.get(id);
+		} catch (NotFoundException e) {
+			return;
+		}
 		if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(mrs.getUserId()))
 			throw new UnauthorizedException("Cannot delete membership request for another user.");
 		membershipRqstSubmissionDAO.delete(id);
@@ -94,14 +106,15 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#getOpenByTeamInRange(java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<MembershipRequest> getOpenByTeamInRange(
-			String teamId, long offset, long limit)
+	public PaginatedResults<MembershipRequest> getOpenByTeamInRange(UserInfo userInfo, 
+			String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
-		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamInRange(teamIdAsLong, now.getTime(), offset, limit);
+		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamInRange(teamIdAsLong, now.getTime(), limit, offset);
 		long count = membershipRqstSubmissionDAO.getOpenByTeamCount(teamIdAsLong, now.getTime());
-		QueryResults<MembershipRequest> results = new QueryResults<MembershipRequest>();
+		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>();
 		results.setResults(mrList);
 		results.setTotalNumberOfResults(count);
 		return results;
@@ -111,15 +124,16 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#getOpenByTeamAndRequestorInRange(java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public QueryResults<MembershipRequest> getOpenByTeamAndRequestorInRange(
-			String teamId, String requestorId, long offset, long limit)
+	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequestorInRange(UserInfo userInfo, 
+			String teamId, String requestorId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
 		long requestorIdAsLong = Long.parseLong(requestorId);
-		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), offset, limit);
+		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), limit, offset);
 		long count = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamIdAsLong, requestorIdAsLong, now.getTime());
-		QueryResults<MembershipRequest> results = new QueryResults<MembershipRequest>();
+		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>();
 		results.setResults(mrList);
 		results.setTotalNumberOfResults(count);
 		return results;

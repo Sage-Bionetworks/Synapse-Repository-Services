@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +32,7 @@ public interface TeamDAO {
 	 * @param limit
 	 * 
 	 */
-	public List<Team> getInRange(long offset, long limit) throws DatastoreException;
+	public List<Team> getInRange(long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * 
@@ -39,13 +40,31 @@ public interface TeamDAO {
 	 * @throws DatastoreException
 	 */
 	public long getCount() throws DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public List<TeamMember> getMembersInRange(String teamId, long limit, long offset) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public long getMembersCount(String teamId) throws DatastoreException;
 
 	/**
 	 * This is used to build up the team and member prefix caches
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
+	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException;
 	
 	/**
 	 * Get the Teams a member belongs to
@@ -55,7 +74,7 @@ public interface TeamDAO {
 	 * @return the Teams this principal belongs to
 	 * @throws DatastoreException 
 	 */
-	public List<Team> getForMemberInRange(String principalId, long offset, long limit) throws DatastoreException;
+	public List<Team> getForMemberInRange(String principalId, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * 

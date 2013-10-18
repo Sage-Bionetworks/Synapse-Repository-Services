@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -14,20 +16,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import junit.framework.Assert;
-
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -45,6 +52,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+@Ignore // This test is disabled for now  see PLFM-2241
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOCrowdMigrationDAOTest {
@@ -63,6 +71,12 @@ public class DBOCrowdMigrationDAOTest {
 	
 	@Autowired
 	private AuthenticationDAO authDAO;
+	
+	@Autowired
+	private TeamDAO teamDAO;
+	
+	@Autowired
+	private AccessControlListDAO aclDAO;
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
@@ -122,9 +136,14 @@ public class DBOCrowdMigrationDAOTest {
 		}
 	}
 	
-	private void deleteTestGroupFromRDS(String nameOrId) throws Exception {
+	private void deleteTestGroupFromRDS(String id) throws Exception {
 		try {
-			userGroupDAO.delete(nameOrId);
+			teamDAO.delete(id);
+		} catch (NotFoundException e) {
+			// Good, not in DB
+		}
+		try {
+			userGroupDAO.delete(id);
 		} catch (NotFoundException e) {
 			// Good, not in DB
 		}
@@ -214,14 +233,14 @@ public class DBOCrowdMigrationDAOTest {
 			users.addAll(crowdMigrationDAO.getUsersFromCrowd(1, i));
 		}
 		
-		Assert.assertEquals(numUsers, new Long(users.size()));
+		assertEquals(numUsers, new Long(users.size()));
 	}
 
 	@Test
 	public void testAbortNotInRDS() throws Exception {
 		createCrowdUser(randUsername);
 		String userId = crowdMigrationDAO.migrateUser(user);
-		Assert.assertNull(userId);
+		assertNull(userId);
 	}
 	
 	@Test
@@ -242,8 +261,8 @@ public class DBOCrowdMigrationDAOTest {
 		crowdMigrationDAO.migrateUser(user);
 
 		// The values should remain the same
-		Assert.assertEquals(userProfile, userProfileDAO.get(user.getId()));
-		Assert.assertEquals(secretKey, authDAO.getSecretKey(user.getId()));
+		assertEquals(userProfile, userProfileDAO.get(user.getId()));
+		assertEquals(secretKey, authDAO.getSecretKey(user.getId()));
 		passHash = PBKDF2Utils.hashPassword(password, authDAO.getPasswordSalt(randUsername));
 		authDAO.checkEmailAndPassword(randUsername, passHash);
 	}
@@ -269,8 +288,8 @@ public class DBOCrowdMigrationDAOTest {
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 
 		// There should be one more of each row
-		Assert.assertEquals(startUserProfileCount + 1, basicDAO.getCount(DBOUserProfile.class));
-		Assert.assertEquals(startCredentialCount + 1, basicDAO.getCount(DBOCredential.class));
+		assertEquals(startUserProfileCount + 1, basicDAO.getCount(DBOUserProfile.class));
+		assertEquals(startCredentialCount + 1, basicDAO.getCount(DBOCredential.class));
 	}
 
 	@Test
@@ -283,9 +302,8 @@ public class DBOCrowdMigrationDAOTest {
 		user.setCreationDate(new Date());
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 		crowdMigrationDAO.migrateToU(user);
-		
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		Assert.assertTrue(userProfile.getAgreesToTermsOfUse() >= AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		assertTrue(authDAO.hasUserAcceptedToU(ug.getId()));
 	}
 
 	@Test
@@ -300,9 +318,8 @@ public class DBOCrowdMigrationDAOTest {
 		user.setCreationDate(ug.getCreationDate());
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 		crowdMigrationDAO.migrateToU(user);
-		
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		Assert.assertTrue(userProfile.getAgreesToTermsOfUse() < AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		assertFalse(authDAO.hasUserAcceptedToU(ug.getId()));
 	}
 
 	@Test
@@ -314,9 +331,8 @@ public class DBOCrowdMigrationDAOTest {
 		user.setCreationDate(ug.getCreationDate());
 		crowdMigrationDAO.ensureSecondaryRowsExist(user);
 		crowdMigrationDAO.migrateToU(user);
-		
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		Assert.assertTrue(userProfile.getAgreesToTermsOfUse() < AuthorizationConstants.MOST_RECENT_TERMS_OF_USE);
+
+		assertFalse(authDAO.hasUserAcceptedToU(ug.getId()));
 	}
 
 	@Test
@@ -339,7 +355,7 @@ public class DBOCrowdMigrationDAOTest {
 		user.setId(ug.getId());
 		crowdMigrationDAO.migrateSecretKey(user);
 		
-		Assert.assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
+		assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
 	}
 
 	@Test
@@ -354,7 +370,7 @@ public class DBOCrowdMigrationDAOTest {
 		crowdMigrationDAO.migrateSecretKey(user);
 		
 		// Key should be unchanged
-		Assert.assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
+		assertEquals(secretKey, authDAO.getSecretKey(ug.getId()));
 	}
 	
 	@Test
@@ -392,6 +408,21 @@ public class DBOCrowdMigrationDAOTest {
 		List<UserGroup> clubby = groupMembersDAO.getMembers(notSoExclusiveAnymore.getId());
 		assertEquals("There should be one member", 1, clubby.size());
 		assertEquals("The one member should be the Spanlish one", randUsername, clubby.get(0).getName());
+		
+		// There should be a team too
+		String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
+		Team team = teamDAO.get(notSoExclusiveAnymore.getId());
+		assertNotNull("Team should exist", team);
+		assertEquals("Team should be created by the migration admin.  Got: " + team, migrationAdminId, team.getCreatedBy());
+		assertEquals("Team should be modified by the migration admin.  Got: " + team, migrationAdminId, team.getModifiedBy());
+		
+		// And an ACL for the team
+		AccessControlList acl = aclDAO.get(notSoExclusiveAnymore.getId(), ObjectType.TEAM);
+		assertNotNull("ACL should exist", acl);
+		assertEquals("ACL should be created by the migration admin.  Got: " + acl, migrationAdminId, acl.getCreatedBy());
+		assertEquals("ACL should be modified by the migration admin.  Got: " + acl, migrationAdminId, acl.getModifiedBy());
+		Set<ResourceAccess> raSet = acl.getResourceAccess();
+		assertEquals("ACL should grant one permission.  Got: " + raSet, 1, raSet.size());
 	}
 	
 	@Test

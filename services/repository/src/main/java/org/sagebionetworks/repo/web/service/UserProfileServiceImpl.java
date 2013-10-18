@@ -4,16 +4,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,7 +18,6 @@ import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -57,15 +53,19 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private final Logger logger = LogManager.getLogger(UserProfileServiceImpl.class);
 
 	@Autowired
-	UserProfileManager userProfileManager;	
+	private UserProfileManager userProfileManager;
+	
 	@Autowired
-	UserManager userManager;	
+	private UserManager userManager;
+	
 	@Autowired
-	EntityPermissionsManager entityPermissionsManager;	
+	private EntityPermissionsManager entityPermissionsManager;
+	
 	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
+	private ObjectTypeSerializer objectTypeSerializer;
+	
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
 
 	/**
 	 * These member variables are declared volatile to enforce thread-safe
@@ -121,8 +121,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
+	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) 
+			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);
@@ -318,17 +318,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = new ArrayList<String>();
-		String lowerCaseDisplayName = header.getDisplayName().toLowerCase();
-		String[] namePrefixes = lowerCaseDisplayName.split(" ");
-		
-		for (String namePrefix : namePrefixes) {
-			prefixes.add(namePrefix);				
-		}
-		//if it was split, also include the entire name
-		if (prefixes.size() > 1) {
-			prefixes.add(lowerCaseDisplayName);
-		}
+		List<String> prefixes = PrefixCacheHelper.getPrefixes(header.getDisplayName());
 		
 		if (unobfuscatedEmailAddress != null && unobfuscatedEmailAddress.length() > 0)
 			prefixes.add(unobfuscatedEmailAddress.toLowerCase());

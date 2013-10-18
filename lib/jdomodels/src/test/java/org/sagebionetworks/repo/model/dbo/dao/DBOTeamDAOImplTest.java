@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -34,7 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOTeamDAOImplTest {
 	
 	private long teamToDelete = -1L;
-	private long upToDelete = -1L;
+
 	private String[] teamMemberPairToDelete = null;
 	
 	@Autowired
@@ -56,28 +60,15 @@ public class DBOTeamDAOImplTest {
 			teamDAO.delete(""+teamToDelete);
 			teamToDelete=-1L;
 		}
-		if (userProfileDAO!=null && upToDelete!=-1L) {
-			userProfileDAO.delete(""+upToDelete);
-			upToDelete = -1L;
-		}
 		if (groupMembersDAO!=null && teamMemberPairToDelete!=null) {
 			groupMembersDAO.removeMembers(teamMemberPairToDelete[0],  Arrays.asList(new String[]{teamMemberPairToDelete[1]}));
 
 		}
-	}
-	
-	private static TeamHeader createTeamHeaderFromTeam(Team team) {
-		TeamHeader th = new TeamHeader();
-		th.setId(team.getId());
-		th.setName(team.getName());
-		return th;
-	}
-	
-	private static UserProfile createUserProfileForGroup(UserGroup ug) {
-		UserProfile up = new UserProfile();
-		up.setEmail(ug.getName());
-		up.setOwnerId(ug.getId());
-		return up;
+		
+		// make sure I didn't delete something I shouldn't have
+		for (AuthorizationConstants.DEFAULT_GROUPS g : AuthorizationConstants.DEFAULT_GROUPS.values()) {
+			assertNotNull(userGroupDAO.findGroup(g.name(), false));
+		}
 	}
 	
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
@@ -85,6 +76,9 @@ public class DBOTeamDAOImplTest {
 		ugh.setOwnerId(up.getOwnerId());
 		ugh.setEmail(up.getEmail());
 		ugh.setIsIndividual(true);
+		ugh.setDisplayName(up.getDisplayName());
+		ugh.setFirstName(up.getFirstName());
+		ugh.setLastName(up.getLastName());
 		return ugh;
 	}
 
@@ -120,37 +114,66 @@ public class DBOTeamDAOImplTest {
 		Team updated = teamDAO.update(clone);
 		clone.setEtag(updated.getEtag()); // for comparison
 		assertEquals(clone, updated);
+		
+		Team retrieved = teamDAO.get(updated.getId());
+		assertEquals(updated, retrieved);
 				
-		assertEquals(1, teamDAO.getInRange(0, 1).size());
-		assertEquals(0, teamDAO.getInRange(1, 2).size());
+		assertEquals(1, teamDAO.getInRange(1, 0).size());
+		assertEquals(0, teamDAO.getInRange(2, 1).size());
 		assertEquals(1, teamDAO.getCount());
 		
-		assertEquals(0, teamDAO.getForMemberInRange(""+id, 0, 1).size());
-		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 3).size());
+		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(""+id, 3, 1).size());
 		assertEquals(0, teamDAO.getCountForMember(""+id));
 		
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 
 		// need an arbitrary user to add to the group
-		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
 		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
 		teamMemberPairToDelete = new String[] {""+id, pg.getId()};
-		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 0, 1).size());
-		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 1, 3).size());
+		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 3, 1).size());
 		assertEquals(1, teamDAO.getCountForMember(pg.getId()));
 		
-		UserProfile up = createUserProfileForGroup(pg);
-		userProfileDAO.create(up);
-		upToDelete = Long.parseLong(up.getOwnerId());
-		Map<TeamHeader,List<UserGroupHeader>> allTeamsAndMembers = new HashMap<TeamHeader,List<UserGroupHeader>>();
-		TeamHeader th = createTeamHeaderFromTeam(updated);
+		UserProfile up = userProfileDAO.get(pg.getId());
+		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
-		List<UserGroupHeader> ughList = new ArrayList<UserGroupHeader>();
-		ughList.add(ugh);
-		allTeamsAndMembers.put(th,  ughList);
+		TeamMember tm = new TeamMember();
+		tm.setIsAdmin(false);
+		tm.setMember(ugh);
+		tm.setTeamId(""+id);
+		List<TeamMember> tmList = new ArrayList<TeamMember>();
+		tmList.add(tm);
+		expectedAllTeamsAndMembers.put(updated,  tmList);
 		
-		assertEquals(allTeamsAndMembers, teamDAO.getAllTeamsAndMembers());
+		// we have to check 'equals' on the pieces because a global 'assertEquals' fails
+		Map<Team,Collection<TeamMember>> actualAllTeamsAndMembers = teamDAO.getAllTeamsAndMembers();
+		assertEquals(expectedAllTeamsAndMembers.size(), actualAllTeamsAndMembers.size());
+		for (Team t : expectedAllTeamsAndMembers.keySet()) {
+			Collection<TeamMember> expectedTeamMembers = expectedAllTeamsAndMembers.get(t);
+			Collection<TeamMember> actualTeamMembers = actualAllTeamsAndMembers.get(t);
+			assertNotNull("Missing key "+t, actualTeamMembers);
+			assertEquals(expectedTeamMembers.size(), actualTeamMembers.size());
+			for (TeamMember m : expectedTeamMembers) {
+				assertTrue("expected "+m+" but found "+actualTeamMembers, actualTeamMembers.contains(m));
+			}
+		}
 		
+		// the team has two members, the creator plus 'pg'
+		assertEquals(1L, teamDAO.getMembersCount(updated.getId()));
+		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
+		assertEquals(1, members.size());
+		TeamMember m = members.get(0);
+		assertFalse(m.getIsAdmin());
+		assertEquals(pg.getId(), m.getMember().getOwnerId());
+		assertEquals(updated.getId(), m.getTeamId());
+		
+		// check pagination
+		assertEquals(0L, teamDAO.getMembersInRange(updated.getId(), 1, 2).size());
+		// try some other team.  should get no results
+		assertEquals(0L, teamDAO.getMembersInRange("-999", 10, 0).size());
+		assertEquals(0L, teamDAO.getMembersCount("-999"));
 		
 		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
 		teamMemberPairToDelete = null; // no longer need to schedule for deletion

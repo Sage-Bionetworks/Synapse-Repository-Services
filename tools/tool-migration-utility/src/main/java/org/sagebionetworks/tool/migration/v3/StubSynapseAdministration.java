@@ -49,11 +49,18 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -97,6 +104,8 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -2134,6 +2143,196 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 			long offset) throws SynapseException, JSONObjectAdapterException {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+
+	@Override
+	public ColumnModel createColumnModel(ColumnModel model)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ColumnModel getColumnModel(String columnId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Team createTeam(Team team) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Team getTeam(String id) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Team> getTeams(String fragment, long limit,
+			long offset) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Team> getTeamsForUser(String memberId, long limit,
+			long offset) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getTeamIcon(String teamId, Boolean redirect)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Team updateTeam(Team team) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteTeam(String teamId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void addTeamMember(String teamId, String memberId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment,
+			long limit, long offset) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void removeTeamMember(String teamId, String memberId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public MembershipInvtnSubmission createMembershipInvitation(
+			MembershipInvtnSubmission invitation) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MembershipInvtnSubmission getMembershipInvitation(String invitationId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(
+			String memberId, String teamId, long limit, long offset)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteMembershipInvitation(String invitationId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public MembershipRqstSubmission createMembershipRequest(
+			MembershipRqstSubmission request) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MembershipRqstSubmission getMembershipRequest(String requestId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MembershipRequest> getOpenMembershipRequests(
+			String teamId, String requestorId, long limit, long offset)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteMembershipRequest(String requestId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void setTeamMemberPermissions(String teamId, String memberId,
+			boolean isAdmin) throws SynapseException {
+		// TODO Auto-generated method stub
+	}
+
+	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
+			String principalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	public PaginatedColumnModels listColumnModels(String prefix, Long limit,
+			Long offset) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void updateTeamSearchCache() throws SynapseException {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

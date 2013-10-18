@@ -19,13 +19,15 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	private String sessionToken;
 	private String passHash;
 	private String secretKey;
+	private Boolean agreesToTermsOfUse;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("principalId", SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID, true).withIsBackupId(true),
 		new FieldColumn("validatedOn", SqlConstants.COL_CREDENTIAL_VALIDATED_ON),
 		new FieldColumn("sessionToken", SqlConstants.COL_CREDENTIAL_SESSION_TOKEN),
 		new FieldColumn("passHash", SqlConstants.COL_CREDENTIAL_PASS_HASH), 
-		new FieldColumn("secretKey", SqlConstants.COL_CREDENTIAL_SECRET_KEY)
+		new FieldColumn("secretKey", SqlConstants.COL_CREDENTIAL_SECRET_KEY), 
+		new FieldColumn("agreesToTermsOfUse", SqlConstants.COL_CREDENTIAL_TOU)
 		};
 
 
@@ -42,6 +44,7 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 				cred.setSessionToken(rs.getString(SqlConstants.COL_CREDENTIAL_SESSION_TOKEN));
 				cred.setPassHash(rs.getString(SqlConstants.COL_CREDENTIAL_PASS_HASH));
 				cred.setSecretKey(rs.getString(SqlConstants.COL_CREDENTIAL_SECRET_KEY));
+				cred.setAgreesToTermsOfUse(rs.getBoolean(SqlConstants.COL_CREDENTIAL_TOU));
 				return cred;
 			}
 
@@ -96,6 +99,12 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	}
 	public String getSecretKey() {
 		return secretKey;
+	}
+	public void setAgreesToTermsOfUse(Boolean acceptance) {
+		this.agreesToTermsOfUse = acceptance;
+	}
+	public Boolean getAgreesToTermsOfUse() {
+		return agreesToTermsOfUse;
 	}
 	
 	@Override

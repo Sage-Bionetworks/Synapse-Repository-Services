@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -195,8 +196,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	private boolean canAccess(final UserInfo userInfo, final String evalId,
 			final ACCESS_TYPE accessType) throws NotFoundException {
 
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(
-				userInfo.getUser().getUserId())) {
+		if (AuthorizationUtils.isUserAnonymous(
+				userInfo)) {
 			if (!READ.equals(accessType)) {
 				return false;
 			}

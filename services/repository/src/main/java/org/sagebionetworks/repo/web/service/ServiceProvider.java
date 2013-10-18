@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.web.service.table.TableServices;
+
 /**
  * Abstraction for the service providers.
  *
@@ -43,6 +45,13 @@ public interface ServiceProvider {
 	public DoiService getDoiService();
 	
 	public MigrationService getMigrationService();
+
+	public TableServices getTableServices();
 	
+	public TeamService getTeamService();
+	
+	public MembershipInvitationService getMembershipInvitationService();
+	
+	public MembershipRequestService getMembershipRequestService();
 	
 }

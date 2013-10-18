@@ -63,6 +63,8 @@
 
 	<!-- The Wiki Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
+	
+	<bean id="tableServices" class="org.sagebionetworks.repo.web.service.table.TableServicesImpl" />
 
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"
@@ -94,7 +96,11 @@
 	<!-- The temporary Crowd Synchronizer Service -->
 	<bean id="crowdSyncService" class="org.sagebionetworks.auth.services.CrowdSynchronizerService" />
 
-	<!-- The Location helper -->
+	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
+	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
+	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
+		
+		<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 
 	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
@@ -130,6 +136,9 @@
 		scope="singleton" />
 	<bean id="locationableMetadataProvider"
 		class="org.sagebionetworks.repo.web.controller.metadata.LocationableMetadataProvider"
+		scope="singleton" />
+	<bean id="tableEntityMetadataProvider"
+		class="org.sagebionetworks.repo.web.controller.metadata.TableEntityMetadataProvider"
 		scope="singleton" />
 
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
@@ -169,6 +178,9 @@
 				<entry key="file">
 					<bean class= "org.sagebionetworks.repo.web.controller.metadata.FileEntityMetadataProvider"/> 
 				</entry>
+				<entry key="table">
+					<ref bean="tableEntityMetadataProvider"/>
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -203,10 +215,26 @@
 	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
 	</bean>
 	
+	<bean id="refreshTeamMemberCache" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="teamService" />
+		<property name="targetMethod" value="refreshCache" />		
+	    <property name="concurrent" value="false" />
+	</bean>
+
+	<bean id="refreshTeamMemberCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	    <property name="jobDetail" ref="refreshTeamMemberCache" />
+	    <!-- build cache immediately -->
+    	<property name="startDelay" value="0" />
+	    <!-- repeat every 5 minutes -->
+	    <property name="repeatInterval" value="300000" />
+	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
+	</bean>
+	
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 	    <property name="triggers">
 	        <list>
 	            <ref bean="refreshUserGroupCacheTrigger" />
+	            <ref bean="refreshTeamMemberCacheTrigger" />
 	           	<ref bean="repoLogSweeperTrigger" />
 	        </list>
 	    </property>

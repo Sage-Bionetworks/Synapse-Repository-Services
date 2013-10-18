@@ -15,18 +15,23 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class MembershipRequestManagerImplTest {
 	
+	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipRequestManagerImpl membershipRequestManagerImpl = null;
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
 	
@@ -36,16 +41,24 @@ public class MembershipRequestManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
+		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
+				mockAuthorizationManager,
 				mockMembershipRqstSubmissionDAO
 				);
 		userInfo = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setId(MEMBER_PRINCIPAL_ID);
+		User user = new User();
+		user.setUserId(MEMBER_PRINCIPAL_ID);
+		userInfo.setUser(user);
 		userInfo.setIndividualGroup(individualGroup);
 		adminInfo = new UserInfo(true);
 		adminInfo.setIndividualGroup(individualGroup);
+		User adminUser  = new User();
+		adminUser.setUserId("-1");
+		adminInfo.setUser(adminUser);
 	}
 	
 	private void validateForCreateExpectFailure(MembershipRqstSubmission mrs, UserInfo userInfo) {
@@ -125,8 +138,11 @@ public class MembershipRequestManagerImplTest {
 	public void testAnonymousCreate() throws Exception {
 		UserInfo anonymousInfo = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(AuthorizationConstants.ANONYMOUS_USER_ID);
+		individualGroup.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
 		anonymousInfo.setIndividualGroup(individualGroup);
+		User user = new User();
+		user.setUserId(AuthorizationConstants.ANONYMOUS_USER_ID);
+		anonymousInfo.setUser(user);
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		membershipRequestManagerImpl.create(anonymousInfo, mrs);
 	}
@@ -199,9 +215,17 @@ public class MembershipRequestManagerImplTest {
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamInRange(eq(teamId), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamCount(eq(teamId), anyLong())).thenReturn((long)expected.size());
-		QueryResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamInRange(""+teamId,0,1);
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenByTeamUnauthorized() throws Exception {
+		long teamId = 101L;
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 	}
 	
 	@Test
@@ -215,9 +239,18 @@ public class MembershipRequestManagerImplTest {
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
-		QueryResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(""+teamId,""+userId, 0,1);
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenByTeamAndRequestorUnauthorized() throws Exception {
+		long userId = 333L;
+		long teamId = 101L;
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
 	}
 
 }

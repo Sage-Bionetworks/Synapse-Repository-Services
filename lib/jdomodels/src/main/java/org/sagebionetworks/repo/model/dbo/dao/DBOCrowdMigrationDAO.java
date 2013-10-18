@@ -3,14 +3,22 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -45,6 +53,12 @@ public class DBOCrowdMigrationDAO {
 
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
+	
+	@Autowired
+	private TeamDAO teamDAO;
+	
+	@Autowired
+	private AccessControlListDAO aclDAO;
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
@@ -237,18 +251,11 @@ public class DBOCrowdMigrationDAO {
 		} catch (EmptyResultDataAccessException e) { }
 
 		// Migrate the boolean for the Terms of Use over
-		UserProfile userProfile = userProfileDAO.get(user.getId());
-		long termsTimeStamp;
-		if (acceptedToU && user.getCreationDate() != null) {
-			termsTimeStamp = user.getCreationDate().getTime() / 1000;
-		} else {
-			termsTimeStamp = 0L;
-		}
-
-		// Don't needlessly update the profile if nothing has changed
-		if (userProfile.getAgreesToTermsOfUse() == null || termsTimeStamp != userProfile.getAgreesToTermsOfUse()) {
-			userProfile.setAgreesToTermsOfUse(termsTimeStamp);
-			userProfileDAO.update(userProfile);
+		// Note: it is implied that not having the ToU accepted 
+		//   is equivalent to not having seen the ToU ever
+		//   since the CrowdAuthUtils does not transmit that info to Crowd
+		if (acceptedToU) {
+			authDAO.setTermsOfUseAcceptance(user.getId(), acceptedToU);
 		}
 	}
 
@@ -300,7 +307,9 @@ public class DBOCrowdMigrationDAO {
 		
 		// Parent groups must be created if necessary
 		for (String parent : parentGroups) {
-			parentIds.add(ensureGroupExists(parent));
+			String ugId = ensureGroupExists(parent);
+			ensureTeamExists(ugId);
+			parentIds.add(ugId);
 		}
 		
 		List<String> userId = new ArrayList<String>();
@@ -333,5 +342,59 @@ public class DBOCrowdMigrationDAO {
 			ug = userGroupDAO.findGroup(groupName, false);
 		}
 		return ug.getId();
+	}
+	
+	/*
+	 * Note: the following code is based heavily on code in TeamManagerImpl.create(...)
+	 */
+
+	private static final ACCESS_TYPE[] NON_ADMIN_TEAM_PERMISSIONS = new ACCESS_TYPE[]{
+		ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE};
+	
+	
+	protected void ensureTeamExists(String ugId) {
+		try {
+			teamDAO.get(ugId);
+			return;
+		} catch (NotFoundException e) {}
+		
+		// The Team doesn't exist yet
+		Team team = new Team();
+		Date now = new Date();
+		team.setId(ugId);
+		team.setCreatedOn(now);
+		team.setModifiedOn(now);
+		
+		// By default, Teams created by this DAO are marked as created by the migration admin
+		String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
+		team.setCreatedBy(migrationAdminId);
+		team.setModifiedBy(migrationAdminId);
+		teamDAO.create(team);
+		
+		// Add some basic permissions
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		
+		// The team itself gets basic privileges
+		ResourceAccess teamRa = new ResourceAccess();
+		teamRa.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(NON_ADMIN_TEAM_PERMISSIONS)));
+		teamRa.setPrincipalId(Long.parseLong(ugId));
+		raSet.add(teamRa);
+
+		// Put the permissions into an ACL and save it
+		AccessControlList acl = new AccessControlList();
+		acl.setId(ugId);
+		acl.setCreatedBy(migrationAdminId);
+		acl.setCreationDate(now);
+		acl.setModifiedBy(migrationAdminId);
+		acl.setModifiedOn(now);
+		acl.setResourceAccess(raSet);
+
+		try {
+			aclDAO.create(acl);
+		} catch (InvalidModelException e) {
+			throw new RuntimeException(e);
+		} catch (NotFoundException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

@@ -1,17 +1,17 @@
 package org.sagebionetworks.repo.manager.team;
 
 import java.net.URL;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamHeader;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -36,9 +36,25 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public QueryResults<Team> get(long offset, long limit) throws DatastoreException;
+	public PaginatedResults<Team> get(long limit, long offset) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<TeamMember> getMembers(String teamId, long limit, long offset) throws DatastoreException;
 
-	public Map<TeamHeader, List<UserGroupHeader>> getAllTeamsAndMembers() throws DatastoreException;
+	/**
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public Map<Team, Collection<TeamMember>> getAllTeamsAndMembers() throws DatastoreException;
+	
 	/**
 	 * Retrieve the Teams to which the given user belongs, paginated
 	 * @param principalId
@@ -47,7 +63,7 @@ public interface TeamManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public QueryResults<Team> getByMember(String principalId, long offset, long limit) throws DatastoreException;
+	public PaginatedResults<Team> getByMember(String principalId, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * Get a Team by its ID
@@ -83,7 +99,6 @@ public interface TeamManager {
 
 	/**
 	 * Add a member to a Team
-	 * 
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalId
@@ -126,6 +141,29 @@ public interface TeamManager {
 	 * @throws NotFoundException
 	 */
 	public void updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @param principalId
+	 * @param isAdmin
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public void setPermissions(UserInfo userInfo, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * return the URL for the icon of the given Team

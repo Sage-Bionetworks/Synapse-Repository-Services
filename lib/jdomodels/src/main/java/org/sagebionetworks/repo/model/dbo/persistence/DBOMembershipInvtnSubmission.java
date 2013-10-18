@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES;
@@ -27,12 +28,14 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_MEMBERSHIP_INVITATION_SUBMISSION_ID, true).withIsBackupId(true),
+		new FieldColumn("createdOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON),
 		new FieldColumn("teamId", COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID),
 		new FieldColumn("expiresOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON),
 		new FieldColumn("properties", COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES)
 	};
 	
 	private Long id;
+	private Long createdOn;
 	private Long teamId;
 	private Long expiresOn;
 	private byte[] properties;
@@ -44,6 +47,9 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 			public DBOMembershipInvtnSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOMembershipInvtnSubmission team = new DBOMembershipInvtnSubmission();
 				team.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
+				Long createdOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON);
+				if (rs.wasNull()) createdOn=null;
+				team.setCreatedOn(createdOn);
 				team.setTeamId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
 				Long expiresOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON);
 				if (rs.wasNull()) expiresOn=null;
@@ -90,6 +96,18 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	public void setId(Long id) {
 		this.id = id;
 	}
+
+
+	public Long getCreatedOn() {
+		return createdOn;
+	}
+
+
+
+	public void setCreatedOn(Long createdOn) {
+		this.createdOn = createdOn;
+	}
+
 
 
 	public byte[] getProperties() {
@@ -171,6 +189,8 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result
 				+ ((expiresOn == null) ? 0 : expiresOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
@@ -189,6 +209,11 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMembershipInvtnSubmission other = (DBOMembershipInvtnSubmission) obj;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
+			return false;
 		if (expiresOn == null) {
 			if (other.expiresOn != null)
 				return false;
@@ -213,8 +238,8 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 	@Override
 	public String toString() {
-		return "DBOMembershipInvtnSubmission [id=" + id + ", teamId=" + teamId
-				+ ", expiresOn=" + expiresOn + ", properties="
-				+ Arrays.toString(properties) + "]";
+		return "DBOMembershipInvtnSubmission [id=" + id + ", createdOn="
+				+ createdOn + ", teamId=" + teamId + ", expiresOn=" + expiresOn
+				+ ", properties=" + Arrays.toString(properties) + "]";
 	}
 }

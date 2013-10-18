@@ -148,6 +148,19 @@ public class ServletTestHelperUtils {
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		return new JSONObjectAdapterImpl(json);
 	}
+	
+	/**
+	 * Read a JSONEntity from the response
+	 * @param response
+	 * @param clazz
+	 * @return
+	 * @throws Exception
+	 */
+	public static <T extends JSONEntity> T readResponse(MockHttpServletResponse response, Class<? extends T> clazz) throws Exception {
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		return EntityFactory.createEntityFromJSONString(json, clazz);
+	}
 
 	/**
 	 * Extracts the JSON content of a HTTP response and parses it into a set of

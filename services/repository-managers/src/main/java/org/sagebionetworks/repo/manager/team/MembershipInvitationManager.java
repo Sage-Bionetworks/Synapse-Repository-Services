@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -52,7 +53,7 @@ public interface MembershipInvitationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<MembershipInvitation> getOpenForUserInRange(String principalId, long offset, long limit) throws DatastoreException, NotFoundException;
+	public PaginatedResults<MembershipInvitation> getOpenForUserInRange(String principalId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the Invitations for the given user, to join the given team
@@ -62,6 +63,6 @@ public interface MembershipInvitationManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<MembershipInvitation> getOpenForUserAndTeamInRange(String principalId, String teamId, long offset, long limit) throws DatastoreException, NotFoundException;
+	public PaginatedResults<MembershipInvitation> getOpenForUserAndTeamInRange(String principalId, String teamId, long limit, long offset) throws DatastoreException, NotFoundException;
 
 }
