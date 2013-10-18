@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +47,9 @@ public class TeamServiceTest {
 		Map<Team, Collection<TeamMember>> universe = new HashMap<Team, Collection<TeamMember>>();
 		universe.put(team, Arrays.asList(new TeamMember[]{member}));
 		when(mockTeamManager.getAllTeamsAndMembers()).thenReturn(universe);
+		
+		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
+		when(mockTeamManager.getMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
 		teamService.setTeamManager(mockTeamManager);
 	}
 	
