@@ -61,7 +61,7 @@ public class MembershipRequestController extends BaseController {
 	 * @param id Team ID
 	 * @param userId
 	 * @param requestorId the ID of the user requesting admission to the Team
-	 * @param limit the maximum number of invitations to return (default 10)
+	 * @param limit the maximum number of requests to return (default 10)
 	 * @param offset the starting index of the returned results (default 0)
 	 * @return
 	 * @throws NotFoundException
