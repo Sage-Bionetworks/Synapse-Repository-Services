@@ -20,12 +20,12 @@
 		},
 		"message": {
 			"type": "string",
-			"description": "The invitation message."
+			"description": "The invitation message (optional)."
 		},
 		"expiresOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this invitation expires.",
+			"description": "The date this invitation expires (optional).",
 			"title": "Expires On"
 		},
 		"createdOn": {
