@@ -353,6 +353,8 @@ public interface SynapseClient {
 
 	public <T extends AccessApproval> T createAccessApproval(T aa)
 			throws SynapseException;
+	
+	public JSONObject getEntity(String uri) throws SynapseException;
 
 	public <T extends JSONEntity> T getEntity(String entityId,
 			Class<? extends T> clazz) throws SynapseException;

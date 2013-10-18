@@ -1046,6 +1046,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public JSONObject getEntity(String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public <T extends JSONEntity> T getEntity(String entityId,
 			Class<? extends T> clazz) throws SynapseException {
 		// TODO Auto-generated method stub

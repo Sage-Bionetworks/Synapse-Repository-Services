@@ -97,7 +97,6 @@ import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -1322,7 +1321,8 @@ public class SynapseClientImpl implements SynapseClient {
 	 * 
 	 * @return the retrieved entity
 	 */
-	private JSONObject getEntity(String uri) throws SynapseException {
+	@Override
+	public JSONObject getEntity(String uri) throws SynapseException {
 		return getSynapseEntity(repoEndpoint, uri);
 	}
 
