@@ -943,52 +943,6 @@ public interface SynapseClient {
 	 * @throws SynapseException 
 	 */
 	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
-	public Team getTeam(String id) throws SynapseException;
-
-	public PaginatedResults<Team> getTeams(String fragment, long limit, long offset)
-			throws SynapseException;
-
-	public PaginatedResults<Team> getTeamsForUser(String memberId, long limit,
-			long offset) throws SynapseException;
-
-	public URL getTeamIcon(String teamId, Boolean redirect) throws SynapseException;
-
-	public Team updateTeam(Team team) throws SynapseException;
-
-	public void deleteTeam(String teamId) throws SynapseException;
-
-	public void addTeamMember(String teamId, String memberId) throws SynapseException;
-
-	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId,
-			String fragment, long limit, long offset) throws SynapseException;
-
-	public void removeTeamMember(String teamId, String memberId)
-			throws SynapseException;
-
-	public MembershipInvtnSubmission createMembershipInvitation(
-			MembershipInvtnSubmission invitation) throws SynapseException;
-
-	public MembershipInvtnSubmission getMembershipInvitation(String invitationId)
-			throws SynapseException;
-
-	public PaginatedResults<MembershipInvitation> getOpenMembershipInvitations(
-			String memberId, String teamId, long limit, long offset)
-			throws SynapseException;
-
-	public void deleteMembershipInvitation(String invitationId)
-			throws SynapseException;
-
-	public MembershipRqstSubmission createMembershipRequest(
-			MembershipRqstSubmission request) throws SynapseException;
-
-	public MembershipRqstSubmission getMembershipRequest(String requestId)
-			throws SynapseException;
-
-	public PaginatedResults<MembershipRequest> getOpenMembershipRequests(
-			String teamId, String requestorId, long limit, long offset)
-			throws SynapseException;
-
-	public void deleteMembershipRequest(String requestId) throws SynapseException;
 
 	/**
 	 * Creates a user
@@ -1026,5 +980,9 @@ public interface SynapseClient {
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
 	
+	/**
+	 * Performs OpenID authentication using the set of parameters from an OpenID provider
+	 * @return A session token if the authentication passes
+	 */
 	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
 }
