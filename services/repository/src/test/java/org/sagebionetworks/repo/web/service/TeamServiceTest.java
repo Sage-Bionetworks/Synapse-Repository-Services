@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -44,6 +47,9 @@ public class TeamServiceTest {
 		Map<Team, Collection<TeamMember>> universe = new HashMap<Team, Collection<TeamMember>>();
 		universe.put(team, Arrays.asList(new TeamMember[]{member}));
 		when(mockTeamManager.getAllTeamsAndMembers()).thenReturn(universe);
+		
+		PaginatedResults<TeamMember> members = new PaginatedResults<TeamMember>(Arrays.asList(new TeamMember[]{member}), 1);
+		when(mockTeamManager.getMembers(eq("101"), anyLong(), anyLong())).thenReturn(members);
 		teamService.setTeamManager(mockTeamManager);
 	}
 	
@@ -83,6 +89,21 @@ public class TeamServiceTest {
 		
 		// in the process of creating the cache the email addresses are obfuscated
 		assertEquals("rog...r@gmail.com", member.getMember().getEmail());
+	}
+	
+	@Test
+	public void testGetTeamNoFragment() throws Exception {
+		teamService.get(null, 1, 0);
+		verify(mockTeamManager).get(1, 0);
+	}
+	
+	@Test
+	public void testGetTeamMemberNoFragment() throws Exception {
+		PaginatedResults<TeamMember>results = new PaginatedResults<TeamMember>();
+		results.setResults(new ArrayList<TeamMember>());
+		when(mockTeamManager.getMembers("101", 1, 0)).thenReturn(results);
+		teamService.getMembers("101", null, 1, 0);
+		verify(mockTeamManager).getMembers("101", 1, 0);
 	}
 	
 

@@ -17,12 +17,12 @@
 		},
 		"message": {
 			"type": "string",
-			"description": "The request message."
+			"description": "The request message (optional)."
 		},
 		"expiresOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date this MembershipRqstSubmission expires.",
+			"description": "The date this MembershipRqstSubmission expires (optional).",
 			"title": "Expires On"
 		},
 		"createdOn": {

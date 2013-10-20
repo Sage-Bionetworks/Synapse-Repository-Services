@@ -383,9 +383,7 @@ public class DBOCrowdMigrationDAO {
 		// Put the permissions into an ACL and save it
 		AccessControlList acl = new AccessControlList();
 		acl.setId(ugId);
-		acl.setCreatedBy(migrationAdminId);
 		acl.setCreationDate(now);
-		acl.setModifiedBy(migrationAdminId);
 		acl.setModifiedOn(now);
 		acl.setResourceAccess(raSet);
 
