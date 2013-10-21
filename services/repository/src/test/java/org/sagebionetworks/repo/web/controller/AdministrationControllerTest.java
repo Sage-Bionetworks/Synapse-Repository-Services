@@ -140,6 +140,6 @@ public class AdministrationControllerTest {
 		extraParams.put("limit", "10");
 		
 		// Not an admin, so this should fail with a 403
-		ServletTestHelper.migrateFromCrowd(dispatchServlet, StackConfiguration.getIntegrationTestUserOneEmail(), extraParams);
+		ServletTestHelper.migrateFromCrowd(dispatchServlet, StackConfiguration.getIntegrationTestUserOneName(), extraParams);
 	}
 }

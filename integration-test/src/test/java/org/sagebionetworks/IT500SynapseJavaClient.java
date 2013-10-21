@@ -809,7 +809,7 @@ public class IT500SynapseJavaClient {
 	@Ignore
 	@Test
 	public void testGetUserGroupHeadersByPrefix() throws Exception {
-		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneEmail());
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneName());
 		assertTrue(response.getChildren().size() > 0);
 		
 		String dummyPrefix = "INVALIDPREFIX12345@INVALID.COM.WRONG";
