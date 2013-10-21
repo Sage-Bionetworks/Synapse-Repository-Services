@@ -63,7 +63,7 @@ public class IT990AuthenticationController {
 	
 	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
-		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
+		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
 		synapse.login(username, password);
 	}
