@@ -29,7 +29,7 @@ public interface V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public V2WikiPage create(V2WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException;
+	public V2WikiPage create(V2WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException;
 	
 	/**
 	 * Update a wikipage.
