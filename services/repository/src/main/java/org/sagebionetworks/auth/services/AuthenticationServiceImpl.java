@@ -227,6 +227,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// Don't spam emails for integration tests
 		if (!StackConfiguration.isProductionStack()) {
 			log.debug("Prevented " + mode + " email from being sent to " + mailTarget + " with session token " + sessionToken);
+			return;
 		}
 		
 		SendMail sendMail = new SendMail();

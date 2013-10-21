@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -12,306 +13,210 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 
-import org.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.http.HttpStatus;
-
 
 /**
  * CrowdAuthUtil
  */
-
 public class IT990CrowdAuthentication {
-	private static SynapseClientImpl synapse = null;
-	private static String authEndpoint = null;
-	private static String repoEndpoint = null;
-	/**
-	 * @throws Exception
-	 * 
-	 */
+	private static SynapseClient synapse;
+	
+	private static final String username = StackConfiguration.getIntegrationTestUserThreeName();
+	private static final String password = StackConfiguration.getIntegrationTestUserThreePassword();
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
-		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		String authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
+		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(authEndpoint);
 		synapse.setRepositoryEndpoint(repoEndpoint);
-		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
-				StackConfiguration.getIntegrationTestUserThreePassword());
+	}
+	
+	@Before
+	public void setup() throws Exception {
+		synapse.login(username, password);
 	}
 
-	private static final String SESSION_TOKEN_LABEL = "sessionToken";
-	
 	@Test
 	public void testCreateSession() throws Exception {
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-
-		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
+		synapse.login(username, password);
+		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
 	@Test
 	public void testCreateSessionSigningTermsOfUse() throws Exception {
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-
-		JSONObject session = synapse.createAuthEntity("/session?acceptsTermsOfUse=true", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
+		synapse.login(username, password, true);
+		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
 	@Test(expected = SynapseBadRequestException.class)
 	public void testCreateSessionBadCredentials() throws Exception {
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		loginRequest.put("email", username);
-		loginRequest.put("password", "incorrectPassword");
-	
-		// should throw SynapseBadRequestException
-		synapse.createAuthEntity("/session", loginRequest);
-
+		synapse.login(username, "incorrectPassword");
 	}
 	
-	@Test(expected = SynapseForbiddenException.class)
+	@Test(expected = SynapseTermsOfUseException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
-		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-	
-		// should throw SynapseBadRequestException
-		synapse.createAuthEntity("/session", loginRequest);
-
+		synapse.login(username, password);
 	}
 	
 	
 	@Test
 	public void testRevalidateSvc() throws Exception {
-		// start session
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-
-		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
-		String token = session.getString(SESSION_TOKEN_LABEL);
-		// revalidate
-		session = new JSONObject();
-		session.put(SESSION_TOKEN_LABEL, token);
-		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
+		synapse.revalidateSession();
+		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
 	@Test(expected=SynapseNotFoundException.class)
 	public void testRevalidateBadTokenSvc() throws Exception {
-		// start session
-		JSONObject loginRequest = new JSONObject();
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		loginRequest.put("email", username);
-		loginRequest.put("password", password);
-
-		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
-		assertTrue(session.has(SESSION_TOKEN_LABEL));
-		String token = session.getString(SESSION_TOKEN_LABEL);
-		assertNotNull(token);
-		// revalidate
-		session = new JSONObject();
-		session.put(SESSION_TOKEN_LABEL, "invalid-session-token");
-		
-		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
+		synapse.setSessionToken("invalid-session-token");
+		synapse.revalidateSession();
 	}
 	
 	@Test
 	public void testCreateSessionThenLogout() throws Exception {
-		// start session
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-
-		synapse.login(username, password);
-		// logout
-		synapse.deleteUri(authEndpoint, "/session");
+		synapse.logout();
+		assertNull(synapse.getCurrentSessionToken());
 	}
 	
-	
 	@Test(expected = SynapseBadRequestException.class)
-	public void testCreateExistingUser() throws Exception {	
-		// start session
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-
-		synapse.login(username, password);
-		JSONObject userRequest = new JSONObject();
-
-		userRequest.put("email", username);
-		userRequest.put("firstName", "dev");
-		userRequest.put("lastName", "usr");
-		userRequest.put("displayName", "dev usr");
-
-		// expect exception
-		synapse.createAuthEntity("/user", userRequest);
+	public void testCreateExistingUser() throws Exception {
+		NewUser user = new NewUser();
+		user.setEmail(username);
+		user.setFirstName("dev");
+		user.setLastName("usr");
+		user.setDisplayName("dev usr");
+		
+		synapse.createUser(user);
 	}
 	
 	@Ignore
 	@Test
-	public void testCreateNewUser() throws Exception {
-		// delete the user
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-		// this says 'delete me'.  It only works for the specified integration test user
-		synapse.deleteUri(authEndpoint, "/user");
+	public void testCreateUserAndAcceptToU() throws Exception {	
+		String username = "integration@test." + UUID.randomUUID();
+		String password = "password";
 		
-		// verify that can't log in
-		// expect exception
+		NewUser user = new NewUser();
+		user.setEmail(username);
+		user.setFirstName("foo");
+		user.setLastName("bar");
+		user.setDisplayName("foo bar");
+		// Note: passwords are only accepted in this request in non-production stacks
+		user.setPassword(password);
+		
+		synapse.createUser(user);
+		
+		// Expect a ToU failure here, which means the user was created
 		try {
 			synapse.login(username, password);
-			fail("exception expected");
-		} catch (SynapseBadRequestException e) {
-			// as expected
+			Assert.fail();
+		} catch (SynapseUnauthorizedException e) { 
+			assertTrue(e.getMessage().contains("Terms of Use"));
 		}
 		
-		// now recreate it
-		JSONObject userRequest = new JSONObject();
-
-		userRequest.put("email", username);
-		userRequest.put("password", password);
-		userRequest.put("firstName", "dev");
-		userRequest.put("lastName", "usr3");
-		userRequest.put("displayName", "dev usr3");
-
-		synapse.createAuthEntity("/user", userRequest);
-		
-		// now log in to verify it's there
-		synapse.login(username, password);
+		// Now accept the terms and get a session token
+		synapse.login(username, password, true);
+		assertNotNull(synapse.getCurrentSessionToken());
 	}
-	
 	
 	@Test
 	public void testGetUser() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
-		JSONObject user = synapse.getSynapseEntity(authEndpoint, "/user");
-		assertEquals(StackConfiguration.getIntegrationTestUserThreeEmail(), user.getString("email"));
-		assertEquals("dev", user.getString("firstName"));
-		assertEquals("usr3", user.getString("lastName"));
-		assertEquals("dev usr3", user.getString("displayName"));
+		NewUser user = synapse.getAuthUserInfo();
+		assertEquals(username, user.getEmail());
+		assertEquals("dev", user.getFirstName());
+		assertEquals("usr3", user.getLastName());
+		assertEquals("dev usr3", user.getDisplayName());
 	}
 	
 	@Test
-	public void testCreateUserAndChangePassword() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
+	public void testChangePassword() throws Exception {
 		String testNewPassword = "newPassword";
-		JSONObject obj = new JSONObject();
-		obj.put("newPassword", testNewPassword);
-		synapse.createAuthEntity("/userPassword", obj);
-		
-		// to check the password, we have to try to log-in:
-		// logout...
-		synapse.deleteUri(authEndpoint, "/session");
-		// ... login
+		synapse.changePassword(testNewPassword);
+		synapse.logout();
 		synapse.login(username, testNewPassword);
 		
-		// restore original password
-		obj = new JSONObject();
-		obj.put("newPassword", password);
-		synapse.createAuthEntity("/userPassword", obj);
-		
+		// Restore original password
+		synapse.changePassword(password);
 	}
 	
-	// can't expect to do this regularly, as it generates email messages
+	/**
+	 * Functionality is currently disabled pending PLFM-2231
+	 * https://sagebionetworks.jira.com/browse/PLFM-2231
+	 */
 	@Ignore
+	@Test(expected=SynapseNotFoundException.class)
+	public void testChangeEmail() throws Exception {
+		// Changes the current email (IT user 3) to the email of the session token (IT user 3)
+		synapse.changeEmail(synapse.getCurrentSessionToken(), password);
+		
+		//TODO actually change the email
+		//TODO change the email back
+	}
+	
+	@Test
+	public void testRegisterChangePassword() throws Exception {
+		String testNewPassword = "newPassword";
+		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+		
+		// To check the password, we have to try to log-in:
+		synapse.login(username, testNewPassword);
+		
+		// Restore original password
+		synapse.changePassword(password);
+	}
+	
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject obj = new JSONObject();
-		obj.put("email", username);
-		synapse.createAuthEntity("/userPasswordEmail", obj);
+		// Note: non-production stacks do not send emails, but instead print a log message
+		synapse.sendPasswordResetEmail(username);
 	}
 	
-	
-	// can't expect to do this regularly, as it generates email messages
-	@Ignore
 	@Test
 	public void testSetAPIPasswordEmail() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject obj = new JSONObject();
-		obj.put("email", username);
-		synapse.createAuthEntity("/apiPasswordEmail", obj);
+		// Note: non-production stacks do not send emails, but instead print a log message
+		synapse.sendPasswordResetEmail();
 	}
 	
 	
 	@Test(expected = SynapseBadRequestException.class)
 	public void testSendEmailInvalidUser() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject obj = new JSONObject();
-		obj.put("email", "invalid-user-name@sagebase.org");
-		synapse.createAuthEntity("/userPasswordEmail", obj);
+		// There's no way a user like this exists :D
+		synapse.sendPasswordResetEmail("invalid-user-name@sagebase.org" + UUID.randomUUID());
 	}
 	
 	@Test
 	public void testGetSecretKey() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
-		assertTrue(response.has("secretKey"));
+		String apikey = synapse.retrieveApiKey();
+		assertNotNull(apikey);
 	}
 	
 	@Test
 	public void testInvalidateSecretKey() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		String password = StackConfiguration.getIntegrationTestUserThreePassword();
-		synapse.login(username, password);
-
-		JSONObject response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
-		assertTrue(response.has("secretKey"));
-		String secretKey = response.getString("secretKey");
-		assertNotNull(secretKey);
-	
-		// now invalidate the key
-		synapse.deleteUri(authEndpoint, "/secretKey");
+		String apikey = synapse.retrieveApiKey();
+		synapse.invalidateApiKey();
+		String secondKey = synapse.retrieveApiKey();
 		
-		// now get the key again...
-		response = synapse.getSynapseEntity(authEndpoint, "/secretKey");
-		assertTrue(response.has("secretKey"));
-		String secondKey = response.getString("secretKey");
-		assertNotNull(secondKey);
-		
-		// ... should be different from the first one
-		assertFalse(secretKey.equals(secondKey));
+		// Should be different from the first one
+		assertFalse(apikey.equals(secondKey));
 	}
 	
 	class MutableBoolean {
@@ -442,7 +347,7 @@ public class IT990CrowdAuthentication {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-			synapse.createAuthEntity("/openIdCallback", new JSONObject());
+			synapse.passThroughOpenIDParameters("");
 			fail();
 		} catch (SynapseServiceException e) {
 			// This is the result of a failed argument check
