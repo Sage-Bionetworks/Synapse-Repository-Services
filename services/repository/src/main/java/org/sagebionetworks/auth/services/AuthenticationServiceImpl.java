@@ -59,9 +59,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Fetch the user's session token
-		if (credential.getPassword() == null) {
-			throw new UnauthorizedException("Password may not be null");
-		}
+			if (credential.getPassword() == null) {
+				throw new UnauthorizedException("Password may not be null");
+			}
 		Session session = authManager.authenticate(credential.getEmail(), credential.getPassword());
 		
 		// Only hand back the session token if ToU has been accepted
@@ -139,13 +139,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		UserInfo user = userManager.getUserInfo(username);
 		authManager.changePassword(user.getIndividualGroup().getId(), newPassword);
-	}
-
-	@Override
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(oldUserId);
-		userManager.updateEmail(userInfo, newUserId);
 	}
 	
 	@Override

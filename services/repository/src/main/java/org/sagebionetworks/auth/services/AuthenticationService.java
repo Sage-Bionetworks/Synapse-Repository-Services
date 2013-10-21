@@ -66,14 +66,6 @@ public interface AuthenticationService {
 	
 	/**
 	 * Changes the email of a user to another email
-	 * To be replaced with the other updateEmail() method
-	 */
-	@Deprecated
-	public void updateEmail(String oldUserId, String newUserId) 
-			throws NotFoundException;
-	
-	/**
-	 * Changes the email of a user to another email
 	 * Simultaneously changes the user's password
 	 */
 	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo)
