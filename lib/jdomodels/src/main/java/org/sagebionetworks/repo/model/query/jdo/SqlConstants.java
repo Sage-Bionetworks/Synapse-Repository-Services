@@ -349,6 +349,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_MARKDOWN_VERSION_NUM		= "MARKDOWN_VERSION";
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String V2_COL_WIKI_MARKDOWN_TITLE			= "TITLE";
 	public static final String V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST	= "ATTACHMENT_ID_LIST";
 	public static final String V2_DDL_FILE_WIKI_MARKDOWN 			= "schema/v2-WikiMarkdown-ddl.sql";
 	

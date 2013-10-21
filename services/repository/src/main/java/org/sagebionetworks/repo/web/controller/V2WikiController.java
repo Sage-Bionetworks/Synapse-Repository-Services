@@ -72,8 +72,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * To view a timeline of changes made to a WikiPage, use the 
- * <a href="${GET.entity.ownerId.wiki2.wikiId.wikihistory2}">GET/entity/{ownerId}
- * /wiki2/{wikiId}/wikihistory2</a> method. The returned list of <a 
+ * <a href="${GET.entity.ownerId.wiki2.wikiId.wikihistory}">GET/entity/{ownerId}
+ * /wiki2/{wikiId}/wikihistory</a> method. The returned list of <a 
  * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot">V2WikiHistorySnapshots
  * </a> contain information about who modified the WikiPage and when the changes were made. 
  * </p>
@@ -265,7 +265,8 @@ public class V2WikiController extends BaseController {
 
 	// Update methods.
 	/**
-	 * Update a specific WikiPage of an Entity.
+	 * Update a specific WikiPage of an Entity. This adds a new entry 
+	 * to the history of changes made to this specific WikiPage. 
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
 	 * concurrent updates. Each time a WikiPage is updated a new etag will be
@@ -307,7 +308,8 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
-	 * Update a specific WikiPage of an Evaluation.
+	 * Update a specific WikiPage of an Evaluation. This adds a new entry 
+	 * to the history of changes made to this specific WikiPage. 
 	 * <p>
 	 * Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle
 	 * concurrent updates. Each time a WikiPage is updated a new etag will be

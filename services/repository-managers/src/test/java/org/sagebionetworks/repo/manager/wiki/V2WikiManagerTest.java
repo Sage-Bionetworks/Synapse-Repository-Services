@@ -76,7 +76,7 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
-		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY);
+		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, new ArrayList<String>());
 	}
 	
 	@Test
@@ -84,13 +84,13 @@ public class V2WikiManagerTest {
 		// setup allow
 		V2WikiPage page = new V2WikiPage();
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockWikiDao.create(any(V2WikiPage.class), any(HashMap.class), any(String.class), any(ObjectType.class))).thenReturn(page);
+		when(mockWikiDao.create(any(V2WikiPage.class), any(HashMap.class), any(String.class), any(ObjectType.class), any(ArrayList.class))).thenReturn(page);
 		V2WikiPage result = wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		assertNotNull(result);
 		assertEquals("CreatedBy should have set", user.getIndividualGroup().getId(), result.getCreatedBy());
 		assertEquals("ModifiedBy should have set", user.getIndividualGroup().getId(), result.getModifiedBy());
 		// Was it passed to the DAO?
-		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY);
+		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, new ArrayList<String>());
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -253,6 +253,14 @@ public class V2WikiManagerTest {
 	
 	@Test
 	public void testBuildFileNameMap() throws DatastoreException, NotFoundException{
+		// Create a WikiPage that includes all three
+		V2WikiPage page = new V2WikiPage();
+		page.setId("000");
+		page.setEtag("etag");
+		
+		Map<String, FileHandle> map = wikiManager.buildFileNameMap(page);
+		assertTrue(map.size() == 0);
+		
 		// Setup some file handles with duplicate names.  When there are duplicate names
 		// the manager should use the newest one.
 		// one
@@ -274,11 +282,7 @@ public class V2WikiManagerTest {
 		three.setCreatedOn(new Date(2));
 		three.setFileName("uniqueName");
 		when(mockFileDao.get(three.getId())).thenReturn(three);
-		
-		// Create a WikiPage that includes all three
-		V2WikiPage page = new V2WikiPage();
-		page.setId("000");
-		page.setEtag("etag");
+	
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.getAttachmentFileHandleIds().add(three.getId());
 		page.getAttachmentFileHandleIds().add(two.getId());
@@ -290,6 +294,17 @@ public class V2WikiManagerTest {
 		assertEquals(2, nameMap.size());
 		assertEquals("The newer FileHandle should have been used when a duplicate fileName is encountered.", two, nameMap.get("duplicateName"));
 		assertEquals(three, nameMap.get("uniqueName"));
+		
+		// Different order, same result
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.getAttachmentFileHandleIds().add(one.getId());
+		page.getAttachmentFileHandleIds().add(three.getId());
+		page.getAttachmentFileHandleIds().add(two.getId());
+		Map<String, FileHandle> nameMap2 = wikiManager.buildFileNameMap(page);
+		assertNotNull(nameMap2);
+		// the older duplicate should have been removed.
+		assertEquals(2, nameMap2.size());
+		assertEquals("The newer FileHandle should have been used when a duplicate fileName is encountered.", two, nameMap2.get("duplicateName"));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -324,7 +339,7 @@ public class V2WikiManagerTest {
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
-		verify(mockWikiDao, times(0)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY);
+		verify(mockWikiDao, times(0)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, new ArrayList<String>());
 	}
 	
 	/**
@@ -361,6 +376,9 @@ public class V2WikiManagerTest {
 		Map<String, FileHandle> fileNameToHandleMap = new HashMap<String, FileHandle>();
 		fileNameToHandleMap.put("one", one);
 		fileNameToHandleMap.put("two", two);
+		List<String> newFileHandleIds = new ArrayList<String>();
+		newFileHandleIds.add(one.getId());
+		newFileHandleIds.add(two.getId());
 		
 		// Allow one but deny the other.
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
@@ -368,7 +386,7 @@ public class V2WikiManagerTest {
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
-		verify(mockWikiDao, times(1)).create(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class));
+		verify(mockWikiDao, times(1)).create(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(ArrayList.class));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -689,4 +707,15 @@ public class V2WikiManagerTest {
 		wikiManager.deleteWiki(new UserInfo(true), new WikiPageKey("123", ObjectType.EVALUATION, "345"));
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetHistoryNullLimit() throws NotFoundException, DatastoreException {
+		WikiPageKey key = new WikiPageKey("123", ObjectType.ENTITY, "345");
+		wikiManager.getWikiHistory(new UserInfo(true), "123", ObjectType.ENTITY, key, null, new Long(0));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetHistoryNullOffset() throws NotFoundException, DatastoreException {
+		WikiPageKey key = new WikiPageKey("123", ObjectType.ENTITY, "345");
+		wikiManager.getWikiHistory(new UserInfo(true), "123", ObjectType.ENTITY, key, new Long(10), null);
+	}
 }
