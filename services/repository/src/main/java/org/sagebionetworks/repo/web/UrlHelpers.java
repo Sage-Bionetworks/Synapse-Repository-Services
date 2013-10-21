@@ -583,6 +583,37 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;	
+
+	// V2 Wiki URL
+	public static final String WIKI_V2 = "/wiki2";
+	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
+	public static final String WIKI_HISTORY_V2 = "/wikihistory2";
+	public static final String ATTACHMENT_V2 = "/attachment2";
+	public static final String ATTACHMENT_PREVIEW_V2 = "/attachmentpreview2";
+	public static final String ATTACHMENT_HANDLES_V2 = "/attachmenthandles2";
+	public static final String WIKI_WITH_ID_V2 = WIKI_V2 + "/{wikiId}";
+	public static final String WIKI_VERSION_V2 = "/{wikiVersion}";
+	// Entity
+	public static final String ENTITY_OWNER_ID_V2 = ENTITY+"/{ownerId}";
+	public static final String ENTITY_WIKI_V2 = ENTITY_OWNER_ID_V2 + WIKI_V2;
+	public static final String ENTITY_WIKI_TREE_V2 = ENTITY_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
+	public static final String ENTITY_WIKI_ID_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_HANDLE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_HANDLES_V2;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
+	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
+	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	// Evaluation
+	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
+	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
+	public static final String EVALUATION_WIKI_TREE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
+	public static final String EVALUATION_WIKI_ID_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_HANDLES_V2;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
+	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
+	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	
 	// Tables
 	public static final String COLUMN = "/column";
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
