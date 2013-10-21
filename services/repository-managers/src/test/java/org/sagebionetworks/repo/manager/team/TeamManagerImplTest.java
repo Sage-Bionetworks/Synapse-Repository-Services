@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -54,6 +55,7 @@ public class TeamManagerImplTest {
 	private FileHandleManager mockFileHandleManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
+	private UserManager mockUserManager = null;
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -71,6 +73,7 @@ public class TeamManagerImplTest {
 		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
+		mockUserManager = Mockito.mock(UserManager.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
 				mockTeamDAO,
@@ -79,7 +82,8 @@ public class TeamManagerImplTest {
 				mockAclDAO,
 				mockFileHandleManager,
 				mockMembershipInvtnSubmissionDAO,
-				mockMembershipRqstSubmissionDAO);
+				mockMembershipRqstSubmissionDAO, 
+				mockUserManager);
 		userInfo = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setId(MEMBER_PRINCIPAL_ID);

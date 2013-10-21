@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -62,6 +63,8 @@ public class TeamManagerImpl implements TeamManager {
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	@Autowired
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	private UserManager userManager;
 	
 	public TeamManagerImpl() {}
 	
@@ -74,7 +77,8 @@ public class TeamManagerImpl implements TeamManager {
 			AccessControlListDAO aclDAO,
 			FileHandleManager fileHandlerManager,
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
-			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
+			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO, 
+			UserManager userManager
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -84,6 +88,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.fileHandleManager = fileHandlerManager;
 		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
 		this.membershipRqstSubmissionDAO = membershipRqstSubmissionDAO;
+		this.userManager = userManager;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -192,7 +197,9 @@ public class TeamManagerImpl implements TeamManager {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
-		if (userManager.doesPrincipalExist(team.getName())) throw new InvalidModelException("Name "+team.getName()+" is already used.");
+		if (userManager.doesPrincipalExist(team.getName())) {
+			throw new InvalidModelException("Name "+team.getName()+" is already used.");
+		}
 		UserGroup ug = new UserGroup();
 		ug.setName(team.getName());
 		ug.setIsIndividual(false);
