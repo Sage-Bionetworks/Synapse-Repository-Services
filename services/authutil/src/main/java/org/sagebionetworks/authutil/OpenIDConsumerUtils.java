@@ -3,6 +3,7 @@ package org.sagebionetworks.authutil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
@@ -65,14 +66,13 @@ public class OpenIDConsumerUtils {
 		String discInfo;
 		try {
 			discInfo = DiscoveryInfoUtils.zipDTO(dto);
+			discInfo = URLEncoder.encode(discInfo, "UTF-8");
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
 		
-		System.out.println("A " + returnToUrl);
 		try {
 			returnToUrl = addRequestParameter(returnToUrl, OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + discInfo);
-			System.out.println("B " + returnToUrl);
 		} catch (URISyntaxException e) {
 			throw new RuntimeException(e);
 		}
