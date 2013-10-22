@@ -9,6 +9,7 @@ import java.util.Map;
 import org.openid4java.OpenIDException;
 import org.openid4java.consumer.ConsumerManager;
 import org.openid4java.discovery.Discovery;
+import org.openid4java.discovery.DiscoveryException;
 import org.openid4java.discovery.DiscoveryInformation;
 import org.openid4java.message.AuthRequest;
 import org.openid4java.message.AuthSuccess;
@@ -17,14 +18,15 @@ import org.openid4java.message.ax.AxMessage;
 import org.openid4java.message.ax.FetchRequest;
 import org.openid4java.message.ax.FetchResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Modified "Relying Party" implementation
  * Taken from: http://code.google.com/p/openid4java/wiki/QuickStart
  */
 public class OpenIDConsumerUtils {
+	
+	public static final String OPEN_ID_PROVIDER_GOOGLE_VALUE = "GOOGLE";
+	public static final String OPEN_ID_PROVIDER_GOOGLE_ENDPOINT = "https://www.google.com/accounts/o8/id";
 
 	public static final String AX_EMAIL = "Email";
 	public static final String AX_FIRST_NAME = "FirstName";
@@ -44,37 +46,32 @@ public class OpenIDConsumerUtils {
 			manager = new ConsumerManager();
 		}
 	}
+	
+	/**
+	 * This maps allowed provider names to their OpenID endpoints
+	 * At this time only Google is supported
+	 */
+	private static DiscoveryInformation getDiscoveryInfo(String providerName) throws DiscoveryException {
+		if (!providerName.equals(OPEN_ID_PROVIDER_GOOGLE_VALUE)) {
+			throw new IllegalArgumentException(providerName);			
+		}
+
+		@SuppressWarnings("unchecked")
+		List<Discovery> discoveries = (List<Discovery>) manager.discover(OPEN_ID_PROVIDER_GOOGLE_ENDPOINT);
+
+		// Attempt to associate with the OpenID provider
+		// and retrieve one service endpoint for authentication
+		return manager.associate(discoveries);
+	}
 
 	/**
 	 * Determines the redirect URL needed to perform the first part of the OpenID handshake
 	 */
-	public static String authRequest(String openIdProvider,
-			String returnToUrl) throws IOException, OpenIDException {
+	public static String authRequest(String returnToUrl) throws IOException, OpenIDException {
 		ensureManagerExists();
 
 		// Perform discovery on the user-supplied identifier
-		@SuppressWarnings("unchecked")
-	List<Discovery> discoveries = (List<Discovery>) manager.discover(openIdProvider);
-
-		// Attempt to associate with the OpenID provider
-		// and retrieve one service endpoint for authentication
-		DiscoveryInformation discovered = manager.associate(discoveries);
-		
-		// Convert the information into a URL-parameter friendly form
-		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(discovered);
-		String discInfo;
-		try {
-			discInfo = DiscoveryInfoUtils.zipDTO(dto);
-			System.out.println("Discovery Info = " + discInfo);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-		
-		try {
-			returnToUrl = addRequestParameter(returnToUrl, OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + discInfo);
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		}
+		DiscoveryInformation discovered = getDiscoveryInfo(OPEN_ID_PROVIDER_GOOGLE_VALUE);
 
 		// Obtain a AuthRequest message to be sent to the OpenID provider
 		AuthRequest authReq = manager.authenticate(discovered, returnToUrl);
@@ -106,21 +103,12 @@ public class OpenIDConsumerUtils {
 		//TODO Modification is needed to get it working with hosted google apps
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
 
-		String discoveryParam = parameters.getParameterValue(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
-		System.out.println("Discovery Info = " + discoveryParam);
-		if (discoveryParam == null) {
-			throw new RuntimeException(
-					"OpenID authentication failure: Missing required discovery information.");
-		}
-		
-		// Convert the information into the form taken by the OpenID library
-		DiscoveryInfo discInfo;
+		DiscoveryInformation discovered;
 		try {
-			discInfo = DiscoveryInfoUtils.unzipDTO(discoveryParam);
-		} catch (JSONObjectAdapterException e) {
+			discovered = getDiscoveryInfo(OPEN_ID_PROVIDER_GOOGLE_VALUE);
+		} catch (DiscoveryException e) {
 			throw new RuntimeException(e);
 		}
-		DiscoveryInformation discovered = DiscoveryInfoUtils.convertDTOToObject(discInfo);
 		
 		try {
 			AuthSuccess authSuccess = AuthSuccess.createAuthSuccess(parameters);
