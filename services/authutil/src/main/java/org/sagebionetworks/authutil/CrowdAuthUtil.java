@@ -30,6 +30,7 @@ import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
+import org.apache.logging.log4j.Level;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -588,6 +589,13 @@ public class CrowdAuthUtil {
 		Session session = authenticate(user, false);
 		// need the rest of the user's fields
 		user = getUser(user.getEmail());
+		
+		// Don't spam emails for integration tests
+		if (!StackConfiguration.isProductionStack()) {
+			log.info("Prevented " + mode + " email from being sent to " + userEmail + " with session token " + sessiontoken);
+			return;
+		}
+		
 		// now send the reset password email, filling in the user name and session token
 		SendMail sendMail = new SendMail();
 		switch (mode) {

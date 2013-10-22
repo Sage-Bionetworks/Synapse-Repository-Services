@@ -277,10 +277,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		} else {
 			String testUsers[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
-					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
+					StackConfiguration.getIntegrationTestUserOneName(), 
 					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeEmail() };
+					StackConfiguration.getIntegrationTestUserThreeName() };
 			String testPasswords[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminPassword(), 
 					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
@@ -298,7 +298,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		// bootstrapped users should not need to sign the terms of use
 		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
 		for (UserGroupInt ug : ugs) {
-			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())
+			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseName())
 					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
 				setTermsOfUseAcceptance(ug.getId(), true);
 			}

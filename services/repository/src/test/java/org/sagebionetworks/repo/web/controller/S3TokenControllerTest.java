@@ -55,7 +55,7 @@ public class S3TokenControllerTest {
 
 	private UserGroup testUser;
 	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
-	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneEmail();
+	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneName();
 	private static final String TEST_MD5 = "4053f00b39aae693a6969f37102e2764";
 
 	private Project project;

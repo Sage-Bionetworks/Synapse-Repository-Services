@@ -287,6 +287,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean isAnonymousUser(UserInfo userInfo) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		return AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getIndividualGroup().getName());
+		return AuthorizationUtils.isUserAnonymous(userInfo);
 	}
 }

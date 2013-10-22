@@ -36,12 +36,6 @@ public interface UserManager {
 	 */
 	public void createUser(NewUser user);
 	
-	/**
-	 * Creates a new user
-	 * To be replaced with createUser
-	 */
-	@Deprecated
-	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException;
 	
 	/**
 	 * Does a principal with this name exist?
@@ -64,12 +58,6 @@ public interface UserManager {
 	 */
 	public String getGroupName(String principalId) throws NotFoundException;
 
-	/**
-	 * To be removed soon
-	 */
-	@Deprecated
-	public void clearCache();
-	
 	/**
 	 * Changes the user's email
 	 */

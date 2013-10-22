@@ -1,9 +1,8 @@
 package org.sagebionetworks.usagemetrics;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.Project;
 
 public class GetProjectNames {
 
@@ -24,25 +23,14 @@ public class GetProjectNames {
 
 	private static void printProjectNames(SynapseClientImpl synapse) {
 		for (String id : projectIds) {
-			JSONObject entity;
+			Project entity;
 			try {
-				entity = synapse.getEntity("/entity/" + id);
+				entity = synapse.getEntity(id, Project.class);
 			} catch (SynapseException e) {
 				continue;
 			}
-			String name;
-			try {
-				name = entity.getString("name");
-			} catch (JSONException e) {
-				continue;
-			}
-			
-			String userName;
-			try {
-				userName = entity.getString("createdBy");
-			} catch (JSONException e) {
-				continue;
-			}
+			String name = entity.getName();
+			String userName = entity.getCreatedBy();
 			
 			System.out.format("Project Id:%s - created by %s - %s%n", id, userName, name);
 		}
