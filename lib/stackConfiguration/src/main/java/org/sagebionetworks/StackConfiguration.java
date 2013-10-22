@@ -21,6 +21,9 @@ import org.apache.logging.log4j.Logger;
 public class StackConfiguration {
 
 	private static final String PROD = "prod";
+	private static final String DEV = "dev";
+	private static final String HUDSON = "hud";
+	
 	static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
 	static final String TEMPLATE_PROPERTIES = "/template.properties";
 
@@ -85,6 +88,30 @@ public class StackConfiguration {
 	static boolean isProduction(String stack){
 		return PROD.equals(stack);
 	}
+	/**
+	 * Is this a Develop stack?
+	 * @return
+	 */
+	public static boolean isDevelopStack(){
+		return isDevelopStack(getStack());
+	}
+	
+	static boolean isDevelopStack(String stack){
+		return DEV.equals(stack);
+	}
+	
+	/**
+	 * Is this a Hudson stack?
+	 * @return
+	 */
+	public static boolean isHudsonStack(){
+		return isHudsonStack(getStack());
+	}
+	
+	static boolean isHudsonStack(String stack){
+		return HUDSON.equals(stack);
+	}
+
 
 	/**
 	 * In production stacks the instance is numeric. In development and test
@@ -645,6 +672,20 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.attachment.preview.image.max.pixels"));
 	}
 
+	/**
+	 * Is the search feature enabled?
+	 * @return
+	 */
+	public boolean isSearchEnabled(){
+		// Cannot turn off search for prod or hudson.
+		if(isProductionStack() || isHudsonStack()) return true;
+		if(isDevelopStack()){
+			return Boolean.parseBoolean(configuration
+					.getProperty("org.sagebionetworks.search.enabled"));
+		}else{
+			throw new IllegalArgumentException("unknown stack: "+getStack());
+		}
+	}
 
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable
