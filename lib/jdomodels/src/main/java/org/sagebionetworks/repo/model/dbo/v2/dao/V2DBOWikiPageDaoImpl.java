@@ -136,7 +136,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public V2WikiPage create(V2WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException {
+	public V2WikiPage create(V2WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException {
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
@@ -167,15 +167,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		Long ownerIdLong = KeyFactory.stringToKey(ownerId);
 		dbo = create(ownerType, dbo, ownerIdLong);
 		
-		// We will insert all attachments to the wiki because this is a new wiki
-		List<String> fileHandleIdsToInsert = new ArrayList<String>();
-		for(String filename: fileNameToFileHandleMap.keySet()) {
-			fileHandleIdsToInsert.add(fileNameToFileHandleMap.get(filename).getId());
-		}
-		
 		// Create the attachments
 		long timeStamp = (currentTime/1000)*1000;
-		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(fileHandleIdsToInsert, dbo.getId(), timeStamp);
+		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandleIds, dbo.getId(), timeStamp);
 		// Save them to the attachments archive
 		if(attachments.size() > 0){
 			basicDao.createBatch(attachments);
@@ -183,7 +177,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Create the markdown snapshot
 		Long markdownFileHandleId = Long.parseLong(wikiPage.getMarkdownFileHandleId());
-		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, dbo.getId(), markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, dbo.getId(), markdownFileHandleId, wikiPage.getTitle());
 		markdownDbo.setMarkdownVersion(new Long(0));
 		markdownDbo.setModifiedOn(currentTime);
 		markdownDbo.setModifiedBy(dbo.getModifiedBy());
@@ -246,7 +240,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 		// Create a new markdown snapshot/version
 		Long markdownFileHandleId = Long.parseLong(wikiPage.getMarkdownFileHandleId());
-		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, newDbo.getId(), markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, newDbo.getId(), markdownFileHandleId, wikiPage.getTitle());
 		markdownDbo.setMarkdownVersion(incrementedVersion);
 		markdownDbo.setModifiedOn(currentTime);
 		markdownDbo.setModifiedBy(newDbo.getModifiedBy());

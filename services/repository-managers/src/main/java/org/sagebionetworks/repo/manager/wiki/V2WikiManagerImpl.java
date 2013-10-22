@@ -86,13 +86,19 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), objectId, objectType.name()));
 		}
-		// For a create the user must be the creator of each file handle used.
 		
 		// Set created by and modified by
 		wikiPage.setCreatedBy(user.getIndividualGroup().getId());
 		wikiPage.setModifiedBy(wikiPage.getCreatedBy());
 		// First build up the map of names to FileHandles
 		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);
+		
+		// For a create the user must be the creator of each file handle used.
+		List<String> newFileHandlesToInsert = new ArrayList<String>();
+		for(FileHandle handle: nameToHandleMap.values()){
+			newFileHandlesToInsert.add(handle.getId());
+		}
+		
 		// Validate that the user can assign all file handles
 		for(FileHandle handle: nameToHandleMap.values()){
 			// the user must have access to the raw FileHandle to assign it to an object.
@@ -101,7 +107,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			}
 		}
 		// pass to the DAO
-		return wikiPageDao.create(wikiPage, nameToHandleMap, objectId, objectType);
+		return wikiPageDao.create(wikiPage, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);
 	}
 	
 	/**
@@ -297,6 +303,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(type == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(limit == null) throw new IllegalArgumentException("limit cannot be null");
+		if(offset == null) throw new IllegalArgumentException("offset cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));

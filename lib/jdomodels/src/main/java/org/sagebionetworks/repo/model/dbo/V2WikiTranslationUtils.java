@@ -130,7 +130,7 @@ public class V2WikiTranslationUtils {
 	 * @return
 	 */
 	public static V2DBOWikiMarkdown createDBOWikiMarkdownFromDTO(Map<String, FileHandle> fileNameToFileHandleMap, 
-			Long wikiId, Long markdownFileHandleId) {
+			Long wikiId, Long markdownFileHandleId, String title) {
 		
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null"); 
@@ -139,7 +139,7 @@ public class V2WikiTranslationUtils {
 		V2DBOWikiMarkdown dbo = new V2DBOWikiMarkdown();
 		dbo.setWikiId(wikiId);
 		dbo.setFileHandleId(markdownFileHandleId);
-
+		dbo.setTitle(title);
 		// Escape special delimiters and build a list of fileHandleId:fileName entries
 		StringBuffer attachmentIdList = new StringBuffer();
 		for(String fileName: fileNameToFileHandleMap.keySet()) {
