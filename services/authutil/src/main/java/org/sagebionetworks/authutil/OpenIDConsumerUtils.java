@@ -3,6 +3,7 @@ package org.sagebionetworks.authutil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.util.List;
 import java.util.Map;
 
@@ -65,6 +66,7 @@ public class OpenIDConsumerUtils {
 		String discInfo;
 		try {
 			discInfo = DiscoveryInfoUtils.zipDTO(dto);
+			System.out.println("Discovery Info = " + discInfo);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
@@ -106,6 +108,9 @@ public class OpenIDConsumerUtils {
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
 
 		String discoveryParam = parameters.getParameterValue(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
+		System.out.println("Discovery Info = " + discoveryParam);
+		discoveryParam = URLDecoder.decode(discoveryParam, "UTF-8");
+		System.out.println("Discovery Info = " + discoveryParam);
 		if (discoveryParam == null) {
 			throw new RuntimeException(
 					"OpenID authentication failure: Missing required discovery information.");
