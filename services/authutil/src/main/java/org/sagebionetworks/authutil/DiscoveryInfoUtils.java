@@ -16,7 +16,12 @@ public class DiscoveryInfoUtils {
 	public static DiscoveryInfo convertObjectToDTO(DiscoveryInformation discInfo) {
 		DiscoveryInfo dto = new DiscoveryInfo();
 		dto.setOpenIdEndpoint(discInfo.getOPEndpoint().toString());
-		dto.setIdentifier(discInfo.getClaimedIdentifier().getIdentifier());
+		
+		Identifier identifier = discInfo.getClaimedIdentifier();
+		if (identifier != null) {
+			dto.setIdentifier(identifier.getIdentifier());
+		}
+		
 		dto.setDelegate(discInfo.getDelegateIdentifier());
 		dto.setVersion(discInfo.getVersion());
 		dto.setServiceTypes((Set<String>) discInfo.getTypes());
@@ -26,7 +31,11 @@ public class DiscoveryInfoUtils {
 	public static DiscoveryInformation convertDTOToObject(DiscoveryInfo discInfo) throws MalformedURLException {
 		URL endpoint = new URL(discInfo.getOpenIdEndpoint());
 		try {
-			Identifier identifier = new UrlIdentifier(discInfo.getIdentifier());
+			Identifier identifier = null;
+			if (discInfo.getIdentifier() != null) {
+				identifier = new UrlIdentifier(discInfo.getIdentifier());
+			}
+			
 			DiscoveryInformation obj = new DiscoveryInformation(endpoint, identifier, 
 					discInfo.getDelegate(), 
 					discInfo.getVersion(), 
