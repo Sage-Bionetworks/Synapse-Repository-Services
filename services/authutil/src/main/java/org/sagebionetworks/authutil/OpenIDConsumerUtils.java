@@ -3,7 +3,6 @@ package org.sagebionetworks.authutil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +19,6 @@ import org.openid4java.message.ax.FetchResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * Modified "Relying Party" implementation
@@ -66,13 +64,15 @@ public class OpenIDConsumerUtils {
 		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(discovered);
 		String discInfo;
 		try {
-			discInfo = URLEncoder.encode(EntityFactory.createJSONStringForEntity(dto), "UTF-8");
+			discInfo = DiscoveryInfoUtils.zipDTO(dto);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
 		
+		System.out.println("A " + returnToUrl);
 		try {
 			returnToUrl = addRequestParameter(returnToUrl, OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + discInfo);
+			System.out.println("B " + returnToUrl);
 		} catch (URISyntaxException e) {
 			throw new RuntimeException(e);
 		}
@@ -116,7 +116,7 @@ public class OpenIDConsumerUtils {
 		// Convert the information into the form taken by the OpenID library
 		DiscoveryInfo discInfo;
 		try {
-			discInfo = EntityFactory.createEntityFromJSONString(discoveryParam, DiscoveryInfo.class);
+			discInfo = DiscoveryInfoUtils.unzipDTO(discoveryParam);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}

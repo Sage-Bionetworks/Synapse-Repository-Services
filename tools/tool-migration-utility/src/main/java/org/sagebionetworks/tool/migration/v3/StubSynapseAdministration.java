@@ -2285,7 +2285,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public Session passThroughOpenIDParameters(String queryString)
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
