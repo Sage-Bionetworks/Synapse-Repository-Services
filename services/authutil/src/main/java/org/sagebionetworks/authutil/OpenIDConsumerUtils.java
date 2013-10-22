@@ -67,6 +67,7 @@ public class OpenIDConsumerUtils {
 		try {
 			discInfo = DiscoveryInfoUtils.zipDTO(dto);
 			discInfo = URLEncoder.encode(discInfo, "UTF-8");
+			System.out.println("Discovery Info = " + discInfo);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
@@ -108,6 +109,7 @@ public class OpenIDConsumerUtils {
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
 
 		String discoveryParam = parameters.getParameterValue(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
+		System.out.println("Discovery Info = " + discoveryParam);
 		if (discoveryParam == null) {
 			throw new RuntimeException(
 					"OpenID authentication failure: Missing required discovery information.");
