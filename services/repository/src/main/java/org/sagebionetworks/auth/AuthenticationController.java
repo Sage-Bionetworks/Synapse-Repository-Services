@@ -30,6 +30,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * <p>Provides REST APIs for managing and obtaining the necessary credentials to access Synapse.</p>
+ * <p>Synapse currently supports four modes of authentication:</p>
+ * <ul>
+ *   <li>username and password</li>
+ *   <li>OpenID from Google</li>
+ *   <li>session token</li>
+ *   <li>API key</li>
+ * </ul>
+ * <p>
+ * Only the session token or API key can be used to authenticate the user outside of the 
+ * authentication services.  Authentication via a username and password, or via OpenID, will
+ * allow the user to retrieve a session token and/or API key for use in other requests.  
+ * </p>
+ */
 @ControllerInfo(displayName="Authentication Services", path="auth/v1")
 @Controller
 public class AuthenticationController extends BaseController {
@@ -39,6 +54,14 @@ public class AuthenticationController extends BaseController {
 	@Autowired
 	private AuthenticationService authenticationService;
 	
+	/**
+	 * Retrieve a session token that will be usable for 24 hours or until invalidated.
+	 * The user must accept the terms of use before a session token is issued.
+	 * </br>
+	 * The passed request body must contain an email and password.  
+	 * Other fields will be ignored.  
+	 * See the <a href="${org.sagebionetworks.repo.model.auth.NewUser}">JSON schema</a> for more information.
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
@@ -46,12 +69,18 @@ public class AuthenticationController extends BaseController {
 		return authenticationService.authenticate(credentials);
 	}
 
+	/**
+	 * Refresh a session token to render it usable for another 24 hours.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
 	public void revalidate(@RequestBody Session session) throws NotFoundException {
 		authenticationService.revalidate(session.getSessionToken());
 	}
 
+	/**
+	 * Deauthenticate a session token.  This will sign out all active sessions using the session token.   
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
 	public void deauthenticate(HttpServletRequest request) {
@@ -59,6 +88,9 @@ public class AuthenticationController extends BaseController {
 		authenticationService.invalidateSessionToken(sessionToken);
 	}
 
+	/**
+	 * Create a new user.  An email will be sent regarding how to set a password for the account.    
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user) throws NotFoundException {
@@ -66,6 +98,10 @@ public class AuthenticationController extends BaseController {
 		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
 	
+	/**
+	 * Retrieve basic information about the current authenticated user.  
+	 * Information includes the user's display name, email, and whether they have accepted the terms of use.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
 	public @ResponseBody
@@ -82,6 +118,9 @@ public class AuthenticationController extends BaseController {
 		return user;
 	}
 	
+	/**
+	 * Request a password change email.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody NewUser credential)
@@ -89,6 +128,9 @@ public class AuthenticationController extends BaseController {
 		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW);
 	}
 	
+	/**
+	 * Request a password change email via an API key.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
@@ -97,6 +139,9 @@ public class AuthenticationController extends BaseController {
 		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW);
 	}
 	
+	/**
+	 * Change the current authenticated user's password.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
 	public void setPassword(
@@ -106,6 +151,10 @@ public class AuthenticationController extends BaseController {
 		authenticationService.changePassword(username, changeUserPassword.getNewPassword());
 	}
 	
+	/**
+	 * Change the current authenticated user's email.  
+	 * Note: this service is temporarily disabled.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_CHANGE_EMAIL, method = RequestMethod.POST)
 	public void changeEmail(
@@ -114,8 +163,11 @@ public class AuthenticationController extends BaseController {
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		authenticationService.updateEmail(username, registrationInfo);
 	}
-	
 
+	/* (non-Javadoc)
+	 * Used by password reset emails to reset a user's password.
+	 * Must be used within 24 hours of sending the email.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_PASSWORD, method = RequestMethod.POST)
 	public void setRegisteringUserPassword(
@@ -133,6 +185,9 @@ public class AuthenticationController extends BaseController {
 		authenticationService.invalidateSessionToken(sessionToken);
 	}
 	
+	/**
+	 * Retrieves the API key associated with the current authenticated user.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody
@@ -144,6 +199,10 @@ public class AuthenticationController extends BaseController {
 		return secret;
 	}
 	
+	/**
+	 * Invalidates the API key associated with the current authenticated user.  
+	 * It is not recommended to use this service.  
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
@@ -152,7 +211,10 @@ public class AuthenticationController extends BaseController {
 		authenticationService.deleteSecretKey(username);
 	}
 	
-
+	/**
+	 * To authenticate via OpenID, this service takes all URL parameters returned by the OpenID provider (i.e. Google)
+	 * along with a serialized <a href="${org.sagebionetworks.repo.model.auth.DiscoveryInfo}">Discovery Information</a> object.
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
 	public @ResponseBody Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
