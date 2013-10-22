@@ -5,6 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -54,6 +56,12 @@ public class DiscoveryInfoUtils {
 		}
 	}
 	
+	/**
+	 * Converts the DiscoveryInfo DTO to a string, 
+	 * Zips the string, 
+	 * Base64 encodes the result, 
+	 * And URL-encodes the string
+	 */
 	public static String zipDTO(DiscoveryInfo discInfo) throws JSONObjectAdapterException, IOException {
 		String dtoString = EntityFactory.createJSONStringForEntity(discInfo);
 		
@@ -64,12 +72,19 @@ public class DiscoveryInfoUtils {
 		zipped.flush();
 		zipped.close();
 		
-		// Base64 encode the bytes
-		byte[] zippedAndBase64Encoded = Base64.encodeBase64(out.toByteArray());
-		return new String(zippedAndBase64Encoded);
+		// Base64 encode the bytes and URL encode it
+		String zippedAndBase64Encoded = new String(Base64.encodeBase64(out.toByteArray()));
+		return URLEncoder.encode(zippedAndBase64Encoded, "UTF-8");
 	}
 	
-	public static DiscoveryInfo unzipDTO(String zippedAndBase64Encoded) throws IOException, JSONObjectAdapterException {
+	/**
+	 * URL-decodes the input, 
+	 * Base64 decodes the result, 
+	 * Unzips the decoded bytes, 
+	 * And converts the resulting string into a DiscoveryInfo DTO
+	 */
+	public static DiscoveryInfo unzipDTO(String input) throws IOException, JSONObjectAdapterException {
+		String zippedAndBase64Encoded = URLDecoder.decode(input, "UTF-8");
 		byte[] zipped = Base64.decodeBase64(zippedAndBase64Encoded.getBytes());
 		
 		ByteArrayInputStream in = new ByteArrayInputStream(zipped);

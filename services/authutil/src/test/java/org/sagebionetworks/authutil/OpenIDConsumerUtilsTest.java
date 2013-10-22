@@ -25,7 +25,6 @@ import org.openid4java.message.Parameter;
 import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.FetchRequest;
 import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class OpenIDConsumerUtilsTest {
 
@@ -45,7 +44,7 @@ public class OpenIDConsumerUtilsTest {
 		mockAuthRequest = mock(AuthRequest.class);
 		mockDiscInfo = DiscoveryInfoUtils.convertDTOToObject(DiscoveryInfoUtilsTest.getTestingDTO());
 		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(mockDiscInfo);
-		mockDiscInfoString = EntityFactory.createJSONStringForEntity(dto);
+		mockDiscInfoString = DiscoveryInfoUtils.zipDTO(dto);
 		
 		when(mockManager.discover(eq(openIDEndpoint))).thenReturn(new ArrayList<Discovery>());
 		when(mockManager.associate(anyList())).thenReturn(mockDiscInfo);
@@ -100,7 +99,7 @@ public class OpenIDConsumerUtilsTest {
 	public void testAuthRequest() throws Exception {
 		// Expected modification to the return URL
 		String expectedURL = OpenIDConsumerUtils.addRequestParameter(openIDCallback, 
-				OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + URLEncoder.encode(mockDiscInfoString, "UTF-8"));
+				OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + mockDiscInfoString);
 		
 		OpenIDConsumerUtils.authRequest(openIDEndpoint, openIDCallback);
 		
