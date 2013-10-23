@@ -5,6 +5,8 @@ import java.security.spec.InvalidKeySpecException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
@@ -31,6 +33,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Authentication Services", path="auth/v1")
 @Controller
 public class AuthenticationController extends BaseController {
+	
+	private static Log log = LogFactory.getLog(AuthenticationController.class);
 	
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -149,11 +153,15 @@ public class AuthenticationController extends BaseController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
-	public Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
+	public @ResponseBody Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
+		log.trace("Got a request: " + request.getRequestURL());
 		ParameterList parameters = new ParameterList(request.getParameterMap());
+		log.trace("Query params are: " + request.getQueryString());
 		
 		// Pass the request information to the auth service for a session token
-		return authenticationService.authenticateViaOpenID(parameters);
+		Session session = authenticationService.authenticateViaOpenID(parameters);
+		log.trace("Got a session token: " + session.getSessionToken());
+		return session;
 	}
 }
 
