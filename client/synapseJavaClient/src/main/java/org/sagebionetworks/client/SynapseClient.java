@@ -952,7 +952,7 @@ public interface SynapseClient {
 	public void createUser(NewUser user) throws SynapseException;
 	
 	/**
-	 * 
+	 * Accepts the terms of use for the given user, as identified by a session token
 	 */
 	public void acceptTermsOfUse(Session session) throws SynapseException;
 

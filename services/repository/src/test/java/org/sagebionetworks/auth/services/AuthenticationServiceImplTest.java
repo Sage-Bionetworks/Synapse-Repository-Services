@@ -20,6 +20,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -79,7 +80,7 @@ public class AuthenticationServiceImplTest {
 		
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test(expected=TermsOfUseException.class)
 	public void testAuthenticateToUFail() throws Exception {
 		// ToU checking should fail
 		credential.setAcceptsTermsOfUse(false);
