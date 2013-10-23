@@ -160,7 +160,6 @@ public class AuthenticationController extends BaseController {
 		
 		// Pass the request information to the auth service for a session token
 		Session session = authenticationService.authenticateViaOpenID(parameters);
-		log.trace("Got a session token: " + session.getSessionToken());
 		return session;
 	}
 }
