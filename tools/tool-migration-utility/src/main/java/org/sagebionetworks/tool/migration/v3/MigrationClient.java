@@ -19,6 +19,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResultType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -156,7 +159,7 @@ public class MigrationClient {
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
 		log.info("End counts:");
 		printCounts(endSourceCounts.getList(), endDestCounts.getList());
-
+		
 		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
 			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
 			this.dumpDeferredExceptions();
@@ -415,5 +418,34 @@ public class MigrationClient {
 		for (Exception e: this.deferredExceptions) {
 			log.error("Deferred exception " + i++, e);
 		}
+	}
+	
+	public void migrateCrowd() throws SynapseException, JSONObjectAdapterException {
+		SynapseAdminClient client = factory.createNewDestinationClient();
+		long offset = 100;
+		PaginatedResults<CrowdMigrationResult> res = client.migrateFromCrowd(100, 0);
+		boolean batchFailed = this.containsFailure(res.getResults());
+		long crowdTotalNumRes = res.getTotalNumberOfResults();
+		while (offset <= crowdTotalNumRes) {
+			res = client.migrateFromCrowd(500, offset);
+			if (this.containsFailure(res.getResults())) {
+				batchFailed = true;
+			}
+			offset += 500;
+		}
+		if (batchFailed) {
+			throw new RuntimeException("Failed during Crowd migration");
+		}
+	}
+	
+	public boolean containsFailure(List<CrowdMigrationResult> batch) {
+		boolean failed = false;
+		for (CrowdMigrationResult r: batch) {
+			if (r.getResultType() == CrowdMigrationResultType.FAILURE) {
+				log.error("Crowd migration failed for " + r.getUsername() + " / " + r.getUserId() + " with error '" + r.getMessage() + "'");
+				failed = true;
+			}
+		}
+		return failed;
 	}
 }

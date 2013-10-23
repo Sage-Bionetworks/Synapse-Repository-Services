@@ -7,8 +7,7 @@ public class OpenIDInfo {
 	private String identifier;
 	private Map<String, List<String>> map;
 	
-	public static final String DISCOVERY_INFO_PARAM_NAME = "sagebionetworks.discoveryInfo";
-	public static final String ACCEPTS_TERMS_OF_USE_PARAM_NAME = "sagebionetworks.acceptsTermsOfUse";
+	public static final String ACCEPTS_TERMS_OF_USE_PARAM_NAME = "org.sagebionetworks.acceptsTermsOfUse";
 
 	public OpenIDInfo() { }
 
