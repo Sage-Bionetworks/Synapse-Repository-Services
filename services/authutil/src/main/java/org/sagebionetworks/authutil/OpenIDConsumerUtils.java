@@ -67,11 +67,11 @@ public class OpenIDConsumerUtils {
 	/**
 	 * Determines the redirect URL needed to perform the first part of the OpenID handshake
 	 */
-	public static String authRequest(String returnToUrl) throws IOException, OpenIDException {
+	public static String authRequest(String openIdProviderName, String returnToUrl) throws IOException, OpenIDException {
 		ensureManagerExists();
 
 		// Perform discovery on the user-supplied identifier
-		DiscoveryInformation discovered = getDiscoveryInfo(OPEN_ID_PROVIDER_GOOGLE_VALUE);
+		DiscoveryInformation discovered = getDiscoveryInfo(openIdProviderName);
 
 		// Obtain a AuthRequest message to be sent to the OpenID provider
 		AuthRequest authReq = manager.authenticate(discovered, returnToUrl);

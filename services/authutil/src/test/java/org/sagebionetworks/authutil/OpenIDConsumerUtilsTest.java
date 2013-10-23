@@ -93,7 +93,7 @@ public class OpenIDConsumerUtilsTest {
 	
 	@Test
 	public void testAuthRequest() throws Exception {
-		OpenIDConsumerUtils.authRequest(openIDCallback);
+		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_GOOGLE_VALUE, openIDCallback);
 		
 		verify(mockManager).associate(anyList());
 		verify(mockManager).authenticate(any(DiscoveryInformation.class), eq(openIDCallback));
