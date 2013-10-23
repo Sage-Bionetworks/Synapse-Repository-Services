@@ -137,6 +137,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	List<Long> replayChangeNumbersHistory = new LinkedList<Long>();
 	List<Set<Long>> deleteRequestsHistory = new LinkedList<Set<Long>>();
 	Set<Long> exceptionNodes = new HashSet<Long>();
+	List<CrowdMigrationResult> crowdMigrationResults = new LinkedList<CrowdMigrationResult>();
 
 	/**
 	 * Create a new stub
@@ -2024,8 +2025,15 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
 			long offset) throws SynapseException, JSONObjectAdapterException {
-		// TODO Auto-generated method stub
-		return null;
+		PaginatedResults<CrowdMigrationResult> res = new PaginatedResults<CrowdMigrationResult>();
+		res.setTotalNumberOfResults(this.crowdMigrationResults.size());
+		res.setResults(this.crowdMigrationResults);
+		return res;
+	}
+
+
+	public void setCrowdMigrationResults(List<CrowdMigrationResult> crowdMigResults) {
+		this.crowdMigrationResults = crowdMigResults;
 	}
 
 
