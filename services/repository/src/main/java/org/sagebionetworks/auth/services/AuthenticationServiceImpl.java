@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -67,9 +66,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String revalidate(String sessionToken) throws NotFoundException {
 		Long userId = authManager.checkSessionToken(sessionToken);
-		if (!hasUserAcceptedTermsOfUse(userId.toString())) {
-			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-		}
 		return userId.toString();
 	}
 
