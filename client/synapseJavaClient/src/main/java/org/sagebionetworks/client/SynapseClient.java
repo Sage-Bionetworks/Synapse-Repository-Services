@@ -950,6 +950,11 @@ public interface SynapseClient {
 	 * Creates a user
 	 */
 	public void createUser(NewUser user) throws SynapseException;
+	
+	/**
+	 * 
+	 */
+	public void acceptTermsOfUse(Session session) throws SynapseException;
 
 	/**
 	 * Retrieves the bare-minimum amount of information about the current user

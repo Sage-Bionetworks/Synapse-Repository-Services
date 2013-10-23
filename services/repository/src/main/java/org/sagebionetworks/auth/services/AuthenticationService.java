@@ -38,6 +38,11 @@ public interface AuthenticationService {
 	 * Invalidates a session token
 	 */
 	public void invalidateSessionToken(String sessionToken);
+	
+	/**
+	 * Marks the user, as identified by the token, as having accepted the terms of use
+	 */
+	public void acceptTermsOfUse(Session session) throws NotFoundException;
 
 	/**
 	 * Returns whether the given user has accepted the most recent terms of use

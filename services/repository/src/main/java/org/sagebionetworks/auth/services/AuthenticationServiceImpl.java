@@ -15,7 +15,6 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -36,18 +35,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
 	private UserManager userManager;
-
-	@Autowired
-	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private AuthenticationManager authManager;
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, UserProfileManager userProfileManager, AuthenticationManager authManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager) {
 		this.userManager = userManager;
-		this.userProfileManager = userProfileManager;
 		this.authManager = authManager;
 	}
 
@@ -86,6 +81,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
 		authManager.invalidateSessionToken(sessionToken);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void acceptTermsOfUse(Session session) throws NotFoundException {
+		if (session == null || session.getSessionToken() == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
+		String sessionToken = session.getSessionToken();
+		Long userId = authManager.checkSessionToken(sessionToken);
+		String username = userManager.getGroupName(userId.toString());
+		handleTermsOfUse(username, true);
 	}
 
 	@Override

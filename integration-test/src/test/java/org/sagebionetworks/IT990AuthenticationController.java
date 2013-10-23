@@ -22,6 +22,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT990AuthenticationController {
 	private static SynapseClient synapse;
@@ -292,5 +293,13 @@ public class IT990AuthenticationController {
 		} catch (SynapseUnauthorizedException e) {
 			assertTrue(e.getMessage().contains("Required parameter missing"));
 		}
+	}
+	
+	@Test
+	public void testAcceptTermsViaSessionToken() throws Exception {
+		Session session = new Session();
+		session.setSessionToken(synapse.getCurrentSessionToken());
+		
+		synapse.acceptTermsOfUse(session);
 	}
 }

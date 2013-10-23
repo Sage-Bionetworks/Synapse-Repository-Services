@@ -82,6 +82,12 @@ public class AuthenticationController extends BaseController {
 		return user;
 	}
 	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_ACCEPT_TERMS_OF_USE, method = RequestMethod.POST)
+	public void acceptTermsOfUse(@RequestBody Session session) throws NotFoundException {
+		authenticationService.acceptTermsOfUse(session);
+	}
+	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody NewUser credential)
