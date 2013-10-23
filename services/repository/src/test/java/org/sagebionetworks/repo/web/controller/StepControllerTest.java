@@ -53,7 +53,7 @@ public class StepControllerTest {
 	private UserGroupDAO userGroupDAO;
 
 	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
-	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneEmail();
+	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneName();
 	
 	private Project project;
 	private Study dataset;

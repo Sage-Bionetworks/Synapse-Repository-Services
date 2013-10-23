@@ -63,7 +63,7 @@ public class IT990AuthenticationController {
 	
 	@Test(expected = SynapseUnauthorizedException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
-		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
+		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
 		synapse.login(username, password);
 	}
@@ -288,7 +288,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-			synapse.passThroughOpenIDParameters("");
+			synapse.passThroughOpenIDParameters("", null);
 			fail();
 		} catch (SynapseServiceException e) {
 			// This is the result of a failed argument check

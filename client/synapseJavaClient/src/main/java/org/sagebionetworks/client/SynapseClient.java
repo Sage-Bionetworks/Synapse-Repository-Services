@@ -1031,5 +1031,5 @@ public interface SynapseClient {
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
 	 * @return A session token if the authentication passes
 	 */
-	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
 }
