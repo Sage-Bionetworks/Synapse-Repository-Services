@@ -288,7 +288,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-			synapse.passThroughOpenIDParameters("", null);
+			synapse.passThroughOpenIDParameters("");
 			fail();
 		} catch (SynapseServiceException e) {
 			// This is the result of a failed argument check

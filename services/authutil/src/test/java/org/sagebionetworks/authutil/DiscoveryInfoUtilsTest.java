@@ -28,36 +28,12 @@ public class DiscoveryInfoUtilsTest {
 	}
 	
 	@Test 
-	public void testConversionRoundTrip() throws Exception {
+	public void testRoundTrip() throws Exception {
 		DiscoveryInfo dto = getTestingDTO();
 		
 		DiscoveryInformation obj = DiscoveryInfoUtils.convertDTOToObject(dto);
 		DiscoveryInfo dto2 = DiscoveryInfoUtils.convertObjectToDTO(obj);
 		
 		assertEquals(dto, dto2);
-	}
-	
-	@Test
-	public void testZipRoundTrip() throws Exception {
-		DiscoveryInfo dto = getTestingDTO();
-		
-		String zipped = DiscoveryInfoUtils.zipDTO(dto);
-		DiscoveryInfo dto2 = DiscoveryInfoUtils.unzipDTO(zipped);
-		
-		assertEquals(dto, dto2);
-	}
-	
-	@Test
-	public void testConvertZipRoundTrip() throws Exception {
-		// Usually, you start with a DiscoveryInformation object,
-		// but that constructor is more troublesome to use
-		DiscoveryInfo originalDTO = getTestingDTO();
-		DiscoveryInformation obj = DiscoveryInfoUtils.convertDTOToObject(originalDTO);
-		
-		DiscoveryInfo converted = DiscoveryInfoUtils.convertObjectToDTO(obj);
-		String zipped = DiscoveryInfoUtils.zipDTO(converted);
-		DiscoveryInfo unzipped = DiscoveryInfoUtils.unzipDTO(zipped);
-		
-		assertEquals(originalDTO, unzipped);
 	}
 }

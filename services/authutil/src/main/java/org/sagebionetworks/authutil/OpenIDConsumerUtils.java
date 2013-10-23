@@ -20,6 +20,7 @@ import org.openid4java.message.ax.FetchResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 /**
  * Modified "Relying Party" implementation
@@ -65,9 +66,7 @@ public class OpenIDConsumerUtils {
 		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(discovered);
 		String discInfo;
 		try {
-			discInfo = DiscoveryInfoUtils.zipDTO(dto);
-			discInfo = URLEncoder.encode(discInfo, "UTF-8");
-			System.out.println("Discovery Info = " + discInfo);
+			discInfo = URLEncoder.encode(EntityFactory.createJSONStringForEntity(dto), "UTF-8");
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
@@ -109,7 +108,6 @@ public class OpenIDConsumerUtils {
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
 
 		String discoveryParam = parameters.getParameterValue(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME);
-		System.out.println("Discovery Info = " + discoveryParam);
 		if (discoveryParam == null) {
 			throw new RuntimeException(
 					"OpenID authentication failure: Missing required discovery information.");
@@ -118,7 +116,7 @@ public class OpenIDConsumerUtils {
 		// Convert the information into the form taken by the OpenID library
 		DiscoveryInfo discInfo;
 		try {
-			discInfo = DiscoveryInfoUtils.unzipDTO(discoveryParam);
+			discInfo = EntityFactory.createEntityFromJSONString(discoveryParam, DiscoveryInfo.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
