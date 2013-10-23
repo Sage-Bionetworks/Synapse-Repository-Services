@@ -4881,10 +4881,9 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString) throws SynapseException {
 		try {
-			URI uri = new URI(null, null, "/openIdCallback", 
-					queryString + "&sagebionetworks.acceptsTermsOfUse=" + acceptsTermsOfUse, null);
+			URI uri = new URI(null, null, "/openIdCallback", queryString, null);
 			JSONObject session = createAuthEntity(uri.toString(), new JSONObject());
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
