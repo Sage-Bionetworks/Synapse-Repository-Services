@@ -20,7 +20,6 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewUser;
 
@@ -290,9 +289,8 @@ public class IT990AuthenticationController {
 		try {
 			synapse.passThroughOpenIDParameters("", null);
 			fail();
-		} catch (SynapseServiceException e) {
-			// This is the result of a failed argument check
-			assertTrue(e.getMessage().contains("Missing required discovery information"));
+		} catch (SynapseUnauthorizedException e) {
+			assertTrue(e.getMessage().contains("Required parameter missing"));
 		}
 	}
 }

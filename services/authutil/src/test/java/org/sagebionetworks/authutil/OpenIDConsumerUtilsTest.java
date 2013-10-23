@@ -24,30 +24,25 @@ import org.openid4java.message.AuthSuccess;
 import org.openid4java.message.Parameter;
 import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.FetchRequest;
-import org.sagebionetworks.repo.model.auth.DiscoveryInfo;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class OpenIDConsumerUtilsTest {
 
-	private static final String openIDEndpoint = "FOOBAR";
 	private static final String openIDEndpointURL = "https://www.FOOBAR.com/openid";
 	private static final String openIDCallback = "/callback/of/DOOM";
+	private static final String openIDIdentifier = "http://some.url.com/";
 	
 	private ConsumerManager mockManager;
 	private AuthRequest mockAuthRequest;
 	private DiscoveryInformation mockDiscInfo;
-	private String mockDiscInfoString;
 	private ParameterList mockRequestParameters;
 	
 	@Before
 	public void setup() throws Exception {
 		mockManager = mock(ConsumerManager.class);
 		mockAuthRequest = mock(AuthRequest.class);
-		mockDiscInfo = DiscoveryInfoUtils.convertDTOToObject(DiscoveryInfoUtilsTest.getTestingDTO());
-		DiscoveryInfo dto = DiscoveryInfoUtils.convertObjectToDTO(mockDiscInfo);
-		mockDiscInfoString = EntityFactory.createJSONStringForEntity(dto);
+		mockDiscInfo = mock(DiscoveryInformation.class);
 		
-		when(mockManager.discover(eq(openIDEndpoint))).thenReturn(new ArrayList<Discovery>());
+		when(mockManager.discover(any(String.class))).thenReturn(new ArrayList<Discovery>());
 		when(mockManager.associate(anyList())).thenReturn(mockDiscInfo);
         when(mockManager.authenticate(any(DiscoveryInformation.class), any(String.class))).thenReturn(mockAuthRequest);
 		
@@ -60,7 +55,7 @@ public class OpenIDConsumerUtilsTest {
 		mockRequestParameters.set(new Parameter("openid.assoc_handle", "dunno"));
 		mockRequestParameters.set(new Parameter("openid.signed", "return_to,identity"));
 		mockRequestParameters.set(new Parameter("openid.sig", "dunno"));
-		mockRequestParameters.set(new Parameter("openid.identity", mockDiscInfo.getClaimedIdentifier().toString()));
+		mockRequestParameters.set(new Parameter("openid.identity", openIDIdentifier));
 
         // Use the mock
         OpenIDConsumerUtils.setConsumerManager(mockManager);
@@ -98,27 +93,16 @@ public class OpenIDConsumerUtilsTest {
 	
 	@Test
 	public void testAuthRequest() throws Exception {
-		// Expected modification to the return URL
-		String expectedURL = OpenIDConsumerUtils.addRequestParameter(openIDCallback, 
-				OpenIDInfo.DISCOVERY_INFO_PARAM_NAME + "=" + URLEncoder.encode(mockDiscInfoString, "UTF-8"));
+		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_GOOGLE_VALUE, openIDCallback);
 		
-		OpenIDConsumerUtils.authRequest(openIDEndpoint, openIDCallback);
-		
-		verify(mockManager).discover(eq(openIDEndpoint));
 		verify(mockManager).associate(anyList());
-		verify(mockManager).authenticate(any(DiscoveryInformation.class), eq(expectedURL));
+		verify(mockManager).authenticate(any(DiscoveryInformation.class), eq(openIDCallback));
 		verify(mockAuthRequest).addExtension(any(FetchRequest.class));
 	}
-
-	@Test(expected=RuntimeException.class)
-    public void testVerifyResponse_NeedsDiscoveryInfoParam() throws Exception {
-		OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
-    }
 	
 
 	@Test
     public void testVerifyResponse_badInfo() throws Exception {
-		mockRequestParameters.set(new Parameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME, mockDiscInfoString));
 		when(mockManager.verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class))).thenReturn(false);
 		
 		OpenIDInfo result = OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
@@ -129,13 +113,12 @@ public class OpenIDConsumerUtilsTest {
 	
 	@Test
     public void testVerifyResponse_success() throws Exception {
-		mockRequestParameters.set(new Parameter(OpenIDInfo.DISCOVERY_INFO_PARAM_NAME, mockDiscInfoString));
 		when(mockManager.verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class))).thenReturn(true);
 		
 		OpenIDInfo result = OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
 		
 		verify(mockManager).verifyNonce(any(AuthSuccess.class), any(DiscoveryInformation.class));
 		assertNotNull(result);
-		assertEquals(mockDiscInfo.getClaimedIdentifier().toString(), result.getIdentifier());
+		assertEquals(openIDIdentifier, result.getIdentifier());
     }
 }
