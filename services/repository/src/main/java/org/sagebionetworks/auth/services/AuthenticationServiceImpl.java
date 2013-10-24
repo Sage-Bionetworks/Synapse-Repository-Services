@@ -77,7 +77,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		try {
 			userId = authManager.checkSessionToken(sessionToken);
 		} catch (TermsOfUseException e) {
-			if (!checkToU) {
+			if (checkToU) {
 				throw e;
 			}
 			userId = authManager.getPrincipalId(sessionToken);
@@ -324,7 +324,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		//TODO This should not be the case
 		try {
 			handleTermsOfUse(email, acceptsTermsOfUse);
-		} catch (UnauthorizedException e) { }
+		} catch (TermsOfUseException e) { }
 		
 		// Open ID is successful
 		return authManager.authenticate(email, null);

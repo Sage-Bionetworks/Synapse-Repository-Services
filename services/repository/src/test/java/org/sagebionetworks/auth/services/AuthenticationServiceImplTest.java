@@ -1,5 +1,6 @@
 package org.sagebionetworks.auth.services;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -11,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -86,13 +85,21 @@ public class AuthenticationServiceImplTest {
 		service.authenticate(credential);
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testRevalidateToU() throws Exception {
-		userInfo.getUser().setAgreesToTermsOfUse(true);
-		Assert.assertTrue(service.hasUserAcceptedTermsOfUse("" + userId));
-
+		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken))).thenThrow(new TermsOfUseException());
+		
+		// A boolean flag should let us get past this call
 		userInfo.getUser().setAgreesToTermsOfUse(false);
-		service.revalidate("Some session token");
+		service.revalidate(sessionToken, false);
+
+		// But it should default to true
+		try {
+			service.revalidate(sessionToken);
+			fail();
+		} catch (TermsOfUseException e) {
+			// Expected
+		}
 	}
 	
 	@Test
@@ -139,7 +146,7 @@ public class AuthenticationServiceImplTest {
 		registrationInfo.setPassword(password);
 		registrationInfo.setRegistrationToken(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + sessionToken);
 		service.updateEmail(username, registrationInfo);
-		verify(mockUserManager, times(3)).getUserInfo(eq(username));
+		verify(mockUserManager, times(2)).getUserInfo(eq(username));
 		verify(mockUserManager).updateEmail(eq(userInfo), eq(username));
 	}
 }
