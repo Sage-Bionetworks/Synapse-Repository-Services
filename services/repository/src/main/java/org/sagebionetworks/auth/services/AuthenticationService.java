@@ -1,9 +1,7 @@
 package org.sagebionetworks.auth.services;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-
 import org.openid4java.message.ParameterList;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -25,7 +23,7 @@ public interface AuthenticationService {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @throws UnauthorizedException If the credentials are incorrect
 	 */
-	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException;
+	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException, TermsOfUseException;
 	
 	/**
 	 * Revalidates a session token and checks whether the user has accepted the terms of use
@@ -38,6 +36,11 @@ public interface AuthenticationService {
 	 * Invalidates a session token
 	 */
 	public void invalidateSessionToken(String sessionToken);
+	
+	/**
+	 * Marks the user, as identified by the token, as having accepted the terms of use
+	 */
+	public void acceptTermsOfUse(Session session) throws NotFoundException;
 
 	/**
 	 * Returns whether the given user has accepted the most recent terms of use
@@ -62,14 +65,14 @@ public interface AuthenticationService {
 	 * Changes the password of the user
 	 */
 	public void changePassword(String username, String newPassword)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
+			throws NotFoundException;
 	
 	/**
 	 * Changes the email of a user to another email
 	 * Simultaneously changes the user's password
 	 */
 	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
+			throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user

@@ -2299,4 +2299,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+
+	@Override
+	public void acceptTermsOfUse(Session session) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

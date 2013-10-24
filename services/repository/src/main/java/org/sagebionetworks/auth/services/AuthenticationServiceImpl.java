@@ -1,8 +1,6 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 import java.util.Map;
 
@@ -15,10 +13,9 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -36,18 +33,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
 	private UserManager userManager;
-
-	@Autowired
-	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private AuthenticationManager authManager;
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, UserProfileManager userProfileManager, AuthenticationManager authManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager) {
 		this.userManager = userManager;
-		this.userProfileManager = userProfileManager;
 		this.authManager = authManager;
 	}
 
@@ -73,9 +66,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String revalidate(String sessionToken) throws NotFoundException {
 		Long userId = authManager.checkSessionToken(sessionToken);
-		if (!hasUserAcceptedTermsOfUse(userId.toString())) {
-			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-		}
 		return userId.toString();
 	}
 
@@ -86,6 +76,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
 		authManager.invalidateSessionToken(sessionToken);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void acceptTermsOfUse(Session session) throws NotFoundException {
+		if (session == null || session.getSessionToken() == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
+		String sessionToken = session.getSessionToken();
+		Long userId = authManager.getPrincipalId(sessionToken);
+		String username = userManager.getGroupName(userId.toString());
+		handleTermsOfUse(username, true);
 	}
 
 	@Override
@@ -129,7 +131,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String username, String newPassword) throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
+	public void changePassword(String username, String newPassword) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
@@ -143,7 +145,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
+	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException {
 		// User must be logged in to make this request
 		if (oldEmail == null) {
 			throw new UnauthorizedException("Not authorized");
@@ -243,7 +245,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 * Note: Could be made into a public service sometime in the future
 	 * @param acceptsTermsOfUse Will check stored data on user if set to null or false
 	 */
-	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) throws NotFoundException, UnauthorizedException {
+	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) throws NotFoundException, TermsOfUseException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		
 		// The ToU field might not be explicitly specified or false
@@ -253,7 +255,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// Check for ToU acceptance
 		if (!acceptsTermsOfUse) {
-			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+			throw new TermsOfUseException();
 		}
 		
 		// If the user is accepting the terms in this request, save the time of acceptance
@@ -317,7 +319,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		//TODO This should not be the case
 		try {
 			handleTermsOfUse(email, acceptsTermsOfUse);
-		} catch (UnauthorizedException e) { }
+		} catch (TermsOfUseException e) { }
 		
 		// Open ID is successful
 		return authManager.authenticate(email, null);

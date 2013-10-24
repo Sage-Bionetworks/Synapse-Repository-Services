@@ -4810,6 +4810,16 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+
+	@Override
+	public void acceptTermsOfUse(Session session) throws SynapseException {
+		try {
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(session);
+			createAuthEntity("/termsOfUse", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 	
 	@Override
 	public NewUser getAuthUserInfo() throws SynapseException {

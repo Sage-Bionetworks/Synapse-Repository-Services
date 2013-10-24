@@ -20,8 +20,10 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT990AuthenticationController {
 	private static SynapseClient synapse;
@@ -60,7 +62,7 @@ public class IT990AuthenticationController {
 		synapse.login(username, "incorrectPassword");
 	}
 	
-	@Test(expected = SynapseUnauthorizedException.class)
+	@Test(expected = SynapseTermsOfUseException.class)
 	public void testCreateSessionNoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
@@ -117,9 +119,7 @@ public class IT990AuthenticationController {
 		try {
 			synapse.login(username, password);
 			fail();
-		} catch (SynapseUnauthorizedException e) { 
-			assertTrue(e.getMessage().contains("Terms of Use"));
-		}
+		} catch (SynapseTermsOfUseException e) { }
 		
 		// Now accept the terms and get a session token
 		synapse.login(username, password, true);
@@ -292,5 +292,13 @@ public class IT990AuthenticationController {
 		} catch (SynapseUnauthorizedException e) {
 			assertTrue(e.getMessage().contains("Required parameter missing"));
 		}
+	}
+	
+	@Test
+	public void testAcceptTermsViaSessionToken() throws Exception {
+		Session session = new Session();
+		session.setSessionToken(synapse.getCurrentSessionToken());
+		
+		synapse.acceptTermsOfUse(session);
 	}
 }

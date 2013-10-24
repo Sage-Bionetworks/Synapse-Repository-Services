@@ -19,22 +19,21 @@ import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
+import org.sagebionetworks.repo.model.auth.Session;
 
 public class AuthenticationServiceImplTest {
 
 	private AuthenticationServiceImpl service;
 	
 	private UserManager mockUserManager;
-	private UserProfileManager mockUserProfileManager;
 	private AuthenticationManager mockAuthenticationManager;
 	
 	private NewUser credential;
@@ -62,13 +61,10 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.getUserInfo(eq(username))).thenReturn(userInfo);
 		when(mockUserManager.getGroupName(anyString())).thenReturn(username);
 		
-		mockUserProfileManager = Mockito.mock(UserProfileManager.class);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), anyString())).thenReturn(new UserProfile());
-		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken))).thenReturn(userId);
 		
-		service = new AuthenticationServiceImpl(mockUserManager, mockUserProfileManager, mockAuthenticationManager);
+		service = new AuthenticationServiceImpl(mockUserManager, mockAuthenticationManager);
 	}
 	
 	@Test
@@ -80,12 +76,11 @@ public class AuthenticationServiceImplTest {
 		service.authenticate(credential);
 		verify(mockAuthenticationManager).authenticate(eq(username), eq(password));
 		verify(mockUserManager).getUserInfo(anyString());
-		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
 		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 		
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test(expected=TermsOfUseException.class)
 	public void testAuthenticateToUFail() throws Exception {
 		// ToU checking should fail
 		credential.setAcceptsTermsOfUse(false);
@@ -134,7 +129,6 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager, times(0)).createUser(any(NewUser.class));
 		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
 		verify(mockUserManager).getUserInfo(anyString());
-		verify(mockUserProfileManager, times(0)).updateUserProfile(eq(userInfo), any(UserProfile.class));
 		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 	}
 	
@@ -148,5 +142,15 @@ public class AuthenticationServiceImplTest {
 		service.updateEmail(username, registrationInfo);
 		verify(mockUserManager, times(3)).getUserInfo(eq(username));
 		verify(mockUserManager).updateEmail(eq(userInfo), eq(username));
+	}
+	
+	@Test
+	public void testAcceptTermsOfUse() throws Exception {
+		userInfo.getUser().setAgreesToTermsOfUse(false);
+		Session session = new Session();
+		session.setSessionToken(sessionToken);
+		
+		service.acceptTermsOfUse(session);
+		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 	}
 }

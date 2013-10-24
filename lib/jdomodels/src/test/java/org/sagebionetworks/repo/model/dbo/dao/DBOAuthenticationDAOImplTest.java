@@ -120,6 +120,10 @@ public class DBOAuthenticationDAOImplTest {
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
 		assertEquals(secretRow.getPrincipalId(), id);
 		
+		// Get by token, without restrictions
+		Long principalId = authDAO.getPrincipal(secretRow.getSessionToken());
+		assertEquals(secretRow.getPrincipalId(), principalId);
+		
 		// Delete
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
