@@ -15,6 +15,12 @@ public interface AuthenticationManager {
 	public Session authenticate(String email, String password) throws NotFoundException;
 	
 	/**
+	 * Looks for the user holding the given session token
+	 * @throws UnauthorizedException If the token has expired
+	 */
+	public Long getPrincipalId(String sessionToken) throws UnauthorizedException;
+	
+	/**
 	 * Looks for the given session token
 	 * @return The principal ID of the holder
 	 * @throws UnauthorizedException If the token is not valid

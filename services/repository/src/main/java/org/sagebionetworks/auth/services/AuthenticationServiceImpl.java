@@ -85,7 +85,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
 		String sessionToken = session.getSessionToken();
-		Long userId = authManager.checkSessionToken(sessionToken);
+		Long userId = authManager.getPrincipalId(sessionToken);
 		String username = userManager.getGroupName(userId.toString());
 		handleTermsOfUse(username, true);
 	}
