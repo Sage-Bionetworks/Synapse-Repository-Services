@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -17,8 +18,9 @@ public interface AuthenticationManager {
 	 * Looks for the given session token
 	 * @return The principal ID of the holder
 	 * @throws UnauthorizedException If the token is not valid
+	 * @throws TermsOfUseException If the user has not signed the terms of use
 	 */
-	public Long checkSessionToken(String sessionToken) throws UnauthorizedException;
+	public Long checkSessionToken(String sessionToken) throws UnauthorizedException, TermsOfUseException;
 	
 	/**
 	 * Deletes the given session token, thereby invalidating it

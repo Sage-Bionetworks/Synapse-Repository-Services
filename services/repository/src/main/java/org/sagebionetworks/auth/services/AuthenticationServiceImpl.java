@@ -1,8 +1,6 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 import java.util.Map;
 
@@ -15,10 +13,9 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -36,18 +33,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Autowired
 	private UserManager userManager;
-
-	@Autowired
-	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private AuthenticationManager authManager;
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, UserProfileManager userProfileManager, AuthenticationManager authManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager) {
 		this.userManager = userManager;
-		this.userProfileManager = userProfileManager;
 		this.authManager = authManager;
 	}
 
@@ -73,9 +66,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String revalidate(String sessionToken) throws NotFoundException {
 		Long userId = authManager.checkSessionToken(sessionToken);
-		if (!hasUserAcceptedTermsOfUse(userId.toString())) {
-			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-		}
 		return userId.toString();
 	}
 
@@ -129,7 +119,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String username, String newPassword) throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
+	public void changePassword(String username, String newPassword) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
@@ -143,7 +133,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
+	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException {
 		// User must be logged in to make this request
 		if (oldEmail == null) {
 			throw new UnauthorizedException("Not authorized");

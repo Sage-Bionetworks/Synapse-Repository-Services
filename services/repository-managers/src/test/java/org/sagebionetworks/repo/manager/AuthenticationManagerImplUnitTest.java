@@ -1,11 +1,21 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -26,14 +36,14 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		authDAO = Mockito.mock(AuthenticationDAO.class);
-		Mockito.when(authDAO.getPasswordSalt(Mockito.eq(username))).thenReturn(salt);
-		Mockito.when(authDAO.changeSessionToken(Mockito.eq(userId), Mockito.eq((String) null))).thenReturn(sessionToken);
+		authDAO = mock(AuthenticationDAO.class);
+		when(authDAO.getPasswordSalt(eq(username))).thenReturn(salt);
+		when(authDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(sessionToken);
 		
-		userGroupDAO = Mockito.mock(UserGroupDAO.class);
+		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
 		ug.setId(userId);
-		Mockito.when(userGroupDAO.findGroup(Mockito.eq(username), Mockito.eq(true))).thenReturn(ug);
+		when(userGroupDAO.findGroup(eq(username), eq(true))).thenReturn(ug);
 		
 		authManager = new AuthenticationManagerImpl(authDAO, userGroupDAO);
 	}
@@ -41,11 +51,11 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testAuthenticateWithPassword() throws Exception {
 		Session session = authManager.authenticate(username, password);
-		Assert.assertEquals(sessionToken, session.getSessionToken());
+		assertEquals(sessionToken, session.getSessionToken());
 		
 		String passHash = PBKDF2Utils.hashPassword(password, salt);
-		Mockito.verify(authDAO, Mockito.times(1)).getPasswordSalt(Mockito.eq(username));
-		Mockito.verify(authDAO, Mockito.times(1)).checkEmailAndPassword(Mockito.eq(username), Mockito.eq(passHash));
+		verify(authDAO, times(1)).getPasswordSalt(eq(username));
+		verify(authDAO, times(1)).checkEmailAndPassword(eq(username), eq(passHash));
 	}
 
 	@Test
@@ -53,8 +63,8 @@ public class AuthenticationManagerImplUnitTest {
 		Session session = authManager.authenticate(username, null);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		Mockito.verify(authDAO, Mockito.never()).getPasswordSalt(Mockito.any(String.class));
-		Mockito.verify(authDAO, Mockito.never()).checkEmailAndPassword(Mockito.any(String.class), Mockito.any(String.class));
+		verify(authDAO, never()).getPasswordSalt(any(String.class));
+		verify(authDAO, never()).checkEmailAndPassword(any(String.class), any(String.class));
 	}
 
 	@Test
@@ -62,19 +72,44 @@ public class AuthenticationManagerImplUnitTest {
 		Session session = authManager.getSessionToken(username);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		Mockito.verify(authDAO, Mockito.times(1)).getSessionTokenIfValid(Mockito.eq(username));
-		Mockito.verify(userGroupDAO, Mockito.times(1)).findGroup(Mockito.eq(username), Mockito.eq(true));
-		Mockito.verify(authDAO, Mockito.times(1)).changeSessionToken(Mockito.eq(userId), Mockito.eq((String) null));
+		verify(authDAO, times(1)).getSessionTokenIfValid(eq(username));
+		verify(userGroupDAO, times(1)).findGroup(eq(username), eq(true));
+		verify(authDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testCheckSessionToken() throws Exception {
-		Mockito.when(authDAO.getPrincipalIfValid(Mockito.eq(sessionToken))).thenReturn(Long.parseLong(userId));
+		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(Long.parseLong(userId));
+		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
 		String principalId = authManager.checkSessionToken(sessionToken).toString();
 		Assert.assertEquals(userId, principalId);
 
-		Mockito.when(authDAO.getPrincipalIfValid(Mockito.eq(sessionToken))).thenReturn(null);
-		authManager.checkSessionToken(sessionToken).toString();
+		// Nothing matches the token
+		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(null);
+		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(null);
+		try {
+			authManager.checkSessionToken(sessionToken).toString();
+			fail();
+		} catch (UnauthorizedException e) {
+			assertTrue(e.getMessage().contains("invalid"));
+		}
+		
+		// Token matches, but terms haven't been signed
+		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
+		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
+		try {
+			authManager.checkSessionToken(sessionToken).toString();
+			fail();
+		} catch (TermsOfUseException e) { }
+		
+		// Token matches, but has expired
+		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		try {
+			authManager.checkSessionToken(sessionToken).toString();
+			fail();
+		} catch (UnauthorizedException e) {
+			assertTrue(e.getMessage().contains("expired"));
+		}
 	}
 	
 	@Test(expected=IllegalArgumentException.class) 

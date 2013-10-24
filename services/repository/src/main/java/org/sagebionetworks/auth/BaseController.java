@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -49,6 +50,23 @@ public class BaseController {
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody
 	ErrorResponse handleForbiddenException(UnauthorizedException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+	
+	/**
+	 * This is thrown when the user has not accepted the terms of use
+	 * 
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(TermsOfUseException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleTermsOfUseException(TermsOfUseException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);

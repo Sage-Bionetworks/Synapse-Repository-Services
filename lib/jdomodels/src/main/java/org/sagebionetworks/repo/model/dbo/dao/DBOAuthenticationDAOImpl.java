@@ -83,10 +83,12 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 					SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=NULL"+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
 	
-	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
+	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_CREDENTIAL+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME+
-				IF_VALID_SUFFIX;
+			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
+	
+	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
+			SELECT_PRINCIPAL_BY_TOKEN+IF_VALID_SUFFIX;
 	
 	private static final String SELECT_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PASS_HASH+
@@ -189,9 +191,20 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
 		simpleJdbcTemplate.update(NULLIFY_SESSION_TOKEN, param);
 	}
+
+	@Override
+	public Long getPrincipal(String sessionToken) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(TOKEN_PARAM_NAME, sessionToken);
+		
+		try {
+			return simpleJdbcTemplate.queryForLong(SELECT_PRINCIPAL_BY_TOKEN, param); 
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public Long getPrincipalIfValid(String sessionToken) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);

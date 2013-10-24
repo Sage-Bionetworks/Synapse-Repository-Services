@@ -43,6 +43,12 @@ public interface AuthenticationDAO {
 	
 	/**
 	 * Looks for the given session token
+	 * @return The principal ID of the holder
+	 */
+	public Long getPrincipal(String sessionToken);
+	
+	/**
+	 * Looks for the given valid session token
 	 * @return The principal ID of the holder, or null if the token is invalid
 	 */
 	public Long getPrincipalIfValid(String sessionToken);

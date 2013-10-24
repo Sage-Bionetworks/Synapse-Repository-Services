@@ -21,6 +21,7 @@ import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -55,7 +56,11 @@ public class AuthenticationFilter implements Filter {
 	public void destroy() { }
 	
 	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason) throws IOException {
-		resp.setStatus(401);
+		reject(req, resp, reason, HttpStatus.UNAUTHORIZED);
+	}
+	
+	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason, HttpStatus status) throws IOException {
+		resp.setStatus(status.code);
 
 		// This header is required according to RFC-2612
 		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2
@@ -84,10 +89,20 @@ public class AuthenticationFilter implements Filter {
 			try {
 				String userId = authenticationService.revalidate(sessionToken);
 				username = authenticationService.getUsername(userId);
-			} catch (Exception xee) {
-				String reason = "The session token is invalid.";
+			} catch (TermsOfUseException e) {
+				String reason = "Terms of use have not been signed";
+				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
+				log.warn("Session token used without signing terms of use", e);
+				return;
+			} catch (UnauthorizedException e) {
+				String reason = "The session token is invalid";
 				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("invalid session token", xee);
+				log.warn("Invalid session token", e);
+				return;
+			} catch (NotFoundException e) {
+				String reason = "The session token is invalid";
+				reject(req, (HttpServletResponse) servletResponse, reason);
+				log.warn("Invalid session token", e);
 				return;
 			}
 		
