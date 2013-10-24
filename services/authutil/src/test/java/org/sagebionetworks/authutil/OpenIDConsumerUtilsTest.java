@@ -5,8 +5,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +51,7 @@ public class OpenIDConsumerUtilsTest {
 		// The resulting object is inconsequential to the mocking test
 		// See: https://code.google.com/p/openid4java/source/browse/trunk/src/org/openid4java/message/AuthSuccess.java
 		mockRequestParameters = new ParameterList();
+		mockRequestParameters.set(new Parameter(OpenIDConsumerUtils.OPEN_ID_PROVIDER_NAME_PARAM, OpenIDConsumerUtils.OPEN_ID_PROVIDER_GOOGLE_VALUE));
 		mockRequestParameters.set(new Parameter("openid.mode", "id_res"));
 		mockRequestParameters.set(new Parameter("openid.return_to", openIDEndpointURL));
 		mockRequestParameters.set(new Parameter("openid.assoc_handle", "dunno"));
@@ -94,10 +96,17 @@ public class OpenIDConsumerUtilsTest {
 	@Test
 	public void testAuthRequest() throws Exception {
 		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_GOOGLE_VALUE, openIDCallback);
+		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_YAHOO_VALUE, openIDCallback);
+		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_VERISIGN_VALUE, openIDCallback);
 		
-		verify(mockManager).associate(anyList());
-		verify(mockManager).authenticate(any(DiscoveryInformation.class), eq(openIDCallback));
-		verify(mockAuthRequest).addExtension(any(FetchRequest.class));
+		verify(mockManager, times(3)).associate(anyList());
+		verify(mockManager, times(3)).authenticate(any(DiscoveryInformation.class), startsWith(openIDCallback));
+		verify(mockAuthRequest, times(3)).addExtension(any(FetchRequest.class));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testAuthRequest_BadProvider() throws Exception {
+		OpenIDConsumerUtils.authRequest("My malicious OpenID provider", openIDCallback);
 	}
 	
 
@@ -121,4 +130,10 @@ public class OpenIDConsumerUtilsTest {
 		assertNotNull(result);
 		assertEquals(openIDIdentifier, result.getIdentifier());
     }
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testVerifyResponse_BadProvider() throws Exception {
+		mockRequestParameters.set(new Parameter(OpenIDConsumerUtils.OPEN_ID_PROVIDER_NAME_PARAM, "My malicious OpenID provider"));
+		OpenIDConsumerUtils.verifyResponse(mockRequestParameters);
+	}
 }

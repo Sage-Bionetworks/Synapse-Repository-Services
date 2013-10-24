@@ -27,6 +27,12 @@ public class OpenIDConsumerUtils {
 	
 	public static final String OPEN_ID_PROVIDER_GOOGLE_VALUE = "GOOGLE";
 	public static final String OPEN_ID_PROVIDER_GOOGLE_ENDPOINT = "https://www.google.com/accounts/o8/id";
+	public static final String OPEN_ID_PROVIDER_YAHOO_VALUE = "YAHOO";
+	public static final String OPEN_ID_PROVIDER_YAHOO_ENDPOINT = "https://me.yahoo.com/";
+	public static final String OPEN_ID_PROVIDER_VERISIGN_VALUE = "VERISIGN";
+	public static final String OPEN_ID_PROVIDER_VERISIGN_ENDPOINT = "https://pip.verisignlabs.com/";
+	
+	public static final String OPEN_ID_PROVIDER_NAME_PARAM = "org.sagebionetworks.openid.provider";
 
 	public static final String AX_EMAIL = "Email";
 	public static final String AX_FIRST_NAME = "FirstName";
@@ -49,15 +55,23 @@ public class OpenIDConsumerUtils {
 	
 	/**
 	 * This maps allowed provider names to their OpenID endpoints
-	 * At this time only Google is supported
+	 * At this time only Google, Yahoo, and Verisign are supported
 	 */
+	@SuppressWarnings("unchecked")
 	private static DiscoveryInformation getDiscoveryInfo(String providerName) throws DiscoveryException {
-		if (!providerName.equals(OPEN_ID_PROVIDER_GOOGLE_VALUE)) {
-			throw new IllegalArgumentException(providerName);			
+		List<Discovery> discoveries;
+		if (providerName.equals(OPEN_ID_PROVIDER_GOOGLE_VALUE)) {
+			discoveries = manager.discover(OPEN_ID_PROVIDER_GOOGLE_ENDPOINT);
+			
+		} else if (providerName.equals(OPEN_ID_PROVIDER_YAHOO_VALUE)) {
+			discoveries = manager.discover(OPEN_ID_PROVIDER_YAHOO_ENDPOINT);
+			
+		} else if (providerName.equals(OPEN_ID_PROVIDER_VERISIGN_VALUE)) {
+			discoveries = manager.discover(OPEN_ID_PROVIDER_VERISIGN_ENDPOINT);
+			
+		} else {
+			throw new IllegalArgumentException("Unsupported OpenID provider: " + providerName);
 		}
-
-		@SuppressWarnings("unchecked")
-		List<Discovery> discoveries = (List<Discovery>) manager.discover(OPEN_ID_PROVIDER_GOOGLE_ENDPOINT);
 
 		// Attempt to associate with the OpenID provider
 		// and retrieve one service endpoint for authentication
@@ -70,8 +84,15 @@ public class OpenIDConsumerUtils {
 	public static String authRequest(String openIdProviderName, String returnToUrl) throws IOException, OpenIDException {
 		ensureManagerExists();
 
-		// Perform discovery on the user-supplied identifier
+		// Perform discovery on the user-supplied provider name
 		DiscoveryInformation discovered = getDiscoveryInfo(openIdProviderName);
+		
+		// If the provider is supported, stash it in a parameter
+		try {
+			returnToUrl = addRequestParameter(returnToUrl, OPEN_ID_PROVIDER_NAME_PARAM + "=" + openIdProviderName);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
 
 		// Obtain a AuthRequest message to be sent to the OpenID provider
 		AuthRequest authReq = manager.authenticate(discovered, returnToUrl);
@@ -102,10 +123,12 @@ public class OpenIDConsumerUtils {
 		
 		//TODO Modification is needed to get it working with hosted google apps
 		// See: https://groups.google.com/forum/#!topic/openid4java/I0nl46KfXF0
+		
+		String openIdProviderName = parameters.getParameterValue(OPEN_ID_PROVIDER_NAME_PARAM);
 
 		DiscoveryInformation discovered;
 		try {
-			discovered = getDiscoveryInfo(OPEN_ID_PROVIDER_GOOGLE_VALUE);
+			discovered = getDiscoveryInfo(openIdProviderName);
 		} catch (DiscoveryException e) {
 			throw new RuntimeException(e);
 		}
