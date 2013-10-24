@@ -504,7 +504,7 @@ public interface SynapseClient {
 		ObjectType ownerType) throws SynapseException,
 		JSONObjectAdapterException;
 	
-	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key)
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
 	
 	@Deprecated

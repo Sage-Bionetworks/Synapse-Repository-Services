@@ -1430,7 +1430,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 	@Override
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(
-			WikiPageKey key) throws JSONObjectAdapterException,
+			WikiPageKey key, Long limit, Long offset) throws JSONObjectAdapterException,
 			SynapseException {
 		// TODO Auto-generated method stub
 		return null;

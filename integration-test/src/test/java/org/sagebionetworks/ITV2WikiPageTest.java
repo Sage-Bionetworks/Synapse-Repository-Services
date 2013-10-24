@@ -70,7 +70,7 @@ public class ITV2WikiPageTest {
 		toDelete = new ArrayList<WikiPageKey>();
 		// Get the image file from the classpath.
 		URL url = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+FILE_NAME);
-		URL url2 = ITV2WikiPageTest.class.getClassLoader().getResource("image/" + FILE_NAME2);
+		URL url2 = ITV2WikiPageTest.class.getClassLoader().getResource("images/" + FILE_NAME2);
 		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+MARKDOWN_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		imageFileTwo = new File(url2.getFile().replaceAll("%20", " "));
@@ -94,7 +94,6 @@ public class ITV2WikiPageTest {
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		fileHandleTwo = (S3FileHandle) results.getList().get(1);
 		markdownHandle = (S3FileHandle) results.getList().get(2);
-		
 		// Create a project, this will own the wiki page.
 		project = new Project();
 		project = synapse.createEntity(project);
@@ -164,16 +163,23 @@ public class ITV2WikiPageTest {
 		assertEquals(1, tree.getTotalNumberOfResults());
 		
 		// Get history
-		PaginatedResults<V2WikiHistorySnapshot> history = synapse.getV2WikiHistory(key);
+		PaginatedResults<V2WikiHistorySnapshot> history = synapse.getV2WikiHistory(key, new Long(10), new Long(0));
 		assertNotNull(history);
 		assertNotNull(history.getResults());
 		assertTrue(history.getResults().size() == 2);
-		String versionToRestore = history.getResults().get(0).getVersion();
+		// First snapshot is most recent, so we want the last snapshot, version 0 (the first entry in history)
+		String versionToRestore = history.getResults().get(1).getVersion();
 		// Restore wiki to first state before update
 		wiki = synapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki, new Long(versionToRestore));
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertNotNull(wiki.getMarkdownFileHandleId());
+		// Get history again
+		PaginatedResults<V2WikiHistorySnapshot> history2 = synapse.getV2WikiHistory(key, new Long(10), new Long(0));
+		assertNotNull(history2);
+		assertNotNull(history2.getResults());
+		assertTrue(history2.getResults().size() == 3);
+
 		assertTrue(wiki.getAttachmentFileHandleIds().size() == 1);
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());

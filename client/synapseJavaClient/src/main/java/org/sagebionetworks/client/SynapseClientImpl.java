@@ -207,6 +207,9 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	private static final String FILE_NAME_PARAMETER = "?fileName=";
 	private static final String REDIRECT_PARAMETER = "redirect=";
+	private static final String OFFSET_PARAMETER = "?offset=";
+	private static final String LIMIT_PARAMETER = "limit=";
+	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
 
@@ -2545,7 +2548,7 @@ public class SynapseClientImpl implements SynapseClient {
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
 		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		if(versionToRestore == null) throw new IllegalArgumentException("Version cannot be null");
-		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), versionToRestore.toString());
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), String.valueOf(versionToRestore));
 		return updateJSONEntity(getRepoEndpoint(), uri, toUpdate);
 	}
 
@@ -2680,10 +2683,10 @@ public class SynapseClientImpl implements SynapseClient {
 	 * @throws JSONObjectAdapterException 
 	 */
 	@Override
-	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key)
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2;
+		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2 + OFFSET_PARAMETER + offset + AND_LIMIT_PARAMETER + limit;
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.putAll(defaultGETDELETEHeaders);
 		JSONObject object = signAndDispatchSynapseRequest(getRepoEndpoint(), uri, "GET", null,requestHeaders);
