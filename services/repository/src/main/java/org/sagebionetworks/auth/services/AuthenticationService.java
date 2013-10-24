@@ -26,11 +26,19 @@ public interface AuthenticationService {
 	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException, TermsOfUseException;
 	
 	/**
-	 * Revalidates a session token and checks whether the user has accepted the terms of use
+	 * Revalidates a session token and checks if the user has accepted the terms of use
 	 * @return The principalId of the user holding the token
 	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
 	 */
-	public String revalidate(String sessionToken) throws NotFoundException, UnauthorizedException;
+	public String revalidate(String sessionToken) throws NotFoundException, UnauthorizedException, TermsOfUseException;
+	
+	/**
+	 * Revalidates a session token
+	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
+	 * @return The principalId of the user holding the token
+	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
+	 */
+	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException, UnauthorizedException, TermsOfUseException;
 	
 	/**
 	 * Invalidates a session token

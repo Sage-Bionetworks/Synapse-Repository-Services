@@ -61,11 +61,27 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		handleTermsOfUse(credential.getEmail(), credential.getAcceptsTermsOfUse());
 		return session;
 	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public String revalidate(String sessionToken) 
+			throws NotFoundException, UnauthorizedException, TermsOfUseException {
+		return revalidate(sessionToken, true);
+	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken) throws NotFoundException {
-		Long userId = authManager.checkSessionToken(sessionToken);
+	public String revalidate(String sessionToken, boolean checkToU) 
+			throws NotFoundException, UnauthorizedException, TermsOfUseException {
+		Long userId;
+		try {
+			userId = authManager.checkSessionToken(sessionToken);
+		} catch (TermsOfUseException e) {
+			if (!checkToU) {
+				throw e;
+			}
+			userId = authManager.getPrincipalId(sessionToken);
+		}
 		return userId.toString();
 	}
 

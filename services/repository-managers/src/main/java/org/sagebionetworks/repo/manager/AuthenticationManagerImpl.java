@@ -45,6 +45,15 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
+	public Long getPrincipalId(String sessionToken) throws UnauthorizedException {
+		Long principalId = authDAO.getPrincipal(sessionToken);
+		if (principalId == null) {
+			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
+		}
+		return principalId;
+	}
+	
+	@Override
 	public Long checkSessionToken(String sessionToken) throws UnauthorizedException, TermsOfUseException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
