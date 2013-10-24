@@ -63,7 +63,7 @@ public class AuthenticationServiceImplTest {
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken))).thenReturn(userId);
 		
-		service = new AuthenticationServiceImpl(mockUserManager, mockUserProfileManager, mockAuthenticationManager);
+		service = new AuthenticationServiceImpl(mockUserManager, mockAuthenticationManager);
 	}
 	
 	@Test

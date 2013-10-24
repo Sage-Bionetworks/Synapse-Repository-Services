@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 
 /**
  * This filter authenticates incoming requests:
@@ -60,7 +61,7 @@ public class AuthenticationFilter implements Filter {
 	}
 	
 	private static void reject(HttpServletRequest req, HttpServletResponse resp, String reason, HttpStatus status) throws IOException {
-		resp.setStatus(status.code);
+		resp.setStatus(status.value());
 
 		// This header is required according to RFC-2612
 		// See: http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.4.2

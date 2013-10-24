@@ -233,7 +233,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 * Note: Could be made into a public service sometime in the future
 	 * @param acceptsTermsOfUse Will check stored data on user if set to null or false
 	 */
-	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) throws NotFoundException, UnauthorizedException {
+	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) 
+			throws NotFoundException, TermsOfUseException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		
 		// The ToU field might not be explicitly specified or false
@@ -243,7 +244,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// Check for ToU acceptance
 		if (!acceptsTermsOfUse) {
-			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+			throw new TermsOfUseException();
 		}
 		
 		// If the user is accepting the terms in this request, save the time of acceptance
