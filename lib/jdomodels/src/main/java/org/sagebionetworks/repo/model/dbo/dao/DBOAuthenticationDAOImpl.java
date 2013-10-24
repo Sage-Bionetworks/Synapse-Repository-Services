@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -218,10 +219,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public byte[] getPasswordSalt(String username) {
+	public byte[] getPasswordSalt(String username) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(EMAIL_PARAM_NAME, username);
-		String passHash = simpleJdbcTemplate.queryForObject(SELECT_PASSWORD, String.class, param);
+		String passHash;
+		try {
+			passHash = simpleJdbcTemplate.queryForObject(SELECT_PASSWORD, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("User (" + username + ") does not exist");
+		}
 		if (passHash == null) {
 			return null;
 		}

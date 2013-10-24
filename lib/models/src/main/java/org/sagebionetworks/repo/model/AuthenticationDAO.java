@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Note: These methods assume that all users have a row in the appropriate table, 
@@ -56,7 +57,7 @@ public interface AuthenticationDAO {
 	/**
 	 * Returns the salt used to hash the user's password
 	 */
-	public byte[] getPasswordSalt(String username);
+	public byte[] getPasswordSalt(String username) throws NotFoundException;
 	
 	/**
 	 * Changes a user's password
