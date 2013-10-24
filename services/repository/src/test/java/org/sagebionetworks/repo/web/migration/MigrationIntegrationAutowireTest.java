@@ -391,7 +391,9 @@ public class MigrationIntegrationAutowireTest {
 		
 		Map<String, FileHandle> map = new HashMap<String, FileHandle>();
 		map.put(handleOne.getFileName(), handleOne);
-		v2RootWiki = wikiPageDao.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(handleOne.getId());
+		v2RootWiki = wikiPageDao.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY, newIds);
 		v2RootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2RootWiki.getId());
 		wikiToDelete.add(v2RootWikiKey);
 		
@@ -402,7 +404,7 @@ public class MigrationIntegrationAutowireTest {
 		v2SubWiki.setParentWikiId(v2RootWiki.getId());
 		v2SubWiki.setTitle("V2 Sub-wiki-title");
 		v2SubWiki.setMarkdownFileHandleId(markdownOne.getId());
-		v2SubWiki = wikiPageDao.create(v2SubWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY);
+		v2SubWiki = wikiPageDao.create(v2SubWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		v2SubWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2SubWiki.getId()); 
 	}
 

@@ -587,10 +587,10 @@ public class UrlHelpers {
 	// V2 Wiki URL
 	public static final String WIKI_V2 = "/wiki2";
 	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
-	public static final String WIKI_HISTORY_V2 = "/wikihistory2";
-	public static final String ATTACHMENT_V2 = "/attachment2";
-	public static final String ATTACHMENT_PREVIEW_V2 = "/attachmentpreview2";
-	public static final String ATTACHMENT_HANDLES_V2 = "/attachmenthandles2";
+	public static final String WIKI_HISTORY_V2 = "/wikihistory";
+	public static final String ATTACHMENT_V2 = "/attachment";
+	public static final String ATTACHMENT_PREVIEW_V2 = "/attachmentpreview";
+	public static final String ATTACHMENT_HANDLES_V2 = "/attachmenthandles";
 	public static final String WIKI_WITH_ID_V2 = WIKI_V2 + "/{wikiId}";
 	public static final String WIKI_VERSION_V2 = "/{wikiVersion}";
 	// Entity

@@ -133,7 +133,14 @@ public class SqlConstants {
 	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
 	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
 	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
-	
+
+ 	// Processed messages
+ 	public static final String TABLE_PROCESSED_MESSAGES				= "PROCESSED_MESSAGES";
+ 	public static final String COL_PROCESSED_MESSAGES_CHANGE_NUM	= "CHANGE_NUM";
+ 	public static final String COL_PROCESSED_MESSAGES_TIME_STAMP	= "TIME_STAMP";
+	public static final String COL_PROCESSED_MESSAGES_QUEUE_NAME	= "QUEUE_NAME";
+ 	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
+
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
@@ -349,6 +356,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_MARKDOWN_VERSION_NUM		= "MARKDOWN_VERSION";
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String V2_COL_WIKI_MARKDOWN_TITLE			= "TITLE";
 	public static final String V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST	= "ATTACHMENT_ID_LIST";
 	public static final String V2_DDL_FILE_WIKI_MARKDOWN 			= "schema/v2-WikiMarkdown-ddl.sql";
 	

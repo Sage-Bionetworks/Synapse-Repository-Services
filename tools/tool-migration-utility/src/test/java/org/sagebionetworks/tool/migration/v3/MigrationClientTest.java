@@ -1,6 +1,7 @@
 package org.sagebionetworks.tool.migration.v3;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
@@ -12,6 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResultType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -82,6 +85,10 @@ public class MigrationClientTest {
 		destSynapse.setCurrentChangeNumberStack(changeNumberStack);
 		destSynapse.setMaxChangeNumber(11l);
 		
+		// Setup crowd migration data at destination
+		List<CrowdMigrationResult> crowdMigResults = generateCrowdMigrationResults(10, new LinkedList<Long>());
+		destSynapse.setCrowdMigrationResults(crowdMigResults);		
+		
 		// setup the source
 		metadata = new LinkedHashMap<MigrationType, List<RowMetadata>>();
 		// The first element should get trigger an update and the second should trigger an add
@@ -94,6 +101,7 @@ public class MigrationClientTest {
 		
 		// Migrate the data
 		migrationClient.migrateAllTypes(1l, 1000*60, 2, false);
+		
 		// Now validate the results
 		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
 		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
@@ -107,6 +115,9 @@ public class MigrationClientTest {
 		assertEquals(0, destSynapse.getReplayChangeNumbersHistory().size());
 		// No messages should have been played on the source
 		assertEquals(0, sourceSynapse.getReplayChangeNumbersHistory().size());
+		
+		// Should be able to migrate crowd
+		migrationClient.migrateCrowd();
 	}
 	
 	
@@ -131,5 +142,80 @@ public class MigrationClientTest {
 		}
 		return list;
 	}
+	
+	/**
+	 * Helper to generate CrowdMigration results
+	 * @param numRes -- number of records to generate
+	 * @param includeErrors -- list of records idxs that should have type == 
+	 * @return
+	 */
+	public static List<CrowdMigrationResult> generateCrowdMigrationResults(long numRes, List<Long> errors) {
+		List<CrowdMigrationResult> crowdMigResults = new LinkedList<CrowdMigrationResult>();
+		for (long i = 0; i < numRes; i++) {
+			CrowdMigrationResult r = new CrowdMigrationResult();
+			r.setUserId(i);
+			r.setUsername("user"+i);
+			if (errors.contains(i)) {
+				r.setResultType(CrowdMigrationResultType.FAILURE);
+			} else {
+				r.setResultType(CrowdMigrationResultType.SUCCESS);
+			}
+			crowdMigResults.add(r);
+		}
+		return crowdMigResults;		
+	}
+	
+	@Test
+	public void testGenerateCrowdMigrationResults() {
+		List<CrowdMigrationResult> crowdMigResults;
+		// 10 successes
+		crowdMigResults = generateCrowdMigrationResults(10, new LinkedList<Long>());
+		assertNotNull(crowdMigResults);
+		assertEquals(10, crowdMigResults.size());
+		int numNotSuccess = 0;
+		for (CrowdMigrationResult r: crowdMigResults) {
+			if (r.getResultType() != CrowdMigrationResultType.SUCCESS) {
+				numNotSuccess++;
+			}
+		}
+		assertEquals(0, numNotSuccess);
+		// 10 total, 3 failures at 0,4,5
+		List<Long> failureIdxs = new LinkedList<Long>();
+		failureIdxs.add(0L);
+		failureIdxs.add(4L);
+		failureIdxs.add(5L);
+		crowdMigResults = generateCrowdMigrationResults(10, failureIdxs);
+		assertNotNull(crowdMigResults);
+		assertEquals(10, crowdMigResults.size());
+		numNotSuccess = 0;
+		for (CrowdMigrationResult r: crowdMigResults) {
+			if (r.getResultType() != CrowdMigrationResultType.SUCCESS) {
+				numNotSuccess++;
+			}
+		}
+		assertEquals(3, numNotSuccess);
+		assertEquals(CrowdMigrationResultType.FAILURE, crowdMigResults.get(0).getResultType());
+		assertEquals(CrowdMigrationResultType.FAILURE, crowdMigResults.get(4).getResultType());
+		assertEquals(CrowdMigrationResultType.FAILURE, crowdMigResults.get(5).getResultType());
+	}
+	
+	@Test
+	public void testMigrateCrowdSucceed() throws SynapseException, JSONObjectAdapterException {
+		List<CrowdMigrationResult> cmrs = generateCrowdMigrationResults(150, new LinkedList<Long>());
+		destSynapse.setCrowdMigrationResults(cmrs);
+		migrationClient.migrateCrowd();
+	}
+	
+	@Test(expected=Exception.class)
+	public void testMigrateCrowdFails() throws SynapseException, JSONObjectAdapterException {
+		List<Long> failures = new LinkedList<Long>();
+		failures.add(25L);
+		failures.add(75L);
+		List<CrowdMigrationResult> cmrs = generateCrowdMigrationResults(80, failures);
+		destSynapse.setCrowdMigrationResults(cmrs);
+		migrationClient.migrateCrowd();
+	}
+	
+	
 
 }

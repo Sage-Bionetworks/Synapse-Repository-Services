@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
 	
-	private Log log = LogFactory.getLog(AuthenticationServiceImpl.class);
+	private static Log log = LogFactory.getLog(AuthenticationServiceImpl.class);
 
 	@Autowired
 	private UserManager userManager;
@@ -274,7 +274,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new RuntimeException(e);
 		}
 		if (openIDInfo == null) {
-			throw new UnauthorizedException("Unable to authenticate");
+			throw new UnauthorizedException("OpenID is not valid");
 		}
 		
 		// Dig out a ToU boolean from the request
