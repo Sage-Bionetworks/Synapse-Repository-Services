@@ -66,6 +66,12 @@
 			<artifactId>aws-java-sdk</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.google.gwt</groupId>
+			<artifactId>gwt-user</artifactId>
+			<optional>true</optional>
+		</dependency>
+
 	</dependencies>
 
 	<build>
