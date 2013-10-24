@@ -123,7 +123,9 @@ public class AuthenticationController extends BaseController {
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		String registrationToken = registrationInfo.getRegistrationToken();
 		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
-		String realUserId = authenticationService.revalidate(sessionToken);
+		
+		// A registering user has not had a chance to accept the terms yet
+		String realUserId = authenticationService.revalidate(sessionToken, false);
 		String realUsername = authenticationService.getUsername(realUserId);
 
 		// Set the password

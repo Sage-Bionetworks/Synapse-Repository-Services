@@ -1,9 +1,7 @@
 package org.sagebionetworks.auth.services;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-
 import org.openid4java.message.ParameterList;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -25,14 +23,22 @@ public interface AuthenticationService {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @throws UnauthorizedException If the credentials are incorrect
 	 */
-	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException;
+	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException, TermsOfUseException;
 	
 	/**
-	 * Revalidates a session token and checks whether the user has accepted the terms of use
+	 * Revalidates a session token and checks if the user has accepted the terms of use
 	 * @return The principalId of the user holding the token
 	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
 	 */
-	public String revalidate(String sessionToken) throws NotFoundException, UnauthorizedException;
+	public String revalidate(String sessionToken) throws NotFoundException, UnauthorizedException, TermsOfUseException;
+	
+	/**
+	 * Revalidates a session token
+	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
+	 * @return The principalId of the user holding the token
+	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
+	 */
+	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException, UnauthorizedException, TermsOfUseException;
 	
 	/**
 	 * Invalidates a session token
@@ -62,14 +68,14 @@ public interface AuthenticationService {
 	 * Changes the password of the user
 	 */
 	public void changePassword(String username, String newPassword)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
+			throws NotFoundException;
 	
 	/**
 	 * Changes the email of a user to another email
 	 * Simultaneously changes the user's password
 	 */
 	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException;
+			throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
