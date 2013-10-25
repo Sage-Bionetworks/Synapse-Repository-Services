@@ -34,7 +34,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
  * @author hso
  *
  */
-public class WikiModelTranslationHelper implements ModelTranslator {
+public class WikiModelTranslationHelper implements WikiModelTranslator {
 	@Autowired
 	FileHandleManager fileHandleManager;
 	@Autowired

@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
  * @author hso
  *
  */
-public interface ModelTranslator {
+public interface WikiModelTranslator {
 	/**
 	 * Convert from a WikiPage to a V2WikiPage. Zips up the markdown string
 	 * into a file and stores the file handle id.
