@@ -36,6 +36,17 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	/**
+	 * There is one remaining case where this cache will result in incorrect state:
+	 * 1) A member is added or removed from a group
+	 * 2) Migration is run, blowing away the membership
+	 * 3) The cache is not blown away, so it reflects the pre-migration state
+	 * 4) Calls to getUsersGroups return incorrect results
+	 * 
+	 * While we discuss how to fix #3, use of the cache will be disabled
+	 */
+	private static final boolean PARENT_CACHING_ENABLED = false;
 
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String GROUP_ID_PARAM_NAME     = "groupId";
@@ -235,33 +246,36 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		// Use the affected UserGroup row as a lock 
 		userGroupDAO.getEtagForUpdate(principalId);
 		
-		// Check the cache for the parents, this also locks the row
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		DBOGroupParentsCache dbo;
-		try {
-			dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
-		} catch (EmptyResultDataAccessException e) {
+		MapSqlParameterSource param;
+		if (PARENT_CACHING_ENABLED) {
+			// Check the cache for the parents, this also locks the row
+			param = new MapSqlParameterSource();
+			param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
+			DBOGroupParentsCache dbo;
 			try {
-				// A row doesn't exist for this user, so make one
-				MapSqlParameterSource insertParam = new MapSqlParameterSource();
-				insertParam.addValue(GROUP_ID_PARAM_NAME, principalId);
-				simpleJdbcTemplate.update(INSERT_NEW_PARENTS_CACHE_ROW, insertParam);
+				dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
+			} catch (EmptyResultDataAccessException e) {
+				try {
+					// A row doesn't exist for this user, so make one
+					MapSqlParameterSource insertParam = new MapSqlParameterSource();
+					insertParam.addValue(GROUP_ID_PARAM_NAME, principalId);
+					simpleJdbcTemplate.update(INSERT_NEW_PARENTS_CACHE_ROW, insertParam);
+					
+				// If someone else inserts the row first, then use that one
+				} catch (DeadlockLoserDataAccessException deadlock) { }
 				
-			// If someone else inserts the row first, then use that one
-			} catch (DeadlockLoserDataAccessException deadlock) { }
-			
-			// Since a fresh row was just inserted, the state of the row is known (null cache)
-			dbo = new DBOGroupParentsCache();
-			dbo.setGroupId(Long.parseLong(principalId));
-		}
-
-		// Use the zipped up parents
-		if (dbo.getParents() != null) {
-			try {
-				return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
-			} catch (IOException e) {
-				throw new DatastoreException(e);
+				// Since a fresh row was just inserted, the state of the row is known (null cache)
+				dbo = new DBOGroupParentsCache();
+				dbo.setGroupId(Long.parseLong(principalId));
+			}
+	
+			// Use the zipped up parents
+			if (dbo.getParents() != null) {
+				try {
+					return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
 			}
 		}
 		
