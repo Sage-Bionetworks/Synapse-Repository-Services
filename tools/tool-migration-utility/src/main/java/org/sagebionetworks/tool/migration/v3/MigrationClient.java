@@ -422,16 +422,17 @@ public class MigrationClient {
 	
 	public void migrateCrowd() throws SynapseException, JSONObjectAdapterException {
 		SynapseAdminClient client = factory.createNewDestinationClient();
-		long offset = 100;
-		PaginatedResults<CrowdMigrationResult> res = client.migrateFromCrowd(100, 0);
+		long offset = 10;
+		PaginatedResults<CrowdMigrationResult> res = client.migrateFromCrowd(10, 0);
 		boolean batchFailed = this.containsFailure(res.getResults());
 		long crowdTotalNumRes = res.getTotalNumberOfResults();
 		while (offset <= crowdTotalNumRes) {
-			res = client.migrateFromCrowd(500, offset);
+			log.info("Migrating crowd data, offset " + offset);
+			res = client.migrateFromCrowd(10, offset);
 			if (this.containsFailure(res.getResults())) {
 				batchFailed = true;
 			}
-			offset += 500;
+			offset += 10;
 		}
 		if (batchFailed) {
 			throw new RuntimeException("Failed during Crowd migration");

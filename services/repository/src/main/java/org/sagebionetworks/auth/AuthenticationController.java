@@ -63,7 +63,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user) throws NotFoundException {
 		authenticationService.createUser(user);
-		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -123,7 +123,9 @@ public class AuthenticationController extends BaseController {
 			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		String registrationToken = registrationInfo.getRegistrationToken();
 		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
-		String realUserId = authenticationService.revalidate(sessionToken);
+		
+		// A registering user has not had a chance to accept the terms yet
+		String realUserId = authenticationService.revalidate(sessionToken, false);
 		String realUsername = authenticationService.getUsername(realUserId);
 
 		// Set the password
