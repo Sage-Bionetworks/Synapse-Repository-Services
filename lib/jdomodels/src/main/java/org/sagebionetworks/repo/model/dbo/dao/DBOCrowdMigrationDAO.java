@@ -182,12 +182,9 @@ public class DBOCrowdMigrationDAO {
 			// Create the rows in other tables if necessary
 			ensureSecondaryRowsExist(user);
 	
-			// Convert the boolean ToU acceptance state in User to a timestamp in the UserProfile
-			// This will coincidentally re-serialize the profile's blob via the non-deprecated method
-			// See: https://sagebionetworks.jira.com/browse/PLFM-1756
+			// Get the user's ToU acceptance state, secret key, password hash, and group memberships and stash it
+			// Note: The order of migration is not important 
 			migrateToU(user);
-	
-			// Get the user's secret key, password hash, and group memberships and stash it
 			migrateSecretKey(user);
 			migratePasswordHash(user);
 			migrateGroups(user);
@@ -316,6 +313,14 @@ public class DBOCrowdMigrationDAO {
 		userId.add(user.getId());
 		List<UserGroup> existing = groupMembersDAO.getUsersGroups(user.getId());
 		List<UserGroup> newbies = userGroupDAO.get(parentIds);
+		
+		if (parentGroups.size() != newbies.size()) {
+			throw new RuntimeException(
+					"Number of groups retrieved from Crowd (" + parentGroups.size() + ")" + 
+					" does not match the number of groups in RDS (" + newbies.size() + ")" + 
+					"\nCrowd = " + parentGroups + 
+					"\nRDS = " + newbies);
+		}
 
 		// Remove any groups the user is not part of
 		Set<UserGroup> toDelete = new HashSet<UserGroup>(existing);
