@@ -46,7 +46,7 @@ public class WikiModelTranslationHelperTest {
 	private String userName;
 	private String ownerId;
 	private UserInfo userInfo;
-	private String markdownAsString = "Markdown string contents";
+	private String markdownAsString = "Markdown string contents with a link: \n[example](http://url.com/).";
 
 	@Before
 	public void before() throws Exception{
