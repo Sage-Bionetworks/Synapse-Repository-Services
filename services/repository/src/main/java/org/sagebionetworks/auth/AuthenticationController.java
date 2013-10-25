@@ -201,7 +201,7 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Invalidates the API key associated with the current authenticated user.  
-	 * It is not recommended to use this service.  
+	 * It is not recommended to use this service unless your key has been compromised.  
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
@@ -213,7 +213,7 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * To authenticate via OpenID, this service takes all URL parameters returned by the OpenID provider (i.e. Google)
-	 * along with a serialized <a href="${org.sagebionetworks.repo.model.auth.DiscoveryInfo}">Discovery Information</a> object.
+	 * along with an optional parameter to explicitly accept the terms of use (org.sagebionetworks.acceptsTermsOfUse=true).
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
