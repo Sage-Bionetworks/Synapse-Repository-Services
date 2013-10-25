@@ -68,7 +68,7 @@ public class ITV2WikiPageTest {
 	@Before
 	public void before() throws SynapseException {
 		toDelete = new ArrayList<WikiPageKey>();
-		// Get the image file from the classpath.
+		// Get image and markdown files from the classpath.
 		URL url = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		URL url2 = ITV2WikiPageTest.class.getClassLoader().getResource("images/" + FILE_NAME2);
 		URL markdownUrl = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+MARKDOWN_NAME);
@@ -82,6 +82,7 @@ public class ITV2WikiPageTest {
 		assertTrue(imageFileTwo.exists());
 		assertNotNull(markdownFile);
 		assertTrue(markdownFile.exists());
+		
 		// Create the file handles
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
@@ -131,7 +132,7 @@ public class ITV2WikiPageTest {
 		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
 		wiki.setMarkdownFileHandleId(markdownHandle.getId());
 		wiki.setTitle("ITV2WikiPageTest.testWikiRoundTrip");
-		// Create it
+		// Create a V2WikiPage
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
