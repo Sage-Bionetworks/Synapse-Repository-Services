@@ -307,11 +307,6 @@ public class DBOCrowdMigrationDAO {
 		List<String> parentGroups = simpleCrowdJdbcTemplate.query(SELECT_GROUPS_OF_USER, groupNameRowMapper, param);
 		log.trace("Migrating " + user.getDisplayName() + " | Got parent groups: " + parentGroups);
 		
-		int count = simpleCrowdJdbcTemplate.queryForInt(
-				"SELECT COUNT(PARENT_NAME) FROM cwd_user, cwd_membership WHERE CHILD_ID = cwd_user.ID AND USER_NAME = :username"
-				, param);
-		log.trace("Migrating " + user.getDisplayName() + " | Got " + count + " groups");
-		
 		List<String> parentIds = new ArrayList<String>();
 		
 		// Parent groups must be created if necessary
@@ -337,17 +332,15 @@ public class DBOCrowdMigrationDAO {
 					"\nRDS = " + newbies);
 		}
 
-		// Remove any groups the user is not part of
+		// Remove all of the user's memberships
 		Set<UserGroup> toDelete = new HashSet<UserGroup>(existing);
-		toDelete.removeAll(newbies);
 		for (UserGroup toRemove : toDelete) {
 			groupMembersDAO.removeMembers(toRemove.getId(), userId);
 			log.trace("Migrating " + user.getDisplayName() + " | Removing: " + toRemove);
 		}
 
-		// Add any groups the user is part of
+		// Add all the user's memberships
 		Set<UserGroup> toAdd = new HashSet<UserGroup>(newbies);
-		toAdd.removeAll(existing);
 		for (UserGroup toJoin : toAdd) {
 			groupMembersDAO.addMembers(toJoin.getId(), userId);
 			log.trace("Migrating " + user.getDisplayName() + " | Joining: " + toJoin);
