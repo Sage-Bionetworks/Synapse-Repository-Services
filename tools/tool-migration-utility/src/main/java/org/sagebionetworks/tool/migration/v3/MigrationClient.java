@@ -427,7 +427,7 @@ public class MigrationClient {
 		boolean batchFailed = this.containsFailure(res.getResults());
 		long crowdTotalNumRes = res.getTotalNumberOfResults();
 		while (offset <= crowdTotalNumRes) {
-			log.debug("Migrating crowd data, offset " + offset);
+			log.info("Migrating crowd data, offset " + offset);
 			res = client.migrateFromCrowd(10, offset);
 			if (this.containsFailure(res.getResults())) {
 				batchFailed = true;
