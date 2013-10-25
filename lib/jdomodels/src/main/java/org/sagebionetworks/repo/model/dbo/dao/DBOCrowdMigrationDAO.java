@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -41,6 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
  * data from Crowd's DB to the repo's DB Treat's Crowd's DB as read-only
  */
 public class DBOCrowdMigrationDAO {
+	
+	private static Log log = LogFactory.getLog(DBOCrowdMigrationDAO.class);
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -299,7 +303,15 @@ public class DBOCrowdMigrationDAO {
 		// Get the parent groups of the user
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USERNAME_PARAM_NAME, user.getDisplayName());
+		log.trace("Migrating " + user.getDisplayName() + " | Before getting parent groups");
 		List<String> parentGroups = simpleCrowdJdbcTemplate.query(SELECT_GROUPS_OF_USER, groupNameRowMapper, param);
+		log.trace("Migrating " + user.getDisplayName() + " | Got parent groups: " + parentGroups);
+		
+		int count = simpleCrowdJdbcTemplate.queryForInt(
+				"SELECT COUNT(PARENT_NAME) FROM cwd_user, cwd_membership WHERE CHILD_ID = cwd_user.ID AND USER_NAME = :username"
+				, param);
+		log.trace("Migrating " + user.getDisplayName() + " | Got " + count + " groups");
+		
 		List<String> parentIds = new ArrayList<String>();
 		
 		// Parent groups must be created if necessary
@@ -308,11 +320,14 @@ public class DBOCrowdMigrationDAO {
 			ensureTeamExists(ugId);
 			parentIds.add(ugId);
 		}
+		log.trace("Migrating " + user.getDisplayName() + " | Got parent IDs: " + parentIds);
 		
 		List<String> userId = new ArrayList<String>();
 		userId.add(user.getId());
 		List<UserGroup> existing = groupMembersDAO.getUsersGroups(user.getId());
+		log.trace("Migrating " + user.getDisplayName() + " | Already part of: " + existing);
 		List<UserGroup> newbies = userGroupDAO.get(parentIds);
+		log.trace("Migrating " + user.getDisplayName() + " | To be part of: " + newbies);
 		
 		if (parentGroups.size() != newbies.size()) {
 			throw new RuntimeException(
@@ -327,6 +342,7 @@ public class DBOCrowdMigrationDAO {
 		toDelete.removeAll(newbies);
 		for (UserGroup toRemove : toDelete) {
 			groupMembersDAO.removeMembers(toRemove.getId(), userId);
+			log.trace("Migrating " + user.getDisplayName() + " | Removing: " + toRemove);
 		}
 
 		// Add any groups the user is part of
@@ -334,6 +350,7 @@ public class DBOCrowdMigrationDAO {
 		toAdd.removeAll(existing);
 		for (UserGroup toJoin : toAdd) {
 			groupMembersDAO.addMembers(toJoin.getId(), userId);
+			log.trace("Migrating " + user.getDisplayName() + " | Joining: " + toJoin);
 		}
 	}
 
