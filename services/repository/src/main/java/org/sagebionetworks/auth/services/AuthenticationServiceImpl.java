@@ -232,7 +232,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		SendMail sendMail = new SendMail();
 		switch (mode) {
 			case SET_PW:
-				sendMail.sendSetPasswordMail(mailTarget, sessionToken);
+				sendMail.sendSetPasswordMail(mailTarget, AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
 				break;
 			case RESET_PW:
 				sendMail.sendResetPasswordMail(mailTarget, sessionToken);
