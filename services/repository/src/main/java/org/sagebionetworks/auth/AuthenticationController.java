@@ -63,7 +63,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user) throws NotFoundException {
 		authenticationService.createUser(user);
-		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
