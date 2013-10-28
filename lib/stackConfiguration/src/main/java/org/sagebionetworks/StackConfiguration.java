@@ -1057,6 +1057,13 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
 	}
+	
+	public Integer getSemaphoreGatedMaxRunnersMembershipUpdaters() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.group.membership.updaters"));
+	}
+	
 	/**
 	 * The maximum number of workers in the cluster that will process
 	 * Annotations

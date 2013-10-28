@@ -120,7 +120,8 @@ public class DBOGroupMembersDAOImplDeadlockTest {
         JOIN,
         LEAVE, 
         ANNEX, 
-        SECEDE
+        SECEDE, 
+        MEDIATE
     }
     
     private class SocialMonkey extends Thread {
@@ -210,6 +211,11 @@ public class DBOGroupMembersDAOImplDeadlockTest {
 	                            }
                             }
                             break;
+                            
+                        case MEDIATE:
+                        	groupMembersDAO.validateCache(monkeyId);
+                        	break; 
+                        	
                         default:
                             break;
                     }

@@ -73,7 +73,8 @@
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersCrowdGroupSynchronize" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessageQueuer" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.semaphoreGatedMaxRunnersMembershipUpdaters" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<!-- Configuration for multi-part upload daemons. -->
 	<bean id="stackConfiguration.fileMultipartUploadDaemonTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	

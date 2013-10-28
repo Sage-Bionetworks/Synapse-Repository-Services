@@ -41,5 +41,10 @@ public interface GroupMembersDAO {
 	/**
 	 * Ensure the bootstrap users are in the correct bootstrap groups
 	 */
-	public void bootstrapGroups() throws Exception;
+	public void bootstrapGroups() throws NotFoundException;
+	
+	/**
+	 * Checks and revises any cache(s) used to improve performance of nested queries
+	 */
+	public void validateCache(String principalId);
 }
