@@ -39,8 +39,8 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String MEMBER_ID_PARAM_NAME    = "memberId";
-	protected static final String GROUP_ID_PARAM_NAME     = "groupId";
-	protected static final String PARENT_BLOB_PARAM_NAME  = "parents";
+	public static final String GROUP_ID_PARAM_NAME     = "groupId";
+	public static final String PARENT_BLOB_PARAM_NAME  = "parents";
 	
 	private static final String SELECT_DIRECT_MEMBERS_OF_GROUP = 
 			"SELECT ug.* FROM "+SqlConstants.TABLE_USER_GROUP+" ug"+
@@ -62,11 +62,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" FOR UPDATE";
 	
-	protected static final String INSERT_NEW_PARENTS_CACHE_ROW = 
+	public static final String INSERT_NEW_PARENTS_CACHE_ROW = 
 			"INSERT IGNORE INTO "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
 			" VALUES (:"+GROUP_ID_PARAM_NAME+", NULL)";
 	
-	protected static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
+	public static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
 			"UPDATE "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
 			" SET "+SqlConstants.COL_GROUP_PARENTS_CACHE_PARENTS+"=:"+PARENT_BLOB_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+GROUP_ID_PARAM_NAME;
