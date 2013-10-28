@@ -4,30 +4,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
-
-import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -121,25 +114,5 @@ public class AdministrationControllerTest {
 		setDown.setCurrentMessage(null);
 		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), setDown);
 		assertEquals(setDown, back);
-	}
-
-	@Test
-	public void testMigrateFromCrowd() throws Exception {
-		Map<String, String> extraParams = new HashMap<String, String>();
-		extraParams.put("offset", "0");
-		extraParams.put("limit", "10");
-		PaginatedResults<CrowdMigrationResult> messages = ServletTestHelper.migrateFromCrowd(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), extraParams);
-		// Should get as many messages as user migrations requested
-		Assert.assertEquals(10, messages.getResults().size());
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testMigrateFromCrowd_notAdmin() throws Exception {
-		Map<String, String> extraParams = new HashMap<String, String>();
-		extraParams.put("offset", "0");
-		extraParams.put("limit", "10");
-		
-		// Not an admin, so this should fail with a 403
-		ServletTestHelper.migrateFromCrowd(dispatchServlet, StackConfiguration.getIntegrationTestUserOneName(), extraParams);
 	}
 }
