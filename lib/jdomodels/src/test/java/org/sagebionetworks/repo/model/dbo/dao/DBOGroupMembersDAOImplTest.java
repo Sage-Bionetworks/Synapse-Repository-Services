@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,6 +27,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -46,6 +49,9 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Autowired
 	private NamedIdGenerator idGenerator;
+	
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	private static final String TEST_GROUP_NAME = "testGroupOfDOOOOM";
 	private static final Integer NUM_USERS = 3; // Need at least 2 for testgetUserGroups()
@@ -321,4 +327,30 @@ public class DBOGroupMembersDAOImplTest {
 		}
 	}
 
+	@Test
+	public void testValidateCache() throws Exception {
+		// Add the test user to the test group
+		String principalId = testUsers.get(0).getId();
+		groupMembersDAO.addMembers(testGroup.getId(), Arrays.asList(new String[] { principalId }));
+		
+		// Add a cache row for the test user
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(DBOGroupMembersDAOImpl.GROUP_ID_PARAM_NAME, principalId);
+		simpleJdbcTemplate.update(DBOGroupMembersDAOImpl.INSERT_NEW_PARENTS_CACHE_ROW, param);
+		
+		// This is not a valid cache entry
+		// It references some evil "negative" groups
+		List<String> fosterParents = Arrays.asList(new String[] { "-1", "-2", "-4", "-8", "-16", "-32", "-64" });
+		param.addValue(DBOGroupMembersDAOImpl.PARENT_BLOB_PARAM_NAME, GroupMembersUtils.zip(fosterParents));
+		simpleJdbcTemplate.update(DBOGroupMembersDAOImpl.UPDATE_BLOB_IN_PARENTS_CACHE, param);
+		
+		// Shouldn't return anything
+		List<UserGroup> uggaBugga = groupMembersDAO.getUsersGroups(principalId);
+		assertEquals(0, uggaBugga.size());
+		
+		// Now it should return the correct test group parent
+		groupMembersDAO.validateCache(principalId);
+		List<UserGroup> ugs = groupMembersDAO.getUsersGroups(principalId);
+		assertEquals(1, ugs.size());
+	}
 }

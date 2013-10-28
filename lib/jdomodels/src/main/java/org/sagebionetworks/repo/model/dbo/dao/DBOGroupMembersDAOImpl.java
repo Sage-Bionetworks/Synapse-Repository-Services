@@ -36,22 +36,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
-	/**
-	 * There is one remaining case where this cache will result in incorrect state:
-	 * 1) A member is added or removed from a group
-	 * 2) Migration is run, blowing away the membership
-	 * 3) The cache is not blown away, so it reflects the pre-migration state
-	 * 4) Calls to getUsersGroups return incorrect results
-	 * 
-	 * While we discuss how to fix #3, use of the cache will be disabled
-	 */
-	private static final boolean PARENT_CACHING_ENABLED = false;
 
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
-	private static final String GROUP_ID_PARAM_NAME     = "groupId";
 	private static final String MEMBER_ID_PARAM_NAME    = "memberId";
-	private static final String PARENT_BLOB_PARAM_NAME  = "parents";
+	protected static final String GROUP_ID_PARAM_NAME     = "groupId";
+	protected static final String PARENT_BLOB_PARAM_NAME  = "parents";
 	
 	private static final String SELECT_DIRECT_MEMBERS_OF_GROUP = 
 			"SELECT ug.* FROM "+SqlConstants.TABLE_USER_GROUP+" ug"+
@@ -73,11 +62,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+PRINCIPAL_ID_PARAM_NAME+
 			" FOR UPDATE";
 	
-	private static final String INSERT_NEW_PARENTS_CACHE_ROW = 
+	protected static final String INSERT_NEW_PARENTS_CACHE_ROW = 
 			"INSERT IGNORE INTO "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
 			" VALUES (:"+GROUP_ID_PARAM_NAME+", NULL)";
 	
-	private static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
+	protected static final String UPDATE_BLOB_IN_PARENTS_CACHE = 
 			"UPDATE "+SqlConstants.TABLE_GROUP_PARENTS_CACHE+
 			" SET "+SqlConstants.COL_GROUP_PARENTS_CACHE_PARENTS+"=:"+PARENT_BLOB_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_GROUP_PARENTS_CACHE_GROUP_ID+"=:"+GROUP_ID_PARAM_NAME;
@@ -243,39 +232,22 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Override
 	public List<UserGroup> getUsersGroups(String principalId)
 			throws DatastoreException, NotFoundException {
+		return getUsersGroups(principalId, true);
+	}
+	
+	/**
+	 * Retrieves the groups a user belongs to
+	 * @param useCache Should the cache be used?
+	 */
+	private List<UserGroup> getUsersGroups(String principalId, boolean useCache) {
 		// Use the affected UserGroup row as a lock 
 		userGroupDAO.getEtagForUpdate(principalId);
-		
-		MapSqlParameterSource param;
-		if (PARENT_CACHING_ENABLED) {
-			// Check the cache for the parents, this also locks the row
-			param = new MapSqlParameterSource();
-			param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-			DBOGroupParentsCache dbo;
-			try {
-				dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
-			} catch (EmptyResultDataAccessException e) {
-				try {
-					// A row doesn't exist for this user, so make one
-					MapSqlParameterSource insertParam = new MapSqlParameterSource();
-					insertParam.addValue(GROUP_ID_PARAM_NAME, principalId);
-					simpleJdbcTemplate.update(INSERT_NEW_PARENTS_CACHE_ROW, insertParam);
-					
-				// If someone else inserts the row first, then use that one
-				} catch (DeadlockLoserDataAccessException deadlock) { }
-				
-				// Since a fresh row was just inserted, the state of the row is known (null cache)
-				dbo = new DBOGroupParentsCache();
-				dbo.setGroupId(Long.parseLong(principalId));
-			}
-	
-			// Use the zipped up parents
-			if (dbo.getParents() != null) {
-				try {
-					return userGroupDAO.get(GroupMembersUtils.unzip(dbo.getParents()));
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
+
+		// Check the cache for the parents
+		if (useCache) {
+			List<String> cachedGroups = getCachedUsersGroups(principalId);
+			if (cachedGroups != null) {
+				return userGroupDAO.get(cachedGroups);
 			}
 		}
 		
@@ -292,12 +264,49 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-		param = new MapSqlParameterSource();
+		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(GROUP_ID_PARAM_NAME, principalId);
 		param.addValue(PARENT_BLOB_PARAM_NAME, cache);
 		simpleJdbcTemplate.update(UPDATE_BLOB_IN_PARENTS_CACHE, param);
 		
 		return userGroupDAO.get(parents);
+	}
+	
+	/**
+	 * Retrieves the cached parents for the user
+	 * Locks the cache row
+	 * Cache can be null or non-existent
+	 */
+	private List<String> getCachedUsersGroups(String principalId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
+		DBOGroupParentsCache dbo;
+		try {
+			dbo = simpleJdbcTemplate.queryForObject(SELECT_PARENTS_FROM_CACHE, parentsCacheRowMapper, param);
+		} catch (EmptyResultDataAccessException e) {
+			try {
+				// A row doesn't exist for this user, so make one
+				MapSqlParameterSource insertParam = new MapSqlParameterSource();
+				insertParam.addValue(GROUP_ID_PARAM_NAME, principalId);
+				simpleJdbcTemplate.update(INSERT_NEW_PARENTS_CACHE_ROW, insertParam);
+				
+			// If someone else inserts the row first, then use that one
+			} catch (DeadlockLoserDataAccessException deadlock) { }
+			
+			// Since a fresh row was just inserted, the state of the row is known (null cache)
+			dbo = new DBOGroupParentsCache();
+			dbo.setGroupId(Long.parseLong(principalId));
+		}
+
+		// Use the zipped up parents
+		if (dbo.getParents() != null) {
+			try {
+				return GroupMembersUtils.unzip(dbo.getParents());
+			} catch (IOException e) {
+				throw new DatastoreException(e);
+			}
+		}
+		return null;
 	}
 	
 	/**
@@ -342,7 +351,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void bootstrapGroups() throws Exception {
+	public void bootstrapGroups() throws NotFoundException {
 		// Add the bootstrap admins to the appropriate admin group
 		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
 		List<String> adminUserIdList = new ArrayList<String>();
@@ -362,5 +371,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		}
 		
 		addMembers(adminGroupId, adminUserIdList);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void validateCache(String principalId) {
+		getUsersGroups(principalId, false);
 	}
 }
