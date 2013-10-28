@@ -138,14 +138,4 @@ public class IT101Administration {
 		assertEquals(1, results.getList().size());
 		System.out.println(results);
 	}
-
-	/**
-	 * Makes sure the Java admin client method works, but little else
-	 */
-	@Deprecated
-	@Test
-	public void testMigrateFromCrowd() throws Exception {
-		PaginatedResults<CrowdMigrationResult> results = synapse.migrateFromCrowd(10, 0);
-		assertTrue(results.getResults().size() > 0);
-	}
 }
