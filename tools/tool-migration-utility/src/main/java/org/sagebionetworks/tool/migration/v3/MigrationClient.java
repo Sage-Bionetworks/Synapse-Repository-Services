@@ -19,8 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResultType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -407,16 +405,5 @@ public class MigrationClient {
 		for (Exception e: this.deferredExceptions) {
 			log.error("Deferred exception " + i++, e);
 		}
-	}
-	
-	public boolean containsFailure(List<CrowdMigrationResult> batch) {
-		boolean failed = false;
-		for (CrowdMigrationResult r: batch) {
-			if (r.getResultType() == CrowdMigrationResultType.FAILURE) {
-				log.error("Crowd migration failed for " + r.getUsername() + " / " + r.getUserId() + " with error '" + r.getMessage() + "'");
-				failed = true;
-			}
-		}
-		return failed;
 	}
 }

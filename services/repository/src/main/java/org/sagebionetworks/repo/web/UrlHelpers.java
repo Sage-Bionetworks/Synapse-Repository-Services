@@ -659,11 +659,6 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
 	
-	/**
-	 * Temporary API for migrating users from Crowd into RDS
-	 */
-	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
-	
 	// Authentication
 	public static final String AUTH_SESSION = "/session";
 	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
