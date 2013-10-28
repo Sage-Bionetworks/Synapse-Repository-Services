@@ -115,9 +115,6 @@ public class MigrationClientTest {
 		assertEquals(0, destSynapse.getReplayChangeNumbersHistory().size());
 		// No messages should have been played on the source
 		assertEquals(0, sourceSynapse.getReplayChangeNumbersHistory().size());
-		
-		// Should be able to migrate crowd
-		migrationClient.migrateCrowd();
 	}
 	
 	
@@ -198,24 +195,5 @@ public class MigrationClientTest {
 		assertEquals(CrowdMigrationResultType.FAILURE, crowdMigResults.get(4).getResultType());
 		assertEquals(CrowdMigrationResultType.FAILURE, crowdMigResults.get(5).getResultType());
 	}
-	
-	@Test
-	public void testMigrateCrowdSucceed() throws SynapseException, JSONObjectAdapterException {
-		List<CrowdMigrationResult> cmrs = generateCrowdMigrationResults(150, new LinkedList<Long>());
-		destSynapse.setCrowdMigrationResults(cmrs);
-		migrationClient.migrateCrowd();
-	}
-	
-	@Test(expected=Exception.class)
-	public void testMigrateCrowdFails() throws SynapseException, JSONObjectAdapterException {
-		List<Long> failures = new LinkedList<Long>();
-		failures.add(25L);
-		failures.add(75L);
-		List<CrowdMigrationResult> cmrs = generateCrowdMigrationResults(80, failures);
-		destSynapse.setCrowdMigrationResults(cmrs);
-		migrationClient.migrateCrowd();
-	}
-	
-	
 
 }

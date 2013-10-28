@@ -362,17 +362,4 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		}
 	}
 
-	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		String url = ADMIN_MIGRATE_FROM_CROWD +
-				"?" + OFFSET + "=" + offset + "&limit=" + limit;
-		JSONObject jsonObj = postUri(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<CrowdMigrationResult> results = new PaginatedResults<CrowdMigrationResult>(CrowdMigrationResult.class);
-
-		results.initializeFromJSONObject(adapter);
-		return results;
-	}
-
 }

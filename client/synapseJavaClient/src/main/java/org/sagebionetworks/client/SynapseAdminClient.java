@@ -118,9 +118,4 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException;
-	
-	/**
-	 * Migrates a few users from Crowd to RDS
-	 */
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit, long offset) throws SynapseException, JSONObjectAdapterException;
 }

@@ -2022,16 +2022,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	}
 
 
-	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		PaginatedResults<CrowdMigrationResult> res = new PaginatedResults<CrowdMigrationResult>();
-		res.setTotalNumberOfResults(this.crowdMigrationResults.size());
-		res.setResults(this.crowdMigrationResults);
-		return res;
-	}
-
-
 	public void setCrowdMigrationResults(List<CrowdMigrationResult> crowdMigResults) {
 		this.crowdMigrationResults = crowdMigResults;
 	}
