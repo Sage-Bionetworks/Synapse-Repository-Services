@@ -229,28 +229,24 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Gets a collection of Evaluations in which the user may participate, within a given range.
+	 * Gets a collection of Evaluations in which the user has SUBMIT permission, within a given range.
 	 * 
 	 * <p>
 	 * <b>Note:</b> The response will contain only those Evaluations on which the caller must is
-	 * granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.PARTICIPATE</a>
+	 * granted the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.SUBMIT</a>
 	 * permission.
 	 * </p>
 	 * 
-	 * 
-	 * <b>Note:</b> This method is deprecated and should not be used.
 	 * </p>
 	 * 
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first evaluation. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
 	 * @param userId
-	 * @param statusString
 	 * @param request
 	 * @return
 	 * @throws DatastoreException
@@ -258,21 +254,15 @@ public class EvaluationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
-	@Deprecated
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		EvaluationStatus status = null;
-		if (statusString.length() > 0) {
-			status = EvaluationStatus.valueOf(statusString.toUpperCase().trim());
-		}
-		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, status, limit, offset, request);
+		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, request);
 	}	
 	
 	/**
