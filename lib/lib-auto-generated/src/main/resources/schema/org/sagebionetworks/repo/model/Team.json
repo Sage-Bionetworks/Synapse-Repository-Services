@@ -20,6 +20,10 @@
 			"type": "string",
 			"description": "fileHandleId for icon image of the Team"
 		},
+		"isOpen": {
+			"type": "boolean",
+			"description": "true for teams which members can join without an invitation or approval"
+		},
 		"etag": {
 			"type": "string",
 			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a Team is updated it is used to detect when a client's current representation of a Team is out-of-date.",

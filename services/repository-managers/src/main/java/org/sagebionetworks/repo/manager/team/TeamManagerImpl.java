@@ -318,7 +318,10 @@ public class TeamManagerImpl implements TeamManager {
 		if (principalIsSelf) {
 			// trying to add myself to Team.  
 			if (amTeamAdmin) return true;
-			// if I'm not a team admin, then I need to have an open invitation
+			// if the team is open, I can join
+			Team team = teamDAO.get(teamId);
+			if (team.getIsOpen()!=null && team.getIsOpen()==true) return true;
+			// if I'm not a team admin and the team is not open, then I need to have an open invitation
 			long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 			return openInvitationCount>0L;
 		} else {

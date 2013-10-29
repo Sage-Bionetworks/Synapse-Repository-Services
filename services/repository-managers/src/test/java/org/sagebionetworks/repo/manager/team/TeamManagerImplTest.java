@@ -325,20 +325,29 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testCanAddTeamMemberSELF() throws Exception {
+		// let the team be a non-Open team (which it is by default)
+		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		
 		// I can add myself if I'm an admin on the Team
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 
-		// I canNOT add myself if I'm not an admin on the Team if I haven't been invited
+		// I canNOT add myself if I'm not an admin on the Team if I haven't been invited...
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(0L);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
+		
+		// ...unless the team is Open
+		team.setIsOpen(true);
+		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
+		team.setIsOpen(false);
 		
 		// I can add myself if I'm not an admin on the team if I've been invited
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		
-		// I can't add myself if I'm invited to some other team
+		// I can't add myself if I'm invited to some other team...
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		String someOtherTeam = "456";
@@ -351,6 +360,10 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testCanAddTeamMemberOTHER() throws Exception {
+		// let the team be a non-Open team (which it is by default)
+		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+
 		// I can add someone else if I'm a Synapse admin
 		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertTrue(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
@@ -360,6 +373,28 @@ public class TeamManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		//	 there has been no membership request
 		String otherPrincipalId = "987";
+		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(otherPrincipalId)), anyLong())).thenReturn(0L);
+		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
+		//	 now there IS a membership request
+		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(otherPrincipalId)), anyLong())).thenReturn(3L);
+		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
+		
+		// also, I can't add them even though there's a request if I'm not an admin on the team
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
+		
+		// NOTHING CHANGES IF THE TEAM IS OPEN! ...
+		team.setIsOpen(true);
+		
+		// ...NOW JUST REPEAT THE ABOVE TESTS
+		// I can add someone else if I'm a Synapse admin
+		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		assertTrue(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
+		
+		// I can't add someone else if they haven't requested it
+		//	 I am an admin for the team
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		//	 there has been no membership request
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(otherPrincipalId)), anyLong())).thenReturn(0L);
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
 		//	 now there IS a membership request
@@ -552,6 +587,10 @@ public class TeamManagerImplTest {
 	
 	@Test
 	public void testGetTeamMembershipStatus() throws Exception {
+		// let the team be a non-Open team (which it is by default)
+		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+		
 		String principalId = MEMBER_PRINCIPAL_ID;
 		UserGroup ug = new UserGroup();
 		ug.setId(principalId);
@@ -578,6 +617,16 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getHasOpenInvitation());
 		assertFalse(tms.getHasOpenRequest());
 		assertFalse(tms.getCanJoin());
+		
+		// if the team is open the user 'can join' even if they have no invitation
+		team.setIsOpen(true);
+		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalId);
+		assertEquals(TEAM_ID, tms.getTeamId());
+		assertEquals(principalId, tms.getUserId());
+		assertFalse(tms.getIsMember());
+		assertFalse(tms.getHasOpenInvitation());
+		assertFalse(tms.getHasOpenRequest());
+		assertTrue(tms.getCanJoin());
 		
 	}
 	
