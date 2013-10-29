@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -501,18 +500,13 @@ public class MigrationIntegrationAutowireTest {
 		String userNamePrefix = "GoinOnTheOregonTrail@";
 		List<String> adder = new ArrayList<String>();
 		
-		// Make two groups
+		// Make one group
 		UserGroup parentGroup = new UserGroup();
 		parentGroup.setIsIndividual(false);
 		parentGroup.setName(groupNamePrefix+"1");
 		parentGroup.setId(userGroupDAO.create(parentGroup));
 		
-		UserGroup nestedGroup = new UserGroup();
-		nestedGroup.setIsIndividual(false);
-		nestedGroup.setName(groupNamePrefix+"2");
-		nestedGroup.setId(userGroupDAO.create(nestedGroup));
-		
-		// Make three users
+		// Make two users
 		UserGroup parentUser = new UserGroup();
 		parentUser.setIsIndividual(true);
 		parentUser.setName(userNamePrefix+"1");
@@ -523,22 +517,10 @@ public class MigrationIntegrationAutowireTest {
 		siblingUser.setName(userNamePrefix+"2");
 		siblingUser.setId(userGroupDAO.create(siblingUser));
 		
-		UserGroup childUser = new UserGroup();
-		childUser.setIsIndividual(true);
-		childUser.setName(userNamePrefix+"3");
-		childUser.setId(userGroupDAO.create(childUser));
-		
 		// Nest one group and two users within the parent group
-		adder.add(nestedGroup.getId());
 		adder.add(parentUser.getId());
 		adder.add(siblingUser.getId());
 		groupMembersDAO.addMembers(parentGroup.getId(), adder);
-		
-		// Nest two users within the child group
-		adder.clear();
-		adder.add(siblingUser.getId());
-		adder.add(childUser.getId());
-		groupMembersDAO.addMembers(nestedGroup.getId(), adder);
 		
 		return parentGroup;
 	}
