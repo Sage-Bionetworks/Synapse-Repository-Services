@@ -77,13 +77,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	private static Evaluation eval1;
 	private static Evaluation eval2;
-	private static Participant part1;
-	private static Participant part2;
 	private static Submission sub1;
 	private static Submission sub2;
 	
 	private static List<String> evaluationsToDelete;
-	private static List<Participant> participantsToDelete;
 	private static List<String> submissionsToDelete;
 	private static List<String> entitiesToDelete;
 	private static List<Long> accessRequirementsToDelete;
@@ -116,7 +113,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 	@Before
 	public void before() throws DatastoreException, NotFoundException, SynapseException {
 		evaluationsToDelete = new ArrayList<String>();
-		participantsToDelete = new ArrayList<Participant>();
 		submissionsToDelete = new ArrayList<String>();
 		entitiesToDelete = new ArrayList<String>();
 		accessRequirementsToDelete = new ArrayList<Long>();
@@ -167,13 +163,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 				synapseOne.deleteSubmission(id);
 			} catch (Exception e) {}
 		};
-		
-		// clean up participants
-		for (Participant part : participantsToDelete) {
-			try {
-				synapseOne.deleteParticipant(part.getEvaluationId(), part.getUserId());
-			} catch (Exception e) {}
-		}
 		
 		// clean up Access Requirements
 		for (Long id : accessRequirementsToDelete) {
@@ -311,46 +300,19 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		Long initialCount = synapseOne.getParticipantCount(eval1.getId());
 		
-		// query before joining
+		// query for someone having SUBMIT privileges
 		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(0, 100);
-		assertEquals(0, evals.getTotalNumberOfResults());
-		
-		// create
-		part1 = synapseOne.createParticipant(eval1.getId());
-		assertNotNull(part1.getCreatedOn());
-		participantsToDelete.add(part1);
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getParticipantCount(eval1.getId()));
-		
-		// query after joining
-		evals = synapseOne.getAvailableEvaluationsPaginated(0, 100);
 		assertEquals(1, evals.getTotalNumberOfResults());
-		assertEquals(1, evals.getResults().size());
+				assertEquals(1, evals.getResults().size());
 		eval1=synapseOne.getEvaluation(eval1.getId());
 		assertEquals(eval1, evals.getResults().iterator().next());
-		
-		// read
-		Participant clone = synapseOne.getParticipant(eval1.getId(), part1.getUserId());
-		assertEquals(part1, clone);
-		
-		// delete
-		synapseOne.deleteParticipant(eval1.getId(), part1.getUserId());
-		try {
-			synapseOne.getParticipant(eval1.getId(), part1.getUserId());
-			fail("Failed to delete Participant " + part1.toString());
-		} catch (SynapseException e) {
-			// expected
-		}
-		assertEquals(initialCount, synapseOne.getParticipantCount(eval1.getId()));
-	}
+			}
 	
 	@Test
 	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
-		part1 = synapseOne.createParticipant(eval1.getId());
-		participantsToDelete.add(part1);
 		String entityId = project.getId();
 		String entityEtag = project.getEtag();
 		assertNotNull(entityId);
@@ -422,8 +384,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
-		part1 = synapseOne.createParticipant(eval1.getId());
-		participantsToDelete.add(part1);
 		String entityId = project.getId();
 		String entityEtag = project.getEtag();
 		assertNotNull(entityId);
@@ -480,20 +440,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(eval2.getId());
 		evaluationsToDelete.add(eval2.getId());
 		
-		part1 = synapseOne.createParticipant(eval1.getId());
-		assertNotNull(part1);
-		participantsToDelete.add(part1);
-
-		// User 2 not allowed to join eval 1
-		try {
-			part2 = synapseTwo.createParticipant(eval1.getId());
-			assertNotNull(part2);
-			participantsToDelete.add(part2);
-			fail();
-		} catch (SynapseException e) {
-			// expected
-		}
-
 		// paginated evaluations
 		eval1 = synapseOne.getEvaluation(eval1.getId());
 		eval2 = synapseOne.getEvaluation(eval2.getId());
@@ -503,12 +449,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		evalSet.addAll(evals.getResults());
 		assertTrue(evalSet.contains(eval1));
 		assertTrue(evalSet.contains(eval2));
-		
-		// paginated participants
-		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(eval1.getId(), 0, 10);
-		assertEquals(1, parts.getTotalNumberOfResults());
-		assertEquals(part1.getUserId(), parts.getResults().get(0).getUserId());
-	}
+			}
 	
 	@Test
 	public void testSubmissionsPaginated() throws SynapseException {
@@ -520,10 +461,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval2 = synapseOne.createEvaluation(eval2);
 		assertNotNull(eval2.getId());
 		evaluationsToDelete.add(eval2.getId());
-		
-		part1 = synapseOne.createParticipant(eval1.getId());
-		assertNotNull(part1);
-		participantsToDelete.add(part1);
 		
 		String entityId1 = project.getId();
 		String entityEtag1 = project.getEtag();
@@ -639,7 +576,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 
 		// open the evaluation for user 2 to join
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
-		accessSet.add(ACCESS_TYPE.PARTICIPATE);
 		accessSet.add(ACCESS_TYPE.SUBMIT);
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
@@ -650,14 +586,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		acl.getResourceAccess().add(ra);
 		acl = synapseOne.updateEvaluationAcl(acl);
 		assertNotNull(acl);
-
-		part1 = synapseOne.createParticipant(eval1.getId());
-		assertNotNull(part1);
-		participantsToDelete.add(part1);
-
-		part2 = synapseTwo.createParticipant(eval1.getId());
-		assertNotNull(part2);
-		participantsToDelete.add(part2);
 
 		String entityId1 = project.getId();
 		String entityEtag1 = project.getEtag();
@@ -700,10 +628,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		
-		part1 = synapseOne.createParticipant(eval1.getId());
-		assertNotNull(part1);
-		participantsToDelete.add(part1);
-				
 		FileEntity file = createTestFileEntity();		
 		
 		// create Submission
@@ -757,10 +681,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);		
 		evaluationsToDelete.add(eval1.getId());
-		// create
-		part1 = synapseOne.createParticipant(eval1.getId());
-		assertNotNull(part1.getCreatedOn());
-		participantsToDelete.add(part1);
 
 		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
 		assertEquals(UserEvaluationState.EVAL_OPEN_USER_REGISTERED, state);
@@ -866,8 +786,6 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
-		part1 = synapseOne.createParticipant(eval1.getId());
-		participantsToDelete.add(part1);
 		String entityId = project.getId();
 		String entityEtag = project.getEtag();
 		entitiesToDelete.add(entityId);

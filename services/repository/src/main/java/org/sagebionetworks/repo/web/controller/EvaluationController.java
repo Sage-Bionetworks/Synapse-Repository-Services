@@ -56,18 +56,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  *  
  * <p>
- * The data model of the Evaluation API is built around around three primary objects:
+ * The data model of the Evaluation API is built around around two primary objects:
  * <ul>
  * <li> <a href="${org.sagebionetworks.evaluation.model.Evaluation}">Evaluation</a>: The primary
  * object representing a Synapse Evaluation. Access to Evaluations is governed by an <a
  * href="${org.sagebionetworks.repo.model.AccessControlList}">Access Control
  * List (ACL)</a>.
  * </li> 
- * <li> <a href="${org.sagebionetworks.evaluation.model.Participant}">Participant</a>: 
- * Given proper permissions, a Synapse user can register as a Participant in an Evaluation. Being a
- * Participant is a prerequisite for accessing Evaluation resources.
- * </li>
- * <li> <a href="${org.sagebionetworks.evaluation.model.Submission}">Submission</a>: A Participant
+ * <li> <a href="${org.sagebionetworks.evaluation.model.Submission}">Submission</a>: A user
  * in a Synapse Evaluation can submit a Synapse Entity as Submission to that Evaluation. Submission
  * data is owned by the parent Evaluation, and is immutable.
  * </ul>
@@ -403,6 +399,7 @@ public class EvaluationController extends BaseController {
 	 * >ACCESS_TYPE.PARTICIPATE</a> on the specified Evaluation, and must have satisfied all
 	 * access requirements on the Evaluation.
 	 * </p>
+	 * Note:  This service is deprecated.
 	 * 
 	 * @param evalId - the ID of the specified Evaluation
 	 * @param userId
@@ -413,6 +410,7 @@ public class EvaluationController extends BaseController {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.POST)
 	public @ResponseBody
@@ -434,6 +432,7 @@ public class EvaluationController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
 	 * </p>
+	 * Note:  This service is deprecated.
 	 * 
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param partId - the ID of the Synapse user whose participation is to be deleted
@@ -443,6 +442,7 @@ public class EvaluationController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -464,6 +464,8 @@ public class EvaluationController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.DELETE</a> on the specified Evaluation.
 	 * </p>
+	 *
+	 * Note:  This service is deprecated.
 	 * 
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param partId - the ID of the Synapse user whose participation is to be deleted
@@ -474,6 +476,7 @@ public class EvaluationController extends BaseController {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.DELETE)
 	public @ResponseBody
@@ -496,6 +499,7 @@ public class EvaluationController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
 	 * </p>
+	 * Note:  This service is deprecated.
 	 * 
 	 * @param offset
 	 *            The offset index determines where this page will start from.
@@ -512,6 +516,7 @@ public class EvaluationController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -534,6 +539,7 @@ public class EvaluationController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
 	 * >ACCESS_TYPE.UPDATE</a> on the specified Evaluation.
 	 * </p>
+ 	 * Note:  This service is deprecated.
 	 * 
 	 * @param evalId
 	 * @param request
@@ -541,6 +547,7 @@ public class EvaluationController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
@@ -563,7 +570,7 @@ public class EvaluationController extends BaseController {
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.SUBMIT</a> and must be registered as a Participant on the specified Evaluation.
+	 * >ACCESS_TYPE.SUBMIT</a>.
 	 * </p>
 	 * 
 	 * @param userId
