@@ -59,6 +59,10 @@ public class OpenIDConsumerUtils {
 	 */
 	@SuppressWarnings("unchecked")
 	private static DiscoveryInformation getDiscoveryInfo(String providerName) throws DiscoveryException {
+		if (providerName == null) {
+			throw new IllegalArgumentException("OpenID provider name cannot be null");
+		}
+		
 		List<Discovery> discoveries;
 		if (providerName.equals(OPEN_ID_PROVIDER_GOOGLE_VALUE)) {
 			discoveries = manager.discover(OPEN_ID_PROVIDER_GOOGLE_ENDPOINT);
