@@ -16,6 +16,7 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -123,6 +124,7 @@ public class AdministrationControllerTest {
 		assertEquals(setDown, back);
 	}
 
+	@Ignore
 	@Test
 	public void testMigrateFromCrowd() throws Exception {
 		Map<String, String> extraParams = new HashMap<String, String>();
