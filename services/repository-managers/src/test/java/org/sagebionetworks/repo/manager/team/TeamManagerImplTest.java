@@ -339,9 +339,9 @@ public class TeamManagerImplTest {
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
 		
 		// ...unless the team is Open
-		team.setIsOpen(true);
+		team.setCanPublicJoin(true);
 		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
-		team.setIsOpen(false);
+		team.setCanPublicJoin(false);
 		
 		// I can add myself if I'm not an admin on the team if I've been invited
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(1L);
@@ -384,7 +384,7 @@ public class TeamManagerImplTest {
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherPrincipalId));
 		
 		// NOTHING CHANGES IF THE TEAM IS OPEN! ...
-		team.setIsOpen(true);
+		team.setCanPublicJoin(true);
 		
 		// ...NOW JUST REPEAT THE ABOVE TESTS
 		// I can add someone else if I'm a Synapse admin
@@ -619,7 +619,7 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getCanJoin());
 		
 		// if the team is open the user 'can join' even if they have no invitation
-		team.setIsOpen(true);
+		team.setCanPublicJoin(true);
 		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalId);
 		assertEquals(TEAM_ID, tms.getTeamId());
 		assertEquals(principalId, tms.getUserId());

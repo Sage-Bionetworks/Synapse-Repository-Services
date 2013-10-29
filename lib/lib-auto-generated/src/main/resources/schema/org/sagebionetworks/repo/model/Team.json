@@ -20,7 +20,7 @@
 			"type": "string",
 			"description": "fileHandleId for icon image of the Team"
 		},
-		"isOpen": {
+		"canPublicJoin": {
 			"type": "boolean",
 			"description": "true for teams which members can join without an invitation or approval"
 		},
