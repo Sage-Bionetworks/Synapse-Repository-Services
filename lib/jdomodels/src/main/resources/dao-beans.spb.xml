@@ -242,5 +242,8 @@
 		
 	<bean id="crowdMigrationDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOCrowdMigrationDAO" />
+		
+	<bean id="wikiMigrationDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
 
 </beans>
