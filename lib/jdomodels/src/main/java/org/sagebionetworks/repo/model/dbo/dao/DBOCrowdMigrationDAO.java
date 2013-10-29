@@ -312,7 +312,7 @@ public class DBOCrowdMigrationDAO {
 		// Parent groups must be created if necessary
 		for (String parent : parentGroups) {
 			String ugId = ensureGroupExists(parent);
-			ensureTeamExists(ugId);
+			ensureTeamExists(parent, ugId);
 			parentIds.add(ugId);
 		}
 		log.trace("Migrating " + user.getDisplayName() + " | Got parent IDs: " + parentIds);
@@ -367,7 +367,7 @@ public class DBOCrowdMigrationDAO {
 		ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE};
 	
 	
-	protected void ensureTeamExists(String ugId) {
+	protected void ensureTeamExists(String teamName, String ugId) {
 		try {
 			teamDAO.get(ugId);
 			return;
@@ -376,6 +376,7 @@ public class DBOCrowdMigrationDAO {
 		// The Team doesn't exist yet
 		Team team = new Team();
 		Date now = new Date();
+		team.setName(teamName);
 		team.setId(ugId);
 		team.setCreatedOn(now);
 		team.setModifiedOn(now);
