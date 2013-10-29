@@ -92,7 +92,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -137,7 +136,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	List<Long> replayChangeNumbersHistory = new LinkedList<Long>();
 	List<Set<Long>> deleteRequestsHistory = new LinkedList<Set<Long>>();
 	Set<Long> exceptionNodes = new HashSet<Long>();
-	List<CrowdMigrationResult> crowdMigrationResults = new LinkedList<CrowdMigrationResult>();
 
 	/**
 	 * Create a new stub
@@ -2019,21 +2017,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-
-	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		PaginatedResults<CrowdMigrationResult> res = new PaginatedResults<CrowdMigrationResult>();
-		res.setTotalNumberOfResults(this.crowdMigrationResults.size());
-		res.setResults(this.crowdMigrationResults);
-		return res;
-	}
-
-
-	public void setCrowdMigrationResults(List<CrowdMigrationResult> crowdMigResults) {
-		this.crowdMigrationResults = crowdMigResults;
 	}
 
 
