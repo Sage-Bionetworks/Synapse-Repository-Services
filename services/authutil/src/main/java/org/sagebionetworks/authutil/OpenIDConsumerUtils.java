@@ -3,6 +3,7 @@ package org.sagebionetworks.authutil;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,12 +30,17 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
  */
 public class OpenIDConsumerUtils {
 	
-	public static final String OPEN_ID_PROVIDER_GOOGLE_VALUE = "GOOGLE";
-	public static final String OPEN_ID_PROVIDER_GOOGLE_ENDPOINT = "https://www.google.com/accounts/o8/id";
-	public static final String OPEN_ID_PROVIDER_YAHOO_VALUE = "YAHOO";
-	public static final String OPEN_ID_PROVIDER_YAHOO_ENDPOINT = "https://me.yahoo.com/";
-	public static final String OPEN_ID_PROVIDER_VERISIGN_VALUE = "VERISIGN";
-	public static final String OPEN_ID_PROVIDER_VERISIGN_ENDPOINT = "https://pip.verisignlabs.com/";
+	public static final Map<String, String> OPEN_ID_PROVIDERS = new HashMap<String, String>() {
+		private static final long serialVersionUID = 1L;
+	{
+		put("GOOGLE", "https://www.google.com/accounts/o8/id");
+		
+		// Verisign is unsecure!
+		// put("VERISIGN", "https://pip.verisignlabs.com/");
+		
+		// Yahoo will not return an email address even when requested
+		// put("YAHOO", "https://me.yahoo.com/");
+	}};
 	
 	public static final String OPEN_ID_PROVIDER_NAME_PARAM = "org.sagebionetworks.openid.provider";
 	
@@ -55,7 +61,7 @@ public class OpenIDConsumerUtils {
 	
 	/**
 	 * This maps allowed provider names to their OpenID endpoints
-	 * At this time only Google, Yahoo, and Verisign are supported
+	 * At this time only Google is supported
 	 */
 	@SuppressWarnings("unchecked")
 	private static DiscoveryInformation getDiscoveryInfo(String providerName) throws DiscoveryException {
@@ -63,22 +69,14 @@ public class OpenIDConsumerUtils {
 			throw new IllegalArgumentException("OpenID provider name cannot be null");
 		}
 		
-		List<Discovery> discoveries;
-		if (providerName.equals(OPEN_ID_PROVIDER_GOOGLE_VALUE)) {
-			discoveries = manager.discover(OPEN_ID_PROVIDER_GOOGLE_ENDPOINT);
-			
-		} else if (providerName.equals(OPEN_ID_PROVIDER_YAHOO_VALUE)) {
-			discoveries = manager.discover(OPEN_ID_PROVIDER_YAHOO_ENDPOINT);
-			
-		} else if (providerName.equals(OPEN_ID_PROVIDER_VERISIGN_VALUE)) {
-			discoveries = manager.discover(OPEN_ID_PROVIDER_VERISIGN_ENDPOINT);
-			
-		} else {
+		if (!OPEN_ID_PROVIDERS.containsKey(providerName)) {
 			throw new IllegalArgumentException("Unsupported OpenID provider: " + providerName);
 		}
 
 		// Attempt to associate with the OpenID provider
 		// and retrieve one service endpoint for authentication
+		String endpoint = OPEN_ID_PROVIDERS.get(providerName);
+		List<Discovery> discoveries = manager.discover(endpoint);
 		return manager.associate(discoveries);
 	}
 

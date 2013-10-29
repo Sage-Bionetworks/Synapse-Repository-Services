@@ -51,7 +51,7 @@ public class OpenIDConsumerUtilsTest {
 		// The resulting object is inconsequential to the mocking test
 		// See: https://code.google.com/p/openid4java/source/browse/trunk/src/org/openid4java/message/AuthSuccess.java
 		mockRequestParameters = new ParameterList();
-		mockRequestParameters.set(new Parameter(OpenIDConsumerUtils.OPEN_ID_PROVIDER_NAME_PARAM, OpenIDConsumerUtils.OPEN_ID_PROVIDER_GOOGLE_VALUE));
+		mockRequestParameters.set(new Parameter(OpenIDConsumerUtils.OPEN_ID_PROVIDER_NAME_PARAM, "GOOGLE"));
 		mockRequestParameters.set(new Parameter("openid.mode", "id_res"));
 		mockRequestParameters.set(new Parameter("openid.return_to", openIDEndpointURL));
 		mockRequestParameters.set(new Parameter("openid.assoc_handle", "dunno"));
@@ -95,13 +95,14 @@ public class OpenIDConsumerUtilsTest {
 	
 	@Test
 	public void testAuthRequest() throws Exception {
-		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_GOOGLE_VALUE, openIDCallback);
-		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_YAHOO_VALUE, openIDCallback);
-		OpenIDConsumerUtils.authRequest(OpenIDConsumerUtils.OPEN_ID_PROVIDER_VERISIGN_VALUE, openIDCallback);
+		int numProviders = OpenIDConsumerUtils.OPEN_ID_PROVIDERS.size();
+		for (String key : OpenIDConsumerUtils.OPEN_ID_PROVIDERS.keySet()) {
+			OpenIDConsumerUtils.authRequest(key, openIDCallback);
+		}
 		
-		verify(mockManager, times(3)).associate(anyList());
-		verify(mockManager, times(3)).authenticate(any(DiscoveryInformation.class), startsWith(openIDCallback));
-		verify(mockAuthRequest, times(6)).addExtension(any(FetchRequest.class));
+		verify(mockManager, times(numProviders)).associate(anyList());
+		verify(mockManager, times(numProviders)).authenticate(any(DiscoveryInformation.class), startsWith(openIDCallback));
+		verify(mockAuthRequest, times(2 * numProviders)).addExtension(any(FetchRequest.class));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
