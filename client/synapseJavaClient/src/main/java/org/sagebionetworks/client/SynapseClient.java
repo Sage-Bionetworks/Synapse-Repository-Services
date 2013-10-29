@@ -607,6 +607,9 @@ public interface SynapseClient {
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
 
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
+			throws SynapseException;
+
 	public Long getEvaluationCount() throws SynapseException;
 
 	public Evaluation findEvaluation(String name) throws SynapseException,
