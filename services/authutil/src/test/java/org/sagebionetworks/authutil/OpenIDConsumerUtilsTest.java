@@ -101,7 +101,7 @@ public class OpenIDConsumerUtilsTest {
 		
 		verify(mockManager, times(3)).associate(anyList());
 		verify(mockManager, times(3)).authenticate(any(DiscoveryInformation.class), startsWith(openIDCallback));
-		verify(mockAuthRequest, times(3)).addExtension(any(FetchRequest.class));
+		verify(mockAuthRequest, times(6)).addExtension(any(FetchRequest.class));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

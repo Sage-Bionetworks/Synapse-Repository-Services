@@ -13,10 +13,14 @@ import org.openid4java.discovery.DiscoveryException;
 import org.openid4java.discovery.DiscoveryInformation;
 import org.openid4java.message.AuthRequest;
 import org.openid4java.message.AuthSuccess;
+import org.openid4java.message.MessageExtension;
 import org.openid4java.message.ParameterList;
 import org.openid4java.message.ax.AxMessage;
 import org.openid4java.message.ax.FetchRequest;
 import org.openid4java.message.ax.FetchResponse;
+import org.openid4java.message.sreg.SRegMessage;
+import org.openid4java.message.sreg.SRegRequest;
+import org.openid4java.message.sreg.SRegResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 
 /**
@@ -33,10 +37,6 @@ public class OpenIDConsumerUtils {
 	public static final String OPEN_ID_PROVIDER_VERISIGN_ENDPOINT = "https://pip.verisignlabs.com/";
 	
 	public static final String OPEN_ID_PROVIDER_NAME_PARAM = "org.sagebionetworks.openid.provider";
-
-	public static final String AX_EMAIL = "Email";
-	public static final String AX_FIRST_NAME = "FirstName";
-	public static final String AX_LAST_NAME = "LastName";
 	
 	private static ConsumerManager manager;
 	
@@ -101,14 +101,22 @@ public class OpenIDConsumerUtils {
 		// Obtain a AuthRequest message to be sent to the OpenID provider
 		AuthRequest authReq = manager.authenticate(discovered, returnToUrl);
 
-		// Request the 'email' attribute
+		// Note: there are two ways of requesting attributes 
+		// See: http://openid.net/specs/openid-attribute-exchange-1_0-04.html
+		// See: http://openid.net/specs/openid-simple-registration-extension-1_0.html
+		
+		// Attach a fetch request to the authentication request
 		FetchRequest fetch = FetchRequest.createFetchRequest();
-		fetch.addAttribute(AX_EMAIL, "http://axschema.org/contact/email", true);
-		fetch.addAttribute(AX_FIRST_NAME, "http://axschema.org/namePerson/first", true);
-		fetch.addAttribute(AX_LAST_NAME, "http://axschema.org/namePerson/last", true);
-
-		// Attach the fetch request to the authentication request
+		fetch.addAttribute(OpenIDInfo.AX_EMAIL, "http://axschema.org/contact/email", true);
+		fetch.addAttribute(OpenIDInfo.AX_FIRST_NAME, "http://axschema.org/namePerson/first", true);
+		fetch.addAttribute(OpenIDInfo.AX_LAST_NAME, "http://axschema.org/namePerson/last", true);
 		authReq.addExtension(fetch);
+
+		// Attach another fetch request
+		SRegRequest sregReq = SRegRequest.createFetchRequest();
+		sregReq.addAttribute(OpenIDInfo.AX_REG_EMAIL, true);
+		sregReq.addAttribute(OpenIDInfo.AX_REG_FULL_NAME, true);
+		authReq.addExtension(sregReq);
 
 		// GET HTTP-redirect to the OpenID Provider endpoint
 		// The only method supported in OpenID 1.x redirect-URL 
@@ -153,6 +161,21 @@ public class OpenIDConsumerUtils {
 					@SuppressWarnings("unchecked")
 					Map<String, List<String>> attributes = (Map<String, List<String>>) fetchResp.getAttributes();
 					result.setMap(attributes);
+				}
+				
+				if (authSuccess.hasExtension(SRegMessage.OPENID_NS_SREG))
+				{
+				    MessageExtension ext = authSuccess.getExtension(SRegMessage.OPENID_NS_SREG);
+
+				    if (ext instanceof SRegResponse)
+				    {
+				        SRegResponse sregResp = (SRegResponse) ext;
+				        
+				        String fullName = sregResp.getAttributeValue("fullname");
+				        String email = sregResp.getAttributeValue("email");
+				        result.setFullName(fullName);
+				        result.setEmail(email);
+				    }
 				}
 
 				return result;
