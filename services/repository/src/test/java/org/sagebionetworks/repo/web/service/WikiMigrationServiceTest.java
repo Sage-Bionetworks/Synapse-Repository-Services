@@ -65,7 +65,7 @@ public class WikiMigrationServiceTest {
 		creatorUserGroupId = userGroup.getId();
 		assertNotNull(creatorUserGroupId);
 		
-		// Create a few files
+		// Create a file
 		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
@@ -137,7 +137,7 @@ public class WikiMigrationServiceTest {
 		// Limit of 1 should have been returned
 		assertEquals(1, results.getResults().size());
 		assertEquals(WikiMigrationResultType.FAILURE, results.getResults().get(0).getResultType());
-		// Size of v2 DB should still be 1 because nothing was migrated
+		// Size of the V2 DB should still be 1 because nothing was migrated
 		assertEquals(1, v2wikiPageDAO.getCount());		
 	}
 	

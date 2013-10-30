@@ -48,19 +48,6 @@ public class WikiMigrationService {
 	}
 	
 	/**
-	 * @param activityManager
-	 * @param entityManager
-	 * @param userManager
-	 */
-	public WikiMigrationService(DBOWikiMigrationDAO wikiMigrationDao,
-			WikiModelTranslator translator, UserManager userManager) {
-		super();
-		this.wikiMigrationDao = wikiMigrationDao;
-		this.wikiModelTranslationHelper = translator;
-		this.userManager = userManager;
-	}
-	
-	/**
 	 * Migrates a group of wikis from the V1 WikiPage DB to the V2 WikiPage DB.
 	 * @param username
 	 * @param limit
@@ -90,7 +77,9 @@ public class WikiMigrationService {
 			result.setWikiId(wiki.getId());
 			
 			try {
+				// Convert the WikiPage to a V2WikiPage
 				V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
+				// Migrate it to the V2 DB
 				V2WikiPage clone = wikiMigrationDao.migrateWiki(translated);
 				if(clone != null) {
 					result.setEtag(clone.getEtag());
