@@ -94,7 +94,7 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 	
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MESSAGE;
+		return MigrationType.MESSAGE_STATUS;
 	}
 
 	@Override

@@ -43,6 +43,10 @@
 		"messageBody": {
 			"type": "string",
 			"description":"The content of this message."
+		}, 
+		"messageFileId": {
+			"type": "string",
+			"description":"The S3 file handle storing the content of this message."
 		}
 	}
 }
