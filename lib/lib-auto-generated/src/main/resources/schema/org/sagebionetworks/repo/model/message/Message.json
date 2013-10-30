@@ -1,0 +1,48 @@
+{
+	"title": "Message",
+	"description": "JSON schema for a user message",
+	"properties": {
+		"messageId": {
+			"type": "string",
+			"description":"The unique identifier of the message."
+		},
+		"threadId": {
+			"type": "string",
+			"description":"The unique identifier of the thread this message belongs to."
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The unique identifier of the sender of this message."
+		},
+		"recipientType": {
+			"type": "string",
+			"description": "The type of recipient",
+			"name": "RecipientType",
+			"id": "org.sagebionetworks.repo.model.message.RecipientType",
+			"enum": [
+				"PRINCIPAL",
+				"ENTITY"
+			]
+		},
+		"recipients": {
+			"type": "array",
+			"description": "The unique identifiers of the intended recipients of this message",
+			"items": {
+				"type": "string"
+			}
+		}, 
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this message was sent."
+		}, 
+		"subject": {
+			"type": "string",
+			"description":"The subject of this message."
+		}, 
+		"messageBody": {
+			"type": "string",
+			"description":"The content of this message."
+		}
+	}
+}
