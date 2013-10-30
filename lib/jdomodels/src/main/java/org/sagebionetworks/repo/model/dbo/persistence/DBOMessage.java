@@ -4,6 +4,7 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -181,7 +182,9 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject> secondaries = new ArrayList<MigratableDatabaseObject>();
+		secondaries.add(new DBOMessageStatus());
+		return secondaries;
 	}
 
 	

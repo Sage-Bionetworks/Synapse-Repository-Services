@@ -1,0 +1,25 @@
+{
+	"title": "Message",
+	"description": "JSON schema for a user message",
+	"properties": {
+		"messageId": {
+			"type": "string",
+			"description":"The unique identifier of the message."
+		},
+		"recipientId": {
+			"type": "string",
+			"description":"The unique identifier of the recipient of this message."
+		},
+		"status": {
+			"type": "string",
+			"description": "The status of the message",
+			"name": "MessageStatusType",
+			"id": "org.sagebionetworks.repo.model.message.MessageStatusType",
+			"enum": [
+				"READ",
+				"UNREAD", 
+				"ARCHIVED"
+			]
+		}
+	}
+}
