@@ -1,19 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.net.ntp.TimeStamp;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
+import org.sagebionetworks.repo.model.message.RecipientType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
-
 
 /**
  * The DBO object for messages.
@@ -24,6 +24,8 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_ID, true).withIsBackupId(true),
 		new FieldColumn("threadId", SqlConstants.COL_MESSAGE_THREAD_ID),
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CREATED_BY),
+		new FieldColumn("recipientType", SqlConstants.COL_MESSAGE_RECIPIENT_TYPE),
+		new FieldColumn("recipients", SqlConstants.COL_MESSAGE_RECIPIENTS),
 		new FieldColumn("bodyFileId", SqlConstants.COL_MESSAGE_BODY_FILE_ID),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CREATED_ON),
 		new FieldColumn("subject", SqlConstants.COL_MESSAGE_SUBJECT)
@@ -32,6 +34,8 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	private Long messageId;
 	private Long threadId;
 	private Long createdBy;
+	private RecipientType recipientType;
+	private byte[] recipients;
 	private Long bodyFileId;
 	private Timestamp createdOn;
 	private String subject;
@@ -46,6 +50,9 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_ID));
 				result.setThreadId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_ID));
 				result.setCreatedBy(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_BY));
+				result.setRecipientType(RecipientType.valueOf(rs.getString(SqlConstants.COL_MESSAGE_RECIPIENT_TYPE)));
+				Blob recipients = rs.getBlob(SqlConstants.COL_MESSAGE_RECIPIENTS);
+				result.setRecipients(recipients.getBytes(1, (int) recipients.length()));
 				result.setBodyFileId(rs.getLong(SqlConstants.COL_MESSAGE_BODY_FILE_ID));
 				result.setCreatedOn(rs.getTimestamp(SqlConstants.COL_MESSAGE_CREATED_ON));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_SUBJECT));
@@ -97,6 +104,23 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 
 	public void setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
+	}
+	
+	public RecipientType getRecipientType() {
+		return recipientType;
+	}
+
+	public void setRecipientType(RecipientType recipientType) {
+		this.recipientType = recipientType;
+	}
+
+
+	public byte[] getRecipients() {
+		return recipients;
+	}
+
+	public void setRecipients(byte[] recipients) {
+		this.recipients = recipients;
 	}
 
 	public Long getBodyFileId() {
@@ -174,6 +198,9 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result
 				+ ((messageId == null) ? 0 : messageId.hashCode());
+		result = prime * result
+				+ ((recipientType == null) ? 0 : recipientType.hashCode());
+		result = prime * result + Arrays.hashCode(recipients);
 		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
 		result = prime * result
 				+ ((threadId == null) ? 0 : threadId.hashCode());
@@ -210,6 +237,10 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				return false;
 		} else if (!messageId.equals(other.messageId))
 			return false;
+		if (recipientType != other.recipientType)
+			return false;
+		if (!Arrays.equals(recipients, other.recipients))
+			return false;
 		if (subject == null) {
 			if (other.subject != null)
 				return false;
@@ -226,8 +257,10 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	@Override
 	public String toString() {
 		return "DBOMessage [messageId=" + messageId + ", threadId=" + threadId
-				+ ", createdBy=" + createdBy + ", bodyFileId=" + bodyFileId
-				+ ", createdOn=" + createdOn + ", subject=" + subject + "]";
+				+ ", createdBy=" + createdBy + ", recipientType="
+				+ recipientType + ", recipients=" + Arrays.toString(recipients)
+				+ ", bodyFileId=" + bodyFileId + ", createdOn=" + createdOn
+				+ ", subject=" + subject + "]";
 	}
 
 }

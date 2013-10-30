@@ -146,6 +146,8 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_ID                       = "MESSAGE_ID";
  	public static final String COL_MESSAGE_THREAD_ID                = "THREAD_ID";
  	public static final String COL_MESSAGE_CREATED_BY               = "CREATED_BY";
+ 	public static final String COL_MESSAGE_RECIPIENT_TYPE           = "RECIPIENT_TYPE";
+ 	public static final String COL_MESSAGE_RECIPIENTS               = "RECIPIENTS";
  	public static final String COL_MESSAGE_BODY_FILE_ID             = "BODY_FILE_ID";
  	public static final String COL_MESSAGE_CREATED_ON               = "CREATED_ON";
  	public static final String COL_MESSAGE_SUBJECT                  = "SUBJECT";
