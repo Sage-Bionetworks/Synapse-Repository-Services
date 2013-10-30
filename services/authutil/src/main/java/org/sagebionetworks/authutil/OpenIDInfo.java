@@ -7,10 +7,7 @@ public class OpenIDInfo {
 	private String identifier;
 	private Map<String, List<String>> map;
 	
-	public static final String DISCOVERY_INFO_PARAM_NAME = "org.sagebionetworks.auth.discoveryInfo";
-	public static final String ACCEPTS_TERMS_OF_USE_PARAM_NAME = "org.sagebionetworks.auth.acceptsTermsOfUse";
-	public static final String RETURN_TO_URL_PARAM_NAME = "org.sagebionetworks.auth.returnToUrl";
-	public static final String REDIRECT_MODE_PARAM_NAME = "org.sagebionetworks.auth.redirectMode";
+	public static final String ACCEPTS_TERMS_OF_USE_PARAM_NAME = "org.sagebionetworks.acceptsTermsOfUse";
 
 	public OpenIDInfo() { }
 

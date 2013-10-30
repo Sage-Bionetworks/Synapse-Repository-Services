@@ -167,9 +167,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
 		
 		// Create it
-		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
 		
@@ -219,9 +221,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
 		
 		// Create it
-		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
@@ -240,11 +244,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(attachTwo.getId());
+		List<String> newIds2 = new ArrayList<String>();
+		newIds2.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds);		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		
 		// The etag should be new and the modified time should be greater than the previous modified time
@@ -281,9 +285,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
 		
 		// Create it
-		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
@@ -297,11 +303,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
 		
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(attachTwo.getId());
+		List<String> newIds2 = new ArrayList<String>();
+		newIds2.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds);		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		assertNotNull(clone2);
 		assertTrue(clone2.getMarkdownFileHandleId().equals(markdownTwo.getId()));
 
 		// At this point, the markdown database has two versions for this wiki page
@@ -363,9 +369,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
 		
 		// Create it
-		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
 		
@@ -397,7 +405,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		root.setMarkdownFileHandleId(markdownOne.getId());
 
 		// Create it
-		root = wikiPageDao.create(root, new HashMap<String, FileHandle>(), ownerId, ownerType);
+		root = wikiPageDao.create(root, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
 		assertNotNull(root);
 		String rootId = root.getId();
 		assertNotNull(rootId);
@@ -422,7 +430,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 			// In setRoot, passes through else branch because parent id is not null
 			child.setParentWikiId(root.getId());
 			child.setMarkdownFileHandleId(markdownOne.getId());
-			child = wikiPageDao.create(child, new HashMap<String, FileHandle>(), ownerId, ownerType);
+			child = wikiPageDao.create(child, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
 			children.add(child);
 		}
 		
@@ -474,9 +482,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		page.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
 		
 		// Create it
-		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
+		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
@@ -491,11 +501,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(attachTwo.getId());
+		List<String> newIds2 = new ArrayList<String>();
+		newIds2.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds);		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		
 		List<V2WikiHistorySnapshot> historyAfterUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
@@ -531,9 +541,12 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
+		newIds.add(attachTwo.getId());
 		
 		// Create it
-		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
+		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(root);
 		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
 		toDelete.add(rootKey);
@@ -557,9 +570,11 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		child.getAttachmentFileHandleIds().add(attachOne.getId());
 		Map<String, FileHandle> childFileNameMap = new HashMap<String, FileHandle>();
 		childFileNameMap.put(attachOne.getFileName(), attachOne);
+		List<String> childNewIds = new ArrayList<String>();
+		childNewIds.add(attachOne.getId());
 		
 		// Create it
-		child = wikiPageDao.create(child, childFileNameMap, ownerId, ownerType);
+		child = wikiPageDao.create(child, childFileNameMap, ownerId, ownerType, childNewIds);
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		
 		// Test the child for the FileHandleId
@@ -588,7 +603,10 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
 		fileNameMap.put(attachOne.getFileName(), attachOne);
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
-		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(attachOne.getId());
+		newIds.add(attachTwo.getId());
+		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(root);
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, root.getId());
 		toDelete.add(key);

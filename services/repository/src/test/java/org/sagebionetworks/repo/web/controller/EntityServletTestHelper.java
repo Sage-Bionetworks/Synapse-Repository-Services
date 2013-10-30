@@ -400,14 +400,11 @@ public class EntityServletTestHelper {
 	 * Gets a paginated list of available evaluations
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluations(
-			String username, String status) throws Exception {
+			String username) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION_AVAILABLE, username, null);
 		request.setParameter("limit", "100");
 		request.setParameter("offset", "0");
-		if (status != null) {
-			request.setParameter("status", status);
-		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1162,7 +1159,7 @@ public class EntityServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
-						+ "/attachmenthandles2", username, null);
+						+ "/attachmenthandles", username, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1178,7 +1175,7 @@ public class EntityServletTestHelper {
 			String fileName, Boolean redirect) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
-						+ "/attachment2", username, null);
+						+ "/attachment", username, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
@@ -1198,7 +1195,7 @@ public class EntityServletTestHelper {
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
-						+ "/attachmentpreview2", username, null);
+						+ "/attachmentpreview", username, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
@@ -1231,7 +1228,6 @@ public class EntityServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
 						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, wiki);
-		//request.setParameter("version", version.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
@@ -1244,7 +1240,7 @@ public class EntityServletTestHelper {
 	 */
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, String username, Long offset, Long limit) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key) + "/wikihistory2",
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key) + "/wikihistory",
 				username, null);
 		request.setParameter("offset", offset.toString());
 		request.setParameter("limit", limit.toString());

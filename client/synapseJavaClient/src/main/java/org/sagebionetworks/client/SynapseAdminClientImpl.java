@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -33,36 +32,26 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class SynapseAdminClientImpl extends SynapseClientImpl implements SynapseAdminClient {
 
-	public static final String DAEMON = ADMIN + "/daemon";
-	public static final String BACKUP = "/backup";
-	public static final String RESTORE = "/restore";
-//	public static final String SEARCH_DOCUMENT = "/searchDocument";
-	public static final String DAEMON_BACKUP = DAEMON + BACKUP;
-	public static final String DAEMON_RESTORE = DAEMON + RESTORE;
-	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
-	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
-	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectsCounts";
+	private static final String DAEMON = ADMIN + "/daemon";
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
 	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
 	private static final String ADMIN_FIRE_MESSAGES = ADMIN + "/messages/refire";
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
-	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES+"/rebroadcast";
+	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
-	private static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
-	
-	public static final String MIGRATION = "/migration";
-	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
-	public static final String MIGRATION_MAX_IDS = MIGRATION+"/maxids";
-	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
-	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
-	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";
-	public static final String MIGRATION_RESTORE = MIGRATION+"/restore";
-	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
-	public static final String MIGRATION_STATUS = MIGRATION+"/status";
-	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
 
-	public static final String ADMIN_DYNAMO_CLEAR = ADMIN + "/dynamo/clear";
+	private static final String MIGRATION = "/migration";
+	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
+	private static final String MIGRATION_ROWS = MIGRATION + "/rows";
+	private static final String MIGRATION_DELTA = MIGRATION + "/delta";
+	private static final String MIGRATION_BACKUP = MIGRATION + "/backup";
+	private static final String MIGRATION_RESTORE = MIGRATION + "/restore";
+	private static final String MIGRATION_DELETE = MIGRATION + "/delete";
+	private static final String MIGRATION_STATUS = MIGRATION + "/status";
+	private static final String MIGRATION_PRIMARY = MIGRATION + "/primarytypes";
+
+	private static final String ADMIN_DYNAMO_CLEAR = ADMIN + "/dynamo/clear";
 
 	public SynapseAdminClientImpl() {
 		super();
@@ -98,7 +87,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	 */
 	public BackupRestoreStatus getDaemonStatus(String daemonId)
 			throws SynapseException, JSONObjectAdapterException {
-		return getJSONEntity(DAEMON + "/" + daemonId, BackupRestoreStatus.class);
+		return getJSONEntity(repoEndpoint, DAEMON + "/" + daemonId, BackupRestoreStatus.class);
 	}
 
 	/**
@@ -137,7 +126,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type, Long limit) throws SynapseException, JSONObjectAdapterException{
 		// Build up the URL
 		String url = buildListMessagesURL(startChangeNumber, type, limit);
-		return getJSONEntity(url, ChangeMessages.class);
+		return getJSONEntity(repoEndpoint, url, ChangeMessages.class);
 	}
 	
 	// New migration client methods
@@ -369,19 +358,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		String url = ADMIN_MIGRATE_FROM_CROWD +
-				"?" + OFFSET + "=" + offset + "&limit=" + limit;
-		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<CrowdMigrationResult> results = new PaginatedResults<CrowdMigrationResult>(CrowdMigrationResult.class);
-
-		results.initializeFromJSONObject(adapter);
-		return results;
 	}
 
 }

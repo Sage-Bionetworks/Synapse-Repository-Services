@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS__TYPE_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_RES_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
@@ -20,7 +20,7 @@ public class DBOResourceAccessType implements MigratableDatabaseObject<DBOResour
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_RESOURCE_ACCESS_TYPE_ID, true),
-		new FieldColumn("owner", COL_RESOURCE_ACCESS__TYPE_OWNER).withIsBackupId(true),
+		new FieldColumn("owner", COL_RESOURCE_ACCESS_TYPE_OWNER).withIsBackupId(true),
 		new FieldColumn("element", COL_RESOURCE_ACCESS_TYPE_ELEMENT, true),
 		};
 
@@ -31,7 +31,7 @@ public class DBOResourceAccessType implements MigratableDatabaseObject<DBOResour
 			public DBOResourceAccessType mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOResourceAccessType act = new DBOResourceAccessType();
 				act.setId(rs.getLong(COL_RESOURCE_ACCESS_TYPE_ID));
-				act.setOwner(rs.getLong(COL_RESOURCE_ACCESS__TYPE_OWNER));
+				act.setOwner(rs.getLong(COL_RESOURCE_ACCESS_TYPE_OWNER));
 				act.setElement(rs.getString(COL_RESOURCE_ACCESS_TYPE_ELEMENT));
 				return act;
 			}

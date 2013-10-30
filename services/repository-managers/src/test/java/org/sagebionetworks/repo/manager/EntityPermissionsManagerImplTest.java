@@ -155,7 +155,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should fail, since user is not included with proper permissions in ACL
-		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneEmail());
+		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 
@@ -194,7 +194,7 @@ public class EntityPermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should fail since user does not have permission editing rights in ACL
-		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneEmail());
+		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 

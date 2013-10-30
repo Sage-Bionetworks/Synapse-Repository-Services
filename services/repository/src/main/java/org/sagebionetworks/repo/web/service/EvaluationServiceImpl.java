@@ -109,7 +109,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	/**
-	 * Get a collection of Evaluations in which the user may participate, within a given range
+	 * Get a collection of Evaluations to which the user may SUBMIT, within a given range
 	 *
 	 * @param userId the userId (email address) of the user making the request
 	 * @param limit
@@ -119,12 +119,11 @@ public class EvaluationServiceImpl implements EvaluationService {
 	 * @throws NotFoundException
 	 */
 	@Override
-	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) 
+			String userId, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, status, limit, offset);
+		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset);
 		return new PaginatedResults<Evaluation>(
 				request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
 				res.getResults(),

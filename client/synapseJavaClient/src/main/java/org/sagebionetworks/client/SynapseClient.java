@@ -7,7 +7,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
@@ -59,6 +58,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -80,6 +81,9 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -87,72 +91,82 @@ import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
- * Abstraction for Synpase.
+ * Abstraction for Synapse.
  * 
  * @author jmhill
- *
+ * 
  */
 public interface SynapseClient {
 
 	/**
-	 * Get the current status of the stack.
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
+	 * Get the current status of the stack
 	 */
-	public StackStatus getCurrentStackStatus() throws SynapseException,	JSONObjectAdapterException;
-	
+	public StackStatus getCurrentStackStatus() 
+			throws SynapseException, JSONObjectAdapterException;
+
 	/**
-	 * Get the endpoint of the repository service.
-	 * @return
+	 * Get the endpoint of the repository service
 	 */
 	public String getRepoEndpoint();
 
 	/**
 	 * Each request includes the 'User-Agent' header. This is set to:
 	 * 'User-Agent':'Synpase-Java-Client/<version_number>'
-	 * Addition User-Agent information can be appended to this string by calling this method.
+	 * 
 	 * @param toAppend
+	 *            Addition User-Agent information can be appended to this string
+	 *            via this parameter
 	 */
 	public void appendUserAgent(String toAppend);
 
 	/**
-	 * The repository end-point includes the host and version.  For example: "https://repo-prod.prod.sagebase.org/repo/v1"
-	 * 
-	 * @param repoEndpoint
+	 * The repository endpoint includes the host and version. For example:
+	 * "https://repo-prod.prod.sagebase.org/repo/v1"
 	 */
 	public void setRepositoryEndpoint(String repoEndpoint);
 
+	/**
+	 * The authorization endpoint includes the host and version. For example:
+	 * "https://repo-prod.prod.sagebase.org/auth/v1"
+	 */
 	public void setAuthEndpoint(String authEndpoint);
 
 	/**
-	 * Get the configured Authorization Service Endpoint
-	 * @return
+	 * Get the endpoint of the authorization service
 	 */
 	public String getAuthEndpoint();
 
+	/**
+	 * The file endpoint includes the host and version. For example:
+	 * "https://repo-prod.prod.sagebase.org/file/v1"
+	 */
 	public void setFileEndpoint(String fileEndpoint);
 
+	/**
+	 * Get the endpoint of the file service
+	 */
 	public String getFileEndpoint();
 
 	/**
-	 * Authenticate the synapse client with an existing session token
-	 * 
-	 * @param sessionToken
+	 * Authenticate the Synapse client with an existing session token
 	 */
 	public void setSessionToken(String sessionToken);
 
-	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp,	String fileName) throws JSONObjectAdapterException, SynapseException, IOException;
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp, String fileName) 
+			throws JSONObjectAdapterException, SynapseException, IOException;
 
 	public Entity getEntityById(String entityId) throws SynapseException;
 
 	public <T extends Entity> T putEntity(T entity) throws SynapseException;
 
 	@Deprecated
-	public PresignedUrl waitForPreviewToBeCreated(String entityId, String tokenId, int maxTimeOut) throws SynapseException, JSONObjectAdapterException;
+	public PresignedUrl waitForPreviewToBeCreated(String entityId,
+			String tokenId, int maxTimeOut) throws SynapseException,
+			JSONObjectAdapterException;
 
 	@Deprecated
-	public PresignedUrl createAttachmentPresignedUrl(String entityId, String tokenId) throws SynapseException, JSONObjectAdapterException;
+	public PresignedUrl createAttachmentPresignedUrl(String entityId,
+			String tokenId) throws SynapseException, JSONObjectAdapterException;
 
 	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey properKey,
 			String fileName) throws ClientProtocolException, IOException;
@@ -162,571 +176,599 @@ public interface SynapseClient {
 
 	/**
 	 * Log into Synapse
-	 * 
-	 * @param username
-	 * @param password
-	 * @throws SynapseException
 	 */
-	UserSessionData login(String username, String password)
+	public UserSessionData login(String username, String password)
 			throws SynapseException;
-
-	UserSessionData login(String username, String password,
-			boolean explicitlyAcceptsTermsOfUse) throws SynapseException;
 
 	/**
-	 * 
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitely accept terms of use
-	 * 
-	 * @param userName
-	 * @param password
-	 * @throws SynapseException 
+	 * Log into Synapse and specify whether you agree to the terms of use
 	 */
-	void loginWithNoProfile(String userName, String password)
+	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) 
 			throws SynapseException;
 
-	UserSessionData getUserSessionData() throws SynapseException;
+	/**
+	 * Log into Synapse, 
+	 *   do not return UserSessionData, 
+	 *   do not request a user profile, 
+	 *   and do not explicitly accept the terms of use
+	 */
+	public void loginWithNoProfile(String userName, String password)
+			throws SynapseException;
+	
+	/**
+	 * Log out of Synapse
+	 */
+	public void logout() throws SynapseException;
 
-	boolean revalidateSession() throws SynapseException;
+	public UserSessionData getUserSessionData() throws SynapseException;
+
+	/**
+	 * Refreshes the cached session token so that it can be used for another 24 hours
+	 */
+	public boolean revalidateSession() throws SynapseException;
+
 	/**
 	 * Get the current session token used by this client.
 	 * 
 	 * @return the session token
 	 */
-	String getCurrentSessionToken();
+	public String getCurrentSessionToken();
 
 	/**
 	 * Create a new Entity.
 	 * 
-	 * @param <T>
-	 * @param entity
 	 * @return the newly created entity
-	 * @throws SynapseException
 	 */
 	public <T extends Entity> T createEntity(T entity) throws SynapseException;
 
-	JSONObject createJSONObject(String uri, JSONObject entity)
+	public JSONObject createJSONObject(String uri, JSONObject entity)
 			throws SynapseException;
 
-	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException;
+	public SearchResults search(SearchQuery searchQuery)
+			throws SynapseException, UnsupportedEncodingException,
+			JSONObjectAdapterException;
 
-	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException;
+	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId)
+			throws ClientProtocolException, MalformedURLException, IOException;
 
-	URL getFileEntityTemporaryUrlForCurrentVersion(String entityId)
+	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId)
 			throws ClientProtocolException, MalformedURLException, IOException;
 
 	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId,
-			Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException;
+			Long versionNumber) throws ClientProtocolException,
+			MalformedURLException, IOException;
 
 	public URL getFileEntityTemporaryUrlForVersion(String entityId,
-			Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException;
+			Long versionNumber) throws ClientProtocolException,
+			MalformedURLException, IOException;
 
-	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException;
+	public S3FileHandle createFileHandle(File temp, String contentType)
+			throws SynapseException, IOException;
 
 	/**
 	 * Get a WikiPage using its key
-	 * @param key
-	 * @return
-	 * @throws SynapseException 
-	 * @throws JSONObjectAdapterException 
 	 */
-	public WikiPage getWikiPage(WikiPageKey properKey) throws JSONObjectAdapterException, SynapseException;
-
+	public WikiPage getWikiPage(WikiPageKey properKey)
+			throws JSONObjectAdapterException, SynapseException;
 
 	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(
 			RestrictableObjectDescriptor subjectId) throws SynapseException;
 
-	WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
+	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws JSONObjectAdapterException,
 			SynapseException;
 
-	void setRequestProfile(boolean request);
+	public void setRequestProfile(boolean request);
 
-	JSONObject getProfileData();
+	public JSONObject getProfileData();
 
-	String getUserName();
+	public String getUserName();
 
-	void setUserName(String userName);
+	public void setUserName(String userName);
 
-	String getApiKey();
+	public String getApiKey();
 
-	void setApiKey(String apiKey);
+	public void setApiKey(String apiKey);
 
-	<T extends Entity> T createEntity(T entity, String activityId) throws SynapseException;
+	public <T extends Entity> T createEntity(T entity, String activityId)
+			throws SynapseException;
 
 	public <T extends JSONEntity> T createJSONEntity(String uri, T entity)
 			throws SynapseException;
 
-	EntityBundle createEntityBundle(EntityBundleCreate ebc)
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc)
 			throws SynapseException;
 
-	EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId)
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc, String activityId)
 			throws SynapseException;
 
-	EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc)
+	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc)
 			throws SynapseException;
 
-	EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc,
+	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc,
 			String activityId) throws SynapseException;
 
-	JSONObject getEntity(String uri) throws SynapseException;
-
-	Entity getEntityByIdForVersion(String entityId, Long versionNumber)
+	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException;
 
-	EntityBundle getEntityBundle(String entityId, int partsMask)
+	public EntityBundle getEntityBundle(String entityId, int partsMask)
 			throws SynapseException;
 
-	EntityBundle getEntityBundle(String entityId, Long versionNumber,
+	public EntityBundle getEntityBundle(String entityId, Long versionNumber,
 			int partsMask) throws SynapseException;
 
-	PaginatedResults<VersionInfo> getEntityVersions(String entityId,
+	public PaginatedResults<VersionInfo> getEntityVersions(String entityId,
 			int offset, int limit) throws SynapseException;
 
-	AccessControlList getACL(String entityId) throws SynapseException;
+	public AccessControlList getACL(String entityId) throws SynapseException;
 
-	EntityHeader getEntityBenefactor(String entityId) throws SynapseException;
+	public EntityHeader getEntityBenefactor(String entityId) throws SynapseException;
 
-	UserProfile getMyProfile() throws SynapseException;
+	public UserProfile getMyProfile() throws SynapseException;
 
-	void updateMyProfile(UserProfile userProfile) throws SynapseException;
+	public void updateMyProfile(UserProfile userProfile) throws SynapseException;
 
-	UserProfile getUserProfile(String ownerId) throws SynapseException;
+	public UserProfile getUserProfile(String ownerId) throws SynapseException;
 
-	UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
 			throws SynapseException;
 
-	UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix)
 			throws SynapseException, UnsupportedEncodingException;
 
-	AccessControlList updateACL(AccessControlList acl) throws SynapseException;
+	public AccessControlList updateACL(AccessControlList acl) throws SynapseException;
 
-	AccessControlList updateACL(AccessControlList acl, boolean recursive)
+	public AccessControlList updateACL(AccessControlList acl, boolean recursive)
 			throws SynapseException;
 
-	void deleteACL(String entityId) throws SynapseException;
+	public void deleteACL(String entityId) throws SynapseException;
 
-	AccessControlList createACL(AccessControlList acl) throws SynapseException;
+	public AccessControlList createACL(AccessControlList acl) throws SynapseException;
 
-	PaginatedResults<UserProfile> getUsers(int offset, int limit)
+	public PaginatedResults<UserProfile> getUsers(int offset, int limit)
 			throws SynapseException;
 
-	PaginatedResults<UserGroup> getGroups(int offset, int limit)
+	public PaginatedResults<UserGroup> getGroups(int offset, int limit)
 			throws SynapseException;
 
-	boolean canAccess(String entityId, ACCESS_TYPE accessType)
+	public boolean canAccess(String entityId, ACCESS_TYPE accessType)
 			throws SynapseException;
 
-	boolean canAccess(String id, ObjectType type, ACCESS_TYPE accessType)
+	public boolean canAccess(String id, ObjectType type, ACCESS_TYPE accessType)
 			throws SynapseException;
 
-	UserEntityPermissions getUsersEntityPermissions(String entityId)
+	public UserEntityPermissions getUsersEntityPermissions(String entityId)
 			throws SynapseException;
 
-	Annotations getAnnotations(String entityId) throws SynapseException;
+	public Annotations getAnnotations(String entityId) throws SynapseException;
 
-	Annotations updateAnnotations(String entityId, Annotations updated)
+	public Annotations updateAnnotations(String entityId, Annotations updated)
 			throws SynapseException;
 
-	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException;
-
-	ACTAccessRequirement createLockAccessRequirement(String entityId)
+	public <T extends AccessRequirement> T createAccessRequirement(T ar)
 			throws SynapseException;
 
-	VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+	public ACTAccessRequirement createLockAccessRequirement(String entityId)
+			throws SynapseException;
+
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(
 			RestrictableObjectDescriptor subjectId) throws SynapseException;
 
-	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException;
-
-	public <T extends JSONEntity> T getEntity(String entityId, Class<? extends T> clazz) throws SynapseException;
-
-	void deleteAccessRequirement(Long arId) throws SynapseException;
-
-	@Deprecated
-	public JSONObject updateEntity(String uri, JSONObject entity)
+	public <T extends AccessApproval> T createAccessApproval(T aa)
 			throws SynapseException;
-
-	public <T extends Entity> T putEntity(T entity, String activityId) throws SynapseException;
-
-	JSONObject putJSONObject(String uri, JSONObject entity,
-			Map<String, String> headers) throws SynapseException;
-
-	JSONObject postUri(String uri) throws SynapseException;
-
-	void deleteUri(String uri) throws SynapseException;
 	
-	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
-	
-	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException;
-	
-	public void deleteEntityById(String entityId)
+	public JSONObject getEntity(String uri) throws SynapseException;
+
+	public <T extends JSONEntity> T getEntity(String entityId,
+			Class<? extends T> clazz) throws SynapseException;
+
+	public void deleteAccessRequirement(Long arId) throws SynapseException;
+
+	public <T extends Entity> T putEntity(T entity, String activityId)
 			throws SynapseException;
 
-	void deleteAndPurgeEntityById(String entityId) throws SynapseException;
-	
-	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException;
-
-	void deleteEntityVersionById(String entityId, Long versionNumber)
+	public <T extends Entity> void deleteEntity(T entity)
 			throws SynapseException;
 
-	EntityPath getEntityPath(Entity entity) throws SynapseException;
-
-	EntityPath getEntityPath(String entityId) throws SynapseException;
-
-	BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
+	public <T extends Entity> void deleteAndPurgeEntity(T entity)
 			throws SynapseException;
 
-	BatchResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
+	public void deleteEntityById(String entityId) throws SynapseException;
+
+	public void deleteAndPurgeEntityById(String entityId) throws SynapseException;
+
+	public <T extends Entity> void deleteEntityVersion(T entity,
+			Long versionNumber) throws SynapseException;
+
+	public void deleteEntityVersionById(String entityId, Long versionNumber)
 			throws SynapseException;
 
-	PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
+	public EntityPath getEntityPath(Entity entity) throws SynapseException;
+
+	public EntityPath getEntityPath(String entityId) throws SynapseException;
+
+	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds)
 			throws SynapseException;
 
-	PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId,
+	public BatchResults<EntityHeader> getEntityHeaderBatch(List<Reference> references)
+			throws SynapseException;
+
+	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity)
+			throws SynapseException;
+
+	public PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId,
 			String targetVersion) throws SynapseException;
 
-	JSONObject query(String query) throws SynapseException;
+	public JSONObject query(String query) throws SynapseException;
 
-	FileHandleResults createFileHandles(List<File> files)
+	public FileHandleResults createFileHandles(List<File> files)
 			throws SynapseException;
 
-	ChunkedFileToken createChunkedFileUploadToken(
+	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
 
-	URL createChunkedPresignedUrl(ChunkRequest chunkRequest)
+	public URL createChunkedPresignedUrl(ChunkRequest chunkRequest)
 			throws SynapseException;
 
-	String putFileToURL(URL url, File file, String contentType)
-			throws SynapseException;
-
-	@Deprecated
-	ChunkResult addChunkToFile(ChunkRequest chunkRequest)
+	public String putFileToURL(URL url, File file, String contentType)
 			throws SynapseException;
 
 	@Deprecated
-	S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request)
+	public ChunkResult addChunkToFile(ChunkRequest chunkRequest)
 			throws SynapseException;
 
-	UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
+	@Deprecated
+	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request)
 			throws SynapseException;
 
-	UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId)
+	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr)
 			throws SynapseException;
 
-	ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
+	public UploadDaemonStatus getCompleteUploadDaemonStatus(String daemonId)
+			throws SynapseException;
+
+	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh)
 			throws JSONObjectAdapterException, SynapseException;
 
-	FileHandle getRawFileHandle(String fileHandleId) throws SynapseException;
+	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException;
 
-	void deleteFileHandle(String fileHandleId) throws SynapseException;
+	public void deleteFileHandle(String fileHandleId) throws SynapseException;
 
-	void clearPreview(String fileHandleId) throws SynapseException;
+	public void clearPreview(String fileHandleId) throws SynapseException;
 
-	WikiPage createWikiPage(String ownerId, ObjectType ownerType,
+	public WikiPage createWikiPage(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws JSONObjectAdapterException,
 			SynapseException;
 
-	WikiPage getRootWikiPage(String ownerId, ObjectType ownerType)
+	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType)
 			throws JSONObjectAdapterException, SynapseException;
 
-	FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
+	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
-	File downloadWikiAttachment(WikiPageKey key, String fileName)
+	public File downloadWikiAttachment(WikiPageKey key, String fileName)
 			throws ClientProtocolException, IOException;
 
-	File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
+	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
 			throws ClientProtocolException, FileNotFoundException, IOException;
 
-	void deleteWikiPage(WikiPageKey key) throws SynapseException;
+	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
 
-	PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
 			ObjectType ownerType) throws SynapseException,
 			JSONObjectAdapterException;
 
-	FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId)
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId)
 			throws JSONObjectAdapterException, SynapseException;
 
-	FileHandleResults getEntityFileHandlesForVersion(String entityId,
+	public FileHandleResults getEntityFileHandlesForVersion(String entityId,
 			Long versionNumber) throws JSONObjectAdapterException,
 			SynapseException;
 
+	public V2WikiPage createV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toCreate) throws JSONObjectAdapterException,
+			SynapseException;
+
+	public V2WikiPage getV2WikiPage(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException;
+
+	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toUpdate) throws JSONObjectAdapterException,
+			SynapseException;
+	
+	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+			SynapseException;
+	
+	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
+		throws JSONObjectAdapterException, SynapseException;
+
+	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
+		throws JSONObjectAdapterException, SynapseException;
+
+	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
+		throws ClientProtocolException, IOException;
+	
+	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+		throws ClientProtocolException, FileNotFoundException, IOException;
+	
+	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName) throws ClientProtocolException, IOException;
+
+	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName) throws ClientProtocolException, IOException;
+
+	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
+	
+	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
+		ObjectType ownerType) throws SynapseException,
+		JSONObjectAdapterException;
+	
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
+		throws JSONObjectAdapterException, SynapseException;
+	
 	@Deprecated
-	File downloadLocationableFromSynapse(Locationable locationable)
+	public File downloadLocationableFromSynapse(Locationable locationable)
 			throws SynapseException;
 
 	@Deprecated
-	File downloadLocationableFromSynapse(Locationable locationable,
+	public File downloadLocationableFromSynapse(Locationable locationable,
 			File destinationFile) throws SynapseException;
 
 	@Deprecated
-	File downloadFromSynapse(LocationData location, String md5,
+	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException;
 
 	@Deprecated
-	File downloadFromSynapse(String path, String md5, File destinationFile)
+	public File downloadFromSynapse(String path, String md5, File destinationFile)
 			throws SynapseException;
 
 	@Deprecated
-	Locationable uploadLocationableToSynapse(Locationable locationable,
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile) throws SynapseException;
 
 	@Deprecated
-	Locationable uploadLocationableToSynapse(Locationable locationable,
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile, String md5) throws SynapseException;
 
 	@Deprecated
-	Locationable updateExternalLocationableToSynapse(Locationable locationable,
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl) throws SynapseException;
+
 	@Deprecated
-	Locationable updateExternalLocationableToSynapse(Locationable locationable,
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl, String md5) throws SynapseException;
+
 	@Deprecated
-	AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile)
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile)
 			throws JSONObjectAdapterException, SynapseException, IOException;
+
 	@Deprecated
-	AttachmentData uploadUserProfileAttachmentToSynapse(String userId,
+	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId,
 			File dataFile, String fileName) throws JSONObjectAdapterException,
 			SynapseException, IOException;
+
 	@Deprecated
-	AttachmentData uploadAttachmentToSynapse(String id,
+	public AttachmentData uploadAttachmentToSynapse(String id,
 			AttachmentType attachmentType, File dataFile, String fileName)
 			throws JSONObjectAdapterException, SynapseException, IOException;
+
 	@Deprecated
-	PresignedUrl createUserProfileAttachmentPresignedUrl(String id,
+	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id,
 			String tokenOrPreviewId) throws SynapseException,
 			JSONObjectAdapterException;
+
 	@Deprecated
-	PresignedUrl createAttachmentPresignedUrl(String id,
+	public PresignedUrl createAttachmentPresignedUrl(String id,
 			AttachmentType attachmentType, String tokenOrPreviewId)
 			throws SynapseException, JSONObjectAdapterException;
+
 	@Deprecated
-	PresignedUrl waitForUserProfilePreviewToBeCreated(String userId,
+	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId,
 			String tokenOrPreviewId, int timeout) throws SynapseException,
 			JSONObjectAdapterException;
+
 	@Deprecated
-	PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type,
+	public PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type,
 			String tokenOrPreviewId, int timeout) throws SynapseException,
 			JSONObjectAdapterException;
+
 	@Deprecated
-	void downloadEntityAttachment(String entityId,
+	public void downloadEntityAttachment(String entityId,
 			AttachmentData attachmentData, File destFile)
 			throws SynapseException, JSONObjectAdapterException;
+
 	@Deprecated
-	void downloadUserProfileAttachment(String userId,
+	public void downloadUserProfileAttachment(String userId,
 			AttachmentData attachmentData, File destFile)
 			throws SynapseException, JSONObjectAdapterException;
+
 	@Deprecated
-	void downloadAttachment(String id, AttachmentType type,
+	public void downloadAttachment(String id, AttachmentType type,
 			AttachmentData attachmentData, File destFile)
 			throws SynapseException, JSONObjectAdapterException;
+
 	@Deprecated
-	void downloadEntityAttachmentPreview(String entityId, String previewId,
+	public void downloadEntityAttachmentPreview(String entityId, String previewId,
 			File destFile) throws SynapseException, JSONObjectAdapterException;
+
 	@Deprecated
-	void downloadUserProfileAttachmentPreview(String userId, String previewId,
+	public void downloadUserProfileAttachmentPreview(String userId, String previewId,
 			File destFile) throws SynapseException, JSONObjectAdapterException;
+
 	@Deprecated
-	void downloadAttachmentPreview(String id, AttachmentType type,
+	public void downloadAttachmentPreview(String id, AttachmentType type,
 			String previewId, File destFile) throws SynapseException,
 			JSONObjectAdapterException;
+
 	@Deprecated
-	S3AttachmentToken createAttachmentS3Token(String id,
+	public S3AttachmentToken createAttachmentS3Token(String id,
 			AttachmentType attachmentType, S3AttachmentToken token)
 			throws JSONObjectAdapterException, SynapseException;
-
-	JSONObject createAuthEntity(String uri, JSONObject entity)
-			throws SynapseException;
-
-	JSONObject getAuthEntity(String uri) throws SynapseException;
-
-	JSONObject putAuthEntity(String uri, JSONObject entity)
-			throws SynapseException;
-
-	JSONObject createJSONObjectEntity(String endpoint, String uri,
-			JSONObject entity) throws SynapseException;
-
-	JSONObject getSynapseEntity(String endpoint, String uri)
-			throws SynapseException;
-
-	JSONObject putJSONObject(String endpoint, String uri, JSONObject entity,
-			Map<String, String> headers) throws SynapseException;
-
-	JSONObject postUri(String endpoint, String uri) throws SynapseException;
-
-	JSONObject querySynapse(String endpoint, String query)
-			throws SynapseException;
-
-	void deleteUri(String endpoint, String uri) throws SynapseException;
 	
-	public <T extends JSONEntity> T getJSONEntity(String uri,
-			Class<? extends T> clazz) throws SynapseException,
+	public String getSynapseTermsOfUse() throws SynapseException;
+
+	public Long getChildCount(String entityId) throws SynapseException;
+
+	public SynapseVersionInfo getVersionInfo() throws SynapseException,
 			JSONObjectAdapterException;
 
-	String getSynapseTermsOfUse() throws SynapseException;
+	public Set<String> getAllUserAndGroupIds() throws SynapseException;
 
-	Long getChildCount(String entityId) throws SynapseException;
+	public Activity getActivityForEntity(String entityId) throws SynapseException;
 
-	SynapseVersionInfo getVersionInfo() throws SynapseException,
-			JSONObjectAdapterException;
-
-	Set<String> getAllUserAndGroupIds() throws SynapseException;
-
-	Activity getActivityForEntity(String entityId) throws SynapseException;
-
-	Activity getActivityForEntityVersion(String entityId, Long versionNumber)
+	public Activity getActivityForEntityVersion(String entityId, Long versionNumber)
 			throws SynapseException;
 
-	Activity setActivityForEntity(String entityId, String activityId)
+	public Activity setActivityForEntity(String entityId, String activityId)
 			throws SynapseException;
 
-	void deleteGeneratedByForEntity(String entityId) throws SynapseException;
+	public void deleteGeneratedByForEntity(String entityId) throws SynapseException;
 
-	Activity createActivity(Activity activity) throws SynapseException;
+	public Activity createActivity(Activity activity) throws SynapseException;
 
-	Activity getActivity(String activityId) throws SynapseException;
+	public Activity getActivity(String activityId) throws SynapseException;
 
-	Activity putActivity(Activity activity) throws SynapseException;
+	public Activity putActivity(Activity activity) throws SynapseException;
 
-	void deleteActivity(String activityId) throws SynapseException;
+	public void deleteActivity(String activityId) throws SynapseException;
 
-	PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId,
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId,
 			Integer limit, Integer offset) throws SynapseException;
 
-	EntityIdList getDescendants(String nodeId, int pageSize,
+	public EntityIdList getDescendants(String nodeId, int pageSize,
 			String lastDescIdExcl) throws SynapseException;
 
-	EntityIdList getDescendants(String nodeId, int generation, int pageSize,
+	public EntityIdList getDescendants(String nodeId, int generation, int pageSize,
 			String lastDescIdExcl) throws SynapseException;
 
-	Evaluation createEvaluation(Evaluation eval) throws SynapseException;
+	public Evaluation createEvaluation(Evaluation eval) throws SynapseException;
 
-	Evaluation getEvaluation(String evalId) throws SynapseException;
+	public Evaluation getEvaluation(String evalId) throws SynapseException;
 
-	PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
+	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
 			int offset, int limit) throws SynapseException;
 
-	@Deprecated
-	PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit)
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
 
-	@Deprecated
-	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
-			EvaluationStatus status, int offset, int limit)
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
 
-	Long getEvaluationCount() throws SynapseException;
+	public Long getEvaluationCount() throws SynapseException;
 
-	Evaluation findEvaluation(String name) throws SynapseException,
+	public Evaluation findEvaluation(String name) throws SynapseException,
 			UnsupportedEncodingException;
 
-	Evaluation updateEvaluation(Evaluation eval) throws SynapseException;
+	public Evaluation updateEvaluation(Evaluation eval) throws SynapseException;
 
-	void deleteEvaluation(String evalId) throws SynapseException;
+	public void deleteEvaluation(String evalId) throws SynapseException;
 
-	Participant createParticipant(String evalId) throws SynapseException;
+	public Participant createParticipant(String evalId) throws SynapseException;
 
-	Participant getParticipant(String evalId, String principalId)
+	public Participant getParticipant(String evalId, String principalId)
 			throws SynapseException;
 
-	void deleteParticipant(String evalId, String principalId)
+	public void deleteParticipant(String evalId, String principalId)
 			throws SynapseException;
 
-	PaginatedResults<Participant> getAllParticipants(String s,
-			long offset, long limit) throws SynapseException;
-
-	Long getParticipantCount(String evalId) throws SynapseException;
-
-	Submission createSubmission(Submission sub, String etag)
-			throws SynapseException;
-
-	Submission getSubmission(String subId) throws SynapseException;
-
-	SubmissionStatus getSubmissionStatus(String subId) throws SynapseException;
-
-	SubmissionStatus updateSubmissionStatus(SubmissionStatus status)
-			throws SynapseException;
-
-	void deleteSubmission(String subId) throws SynapseException;
-
-	PaginatedResults<Submission> getAllSubmissions(String evalId, long offset,
+	public PaginatedResults<Participant> getAllParticipants(String s, long offset,
 			long limit) throws SynapseException;
 
-	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId,
+	public Long getParticipantCount(String evalId) throws SynapseException;
+
+	public Submission createSubmission(Submission sub, String etag)
+			throws SynapseException;
+
+	public Submission getSubmission(String subId) throws SynapseException;
+
+	public SubmissionStatus getSubmissionStatus(String subId) throws SynapseException;
+
+	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status)
+			throws SynapseException;
+
+	public void deleteSubmission(String subId) throws SynapseException;
+
+	public PaginatedResults<Submission> getAllSubmissions(String evalId, long offset,
+			long limit) throws SynapseException;
+
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId,
 			long offset, long limit) throws SynapseException;
 
-	PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String evalId,
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String evalId,
 			long offset, long limit) throws SynapseException;
 
-	PaginatedResults<Submission> getAllSubmissionsByStatus(String evalId,
+	public PaginatedResults<Submission> getAllSubmissionsByStatus(String evalId,
 			SubmissionStatusEnum status, long offset, long limit)
 			throws SynapseException;
 
-	PaginatedResults<SubmissionStatus> getAllSubmissionStatusesByStatus(
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatusesByStatus(
 			String evalId, SubmissionStatusEnum status, long offset, long limit)
 			throws SynapseException;
 
-	PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
 			String evalId, SubmissionStatusEnum status, long offset, long limit)
 			throws SynapseException;
 
-	PaginatedResults<Submission> getMySubmissions(String evalId, long offset,
+	public PaginatedResults<Submission> getMySubmissions(String evalId, long offset,
 			long limit) throws SynapseException;
 
-	PaginatedResults<SubmissionBundle> getMySubmissionBundles(String evalId,
+	public PaginatedResults<SubmissionBundle> getMySubmissionBundles(String evalId,
 			long offset, long limit) throws SynapseException;
 
-	URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId,
+	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId,
 			String fileHandleId) throws ClientProtocolException,
 			MalformedURLException, IOException;
 
-	Long getSubmissionCount(String evalId) throws SynapseException;
+	public Long getSubmissionCount(String evalId) throws SynapseException;
 
-	UserEvaluationState getUserEvaluationState(String evalId)
+	public UserEvaluationState getUserEvaluationState(String evalId)
 			throws SynapseException;
 
-	QueryTableResults queryEvaluation(String query) throws SynapseException;
+	public QueryTableResults queryEvaluation(String query) throws SynapseException;
 
-	void moveToTrash(String entityId) throws SynapseException;
+	public void moveToTrash(String entityId) throws SynapseException;
 
-	void restoreFromTrash(String entityId, String newParentId)
+	public void restoreFromTrash(String entityId, String newParentId)
 			throws SynapseException;
 
-	PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit)
+	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit)
 			throws SynapseException;
 
-	void purgeTrashForUser(String entityId) throws SynapseException;
+	public void purgeTrashForUser(String entityId) throws SynapseException;
 
-	void purgeTrashForUser() throws SynapseException;
+	public void purgeTrashForUser() throws SynapseException;
 
-	EntityHeader addFavorite(String entityId) throws SynapseException;
+	public EntityHeader addFavorite(String entityId) throws SynapseException;
 
-	void removeFavorite(String entityId) throws SynapseException;
+	public void removeFavorite(String entityId) throws SynapseException;
 
-	PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
 			throws SynapseException;
 
-	void createEntityDoi(String entityId) throws SynapseException;
+	public void createEntityDoi(String entityId) throws SynapseException;
 
-	void createEntityDoi(String entityId, Long entityVersion)
+	public void createEntityDoi(String entityId, Long entityVersion)
 			throws SynapseException;
 
-	Doi getEntityDoi(String entityId) throws SynapseException;
+	public Doi getEntityDoi(String entityId) throws SynapseException;
 
-	Doi getEntityDoi(String s, Long entityVersion)
-			throws SynapseException;
+	public Doi getEntityDoi(String s, Long entityVersion) throws SynapseException;
 
-	List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
 
-	String retrieveApiKey() throws SynapseException;
+	public String retrieveApiKey() throws SynapseException;
 
-	AccessControlList updateEvaluationAcl(AccessControlList acl)
-			throws SynapseException;
-
-	AccessControlList getEvaluationAcl(String evalId) throws SynapseException;
-
-	UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
-			throws SynapseException;
+	public void invalidateApiKey() throws SynapseException;
 	
+	public AccessControlList updateEvaluationAcl(AccessControlList acl)
+			throws SynapseException;
+
+	public AccessControlList getEvaluationAcl(String evalId) throws SynapseException;
+
+	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
+			throws SynapseException;
+
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
 	 * that column will be returned.
@@ -945,4 +987,46 @@ public interface SynapseClient {
 	 * @throws SynapseException 
 	 */
 	PaginatedColumnModels listColumnModels(String prefix, Long limit, Long offset) throws SynapseException;
+
+	/**
+	 * Creates a user
+	 */
+	public void createUser(NewUser user) throws SynapseException;
+
+	/**
+	 * Retrieves the bare-minimum amount of information about the current user
+	 * i.e. email and name
+	 */
+	public NewUser getAuthUserInfo() throws SynapseException;
+	
+	/**
+	 * Changes the current user's password
+	 */
+	public void changePassword(String newPassword) throws SynapseException;
+
+	/**
+	 * Changes the registering user's password
+	 */
+	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
+	
+	/**
+	 * Changes the current user's email to the email corresponding to the supplied session token
+	 */
+	public void changeEmail(String sessionToken, String newPassword) throws SynapseException;
+	
+	/**
+	 * Sends a password reset email to the current user 
+	 */
+	public void sendPasswordResetEmail() throws SynapseException;
+	
+	/**
+	 * Sends a password reset email to the given user
+	 */
+	public void sendPasswordResetEmail(String email) throws SynapseException;
+	
+	/**
+	 * Performs OpenID authentication using the set of parameters from an OpenID provider
+	 * @return A session token if the authentication passes
+	 */
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
 }

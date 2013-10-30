@@ -103,4 +103,17 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return null;
 	}
 
+	@Override
+	public void registerMessageProcessed(long changeNumber, String queueName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public List<ChangeMessage> listNotProcessedMessages(String queueName,
+			long limit) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

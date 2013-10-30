@@ -244,15 +244,28 @@ public class EvaluationControllerAutowiredTest {
 		}
 		
 		// open the evaluation to join
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(12);
-		accessSet.add(ACCESS_TYPE.PARTICIPATE);
-		accessSet.add(ACCESS_TYPE.READ);
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(accessSet);
-		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
-		ra.setPrincipalId(Long.parseLong(userId));
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
-		acl.getResourceAccess().add(ra);
+		{
+			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(2);
+			accessSet.add(ACCESS_TYPE.PARTICIPATE);
+			accessSet.add(ACCESS_TYPE.READ);
+			ResourceAccess ra = new ResourceAccess();
+			ra.setAccessType(accessSet);
+			String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
+			ra.setPrincipalId(Long.parseLong(userId));
+			acl.getResourceAccess().add(ra);
+		}
+		{
+			// this is the new way to add a participant
+			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(1);
+			accessSet.add(ACCESS_TYPE.SUBMIT);
+			ResourceAccess ra = new ResourceAccess();
+			ra.setAccessType(accessSet);
+			String userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+			assertNotNull(userId);
+			ra.setPrincipalId(Long.parseLong(userId));
+			acl.getResourceAccess().add(ra);
+		}
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
 		assertNotNull(acl);
 
@@ -264,14 +277,11 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(ownerName, eval1.getId()));
 
 		// query, just checking basic wiring
-		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName, null);
+		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName);
 		assertEquals(1L, pr.getTotalNumberOfResults());
 		// get the new etag (changed when participant was added?)
 		eval1 = entityServletHelper.getEvaluation(userName, eval1.getId());
 		assertEquals(eval1, pr.getResults().iterator().next());
-		// make sure 'status' parameter is wired up
-		assertEquals(0, entityServletHelper.getAvailableEvaluations(userName, "PLANNED").getTotalNumberOfResults());
-		assertEquals(1, entityServletHelper.getAvailableEvaluations(userName, "OPEN").getTotalNumberOfResults());
 		
 		// read
 		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();

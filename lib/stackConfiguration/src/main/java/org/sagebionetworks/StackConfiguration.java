@@ -199,10 +199,6 @@ public class StackConfiguration {
 		return configuration.getFileServiceEndpoint();
 	}
 
-	public static String getCrowdEndpoint() {
-		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
-	}
-
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own
@@ -239,11 +235,6 @@ public class StackConfiguration {
 	public static Integer getS3WriteAccessExpiryHours() {
 		return Integer.valueOf(configuration
 				.getProperty("org.sagebionetworks.s3.writeAccessExpiryHours"));
-	}
-
-	public static String getCrowdAPIApplicationKey() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.crowdApplicationKey");
 	}
 
 	public static String getMailPassword() {
@@ -283,20 +274,6 @@ public class StackConfiguration {
 	public String getIdGeneratorDatabaseDriver() {
 		return configuration
 				.getProperty("org.sagebionetworks.id.generator.database.driver");
-	}
-	
-	
-	public String getCrowdDatabaseConnectionUrl() {
-		return configuration
-				.getProperty("org.sagebionetworks.crowd.database.connection.url");
-	}
-	public String getCrowdDatabaseUsername() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.crowd.database.username");
-	}
-	public String getCrowdDatabasePassword() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.crowd.database.password");
 	}
 
 	/**
@@ -444,15 +421,7 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.integration.test.username.one");
 	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserOneEmail() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.email.one");
-	}
-
+	
 	/**
 	 * @return The password of a user for integration tests
 	 */
@@ -483,14 +452,6 @@ public class StackConfiguration {
 	public static String getIntegrationTestUserThreeName() {
 		return configuration
 				.getProperty("org.sagebionetworks.integration.test.username.three");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreeEmail() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.email.three");
 	}
 
 	/**
@@ -531,14 +492,6 @@ public class StackConfiguration {
 	public static String getIntegrationTestRejectTermsOfUseName() {
 		return configuration
 				.getProperty("org.sagebionetworks.integration.test.username.rejecttermsofuse");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestRejectTermsOfUseEmail() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.email.rejecttermsofuse");
 	}
 
 	/**
@@ -1085,17 +1038,6 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
-	}
-	
-	/**
-	 * The maximum number of workers in the cluster that will synchronize Crowd with RDS
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersCrowdGroupSynchronize() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.crowd.synchronize"));
 	}
 
 	

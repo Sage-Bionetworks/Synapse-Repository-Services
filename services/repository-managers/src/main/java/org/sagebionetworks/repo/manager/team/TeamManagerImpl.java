@@ -56,8 +56,6 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
-	private UserManager userManager;
-	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
 	private FileHandleManager fileHandleManager;
@@ -65,6 +63,8 @@ public class TeamManagerImpl implements TeamManager {
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	@Autowired
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	private UserManager userManager;
 	
 	public TeamManagerImpl() {}
 	
@@ -74,21 +74,21 @@ public class TeamManagerImpl implements TeamManager {
 			TeamDAO teamDAO,
 			GroupMembersDAO groupMembersDAO,
 			UserGroupDAO userGroupDAO,
-			UserManager userManager,
 			AccessControlListDAO aclDAO,
 			FileHandleManager fileHandlerManager,
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
-			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
+			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO, 
+			UserManager userManager
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
 		this.groupMembersDAO = groupMembersDAO;
 		this.userGroupDAO = userGroupDAO;
-		this.userManager = userManager;
 		this.aclDAO = aclDAO;
 		this.fileHandleManager = fileHandlerManager;
 		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
 		this.membershipRqstSubmissionDAO = membershipRqstSubmissionDAO;
+		this.userManager = userManager;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -197,8 +197,13 @@ public class TeamManagerImpl implements TeamManager {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
-		if (userManager.doesPrincipalExist(team.getName())) throw new InvalidModelException("Name "+team.getName()+" is already used.");
-		String id = userManager.createPrincipal(team.getName(), /*isIndividual*/false);
+		if (userManager.doesPrincipalExist(team.getName())) {
+			throw new InvalidModelException("Name "+team.getName()+" is already used.");
+		}
+		UserGroup ug = new UserGroup();
+		ug.setName(team.getName());
+		ug.setIsIndividual(false);
+		String id = userGroupDAO.create(ug);
 		team.setId(id);
 		Date now = new Date();
 		populateCreationFields(userInfo, team, now);
@@ -313,7 +318,10 @@ public class TeamManagerImpl implements TeamManager {
 		if (principalIsSelf) {
 			// trying to add myself to Team.  
 			if (amTeamAdmin) return true;
-			// if I'm not a team admin, then I need to have an open invitation
+			// if the team is open, I can join
+			Team team = teamDAO.get(teamId);
+			if (team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true) return true;
+			// if I'm not a team admin and the team is not open, then I need to have an open invitation
 			long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 			return openInvitationCount>0L;
 		} else {

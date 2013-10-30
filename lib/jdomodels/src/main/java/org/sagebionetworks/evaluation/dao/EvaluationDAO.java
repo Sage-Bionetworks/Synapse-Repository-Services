@@ -50,7 +50,7 @@ public interface EvaluationDAO {
 	/**
 	 * @return the Evaluations that any of the given principalIds may participate in
 	 */
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, EvaluationStatus status, long limit, long offset) throws DatastoreException;
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset) throws DatastoreException;
 
 	/**
 	 * Get all Evaluations, in a given range, filtered by EvaluationStatus.
@@ -67,7 +67,7 @@ public interface EvaluationDAO {
 	 */
 	public long getCountByContentSource(String id) throws DatastoreException;
 	
-	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException;
+	public long getAvailableCount(List<Long> principalIds) throws DatastoreException;
 
 	/**
 	 * Updates a Evaluation. Note that this operation requires a current eTag,

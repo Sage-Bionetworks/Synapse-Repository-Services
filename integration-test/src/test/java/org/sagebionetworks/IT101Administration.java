@@ -16,31 +16,21 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-
 /**
- * This test will push data from a backup into synapse.
- * 
- * @author jmhill
- * 
+ * This test will push data from a backup into Synapse
+ * and make sure other methods in the admin client work 
  */
 public class IT101Administration {
 
-	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
-
 	private static SynapseAdminClientImpl synapse;
-	private static AmazonS3Client s3Client;
-	private static String bucket;
 	
 	private List<Entity> toDelete = null;
 
@@ -54,18 +44,6 @@ public class IT101Administration {
 				.getRepositoryServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
-
-		String iamId = StackConfiguration.getIAMUserId();
-		String iamKey = StackConfiguration.getIAMUserKey();
-		if (iamId == null)
-			throw new IllegalArgumentException("IAM id cannot be null");
-		if (iamKey == null)
-			throw new IllegalArgumentException("IAM key cannot be null");
-		bucket = StackConfiguration.getSharedS3BackupBucket();
-		if (bucket == null)
-			throw new IllegalArgumentException("Bucket cannot be null null");
-		AWSCredentials creds = new BasicAWSCredentials(iamId, iamKey);
-		s3Client = new AmazonS3Client(creds);
 	}
 	
 	@After
@@ -158,5 +136,4 @@ public class IT101Administration {
 		assertEquals(1, results.getList().size());
 		System.out.println(results);
 	}
-
 }

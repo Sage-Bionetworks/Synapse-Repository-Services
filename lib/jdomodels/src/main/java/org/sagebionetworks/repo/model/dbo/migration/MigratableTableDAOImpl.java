@@ -30,41 +30,38 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @SuppressWarnings("rawtypes")
-public class MigatableTableDAOImpl implements MigatableTableDAO {
+public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	
 	/**
-	 * For unit testing.
-	 * @param simpleJdbcTemplate
-	 * @param databaseObjectRegister
-	 * @param maxAllowedPacketBytes
+	 * For unit testing
 	 */
-	public MigatableTableDAOImpl(SimpleJdbcTemplate simpleJdbcTemplate,
-			List<MigratableDatabaseObject> databaseObjectRegister,
-			int maxAllowedPacketBytes) {
+	public MigratableTableDAOImpl(SimpleJdbcTemplate simpleJdbcTemplate,
+			List<MigratableDatabaseObject> databaseObjectRegister) {
 		super();
 		this.simpleJdbcTemplate = simpleJdbcTemplate;
 		this.databaseObjectRegister = databaseObjectRegister;
-		this.maxAllowedPacketBytes = maxAllowedPacketBytes;
 	}
 
 	/**
 	 * Default used by Spring
 	 */
-	public MigatableTableDAOImpl(){}
+	public MigratableTableDAOImpl() { }
+	
 	/**
 	 * Injected via Spring
 	 */
 	private List<MigratableDatabaseObject> databaseObjectRegister;
-	
-	int maxAllowedPacketBytes = -1;
+
+	/**
+	 * Injected via Spring
+	 */
+	private List<Long> userGroupIdsExemptFromDeletion;
 	
 	/**
 	 * Injected via Spring
-	 * @param databaseObjectRegister
 	 */
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
@@ -72,10 +69,9 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	
 	/**
 	 * Injected via Spring
-	 * @param maxAllowedPacketBytes
 	 */
-	public void setMaxAllowedPacketBytes(int maxAllowedPacketBytes) {
-		this.maxAllowedPacketBytes = maxAllowedPacketBytes;
+	public void setUserGroupIdsExemptFromDeletion(List<Long> userGroupIdsExemptFromDeletion) {
+		this.userGroupIdsExemptFromDeletion = userGroupIdsExemptFromDeletion;
 	}
 
 	// SQL
@@ -103,7 +99,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	/**
 	 * Called when this bean is ready.
 	 */
-	public void initialize(){
+	public void initialize() {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 		// Create the schema for each 
@@ -118,6 +114,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * Register a MigratableDatabaseObject with this DAO.
 	 * @param dbo
 	 */
+	@SuppressWarnings("unchecked")
 	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
 		if(dbo == null) throw new IllegalArgumentException("MigratableDatabaseObject cannot be null");
 		if(dbo instanceof AutoIncrementDatabaseObject<?>) throw new IllegalArgumentException("AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "+dbo.getClass().getName());
@@ -214,12 +211,31 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public int deleteObjectsById(MigrationType type, List<Long> idList) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
-		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
-		if(idList.size() < 1) return 0;
+		if (type == null) {
+			throw new IllegalArgumentException("type cannot be null");
+		}
+		if (idList == null) {
+			throw new IllegalArgumentException("idList cannot be null");
+		}
+		
+		// Migration should not delete the user handling the migration
+		if (type == MigrationType.PRINCIPAL 
+				|| type == MigrationType.CREDENTIAL
+				|| type == MigrationType.GROUP_MEMBERS) {
+			idList.removeAll(userGroupIdsExemptFromDeletion);
+		}
+		
+		if (idList.size() < 1) {
+			return 0;
+		}
+		
 		String deleteSQL = this.deleteSqlMap.get(type);
-		if(deleteSQL == null) throw new IllegalArgumentException("Cannot find batch delete SQL for "+type);
-		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, idList);
+		if (deleteSQL == null) {
+			throw new IllegalArgumentException(
+					"Cannot find batch delete SQL for " + type);
+		}
+		SqlParameterSource params = new MapSqlParameterSource(
+				DMLUtils.BIND_VAR_ID_lIST, idList);
 		return simpleJdbcTemplate.update(deleteSQL, params);
 	}
 	
@@ -231,6 +247,8 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		if(rowIds.size() < 1) return new LinkedList<D>();
 		MigrationType type = getTypeForClass(clazz);
 		String sql = getBatchBackupSql(type);
+		
+		@SuppressWarnings("unchecked")
 		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
 		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, rowIds);
 		List<D> page = simpleJdbcTemplate.query(sql, object.getTableMapping(), params);

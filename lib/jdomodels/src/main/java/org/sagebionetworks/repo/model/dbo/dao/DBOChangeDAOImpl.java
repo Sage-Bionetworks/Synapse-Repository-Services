@@ -5,8 +5,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_TIME_STAMP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_TIME_STAMP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_QUEUE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROCESSED_MESSAGES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -81,6 +85,12 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	private static final String SQL_DELETE_BY_CHANGE_NUM = 
 			"DELETE FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" = ?";
+
+	private static final String SQL_INSERT_PROCESSED_ON_DUPLICATE_UPDATE =
+			"INSERT INTO "+TABLE_PROCESSED_MESSAGES+" ( "+COL_PROCESSED_MESSAGES_CHANGE_NUM+", "+COL_PROCESSED_MESSAGES_QUEUE_NAME+", "+COL_PROCESSED_MESSAGES_TIME_STAMP+") VALUES ( ?, ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?";
+
+	private static final String SQL_SELECT_CHANGES_NOT_PROCESSED =
+			"select c.* from " + TABLE_CHANGES + " c join " + TABLE_SENT_MESSAGES + " s on s." + COL_SENT_MESSAGES_CHANGE_NUM + " = c." + COL_CHANGES_CHANGE_NUM + " left join (select * from " + TABLE_PROCESSED_MESSAGES + " where " + COL_PROCESSED_MESSAGES_QUEUE_NAME + " = ?) p on p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " = s." + COL_SENT_MESSAGES_CHANGE_NUM + " where p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " is null limit ?";
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -209,4 +219,17 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE, rowMapper, lowerBound, upperBound);
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
+
+	@Override
+	public void registerMessageProcessed(long changeNumber, String queueName) {
+		simpleJdbcTemplate.update(SQL_INSERT_PROCESSED_ON_DUPLICATE_UPDATE, changeNumber, queueName, null, null);
+		
+	}
+
+	@Override
+	public List<ChangeMessage> listNotProcessedMessages(String queueName, long limit) {
+		List<DBOChange> l = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_PROCESSED, new DBOChange().getTableMapping(), queueName, limit);
+		return ChangeMessageUtils.createDTOList(l);
+	}
+
 }

@@ -1,34 +1,25 @@
 package org.sagebionetworks.auth;
 
-import java.io.PrintWriter;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.authutil.AuthenticationException;
-import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
+import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -39,308 +30,201 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * <p>Provides REST APIs for managing and obtaining the necessary credentials to access Synapse.</p>
+ * <p>Synapse currently supports four modes of authentication:</p>
+ * <ul>
+ *   <li>username and password</li>
+ *   <li>OpenID from Google</li>
+ *   <li>session token</li>
+ *   <li>API key</li>
+ * </ul>
+ * <p>
+ * Only the session token or API key can be used to authenticate the user outside of the 
+ * authentication services.  Authentication via a username and password, or via OpenID, will
+ * allow the user to retrieve a session token and/or API key for use in other requests.  
+ * </p>
+ */
 @ControllerInfo(displayName="Authentication Services", path="auth/v1")
 @Controller
-public class AuthenticationController extends BaseController {	
+public class AuthenticationController extends BaseController {
+	
+	private static Log log = LogFactory.getLog(AuthenticationController.class);
+	
 	@Autowired
-	AuthenticationService authenticationService;
-
-	private Random rand = new Random();
+	private AuthenticationService authenticationService;
 	
-	private static Map<NewUser,Session> sessionCache = null;
-	private static Long cacheTimeout = null;
-	private static Date lastCacheDump = null;
-//	   a special userId that's used for integration testing
-//	   we need a way to specify a 'back door' userId for integration testing
-//	   the authentication servlet
-//	   this should not be present in the production deployment
-//	   The behavior is as follows
-//	  	If passed to the user creation service, there is no confirmation email generated.
-//	  	Instead the password is taken from the incoming request
-	private String integrationTestNewUser = null;
-
-	private void initCache() {
-		sessionCache = Collections.synchronizedMap(new HashMap<NewUser,Session>());
-		lastCacheDump = new Date();
-		String s = System.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
-		if (s!=null && s.length()>0) {
-			cacheTimeout = Long.parseLong(s);
-		} else {
-			cacheTimeout = AuthorizationConstants.AUTH_CACHE_TIMEOUT_DEFAULT;
-		}
-	}
-	
-	private void checkCacheDump() {
-		Date now = new Date();
-		if (lastCacheDump.getTime()+cacheTimeout<now.getTime()) {
-			sessionCache.clear();
-			lastCacheDump = now;
-		}
-	}
-
 	/**
-	 * @return the integrationTestNewUser
+	 * Retrieve a session token that will be usable for 24 hours or until invalidated.
+	 * The user must accept the terms of use before a session token is issued.
+	 * </br>
+	 * The passed request body must contain an email and password.  
+	 * Other fields will be ignored.  
+	 * See the <a href="${org.sagebionetworks.repo.model.auth.NewUser}">JSON schema</a> for more information.
 	 */
-	public String getIntegrationTestNewUser() {
-		return integrationTestNewUser;
-	}
-
-	/**
-	 * @param integrationTestNewUser the integrationTestNewUser to set
-	 */
-	public void setIntegrationTestNewUser(String integrationTestNewUser) {
-		this.integrationTestNewUser = integrationTestNewUser;
-	}
-
-	public AuthenticationController() {
-		initCache();
-        // optional, only used for testing
-        setIntegrationTestNewUser(StackConfiguration.getIntegrationTestUserThreeName());
-	}
-	
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/session", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
-	Session authenticate(@RequestBody NewUser credentials,
-			HttpServletRequest request) throws Exception {
-		try { 
-			Session session = null;
-			if (cacheTimeout>0) { // then use cache
-				checkCacheDump();
-				session = sessionCache.get(credentials);
-			}
-			if (session==null) { // not using cache or not found in cache
-				session = CrowdAuthUtil.authenticate(credentials, true);
-				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.getAcceptsTermsOfUse()))
-					throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-				if (cacheTimeout>0) {
-					sessionCache.put(credentials, session);
-				}
-			}
-			return session;
-		} catch (AuthenticationException ae) {
-			// include the URL used to authenticate
-			ae.setAuthURL(request.getRequestURL().toString());
-			throw ae;
-		}
-	}
-	
-	// this is just for testing
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/sso", method = RequestMethod.GET)
-	public
-	void redirectTarget(
-			HttpServletRequest request,
-			HttpServletResponse response) throws Exception {
-		PrintWriter pw = response.getWriter();
-		pw.println(request.getRequestURI());
+	Session authenticate(@RequestBody NewUser credentials) throws NotFoundException {
+		return authenticationService.authenticate(credentials);
 	}
 
+	/**
+	 * Refresh a session token to render it usable for another 24 hours.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/session", method = RequestMethod.PUT)
-	public void revalidate(@RequestBody Session session) throws Exception {
-		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
-		if (!CrowdAuthUtil.acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
-			throw new UnauthorizedException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
-		}
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
+	public void revalidate(@RequestBody Session session) throws NotFoundException {
+		authenticationService.revalidate(session.getSessionToken());
 	}
 
+	/**
+	 * Deauthenticate a session token.  This will sign out all active sessions using the session token.   
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
-	public void deauthenticate(HttpServletRequest request) throws Exception {
+	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
+	public void deauthenticate(HttpServletRequest request) {
 		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		if (null == sessionToken) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-
-			CrowdAuthUtil.deauthenticate(sessionToken);
-
-			if (cacheTimeout>0) { // if using cache
-				checkCacheDump();
-				for (NewUser user : sessionCache.keySet()) {
-					Session cachedSession = sessionCache.get(user);
-					if (sessionToken.equals(cachedSession.getSessionToken())) {
-						sessionCache.remove(user);
-						break;
-					}
-				}
-			}
+		authenticationService.invalidateSessionToken(sessionToken);
 	}
-	
+
+	/**
+	 * Create a new user.  An email will be sent regarding how to set a password for the account.    
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = "/user", method = RequestMethod.POST)
-	public void createNewUser(@RequestBody NewUser user) throws Exception {
-		String itu = getIntegrationTestNewUser();
-		boolean isITU = (itu!=null && user.getEmail().equals(itu));
-		if (!isITU) {
-			user.setPassword(""+rand.nextLong());
-		}
-		CrowdAuthUtil.createUser(user);
-		if (!isITU) {
-			//encrypt user session
-			Session session = CrowdAuthUtil.authenticate(user, false);
-			CrowdAuthUtil.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, CrowdAuthUtil.REGISTRATION_TOKEN_PREFIX+session.getSessionToken());
-		}
+	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
+	public void createUser(@RequestBody NewUser user) throws NotFoundException {
+		authenticationService.createUser(user);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
 	
+	/**
+	 * Retrieve basic information about the current authenticated user.  
+	 * Information includes the user's display name, email, and whether they have accepted the terms of use.
+	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/user", method = RequestMethod.GET)
-	public @ResponseBody NewUser getNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userId)) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
-		NewUser user = CrowdAuthUtil.getUser(userId);
+	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
+	public @ResponseBody
+	NewUser getUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
+		UserInfo userInfo = authenticationService.getUserInfo(username);
+		NewUser user = new NewUser();
+		user.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
+		user.setDisplayName(userInfo.getUser().getDisplayName());
+		user.setEmail(userInfo.getIndividualGroup().getName());
+		user.setFirstName(userInfo.getUser().getFname());
+		user.setLastName(userInfo.getUser().getLname());
 		return user;
 	}
 	
-	// for integration testing
+	/**
+	 * Request a password change email.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public void deleteNewUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		String itu = getIntegrationTestNewUser();
-		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
-		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
-		CrowdAuthUtil.deleteUser(userId);
+	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
+	public void sendChangePasswordEmail(@RequestBody NewUser credential)
+			throws NotFoundException {
+		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW);
 	}
 	
-
-	// reset == true means send the 'reset' message; reset== false means send the 'set' message
-	private static void sendNewUserPasswordEmail(String userEmail, PW_MODE mode) throws Exception {
-		// need a session token
-		NewUser user = new NewUser();
-		user.setEmail(userEmail);
-		Session session = CrowdAuthUtil.authenticate(user, false);
-		
-		CrowdAuthUtil.sendUserPasswordEmail(userEmail, mode, session.getSessionToken());
-	}
-	
+	/**
+	 * Request a password change email via an API key.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody NewUser user) throws Exception {
-		sendNewUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
-	}
-	
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (userId == null)
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-			
-		sendNewUserPasswordEmail(userId, PW_MODE.SET_API_PW);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
+		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW);
 	}
 	
+	/**
+	 * Change the current authenticated user's password.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
-	public void setPassword(@RequestBody ChangeUserPassword changeNewUserPassword,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (userId==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		if (changeNewUserPassword.getNewPassword()==null) 			
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
-		NewUser user = new NewUser();
-		user.setEmail(userId);
-		user.setPassword(changeNewUserPassword.getNewPassword());
-		CrowdAuthUtil.updatePassword(user);
+	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
+	public void setPassword(
+			@RequestBody ChangeUserPassword changeUserPassword,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
+		authenticationService.changePassword(username, changeUserPassword.getNewPassword());
 	}
 	
+	/**
+	 * Change the current authenticated user's email.  
+	 * Note: this service is temporarily disabled.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/changeEmail", method = RequestMethod.POST)
-	public void changeEmail(@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		//user must be logged in to make this request
-		if (userId==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		String registrationToken = registrationInfo.getRegistrationToken();
-		if (registrationToken==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
-		
-		String sessionToken  = registrationToken.substring(CrowdAuthUtil.CHANGE_EMAIL_TOKEN_PREFIX.length());
-		String realNewUserId = CrowdAuthUtil.revalidate(sessionToken);
-		if (realNewUserId==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		//set the password
-		NewUser user = new NewUser();
-		user.setEmail(realNewUserId);
-		user.setPassword(registrationInfo.getPassword());
-		CrowdAuthUtil.updatePassword(user);
-		
-		//and update the preexisting user to the new email address
-		authenticationService.updateEmail(userId, realNewUserId);
-		CrowdAuthUtil.deauthenticate(sessionToken);
+	@RequestMapping(value = UrlHelpers.AUTH_CHANGE_EMAIL, method = RequestMethod.POST)
+	public void changeEmail(
+			@RequestBody RegistrationInfo registrationInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
+		authenticationService.updateEmail(username, registrationInfo);
 	}
-	
 
+	/* (non-Javadoc)
+	 * Used by password reset emails to reset a user's password.
+	 * Must be used within 24 hours of sending the email.
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/registeringNewUserPassword", method = RequestMethod.POST)
-	public void setRegisteringNewUserPassword(@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_PASSWORD, method = RequestMethod.POST)
+	public void setRegisteringUserPassword(
+			@RequestBody RegistrationInfo registrationInfo)
+			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
 		String registrationToken = registrationInfo.getRegistrationToken();
-		if (registrationToken==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
+		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
 		
-		String sessionToken  = registrationToken.substring(CrowdAuthUtil.REGISTRATION_TOKEN_PREFIX.length());
-		String realNewUserId = CrowdAuthUtil.revalidate(sessionToken);
-		if (realNewUserId==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		NewUser user = new NewUser();
-		user.setEmail(realNewUserId);
-		user.setPassword(registrationInfo.getPassword());
-		CrowdAuthUtil.updatePassword(user);
-		CrowdAuthUtil.deauthenticate(sessionToken);
+		// A registering user has not had a chance to accept the terms yet
+		String realUserId = authenticationService.revalidate(sessionToken, false);
+		String realUsername = authenticationService.getUsername(realUserId);
+
+		// Set the password
+		authenticationService.changePassword(realUsername, registrationInfo.getPassword());
+		authenticationService.invalidateSessionToken(sessionToken);
 	}
 	
+	/**
+	 * Retrieves the API key associated with the current authenticated user.
+	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
-	public @ResponseBody SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (userId==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-
-		Map<String,Collection<String>> userAttributes = 
-			 new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(userId));
-		Collection<String> secretKeyCollection = userAttributes.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
-		String secretKey = null;
-		// if there is no key, then make one
-		if (secretKeyCollection==null || secretKeyCollection.isEmpty()) {
-			secretKey = HMACUtils.newHMACSHA1Key();
-			secretKeyCollection = new HashSet<String>();
-			secretKeyCollection.add(secretKey);
-			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
-			CrowdAuthUtil.setUserAttributes(userId, userAttributes);
-		} else {
-			// else return the current one
-			secretKey = secretKeyCollection.iterator().next();
-		}
-		SecretKey key = new SecretKey();
-		key.setSecretKey(secretKey);
-		return key;
+	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
+	public @ResponseBody
+	SecretKey newSecretKey(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
+		SecretKey secret = new SecretKey();
+		secret.setSecretKey(authenticationService.getSecretKey(username));
+		return secret;
 	}
 	
-
+	/**
+	 * Invalidates the API key associated with the current authenticated user.  
+	 * It is not recommended to use this service unless your key has been compromised.  
+	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/secretKey", method = RequestMethod.DELETE)
+	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (userId==null) 
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-
-		Map<String,Collection<String>> userAttributes = 
-			 new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(userId));
-		Collection<String> secretKeyCollection = userAttributes.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
-		if (secretKeyCollection!=null && !secretKeyCollection.isEmpty()) {
-			// then overwrite the data with an empty set
-			secretKeyCollection = new HashSet<String>();
-			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
-			CrowdAuthUtil.setUserAttributes(userId, userAttributes);
-		}
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
+		authenticationService.deleteSecretKey(username);
 	}
 	
-
+	/**
+	 * To authenticate via OpenID, this service takes all URL parameters returned by the OpenID provider (i.e. Google)
+	 * along with an optional parameter to explicitly accept the terms of use (org.sagebionetworks.acceptsTermsOfUse=true).
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)
-	public Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
+	public @ResponseBody Session getSessionTokenViaOpenID(HttpServletRequest request) throws Exception {
+		log.trace("Got a request: " + request.getRequestURL());
 		ParameterList parameters = new ParameterList(request.getParameterMap());
+		log.trace("Query params are: " + request.getQueryString());
 		
 		// Pass the request information to the auth service for a session token
-		return authenticationService.authenticateViaOpenID(parameters);
+		Session session = authenticationService.authenticateViaOpenID(parameters);
+		return session;
 	}
 }
 

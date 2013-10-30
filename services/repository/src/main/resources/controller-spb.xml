@@ -62,13 +62,15 @@
 		class="org.sagebionetworks.repo.web.service.TrashServiceImpl" />
 
 	<!-- The Wiki Service -->
-	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
-	
+	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
+
 	<bean id="tableServices" class="org.sagebionetworks.repo.web.service.table.TableServicesImpl" />
 
 	<!-- The V2 Wiki Service -->
-	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" />
+	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
 
+	<bean id="wikiModelTranslationHelper" class="org.sagebionetworks.repo.web.WikiModelTranslationHelper" />
+	
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"
 		class="org.sagebionetworks.repo.web.service.UserProfileServiceImpl" />
@@ -95,9 +97,6 @@
 
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
-
-	<!-- The temporary Crowd Synchronizer Service -->
-	<bean id="crowdSyncService" class="org.sagebionetworks.auth.services.CrowdSynchronizerService" />
 
 	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />

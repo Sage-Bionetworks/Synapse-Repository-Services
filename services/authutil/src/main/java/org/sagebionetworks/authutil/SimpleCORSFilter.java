@@ -47,7 +47,7 @@ public class SimpleCORSFilter implements Filter {
 			// We do not pass along the pre-flight requests, we just return with the header
 			log.info("Pre-flight request headers: ");
 			logHeaders(request);
-		}else{
+		} else {
 			// pass along all non-pre-flight requests.
 			chain.doFilter(request, response);
 		}

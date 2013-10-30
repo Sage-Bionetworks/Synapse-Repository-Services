@@ -161,17 +161,15 @@ public class IT500SynapseJavaClient {
 		if (0 < datasets.length()) {
 			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
 
-			JSONObject aStoredDataset = synapse.getEntity("/entity/"
-					+ datasetId);
-			assertTrue(aStoredDataset.has("annotations"));
+			Data aStoredDataset = synapse.getEntity(datasetId, Data.class);
+			assertNotNull(aStoredDataset.getAnnotations());
 
-			JSONObject annotations = synapse.getEntity(aStoredDataset
-					.getString("annotations"));
-			assertTrue(annotations.has("stringAnnotations"));
-			assertTrue(annotations.has("dateAnnotations"));
-			assertTrue(annotations.has("longAnnotations"));
-			assertTrue(annotations.has("doubleAnnotations"));
-			assertTrue(annotations.has("blobAnnotations"));
+			Annotations annos = synapse.getAnnotations(datasetId);
+			assertNotNull(annos.getStringAnnotations());
+			assertNotNull(annos.getDateAnnotations());
+			assertNotNull(annos.getLongAnnotations());
+			assertNotNull(annos.getDoubleAnnotations());
+			assertNotNull(annos.getBlobAnnotations());
 		}
 	}
 	
@@ -811,7 +809,7 @@ public class IT500SynapseJavaClient {
 	@Ignore
 	@Test
 	public void testGetUserGroupHeadersByPrefix() throws Exception {
-		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneEmail());
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneName());
 		assertTrue(response.getChildren().size() > 0);
 		
 		String dummyPrefix = "INVALIDPREFIX12345@INVALID.COM.WRONG";
@@ -893,9 +891,7 @@ public class IT500SynapseJavaClient {
 	public void testAPIKey() throws Exception {
 		// get API key for integration test user
 		// must be logged in to do this, so use the global client 'synapse'
-		JSONObject keyJson = synapse.getSynapseEntity(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint(), "/secretKey");
-		String apiKey = keyJson.getString("secretKey");
+		String apiKey = synapse.retrieveApiKey();
 		assertNotNull(apiKey);
 		// set user name and api key in a synapse client
 		// we don't want to log-in, so use a new Synapse client instance

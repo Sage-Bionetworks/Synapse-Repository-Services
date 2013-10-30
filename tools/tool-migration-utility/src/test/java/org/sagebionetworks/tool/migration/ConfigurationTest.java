@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -21,6 +22,10 @@ public class ConfigurationTest {
 		configuration.loadConfigurationFile(file);
 	}
 
+	@After
+	public void doAfter() {
+		System.clearProperty("org.sagebionetworks.defer.exceptions");
+	}
 	
 	@Test
 	public void testConfiguration() throws IOException{

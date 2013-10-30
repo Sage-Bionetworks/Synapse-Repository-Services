@@ -33,7 +33,7 @@ public class V2WikiTranslationUtilsTest {
 	public void testCreateDBOWikiMarkdownFromDTO() {
 		Long wikiId = new Long(123);
 		Long markdownFileHandleId = new Long(456);
-		
+		String wikiTitle = "Title";
 		S3FileHandle handleOne = new S3FileHandle();
 		handleOne.setId("19,74");
 		handleOne.setFileName("f:oo.bar");
@@ -44,7 +44,7 @@ public class V2WikiTranslationUtilsTest {
 		fileNameMap.put(handleOne.getFileName(), handleOne);
 		fileNameMap.put(handleTwo.getFileName(), handleTwo);
 		
-		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiId, markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiId, markdownFileHandleId, wikiTitle);
 		byte[] list = markdownDbo.getAttachmentIdList();
 		String listToString;
 		try {
@@ -64,7 +64,7 @@ public class V2WikiTranslationUtilsTest {
 		
 		// Send in an empty map == no attachments
 		fileNameMap.clear();
-		V2DBOWikiMarkdown markdownDbo2 = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiId, markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo2 = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiId, markdownFileHandleId, wikiTitle + "2");
 		assertTrue(markdownDbo2.getAttachmentIdList().length == 0);
 	}
 	
@@ -136,7 +136,7 @@ public class V2WikiTranslationUtilsTest {
 
 		try {
 			V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, null);
-			fail("Markdown file handle id should not be allowed");
+			fail("Null Markdown file handle id should not be allowed");
 		} catch(IllegalArgumentException e) {
 			// expected
 		}
