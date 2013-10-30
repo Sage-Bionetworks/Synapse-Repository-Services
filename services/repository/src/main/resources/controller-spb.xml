@@ -61,6 +61,9 @@
 	<bean id="trashService"
 		class="org.sagebionetworks.repo.web.service.TrashServiceImpl" />
 
+	<!-- Translator between WikiPages and V2 WikiPages -->
+	<bean id="wikiModelTranslationHelper" class="org.sagebionetworks.repo.web.WikiModelTranslationHelper" />
+	
 	<!-- The Wiki Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
 
@@ -68,8 +71,6 @@
 
 	<!-- The V2 Wiki Service -->
 	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
-
-	<bean id="wikiModelTranslationHelper" class="org.sagebionetworks.repo.web.WikiModelTranslationHelper" />
 	
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"
@@ -100,6 +101,9 @@
 
 	<!-- The temporary Crowd Synchronizer Service -->
 	<bean id="crowdSyncService" class="org.sagebionetworks.auth.services.CrowdSynchronizerService" />
+	
+	<!-- The temporary Wiki Migration Service -->
+	<bean id="wikiMigrationService" class="org.sagebionetworks.repo.web.service.WikiMigrationService" />
 
 	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />

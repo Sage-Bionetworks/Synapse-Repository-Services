@@ -40,8 +40,8 @@ public class WikiModelTranslationHelperTest {
 	TempFileProvider tempFileProvider;
 	@Autowired
 	UserManager userManager;
-
-	WikiModelTranslationHelper utils;
+	@Autowired
+	WikiModelTranslator wikiModelTranslationHelper;
 	
 	private String userName;
 	private String ownerId;
@@ -50,8 +50,6 @@ public class WikiModelTranslationHelperTest {
 
 	@Before
 	public void before() throws Exception{
-		utils = new WikiModelTranslationHelper(fileHandleManager,fileMetadataDao,
-				s3Client,tempFileProvider);
 		// get user IDs
 		userName = AuthorizationConstants.TEST_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
@@ -71,7 +69,7 @@ public class WikiModelTranslationHelperTest {
 		wiki.setMarkdown(markdownAsString);
 		
 		// Pass it to the converter
-		V2WikiPage v2Wiki = utils.convertToV2WikiPage(wiki, userInfo);
+		V2WikiPage v2Wiki = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
 		
 		// Check fields were copied accurately
 		assertEquals(wiki.getId(), v2Wiki.getId());
@@ -97,7 +95,7 @@ public class WikiModelTranslationHelperTest {
 		assertEquals(markdownAsString, markdownString);
 		
 		// Now pass in V2WikiPage
-		WikiPage v1Wiki = utils.convertToWikiPage(v2Wiki);
+		WikiPage v1Wiki = wikiModelTranslationHelper.convertToWikiPage(v2Wiki);
 		// Make sure the WikiPage's markdown string field is accurate
 		assertEquals(markdownAsString, v1Wiki.getMarkdown());
 	}

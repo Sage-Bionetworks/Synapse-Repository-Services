@@ -1,0 +1,115 @@
+package org.sagebionetworks.repo.web.service;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.sagebionetworks.repo.manager.ActivityManager;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO;
+import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.util.TempFileProvider;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.WikiModelTranslationHelper;
+import org.sagebionetworks.repo.web.WikiModelTranslator;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+
+public class WikiMigrationService {
+	@Autowired
+	private DBOWikiMigrationDAO wikiMigrationDao;
+	@Autowired
+	private WikiModelTranslator wikiModelTranslationHelper;
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	FileHandleManager fileHandleManager;
+	@Autowired
+	FileHandleDao fileMetadataDao;	
+	@Autowired
+	AmazonS3Client s3Client;
+	@Autowired
+	TempFileProvider tempFileProvider;
+
+	public WikiMigrationService() {
+	}
+	
+	/**
+	 * @param activityManager
+	 * @param entityManager
+	 * @param userManager
+	 */
+	public WikiMigrationService(DBOWikiMigrationDAO wikiMigrationDao,
+			WikiModelTranslator translator, UserManager userManager) {
+		super();
+		this.wikiMigrationDao = wikiMigrationDao;
+		this.wikiModelTranslationHelper = translator;
+		this.userManager = userManager;
+	}
+	
+	/**
+	 * Migrates a group of wikis from the V1 WikiPage DB to the V2 WikiPage DB.
+	 * @param username
+	 * @param limit
+	 * @param offset
+	 * @param servletPath
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public PaginatedResults<WikiMigrationResult> migrateSomeWikis(String username, long limit, long offset, String servletPath) throws NotFoundException, IOException {
+		// Service is restricted to admins
+		UserInfo userInfo;
+		try {
+			userInfo = userManager.getUserInfo(username);
+			if (!userInfo.isAdmin()) {
+				throw new UnauthorizedException("Must be an admin to use this service");
+			}
+		} catch (NotFoundException e1) {
+			throw new UnauthorizedException("Must be an admin to use this service");
+		}
+		
+		List<WikiMigrationResult> migrationResults = new ArrayList<WikiMigrationResult>();
+		List<WikiPage> wikisToMigrate = wikiMigrationDao.getWikiPages(limit, offset);
+
+		for(WikiPage wiki: wikisToMigrate) {
+			WikiMigrationResult result = new WikiMigrationResult();
+			result.setWikiId(wiki.getId());
+			
+			try {
+				V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
+				V2WikiPage clone = wikiMigrationDao.migrateWiki(translated);
+				if(clone != null) {
+					result.setEtag(clone.getEtag());
+					result.setResultType(WikiMigrationResultType.SUCCESS);
+					result.setMessage("WikiPage with ID " + wiki.getId() + " has successfully migrated to the V2 WikiPage DB.");
+				} else {
+					result.setResultType(WikiMigrationResultType.FAILURE);
+					result.setMessage("WikiPage with ID " + wiki.getId() + " failed to migrate completely.");
+				}
+			} catch(Exception e) {
+				result.setResultType(WikiMigrationResultType.FAILURE);
+				result.setMessage("WikiPage with ID " + wiki.getId() + 
+						" failed to migrate to the V2 WikiPage DB because: \n" +
+						e + "\n");
+			}
+
+			migrationResults.add(result);
+		}
+		return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
+				wikiMigrationDao.getTotalCount(), offset, limit, "", false);
+	}
+}

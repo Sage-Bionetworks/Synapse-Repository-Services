@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ROOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_TITLE;
 
 import java.io.UnsupportedEncodingException;
@@ -49,8 +48,6 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class DBOWikiMigrationDAO {
-	@Autowired
-	private DBOBasicDao basicDao;
 	@Autowired
 	private WikiPageDao wikiPageDao;
 	@Autowired
@@ -129,7 +126,7 @@ public class DBOWikiMigrationDAO {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public V2WikiPage migrateWiki(V2WikiPage toMigrate) {
-		V2WikiPage result = null;
+		V2WikiPage result;
 		try {
 			Map<String, FileHandle> fileNameToFileHandleMap = buildFileNameMap(toMigrate);
 			List<String> newFileHandlesToInsert = new ArrayList<String>();
@@ -140,6 +137,7 @@ public class DBOWikiMigrationDAO {
 			// Store in the V2 WikiPage DB
 			result = v2WikiPageDao.create(toMigrate, fileNameToFileHandleMap, key.getOwnerObjectId(), key.getOwnerObjectType(), newFileHandlesToInsert);
 		} catch(Exception e) {
+			// To roll back all exceptions
 			throw new RuntimeException(e);
 		}
 		return result;

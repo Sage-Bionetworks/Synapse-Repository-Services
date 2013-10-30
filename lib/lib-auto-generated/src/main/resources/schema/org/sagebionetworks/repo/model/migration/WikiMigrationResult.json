@@ -1,0 +1,27 @@
+{
+	"description": "The result of migrating a single wiki from the V1 WikiPage DB to the V2 WikiPage DB",
+	"properties": {
+		"wikiId":{
+			"type":"string", 
+			"description":"The wiki page's id."
+		}, 
+		"etag":{
+			"type":"string", 
+			"description":"The etag of this object. Only populated if successful"
+		}, 
+		"resultType": {
+			"type": "string",
+			"description": "The type of migration that occurred",
+			"name": "WikiMigrationResultType",
+			"id": "org.sagebionetworks.repo.model.migration.WikiMigrationResultType",
+			"enum": [
+				"SUCCESS",
+				"FAILURE"
+			]
+		}, 
+		"message":{
+			"type":"string", 
+			"description":"Description of success or failure"
+		}
+	}
+}

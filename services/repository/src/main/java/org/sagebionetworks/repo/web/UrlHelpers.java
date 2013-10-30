@@ -664,6 +664,11 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
 	
+	/**
+	 * Temporary API to migrate wiki pages from V1 to V2
+	 */
+	public static final String ADMIN_MIGRATE_WIKI = ADMIN + "/migrateWiki";
+	
 	// Authentication
 	public static final String AUTH_SESSION = "/session";
 	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
