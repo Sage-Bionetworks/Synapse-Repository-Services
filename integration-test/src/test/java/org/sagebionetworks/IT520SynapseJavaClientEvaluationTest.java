@@ -683,7 +683,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		evaluationsToDelete.add(eval1.getId());
 
 		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
-		assertEquals(UserEvaluationState.EVAL_OPEN_USER_REGISTERED, state);
+		assertEquals(UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED, state);
 	}
 	
 	@Test
