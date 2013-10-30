@@ -17,11 +17,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -137,15 +135,5 @@ public class IT101Administration {
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		System.out.println(results);
-	}
-
-	/**
-	 * Makes sure the Java admin client method works, but little else
-	 */
-	@Deprecated
-	@Test
-	public void testMigrateFromCrowd() throws Exception {
-		PaginatedResults<CrowdMigrationResult> results = synapse.migrateFromCrowd(10, 0);
-		assertTrue(results.getResults().size() > 0);
 	}
 }

@@ -93,14 +93,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		submission.setUserId(principalId);
 		
-		// ensure participant exists
-		try {
-			participantManager.getParticipant(userInfo, principalId, evalId);
-		} catch (NotFoundException e) {
-			throw new UnauthorizedException("User Princpal ID: " + principalId + 
-					" has not joined Evaluation ID: " + evalId);
-		}
-		
 		// validate permissions
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT)) {
 			throw new UnauthorizedException("Not allowed to submit to " + eval.getName());
@@ -119,9 +111,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (submission.getName() == null) {
 			submission.setName(node.getName());
 		}
-		
-		// ensure evaluation is open
-		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		
 		// insert EntityBundle JSON
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();

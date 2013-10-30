@@ -19,6 +19,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeSet;
 
+/**
+ * Crowd is no longer in use
+ */
+@Deprecated
 public class CrowdLogParser {
 	
 	// Note:  To get the log files it's:

@@ -21,9 +21,7 @@ public class SynapseConnectionInfo {
 			// remove after 0.12->0.13 migration
 			String stackIamId,
 			String stackIamKey,
-			String sharedS3BackupBucket,
-			String crowdEndpoint,
-			String crowdApplicationKey
+			String sharedS3BackupBucket
 			) {
 		super();
 		this.authenticationEndPoint = authenticationEndPoint;
@@ -35,8 +33,6 @@ public class SynapseConnectionInfo {
 		this.stackIamId = stackIamId;
 		this.stackIamKey = stackIamKey;
 		this.sharedS3BackupBucket = sharedS3BackupBucket;
-		this.crowdEndpoint = crowdEndpoint;
-		this.crowdApplicationKey = crowdApplicationKey;
 	}
 	
 	private String authenticationEndPoint;
@@ -49,8 +45,6 @@ public class SynapseConnectionInfo {
 	private String stackIamId;
 	private String stackIamKey;
 	private String sharedS3BackupBucket;
-	private String crowdEndpoint;
-	private String crowdApplicationKey;
 	
 	
 	public String getAuthenticationEndPoint() {
@@ -68,12 +62,6 @@ public class SynapseConnectionInfo {
 	public String getSharedS3BackupBucket() {
 		return sharedS3BackupBucket;
 	}
-	public String getCrowdEndpoint() {
-		return crowdEndpoint;
-	}
-	public String getCrowdApplicationKey() {
-		return crowdApplicationKey;
-	}
 	public String getApiKey() {
 		return APIKey;
 	}
@@ -88,9 +76,7 @@ public class SynapseConnectionInfo {
 				+ authenticationEndPoint + ", repositoryEndPoint="
 				+ repositoryEndPoint + ", userName=" + userName + ", stackIamId="
 				+ stackIamId + ", stackIamKey=" + stackIamKey
-				+ ", sharedS3BackupBucket=" + sharedS3BackupBucket
-				+ ", crowdEndpoint=" + crowdEndpoint + ", crowdApplicationKey="
-				+ crowdApplicationKey + "]";
+				+ ", sharedS3BackupBucket=" + sharedS3BackupBucket + "]";
 	}
 
 }

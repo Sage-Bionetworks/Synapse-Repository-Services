@@ -1228,7 +1228,6 @@ public class EntityServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
 						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, wiki);
-		//request.setParameter("version", version.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 

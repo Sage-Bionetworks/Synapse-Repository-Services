@@ -83,15 +83,9 @@ public class AuthorizationConstants {
 	public static final String USER_ID_HEADER = "userId";
 	public static final String SIGNATURE_TIMESTAMP = "signatureTimestamp";
 	public static final String SIGNATURE = "signature";	
-
-	@Deprecated
-	public static final String CROWD_SECRET_KEY_ATTRIBUTE = "AuthenticationSecretKey";
 	
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
 	public static final String TERMS_OF_USE_AGREEMENT_URI = "/termsOfUseAgreement";
-	
-	@Deprecated
-	public static final String ACCEPTS_TERMS_OF_USE_ATTRIBUTE = "org.sagebionetworks.termsOfUseAgreement.AcceptsTermsOfUse";
 
 
 	/**
@@ -117,39 +111,6 @@ public class AuthorizationConstants {
 	 * For special cases where the session token is added as a cookie, this is the name of the cookie we look for.
 	 */
 	public static final String SESSION_TOKEN_COOKIE_NAME = "org.sagbionetworks.security.user.login.token";
-
-	/**
-	 * This is the name of the attribute in Crowd for the creation date for a User
-	 */
-	@Deprecated
-	public static final String CREATION_DATE_FIELD = "creationDate";
-	
-	/**
-	 * Used to set a mock crowd.
-	 */
-	@Deprecated
-	public static final String USER_DAO_INTEGRATION_TEST_SWITCH = "org.sagebionetworks.mockCrowdDAOClass";
-	
-	/**
-	 * Accept all SSL certificates, when acting as an HTTPS client.
-	 */
-	@Deprecated
-	public static final String ACCEPT_ALL_CERTS = "ACCEPT_ALL_CERTS";
-	
-	/**
-	 * The name of a system property which indicates the interval at which that the Authentication filter
-	 * and the UserManager should invalidate the cached the auth' info, in units of milliseconds.
-	 * 
-	 * A value of zero means that caching is not used.
-	 */
-	@Deprecated
-	public static final String AUTH_CACHE_TIMEOUT_MILLIS = "org.sagebionetworks.authCacheTimeoutMillis";
-	
-	/**
-	 * The default auth cache invalidation interval
-	 */
-	@Deprecated
-	public static final long AUTH_CACHE_TIMEOUT_DEFAULT = 60000L;
 	
 	/**
 	 * Request parameter for an optimistic concurrency control (OCC) eTag.
