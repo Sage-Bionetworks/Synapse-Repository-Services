@@ -1,6 +1,6 @@
 {
-	"title": "Message",
-	"description": "JSON schema for a user message",
+	"title": "MessageStatus",
+	"description": "JSON schema for a user message status",
 	"properties": {
 		"messageId": {
 			"type": "string",
