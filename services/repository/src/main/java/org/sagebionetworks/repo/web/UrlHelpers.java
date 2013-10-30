@@ -660,11 +660,6 @@ public class UrlHelpers {
 	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
 	
 	/**
-	 * Temporary API for migrating users from Crowd into RDS
-	 */
-	public static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
-	
-	/**
 	 * Temporary API to migrate wiki pages from V1 to V2
 	 */
 	public static final String ADMIN_MIGRATE_WIKI = ADMIN + "/migrateWiki";

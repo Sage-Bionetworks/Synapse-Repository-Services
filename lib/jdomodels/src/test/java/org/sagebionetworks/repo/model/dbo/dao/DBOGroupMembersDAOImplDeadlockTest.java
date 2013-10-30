@@ -118,9 +118,7 @@ public class DBOGroupMembersDAOImplDeadlockTest {
     
     private enum MonkeyBehavior {
         JOIN,
-        LEAVE, 
-        ANNEX, 
-        SECEDE
+        LEAVE
     }
     
     private class SocialMonkey extends Thread {
@@ -178,38 +176,6 @@ public class DBOGroupMembersDAOImplDeadlockTest {
                             }
                             break;
                             
-                        case ANNEX:
-                            barrel = barrelIds.get(rand.nextInt(barrelIds.size()));
-                            member = barrelIds.get(rand.nextInt(barrelIds.size()));
-                            memberList.add(member);
-                            try {
-                                groupMembersDAO.addMembers(barrel, memberList);
-                            
-                                // Check for the barrel
-                                List<UserGroup> members = groupMembersDAO.getUsersGroups(member);
-                                if (!checkListForEntry(members, barrel)) {
-                                    racesDetected++;
-                                }
-                            } catch (IllegalArgumentException e) {
-                                // Circularity exception ignored :P
-                            }
-                            break;
-                            
-                        case SECEDE:
-                            barrel = barrelIds.get(rand.nextInt(barrelIds.size()));
-                            List<UserGroup> monkeySardines = groupMembersDAO.getMembers(barrel);
-                            if (monkeySardines.size() > 0) {
-	                            member = monkeySardines.get(rand.nextInt(monkeySardines.size())).getId();
-	                            memberList.add(member);
-	                            groupMembersDAO.removeMembers(barrel, memberList);
-	                            
-	                            // Check for the barrel
-	                            List<UserGroup> members = groupMembersDAO.getUsersGroups(member);
-	                            if (checkListForEntry(members, barrel)) {
-	                                racesDetected++;
-	                            }
-                            }
-                            break;
                         default:
                             break;
                     }

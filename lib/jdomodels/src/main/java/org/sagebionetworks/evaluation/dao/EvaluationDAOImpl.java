@@ -4,12 +4,11 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_EVAL_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_PARTICIPANT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -21,12 +20,14 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.query.SQLConstants;
@@ -390,70 +391,62 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		tagMessenger.sendMessage(dbo, changeType);		
 	}
 	
-	private static final String SELECT_BY_USER_CORE = 
-		TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p WHERE "+
-		" e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
-		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID+" ) ";
+	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
+		"SELECT e.* " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 	
-	private static final String SELECT_BY_USER_SQL =
-		"SELECT e.* FROM "+ SELECT_BY_USER_CORE + 
-		" LIMIT :"+ LIMIT_PARAM_NAME +
-		" OFFSET :" + OFFSET_PARAM_NAME;
+	// parameters here are LIMIT and OFFSET
+	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
+			" and e."+COL_EVALUATION_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX =
+		"SELECT count(distinct e."+COL_EVALUATION_ID+") " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 
-	private static final String SELECT_BY_USER_SQL_COUNT = 
-		"SELECT count(*) FROM "+ SELECT_BY_USER_CORE;
-		
-	private static final String SELECT_BY_USER_AND_STATUS_CORE = 
-		TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p WHERE "+
-		" e." + COL_EVALUATION_STATUS + "=:"+STATUS + " AND " +
-		" e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
-		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID+" ) ";
-
-	private static final String SELECT_BY_USER_AND_STATUS_SQL =
-		"SELECT e.* FROM "+ SELECT_BY_USER_AND_STATUS_CORE + 
-		 " LIMIT :"+ LIMIT_PARAM_NAME +
-		 " OFFSET :" + OFFSET_PARAM_NAME;
-		
-	private static final String SELECT_BY_USER_AND_STATUS_SQL_COUNT =
-		"SELECT count(*) FROM "+ SELECT_BY_USER_AND_STATUS_CORE;
+	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX =
+			" and e."+COL_EVALUATION_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
 
 	/**
 	 * return the evaluations in which the user (given as a list of principal Ids)
 	 * is either the owner or is a participant
 	 */
 	@Override
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, EvaluationStatus status, long limit, long offset) throws DatastoreException {
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_PARTICIPANT_USER_ID, principalIds);	
+		// parameters here are 
+		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
+		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
+		}
+		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		String sql = null;
-		if (null==status) {
-			sql = SELECT_BY_USER_SQL;
-		} else {
-			param.addValue(STATUS, status.ordinal());
-			sql = SELECT_BY_USER_AND_STATUS_SQL;
-		}
-		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql, rowMapper, param);
+		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
+		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+
+		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql.toString(), rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
 		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 
 	@Override
-	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException {
+	public long getAvailableCount(List<Long> principalIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return 0L; // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_PARTICIPANT_USER_ID, principalIds);		
-		String sql = null;
-		if (null==status) {
-			sql = SELECT_BY_USER_SQL_COUNT;
-		} else {
-			param.addValue(STATUS, status.ordinal());
-			sql = SELECT_BY_USER_AND_STATUS_SQL_COUNT;
+		// parameters here are 
+		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
+		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
 		}
-		return simpleJdbcTemplate.queryForLong(sql, param);
+		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());	
+		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
+		sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
+		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
 	}
 
 	

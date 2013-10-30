@@ -38,10 +38,9 @@ public interface EvaluationManager {
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get a collection of Evaluations which the user may participate in, within a given range
+	 * Get a collection of Evaluations to the user may SUBMIT, within a given range
 	 */
-	@Deprecated
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) 
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**

@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
@@ -1159,18 +1158,7 @@ public class ServletTestHelper {
 				EntityHeader.class);
 	}
 
-	public static PaginatedResults<CrowdMigrationResult> migrateFromCrowd(HttpServlet dispatchServlet,
-			String username, Map<String, String> extraParams) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ADMIN_MIGRATE_FROM_CROWD, username, null);
-		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
-		MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-		
-		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				CrowdMigrationResult.class);
-	}
 	
 	public static PaginatedResults<WikiMigrationResult> migrateWikisToV2(HttpServlet dispatchServlet,
 			String username, Map<String, String> extraParams) throws Exception {

@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -41,7 +40,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
-	private static final String ADMIN_MIGRATE_FROM_CROWD = ADMIN + "/crowdsync";
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
@@ -360,19 +358,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		String url = ADMIN_MIGRATE_FROM_CROWD +
-				"?" + OFFSET + "=" + offset + "&limit=" + limit;
-		JSONObject jsonObj = postUri(url);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<CrowdMigrationResult> results = new PaginatedResults<CrowdMigrationResult>(CrowdMigrationResult.class);
-
-		results.initializeFromJSONObject(adapter);
-		return results;
 	}
 
 }
