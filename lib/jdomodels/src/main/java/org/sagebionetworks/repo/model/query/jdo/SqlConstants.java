@@ -140,8 +140,18 @@ public class SqlConstants {
  	public static final String COL_PROCESSED_MESSAGES_TIME_STAMP	= "TIME_STAMP";
 	public static final String COL_PROCESSED_MESSAGES_QUEUE_NAME	= "QUEUE_NAME";
  	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
+ 	
+ 	// User messages
+ 	public static final String TABLE_MESSAGE                        = "MESSAGE";
+ 	public static final String COL_MESSAGE_ID                       = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_THREAD_ID                = "THREAD_ID";
+ 	public static final String COL_MESSAGE_CREATED_BY               = "CREATED_BY";
+ 	public static final String COL_MESSAGE_BODY_FILE_ID             = "BODY_FILE_ID";
+ 	public static final String COL_MESSAGE_CREATED_ON               = "CREATED_ON";
+ 	public static final String COL_MESSAGE_SUBJECT                  = "SUBJECT";
+ 	public static final String DDL_MESSAGE                          = "schema/Message-ddl.sql";
 
-	// The file metada table
+	// The file metadata table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
 	public static final String COL_FILES_ETAG						= "ETAG";
