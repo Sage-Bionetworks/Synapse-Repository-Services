@@ -79,23 +79,37 @@ public class SearchDaoImpl implements SearchDao {
 	SearchDomainSetup searchDomainSetup;
 	
 	CloudSearchClient cloudHttpClient;
-
-
+	
 	/**
 	 * Spring will call this method when the bean is first initialize.
 	 * @throws InterruptedException 
 	 * @throws UnknownHostException 
 	 */
 	public void initialize() throws InterruptedException, UnknownHostException {
+		if(!searchDomainSetup.isSearchEnabled()){
+			log.info("SearchDaoImpl.initialize() will do nothing since search is disabled");
+			return;
+		}
 		String searchEndPoint = searchDomainSetup.getSearchEndpoint();
-		log.info("Search endpoint: "+searchEndPoint);
+		log.info("Search endpoint: " + searchEndPoint);
 		String documentEndPoint = searchDomainSetup.getDocumentEndpoint();
-		log.info("Document endpoint: "+documentEndPoint);
-		cloudHttpClient = new CloudSearchClient(httpClient, searchEndPoint, documentEndPoint);
+		log.info("Document endpoint: " + documentEndPoint);
+		cloudHttpClient = new CloudSearchClient(httpClient, searchEndPoint,	documentEndPoint);
+
 	}
 
+	/**
+	 * @throws UnsupportedOperationException when search is disabled.
+	 */
+	public void validateSearchEnabled(){
+		if(!searchDomainSetup.isSearchEnabled()){
+			throw new UnsupportedOperationException("Search is disabled");
+		}
+	}
+	
 	@Override
 	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		if(document == null) throw new IllegalArgumentException("Document cannot be null");
 		List<Document> list = new LinkedList<Document>();
 		list.add(document);
@@ -104,6 +118,7 @@ public class SearchDaoImpl implements SearchDao {
 	
 	@Override
 	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		// Cleanup they data
 		byte[] bytes = cleanSearchDocuments(batch);
 		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
@@ -172,6 +187,7 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public void deleteDocument(String documentId) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		// This is just a batch delete of size one.
 		HashSet<String> set = new HashSet<String>(1);
 		set.add(documentId);
@@ -180,6 +196,7 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public void deleteDocuments(Set<String> docIdsToDelete) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		DateTime now = DateTime.now();
 		// Note that we cannot use a JSONEntity here because the format is
 		// just a JSON array
@@ -202,6 +219,7 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public SearchResults executeSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		String results = cloudHttpClient.performSearch(search);
 		try {
 			return searchResultsFactory.fromAwesomeSearchResults(results);
@@ -214,11 +232,13 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
 			HttpClientHelperException {
+		validateSearchEnabled();
 		return cloudHttpClient.performSearch(search);
 	}
 
 	@Override
 	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		// Search for the document
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
 		SearchResults results = executeSearch(query);
@@ -227,12 +247,14 @@ public class SearchDaoImpl implements SearchDao {
 
 	@Override
 	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException {
+		validateSearchEnabled();
 		String query = String.format(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE, limit, offset);
 		return executeSearch(query);
 	}
 
 	@Override
 	public void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException {
+		validateSearchEnabled();
 		// Keep deleting as long as there are documents
 		SearchResults sr = null;
 		do{

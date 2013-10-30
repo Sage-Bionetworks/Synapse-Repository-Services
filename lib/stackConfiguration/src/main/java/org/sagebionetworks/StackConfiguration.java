@@ -676,15 +676,9 @@ public class StackConfiguration {
 	 * Is the search feature enabled?
 	 * @return
 	 */
-	public boolean isSearchEnabled(){
-		// Cannot turn off search for prod or hudson.
-		if(isProductionStack() || isHudsonStack()) return true;
-		if(isDevelopStack()){
-			return Boolean.parseBoolean(configuration
-					.getProperty("org.sagebionetworks.search.enabled"));
-		}else{
-			throw new IllegalArgumentException("unknown stack: "+getStack());
-		}
+	public boolean getSearchEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.search.enabled"));
 	}
 
 	/**
