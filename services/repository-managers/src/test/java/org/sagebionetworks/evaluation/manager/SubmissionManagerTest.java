@@ -61,7 +61,6 @@ public class SubmissionManagerTest {
 		
 	private SubmissionManager submissionManager;	
 	private Evaluation eval;
-	private Participant part;
 	private Submission sub;
 	private Submission sub2;
 	private Submission subWithId;
@@ -73,7 +72,6 @@ public class SubmissionManagerTest {
 	private SubmissionStatusDAO mockSubmissionStatusDAO;
 	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
 	private EvaluationManager mockEvaluationManager;
-	private ParticipantManager mockParticipantManager;
 	private EntityManager mockEntityManager;
 	private NodeManager mockNodeManager;
 	private FileHandleManager mockFileHandleManager;
@@ -126,14 +124,9 @@ public class SubmissionManagerTest {
 		eval.setId(EVAL_ID);
 		eval.setOwnerId(OWNER_ID);
         eval.setContentSource(KeyFactory.SYN_ROOT_ID);
-        eval.setStatus(EvaluationStatus.OPEN);
+        eval.setStatus(EvaluationStatus.CLOSED); // deprecated, setting doesn't matter
         eval.setCreatedOn(new Date());
         eval.setEtag("compEtag");
-        
-        part = new Participant();
-        part.setEvaluationId(EVAL_ID);
-        part.setCreatedOn(new Date());
-        part.setUserId(USER_ID);
         
         sub = new Submission();
         sub.setEvaluationId(EVAL_ID);
@@ -192,7 +185,6 @@ public class SubmissionManagerTest {
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
     	mockEvaluationManager = mock(EvaluationManager.class);
-    	mockParticipantManager = mock(ParticipantManager.class);
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
@@ -200,7 +192,6 @@ public class SubmissionManagerTest {
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
-    	when(mockParticipantManager.getParticipant(eq(userInfo), eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
@@ -226,7 +217,6 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "submissionStatusDAO", mockSubmissionStatusDAO);
     	ReflectionTestUtils.setField(submissionManager, "submissionFileHandleDAO", mockSubmissionFileHandleDAO);
     	ReflectionTestUtils.setField(submissionManager, "evaluationManager", mockEvaluationManager);
-    	ReflectionTestUtils.setField(submissionManager, "participantManager", mockParticipantManager);
     	ReflectionTestUtils.setField(submissionManager, "entityManager", mockEntityManager);
     	ReflectionTestUtils.setField(submissionManager, "nodeManager", mockNodeManager);
     	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
