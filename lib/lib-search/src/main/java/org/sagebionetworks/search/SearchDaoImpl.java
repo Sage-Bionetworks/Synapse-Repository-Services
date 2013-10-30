@@ -272,4 +272,9 @@ public class SearchDaoImpl implements SearchDao {
 		}while(sr.getFound() > 0);
 	}
 
+	@Override
+	public boolean isSearchEnabled() {
+		return searchDomainSetup.isSearchEnabled();
+	}
+
 }
