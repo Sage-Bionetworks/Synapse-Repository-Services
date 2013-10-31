@@ -89,6 +89,7 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException {
 		UserGroup individualGroup = userGroupDAO.findGroup(userName, true);
+		if (individualGroup==null) throw new NotFoundException("Cannot find user with name "+userName);
 		return getUserInfo(individualGroup);
 	}
 		

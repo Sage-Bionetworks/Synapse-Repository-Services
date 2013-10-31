@@ -84,7 +84,8 @@ public class TeamManagerImpl implements TeamManager {
 			FileHandleManager fileHandlerManager,
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO, 
-			UserManager userManager
+			UserManager userManager,
+			AccessRequirementDAO accessRequirementDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -95,6 +96,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
 		this.membershipRqstSubmissionDAO = membershipRqstSubmissionDAO;
 		this.userManager = userManager;
+		this.accessRequirementDAO = accessRequirementDAO;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -313,7 +315,7 @@ public class TeamManagerImpl implements TeamManager {
 		rod.setType(RestrictableObjectType.TEAM);
 		List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
 				memberUserInfo, rod, null, accessRequirementDAO);
-		return unmetRequirements.isEmpty();
+		return !unmetRequirements.isEmpty();
 
 	}
 	/**
@@ -361,9 +363,9 @@ public class TeamManagerImpl implements TeamManager {
 	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void addMember(UserInfo userInfo, String teamId, String principalId)
+	public void addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo principalUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		String principalId = principalUserInfo.getIndividualGroup().getId();
 		if (!canAddTeamMember(userInfo, teamId, principalUserInfo)) throw new UnauthorizedException("Cannot add member to Team.");
 		// check that user is not already in Team
 		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
@@ -471,10 +473,11 @@ public class TeamManagerImpl implements TeamManager {
 
 	@Override
 	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo,
-			String teamId, String principalId) throws DatastoreException,
+			String teamId, UserInfo principalUserInfo) throws DatastoreException,
 			NotFoundException {
 		TeamMembershipStatus tms = new TeamMembershipStatus();
 		tms.setTeamId(teamId);
+		String principalId = principalUserInfo.getIndividualGroup().getId();
 		tms.setUserId(principalId);
 		tms.setIsMember(userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId));
 		long now = System.currentTimeMillis();
@@ -482,7 +485,6 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setHasOpenInvitation(openInvitationCount>0L);
 		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenRequest(openRequestCount>0L);
-		UserInfo principalUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo));
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
 		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));

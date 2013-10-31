@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface UserManager {
 
 	/**
-	 * Get the UserGroup information for the given user name.
+	 * Get the User and UserGroup information for the given user name.
 	 * Has the side effect of creating permissions-related objects for the
 	 * groups that the user is in.
 	 * 
@@ -23,7 +23,7 @@ public interface UserManager {
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get the UserGroup information for the given user name.
+	 * Get the User and UserGroup information for the given user name.
 	 * Has the side effect of creating permissions-related objects for the
 	 * groups that the user is in.
 	 * 
