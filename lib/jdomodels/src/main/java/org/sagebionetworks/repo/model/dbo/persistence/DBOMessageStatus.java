@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStatus, DBOMessageStatus> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_ID, true).withIsBackupId(true),
+		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_STATUS_ID, true).withIsBackupId(true),
 		new FieldColumn("recipientId", SqlConstants.COL_MESSAGE_RECIPIENTS, true),
 		new FieldColumn("status", SqlConstants.COL_MESSAGE_RECIPIENT_TYPE)
 	};

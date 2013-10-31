@@ -33,9 +33,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private IdGenerator idGenerator;
 	
 	private static final String THREAD_ID_PARAM_NAME = "threadId";
+	private static final String RECIPIENT_ID_PARAM_NAME = "recipientId";
+	private static final String SENDER_ID_PARAM_NAME = "senderId";
 	
 	private static final String FROM_MESSAGES_IN_THREAD = 
-			" FROM "+SqlConstants.TABLE_MESSAGE + 
+			" FROM "+SqlConstants.TABLE_MESSAGE+ 
 			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:" + THREAD_ID_PARAM_NAME;
 	
 	private static final String SELECT_MESSAGES_IN_THREAD = 
@@ -43,6 +45,25 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String COUNT_MESSAGES_IN_THREAD = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_IN_THREAD;
+	
+	private static final String SELECT_MESSAGES_RECEIVED = 
+			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_STATUS+
+			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_ID+
+			" AND "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+RECIPIENT_ID_PARAM_NAME;
+	
+	private static final String COUNT_MESSAGES_RECEIVED = 
+			"SELECT COUNT(*) FROM "+SqlConstants.TABLE_MESSAGE_STATUS+
+			" WHERE "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+RECIPIENT_ID_PARAM_NAME;
+	
+	private static final String FROM_MESSAGES_SENT = 
+			" FROM "+SqlConstants.TABLE_MESSAGE+ 
+			" WHERE "+SqlConstants.COL_MESSAGE_CREATED_BY+"=:" + SENDER_ID_PARAM_NAME;
+	
+	private static final String SELECT_MESSAGES_SENT = 
+			"SELECT *" + FROM_MESSAGES_SENT;
+	
+	private static final String COUNT_MESSAGES_SENT = 
+			"SELECT COUNT(*)" + FROM_MESSAGES_SENT;
 	
 	private static final RowMapper<DBOMessage> messageRowMapper = new DBOMessage().getTableMapping();
 	
@@ -131,41 +152,56 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public List<MessageBundle> getReceivedMessages(String userId,
 			MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset)
 			throws NotFoundException {
-		// TODO Auto-generated method stub
-		return null;
+		String sql = SELECT_MESSAGES_RECEIVED + constructSqlSuffix(sortBy, descending, limit, offset);
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(RECIPIENT_ID_PARAM_NAME, userId);
+		return simpleJdbcTemplate.query(sql, messageBundleRowMapper, params);
 	}
 
 	@Override
 	public long getNumReceivedMessages(String userId) throws NotFoundException {
-		// TODO Auto-generated method stub
-		return 0;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(RECIPIENT_ID_PARAM_NAME, userId);
+		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_RECEIVED, params);
 	}
 
 	@Override
 	public List<Message> getSentMessages(String userId, MESSAGE_SORT_BY sortBy,
 			boolean descending, long limit, long offset)
 			throws NotFoundException {
-		// TODO Auto-generated method stub
-		return null;
+		String sql = SELECT_MESSAGES_SENT + constructSqlSuffix(sortBy, descending, limit, offset);
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(SENDER_ID_PARAM_NAME, userId);
+		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		return MessageUtils.convertDBOs(messages);
 	}
 
 	@Override
 	public long getNumSentMessages(String userId) throws NotFoundException {
-		// TODO Auto-generated method stub
-		return 0;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(SENDER_ID_PARAM_NAME, userId);
+		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_SENT, params);
 	}
 
 	@Override
 	public void registerMessageRecipient(String messageId, String userId)
 			throws NotFoundException {
-		// TODO Auto-generated method stub
-		
+		DBOMessageStatus status = new DBOMessageStatus();
+		status.setMessageId(Long.parseLong(messageId));
+		status.setRecipientId(Long.parseLong(userId));
+		status.setStatus(MessageStatusType.UNREAD);
+		basicDAO.createNew(status);
 	}
 
 	@Override
 	public void updateMessageStatus(String messageId, String userId,
 			MessageStatusType status) throws NotFoundException {
-		// TODO Auto-generated method stub
-		
+		DBOMessageStatus toUpdate = new DBOMessageStatus();
+		toUpdate.setMessageId(Long.parseLong(messageId));
+		toUpdate.setRecipientId(Long.parseLong(userId));
+		toUpdate.setStatus(status);
+		basicDAO.update(toUpdate);
 	}
 }

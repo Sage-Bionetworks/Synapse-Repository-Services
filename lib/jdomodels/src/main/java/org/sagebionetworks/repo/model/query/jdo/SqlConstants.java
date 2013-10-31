@@ -155,7 +155,7 @@ public class SqlConstants {
  	
  	// User message status
  	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
- 	public static final String COL_MESSAGE_STATUS_ID                = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_STATUS_ID                = "MESSAGE_STATUS_ID";
  	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
  	public static final String COL_MESSAGE_STATUS                   = "STATUS";
  	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
