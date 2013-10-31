@@ -32,11 +32,11 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.WikiModelTranslationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -51,19 +51,28 @@ public class WikiMigrationServiceTest {
 	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	@Autowired
+	private AmazonS3Client s3Client;
+	@Autowired
+	public UserManager userManager;
 
 	String creatorUserGroupId;
 	List<WikiPageKey> toDelete;
+	List<WikiPageKey> toDeleteForErrorTest;
 	S3FileHandle markdown;
+	UserInfo adminUserInfo;
 	
 	@Before
 	public void before() throws NotFoundException {
 		toDelete = new ArrayList<WikiPageKey>(); 
+		toDeleteForErrorTest = new ArrayList<WikiPageKey>();
 		
 		UserGroup userGroup = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
 		assertNotNull(userGroup);
 		creatorUserGroupId = userGroup.getId();
 		assertNotNull(creatorUserGroupId);
+		
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		
 		// Create a file
 		S3FileHandle meta = new S3FileHandle();
@@ -79,7 +88,7 @@ public class WikiMigrationServiceTest {
 	}
 	
 	@After
-	public void after() {
+	public void after() throws NotFoundException {
 		// Clean up wikis from both v1 and v2 tables
 		if(wikiPageDao != null && toDelete != null) {
 			for(WikiPageKey id: toDelete) {
@@ -88,7 +97,18 @@ public class WikiMigrationServiceTest {
 		}
 		if(v2wikiPageDAO != null && toDelete != null) {
 			for(WikiPageKey id: toDelete) {
+				V2WikiPage wiki = v2wikiPageDAO.get(id);
+				String markdownHandleId = wiki.getMarkdownFileHandleId();
+				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+				fileMetadataDao.delete(markdownHandleId);
 				v2wikiPageDAO.delete(id);
+			}
+		}
+		if(v2wikiPageDAO != null && toDeleteForErrorTest != null) {
+			for(WikiPageKey id: toDeleteForErrorTest) {
+				v2wikiPageDAO.delete(id);
+				// markdown file handle will be deleted in the next if statement
 			}
 		}
 		// Delete the file handles
@@ -103,7 +123,7 @@ public class WikiMigrationServiceTest {
 		createWikiPages(1, 3);
 	
 		// Migrate some wiki pages
-		PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(AuthorizationConstants.ADMIN_USER_NAME, 3, 0, "somePath");
+		PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(adminUserInfo.getIndividualGroup().getName(), 3, 0, "somePath");
 		assertNotNull(results);
 		// Limit of 3 should have been returned
 		assertEquals(3, results.getResults().size());
@@ -128,17 +148,32 @@ public class WikiMigrationServiceTest {
 		V2WikiPage result = v2wikiPageDAO.create(page, fileNameToFileHandleMap, ownerId, ownerType, new ArrayList<String>());
 		assertNotNull(result);
 		WikiPageKey key = v2wikiPageDAO.lookupWikiKey(result.getId());
-		toDelete.add(key);
+		toDeleteForErrorTest.add(key);
 		assertEquals(1, v2wikiPageDAO.getCount());
+
+		WikiPage page2 = new WikiPage();
+		page2.setId("1");
+		page2.setCreatedBy(creatorUserGroupId);
+		page2.setModifiedBy(creatorUserGroupId);
+		page2.setMarkdown("markdown1");
+		page2.setTitle("title1");
+		page2.setAttachmentFileHandleIds(new ArrayList<String>());
+		Map<String, FileHandle> fileNameToFileHandleMap2 = new HashMap<String, FileHandle>();
+		WikiPage result2 = wikiPageDao.create(page2, fileNameToFileHandleMap2, ownerId, ownerType);
+		assertNotNull(result2);
+		WikiPageKey key2 = wikiPageDao.lookupWikiKey(result.getId());
 		
-		createWikiPages(1, 1);
-		PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(AuthorizationConstants.ADMIN_USER_NAME, 1, 0, "somePath");
+		PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(adminUserInfo.getIndividualGroup().getName(), 1, 0, "somePath");
 		assertNotNull(results);
 		// Limit of 1 should have been returned
 		assertEquals(1, results.getResults().size());
 		assertEquals(WikiMigrationResultType.FAILURE, results.getResults().get(0).getResultType());
 		// Size of the V2 DB should still be 1 because nothing was migrated
 		assertEquals(1, v2wikiPageDAO.getCount());		
+		
+		// Cleanup
+		// Error occurred, everything was undone
+		wikiPageDao.delete(key2);
 	}
 	
 	private void createWikiPages(int start, int end) throws NotFoundException {

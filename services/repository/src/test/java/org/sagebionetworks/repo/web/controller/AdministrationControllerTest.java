@@ -27,16 +27,22 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -50,6 +56,15 @@ public class AdministrationControllerTest {
 	
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
+	
+	@Autowired
+	private V2WikiPageDao v2wikiPageDAO;
+	
+	@Autowired
+	private FileHandleDao fileMetadataDao;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
 	
 	private static HttpServlet dispatchServlet;
 	
@@ -82,6 +97,11 @@ public class AdministrationControllerTest {
 		
 		for(WikiPageKey key: wikisToDelete){
 			try {
+				V2WikiPage wiki = v2wikiPageDAO.get(key);
+				String markdownHandleId = wiki.getMarkdownFileHandleId();
+				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+				fileMetadataDao.delete(markdownHandleId);
 				entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
 			} catch (Exception e) {
 				// nothing to do here
