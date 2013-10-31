@@ -13,7 +13,9 @@ import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.message.Message;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 
 public class MessageUtils {
 	
@@ -129,5 +131,21 @@ public class MessageUtils {
 			verbose.add(Long.toString(converted.get()));
 		}
 		return verbose;
+	}
+	
+	public static MessageStatus convertDBO(DBOMessageStatus dbo) {
+		MessageStatus dto = new MessageStatus();
+		dto.setMessageId(dbo.getMessageId().toString());
+		dto.setRecipientId(dbo.getRecipientId().toString());
+		dto.setStatus(dbo.getStatus());
+		return dto;
+	}
+	
+	public static DBOMessageStatus convertDTO(MessageStatus dto) {
+		DBOMessageStatus dbo = new DBOMessageStatus();
+		dbo.setMessageId(Long.parseLong(dto.getMessageId()));
+		dbo.setRecipientId(Long.parseLong(dto.getRecipientId()));
+		dbo.setStatus(dto.getStatus());
+		return dbo;
 	}
 }

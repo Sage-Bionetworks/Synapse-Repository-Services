@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -7,6 +9,7 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
@@ -31,11 +34,31 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String THREAD_ID_PARAM_NAME = "threadId";
 	
-	private static final String SELECT_MESSAGES_IN_THREAD = 
-			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE + 
+	private static final String FROM_MESSAGES_IN_THREAD = 
+			" FROM "+SqlConstants.TABLE_MESSAGE + 
 			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:" + THREAD_ID_PARAM_NAME;
 	
+	private static final String SELECT_MESSAGES_IN_THREAD = 
+			"SELECT *" + FROM_MESSAGES_IN_THREAD;
+	
+	private static final String COUNT_MESSAGES_IN_THREAD = 
+			"SELECT COUNT(*)" + FROM_MESSAGES_IN_THREAD;
+	
 	private static final RowMapper<DBOMessage> messageRowMapper = new DBOMessage().getTableMapping();
+	
+	private static final RowMapper<DBOMessageStatus> messageStatusRowMapper = new DBOMessageStatus().getTableMapping();
+	
+	private static final RowMapper<MessageBundle> messageBundleRowMapper = new RowMapper<MessageBundle>() {
+		@Override
+		public MessageBundle mapRow(ResultSet rs, int rowNum) throws SQLException {
+			MessageBundle bundle = new MessageBundle();
+			DBOMessage messageContent = messageRowMapper.mapRow(rs, rowNum);
+			DBOMessageStatus messageStatus = messageStatusRowMapper.mapRow(rs, rowNum);
+			bundle.setMessage(MessageUtils.convertDBO(messageContent));
+			bundle.setStatus(MessageUtils.convertDBO(messageStatus));
+			return bundle;
+		}
+	};
 	
 	/**
 	 * Builds up ordering and pagination keywords to append to various message select statements
@@ -99,8 +122,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	public long getThreadSize(String threadId) throws NotFoundException {
-		// TODO Auto-generated method stub
-		return 0;
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD, params);
 	}
 
 	@Override
