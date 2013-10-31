@@ -212,7 +212,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			rod.setId(evalId);
 			rod.setType(RestrictableObjectType.EVALUATION);
 			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
-					userInfo, rod, nodeDAO, accessRequirementDAO);
+					userInfo, rod, null, accessRequirementDAO);
 			canAccess = canAccess && unmetRequirements.isEmpty();
 		}
 		return canAccess;

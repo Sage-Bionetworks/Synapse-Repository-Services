@@ -87,14 +87,25 @@ public class UserManagerImpl implements UserManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserInfo getUserInfo(String userName) throws DatastoreException,
-			NotFoundException {		
-		User user = getUser(userName);
+	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException {
 		UserGroup individualGroup = userGroupDAO.findGroup(userName, true);
+		if (individualGroup==null) throw new NotFoundException("Cannot find user with name "+userName);
+		return getUserInfo(individualGroup);
+	}
+		
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserInfo getUserInfo(Long principalId) throws DatastoreException, NotFoundException {
+		UserGroup individualGroup = userGroupDAO.get(principalId.toString());
+		return getUserInfo(individualGroup);
+	}
+		
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	private UserInfo getUserInfo(UserGroup individualGroup) throws DatastoreException, NotFoundException {
 		
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<UserGroup> groups = new HashSet<UserGroup>();
-		if (!AuthorizationUtils.isUserAnonymous(userName)) {
+		if (!AuthorizationUtils.isUserAnonymous(individualGroup.getName())) {
 			// All authenticated users belong to the authenticated user group
 			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS));
 		}
@@ -112,46 +123,42 @@ public class UserManagerImpl implements UserManager {
 			if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(group.getName())) {
 				isAdmin = true;
 				break;
+			}
 		}
-	}
 	
 		// Put all the pieces together
 		UserInfo ui = new UserInfo(isAdmin);
 		ui.setIndividualGroup(individualGroup);
-		ui.setUser(user);
 		ui.setGroups(groups);
+		ui.setUser(getUser(individualGroup));
 		return ui;
 	}
 	
 	/**
 	 * Constructs a User object out of information from the UserGroup and UserProfile
 	 */
-	private User getUser(String userName) throws DatastoreException,
+	private User getUser(UserGroup individualGroup) throws DatastoreException,
 			NotFoundException {
 		User user = new User();
-		user.setUserId(userName);
-		user.setId(userName); // i.e. username == user id
+		user.setUserId(individualGroup.getName());
+		user.setId(individualGroup.getName()); // i.e. username == user id
 
-		if (AuthorizationUtils.isUserAnonymous(userName)) {
+		if (AuthorizationUtils.isUserAnonymous(individualGroup.getName())) {
 			return user;
 		}
 
-		UserGroup ug = userGroupDAO.findGroup(userName, true);
-		if (ug == null) {
-			throw new NotFoundException("User " + userName + " does not exist");
-		}
-		user.setCreationDate(ug.getCreationDate());
+		user.setCreationDate(individualGroup.getCreationDate());
 		
 		// Get the terms of use acceptance
-		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(ug.getId()));
+		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(individualGroup.getId()));
 
 		// The migrator may delete its own profile during migration
 		// But those details do not matter for this user
-		if (userName.equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
+		if (individualGroup.getName().equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
 			return user;
 		}
 
-		UserProfile up = userProfileDAO.get(ug.getId());
+		UserProfile up = userProfileDAO.get(individualGroup.getId());
 		user.setFname(up.getFirstName());
 		user.setLname(up.getLastName());
 		user.setDisplayName(up.getDisplayName());
