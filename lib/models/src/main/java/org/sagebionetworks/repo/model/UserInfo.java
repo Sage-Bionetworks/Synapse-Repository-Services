@@ -46,8 +46,6 @@ public class UserInfo {
 
 		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
 
-		//User.validateUser(info.getUser());
-
 		UserGroupUtil.validate(info.getIndividualGroup());
 
 		// Validate each group
