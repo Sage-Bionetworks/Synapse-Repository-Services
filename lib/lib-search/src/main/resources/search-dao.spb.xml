@@ -20,9 +20,11 @@
 	</bean>
 
 	<!-- The search DAO -->
-	<bean id="searchDomainSetup" class="org.sagebionetworks.search.SearchDomainSetupImpl" init-method="initialize" scope="singleton" />
+	<bean id="searchDomainSetup" class="org.sagebionetworks.search.SearchDomainSetupImpl" init-method="initialize" scope="singleton">
+	    <property name="searchEnabled" ref="stackConfiguration.searchEnabled"/>
+	</bean>
 	
 	<!-- The search DAO -->
 	<bean id="searchDao" class="org.sagebionetworks.search.SearchDaoImpl" init-method="initialize" scope="singleton" />
-
+	
 </beans>

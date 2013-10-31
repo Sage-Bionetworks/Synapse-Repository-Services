@@ -66,6 +66,19 @@ public class StackConfigurationTest {
 		assertFalse(StackConfiguration.isProduction("dev"));
 	}
 	
+	@Test
+	public void testIsDevelop(){
+		assertFalse(StackConfiguration.isDevelopStack("prod"));
+		assertTrue(StackConfiguration.isDevelopStack("dev"));
+	}
+	
+	@Test
+	public void testIsHudson(){
+		assertFalse(StackConfiguration.isHudsonStack("prod"));
+		assertFalse(StackConfiguration.isHudsonStack("dev"));
+		assertTrue(StackConfiguration.isHudsonStack("hud"));
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetStackInstanceNumberProdNotNumeric(){
 		// Prod stacks must have a numeric instance

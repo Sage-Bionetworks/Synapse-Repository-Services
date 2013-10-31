@@ -43,4 +43,9 @@ public class MessageQueueSimpleImpl implements MessageQueue {
 	public String getQueueName(){
 		return this.queueName;
 	}
+
+	@Override
+	public boolean isEnabled() {
+		return true;
+	}
 }

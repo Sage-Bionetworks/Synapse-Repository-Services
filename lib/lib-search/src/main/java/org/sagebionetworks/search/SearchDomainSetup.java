@@ -51,4 +51,10 @@ public interface SearchDomainSetup {
 	  * @return
 	  */
 	 public String getDocumentEndpoint();
+
+	 /**
+	  * Is Search enabled?
+	  * @return
+	  */
+	boolean isSearchEnabled();
 }

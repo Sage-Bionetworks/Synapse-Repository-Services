@@ -104,5 +104,11 @@ public interface SearchDao {
 	 * @throws InterruptedException 
 	  */
 	 void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException;
+	 
+	/**
+	 * Is the search feature enabled?
+	 * @return
+	 */
+	boolean isSearchEnabled();
 
 }

@@ -1789,15 +1789,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
-			EvaluationStatus status, int offset, int limit)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public Long getEvaluationCount() throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2387,6 +2378,14 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse)
 			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			int offset, int limit) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}

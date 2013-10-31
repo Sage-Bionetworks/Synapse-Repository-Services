@@ -47,6 +47,7 @@ public class MessageReceiverImplTest {
 		mockSQSClient = Mockito.mock(AmazonSQSClient.class);
 		mockQueue = Mockito.mock(MessageQueue.class);
 		when(mockQueue.getQueueUrl()).thenReturn(queueUrl);
+		when(mockQueue.isEnabled()).thenReturn(true);
 		// Inject all of the dependencies
 		messageReveiver = new MessageReceiverImpl(mockSQSClient, maxNumberOfWorkerThreads, maxMessagePerWorker,visibilityTimeout, mockQueue, stubFactory);
 		
@@ -200,6 +201,25 @@ public class MessageReceiverImplTest {
 		messageReveiver.triggerFired();
 		// Since each worker has a different sleep time, the delete messages should be staggered over 5 calls.
 		verify(mockSQSClient, times(maxNumberOfWorkerThreads)).deleteMessageBatch(any(DeleteMessageBatchRequest.class));
+	}
+	
+	@Test
+	public void testQueueDisabled() throws InterruptedException{
+		when(mockQueue.isEnabled()).thenReturn(false);
+		// Setup a worker stack
+		Stack<StubWorker> workerStack = new Stack<StubWorker>();
+		// Setup workers that will not timeout or throw exceptions
+		long sleepTime = 0;
+		for(int i=0; i<maxNumberOfWorkerThreads; i++){
+			workerStack.push(new StubWorker(sleepTime+=500, null));
+		}
+		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
+		messageReveiver.setWorkerFactory(factory);
+		
+		// now trigger
+		messageReveiver.triggerFired();
+		// Since each worker has a different sleep time, the delete messages should be staggered over 5 calls.
+		verify(mockSQSClient, times(0)).deleteMessageBatch(any(DeleteMessageBatchRequest.class));
 	}
 
 }

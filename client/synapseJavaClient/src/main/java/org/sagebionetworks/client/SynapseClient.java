@@ -649,13 +649,10 @@ public interface SynapseClient {
 	public PaginatedResults<Evaluation> getEvaluationByContentSource(String id,
 			int offset, int limit) throws SynapseException;
 
-	@Deprecated
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
 
-	@Deprecated
-	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
-			EvaluationStatus status, int offset, int limit)
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
 
 	public Long getEvaluationCount() throws SynapseException;
