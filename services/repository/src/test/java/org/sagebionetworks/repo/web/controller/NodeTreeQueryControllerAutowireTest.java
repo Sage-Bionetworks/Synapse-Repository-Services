@@ -9,9 +9,11 @@ import javax.servlet.http.HttpServlet;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
@@ -51,7 +53,10 @@ public class NodeTreeQueryControllerAutowireTest {
 
 	@Before
 	public void before() throws Exception {
-
+		StackConfiguration config = new StackConfiguration();
+		// These tests are not run if dynamo is disabled.
+		Assume.assumeTrue(config.getDynamoEnabled());
+		
 		Assert.assertNotNull(this.entityService);
 		Assert.assertNotNull(this.nodeTreeQueryDao);
 		Assert.assertNotNull(this.nodeTreeUpdateDao);
@@ -92,6 +97,9 @@ public class NodeTreeQueryControllerAutowireTest {
 
 	@After
 	public void after() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		// There is nothing to do if dynamo is disabled
+		if(!config.getDynamoEnabled()) return;
 		// Clear RDS
 		if (child != null) {
 			entityService.deleteEntity(testUser, child.getId());

@@ -12,10 +12,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.DynamoTimeoutException;
-import org.sagebionetworks.dynamo.config.DynamoConfig;
-import org.sagebionetworks.dynamo.config.DynamoSetupImpl;
-import org.sagebionetworks.dynamo.config.DynamoTableConfig;
-import org.sagebionetworks.dynamo.config.DynamoTableExistsException;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
@@ -41,9 +37,10 @@ public class DynamoSetupImplTest {
 	private DynamoSetupImpl dynamoSetup;
 
 	@Before
-	public void before() {
+	public void before() {		
 		this.mockDynamoClient = mock(AmazonDynamoDB.class);
 		this.dynamoSetup = new DynamoSetupImpl();
+		dynamoSetup.setDynamoEnabled(true);
 		ReflectionTestUtils.setField(this.dynamoSetup, "dynamoClient", this.mockDynamoClient);
 	}
 
@@ -348,4 +345,5 @@ public class DynamoSetupImplTest {
 
 		this.dynamoSetup.setup(true, 1000, config);
 	}
+	
 }

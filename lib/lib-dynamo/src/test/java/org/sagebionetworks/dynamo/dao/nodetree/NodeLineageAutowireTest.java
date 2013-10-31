@@ -5,9 +5,11 @@ import java.util.Date;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,6 +34,10 @@ public class NodeLineageAutowireTest {
 
 	@Before
 	public void before() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		// These tests are not run if dynamo is disabled.
+		Assume.assumeTrue(config.getDynamoEnabled());
+		
 		DynamoDBMapperConfig mapperConfig = NodeLineageMapperConfig.getMapperConfigWithConsistentReads();
 		this.mapper = new DynamoDBMapper(this.dynamoClient, mapperConfig);
 		String u = DynamoTestUtil.nextRandomId();
@@ -52,6 +58,11 @@ public class NodeLineageAutowireTest {
 
 	@After
 	public void after() {
+		
+		StackConfiguration config = new StackConfiguration();
+		// There is nothing to do if dynamo is disabled
+		if(!config.getDynamoEnabled()) return;
+		
 		if (u2vSavedDbo != null) {
 			this.mapper.delete(u2vSavedDbo);
 		}

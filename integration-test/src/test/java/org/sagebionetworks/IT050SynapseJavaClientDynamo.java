@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClientImpl;
@@ -26,7 +27,10 @@ public class IT050SynapseJavaClientDynamo {
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
+		StackConfiguration config = new StackConfiguration();
+		// These tests are not run if dynamo is disabled.
+		Assume.assumeTrue(config.getDynamoEnabled());
+		
 		synapseAdmin = new SynapseAdminClientImpl();
 		synapseAdmin.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
@@ -60,6 +64,10 @@ public class IT050SynapseJavaClientDynamo {
 
 	@AfterClass
 	public static void afterClass() throws SynapseException{
+		StackConfiguration config = new StackConfiguration();
+		// There is nothing to do if dynamo is disabled
+		if(!config.getDynamoEnabled()) return;
+		
 		if (synapse != null) {
 			if (child != null) {
 				synapse.deleteAndPurgeEntity(child);

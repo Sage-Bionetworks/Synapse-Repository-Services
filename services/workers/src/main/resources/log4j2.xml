@@ -21,7 +21,7 @@
 		</RollingFile>
 	</appenders>
 	<loggers>
-		<logger name="org.sagebionetworks" level="all" additivity="true">
+		<logger name="org.sagebionetworks" level="info" additivity="true">
 			<appender-ref ref="workers" />
 		</logger>
 		<root level="error">

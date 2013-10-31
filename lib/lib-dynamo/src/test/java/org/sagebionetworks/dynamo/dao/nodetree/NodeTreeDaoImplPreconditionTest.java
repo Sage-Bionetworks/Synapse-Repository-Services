@@ -2,9 +2,11 @@ package org.sagebionetworks.dynamo.dao.nodetree;
 
 import java.util.Date;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.StackConfiguration;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 
@@ -15,6 +17,10 @@ public class NodeTreeDaoImplPreconditionTest {
 
 	@Before
 	public void before() {
+		StackConfiguration config = new StackConfiguration();
+		// These tests are not run if dynamo is disabled.
+		Assume.assumeTrue(config.getDynamoEnabled());
+		
 		AmazonDynamoDB client = Mockito.mock(AmazonDynamoDB.class);
 		updateDao = new NodeTreeUpdateDaoImpl(client);
 		queryDao = new NodeTreeQueryDaoImpl(client);
