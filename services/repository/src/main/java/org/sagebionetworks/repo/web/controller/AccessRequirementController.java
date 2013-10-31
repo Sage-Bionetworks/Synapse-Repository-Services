@@ -140,6 +140,46 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 
+	/**
+	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for a Team
+	 * @param userId
+	 * @param evaluationId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getUnfulfilledTeamAccessRequirement(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_TEAM_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getTeamAccessRequirements(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@PathVariable String id,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
+	}
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(

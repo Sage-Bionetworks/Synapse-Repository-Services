@@ -37,6 +37,9 @@ public class AccessRequirementUtil {
 		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
 			accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 			accessTypes.add(ACCESS_TYPE.PARTICIPATE);
+		} else if (RestrictableObjectType.TEAM.equals(subjectId.getType())) {
+			accessTypes.add(ACCESS_TYPE.DOWNLOAD);
+			accessTypes.add(ACCESS_TYPE.PARTICIPATE);
 		} else {
 			throw new IllegalArgumentException("Unexpected type: "+subjectId.getType());
 		}

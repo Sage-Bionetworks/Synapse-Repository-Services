@@ -8,9 +8,6 @@ import org.sagebionetworks.repo.model.util.UserGroupUtil;
  *  Contains both a user and the groups to which she belongs.
  */
 public class UserInfo {
-
-	private User user;
-
 	// ALL the groups the user belongs to, except "Public",
 	// which everyone implicitly belongs to, and "Administrators",
 	// which is encoded in the 'isAdmin' field
@@ -25,9 +22,6 @@ public class UserInfo {
 
 	public boolean isAdmin() {return isAdmin;}
 
-	public User getUser() {return user;}
-
-	public void setUser(User user) {this.user = user;}
 
 	public Collection<UserGroup> getGroups() {
 		return groups;
@@ -52,7 +46,7 @@ public class UserInfo {
 
 		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
 
-		User.validateUser(info.getUser());
+		//User.validateUser(info.getUser());
 
 		UserGroupUtil.validate(info.getIndividualGroup());
 

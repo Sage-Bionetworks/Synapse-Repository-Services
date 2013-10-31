@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,7 +101,10 @@ public class IT500SynapseJavaClient {
 	
 	private List<String> toDelete = null;
 
+	private static List<Long> accessRequirementsToDelete;
+
 	private static SynapseClient synapse = null;
+	private static SynapseClient synapseTwo = null;
 	private static Project project = null;
 	private static Study dataset = null;
 	
@@ -110,9 +114,13 @@ public class IT500SynapseJavaClient {
 	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
 		synapse = SynapseClientHelper.createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
+		
+		synapseTwo = SynapseClientHelper.createSynapseClient(
+				StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+	
 	}
 	
 	@Before
@@ -126,6 +134,8 @@ public class IT500SynapseJavaClient {
 		
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
+		
+		accessRequirementsToDelete = new ArrayList<Long>();
 	}
 
 	/**
@@ -142,6 +152,14 @@ public class IT500SynapseJavaClient {
 			for (String id: toDelete) {
 				try {
 					synapse.deleteAndPurgeEntityById(id);
+				} catch (Exception e) {}
+			}
+		}
+		if (accessRequirementsToDelete!=null) {
+			// clean up Access Requirements
+			for (Long id : accessRequirementsToDelete) {
+				try {
+					synapse.deleteAccessRequirement(id);
 				} catch (Exception e) {}
 			}
 		}
@@ -342,20 +360,17 @@ public class IT500SynapseJavaClient {
 		ar.setTermsOfUse("play nice");
 		ar = synapse.createAccessRequirement(ar);
 		
-		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
 		UserProfile otherProfile = synapse.getMyProfile();
 		assertNotNull(otherProfile);
 
 		
 		// should not be able to download
-		assertFalse(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertFalse(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(aNewDataset.getId());
-		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetAccessRequirements(subjectId);
+		VariableContentPaginatedResults<AccessRequirement> vcpr = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
@@ -364,13 +379,13 @@ public class IT500SynapseJavaClient {
 		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(ar.getId());
 		
-		otherUser.createAccessApproval(aa);
+		synapseTwo.createAccessApproval(aa);
 		
-		vcpr = otherUser.getUnmetAccessRequirements(subjectId);
+		vcpr = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
-		assertTrue(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// ACL should reflect the first User's permission
 		AccessControlList acl = synapse.getACL(project.getId());
@@ -1327,15 +1342,15 @@ public class IT500SynapseJavaClient {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		UserProfile myProfile = synapse.getMyProfile();
-		String myPrincipalId = myProfile.getOwnerId();
-		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
 		Team createdTeam = synapse.createTeam(team);
 		// schedule Team for deletion
 		this.teamToDelete = createdTeam;
+		UserProfile myProfile = synapse.getMyProfile();
+		String myPrincipalId = myProfile.getOwnerId();
+		assertNotNull(myPrincipalId);
 		assertNotNull(createdTeam.getId());
 		assertEquals(name, createdTeam.getName());
 		assertEquals(description, createdTeam.getDescription());
@@ -1513,6 +1528,53 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) {
 			// as expected
 		}
+	}
+	
+	@Test
+	public void testTeamRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
+		// Create Evaluation
+		// create a Team
+		String name = "Test-Team-Name";
+		String description = "Test-Team-Description";
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapse.createTeam(team);
+		// schedule Team for deletion
+		this.teamToDelete = createdTeam;
+		// Create AccessRestriction
+		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
+		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setType(RestrictableObjectType.TEAM);
+		subjectId.setId(createdTeam.getId());
+		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
+		tou = synapse.createAccessRequirement(tou);
+		assertNotNull(tou.getId());
+		accessRequirementsToDelete.add(tou.getId());
+		
+		// Query AccessRestriction
+		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
+		paginatedResults = synapse.getAccessRequirements(subjectId);
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
+		
+		// Query Unmet AccessRestriction
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
+		
+		// Create AccessApproval
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setRequirementId(tou.getId());
+		synapseTwo.createAccessApproval(aa);
+		
+		// Query AccessRestriction
+		paginatedResults = synapse.getAccessRequirements(subjectId);
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
+		
+		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
+		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
+		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
+		assertTrue(paginatedResults.getResults().isEmpty());
 	}
 	
 	@Test

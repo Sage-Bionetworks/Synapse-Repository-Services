@@ -12,12 +12,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -26,6 +28,8 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -65,6 +69,8 @@ public class TeamManagerImpl implements TeamManager {
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private AccessRequirementDAO accessRequirementDAO;
 	
 	public TeamManagerImpl() {}
 	
@@ -300,6 +306,16 @@ public class TeamManagerImpl implements TeamManager {
 		userGroupDAO.delete(id);
 	}
 	
+	
+	private boolean hasUnmetAccessRequirements(UserInfo memberUserInfo, String teamId) throws NotFoundException {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(teamId);
+		rod.setType(RestrictableObjectType.TEAM);
+		List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
+				memberUserInfo, rod, null, accessRequirementDAO);
+		return unmetRequirements.isEmpty();
+
+	}
 	/**
 	 * Either:
 		principalId is self and membership invitation has been extended (and not yet accepted), or
@@ -310,8 +326,10 @@ public class TeamManagerImpl implements TeamManager {
 	 * @param principalId the ID of the one to be added to the team
 	 * @return
 	 */
-	public boolean canAddTeamMember(UserInfo userInfo, String teamId, String principalId) throws NotFoundException {
+	public boolean canAddTeamMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws NotFoundException {
 		if (userInfo.isAdmin()) return true;
+		if (hasUnmetAccessRequirements(principalUserInfo, teamId)) return false;
+		String principalId = principalUserInfo.getIndividualGroup().getId();
 		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		long now = System.currentTimeMillis();
@@ -345,7 +363,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void addMember(UserInfo userInfo, String teamId, String principalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!canAddTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot add member to Team.");
+		UserInfo principalUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		if (!canAddTeamMember(userInfo, teamId, principalUserInfo)) throw new UnauthorizedException("Cannot add member to Team.");
 		// check that user is not already in Team
 		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
 			groupMembersDAO.addMembers(teamId, Arrays.asList(new String[]{principalId}));
@@ -437,6 +456,18 @@ public class TeamManagerImpl implements TeamManager {
 		// finally, update the ACL
 		aclDAO.update(acl);
 	}
+	
+	// answers the question about whether membership approval is required to add principal to team
+	// the logic is !userIsSynapseAdmin && !userIsTeamAdmin && !publicCanJoinTeam
+	private boolean isMembershipApprovalRequired(UserInfo principalUserInfo, String teamId) throws DatastoreException, NotFoundException {
+		boolean userIsSynapseAdmin = principalUserInfo.isAdmin();
+		if (userIsSynapseAdmin) return false;
+		boolean userIsTeamAdmin = authorizationManager.canAccess(principalUserInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		if (userIsTeamAdmin) return false;
+		Team team = teamDAO.get(teamId);
+		boolean publicCanJoinTeam = team.getCanPublicJoin()!=null && team.getCanPublicJoin()==true;
+		return !publicCanJoinTeam;
+	}
 
 	@Override
 	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo,
@@ -451,7 +482,10 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setHasOpenInvitation(openInvitationCount>0L);
 		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenRequest(openRequestCount>0L);
-		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalId));
+		UserInfo principalUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo));
+		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
+		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));
 		return tms;
 	}
 	

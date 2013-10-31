@@ -14,13 +14,23 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface UserManager {
 
 	/**
-	 * Get the User and UserGroup information for the given user name.
+	 * Get the UserGroup information for the given user name.
 	 * Has the side effect of creating permissions-related objects for the
 	 * groups that the user is in.
 	 * 
+	 * @param userName the name (email address) of the user of interest
 	 */
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
 	
+	/**
+	 * Get the UserGroup information for the given user name.
+	 * Has the side effect of creating permissions-related objects for the
+	 * groups that the user is in.
+	 * 
+	 * @param principalId the ID of the user of interest
+	 */
+	public UserInfo getUserInfo(Long principalId) throws DatastoreException, NotFoundException;
+
 	/**
 	 * Get a default group
 	 */
@@ -35,7 +45,6 @@ public interface UserManager {
 	 * Creates a new user
 	 */
 	public void createUser(NewUser user);
-	
 	
 	/**
 	 * Does a principal with this name exist?

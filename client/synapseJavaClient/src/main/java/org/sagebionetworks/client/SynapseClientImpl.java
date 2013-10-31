@@ -1263,6 +1263,8 @@ public class SynapseClientImpl implements SynapseClient {
 			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
 		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
 			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
+		} else if (RestrictableObjectType.TEAM == subjectId.getType()) {
+			uri = TEAM+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
 		} else {
 			throw new SynapseException("Unsupported type "+subjectId.getType());
 		}
@@ -1284,6 +1286,8 @@ public class SynapseClientImpl implements SynapseClient {
 			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
 		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
 			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
+		} else if (RestrictableObjectType.TEAM == subjectId.getType()) {
+			uri = TEAM+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
 		} else {
 			throw new SynapseException("Unsupported type "+subjectId.getType());
 		}
