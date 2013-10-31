@@ -461,7 +461,7 @@ public class TeamManagerImpl implements TeamManager {
 	
 	// answers the question about whether membership approval is required to add principal to team
 	// the logic is !userIsSynapseAdmin && !userIsTeamAdmin && !publicCanJoinTeam
-	private boolean isMembershipApprovalRequired(UserInfo principalUserInfo, String teamId) throws DatastoreException, NotFoundException {
+	public boolean isMembershipApprovalRequired(UserInfo principalUserInfo, String teamId) throws DatastoreException, NotFoundException {
 		boolean userIsSynapseAdmin = principalUserInfo.isAdmin();
 		if (userIsSynapseAdmin) return false;
 		boolean userIsTeamAdmin = authorizationManager.canAccess(principalUserInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);

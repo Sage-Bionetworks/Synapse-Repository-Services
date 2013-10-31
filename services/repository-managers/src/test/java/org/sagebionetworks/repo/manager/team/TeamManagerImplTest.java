@@ -12,8 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -331,11 +332,28 @@ public class TeamManagerImplTest {
 		teamManagerImpl.delete(userInfo, TEAM_ID);
 	}
 	
+	private void mockUnmetAccessRequirements(boolean hasUnmet, UserInfo userInfo) {
+		List<Long> unmetAccessRequirementIds = null;
+		if (hasUnmet) {
+			unmetAccessRequirementIds = Arrays.asList(new Long[]{123L, 456L});
+		} else {
+			unmetAccessRequirementIds = Arrays.asList(new Long[]{});
+		}
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setType(RestrictableObjectType.TEAM);
+		rod.setId(TEAM_ID);
+		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
+		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
+		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
+		Set<Long> principalIds = new HashSet<Long>();
+		for (UserGroup ug : userInfo.getGroups()) {
+			principalIds.add(Long.parseLong(ug.getId()));
+		}
+		when(mockAccessRequirementDAO.unmetAccessRequirements(rod, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
+	}
+	
 	@Test
 	public void testCanAddTeamMemberSELF() throws Exception {
-		List<Long> ars = Arrays.asList(new Long[]{});
-		when(mockAccessRequirementDAO.unmetAccessRequirements((RestrictableObjectDescriptor)any(), (Collection<Long>)any(), (Collection<ACCESS_TYPE>)any())).thenReturn(ars);
-
 		// let the team be a non-Open team (which it is by default)
 		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
 		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
@@ -367,6 +385,15 @@ public class TeamManagerImplTest {
 		// I can add myself if I'm a Synapse admin
 		when(mockAuthorizationManager.canAccess(adminInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
 		assertTrue(teamManagerImpl.canAddTeamMember(adminInfo, TEAM_ID, adminInfo));
+
+		// Test access requirements:
+		// first, the baseline
+		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo));
+		// now add unmet access requirement
+		mockUnmetAccessRequirements(true, userInfo);
+		// I can no longer join
+		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, userInfo));
+
 	}
 	
 	@Test
@@ -415,6 +442,19 @@ public class TeamManagerImplTest {
 		
 		// also, I can't add them even though there's a request if I'm not an admin on the team
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo));
+
+		// Test access requirements:
+		// first, the baseline
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo));
+		// now add unmet access requirement
+		// this is OK, since it's the one being added who must meet the access requirements
+		mockUnmetAccessRequirements(true, userInfo);
+		assertTrue(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo));
+		// but this is not OK...
+		mockUnmetAccessRequirements(true, otherUserInfo);
+		// ...I can no longer add him
 		assertFalse(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo));
 	}
 	
@@ -600,6 +640,28 @@ public class TeamManagerImplTest {
 	}
 	
 	@Test
+	public void testIsMembershipApprovalRequired() throws Exception {
+		// admin doesn't require approval
+		assertFalse(teamManagerImpl.isMembershipApprovalRequired(adminInfo, TEAM_ID));
+
+		// let the team be a non-Open team (which it is by default)
+		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(team);
+			
+		// a team-admin doesn't require approval
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		assertFalse(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
+
+		// a non-team-admin requires approval
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		assertTrue(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
+		
+		// unless it's an open team
+		team.setCanPublicJoin(true);
+		assertFalse(teamManagerImpl.isMembershipApprovalRequired(userInfo, TEAM_ID));
+	}
+	
+	@Test
 	public void testGetTeamMembershipStatus() throws Exception {
 		// let the team be a non-Open team (which it is by default)
 		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
@@ -621,6 +683,8 @@ public class TeamManagerImplTest {
 		assertTrue(tms.getHasOpenInvitation());
 		assertTrue(tms.getHasOpenRequest());
 		assertTrue(tms.getCanJoin());
+		assertTrue(tms.getMembershipApprovalRequired());
+		assertFalse(tms.getHasUnmetAccessRequirement());
 		
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{}));
 		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(MEMBER_PRINCIPAL_ID)), anyLong())).thenReturn(0L);
@@ -632,6 +696,8 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getHasOpenInvitation());
 		assertFalse(tms.getHasOpenRequest());
 		assertFalse(tms.getCanJoin());
+		assertTrue(tms.getMembershipApprovalRequired());
+		assertFalse(tms.getHasUnmetAccessRequirement());
 		
 		// if the team is open the user 'can join' even if they have no invitation
 		team.setCanPublicJoin(true);
@@ -642,7 +708,16 @@ public class TeamManagerImplTest {
 		assertFalse(tms.getHasOpenInvitation());
 		assertFalse(tms.getHasOpenRequest());
 		assertTrue(tms.getCanJoin());
+		assertFalse(tms.getMembershipApprovalRequired());
+		assertFalse(tms.getHasUnmetAccessRequirement());
 		
+		mockUnmetAccessRequirements(true, principalUserInfo);
+		tms = teamManagerImpl.getTeamMembershipStatus(userInfo, TEAM_ID, principalUserInfo);
+		assertEquals(TEAM_ID, tms.getTeamId());
+		assertEquals(principalId, tms.getUserId());
+		assertFalse(tms.getCanJoin());
+		assertFalse(tms.getMembershipApprovalRequired());
+		assertTrue(tms.getHasUnmetAccessRequirement());
 	}
 	
 
