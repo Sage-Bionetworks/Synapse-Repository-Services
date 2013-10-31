@@ -27,7 +27,7 @@ public class MessageUtilsTest {
 	 * but is otherwise filled with junk info 
 	 */
 	@SuppressWarnings("serial")
-	public static Message generateSortaValidMessage() {
+	private Message generateSortaValidMessage() {
 		Message dto = new Message();
 		dto.setMessageId("-1");
 		dto.setThreadId("-1");

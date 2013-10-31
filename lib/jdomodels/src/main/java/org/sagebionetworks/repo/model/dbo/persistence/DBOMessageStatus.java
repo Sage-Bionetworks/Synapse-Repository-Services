@@ -19,8 +19,8 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_STATUS_ID, true).withIsBackupId(true),
-		new FieldColumn("recipientId", SqlConstants.COL_MESSAGE_RECIPIENTS, true),
-		new FieldColumn("status", SqlConstants.COL_MESSAGE_RECIPIENT_TYPE)
+		new FieldColumn("recipientId", SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID, true),
+		new FieldColumn("status", SqlConstants.COL_MESSAGE_STATUS)
 	};
 	
 	private Long messageId;
@@ -43,7 +43,7 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 			
 			@Override
 			public String getTableName() {
-				return SqlConstants.TABLE_MESSAGE;
+				return SqlConstants.TABLE_MESSAGE_STATUS;
 			}
 			
 			@Override
@@ -53,7 +53,7 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 			
 			@Override
 			public String getDDLFileName() {
-				return SqlConstants.DDL_MESSAGE;
+				return SqlConstants.DDL_MESSAGE_STATUS;
 			}
 			
 			@Override
@@ -82,8 +82,8 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 	}
 
 
-	public MessageStatusType getStatus() {
-		return status;
+	public String getStatus() {
+		return status.name();
 	}
 
 

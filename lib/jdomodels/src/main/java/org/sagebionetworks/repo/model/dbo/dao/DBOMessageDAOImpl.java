@@ -131,8 +131,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	public List<Message> getThread(String threadId, MESSAGE_SORT_BY sortBy,
-			boolean descending, long limit, long offset)
-			throws NotFoundException {
+			boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_IN_THREAD + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -142,7 +141,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public long getThreadSize(String threadId) throws NotFoundException {
+	public long getThreadSize(String threadId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD, params);
@@ -150,8 +149,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	public List<MessageBundle> getReceivedMessages(String userId,
-			MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset)
-			throws NotFoundException {
+			MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_RECEIVED + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -160,7 +158,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public long getNumReceivedMessages(String userId) throws NotFoundException {
+	public long getNumReceivedMessages(String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(RECIPIENT_ID_PARAM_NAME, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_RECEIVED, params);
@@ -168,8 +166,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	public List<Message> getSentMessages(String userId, MESSAGE_SORT_BY sortBy,
-			boolean descending, long limit, long offset)
-			throws NotFoundException {
+			boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_SENT + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -179,15 +176,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public long getNumSentMessages(String userId) throws NotFoundException {
+	public long getNumSentMessages(String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(SENDER_ID_PARAM_NAME, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_SENT, params);
 	}
 
 	@Override
-	public void registerMessageRecipient(String messageId, String userId)
-			throws NotFoundException {
+	public void registerMessageRecipient(String messageId, String userId) {
 		DBOMessageStatus status = new DBOMessageStatus();
 		status.setMessageId(Long.parseLong(messageId));
 		status.setRecipientId(Long.parseLong(userId));
@@ -197,7 +193,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	public void updateMessageStatus(String messageId, String userId,
-			MessageStatusType status) throws NotFoundException {
+			MessageStatusType status) {
 		DBOMessageStatus toUpdate = new DBOMessageStatus();
 		toUpdate.setMessageId(Long.parseLong(messageId));
 		toUpdate.setRecipientId(Long.parseLong(userId));

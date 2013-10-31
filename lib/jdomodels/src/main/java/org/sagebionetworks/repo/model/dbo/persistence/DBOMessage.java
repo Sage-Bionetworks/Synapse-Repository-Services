@@ -107,8 +107,8 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		this.createdBy = createdBy;
 	}
 	
-	public RecipientType getRecipientType() {
-		return recipientType;
+	public String getRecipientType() {
+		return recipientType.name();
 	}
 
 	public void setRecipientType(RecipientType recipientType) {

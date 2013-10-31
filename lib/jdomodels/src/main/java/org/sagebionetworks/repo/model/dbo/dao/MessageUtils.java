@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.RecipientType;
 
 public class MessageUtils {
 	
@@ -32,7 +34,7 @@ public class MessageUtils {
 		dto.setMessageId(dbo.getMessageId().toString());
 		dto.setThreadId(dbo.getMessageId().toString());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
-		dto.setRecipientType(dbo.getRecipientType());
+		dto.setRecipientType(RecipientType.valueOf(dbo.getRecipientType()));
 		try {
 			dto.setRecipients(unzip(dbo.getRecipients()));
 		} catch (IOException e) {
@@ -137,7 +139,7 @@ public class MessageUtils {
 		MessageStatus dto = new MessageStatus();
 		dto.setMessageId(dbo.getMessageId().toString());
 		dto.setRecipientId(dbo.getRecipientId().toString());
-		dto.setStatus(dbo.getStatus());
+		dto.setStatus(MessageStatusType.valueOf(dbo.getStatus()));
 		return dto;
 	}
 	
