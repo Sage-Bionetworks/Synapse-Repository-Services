@@ -11,8 +11,7 @@ public interface MessageDAO {
 	
 	public enum MESSAGE_SORT_BY {
 		SEND_DATE, 
-		SUBJECT, 
-		SENDER
+		SUBJECT
 	}
 	
 	/**
@@ -27,7 +26,7 @@ public interface MessageDAO {
 	 * 
 	 * @param dto This relevant IDs of this object may be changed
 	 */
-	public void saveMessage(Message dto);
+	public Message saveMessage(Message dto);
 	
 	/**
 	 * Retrieves all messages (subject to limit and offset) within a given thread

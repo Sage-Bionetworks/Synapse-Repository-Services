@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -32,7 +33,7 @@ public class MessageUtils {
 	public static Message convertDBO(DBOMessage dbo) {
 		Message dto = new Message();
 		dto.setMessageId(dbo.getMessageId().toString());
-		dto.setThreadId(dbo.getMessageId().toString());
+		dto.setThreadId(dbo.getThreadId().toString());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setRecipientType(RecipientType.valueOf(dbo.getRecipientType()));
 		try {
@@ -41,7 +42,7 @@ public class MessageUtils {
 			throw new DatastoreException("Could not unpack the list of intended recipients", e);
 		}
 		dto.setMessageFileId(dbo.getBodyFileId().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn().getTime()));
 		dto.setSubject(dbo.getSubject());
 		return dto;
 	}

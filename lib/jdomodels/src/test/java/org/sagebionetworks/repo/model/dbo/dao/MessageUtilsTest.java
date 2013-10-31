@@ -30,11 +30,11 @@ public class MessageUtilsTest {
 	private Message generateSortaValidMessage() {
 		Message dto = new Message();
 		dto.setMessageId("-1");
-		dto.setThreadId("-1");
-		dto.setCreatedBy("-1");
+		dto.setThreadId("-2");
+		dto.setCreatedBy("-3");
 		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
-		dto.setMessageFileId("-1");
+		dto.setRecipients(new ArrayList<String>() {{add("-4");}});
+		dto.setMessageFileId("-5");
 		dto.setCreatedOn(new Date());
 		return dto;
 	}

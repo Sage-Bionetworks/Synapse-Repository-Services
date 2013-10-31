@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -28,6 +29,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
+	
+	/**
+	 * Used for testing
+	 */
+	public void setBasicDAO(DBOBasicDao basicDAO) {
+		this.basicDAO = basicDAO;
+	}
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -89,9 +97,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		StringBuilder suffix = new StringBuilder();
 		suffix.append(" ORDER BY ");
 		switch (sortBy) {
-		case SENDER:
-			suffix.append(SqlConstants.COL_MESSAGE_CREATED_BY);
-			break;
 		case SEND_DATE:
 			suffix.append(SqlConstants.COL_MESSAGE_CREATED_ON);
 			break;
@@ -117,16 +122,18 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public void saveMessage(Message dto) {
+	public Message saveMessage(Message dto) {
 		// Fill in new IDs for the message
 		dto.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID).toString());
 		if (dto.getThreadId() == null) {
 			dto.setThreadId(idGenerator.generateNewId(TYPE.MESSAGE_THREAD_ID).toString());
 		}
+		dto.setCreatedOn(new Date());
 		
 		MessageUtils.validateDTO(dto);
 		
-		basicDAO.createNew(MessageUtils.convertDTO(dto));
+		DBOMessage saved = basicDAO.createNew(MessageUtils.convertDTO(dto));
+		return MessageUtils.convertDBO(saved);
 	}
 
 	@Override
