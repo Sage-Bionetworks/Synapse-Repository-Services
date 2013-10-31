@@ -25,6 +25,7 @@ public class AccessControlListTest {
 		User user = new User();
 		user.setId("33");
 		user.setUserId("someUser@somedomain.net");
+		info.setUser(user);
 		info.setIndividualGroup(userGroup);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId, info);
 		assertNotNull(acl);

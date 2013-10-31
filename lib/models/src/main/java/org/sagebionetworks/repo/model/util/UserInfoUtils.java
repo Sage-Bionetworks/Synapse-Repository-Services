@@ -22,6 +22,7 @@ public class UserInfoUtils {
 		group.setName("foo@bar.com");
 		group.setIsIndividual(true);
 		UserInfo info = new UserInfo(isAdmin);
+		info.setUser(user);
 		info.setIndividualGroup(group);
 		info.setGroups(new ArrayList<UserGroup>());
 		UserInfo.validateUserInfo(info);

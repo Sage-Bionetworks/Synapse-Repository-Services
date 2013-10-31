@@ -129,44 +129,41 @@ public class UserManagerImpl implements UserManager {
 		UserInfo ui = new UserInfo(isAdmin);
 		ui.setIndividualGroup(individualGroup);
 		ui.setGroups(groups);
+		ui.setUser(getUser(individualGroup));
 		return ui;
 	}
 	
-//	/**
-//	 * Constructs a User object out of information from the UserGroup and UserProfile
-//	 */
-//	private User getUser(String userName) throws DatastoreException,
-//			NotFoundException {
-//		User user = new User();
-//		user.setUserId(userName);
-//		user.setId(userName); // i.e. username == user id
-//
-//		if (AuthorizationUtils.isUserAnonymous(userName)) {
-//			return user;
-//		}
-//
-//		UserGroup ug = userGroupDAO.findGroup(userName, true);
-//		if (ug == null) {
-//			throw new NotFoundException("User " + userName + " does not exist");
-//		}
-//		user.setCreationDate(ug.getCreationDate());
-//		
-//		// Get the terms of use acceptance
-//		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(ug.getId()));
-//
-//		// The migrator may delete its own profile during migration
-//		// But those details do not matter for this user
-//		if (userName.equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
-//			return user;
-//		}
-//
-//		UserProfile up = userProfileDAO.get(ug.getId());
-//		user.setFname(up.getFirstName());
-//		user.setLname(up.getLastName());
-//		user.setDisplayName(up.getDisplayName());
-//
-//		return user;
-//	}
+	/**
+	 * Constructs a User object out of information from the UserGroup and UserProfile
+	 */
+	private User getUser(UserGroup individualGroup) throws DatastoreException,
+			NotFoundException {
+		User user = new User();
+		user.setUserId(individualGroup.getName());
+		user.setId(individualGroup.getName()); // i.e. username == user id
+
+		if (AuthorizationUtils.isUserAnonymous(individualGroup.getName())) {
+			return user;
+		}
+
+		user.setCreationDate(individualGroup.getCreationDate());
+		
+		// Get the terms of use acceptance
+		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(individualGroup.getId()));
+
+		// The migrator may delete its own profile during migration
+		// But those details do not matter for this user
+		if (individualGroup.getName().equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
+			return user;
+		}
+
+		UserProfile up = userProfileDAO.get(individualGroup.getId());
+		user.setFname(up.getFirstName());
+		user.setLname(up.getLastName());
+		user.setDisplayName(up.getDisplayName());
+
+		return user;
+	}
 
 	/**
 	 * Lazy fetch of the default groups.

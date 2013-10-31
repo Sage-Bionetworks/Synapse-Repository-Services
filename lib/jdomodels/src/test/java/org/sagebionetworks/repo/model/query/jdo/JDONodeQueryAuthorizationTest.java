@@ -314,6 +314,8 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 * @throws NotFoundException
 	 */
 	private UserInfo createUser(String name, boolean isAdmin) throws DatastoreException, InvalidModelException, NotFoundException{
+		User user = new User();
+		user.setUserId(name);
 		// Create a group for this user
 		String userGroupName = name+"group";
 		UserGroup group = userGroupDAO.findGroup(userGroupName, true); //new UserGroup();
@@ -329,6 +331,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		groupsToDelete.add(id);
 		group = userGroupDAO.get(id);
 		UserInfo info = new UserInfo(isAdmin);
+		info.setUser(user);
 		info.setIndividualGroup(group);
 		info.setGroups(new ArrayList<UserGroup>());
 		info.getGroups().add(group);

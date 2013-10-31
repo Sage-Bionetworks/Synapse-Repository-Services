@@ -18,15 +18,21 @@ public class UserInfoTest {
 		UserInfo.validateUserInfo(info);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullUserId(){
 		UserInfo info = new UserInfo(false);
+		User user = new User();
+		info.setUser(user);
 		UserInfo.validateUserInfo(info);
 	}
 
 	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullUserUserId(){
 		UserInfo info = new UserInfo(false);
+		User user = new User();
+		user.setId("101");
+		user.setUserId("myId@idstore.org");
+		info.setUser(user);
 		UserGroup ind = new UserGroup();
 		ind.setId("9");
 		ind.setName("one");
@@ -41,6 +47,10 @@ public class UserInfoTest {
 	@Test
 	public void testValidateValid(){
 		UserInfo info = new UserInfo(false);
+		User user = new User();
+		user.setId("101");
+		user.setUserId("myId@idstore.org");
+		info.setUser(user);
 		UserGroup ind = new UserGroup();
 		ind.setId("9");
 		ind.setName("one");
