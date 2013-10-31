@@ -23,7 +23,9 @@ public class NodeTreeDaoImplPreconditionTest {
 		
 		AmazonDynamoDB client = Mockito.mock(AmazonDynamoDB.class);
 		updateDao = new NodeTreeUpdateDaoImpl(client);
+		((NodeTreeUpdateDaoImpl)updateDao).setDynamoEnabled(true);
 		queryDao = new NodeTreeQueryDaoImpl(client);
+		((NodeTreeQueryDaoImpl)queryDao).setDynamoEnabled(true);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
