@@ -633,6 +633,15 @@ public class StackConfiguration {
 		return Boolean.parseBoolean(configuration
 				.getProperty("org.sagebionetworks.search.enabled"));
 	}
+	
+	/**
+	 * Is the Dynamo feature enabled?
+	 * @return
+	 */
+	public boolean getDynamoEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.dynamo.enabled"));
+	}
 
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable

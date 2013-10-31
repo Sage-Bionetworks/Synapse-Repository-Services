@@ -193,7 +193,9 @@ public class MessageReceiverImpl implements MessageReceiver {
 		verifyConfig();
 		// Do nothing if this queue is not enabled
 		if(!messageQueue.isEnabled()){
-			log.debug("Nothing to do since the queue is disabled: "+messageQueue.getQueueName());
+			if(log.isDebugEnabled()){
+				log.debug("Nothing to do since the queue is disabled: "+messageQueue.getQueueName());
+			}
 			return 0;
 		}
 		// When the timer is fired we receive messages from AWS SQS.

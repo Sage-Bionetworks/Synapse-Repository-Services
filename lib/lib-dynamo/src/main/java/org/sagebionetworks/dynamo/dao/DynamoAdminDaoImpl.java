@@ -17,11 +17,24 @@ public class DynamoAdminDaoImpl implements DynamoAdminDao {
 
 	@Autowired
 	private AmazonDynamoDB dynamoClient;
+	
+	private boolean isDynamoEnabled;
+
+	@Override
+	public boolean isDynamoEnabled() {
+		return isDynamoEnabled;
+	}
+ 
+	public void setDynamoEnabled(boolean isDynamoEnabled) {
+		this.isDynamoEnabled = isDynamoEnabled;
+	}
 
 	@Override
 	public void clear(final String tableName,
 			final String hashKeyName, final String rangeKeyName) {
-
+		
+		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
+		
 		if (tableName == null || tableName.isEmpty()) {
 			throw new IllegalArgumentException("Table name cannot be null or empty.");
 		}
@@ -53,4 +66,5 @@ public class DynamoAdminDaoImpl implements DynamoAdminDao {
 			dynamoClient.deleteItem(deleteItemRequest);
 		}
 	}
+
 }
