@@ -4,28 +4,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.ActivityManager;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.WikiModelTranslationHelper;
 import org.sagebionetworks.repo.web.WikiModelTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.s3.AmazonS3Client;
 
 public class WikiMigrationService {
 	@Autowired
@@ -34,15 +25,6 @@ public class WikiMigrationService {
 	private WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	FileHandleManager fileHandleManager;
-	@Autowired
-	FileHandleDao fileMetadataDao;	
-	@Autowired
-	AmazonS3Client s3Client;
-	@Autowired
-	TempFileProvider tempFileProvider;
 
 	public WikiMigrationService() {
 	}

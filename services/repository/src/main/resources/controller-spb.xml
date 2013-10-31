@@ -98,8 +98,7 @@
 
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
-
-	<bean id="crowdSyncService" class="org.sagebionetworks.auth.services.CrowdSynchronizerService" />
+	
 	<!-- The temporary Wiki Migration Service -->
 	<bean id="wikiMigrationService" class="org.sagebionetworks.repo.web.service.WikiMigrationService" />
 

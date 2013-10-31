@@ -1157,8 +1157,6 @@ public class ServletTestHelper {
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				EntityHeader.class);
 	}
-
-
 	
 	public static PaginatedResults<WikiMigrationResult> migrateWikisToV2(HttpServlet dispatchServlet,
 			String username, Map<String, String> extraParams) throws Exception {
