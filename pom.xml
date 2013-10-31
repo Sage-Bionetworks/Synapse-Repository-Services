@@ -418,11 +418,23 @@
 				<version>${project.version}</version>
 			</dependency>
 
+                        <dependency>
+                                <groupId>org.sagebionetworks</groupId>
+                                <artifactId>lib-javaclient</artifactId>
+                                <version>${project.version}</version>
+                        </dependency>
+
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>synapseJavaClient</artifactId>
 				<version>${project.version}</version>
 			</dependency>
+
+                        <dependency>
+                                <groupId>org.sagebionetworks</groupId>
+                                <artifactId>bridgeJavaClient</artifactId>
+                                <version>${project.version}</version>
+                        </dependency>
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>

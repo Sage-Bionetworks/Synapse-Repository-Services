@@ -5,15 +5,12 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<artifactId>client</artifactId>
 		<groupId>org.sagebionetworks</groupId>
+		<artifactId>lib</artifactId>
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
-	<artifactId>synapseJavaClient</artifactId>
-	<packaging>jar</packaging>
-	<name>synapseJavaClient</name>
+	<artifactId>lib-javaclient</artifactId>
 
 	<dependencies>
 
@@ -42,11 +39,6 @@
 			<artifactId>lib-securityUtilities</artifactId>
 		</dependency>
 
-        <dependency>
-            <groupId>org.sagebionetworks</groupId>
-            <artifactId>lib-javaclient</artifactId>
-        </dependency>
-
 		<!-- JSON -->
 		<dependency>
 			<groupId>org.json</groupId>
@@ -72,21 +64,4 @@
 		</dependency>
 
 	</dependencies>
-
-	<build>
-		<resources>
-			<resource>
-				<!-- This will add the source files to the jar, which is needed for GWT compile. -->
-				<directory>src/main/java</directory>
-			</resource>
-			<resource>
-				<!-- We also want the resources directory added -->
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-			</resource>
-		</resources>
-		<plugins>
-		</plugins>
-	</build>
-
 </project>
