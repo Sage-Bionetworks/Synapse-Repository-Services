@@ -79,7 +79,7 @@ public class AuthenticationController extends BaseController {
 	}
 
 	/**
-	 * Deauthenticate a session token.  This will sign out all active sessions using the session token.   
+	 * Deauthenticate a session token.  This will sign out all active sessions using the session token.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
@@ -171,7 +171,7 @@ public class AuthenticationController extends BaseController {
 		authenticationService.updateEmail(username, registrationInfo);
 	}
 
-	/* (non-Javadoc)
+	/**
 	 * Used by password reset emails to reset a user's password.
 	 * Must be used within 24 hours of sending the email.
 	 */
