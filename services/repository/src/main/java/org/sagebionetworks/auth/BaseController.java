@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -54,19 +53,6 @@ public class BaseController {
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
 	ErrorResponse handleTermsOfUseException(TermsOfUseException ex,
-			HttpServletRequest request,
-			HttpServletResponse response) {
-		return handleException(ex, request, false);
-	}
-
-	/**
-	 * This is thrown when the user should not retry authentication
-	 * because the information they provided is invalid.
-	 */
-	@ExceptionHandler(ForbiddenException.class)
-	@ResponseStatus(HttpStatus.FORBIDDEN)
-	public @ResponseBody
-	ErrorResponse handleForbiddenException(ForbiddenException ex,
 			HttpServletRequest request,
 			HttpServletResponse response) {
 		return handleException(ex, request, false);

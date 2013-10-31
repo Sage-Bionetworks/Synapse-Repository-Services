@@ -101,6 +101,17 @@ public class AuthenticationController extends BaseController {
 		authenticationService.createUser(user);
 		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
+
+	/**
+	 * Resends the email for setting a new user's password.
+	 * 
+	 * @param user Only the email field is required
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
+	public void resendRegisteringUserPasswordEmail(@RequestBody NewUser user) throws NotFoundException {
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
+	}
 	
 	/**
 	 * Retrieve basic information about the current authenticated user.  
