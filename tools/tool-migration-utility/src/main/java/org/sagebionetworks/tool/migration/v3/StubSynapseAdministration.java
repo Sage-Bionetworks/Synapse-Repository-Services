@@ -2392,7 +2392,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public void resentPasswordEmail(String email) throws SynapseException {
+	public void resendPasswordEmail(String email) throws SynapseException {
 		// TODO Auto-generated method stub
 		
 	}

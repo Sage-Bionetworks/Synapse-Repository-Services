@@ -172,9 +172,9 @@ public class IT990AuthenticationController {
 	}
 	
 	@Test
-	public void testResentPasswordEmail() throws Exception {
+	public void testResendPasswordEmail() throws Exception {
 		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.resentPasswordEmail(username);
+		synapse.resendPasswordEmail(username);
 	}
 	
 	@Test

@@ -996,7 +996,7 @@ public interface SynapseClient {
 	/**
 	 * Prompts Synapse to resent the email used to set a new user's password
 	 */
-	public void resentPasswordEmail(String email) throws SynapseException;
+	public void resendPasswordEmail(String email) throws SynapseException;
 
 	/**
 	 * Retrieves the bare-minimum amount of information about the current user

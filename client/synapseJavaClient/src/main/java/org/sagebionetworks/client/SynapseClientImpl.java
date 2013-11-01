@@ -5085,7 +5085,7 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void resentPasswordEmail(String email) throws SynapseException{
+	public void resendPasswordEmail(String email) throws SynapseException{
 		try {
 			NewUser user = new NewUser();
 			user.setEmail(email);
