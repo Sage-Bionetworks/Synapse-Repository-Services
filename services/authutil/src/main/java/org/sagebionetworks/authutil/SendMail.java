@@ -6,6 +6,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.utils.EmailUtils;
 
@@ -13,6 +16,8 @@ import org.sagebionetworks.utils.EmailUtils;
 public class SendMail {
     private static String synapseURL;
     private static String resetPWURI;
+	
+	private static Log log = LogFactory.getLog(SendMail.class);
 
     static {
     	synapseURL = "https://www.synapse.org";
@@ -75,9 +80,14 @@ public class SendMail {
     				"org.sagebionetworks.portal.endpoint="+System.getProperty("org.sagebionetworks.portal.endpoint"));
     	}
     	// fill in link, with token
-    	EmailUtils.sendMail(user.getEmail(), "Set Synapse password", msg);
+    	sendMail(user.getEmail(), "Set Synapse password", msg);
     }
     
+    /**
+     * Sends a welcome email to the given user
+     * 
+     * @param user Requires email and displayName
+     */
     public void sendWelcomeMail(NewUser user) {
     	// Read in email template
     	String msg = readMailTemplate("welcomeToSynapseEmail.txt");
@@ -85,8 +95,23 @@ public class SendMail {
     	// fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
+		
     	
     	// fill in link, with token
-    	EmailUtils.sendMail(user.getEmail(), "Welcome to Synapse!", msg);
+    	sendMail(user.getEmail(), "Welcome to Synapse!", msg);
+    }
+    
+    /**
+     * Calls the email utility to send a message
+     * On non-production stacks, the email is instead logged
+     */
+    private void sendMail(String to, String subj, String msg) {
+		// Don't spam emails for integration tests
+		if (!StackConfiguration.isProductionStack()) {
+			log.debug("Intercepting email...\nTo: " + to + "\nSubject: " + subj + "\nMessage: " + msg);
+			return;
+		}
+
+    	EmailUtils.sendMail(to, subj, msg);
     }
 }
