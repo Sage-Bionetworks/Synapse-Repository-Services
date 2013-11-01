@@ -109,10 +109,7 @@ public class MigrationConfigurationImpl implements Configuration {
 					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
-					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
-					System.getProperty("org.sagebionetworks.crowd.endpoint"),
-					System.getProperty("org.sagebionetworks.crowdApplicationKey")
-
+					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket")
 				);
 	}
 	
@@ -125,9 +122,7 @@ public class MigrationConfigurationImpl implements Configuration {
 					System.getProperty("org.sagebionetworks.apikey"),
 					System.getProperty("org.sagebionetworks.stack.iam.id"),
 					System.getProperty("org.sagebionetworks.stack.iam.key"),
-					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
-					System.getProperty("org.sagebionetworks.crowd.endpoint"),
-					System.getProperty("org.sagebionetworks.crowdApplicationKey")
+					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket")
 				);
 	}
 	

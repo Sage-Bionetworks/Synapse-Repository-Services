@@ -31,22 +31,23 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class MigrationManagerImplAutowireTest {
 	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
 	private UserManager userManager;	
 	
 	@Autowired
-	MigrationManager migrationManager;
+	private MigrationManager migrationManager;
+	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
 	
 	private List<String> toDelete;
-	UserInfo adminUser;
-	String creatorUserGroupId;
-	S3FileHandle withPreview;
-	PreviewFileHandle preview;
-	long startCount, startMax;
+	private UserInfo adminUser;
+	private String creatorUserGroupId;
+	private S3FileHandle withPreview;
+	private PreviewFileHandle preview;
+	private long startCount;
 	
 	@Before
 	public void before() throws Exception {
@@ -55,7 +56,6 @@ public class MigrationManagerImplAutowireTest {
 		creatorUserGroupId = adminUser.getIndividualGroup().getId();
 		assertNotNull(creatorUserGroupId);
 		startCount = fileHandleDao.getCount();
-		startMax = fileHandleDao.getMaxId();
 		
 		// The one will have a preview
 		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
@@ -174,9 +174,22 @@ public class MigrationManagerImplAutowireTest {
 	public void testDeleteAll() throws Exception{
 		// Delete all data
 		migrationManager.deleteAllData(adminUser);
-		// The counts for all tables should be zero
-		for(MigrationType type: MigrationType.values()){
-			assertEquals("All data should have been deleted",0l, migrationManager.getCount(adminUser, type));
+		
+		// The counts for all tables should be zero 
+		// Except for 3 special cases, which are the minimal required rows to successfully
+		//   call userManager.getUserInfo(AuthorizationConstants.MIGRATION_USER_NAME);
+		for (MigrationType type : MigrationType.values()) {
+			if (type == MigrationType.PRINCIPAL) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						4L, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.CREDENTIAL
+					|| type == MigrationType.GROUP_MEMBERS) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						1L, migrationManager.getCount(adminUser, type));
+			} else {
+				assertEquals("All data of type " + type + " should have been deleted", 
+						0L, migrationManager.getCount(adminUser, type));
+			}
 		}
 	}
 

@@ -7,9 +7,11 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
@@ -40,6 +42,8 @@ public class NodeLineageWriteExecutorAutowireTest {
 	@Before
 	public void before() {
 
+
+		
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
 
@@ -90,6 +94,9 @@ public class NodeLineageWriteExecutorAutowireTest {
 
 	@After
 	public void after() {
+		StackConfiguration config = new StackConfiguration();
+		// There is nothing to do if dynamo is disabled
+		if(!config.getDynamoEnabled()) return;
 
 		DboNodeLineage a2rDbo = this.a2r.getDescendant2Ancestor();
 		DboNodeLineage b2aDbo = this.b2a.getDescendant2Ancestor();

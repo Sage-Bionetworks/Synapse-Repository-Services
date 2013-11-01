@@ -138,17 +138,15 @@
 					<configuration>
 						<properties>
 						    <cargo.jvmargs>
+<!--
+ 								-Xdebug
+ 								-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8989
+ 								-Xnoagent
+-->
 								-Xmx2g
 								-Xms128m
 								-XX:MaxPermSize=850m
 							</cargo.jvmargs>
-	
-<!-- 							<cargo.jvmargs> -->
-<!-- 								-Xdebug -->
-<!-- 								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
-<!-- 								-Xnoagent -->
-<!-- 								-Djava.compiler=NONE -->
-<!-- 							</cargo.jvmargs> -->
 							
 						</properties>
 					</configuration>

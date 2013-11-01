@@ -67,13 +67,13 @@ public class V2WikiTranslationUtils {
 	 * @param attachments
 	 * @return
 	 */
-	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<V2DBOWikiAttachmentReservation> dtoAttachments, Long markdownFileHandleId){
+	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<String> fileHandleIds, Long markdownFileHandleId){
 		if(dtoPage == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
-		if(dtoAttachments == null) throw new IllegalArgumentException("List of attachments cannot be null");
+		if(fileHandleIds == null) throw new IllegalArgumentException("List of attachments cannot be null");
 		if(markdownFileHandleId == null) throw new IllegalArgumentException("Markdown file handle id cannot be null");
 		
 		V2WikiPage page = new V2WikiPage();
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		page.setAttachmentFileHandleIds(fileHandleIds);
 		page.setId(dtoPage.getId().toString());
 		page.setEtag(dtoPage.getEtag());
 		page.setTitle(dtoPage.getTitle());
@@ -89,9 +89,7 @@ public class V2WikiTranslationUtils {
 			page.setParentWikiId(dtoPage.getParentId().toString());
 		}
 		page.setMarkdownFileHandleId(markdownFileHandleId.toString());
-		for(V2DBOWikiAttachmentReservation attachment: dtoAttachments) {
-			page.getAttachmentFileHandleIds().add(attachment.getFileHandleId().toString());
-		}
+		
 		return page;
 	}
 	
@@ -103,27 +101,23 @@ public class V2WikiTranslationUtils {
 	 * 
 	 * @return
 	 */
-	public static List<V2DBOWikiAttachmentReservation> createDBOAttachmentReservationFromDTO(Map<String, FileHandle> fileNameToFileHandleMap, 
+	public static List<V2DBOWikiAttachmentReservation> createDBOAttachmentReservationFromDTO(List<String> fileHandleIdsToInsert, 
 			Long wikiId, Long timestamp){
 		
-		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
+		if(fileHandleIdsToInsert == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null"); 
 		if(timestamp == null) throw new IllegalArgumentException("timestamp cannot be null");
 		
 		List<V2DBOWikiAttachmentReservation> list = new LinkedList<V2DBOWikiAttachmentReservation>();
-		if(fileNameToFileHandleMap != null){
-			for(String fileName: fileNameToFileHandleMap.keySet()) {
-				V2DBOWikiAttachmentReservation attachmentEntry = new V2DBOWikiAttachmentReservation();
-				FileHandle handle = fileNameToFileHandleMap.get(fileName);
-				if(handle == null) throw new IllegalArgumentException("FileHandle is null for fileName: "+fileName);
-				if(handle.getId() == null) throw new IllegalArgumentException("FileHandle.getId id null for fileName: "+fileName);
-				
-				attachmentEntry.setWikiId(wikiId);
-				attachmentEntry.setFileHandleId(Long.parseLong(handle.getId()));
-				attachmentEntry.setTimeStamp(new Timestamp(timestamp));
-				list.add(attachmentEntry);
-			}
+		for(String id: fileHandleIdsToInsert) {
+			V2DBOWikiAttachmentReservation attachmentEntry = new V2DBOWikiAttachmentReservation();
+			
+			attachmentEntry.setWikiId(wikiId);
+			attachmentEntry.setFileHandleId(Long.parseLong(id));
+			attachmentEntry.setTimeStamp(new Timestamp(timestamp));
+			list.add(attachmentEntry);
 		}
+		
 		return list;
 	}
 	
@@ -136,7 +130,7 @@ public class V2WikiTranslationUtils {
 	 * @return
 	 */
 	public static V2DBOWikiMarkdown createDBOWikiMarkdownFromDTO(Map<String, FileHandle> fileNameToFileHandleMap, 
-			Long wikiId, Long markdownFileHandleId) {
+			Long wikiId, Long markdownFileHandleId, String title) {
 		
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null"); 
@@ -145,7 +139,7 @@ public class V2WikiTranslationUtils {
 		V2DBOWikiMarkdown dbo = new V2DBOWikiMarkdown();
 		dbo.setWikiId(wikiId);
 		dbo.setFileHandleId(markdownFileHandleId);
-
+		dbo.setTitle(title);
 		// Escape special delimiters and build a list of fileHandleId:fileName entries
 		StringBuffer attachmentIdList = new StringBuffer();
 		for(String fileName: fileNameToFileHandleMap.keySet()) {

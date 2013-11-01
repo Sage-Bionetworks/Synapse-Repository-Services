@@ -4,13 +4,14 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.ProcessedMessageDAO;
 
 /**
  * Abstraction for DBOChage CRUD.
  * @author jmhill
  *
  */
-public interface DBOChangeDAO {
+public interface DBOChangeDAO extends ProcessedMessageDAO {
 	
 	/**
 	 * If the objectId already exists, then replace it, else add a new row.

@@ -191,6 +191,13 @@ public class MessageReceiverImpl implements MessageReceiver {
 	private int triggerFiredImpl() throws InterruptedException {
 		// Validate all config.
 		verifyConfig();
+		// Do nothing if this queue is not enabled
+		if(!messageQueue.isEnabled()){
+			if(log.isDebugEnabled()){
+				log.debug("Nothing to do since the queue is disabled: "+messageQueue.getQueueName());
+			}
+			return 0;
+		}
 		// When the timer is fired we receive messages from AWS SQS.
 		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expected to handle a batch of messages.
 		// Note: Messages must be requested in batches of 10 or less (otherwise SQS will complain)
@@ -297,7 +304,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
 		if(visibilityTimeoutSec == null) throw new IllegalStateException("visibilityTimeout cannot be null");
 		if(messageQueue == null) throw new IllegalStateException("messageQueue cannot be null");
-		if(executors == null){
+		if(executors == null && messageQueue.isEnabled()){
 			// Create the thread pool
 			executors = Executors.newFixedThreadPool(maxNumberOfWorkerThreads);
 		}

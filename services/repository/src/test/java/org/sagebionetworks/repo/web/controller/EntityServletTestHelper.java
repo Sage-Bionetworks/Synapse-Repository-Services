@@ -41,6 +41,9 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -397,14 +400,11 @@ public class EntityServletTestHelper {
 	 * Gets a paginated list of available evaluations
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluations(
-			String username, String status) throws Exception {
+			String username) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION_AVAILABLE, username, null);
 		request.setParameter("limit", "100");
 		request.setParameter("offset", "0");
-		if (status != null) {
-			request.setParameter("status", status);
-		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1072,4 +1072,183 @@ public class EntityServletTestHelper {
 		return getEntityFileURL(userName, entityId, redirect, preview,
 				versionNumber);
 	}
+	
+	// V2 Wiki methods
+	/**
+	 * Create V2 wiki page
+	 */
+	public V2WikiPage createV2WikiPage(String username, String ownerId,
+			ObjectType ownerType, V2WikiPage toCreate) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki2", username, toCreate);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), V2WikiPage.class);
+	}
+	
+	/**
+	 * Get V2 wiki page
+	 */
+	public V2WikiPage getV2WikiPage(WikiPageKey key, String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+			HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key),
+			username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+			.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), V2WikiPage.class);
+	}
+	
+	/**
+	 * Get the root V2 wiki page
+	 */
+	public V2WikiPage getRootV2WikiPage(String ownerId, ObjectType ownerType,
+			String username) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki2", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), V2WikiPage.class);
+	}
+	
+	/**
+	 * Update a V2 wiki page
+	 */
+	public V2WikiPage updateWikiPage(String username, String ownerId,
+			ObjectType ownerType, V2WikiPage wiki) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki2/" + wiki.getId(), username, wiki);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), V2WikiPage.class);
+	}
+
+	/**
+	 * Get the paginated results of a wiki header
+	 */
+	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String username,
+			String ownerId, ObjectType ownerType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wikiheadertree2", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				V2WikiHeader.class);
+	}
+	
+	/**
+	 * Get the paginated results of a wiki header
+	 */
+	public FileHandleResults getV2WikiFileHandles(String username, WikiPageKey key)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
+						+ "/attachmenthandles", username, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), FileHandleResults.class);
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki File
+	 */
+	public URL getV2WikiAttachmentFileURL(String username, WikiPageKey key,
+			String fileName, Boolean redirect) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
+						+ "/attachment", username, null);
+		request.setParameter("fileName", fileName);
+		if (redirect != null) {
+			request.setParameter("redirect", redirect.toString());
+		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, null);
+
+		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
+	}
+
+	/**
+	 * Get the temporary Redirect URL for a Wiki File
+	 */
+	public URL getV2WikiAttachmentPreviewFileURL(String username,
+			WikiPageKey key, String fileName, Boolean redirect)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
+						+ "/attachmentpreview", username, null);
+		request.setParameter("fileName", fileName);
+		if (redirect != null) {
+			request.setParameter("redirect", redirect.toString());
+		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, null);
+
+		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
+	}
+	
+	/**
+	 * Delete a wikipage
+	 */
+	public void deleteV2WikiPage(WikiPageKey key, String username)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, ServletTestHelperUtils.createV2WikiURI(key),
+				username, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
+				HttpStatus.OK);
+	}
+	
+	/**
+	 * Restore a V2 wiki page to other content
+	 */
+	public V2WikiPage restoreWikiPage(String username, String ownerId,
+			ObjectType ownerType, V2WikiPage wiki, Long version) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
+						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, wiki);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), V2WikiPage.class);
+	}
+	
+	/**
+	 * Get wiki history
+	 */
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, String username, Long offset, Long limit) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key) + "/wikihistory",
+				username, null);
+		request.setParameter("offset", offset.toString());
+		request.setParameter("limit", limit.toString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+			.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				V2WikiHistorySnapshot.class);
+	}
+
 }

@@ -3,6 +3,7 @@
     "type":"string",
     "enum":[
         "ENTITY",
-        "EVALUATION"
+        "EVALUATION",
+        "TEAM"
     ]
 }

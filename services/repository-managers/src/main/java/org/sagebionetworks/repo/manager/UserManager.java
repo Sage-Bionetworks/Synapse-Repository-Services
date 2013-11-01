@@ -18,9 +18,19 @@ public interface UserManager {
 	 * Has the side effect of creating permissions-related objects for the
 	 * groups that the user is in.
 	 * 
+	 * @param userName the name (email address) of the user of interest
 	 */
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
 	
+	/**
+	 * Get the User and UserGroup information for the given user name.
+	 * Has the side effect of creating permissions-related objects for the
+	 * groups that the user is in.
+	 * 
+	 * @param principalId the ID of the user of interest
+	 */
+	public UserInfo getUserInfo(Long principalId) throws DatastoreException, NotFoundException;
+
 	/**
 	 * Get a default group
 	 */
@@ -35,13 +45,6 @@ public interface UserManager {
 	 * Creates a new user
 	 */
 	public void createUser(NewUser user);
-	
-	/**
-	 * Creates a new user
-	 * To be replaced with createUser
-	 */
-	@Deprecated
-	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException;
 	
 	/**
 	 * Does a principal with this name exist?
@@ -64,12 +67,6 @@ public interface UserManager {
 	 */
 	public String getGroupName(String principalId) throws NotFoundException;
 
-	/**
-	 * To be removed soon
-	 */
-	@Deprecated
-	public void clearCache();
-	
 	/**
 	 * Changes the user's email
 	 */

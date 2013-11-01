@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,10 +84,12 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 					SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=NULL"+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
 	
-	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
+	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_CREDENTIAL+
-			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME+
-				IF_VALID_SUFFIX;
+			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
+	
+	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
+			SELECT_PRINCIPAL_BY_TOKEN+IF_VALID_SUFFIX;
 	
 	private static final String SELECT_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PASS_HASH+
@@ -189,9 +192,20 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
 		simpleJdbcTemplate.update(NULLIFY_SESSION_TOKEN, param);
 	}
+
+	@Override
+	public Long getPrincipal(String sessionToken) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(TOKEN_PARAM_NAME, sessionToken);
+		
+		try {
+			return simpleJdbcTemplate.queryForLong(SELECT_PRINCIPAL_BY_TOKEN, param); 
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
 	
 	@Override
-	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public Long getPrincipalIfValid(String sessionToken) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
@@ -205,10 +219,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public byte[] getPasswordSalt(String username) {
+	public byte[] getPasswordSalt(String username) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(EMAIL_PARAM_NAME, username);
-		String passHash = simpleJdbcTemplate.queryForObject(SELECT_PASSWORD, String.class, param);
+		String passHash;
+		try {
+			passHash = simpleJdbcTemplate.queryForObject(SELECT_PASSWORD, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("User (" + username + ") does not exist");
+		}
 		if (passHash == null) {
 			return null;
 		}
@@ -277,10 +296,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		} else {
 			String testUsers[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
-					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
+					StackConfiguration.getIntegrationTestUserOneName(), 
 					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeEmail() };
+					StackConfiguration.getIntegrationTestUserThreeName() };
 			String testPasswords[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminPassword(), 
 					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
@@ -298,7 +317,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		// bootstrapped users should not need to sign the terms of use
 		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
 		for (UserGroupInt ug : ugs) {
-			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())
+			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseName())
 					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
 				setTermsOfUseAcceptance(ug.getId(), true);
 			}

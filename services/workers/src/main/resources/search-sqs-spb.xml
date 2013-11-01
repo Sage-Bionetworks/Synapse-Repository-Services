@@ -32,6 +32,7 @@
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.searchUpdateQueueName" />
 		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
+		<constructor-arg index="2" ref="stackConfiguration.searchEnabled" />
 	</bean>
 
 	<!-- provides search message queue workers -->

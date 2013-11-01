@@ -11,12 +11,21 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 
 /**
@@ -98,5 +107,83 @@ public class IT300JSONPServices {
 		assertNotNull(crp);
 		assertEquals("http://synapse.sagebase.org/ontology#11291", crp.getUri());
 	}
+	
+	private static SynapseClient synapse = null;
+	private Team teamToDelete = null;
+	
+	@BeforeClass
+	public static void login() throws Exception {
+		synapse = SynapseClientHelper.createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
+				StackConfiguration.getIntegrationTestUserOnePassword());
+	}
+	
+	private String makeATeam() throws Exception {
+		String name = "IT300-Test-Team-Name";
+		String description = "Test-Team-Description";
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapse.createTeam(team);
+		teamToDelete = createdTeam;
+		return createdTeam.getId();
+	}
+	
+	@After
+	public void cleanUpTeam() throws Exception {
+		if (teamToDelete==null) return;
+		synapse.deleteTeam(teamToDelete.getId());
+		teamToDelete=null;
+	}
 
+	@Test
+	public void testTeamJSONP() throws Exception {
+		// Make a simple call to the repository service 
+		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		String callbackName = "parseMe";
+		urlBuilder.append("/teams"+"?callback="); 
+		urlBuilder.append(callbackName);
+		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
+		assertNotNull(response);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		assertNotNull(response.getEntity());
+		String responseBody = EntityUtils.toString(response.getEntity());
+		String expectedPrefix = callbackName+"(";
+		String expectedSuffix = ");";
+		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
+		assertTrue(responseBody.endsWith(expectedSuffix));
+		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
+		// Make sure we can parse the results		
+		JSONObject jsonObj = new JSONObject(extractedJson);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Team> results = new PaginatedResults<Team>(Team.class);
+		results.initializeFromJSONObject(adapter);
+		assertNotNull(results.getTotalNumberOfResults());
+	}
+
+
+	@Test
+	public void testTeamMembershipJSONP() throws Exception {
+		// Make a simple call to the repository service 
+		StringBuilder urlBuilder = new StringBuilder(StackConfiguration.getRepositoryServiceEndpoint());
+		String callbackName = "parseMe";
+		String teamId = makeATeam();
+		urlBuilder.append("/teamMembers/"+teamId+"?callback="); 
+		urlBuilder.append(callbackName);
+		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(new HttpGet(urlBuilder.toString()));
+		assertNotNull(response);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		assertNotNull(response.getEntity());
+		String responseBody = EntityUtils.toString(response.getEntity());
+		String expectedPrefix = callbackName+"(";
+		String expectedSuffix = ");";
+		assertTrue("expected response starting with '"+expectedPrefix+"' but found "+responseBody, responseBody.startsWith(expectedPrefix));
+		assertTrue(responseBody.endsWith(expectedSuffix));
+		String extractedJson = responseBody.substring(expectedPrefix.length(), responseBody.length()-2);
+		// Make sure we can parse the results		
+		JSONObject jsonObj = new JSONObject(extractedJson);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<TeamMember> results = new PaginatedResults<TeamMember>(TeamMember.class);
+		results.initializeFromJSONObject(adapter);
+		assertNotNull(results.getTotalNumberOfResults());
+	}
 }

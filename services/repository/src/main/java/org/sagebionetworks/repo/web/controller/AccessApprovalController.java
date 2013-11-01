@@ -80,6 +80,20 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessApproval> getTeamAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
 	public void deleteAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,

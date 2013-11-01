@@ -11,26 +11,27 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAOImpl;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAOImpl;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
- * Unit test for MigatableTableDAOImpl.
- *
+ * Unit test for MigatableTableDAOImpl
  */
-public class MigatableTableDAOImplUnitTest {
+public class MigratableTableDAOImplUnitTest {
 
-	MigatableTableDAOImpl dao;
-	SimpleJdbcTemplate mockSimpleJdbcTemplate;
-	List<MigratableDatabaseObject> databaseObjectRegister;
+	private MigratableTableDAOImpl dao;
+	private SimpleJdbcTemplate mockSimpleJdbcTemplate;
+	@SuppressWarnings("rawtypes")
+	private List<MigratableDatabaseObject> databaseObjectRegister;
 	
+	@SuppressWarnings("rawtypes")
 	@Before
 	public void before(){
 		mockSimpleJdbcTemplate = Mockito.mock(SimpleJdbcTemplate.class);
 		databaseObjectRegister = new ArrayList<MigratableDatabaseObject>();
-		dao = new MigatableTableDAOImpl(mockSimpleJdbcTemplate, databaseObjectRegister, 10);
+		dao = new MigratableTableDAOImpl(mockSimpleJdbcTemplate, databaseObjectRegister);
 	}
 	
 	@Test
@@ -38,10 +39,10 @@ public class MigatableTableDAOImplUnitTest {
 		// Add an auto-increment class to the register
 		StubAutoIncrement autoIncrement = new StubAutoIncrement();
 		databaseObjectRegister.add(autoIncrement);
-		try{
+		try {
 			dao.initialize();
 			fail("Should have failed since an AUTO_INCREMENT table was registered");
-		}catch (IllegalArgumentException e){
+		} catch (IllegalArgumentException e){
 			// expected
 			assertTrue(e.getMessage().startsWith("AUTO_INCREMENT tables cannot be migrated."));
 		}
@@ -52,49 +53,40 @@ public class MigatableTableDAOImplUnitTest {
 
 		@Override
 		public TableMapping<StubAutoIncrement> getTableMapping() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
 		public Long getId() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
-		public void setId(Long id) {
-			// TODO Auto-generated method stub
-			
-		}
+		public void setId(Long id) { }
 
 		@Override
 		public MigrationType getMigratableTableType() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
 		public MigratableTableTranslation<StubAutoIncrement, StubAutoIncrement> getTranslator() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
 		public Class<? extends StubAutoIncrement> getBackupClass() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
 		@Override
 		public Class<? extends StubAutoIncrement> getDatabaseObjectClass() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 
+		@SuppressWarnings("rawtypes")
 		@Override
 		public List<MigratableDatabaseObject> getSecondaryTypes() {
-			// TODO Auto-generated method stub
 			return null;
 		}
 		

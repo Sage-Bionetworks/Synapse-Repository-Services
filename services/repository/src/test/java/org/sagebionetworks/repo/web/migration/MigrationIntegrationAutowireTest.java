@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -232,7 +231,6 @@ public class MigrationIntegrationAutowireTest {
 		userName = AuthorizationConstants.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
-		nonVitalUserGroups = new ArrayList<UserGroup>();
 		resetDatabase();
 		createFileHandles();
 		createActivity();
@@ -247,7 +245,7 @@ public class MigrationIntegrationAutowireTest {
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
-		createCredentials();
+		createCredentials(sampleGroup);
 		createColumnModel();
 	}
 
@@ -269,7 +267,6 @@ public class MigrationIntegrationAutowireTest {
 		migrationManager.deleteAllData(userInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
-		userManager.clearCache();
 		storageQuotaAdminDao.clear();
 	}
 
@@ -393,7 +390,9 @@ public class MigrationIntegrationAutowireTest {
 		
 		Map<String, FileHandle> map = new HashMap<String, FileHandle>();
 		map.put(handleOne.getFileName(), handleOne);
-		v2RootWiki = wikiPageDao.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY);
+		List<String> newIds = new ArrayList<String>();
+		newIds.add(handleOne.getId());
+		v2RootWiki = wikiPageDao.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY, newIds);
 		v2RootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2RootWiki.getId());
 		wikiToDelete.add(v2RootWikiKey);
 		
@@ -404,7 +403,7 @@ public class MigrationIntegrationAutowireTest {
 		v2SubWiki.setParentWikiId(v2RootWiki.getId());
 		v2SubWiki.setTitle("V2 Sub-wiki-title");
 		v2SubWiki.setMarkdownFileHandleId(markdownOne.getId());
-		v2SubWiki = wikiPageDao.create(v2SubWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY);
+		v2SubWiki = wikiPageDao.create(v2SubWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		v2SubWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2SubWiki.getId()); 
 	}
 
@@ -501,18 +500,13 @@ public class MigrationIntegrationAutowireTest {
 		String userNamePrefix = "GoinOnTheOregonTrail@";
 		List<String> adder = new ArrayList<String>();
 		
-		// Make two groups
+		// Make one group
 		UserGroup parentGroup = new UserGroup();
 		parentGroup.setIsIndividual(false);
 		parentGroup.setName(groupNamePrefix+"1");
 		parentGroup.setId(userGroupDAO.create(parentGroup));
 		
-		UserGroup nestedGroup = new UserGroup();
-		nestedGroup.setIsIndividual(false);
-		nestedGroup.setName(groupNamePrefix+"2");
-		nestedGroup.setId(userGroupDAO.create(nestedGroup));
-		
-		// Make three users
+		// Make two users
 		UserGroup parentUser = new UserGroup();
 		parentUser.setIsIndividual(true);
 		parentUser.setName(userNamePrefix+"1");
@@ -523,44 +517,16 @@ public class MigrationIntegrationAutowireTest {
 		siblingUser.setName(userNamePrefix+"2");
 		siblingUser.setId(userGroupDAO.create(siblingUser));
 		
-		UserGroup childUser = new UserGroup();
-		childUser.setIsIndividual(true);
-		childUser.setName(userNamePrefix+"3");
-		childUser.setId(userGroupDAO.create(childUser));
-		
 		// Nest one group and two users within the parent group
-		adder.add(nestedGroup.getId());
 		adder.add(parentUser.getId());
 		adder.add(siblingUser.getId());
 		groupMembersDAO.addMembers(parentGroup.getId(), adder);
 		
-		// Nest two users within the child group
-		adder.clear();
-		adder.add(siblingUser.getId());
-		adder.add(childUser.getId());
-		groupMembersDAO.addMembers(nestedGroup.getId(), adder);
-		
-		// Since the migrator does not delete users by default, 
-		// All the users and groups not used by the migration process should be deleted
-		List<String> excluded = new ArrayList<String>();
-		excluded.add(AuthorizationConstants.MIGRATION_USER_NAME);
-		nonVitalUserGroups.addAll(userGroupDAO.getAllExcept(true, excluded));
-		excluded.clear();
-		excluded.add(AuthorizationConstants.ADMIN_GROUP_NAME);
-		excluded.add(DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
-		excluded.add(DEFAULT_GROUPS.PUBLIC.name());
-		excluded.add(DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP.name());
-		nonVitalUserGroups.addAll(userGroupDAO.getAllExcept(false, excluded));
-
-		// Made by the bootstrapper
-		nonVitalUserGroups.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false));
 		return parentGroup;
 	}
 	
-	private void createCredentials() throws Exception {
-		// Use a user created for another migration task
-		assertTrue(nonVitalUserGroups.size() > 0);
-		String principalId = nonVitalUserGroups.get(0).getId();
+	private void createCredentials(UserGroup group) throws Exception {
+		String principalId = group.getId();
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
 		authDAO.changeSessionToken(principalId, null);
@@ -575,7 +541,9 @@ public class MigrationIntegrationAutowireTest {
 		
 		// create a MembershipRqstSubmission
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date createdOn = new Date();
 		Date expiresOn = new Date();
+		mrs.setCreatedOn(createdOn);
 		mrs.setExpiresOn(expiresOn);
 		mrs.setMessage("Please let me join the team.");
 		mrs.setTeamId(""+group.getId());
@@ -587,6 +555,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		// create a MembershipInvtnSubmission
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setCreatedOn(createdOn);
 		mis.setExpiresOn(expiresOn);
 		mis.setMessage("Please join the team.");
 		mis.setTeamId(""+group.getId());
@@ -622,32 +591,34 @@ public class MigrationIntegrationAutowireTest {
 		
 		// This test will backup all data, delete it, then restore it.
 		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
-		for(MigrationType type: primaryTypesList.getList()){
+		for (MigrationType type : primaryTypesList.getList()) {
 			// Backup each type
 			backupList.addAll(backupAllOfType(type));
 		}
-		// We will delete the data when all object are ready
 		
 		// Now delete all data in reverse order
-		for(int i=primaryTypesList.getList().size()-1; i >= 1; i--){
+		for (int i = primaryTypesList.getList().size() - 1; i >= 0; i--) {
 			MigrationType type = primaryTypesList.getList().get(i);
 			deleteAllOfType(type);
 		}
 		
-		// Delete the temp UserGroups manually
-		for (UserGroup nonVital : nonVitalUserGroups) {
-			userGroupDAO.delete(nonVital.getId());
-		}
-		
-		// after deleting, the counts should be null
+		// After deleting, the counts should be 0 except for a few special cases
 		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
-		for (int i = 1; i < afterDeleteCounts.getList().size(); i++) {
+		
+		for (int i = 0; i < afterDeleteCounts.getList().size(); i++) {
 			MigrationTypeCount afterDelete = afterDeleteCounts.getList().get(i);
 
 			// Special cases for the not-deleted migration admin
-			if (afterDelete.getType() == MigrationType.GROUP_MEMBERS 
+			if (afterDelete.getType() == MigrationType.PRINCIPAL) {
+				assertEquals("There should be 4 UserGroups remaining after the delete: "
+								+ AuthorizationConstants.MIGRATION_USER_NAME + ", "
+								+ AuthorizationConstants.ADMIN_GROUP_NAME + ", "
+								+ AuthorizationConstants.DEFAULT_GROUPS.PUBLIC + ", and "
+								+ AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS,
+						new Long(4), afterDelete.getCount());
+			} else if (afterDelete.getType() == MigrationType.GROUP_MEMBERS 
 					|| afterDelete.getType() == MigrationType.CREDENTIAL) {
 				assertEquals("Counts do not match for: " + afterDelete.getType().name(), new Long(1), afterDelete.getCount());
 				
@@ -668,7 +639,6 @@ public class MigrationIntegrationAutowireTest {
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			// Special case for not-deleted admins
 			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
 		}
 	}

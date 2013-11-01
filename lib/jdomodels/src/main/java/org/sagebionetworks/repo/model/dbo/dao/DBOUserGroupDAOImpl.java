@@ -397,10 +397,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		if (!StackConfiguration.isProductionStack()) {
 			String testUsers[] = new String[]{ 
 					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
-					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
+					StackConfiguration.getIntegrationTestUserOneName(), 
 					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeEmail(), 
+					StackConfiguration.getIntegrationTestUserThreeName(), 
 					AuthorizationConstants.ADMIN_USER_NAME, 
 					AuthorizationConstants.TEST_GROUP_NAME, 
 					AuthorizationConstants.TEST_USER_NAME };

@@ -46,8 +46,9 @@ public class MessageQueueImpl implements MessageQueue {
 	private final String queueName;
 	private final String topicName;
 	private String queueUrl;
+	private boolean isEnabled;
 
-	public MessageQueueImpl(final String queueName, final String topicName) {
+	public MessageQueueImpl(final String queueName, final String topicName, boolean isEnabled) {
 
 		if (queueName == null) {
 			throw new NullPointerException();
@@ -55,14 +56,18 @@ public class MessageQueueImpl implements MessageQueue {
 		if (topicName == null) {
 			throw new NullPointerException();
 		}
-
+		this.isEnabled = isEnabled;
 		this.queueName = queueName;
 		this.topicName = topicName;
 	}
 
 	@PostConstruct
 	private void init() {
-
+		// Do nothing if it is not enabled
+		if(!isEnabled){
+			logger.info("Queue: "+queueName+" will not be configured because it is not enabled");
+			return;
+		}
 		// Create the queue if it does not already exist
 		CreateQueueRequest cqRequest = new CreateQueueRequest(queueName);
 		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
@@ -168,5 +173,10 @@ public class MessageQueueImpl implements MessageQueue {
 		} else {
 			this.logger.info("Topic already has sendMessage permssion on this queue");
 		}
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return isEnabled;
 	}
 }

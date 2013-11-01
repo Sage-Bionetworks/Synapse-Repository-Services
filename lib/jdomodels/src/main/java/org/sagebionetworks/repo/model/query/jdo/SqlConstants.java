@@ -133,7 +133,14 @@ public class SqlConstants {
 	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
 	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
 	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
-	
+
+ 	// Processed messages
+ 	public static final String TABLE_PROCESSED_MESSAGES				= "PROCESSED_MESSAGES";
+ 	public static final String COL_PROCESSED_MESSAGES_CHANGE_NUM	= "CHANGE_NUM";
+ 	public static final String COL_PROCESSED_MESSAGES_TIME_STAMP	= "TIME_STAMP";
+	public static final String COL_PROCESSED_MESSAGES_QUEUE_NAME	= "QUEUE_NAME";
+ 	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
+
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
@@ -198,12 +205,6 @@ public class SqlConstants {
     public static final String COL_GROUP_MEMBERS_GROUP_ID  = "GROUP_ID";
     public static final String COL_GROUP_MEMBERS_MEMBER_ID = "MEMBER_ID";
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
-    
-    // The group parents cache table
-    public static final String TABLE_GROUP_PARENTS_CACHE        = "GROUP_PARENTS_CACHE";
-    public static final String COL_GROUP_PARENTS_CACHE_GROUP_ID = "GROUP_ID";
-    public static final String COL_GROUP_PARENTS_CACHE_PARENTS  = "PARENTS";
-    public static final String DDL_FILE_GROUP_PARENTS_CACHE     = "schema/GroupParentsCache-ddl.sql";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID                 = "ID";
@@ -224,7 +225,7 @@ public class SqlConstants {
 	// datanucleus doesn't seem to be respecting the join table name when creating the schema
 	// so I've modified the string to match the generated name
 	public static final String TABLE_RESOURCE_ACCESS_TYPE			= "JDORESOURCEACCESS_ACCESSTYPE"; 
-	public static final String COL_RESOURCE_ACCESS__TYPE_OWNER		= "OWNER_ID";
+	public static final String COL_RESOURCE_ACCESS_TYPE_OWNER		= "OWNER_ID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID			= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT		= "STRING_ELE";
 	public static final String DDL_FILE_RES_ACCESS_TYPE				= "schema/ResourceAccessType-ddl.sql";
@@ -357,6 +358,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_MARKDOWN_VERSION_NUM		= "MARKDOWN_VERSION";
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String V2_COL_WIKI_MARKDOWN_TITLE			= "TITLE";
 	public static final String V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST	= "ATTACHMENT_ID_LIST";
 	public static final String V2_DDL_FILE_WIKI_MARKDOWN 			= "schema/v2-WikiMarkdown-ddl.sql";
 	
@@ -449,6 +451,7 @@ public class SqlConstants {
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION_SUBMISSION	= "MEMBERSHIP_INVITATION_SUBMISSION";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_ID				= "ID";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID			= "TEAM_ID";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES		= "PROPERTIES";
@@ -463,6 +466,7 @@ public class SqlConstants {
 	// MembershipRequest Table
 	public static final String TABLE_MEMBERSHIP_REQUEST_SUBMISSION	= "MEMBERSHIP_REQUEST_SUBMISSION";
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_ID				= "ID";
+	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID		= "TEAM_ID";
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID		= "USER_ID";
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";

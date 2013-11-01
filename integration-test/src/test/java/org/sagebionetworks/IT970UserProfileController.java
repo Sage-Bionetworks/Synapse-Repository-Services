@@ -4,12 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
 
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -19,10 +15,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserProfile;
 
 public class IT970UserProfileController {
-	private static final Logger log = Logger.getLogger(IT970UserProfileController.class.getName());
-	
 	private static SynapseClientImpl synapse = null;
 
 	List<String> entitiesToDelete;
@@ -63,13 +58,13 @@ public class IT970UserProfileController {
 	
 	@Test
 	public void testGetAndUpdateOwnUserProfile() throws Exception {
-		JSONObject userProfile = synapse.getSynapseEntity(synapse.getRepoEndpoint(), "/userProfile");
+		UserProfile userProfile = synapse.getMyProfile();
 		System.out.println(userProfile);
 		// now update the fields
-		userProfile.put("firstName", "foo");
-		userProfile.put("lastName", "bar");
-		Map<String,String> headers = new HashMap<String, String>();
-		synapse.putJSONObject("/userProfile", userProfile, headers);
+		userProfile.setFirstName("foo");
+		userProfile.setLastName("bar");
+		
+		synapse.updateMyProfile(userProfile);
 	}
 	
 	@Test 

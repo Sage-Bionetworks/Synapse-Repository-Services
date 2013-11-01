@@ -26,6 +26,17 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 	private final DynamoDBMapper writeMapper;
 	private final DynamoWriteExecutor writeExecutor;
 
+	private boolean isDynamoEnabled;
+
+	@Override
+	public boolean isDynamoEnabled() {
+		return isDynamoEnabled;
+	}
+ 
+	public void setDynamoEnabled(boolean isDynamoEnabled) {
+		this.isDynamoEnabled = isDynamoEnabled;
+	}
+	
 	public NodeTreeUpdateDaoImpl(AmazonDynamoDB dynamoClient) {
 
 		if (dynamoClient == null) {
@@ -40,19 +51,21 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 
 	@Override
 	public boolean create(String child, String parent, Date timestamp) throws IncompletePathException {
+		validateDynamoEnabled();
 		return createOrUpdate(child, parent, timestamp);
 	}
 
 	@Override
 	public boolean update(String child, String parent, Date timestamp)
 			throws IncompletePathException, ObsoleteChangeException {
+		validateDynamoEnabled();
 		return createOrUpdate(child, parent, timestamp);
 	}
 
 	@Override
 	public boolean delete(String nodeId, Date timestamp)
 			throws ObsoleteChangeException {
-
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -343,5 +356,12 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 			final Date timestamp, final String op) {
 		return "Execution [child=" + child + ", parent=" + parent +
 				", timestamp=" + timestamp + ", operation=" + op + "]";
+	}
+	
+	/**
+	 * @throws UnsupportedOperationException when Dynamo is disabled
+	 */
+	public void validateDynamoEnabled(){
+		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
 	}
 }

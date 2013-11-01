@@ -117,8 +117,7 @@ public class UserManagerImplTest {
 	}
 	
 	/**
-	 * This test is extremely troublesome without the TestUserDAO in place
-	 * It can be reactivated once Crowd is removed and once the Named ID generator
+	 * This test can be reactivated once the Named ID generator
 	 * supports a one-to-many mapping
 	 */
 	@Ignore 
@@ -130,12 +129,11 @@ public class UserManagerImplTest {
 		groupsToDelete.add(newEmail);
 		
 		// Create a user to change the email of
-		userManager.createPrincipal(oldEmail, true);
-		NewUser user = new NewUser();
-		user.setAcceptsTermsOfUse(true);
-		user.setEmail(oldEmail);
-		user.setPassword("foofoobarbar");
-		// userManager.createUser(user);
+		NewUser oldie = new NewUser();
+		oldie.setAcceptsTermsOfUse(true);
+		oldie.setEmail(oldEmail);
+		oldie.setPassword("foobar");
+		userManager.createUser(oldie);
 		
 		// Make sure the new user exists
 		UserInfo userInfo = userManager.getUserInfo(oldEmail);

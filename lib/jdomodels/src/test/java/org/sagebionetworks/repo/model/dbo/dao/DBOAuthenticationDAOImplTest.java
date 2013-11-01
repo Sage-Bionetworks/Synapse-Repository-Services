@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -119,6 +121,10 @@ public class DBOAuthenticationDAOImplTest {
 		// Get by token
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
 		assertEquals(secretRow.getPrincipalId(), id);
+		
+		// Get by token, without restrictions
+		Long principalId = authDAO.getPrincipal(secretRow.getSessionToken());
+		assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Delete
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
@@ -215,6 +221,11 @@ public class DBOAuthenticationDAOImplTest {
 		assertArrayEquals(salt, passedSalt);
 	}
 	
+	@Test(expected=NotFoundException.class)
+	public void testGetPasswordSalt_InvalidUser() throws Exception {
+		authDAO.getPasswordSalt("Blarg" + UUID.randomUUID());
+	}
+	
 	@Test
 	public void testSetToU() throws Exception {
 		basicDAO.update(secretRow);
@@ -243,10 +254,10 @@ public class DBOAuthenticationDAOImplTest {
 		if (!StackConfiguration.isProductionStack()) {
 			String testUsers[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseEmail(), 
-					StackConfiguration.getIntegrationTestUserOneEmail(), 
+					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
+					StackConfiguration.getIntegrationTestUserOneName(), 
 					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeEmail() };
+					StackConfiguration.getIntegrationTestUserThreeName() };
 			String testPasswords[] = new String[] { 
 					StackConfiguration.getIntegrationTestUserAdminPassword(), 
 					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
@@ -263,7 +274,7 @@ public class DBOAuthenticationDAOImplTest {
 		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
 		for (UserGroupInt ug : ugs) {
 			if (ug.getIsIndividual() 
-					&& !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseEmail())
+					&& !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseName())
 					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", ug.getId());

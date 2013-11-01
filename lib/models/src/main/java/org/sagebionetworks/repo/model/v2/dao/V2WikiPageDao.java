@@ -29,20 +29,19 @@ public interface V2WikiPageDao {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public V2WikiPage create(V2WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException;
+	public V2WikiPage create(V2WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException;
 	
 	/**
 	 * Update a wikipage.
 	 * @param toUpdate
-	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage.
+	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage/keeps track of which files this wiki contains
 	 * @param ownerId
 	 * @param ownerType
-	 * @param keepEtag
+	 * @param newFileHandleIds - Identifies which files are to be inserted. Ensures that only new files are added to the database.
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
-		
+	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException;		
 	/**
 	 * Get a wiki page.
 	 * @param id
@@ -70,6 +69,15 @@ public interface V2WikiPageDao {
 	public List<String> getWikiFileHandleIdsFromHistory(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
+	 * Get ALL the file handle ids used (in the past/currently) for a wiki page.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public List<Long> getFileHandleReservationForWiki(WikiPageKey key);
+	
+	/**
 	 * Get the ID of the root wiki page for a given Object.
 	 * @param ownerId
 	 * @param ownerType
@@ -87,10 +95,10 @@ public interface V2WikiPageDao {
 	/**
 	 * Get snapshots of a wiki page's history.
 	 * @param key
-	 * @param limit TODO
-	 * @param offset TODO
+	 * @param limit
+	 * @param offset
 	 */
-	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, int limit, int offset) throws NotFoundException;
+	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the entire tree of wiki pages for a given owner.

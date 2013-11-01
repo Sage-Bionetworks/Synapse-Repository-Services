@@ -19,5 +19,11 @@ public interface MessageQueue {
 	 * @return
 	 */
 	public String getQueueUrl();
+	
+	/**
+	 * Is this queue enabled?
+	 * @return
+	 */
+	public boolean isEnabled();
 
 }

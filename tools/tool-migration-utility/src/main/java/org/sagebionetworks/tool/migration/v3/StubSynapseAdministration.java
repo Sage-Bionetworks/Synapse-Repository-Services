@@ -59,9 +59,10 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -70,6 +71,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -89,7 +92,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -105,6 +107,9 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -302,16 +307,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return result;
 	}
 
-	private Long maxId(List<RowMetadata> vals) {
-		Long m = vals.get(0).getId();
-		for (RowMetadata v: vals) {
-			if (v.getId() > m) {
-				m = v.getId();
-			}
-		}
-		return m;
-	}
-
 	@Override
 	public MigrationTypeList getPrimaryTypes() throws SynapseException,
 			JSONObjectAdapterException {
@@ -469,6 +464,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	 * @param req
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	private List<RowMetadata> readRestoreFile(RestoreSubmission req) {
 		try {
 			File placeHolder = File.createTempFile("notUsed", ".tmp");
@@ -849,13 +845,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public JSONObject getEntity(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public Entity getEntityByIdForVersion(String entityId, Long versionNumber)
 			throws SynapseException {
 		// TODO Auto-generated method stub
@@ -1059,6 +1048,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public JSONObject getEntity(String uri) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public <T extends JSONEntity> T getEntity(String entityId,
 			Class<? extends T> clazz) throws SynapseException {
 		// TODO Auto-generated method stub
@@ -1074,43 +1070,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public JSONObject updateEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public <T extends Entity> T putEntity(T entity, String activityId)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
-
-	@Override
-	public JSONObject putJSONObject(String uri, JSONObject entity,
-			Map<String, String> headers) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject postUri(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void deleteUri(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
-
+	
 	@Override
 	public <T extends Entity> void deleteEntity(T entity)
 			throws SynapseException {
@@ -1361,7 +1327,113 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+	@Override
+	public V2WikiPage createV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toCreate) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
+
+	@Override
+	public V2WikiPage getV2WikiPage(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toUpdate) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toUpdate, Long versionToRestore)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
+			throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName) throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key, String fileName)
+			throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
+			ObjectType ownerType) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(
+			WikiPageKey key, Long limit, Long offset) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	@Override
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(
 			String entityId) throws JSONObjectAdapterException,
@@ -1573,86 +1645,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public JSONObject createAuthEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject getAuthEntity(String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject putAuthEntity(String uri, JSONObject entity)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject createJSONObjectEntity(String endpoint, String uri,
-			JSONObject entity) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject getSynapseEntity(String endpoint, String uri)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject putJSONObject(String endpoint, String uri,
-			JSONObject entity, Map<String, String> headers)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject postUri(String endpoint, String uri)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public JSONObject querySynapse(String endpoint, String query)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void deleteUri(String endpoint, String uri) throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
-
-	@Override
-	public <T extends JSONEntity> T getJSONEntity(String uri,
-			Class<? extends T> clazz) throws SynapseException,
-			JSONObjectAdapterException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public String getSynapseTermsOfUse() throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -1791,15 +1783,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset,
 			int limit) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
-			EvaluationStatus status, int offset, int limit)
-			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -2138,14 +2121,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public ColumnModel createColumnModel(ColumnModel model)
 			throws SynapseException {
 		// TODO Auto-generated method stub
@@ -2221,8 +2196,8 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public PaginatedResults<UserGroupHeader> getTeamMembers(String teamId,
-			String fragment, long limit, long offset) throws SynapseException {
+	public PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment,
+			long limit, long offset) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -2303,6 +2278,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public void setTeamMemberPermissions(String teamId, String memberId,
+			boolean isAdmin) throws SynapseException {
+		// TODO Auto-generated method stub
+	}
+
 	public List<ColumnModel> getColumnModelsForTableEntity(String tableEntityId)
 			throws SynapseException {
 		// TODO Auto-generated method stub
@@ -2311,12 +2291,103 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public TeamMembershipStatus getTeamMembershipStatus(String teamId,
+			String principalId) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	public PaginatedColumnModels listColumnModels(String prefix, Long limit,
 			Long offset) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	@Override
+	public void updateTeamSearchCache() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
 
+
+	@Override
+	public void logout() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void invalidateApiKey() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void createUser(NewUser user) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public NewUser getAuthUserInfo() throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void changePassword(String newPassword) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void changePassword(String sessionToken, String newPassword)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void changeEmail(String sessionToken, String newPassword)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void sendPasswordResetEmail() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void sendPasswordResetEmail(String email) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			int offset, int limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

@@ -153,14 +153,8 @@
 		scope="singleton" />
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
-
-	<bean id="userDAO" class="org.sagebionetworks.repo.util.UserDAOProxy"
-		scope="singleton" />
-	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO"
-		scope="singleton" />
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
-
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
 	
@@ -209,6 +203,9 @@
 		scope="singleton" />
 
 	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 
 		scope="singleton" />
 
 	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 

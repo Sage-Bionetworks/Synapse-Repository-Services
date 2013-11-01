@@ -123,16 +123,6 @@ public class MigrationClient {
 	}
 	
 	/**
-	 * Get the current change number of the destination.
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	private long getDestinationCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException{
-		return this.factory.createNewDestinationClient().getCurrentChangeNumber().getNextChangeNumber();
-	}
-	
-	/**
 	 * Migrate all types.
 	 * @param batchSize - Max batch size
 	 * @param timeoutMS - max time to wait for a deamon job.
@@ -156,7 +146,7 @@ public class MigrationClient {
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
 		log.info("End counts:");
 		printCounts(endSourceCounts.getList(), endDestCounts.getList());
-
+		
 		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
 			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
 			this.dumpDeferredExceptions();

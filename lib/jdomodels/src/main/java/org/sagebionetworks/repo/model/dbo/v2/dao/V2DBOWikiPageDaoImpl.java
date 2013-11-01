@@ -27,8 +27,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -97,8 +99,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_COUNT_ALL_WIKIPAGES = "SELECT COUNT(*) FROM "+V2_TABLE_WIKI_PAGE;
 	private static final String SQL_SELECT_WIKI_MARKDOWN_USING_ID_AND_VERSION = "SELECT * FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ? AND "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" = ?";
 	private static final String SQL_GET_RESERVATION_OF_ATTACHMENT_IDS = "SELECT "+V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID+" FROM "+V2_TABLE_WIKI_ATTACHMENT_RESERVATION+" WHERE "+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+" = ?";
-	private static final String SQL_GET_WIKI_HISTORY = "SELECT WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_ON+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_BY+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM WHERE WM."+V2_COL_WIKI_MARKDOWN_ID+" = ? ORDER BY "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" DESC LIMIT ?,?";
-	
+	private static final String SQL_GET_WIKI_HISTORY = "SELECT WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_ON+", WM."+V2_COL_WIKI_MARKDOWN_MODIFIED_BY+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM WHERE WM."+V2_COL_WIKI_MARKDOWN_ID+" = ? ORDER BY "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" DESC LIMIT ?, ?";
+
 	private static final TableMapping<V2DBOWikiAttachmentReservation> ATTACHMENT_ROW_MAPPER = new V2DBOWikiAttachmentReservation().getTableMapping();
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();	
@@ -134,7 +136,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public V2WikiPage create(V2WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException {
+	public V2WikiPage create(V2WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException {
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
@@ -167,7 +169,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Create the attachments
 		long timeStamp = (currentTime/1000)*1000;
-		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(fileNameToFileHandleMap, dbo.getId(), timeStamp);
+		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandleIds, dbo.getId(), timeStamp);
 		// Save them to the attachments archive
 		if(attachments.size() > 0){
 			basicDao.createBatch(attachments);
@@ -175,7 +177,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Create the markdown snapshot
 		Long markdownFileHandleId = Long.parseLong(wikiPage.getMarkdownFileHandleId());
-		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, dbo.getId(), markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, dbo.getId(), markdownFileHandleId, wikiPage.getTitle());
 		markdownDbo.setMarkdownVersion(new Long(0));
 		markdownDbo.setModifiedOn(currentTime);
 		markdownDbo.setModifiedBy(dbo.getModifiedBy());
@@ -211,8 +213,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	@Override
 	public V2WikiPage updateWikiPage(V2WikiPage wikiPage,
 			Map<String, FileHandle> fileNameToFileHandleMap, String ownerId,
-			ObjectType ownerType, boolean keepEtag) throws NotFoundException {
-		
+			ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException {
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileHandleMap cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
@@ -231,10 +232,6 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 		// Update this wiki's entry in the WikiPage database (update version)
 		V2DBOWikiPage newDbo = V2WikiTranslationUtils.createDBOFromDTO(wikiPage);
-		if(!keepEtag){
-			// We keep the etag for migration scenarios.
-			newDbo.setEtag(UUID.randomUUID().toString());
-		}
 		// Set the modifiedon to current.
 		newDbo.setModifiedOn(currentTime);
 		newDbo.setMarkdownVersion(incrementedVersion);
@@ -243,7 +240,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 		// Create a new markdown snapshot/version
 		Long markdownFileHandleId = Long.parseLong(wikiPage.getMarkdownFileHandleId());
-		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, newDbo.getId(), markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameToFileHandleMap, newDbo.getId(), markdownFileHandleId, wikiPage.getTitle());
 		markdownDbo.setMarkdownVersion(incrementedVersion);
 		markdownDbo.setModifiedOn(currentTime);
 		markdownDbo.setModifiedBy(newDbo.getModifiedBy());
@@ -252,27 +249,11 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 		// Create the attachments
 		long timeStamp = (currentTime/1000)*1000;
-		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(fileNameToFileHandleMap, wikiId, timeStamp);
-		
-		// Compare all stored attachments for a given wiki to the list of attachments for this updated version
+		List<V2DBOWikiAttachmentReservation> attachmentsToInsert = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandleIds, wikiId, timeStamp);
 		// Insert only unique/new attachments into the reservation
-		List<Long> reservationIds = simpleJdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, new RowMapper<Long>() {
-			@Override
-			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-				Long id = rs.getLong(V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID);
-				return id;
-			}
-		},wikiId);
-
-		List<V2DBOWikiAttachmentReservation> toInsert = new ArrayList<V2DBOWikiAttachmentReservation>();
-		for(V2DBOWikiAttachmentReservation attach: attachments) {
-			if(!reservationIds.contains(attach.getFileHandleId())) {
-				toInsert.add(attach);
-			}
-		}
 		// Save them to the attachments archive
-		if(toInsert.size() > 0) {
-			basicDao.createBatch(toInsert);
+		if(attachmentsToInsert.size() > 0) {
+			basicDao.createBatch(attachmentsToInsert);
 		}
 		
 		// Send the change message
@@ -287,6 +268,17 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		setRoot(ownerIdLong, ownerType, newDBO);
 		// Update
 		basicDao.update(newDBO);
+	}
+	
+	@Override
+	public List<Long> getFileHandleReservationForWiki(WikiPageKey key) {
+		return simpleJdbcTemplate.query(SQL_GET_RESERVATION_OF_ATTACHMENT_IDS, new RowMapper<Long>() {
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				Long id = rs.getLong(V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID);
+				return id;
+			}
+		}, key.getWikiPageId());
 	}
 	
 	/**
@@ -352,9 +344,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Now get the markdown
 		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), dbo.getMarkdownVersion()); 
 		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
-		// Now get the attachments
-		List<V2DBOWikiAttachmentReservation> attachments = getAttachmentDbos(dbo.getId(), listToString);
-		return V2WikiTranslationUtils.createDTOfromDBO(dbo, attachments, markdownDbo.getFileHandleId());
+		List<String> fileHandleIds = createFileHandleIdsList(listToString);
+		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo.getFileHandleId());
 	}
 	
 	@Override
@@ -416,12 +407,18 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 	
 	@Override
-	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, int limit, int offset) throws NotFoundException {
+	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws DatastoreException, NotFoundException {
 		if(key == null) throw new IllegalArgumentException("WikiPage key cannot be null");
-		// Get all versions of a wiki page
-		List<V2WikiHistorySnapshot> history = simpleJdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
-		if(history.size() < 1) throw new NotFoundException("No history is found for a wiki page of id: " + key.getWikiPageId());
-		return history;
+		if(doesExist(key.getWikiPageId())) {
+			// Get all versions of a wiki page
+			List<V2WikiHistorySnapshot> history = simpleJdbcTemplate.query(SQL_GET_WIKI_HISTORY, WIKI_HISTORY_SNAPSHOT_MAPPER, key.getWikiPageId(), offset, limit);
+
+			if(history.size() < 1) throw new DatastoreException("No history is found for a wiki page of id: " + key.getWikiPageId());
+			return history;
+		} else {
+			throw new NotFoundException("Wiki page with id: " + key.getWikiPageId() + " does not exist.");
+	
+		}
 	}
 	
 	@Override
@@ -454,6 +451,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
@@ -518,8 +516,9 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			// Process the list of attachments into a map for easy searching
 			Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentsList);
 			// Return the associated file handle id if filename exists
-			if(fileNameToIdMap.containsKey(fileName)) {
-				return fileNameToIdMap.get(fileName);
+			String fileHandleId = fileNameToIdMap.get(fileName);
+			if(fileHandleId != null) {
+				return fileHandleId;
 			}
 		}
 		// No attachment with the file name exists for this wiki page
