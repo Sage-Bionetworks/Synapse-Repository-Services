@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
@@ -59,6 +60,9 @@ public class TrashManagerImpl implements TrashManager {
 	@Autowired
 	private TagMessenger tagMessenger;
 
+	@Autowired
+	private StackConfiguration stackConfig;
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void moveToTrash(final UserInfo currentUser, final String nodeId)
@@ -79,12 +83,17 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		// Whether it is too big for the trash can
-		List<String> idList = nodeTreeQueryDao.getDescendants(
-				KeyFactory.stringToKey(nodeId).toString(), TrashConstants.MAX_TRASHABLE + 1, null);
-		if (idList != null && idList.size() > TrashConstants.MAX_TRASHABLE) {
-			throw new TooBigForTrashcanException(
-					"Too big to fit into trashcan. Entity " + nodeId
-					+ " has more than " + TrashConstants.MAX_TRASHABLE + " descendants.");
+		if (stackConfig.getDynamoEnabled()) {
+			List<String> idList = nodeTreeQueryDao.getDescendants(
+					KeyFactory.stringToKey(nodeId).toString(), TrashConstants.MAX_TRASHABLE + 1, null);
+			if (idList != null && idList.size() > TrashConstants.MAX_TRASHABLE) {
+				throw new TooBigForTrashcanException(
+						"Too big to fit into trashcan. Entity " + nodeId +
+						" has more than " + TrashConstants.MAX_TRASHABLE + " descendants. " +
+						" Possible actions include: " +
+						" 1) deleting the child entities first before deleting this entity, " +
+						" 2) permanently deleting this entity instead of moving it to the trashcan.");
+			}
 		}
 
 		// Move the node to the trash can folder
