@@ -74,12 +74,12 @@ public class TrashManagerImpl implements TrashManager {
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
 		String userName = currentUser.getUser().getUserId();
-		if (!this.authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
+		if (!authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
 		// Whether it is too big for the trash can
-		List<String> idList = this.nodeTreeQueryDao.getDescendants(
+		List<String> idList = nodeTreeQueryDao.getDescendants(
 				KeyFactory.stringToKey(nodeId).toString(), TrashConstants.MAX_TRASHABLE + 1, null);
 		if (idList != null && idList.size() > TrashConstants.MAX_TRASHABLE) {
 			throw new TooBigForTrashcanException(
@@ -88,7 +88,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		// Move the node to the trash can folder
-		Node node = this.nodeDao.getNode(nodeId);
+		Node node = nodeDao.getNode(nodeId);
 		// Save before we reset the name and the parent
 		final String oldNodeName = node.getName();
 		final String oldParentId = node.getParentId();
@@ -96,23 +96,23 @@ public class TrashManagerImpl implements TrashManager {
 		node.setName(node.getId());
 		final String trashCanId = KeyFactory.keyToString(TrashConstants.TRASH_FOLDER_ID);
 		node.setParentId(trashCanId);
-		this.nodeManager.updateForTrashCan(currentUser, node, ChangeType.DELETE);
+		nodeManager.updateForTrashCan(currentUser, node, ChangeType.DELETE);
 
 		// Update the trash can table
 		String userGroupId = currentUser.getIndividualGroup().getId();
-		this.trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
+		trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
 
 		// For all the descendants, we need to add them to the trash can table
 		// and send delete messages to 2nd indices
 		Collection<String> descendants = new ArrayList<String>();
-		this.getDescendants(nodeId, descendants);
+		getDescendants(nodeId, descendants);
 		for (String descendantId : descendants) {
-			final EntityHeader entityHeader =  this.nodeDao.getEntityHeader(descendantId, null);
+			final EntityHeader entityHeader =  nodeDao.getEntityHeader(descendantId, null);
 			final String nodeName = entityHeader.getName();
-			final String parentId = this.nodeDao.getParentId(descendantId);
-			this.trashCanDao.create(userGroupId, descendantId, nodeName, parentId);
-			String etag = this.nodeDao.peekCurrentEtag(descendantId);
-			this.tagMessenger.sendMessage(descendantId, parentId, etag,
+			final String parentId = nodeDao.getParentId(descendantId);
+			trashCanDao.create(userGroupId, descendantId, nodeName, parentId);
+			String etag = nodeDao.peekCurrentEtag(descendantId);
+			tagMessenger.sendMessage(descendantId, parentId, etag,
 					ObjectType.ENTITY, ChangeType.DELETE);
 		}
 	}
@@ -132,13 +132,13 @@ public class TrashManagerImpl implements TrashManager {
 		// Make sure the node was indeed deleted by the user
 		UserInfo.validateUserInfo(currentUser);
 		String userId = currentUser.getIndividualGroup().getId();
-		boolean exists = this.trashCanDao.exists(userId, nodeId);
+		boolean exists = trashCanDao.exists(userId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
 		}
 
 		// Restore to its original parent if a new parent is not given
-		final TrashedEntity trash = this.trashCanDao.getTrashedEntity(userId, nodeId);
+		final TrashedEntity trash = trashCanDao.getTrashedEntity(userId, nodeId);
 		if (newParentId == null) {
 			if (trash == null) {
 				throw new DatastoreException("Cannot find node " + nodeId
@@ -149,31 +149,31 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize on the new parent
 		String userName = currentUser.getUser().getUserId();
-		if (!this.authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
+		if (!authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
 		// Now restore
-		Node node = this.nodeDao.getNode(nodeId);
+		Node node = nodeDao.getNode(nodeId);
 		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
-		this.nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
+		nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
 
 		// Update the trash can table
 		String userGroupId = currentUser.getIndividualGroup().getId();
-		this.trashCanDao.delete(userGroupId, nodeId);
+		trashCanDao.delete(userGroupId, nodeId);
 
 		// For all the descendants, we need to remove them from the trash can table
 		// and send delete messages to 2nd indices
 		Collection<String> descendants = new ArrayList<String>();
-		this.getDescendants(nodeId, descendants);
+		getDescendants(nodeId, descendants);
 		for (String descendantId : descendants) {
 			// Remove from the trash can table
-			this.trashCanDao.delete(userGroupId, descendantId);
+			trashCanDao.delete(userGroupId, descendantId);
 			// Send CREATE message
-			String parentId = this.nodeDao.getParentId(descendantId);
-			String etag = this.nodeDao.peekCurrentEtag(descendantId);
-			this.tagMessenger.sendMessage(descendantId, parentId, etag,
+			String parentId = nodeDao.getParentId(descendantId);
+			String etag = nodeDao.peekCurrentEtag(descendantId);
+			tagMessenger.sendMessage(descendantId, parentId, etag,
 					ObjectType.ENTITY, ChangeType.CREATE);
 		}
 	}
@@ -206,8 +206,8 @@ public class TrashManagerImpl implements TrashManager {
 			}
 		}
 
-		List<TrashedEntity> list = this.trashCanDao.getInRangeForUser(userId, offset, limit);
-		int count = this.trashCanDao.getCount(userId);
+		List<TrashedEntity> list = trashCanDao.getInRangeForUser(userId, offset, limit);
+		int count = trashCanDao.getCount(userId);
 		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
 		return results;
 	}
@@ -234,8 +234,8 @@ public class TrashManagerImpl implements TrashManager {
 					+ " does not have the permission.");
 		}
 
-		List<TrashedEntity> list = this.trashCanDao.getInRange(offset, limit);
-		int count = this.trashCanDao.getCount();
+		List<TrashedEntity> list = trashCanDao.getInRange(offset, limit);
+		int count = trashCanDao.getCount();
 		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
 		return results;
 	}
@@ -255,13 +255,13 @@ public class TrashManagerImpl implements TrashManager {
 		// Make sure the node was indeed deleted by the user
 		UserInfo.validateUserInfo(currentUser);
 		String userGroupId = currentUser.getIndividualGroup().getId();
-		boolean exists = this.trashCanDao.exists(userGroupId, nodeId);
+		boolean exists = trashCanDao.exists(userGroupId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
 		}
 
 		Collection<String> descendants = new ArrayList<String>();
-		this.getDescendants(nodeId, descendants);
+		getDescendants(nodeId, descendants);
 		nodeDao.delete(nodeId);
 		aclDAO.delete(nodeId);
 		trashCanDao.delete(userGroupId, nodeId);
@@ -354,7 +354,7 @@ public class TrashManagerImpl implements TrashManager {
 	 * Recursively gets the IDs of all the descendants.
 	 */
 	private void getDescendants(String nodeId, Collection<String> descendants) {
-		List<String> children = this.nodeDao.getChildrenIdsAsList(nodeId);
+		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
 		descendants.addAll(children);
 		if (children == null || children.size() == 0) {
 			return;
