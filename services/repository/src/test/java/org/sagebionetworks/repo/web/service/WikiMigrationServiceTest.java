@@ -134,9 +134,9 @@ public class WikiMigrationServiceTest {
 	@Test
 	public void testMigrateSomeWikisWithError() throws NotFoundException, IOException {
 		// Create an error by inserting a wiki with the same id into the V2 DB before migration
-		String ownerId = "syn1";
+		String ownerId = "123";
 		ObjectType ownerType = ObjectType.ENTITY;
-		
+		// V2 WikiPage already in the V2 DB
 		V2WikiPage page = new V2WikiPage();
 		page.setId("1");
 		page.setCreatedBy(creatorUserGroupId);
@@ -150,7 +150,8 @@ public class WikiMigrationServiceTest {
 		WikiPageKey key = v2wikiPageDAO.lookupWikiKey(result.getId());
 		toDeleteForErrorTest.add(key);
 		assertEquals(1, v2wikiPageDAO.getCount());
-
+		// WikiPage with same ID being migrated to V2 should not throw an error. It will update on duplicate ID.
+		// Will implement
 		WikiPage page2 = new WikiPage();
 		page2.setId("1");
 		page2.setCreatedBy(creatorUserGroupId);
@@ -163,22 +164,18 @@ public class WikiMigrationServiceTest {
 		assertNotNull(result2);
 		WikiPageKey key2 = wikiPageDao.lookupWikiKey(result.getId());
 		
-		PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(adminUserInfo.getIndividualGroup().getName(), 1, 0, "somePath");
-		assertNotNull(results);
-		// Limit of 1 should have been returned
-		assertEquals(1, results.getResults().size());
-		assertEquals(WikiMigrationResultType.FAILURE, results.getResults().get(0).getResultType());
-		// Size of the V2 DB should still be 1 because nothing was migrated
-		assertEquals(1, v2wikiPageDAO.getCount());		
+		/*
+		 * Test after implementing "insert or update on duplicate" in the new DAO
+		 * PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(adminUserInfo.getIndividualGroup().getName(), 1, 0, "somePath");	
+		 */
 		
 		// Cleanup
-		// Error occurred, everything was undone
 		wikiPageDao.delete(key2);
 	}
 	
 	private void createWikiPages(int start, int end) throws NotFoundException {
 		for(int i = start; i <= end; i++) {
-			String ownerId = "syn" + i;
+			String ownerId = "" + i;
 			ObjectType ownerType = ObjectType.ENTITY;
 			
 			WikiPage page = new WikiPage();
