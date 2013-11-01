@@ -42,8 +42,10 @@ public class NodeLineageWriteExecutorAutowireTest {
 	@Before
 	public void before() {
 
+		// Run tests only if DynamoDB is enabled
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDynamoEnabled());
 
-		
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
 

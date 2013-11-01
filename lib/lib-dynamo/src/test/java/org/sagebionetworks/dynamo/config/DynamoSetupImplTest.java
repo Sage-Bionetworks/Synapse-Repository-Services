@@ -37,7 +37,7 @@ public class DynamoSetupImplTest {
 	private DynamoSetupImpl dynamoSetup;
 
 	@Before
-	public void before() {		
+	public void before() {
 		this.mockDynamoClient = mock(AmazonDynamoDB.class);
 		this.dynamoSetup = new DynamoSetupImpl();
 		dynamoSetup.setDynamoEnabled(true);
