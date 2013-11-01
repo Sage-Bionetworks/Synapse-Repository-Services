@@ -56,7 +56,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String SELECT_MESSAGES_RECEIVED = 
 			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_STATUS+
-			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_ID+
+			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+
 			" AND "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+RECIPIENT_ID_PARAM_NAME;
 	
 	private static final String COUNT_MESSAGES_RECEIVED = 

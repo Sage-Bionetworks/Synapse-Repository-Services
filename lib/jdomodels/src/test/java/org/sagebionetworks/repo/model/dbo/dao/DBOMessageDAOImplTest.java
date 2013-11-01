@@ -154,7 +154,7 @@ public class DBOMessageDAOImplTest {
 		dto.setRecipientType(RecipientType.PRINCIPAL);
 		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
 		
-		dto.setMessageFileId(fileHandleId);
+		dto.setMessageFileHandleId(fileHandleId);
 		
 		// Insert the row
 		dto = messageDAO.saveMessage(dto);

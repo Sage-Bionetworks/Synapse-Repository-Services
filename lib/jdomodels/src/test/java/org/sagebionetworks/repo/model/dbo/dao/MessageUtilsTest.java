@@ -34,7 +34,7 @@ public class MessageUtilsTest {
 		dto.setCreatedBy("-3");
 		dto.setRecipientType(RecipientType.PRINCIPAL);
 		dto.setRecipients(new ArrayList<String>() {{add("-4");}});
-		dto.setMessageFileId("-5");
+		dto.setMessageFileHandleId("-5");
 		dto.setCreatedOn(new Date());
 		return dto;
 	}
@@ -45,14 +45,12 @@ public class MessageUtilsTest {
 		Message dto = generateSortaValidMessage();
 		MessageUtils.validateDTO(dto);
 		
-		// The only optional fields of a message are the subject and body
+		// The only optional field of a message is the subject
 		dto.setSubject("I'm not null");
-		dto.setMessageBody("Nothing in this DAO will push me up to S3");
 		MessageUtils.validateDTO(dto);
 		
 		// Still valid
 		dto.setSubject(null);
-		dto.setMessageBody(null);
 		MessageUtils.validateDTO(dto);
 		
 		// All of the following should throw different error messages
@@ -61,7 +59,7 @@ public class MessageUtilsTest {
 		dto.setCreatedOn(null);
 		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
 		
-		dto.setMessageFileId(null);
+		dto.setMessageFileHandleId(null);
 		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
 		
 		dto.setRecipients(new ArrayList<String>());

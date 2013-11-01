@@ -27,7 +27,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CREATED_BY),
 		new FieldColumn("recipientType", SqlConstants.COL_MESSAGE_RECIPIENT_TYPE),
 		new FieldColumn("recipients", SqlConstants.COL_MESSAGE_RECIPIENTS),
-		new FieldColumn("bodyFileId", SqlConstants.COL_MESSAGE_BODY_FILE_ID),
+		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_FILE_HANDLE_ID),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CREATED_ON),
 		new FieldColumn("subject", SqlConstants.COL_MESSAGE_SUBJECT)
 	};
@@ -37,7 +37,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	private Long createdBy;
 	private RecipientType recipientType;
 	private byte[] recipients;
-	private Long bodyFileId;
+	private Long fileHandleId;
 	private Timestamp createdOn;
 	private String subject;
 
@@ -54,7 +54,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				result.setRecipientType(RecipientType.valueOf(rs.getString(SqlConstants.COL_MESSAGE_RECIPIENT_TYPE)));
 				Blob recipients = rs.getBlob(SqlConstants.COL_MESSAGE_RECIPIENTS);
 				result.setRecipients(recipients.getBytes(1, (int) recipients.length()));
-				result.setBodyFileId(rs.getLong(SqlConstants.COL_MESSAGE_BODY_FILE_ID));
+				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_FILE_HANDLE_ID));
 				result.setCreatedOn(rs.getTimestamp(SqlConstants.COL_MESSAGE_CREATED_ON));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_SUBJECT));
 				return result;
@@ -124,12 +124,13 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		this.recipients = recipients;
 	}
 
-	public Long getBodyFileId() {
-		return bodyFileId;
+	public Long getFileHandleId() {
+		return fileHandleId;
 	}
 
-	public void setBodyFileId(Long bodyFileId) {
-		this.bodyFileId = bodyFileId;
+
+	public void setFileHandleId(Long fileHandleId) {
+		this.fileHandleId = fileHandleId;
 	}
 
 	public Timestamp getCreatedOn() {
@@ -194,11 +195,11 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((bodyFileId == null) ? 0 : bodyFileId.hashCode());
-		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result
+				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result
 				+ ((messageId == null) ? 0 : messageId.hashCode());
 		result = prime * result
@@ -220,11 +221,6 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMessage other = (DBOMessage) obj;
-		if (bodyFileId == null) {
-			if (other.bodyFileId != null)
-				return false;
-		} else if (!bodyFileId.equals(other.bodyFileId))
-			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
 				return false;
@@ -234,6 +230,11 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 			if (other.createdOn != null)
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (fileHandleId == null) {
+			if (other.fileHandleId != null)
+				return false;
+		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
 		if (messageId == null) {
 			if (other.messageId != null)
@@ -262,7 +263,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		return "DBOMessage [messageId=" + messageId + ", threadId=" + threadId
 				+ ", createdBy=" + createdBy + ", recipientType="
 				+ recipientType + ", recipients=" + Arrays.toString(recipients)
-				+ ", bodyFileId=" + bodyFileId + ", createdOn=" + createdOn
+				+ ", fileHandleId=" + fileHandleId + ", createdOn=" + createdOn
 				+ ", subject=" + subject + "]";
 	}
 

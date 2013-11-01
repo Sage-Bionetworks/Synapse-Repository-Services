@@ -16,7 +16,7 @@
 		},
 		"recipientType": {
 			"type": "string",
-			"description": "The type of recipient",
+			"description": "For messages sent to other users, recipientType=PRINCIPAL.  For comments on Synapse objects (projects, files, etc.) recipientType=ENTITY",
 			"name": "RecipientType",
 			"id": "org.sagebionetworks.repo.model.message.RecipientType",
 			"enum": [
@@ -40,11 +40,7 @@
 			"type": "string",
 			"description":"The subject of this message."
 		}, 
-		"messageBody": {
-			"type": "string",
-			"description":"The content of this message."
-		}, 
-		"messageFileId": {
+		"messageFileHandleId": {
 			"type": "string",
 			"description":"The S3 file handle storing the content of this message."
 		}

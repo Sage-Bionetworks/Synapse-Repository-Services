@@ -41,7 +41,7 @@ public class MessageUtils {
 		} catch (IOException e) {
 			throw new DatastoreException("Could not unpack the list of intended recipients", e);
 		}
-		dto.setMessageFileId(dbo.getBodyFileId().toString());
+		dto.setMessageFileHandleId(dbo.getFileHandleId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn().getTime()));
 		dto.setSubject(dbo.getSubject());
 		return dto;
@@ -66,7 +66,7 @@ public class MessageUtils {
 		if (dto.getRecipients() == null || dto.getRecipients().size() <= 0) {
 			throw new IllegalArgumentException("Recipients must be specified");
 		}
-		if (dto.getMessageFileId() == null) {
+		if (dto.getMessageFileHandleId() == null) {
 			throw new IllegalArgumentException("Message body's file handle must be specified");
 		}
 		if (dto.getCreatedOn() == null) {
@@ -85,7 +85,7 @@ public class MessageUtils {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		dbo.setBodyFileId(Long.parseLong(dto.getMessageFileId()));
+		dbo.setFileHandleId(Long.parseLong(dto.getMessageFileHandleId()));
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		dbo.setSubject(dto.getSubject());
 		return dbo;

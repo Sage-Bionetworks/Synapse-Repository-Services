@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStatus, DBOMessageStatus> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_STATUS_ID, true).withIsBackupId(true),
+		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID, true).withIsBackupId(true),
 		new FieldColumn("recipientId", SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID, true),
 		new FieldColumn("status", SqlConstants.COL_MESSAGE_STATUS)
 	};
@@ -35,7 +35,7 @@ public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStat
 			@Override
 			public DBOMessageStatus mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOMessageStatus result = new DBOMessageStatus();
-				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_STATUS_ID));
+				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID));
 				result.setRecipientId(rs.getLong(SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID));
 				result.setStatus(MessageStatusType.valueOf(rs.getString(SqlConstants.COL_MESSAGE_STATUS)));
 				return result;
