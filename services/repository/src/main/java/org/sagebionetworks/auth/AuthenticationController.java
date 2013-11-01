@@ -231,7 +231,8 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * To authenticate via OpenID, this service takes all URL parameters returned by the OpenID provider (i.e. Google)
-	 * along with an optional parameter to explicitly accept the terms of use (org.sagebionetworks.acceptsTermsOfUse=true).
+	 * along with an optional parameter to explicitly accept the terms of use (org.sagebionetworks.acceptsTermsOfUse=true)
+	 * and an optional parameter to create a user account if the OpenID is not registered in Synapse (org.sagebionetworks.createUserIfNecessary=true).  
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_OPEN_ID_CALLBACK, method = RequestMethod.POST)

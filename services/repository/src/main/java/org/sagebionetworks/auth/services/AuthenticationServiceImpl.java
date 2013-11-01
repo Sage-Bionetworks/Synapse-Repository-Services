@@ -318,7 +318,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setDisplayName(fullName);
 				userManager.createUser(user);
 			} else {
-				throw new NotFoundException("The user (" + email + ") does not exist");
+				throw new NotFoundException(email);
 			}
 		}
 		
