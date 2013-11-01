@@ -11,12 +11,16 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 
 public class EmailUtils {
     private static String mailUser;
     private static String mailPW;
     private static String mailFrom;
+	
+	private static Log log = LogFactory.getLog(EmailUtils.class);
 
     static {
     	mailPW = StackConfiguration.getMailPassword();
@@ -34,7 +38,7 @@ public class EmailUtils {
         mailFrom = props.getProperty("org.sagebionetworks.mailFrom");
     }
     
-    public static void sendGmail(
+    private static void sendGmail(
     		final String user, 
     		final String pass, 
     		String from, 
@@ -73,6 +77,12 @@ public class EmailUtils {
 
     
     public static void sendMail(String to, String subj, String msg) {
+		// Don't spam emails for integration tests
+		if (!StackConfiguration.isProductionStack()) {
+			log.debug("Intercepted email...\nTo: " + to + "\nSubject: " + subj + "\nMessage: " + msg);
+			return;
+		}
+		
     	sendGmail(mailUser, mailPW, mailFrom, to, subj, msg);
     }
 

@@ -78,4 +78,15 @@ public class SendMail {
     	EmailUtils.sendMail(user.getEmail(), "Set Synapse password", msg);
     }
     
+    public void sendWelcomeMail(NewUser user) {
+    	// Read in email template
+    	String msg = readMailTemplate("welcomeToSynapseEmail.txt");
+    	
+    	// fill in display name and user name
+    	msg = msg.replaceAll("#displayname#", user.getDisplayName());
+    	msg = msg.replaceAll("#username#", user.getEmail());
+    	
+    	// fill in link, with token
+    	EmailUtils.sendMail(user.getEmail(), "Welcome to Synapse!", msg);
+    }
 }

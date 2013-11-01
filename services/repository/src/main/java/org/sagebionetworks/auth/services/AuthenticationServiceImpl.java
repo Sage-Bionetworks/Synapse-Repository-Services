@@ -2,8 +2,6 @@ package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
@@ -26,8 +24,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
-	
-	private static Log log = LogFactory.getLog(AuthenticationServiceImpl.class);
 
 	@Autowired
 	private UserManager userManager;
@@ -221,12 +217,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		mailTarget.setFirstName(user.getUser().getFname());
 		mailTarget.setLastName(user.getUser().getLname());
 		
-		// Don't spam emails for integration tests
-		if (!StackConfiguration.isProductionStack()) {
-			log.debug("Prevented " + mode + " email from being sent to " + mailTarget + " with session token " + sessionToken);
-			return;
-		}
-		
 		SendMail sendMail = new SendMail();
 		switch (mode) {
 			case SET_PW:
@@ -317,6 +307,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setLastName(lname);
 				user.setDisplayName(fullName);
 				userManager.createUser(user);
+				
+				// Send the user a welcoming message
+				SendMail sendMail = new SendMail();
+				sendMail.sendWelcomeMail(user);
 			} else {
 				throw new NotFoundException(email);
 			}
