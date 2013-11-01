@@ -13,7 +13,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -1033,5 +1032,17 @@ public interface SynapseClient {
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
 	 * @return A session token if the authentication passes
 	 */
+	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
+	
+	/**
+	 * See {@link #passThroughOpenIDParameters(String)}
+	 * @param acceptsTermsOfUse Whether this request should also mark the user as having accepted the terms of use
+	 */
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
+	
+	/** 
+	 * See {@link #passThroughOpenIDParameters(String)}
+	 * @param createUserIfNecessary Whether a user should be created if the user does not already exist
+	 */
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary) throws SynapseException;
 }

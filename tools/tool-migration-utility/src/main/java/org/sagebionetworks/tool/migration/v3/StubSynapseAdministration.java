@@ -2397,4 +2397,21 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		
 	}
 
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean acceptsTermsOfUse, Boolean createUserIfNecessary)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

@@ -106,7 +106,7 @@ public class AuthenticationServiceImplTest {
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		
-		service.processOpenIDInfo(info, null);
+		service.processOpenIDInfo(info, null, true);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));
@@ -122,7 +122,7 @@ public class AuthenticationServiceImplTest {
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		
-		service.processOpenIDInfo(info, true);
+		service.processOpenIDInfo(info, true, false);
 		
 		// User should not be created, ToU should be updated
 		verify(mockUserManager, times(0)).createUser(any(NewUser.class));

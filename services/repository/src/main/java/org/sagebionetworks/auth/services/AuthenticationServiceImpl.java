@@ -283,16 +283,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Dig out a ToU boolean from the request
+		// Defaults to false
 		String toUParam = parameters.getParameterValue(OpenIDInfo.ACCEPTS_TERMS_OF_USE_PARAM_NAME);
-		Boolean acceptsTermsOfUse = new Boolean(toUParam);
+		boolean acceptsTermsOfUse = new Boolean(toUParam);
 		
-		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse);
+		// Dig out a createUser boolean from the request
+		// Defaults to false
+		String createParam = parameters.getParameterValue(OpenIDInfo.CREATE_USER_IF_NECESSARY_PARAM_NAME);
+		boolean shouldCreateUser = new Boolean(createParam);
+		
+		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse, shouldCreateUser);
 	}
 	
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException {
+	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
 		String fname = info.getFirstName();
@@ -303,13 +309,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		if (!userManager.doesPrincipalExist(email)) {
-			// A new user must be created
-			NewUser user = new NewUser();
-			user.setEmail(email);
-			user.setFirstName(fname);
-			user.setLastName(lname);
-			user.setDisplayName(fullName);
-			userManager.createUser(user);
+			if (createUserIffNecessary) {
+				// A new user must be created
+				NewUser user = new NewUser();
+				user.setEmail(email);
+				user.setFirstName(fname);
+				user.setLastName(lname);
+				user.setDisplayName(fullName);
+				userManager.createUser(user);
+			} else {
+				throw new NotFoundException("The user (" + email + ") does not exist");
+			}
 		}
 		
 		// The user does not need to accept the terms of use to get a session token via OpenID
