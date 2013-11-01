@@ -78,10 +78,10 @@ public class WikiMigrationService {
 			}
 
 			migrationResults.add(result);
-			}
+		}
 			return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
 				wikiMigrationDao.getTotalCount(), offset, limit, "", false);
-		}
+	}
 		
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
