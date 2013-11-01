@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.WikiModelTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class WikiMigrationService {
 	@Autowired
@@ -59,10 +61,7 @@ public class WikiMigrationService {
 			result.setWikiId(wiki.getId());
 			
 			try {
-				// Convert the WikiPage to a V2WikiPage
-				V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
-				// Migrate it to the V2 DB
-				V2WikiPage clone = wikiMigrationDao.migrateWiki(translated);
+				V2WikiPage clone = migrate(wiki, userInfo);
 				if(clone != null) {
 					result.setEtag(clone.getEtag());
 					result.setResultType(WikiMigrationResultType.SUCCESS);
@@ -79,8 +78,25 @@ public class WikiMigrationService {
 			}
 
 			migrationResults.add(result);
-		}
-		return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
+			}
+			return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
 				wikiMigrationDao.getTotalCount(), offset, limit, "", false);
+		}
+		
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {		
+		V2WikiPage clone;
+		try {
+			// Convert the WikiPage to a V2WikiPage
+			V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
+			// Migrate it to the V2 DB
+			clone = wikiMigrationDao.migrateWiki(translated);
+			
+		} catch(Exception e) {
+			throw new RuntimeException(e);
+		}
+
+		return clone;
 	}
 }
