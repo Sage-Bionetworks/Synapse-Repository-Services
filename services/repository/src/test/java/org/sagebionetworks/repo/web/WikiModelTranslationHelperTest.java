@@ -7,12 +7,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -24,6 +26,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 
@@ -40,22 +43,32 @@ public class WikiModelTranslationHelperTest {
 	TempFileProvider tempFileProvider;
 	@Autowired
 	UserManager userManager;
-
-	WikiModelTranslationHelper utils;
+	@Autowired
+	WikiModelTranslator wikiModelTranslationHelper;
 	
 	private String userName;
 	private String ownerId;
 	private UserInfo userInfo;
 	private String markdownAsString = "Markdown string contents with a link: \n[example](http://url.com/).";
-
+	V2WikiPage v2Wiki;
+	
 	@Before
 	public void before() throws Exception{
-		utils = new WikiModelTranslationHelper(fileHandleManager,fileMetadataDao,
-				s3Client,tempFileProvider);
 		// get user IDs
 		userName = AuthorizationConstants.TEST_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+	}
+	
+	@After
+	public void after() throws DatastoreException, NotFoundException {
+		if(v2Wiki != null) {
+			String markdownHandleId = v2Wiki.getMarkdownFileHandleId();
+			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			fileMetadataDao.delete(markdownHandleId);
+		}
+		
 	}
 	
 	@Test
@@ -71,7 +84,7 @@ public class WikiModelTranslationHelperTest {
 		wiki.setMarkdown(markdownAsString);
 		
 		// Pass it to the converter
-		V2WikiPage v2Wiki = utils.convertToV2WikiPage(wiki, userInfo);
+		v2Wiki = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
 		
 		// Check fields were copied accurately
 		assertEquals(wiki.getId(), v2Wiki.getId());
@@ -97,7 +110,7 @@ public class WikiModelTranslationHelperTest {
 		assertEquals(markdownAsString, markdownString);
 		
 		// Now pass in V2WikiPage
-		WikiPage v1Wiki = utils.convertToWikiPage(v2Wiki);
+		WikiPage v1Wiki = wikiModelTranslationHelper.convertToWikiPage(v2Wiki);
 		// Make sure the WikiPage's markdown string field is accurate
 		assertEquals(markdownAsString, v1Wiki.getMarkdown());
 	}
