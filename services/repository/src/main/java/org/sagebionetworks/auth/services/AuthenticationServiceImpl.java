@@ -1,8 +1,6 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -296,16 +294,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 */
 	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException {
 		// Get some info about the user
-		Map<String, List<String>> mappings = info.getMap();
-		List<String> emails = mappings.get(OpenIDConsumerUtils.AX_EMAIL);
-		List<String> fnames = mappings.get(OpenIDConsumerUtils.AX_FIRST_NAME);
-		List<String> lnames = mappings.get(OpenIDConsumerUtils.AX_LAST_NAME);
-		String email = (emails == null || emails.size() < 1 ? null : emails.get(0));
-		String fname = (fnames == null || fnames.size() < 1 ? null : fnames.get(0));
-		String lname = (lnames == null || lnames.size() < 1 ? null : lnames.get(0));
-
+		String email = info.getEmail();
+		String fname = info.getFirstName();
+		String lname = info.getLastName();
+		String fullName = info.getFullName();
 		if (email == null) {
-			throw new UnauthorizedException("Unable to authenticate");
+			throw new UnauthorizedException("An email must be returned from the OpenID provider");
 		}
 		
 		if (!userManager.doesPrincipalExist(email)) {
@@ -314,9 +308,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			user.setEmail(email);
 			user.setFirstName(fname);
 			user.setLastName(lname);
-			if (fname != null && lname != null) {
-				user.setDisplayName(fname + " " + lname);
-			}
+			user.setDisplayName(fullName);
 			userManager.createUser(user);
 		}
 		
