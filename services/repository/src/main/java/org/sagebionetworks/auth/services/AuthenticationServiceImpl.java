@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -109,7 +110,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		try {
 			userManager.createUser(user);
 		} catch (DatastoreException e) {
-			throw new UnauthorizedException("User '" + user.getEmail() + "' already exists", e);
+			throw new NameConflictException("User '" + user.getEmail() + "' already exists", e);
 		}
 		
 		// For integration test to confirm that a user can be created

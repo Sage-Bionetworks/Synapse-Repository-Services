@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
@@ -20,6 +21,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class BaseController {
 	private static final Logger log = LogManager.getLogger(BaseController.class
 			.getName());
+
+	/**
+	 * This exception is thrown when an entity with a given name already exists.
+	 */
+	@ExceptionHandler(NameConflictException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public @ResponseBody
+	ErrorResponse handleNameConflictException(NameConflictException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
 	
 	/**
 	 * This is thrown whenever a requested object is not found
