@@ -90,6 +90,10 @@ public class AuthenticationController extends BaseController {
 
 	/**
 	 * Create a new user.  An email will be sent regarding how to set a password for the account.    
+	 * </br>
+	 * Note: The passed request body must contain an email.  
+	 * First, last, and full name are recommended but not required.
+	 * All other fields will be ignored.  
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
@@ -120,6 +124,9 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Request a password change email.
+	 * </br>
+	 * Note: The passed request body must contain an email.  
+	 * Other fields will be ignored.  
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)

@@ -8,8 +8,7 @@ public interface DynamoAdminDao {
 	void clear(String tableName, String hashKeyName, String rangeKeyName);
 	
 	/**
-	 * Are Dyanmo related feature enabled?
-	 * @return
+	 * Are Dyanmo related features enabled?
 	 */
 	boolean isDynamoEnabled();
 }

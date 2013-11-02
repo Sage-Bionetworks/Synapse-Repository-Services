@@ -286,7 +286,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-			synapse.passThroughOpenIDParameters("", null);
+			synapse.passThroughOpenIDParameters("org.sagebionetworks.openid.provider=GOOGLE", null);
 			fail();
 		} catch (SynapseUnauthorizedException e) {
 			assertTrue(e.getMessage().contains("Required parameter missing"));

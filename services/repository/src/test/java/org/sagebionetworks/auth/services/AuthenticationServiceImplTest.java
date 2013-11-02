@@ -8,14 +8,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -109,8 +104,7 @@ public class AuthenticationServiceImplTest {
 		userInfo.getUser().setAgreesToTermsOfUse(false);
 		
 		OpenIDInfo info = new OpenIDInfo();
-		info.setMap(new HashMap<String, List<String>>());
-		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
+		info.setEmail(username);
 		
 		service.processOpenIDInfo(info, null);
 		
@@ -126,8 +120,7 @@ public class AuthenticationServiceImplTest {
 		userInfo.getUser().setAgreesToTermsOfUse(false);
 		
 		OpenIDInfo info = new OpenIDInfo();
-		info.setMap(new HashMap<String, List<String>>());
-		info.getMap().put(OpenIDConsumerUtils.AX_EMAIL, Arrays.asList(new String[] { username }));
+		info.setEmail(username);
 		
 		service.processOpenIDInfo(info, true);
 		

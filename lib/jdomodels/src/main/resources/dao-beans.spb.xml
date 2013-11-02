@@ -239,5 +239,8 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
+		
+	<bean id="wikiMigrationDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
 
 </beans>
