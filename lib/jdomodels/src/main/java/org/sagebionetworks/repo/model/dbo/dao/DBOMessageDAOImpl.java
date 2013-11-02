@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -37,37 +38,54 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private IdGenerator idGenerator;
 	
 	private static final String THREAD_ID_PARAM_NAME = "threadId";
-	private static final String RECIPIENT_ID_PARAM_NAME = "recipientId";
-	private static final String SENDER_ID_PARAM_NAME = "senderId";
+	private static final String USER_ID_PARAM_NAME = "userId";
+	private static final String INBOX_FILTER_PARAM_NAME = "filterTypes";
 	
-	private static final String FROM_MESSAGES_IN_THREAD = 
-			" FROM "+SqlConstants.TABLE_MESSAGE+ 
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:" + THREAD_ID_PARAM_NAME;
+	private static final String FROM_MESSAGES_IN_THREAD_CORE = 
+			" FROM "+SqlConstants.TABLE_MESSAGE+
+				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS+
+				" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+")"+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME+
+			" AND ("+SqlConstants.COL_MESSAGE_CREATED_BY+"=:"+USER_ID_PARAM_NAME+
+				" OR "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+USER_ID_PARAM_NAME+")";
 	
 	private static final String SELECT_MESSAGES_IN_THREAD = 
-			"SELECT *" + FROM_MESSAGES_IN_THREAD;
+			"SELECT DISTINCT("+SqlConstants.COL_MESSAGE_ID+"),"+
+				 	SqlConstants.COL_MESSAGE_THREAD_ID+","+
+					SqlConstants.COL_MESSAGE_CREATED_BY+","+
+				 	SqlConstants.COL_MESSAGE_RECIPIENT_TYPE+","+
+				 	SqlConstants.COL_MESSAGE_RECIPIENTS+","+
+				 	SqlConstants.COL_MESSAGE_FILE_HANDLE_ID+","+
+				 	SqlConstants.COL_MESSAGE_CREATED_ON+","+
+				 	SqlConstants.COL_MESSAGE_SUBJECT+
+			FROM_MESSAGES_IN_THREAD_CORE;
 	
 	private static final String COUNT_MESSAGES_IN_THREAD = 
-			"SELECT COUNT(*)" + FROM_MESSAGES_IN_THREAD;
+			"SELECT COUNT(DISTINCT("+SqlConstants.COL_MESSAGE_ID+"))"+
+			FROM_MESSAGES_IN_THREAD_CORE;
+	
+	private static final String FILTER_MESSAGES_RECEIVED = 
+			SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+USER_ID_PARAM_NAME+
+			" AND "+SqlConstants.COL_MESSAGE_STATUS+" IN (:"+INBOX_FILTER_PARAM_NAME+")";
 	
 	private static final String SELECT_MESSAGES_RECEIVED = 
 			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_STATUS+
 			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+
-			" AND "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+RECIPIENT_ID_PARAM_NAME;
+			" AND "+FILTER_MESSAGES_RECEIVED;
 	
 	private static final String COUNT_MESSAGES_RECEIVED = 
 			"SELECT COUNT(*) FROM "+SqlConstants.TABLE_MESSAGE_STATUS+
-			" WHERE "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+RECIPIENT_ID_PARAM_NAME;
+			" WHERE "+FILTER_MESSAGES_RECEIVED;
 	
-	private static final String FROM_MESSAGES_SENT = 
+	private static final String FROM_MESSAGES_SENT_CORE = 
 			" FROM "+SqlConstants.TABLE_MESSAGE+ 
-			" WHERE "+SqlConstants.COL_MESSAGE_CREATED_BY+"=:" + SENDER_ID_PARAM_NAME;
+			" WHERE "+SqlConstants.COL_MESSAGE_CREATED_BY+"=:" + USER_ID_PARAM_NAME;
 	
 	private static final String SELECT_MESSAGES_SENT = 
-			"SELECT *" + FROM_MESSAGES_SENT;
+			"SELECT *" + FROM_MESSAGES_SENT_CORE;
 	
 	private static final String COUNT_MESSAGES_SENT = 
-			"SELECT COUNT(*)" + FROM_MESSAGES_SENT;
+			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
 	
 	private static final RowMapper<DBOMessage> messageRowMapper = new DBOMessage().getTableMapping();
 	
@@ -140,6 +158,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		params.addValue(USER_ID_PARAM_NAME, userId);
 		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
 		return MessageUtils.convertDBOs(messages);
 	}
@@ -148,6 +167,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public long getThreadSize(String threadId, String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		params.addValue(USER_ID_PARAM_NAME, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD, params);
 	}
 
@@ -157,15 +177,28 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		String sql = SELECT_MESSAGES_RECEIVED + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(RECIPIENT_ID_PARAM_NAME, userId);
+		params.addValue(USER_ID_PARAM_NAME, userId);
+		params.addValue(INBOX_FILTER_PARAM_NAME, convertFilterToString(included));
 		return simpleJdbcTemplate.query(sql, messageBundleRowMapper, params);
 	}
 
 	@Override
 	public long getNumReceivedMessages(String userId, List<MessageStatusType> included) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(RECIPIENT_ID_PARAM_NAME, userId);
+		params.addValue(USER_ID_PARAM_NAME, userId);
+		params.addValue(INBOX_FILTER_PARAM_NAME, convertFilterToString(included));
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_RECEIVED, params);
+	}
+	
+	/**
+	 * Before using enums in queries, use this to convert them into strings
+	 */
+	private List<String> convertFilterToString(List<MessageStatusType> filter) {
+		List<String> converted = new ArrayList<String>();
+		for (MessageStatusType layer : filter) {
+			converted.add(layer.name());
+		}
+		return converted;
 	}
 
 	@Override
@@ -174,7 +207,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		String sql = SELECT_MESSAGES_SENT + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(SENDER_ID_PARAM_NAME, userId);
+		params.addValue(USER_ID_PARAM_NAME, userId);
 		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
 		return MessageUtils.convertDBOs(messages);
 	}
@@ -182,7 +215,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	public long getNumSentMessages(String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(SENDER_ID_PARAM_NAME, userId);
+		params.addValue(USER_ID_PARAM_NAME, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_SENT, params);
 	}
 

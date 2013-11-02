@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -40,7 +41,7 @@ public class MessageUtils {
 			throw new DatastoreException("Could not unpack the list of intended recipients", e);
 		}
 		dto.setMessageFileHandleId(dbo.getFileHandleId().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setSubject(dbo.getSubject());
 		return dto;
 	}
@@ -84,7 +85,7 @@ public class MessageUtils {
 			throw new RuntimeException(e);
 		}
 		dbo.setFileHandleId(Long.parseLong(dto.getMessageFileHandleId()));
-		dbo.setCreatedOn(dto.getCreatedOn());
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setSubject(dto.getSubject());
 		return dbo;
 	}

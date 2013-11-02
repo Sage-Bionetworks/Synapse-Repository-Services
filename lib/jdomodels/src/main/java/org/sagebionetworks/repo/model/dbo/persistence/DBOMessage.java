@@ -5,7 +5,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -38,7 +37,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	private RecipientType recipientType;
 	private byte[] recipients;
 	private Long fileHandleId;
-	private Date createdOn;
+	private Long createdOn;
 	private String subject;
 
 	@Override
@@ -55,7 +54,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				Blob recipients = rs.getBlob(SqlConstants.COL_MESSAGE_RECIPIENTS);
 				result.setRecipients(recipients.getBytes(1, (int) recipients.length()));
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_FILE_HANDLE_ID));
-				result.setCreatedOn(new Date(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_ON)));
+				result.setCreatedOn(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_ON));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_SUBJECT));
 				return result;
 			}
@@ -133,12 +132,12 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		this.fileHandleId = fileHandleId;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
 
 
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 

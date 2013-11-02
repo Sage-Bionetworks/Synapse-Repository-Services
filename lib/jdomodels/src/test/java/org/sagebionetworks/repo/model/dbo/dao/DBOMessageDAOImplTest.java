@@ -56,7 +56,7 @@ public class DBOMessageDAOImplTest {
 	private Message userToThread;
 	private Message groupToThread;
 	
-	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD, MessageStatusType.READ });
+	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD });
 	
 	@Before
 	public void spamMessages() throws Exception {
@@ -145,8 +145,8 @@ public class DBOMessageDAOImplTest {
 		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(userToUser.getThreadId(), maliciousUser.getId()));
 		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(userToGroup.getThreadId(), maliciousUser.getId()));
 		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(groupToUserAndGroup.getThreadId(), maliciousGroup.getId()));
-		assertEquals("There should be 2 messages in the thread visible to the user", 2L, messageDAO.getThreadSize(userCreateThread.getThreadId(), maliciousUser.getId()));
-		assertEquals("There should be 1 message in the thread visible to the group", 1L, messageDAO.getThreadSize(userCreateThread.getThreadId(), maliciousGroup.getId()));
+		assertEquals("There should be 2 messages in the thread visible to the user", 2L, messageDAO.getThreadSize(userToThread.getThreadId(), maliciousUser.getId()));
+		assertEquals("There should be 1 message in the thread visible to the group", 1L, messageDAO.getThreadSize(groupToThread.getThreadId(), maliciousGroup.getId()));
 		
 		// Test the user's visibility
 		List<Message> thread = messageDAO.getThread(userCreateThread.getThreadId(), maliciousUser.getId(), MessageSortBy.SUBJECT, true, 3, 0);
@@ -157,9 +157,9 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userCreateThread, thread.get(1));
 
 		// Test the group's visibility
-		thread = messageDAO.getThread(userCreateThread.getThreadId(), maliciousUser.getId(), MessageSortBy.SUBJECT, true, 3, 0);
+		thread = messageDAO.getThread(userCreateThread.getThreadId(), maliciousGroup.getId(), MessageSortBy.SUBJECT, true, 3, 0);
 		assertEquals("Should get back 1 message", 1, thread.size());
-		assertEquals(groupToThread, thread.get(2));
+		assertEquals(groupToThread, thread.get(0));
 	}
 	
 	@Test
