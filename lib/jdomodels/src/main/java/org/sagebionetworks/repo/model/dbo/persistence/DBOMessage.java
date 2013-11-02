@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -38,7 +38,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	private RecipientType recipientType;
 	private byte[] recipients;
 	private Long fileHandleId;
-	private Timestamp createdOn;
+	private Date createdOn;
 	private String subject;
 
 	@Override
@@ -55,7 +55,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				Blob recipients = rs.getBlob(SqlConstants.COL_MESSAGE_RECIPIENTS);
 				result.setRecipients(recipients.getBytes(1, (int) recipients.length()));
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_FILE_HANDLE_ID));
-				result.setCreatedOn(rs.getTimestamp(SqlConstants.COL_MESSAGE_CREATED_ON));
+				result.setCreatedOn(new Date(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_ON)));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_SUBJECT));
 				return result;
 			}
@@ -133,11 +133,12 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		this.fileHandleId = fileHandleId;
 	}
 
-	public Timestamp getCreatedOn() {
+	public Date getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Timestamp createdOn) {
+
+	public void setCreatedOn(Date createdOn) {
 		this.createdOn = createdOn;
 	}
 

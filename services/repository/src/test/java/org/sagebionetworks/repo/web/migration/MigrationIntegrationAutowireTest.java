@@ -546,7 +546,7 @@ public class MigrationIntegrationAutowireTest {
 		dto.setRecipientType(RecipientType.PRINCIPAL);
 		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
 		dto.setMessageFileHandleId(fileHandleId);
-		dto = messageDAO.saveMessage(dto);
+		dto = messageDAO.createMessage(dto);
 		
 		messageDAO.registerMessageRecipient(dto.getMessageId(), group.getId());
 	}

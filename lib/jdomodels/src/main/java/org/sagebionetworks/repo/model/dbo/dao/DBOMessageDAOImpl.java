@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -20,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
@@ -29,13 +32,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
-	
-	/**
-	 * Used for testing
-	 */
-	public void setBasicDAO(DBOBasicDao basicDAO) {
-		this.basicDAO = basicDAO;
-	}
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -92,7 +88,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	/**
 	 * Builds up ordering and pagination keywords to append to various message select statements
 	 */
-	private static String constructSqlSuffix(MESSAGE_SORT_BY sortBy,
+	private static String constructSqlSuffix(MessageSortBy sortBy,
 			boolean descending, long limit, long offset) {
 		StringBuilder suffix = new StringBuilder();
 		suffix.append(" ORDER BY ");
@@ -122,7 +118,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public Message saveMessage(Message dto) {
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Message createMessage(Message dto) {
 		// Fill in new IDs for the message
 		dto.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID).toString());
 		if (dto.getThreadId() == null) {
@@ -137,7 +134,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public List<Message> getThread(String threadId, MESSAGE_SORT_BY sortBy,
+	public List<Message> getThread(String threadId, String userId, MessageSortBy sortBy,
 			boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_IN_THREAD + constructSqlSuffix(sortBy, descending, limit, offset);
 		
@@ -148,15 +145,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public long getThreadSize(String threadId) {
+	public long getThreadSize(String threadId, String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD, params);
 	}
 
 	@Override
-	public List<MessageBundle> getReceivedMessages(String userId,
-			MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset) {
+	public List<MessageBundle> getReceivedMessages(String userId, List<MessageStatusType> included, 
+			MessageSortBy sortBy, boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_RECEIVED + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -165,14 +162,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public long getNumReceivedMessages(String userId) {
+	public long getNumReceivedMessages(String userId, List<MessageStatusType> included) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(RECIPIENT_ID_PARAM_NAME, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_RECEIVED, params);
 	}
 
 	@Override
-	public List<Message> getSentMessages(String userId, MESSAGE_SORT_BY sortBy,
+	public List<Message> getSentMessages(String userId, MessageSortBy sortBy,
 			boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_SENT + constructSqlSuffix(sortBy, descending, limit, offset);
 		
@@ -190,6 +187,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void registerMessageRecipient(String messageId, String userId) {
 		DBOMessageStatus status = new DBOMessageStatus();
 		status.setMessageId(Long.parseLong(messageId));
@@ -199,6 +197,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void updateMessageStatus(String messageId, String userId,
 			MessageStatusType status) {
 		DBOMessageStatus toUpdate = new DBOMessageStatus();

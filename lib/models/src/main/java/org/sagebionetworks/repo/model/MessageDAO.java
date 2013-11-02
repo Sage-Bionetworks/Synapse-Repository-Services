@@ -4,15 +4,11 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MessageDAO {
-	
-	public enum MESSAGE_SORT_BY {
-		SEND_DATE, 
-		SUBJECT
-	}
 	
 	/**
 	 * Retrieves a message by ID
@@ -26,35 +22,35 @@ public interface MessageDAO {
 	 * 
 	 * @param dto This relevant IDs of this object may be changed
 	 */
-	public Message saveMessage(Message dto);
+	public Message createMessage(Message dto);
 	
 	/**
 	 * Retrieves all messages (subject to limit and offset) within a given thread
 	 * @param sortBy What value to sort the results by
 	 */
-	public List<Message> getThread(String threadId, MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset);
+	public List<Message> getThread(String threadId, String userId, MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
 	 * Returns the number of messages within the thread, regardless of visibility
 	 */
-	public long getThreadSize(String threadId);
+	public long getThreadSize(String threadId, String userId);
 	
 	/**
 	 * Retrieves all messages (subject to limit and offset) received by the user
 	 * @param sortBy What value to sort the results by
 	 */
-	public List<MessageBundle> getReceivedMessages(String userId, MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset);
+	public List<MessageBundle> getReceivedMessages(String userId, List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
 	 * Returns the number of messages received by the user
 	 */
-	public long getNumReceivedMessages(String userId);
+	public long getNumReceivedMessages(String userId, List<MessageStatusType> included);
 	
 	/**
 	 * Retrieves all messages (subject to limit and offset) sent by the user
 	 * @param sortBy What value to sort the results by
 	 */
-	public List<Message> getSentMessages(String userId, MESSAGE_SORT_BY sortBy, boolean descending, long limit, long offset);
+	public List<Message> getSentMessages(String userId, MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
 	 * Returns the number of messages sent by the user
