@@ -4,9 +4,11 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
@@ -45,6 +47,9 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@Before
 	public void before() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		// These tests are not run if dynamo is disabled.
+		Assume.assumeTrue(config.getDynamoEnabled());
 		// Empty the dynamo queue
 		int count = dynamoQueueMessageRemover.triggerFired();
 		while (count > 0) {
@@ -68,6 +73,10 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@After
 	public void after() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		// There is nothing to do if dynamo is disabled
+		if(!config.getDynamoEnabled()) return;
+		
 		// Remove the project
 		if (project != null) {
 			entityManager.deleteEntity(

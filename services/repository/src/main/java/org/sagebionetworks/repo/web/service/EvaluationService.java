@@ -65,7 +65,7 @@ public interface EvaluationService {
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get a collection of Evaluations in which the user may participate, within a given range
+	 * Get a collection of Evaluations in which the user has SUBMIT permission, within a given range
 	 *
 	 * @param userId the userId (email address) of the user making the request
 	 * @param limit
@@ -74,9 +74,8 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Deprecated
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			String userId, EvaluationStatus status, long limit, long offset, HttpServletRequest request) throws DatastoreException, NotFoundException;
+			String userId, long limit, long offset, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system

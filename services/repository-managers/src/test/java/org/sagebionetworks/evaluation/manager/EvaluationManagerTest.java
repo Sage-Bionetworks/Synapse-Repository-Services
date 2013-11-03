@@ -115,8 +115,8 @@ public class EvaluationManagerTest {
     	evaluations=Arrays.asList(new Evaluation[]{evalWithId});
     	when(mockEvaluationDAO.getByContentSource(eq(EVALUATION_CONTENT_SOURCE), anyLong(), anyLong())).thenReturn(evaluations);
     	when(mockEvaluationDAO.getCountByContentSource(eq(EVALUATION_CONTENT_SOURCE))).thenReturn(1L);
-    	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), (EvaluationStatus)any(), anyLong(), anyLong())).thenReturn(evaluations);
-    	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), (EvaluationStatus)any())).thenReturn(1L);
+    	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), anyLong(), anyLong())).thenReturn(evaluations);
+    	when(mockEvaluationDAO.getAvailableCount((List<Long>)any())).thenReturn(1L);
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(true);
@@ -172,7 +172,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testGetAvailableInRange() throws Exception {
-		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, null, 10L, 0L);
+		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L);
 		assertEquals(evaluations, qr.getResults());
 		assertEquals(1L, qr.getTotalNumberOfResults());
 	}

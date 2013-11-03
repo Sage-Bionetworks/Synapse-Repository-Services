@@ -7,9 +7,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.LinkedList;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Project;
@@ -46,6 +48,10 @@ public class SearchControllerTest {
 	
 	@Before
 	public void before() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		// Only run this test if search is enabled.
+		Assume.assumeTrue(config.getSearchEnabled());
+		
 		provider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(ServiceProvider.class);
 		assertNotNull(provider);
 		searchDao =  DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDao.class);

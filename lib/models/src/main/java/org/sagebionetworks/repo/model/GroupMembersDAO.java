@@ -12,13 +12,6 @@ public interface GroupMembersDAO {
 	 */
 	public List<UserGroup> getMembers(String principalId) 
 			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Retrieves the IDs of members of the given principalId
-	 * @param nested Whether the members should be direct or nested
-	 */
-	public List<UserGroup> getMembers(String principalId, boolean nested)
-			throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Adds the list of principal IDs to the group

@@ -76,9 +76,7 @@ public interface AuthenticationDAO {
 	
 	/**
 	 * Replaces the user's secret key with the specified one
-	 * This method should only be used by the CrowdMigratorService
 	 */
-	@Deprecated
 	public void changeSecretKey(String id, String secretKey);
 	
 	/**

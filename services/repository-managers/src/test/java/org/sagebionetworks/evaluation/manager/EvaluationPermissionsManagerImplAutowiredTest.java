@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -39,8 +38,9 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +66,9 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private AccessRequirementDAO accessRequirementDAO;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -73,6 +76,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	private List<String> aclsToDelete;
 	private List<String> evalsToDelete;
 	private List<String> nodesToDelete;
+	private List<String> accessRestrictionsToDelete;
 
 	@Before
 	public void before() throws Exception {
@@ -82,6 +86,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		aclsToDelete = new ArrayList<String>();
 		evalsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
+		accessRestrictionsToDelete = new ArrayList<String>();
 	}
 
 	@After
@@ -94,6 +99,9 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		}
 		for (String id : nodesToDelete) {
 			nodeManager.delete(adminUserInfo, id);
+		}
+		for (String id : accessRestrictionsToDelete) {
+			accessRequirementDAO.delete(id);
 		}
 	}
 
@@ -119,6 +127,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ));
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
 
 		// Update ACL -- Now give 'user' CHANGE_PERMISSIONS, PARTICIPATE
 		ResourceAccess ra = new ResourceAccess();
@@ -127,6 +136,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
+		accessType.add(ACCESS_TYPE.SUBMIT);
 		ra.setAccessType(accessType);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		raSet.add(ra);
@@ -150,6 +160,28 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.DELETE));
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ));
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+		
+		// now add unmet access requirements
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(evalId);
+		rod.setType(RestrictableObjectType.EVALUATION);
+		List<RestrictableObjectDescriptor> subjectIds = Arrays.asList(new RestrictableObjectDescriptor[]{rod});
+		ar.setSubjectIds(subjectIds);
+		ar.setCreatedBy(userInfo.getIndividualGroup().getId());
+		ar.setCreatedOn(new Date());
+		ar.setModifiedBy(userInfo.getIndividualGroup().getId());
+		ar.setModifiedOn(new Date());
+		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setTermsOfUse("foo");
+		ar = accessRequirementDAO.create(ar);
+		accessRestrictionsToDelete.add(ar.getId().toString());
+		
+		// now user will lack PARTICIPATE and SUBMIT access
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
 
 		// Make sure ACL is deleted when the evaluation is deleted
 		evaluationManager.deleteEvaluation(adminUserInfo, evalId);

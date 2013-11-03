@@ -47,6 +47,21 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
+	
+	boolean isSearchEnabled;
+	
+	@Override
+	public boolean isSearchEnabled() {
+		return isSearchEnabled;
+	}
+
+	/**
+	 * Injected via Spring
+	 * @param isSearchEnabled
+	 */
+	public void setSearchEnabled(boolean isSearchEnabled) {
+		this.isSearchEnabled = isSearchEnabled;
+	}
 
 	/**
 	 * Spring will call this method when the bean is first initialize.
@@ -55,6 +70,10 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 	 * @throws UnknownHostException
 	 */
 	public void initialize() throws InterruptedException, UnknownHostException {
+		if(!isSearchEnabled()){
+			log.info("Search is disabled");
+			return;
+		}
 		log.info("initialize...");
 		long start = System.currentTimeMillis();
 		// Do we have a search index?

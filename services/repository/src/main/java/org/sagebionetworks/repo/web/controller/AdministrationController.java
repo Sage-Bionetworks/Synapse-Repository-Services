@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.auth.services.CrowdSynchronizerService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -17,11 +16,12 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.repo.web.service.WikiMigrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -43,9 +43,9 @@ public class AdministrationController extends BaseController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
-
+	
 	@Autowired
-	private CrowdSynchronizerService crowdSyncService;
+	private WikiMigrationService wikiMigrationService;
 	
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
@@ -244,18 +244,18 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 		serviceProvider.getAdministrationService().clearDynamoTable(userId, tableName, hashKeyName, rangeKeyName);
 	}
-
+	
 	/**
-	 * Migrates some users from Crowd into RDS
+	 * Migrates some wikis from the V1 WikiPage DB to the V2 WikiPage DB.
 	 */
-	@RequestMapping(value = {UrlHelpers.ADMIN_MIGRATE_FROM_CROWD}, method = RequestMethod.POST)
+	@RequestMapping(value = {UrlHelpers.ADMIN_MIGRATE_WIKI}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody
-	PaginatedResults<CrowdMigrationResult> migrateFromCrowd(
+	PaginatedResults<WikiMigrationResult> migrateFromV1Wiki(
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			HttpServletRequest request) {
-		return crowdSyncService.migrateSomeUsers(username, limit, offset, request.getServletPath());
+			HttpServletRequest request) throws NotFoundException, IOException {
+		return wikiMigrationService.migrateSomeWikis(username, limit, offset, request.getServletPath());
 	}
 }

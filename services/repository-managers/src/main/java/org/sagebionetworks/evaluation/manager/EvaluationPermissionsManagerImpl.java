@@ -207,12 +207,12 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
-		if (canAccess && PARTICIPATE.equals(accessType)) {
+		if (canAccess && (PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
 			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 			rod.setId(evalId);
 			rod.setType(RestrictableObjectType.EVALUATION);
 			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
-					userInfo, rod, nodeDAO, accessRequirementDAO);
+					userInfo, rod, null, accessRequirementDAO);
 			canAccess = canAccess && unmetRequirements.isEmpty();
 		}
 		return canAccess;

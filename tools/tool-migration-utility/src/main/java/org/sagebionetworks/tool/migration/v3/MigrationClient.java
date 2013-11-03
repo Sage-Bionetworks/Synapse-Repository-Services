@@ -19,9 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResultType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -123,16 +120,6 @@ public class MigrationClient {
 		destStatus.setStatus(status);
 		destStatus.setCurrentMessage(message);
 		destStatus = client.updateCurrentStackStatus(destStatus);
-	}
-	
-	/**
-	 * Get the current change number of the destination.
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	private long getDestinationCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException{
-		return this.factory.createNewDestinationClient().getCurrentChangeNumber().getNextChangeNumber();
 	}
 	
 	/**
@@ -418,35 +405,5 @@ public class MigrationClient {
 		for (Exception e: this.deferredExceptions) {
 			log.error("Deferred exception " + i++, e);
 		}
-	}
-	
-	public void migrateCrowd() throws SynapseException, JSONObjectAdapterException {
-		SynapseAdminClient client = factory.createNewDestinationClient();
-		long offset = 10;
-		PaginatedResults<CrowdMigrationResult> res = client.migrateFromCrowd(10, 0);
-		boolean batchFailed = this.containsFailure(res.getResults());
-		long crowdTotalNumRes = res.getTotalNumberOfResults();
-		while (offset <= crowdTotalNumRes) {
-			log.info("Migrating crowd data, offset " + offset);
-			res = client.migrateFromCrowd(10, offset);
-			if (this.containsFailure(res.getResults())) {
-				batchFailed = true;
-			}
-			offset += 10;
-		}
-		if (batchFailed) {
-			throw new RuntimeException("Failed during Crowd migration");
-		}
-	}
-	
-	public boolean containsFailure(List<CrowdMigrationResult> batch) {
-		boolean failed = false;
-		for (CrowdMigrationResult r: batch) {
-			if (r.getResultType() == CrowdMigrationResultType.FAILURE) {
-				log.error("Crowd migration failed for " + r.getUsername() + " / " + r.getUserId() + " with error '" + r.getMessage() + "'");
-				failed = true;
-			}
-		}
-		return failed;
 	}
 }

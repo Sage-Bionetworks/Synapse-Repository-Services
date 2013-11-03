@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.apache.http.client.ClientProtocolException;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,10 +51,18 @@ public class SearchDaoImplAutowireTest {
 	
 	private Random rand = new Random(System.currentTimeMillis());
 	
+	@Before
+	public void before(){
+		// Only run these tests if search is enabled
+		org.junit.Assume.assumeTrue(searchDomainSetup.isSearchEnabled());
+	}
+	
 	@After
 	public void after() throws Exception {
-		// Delete all documents after a test
-		searchDao.deleteAllDocuments();
+		if(searchDomainSetup.isSearchEnabled()){
+			// Delete all documents after a test
+			searchDao.deleteAllDocuments();
+		}
 	}
 	
 	@Test

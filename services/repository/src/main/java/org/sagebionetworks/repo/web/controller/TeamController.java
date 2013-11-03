@@ -69,7 +69,7 @@ public class TeamController extends BaseController {
 	 * </ul>
 	 * <p>
 	 * To specify a Team icon, the icon file must first be uploaded to Synapse as 
-	 * <ahref="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> (see
+	 * <a href="${org.sagebionetworks.repo.model.file.FileHandle}">FileHandle</a> (see
 	 * <a href="${org.sagebionetworks.file.controller.UploadController}">File
 	 * Services</a>). The FileHandle ID can then be put into the Team's icon field.
 	 * 

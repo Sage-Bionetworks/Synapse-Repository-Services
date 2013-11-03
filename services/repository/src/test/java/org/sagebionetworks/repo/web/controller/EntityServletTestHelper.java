@@ -400,14 +400,11 @@ public class EntityServletTestHelper {
 	 * Gets a paginated list of available evaluations
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluations(
-			String username, String status) throws Exception {
+			String username) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION_AVAILABLE, username, null);
 		request.setParameter("limit", "100");
 		request.setParameter("offset", "0");
-		if (status != null) {
-			request.setParameter("status", status);
-		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1231,7 +1228,6 @@ public class EntityServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
 						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, wiki);
-		//request.setParameter("version", version.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 

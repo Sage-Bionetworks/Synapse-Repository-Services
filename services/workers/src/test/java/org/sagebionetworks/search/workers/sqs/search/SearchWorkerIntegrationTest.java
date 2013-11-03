@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.apache.http.client.ClientProtocolException;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,6 +67,8 @@ public class SearchWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws Exception {
+		// Only run this test if search is enabled
+		Assume.assumeTrue(searchDao.isSearchEnabled());
 		// Before we start, make sure the search queue is empty
 		emptySearchQueue();
 		// Now delete all documents in the search index.

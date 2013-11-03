@@ -21,6 +21,9 @@ import org.apache.logging.log4j.Logger;
 public class StackConfiguration {
 
 	private static final String PROD = "prod";
+	private static final String DEV = "dev";
+	private static final String HUDSON = "hud";
+	
 	static final String DEFAULT_PROPERTIES_FILENAME = "/stack.properties";
 	static final String TEMPLATE_PROPERTIES = "/template.properties";
 
@@ -85,6 +88,30 @@ public class StackConfiguration {
 	static boolean isProduction(String stack){
 		return PROD.equals(stack);
 	}
+	/**
+	 * Is this a Develop stack?
+	 * @return
+	 */
+	public static boolean isDevelopStack(){
+		return isDevelopStack(getStack());
+	}
+	
+	static boolean isDevelopStack(String stack){
+		return DEV.equals(stack);
+	}
+	
+	/**
+	 * Is this a Hudson stack?
+	 * @return
+	 */
+	public static boolean isHudsonStack(){
+		return isHudsonStack(getStack());
+	}
+	
+	static boolean isHudsonStack(String stack){
+		return HUDSON.equals(stack);
+	}
+
 
 	/**
 	 * In production stacks the instance is numeric. In development and test
@@ -172,10 +199,6 @@ public class StackConfiguration {
 		return configuration.getFileServiceEndpoint();
 	}
 
-	public static String getCrowdEndpoint() {
-		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
-	}
-
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own
@@ -212,11 +235,6 @@ public class StackConfiguration {
 	public static Integer getS3WriteAccessExpiryHours() {
 		return Integer.valueOf(configuration
 				.getProperty("org.sagebionetworks.s3.writeAccessExpiryHours"));
-	}
-
-	public static String getCrowdAPIApplicationKey() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.crowdApplicationKey");
 	}
 
 	public static String getMailPassword() {
@@ -256,20 +274,6 @@ public class StackConfiguration {
 	public String getIdGeneratorDatabaseDriver() {
 		return configuration
 				.getProperty("org.sagebionetworks.id.generator.database.driver");
-	}
-	
-	
-	public String getCrowdDatabaseConnectionUrl() {
-		return configuration
-				.getProperty("org.sagebionetworks.crowd.database.connection.url");
-	}
-	public String getCrowdDatabaseUsername() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.crowd.database.username");
-	}
-	public String getCrowdDatabasePassword() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.crowd.database.password");
 	}
 
 	/**
@@ -621,6 +625,23 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.attachment.preview.image.max.pixels"));
 	}
 
+	/**
+	 * Is the search feature enabled?
+	 * @return
+	 */
+	public boolean getSearchEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.search.enabled"));
+	}
+	
+	/**
+	 * Is the Dynamo feature enabled?
+	 * @return
+	 */
+	public boolean getDynamoEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.dynamo.enabled"));
+	}
 
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable
@@ -1026,17 +1047,6 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.dynamo.synchronize"));
-	}
-	
-	/**
-	 * The maximum number of workers in the cluster that will synchronize Crowd with RDS
-	 * 
-	 * @return
-	 */
-	public Integer getSemaphoreGatedMaxRunnersCrowdGroupSynchronize() {
-		return Integer
-				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.crowd.synchronize"));
 	}
 
 	

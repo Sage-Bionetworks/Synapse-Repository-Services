@@ -10,9 +10,11 @@ import java.util.Set;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,10 @@ public class NodeTreeDaoReadAutowireTest {
 	@Before
 	public void before() throws Exception {
 
+		StackConfiguration config = new StackConfiguration();
+		// These tests are not run if dynamo is disabled.
+		Assume.assumeTrue(config.getDynamoEnabled());
+		
 		// Clear dynamo
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
 				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
@@ -64,6 +70,10 @@ public class NodeTreeDaoReadAutowireTest {
 
 	@After
 	public void after() {
+		StackConfiguration config = new StackConfiguration();
+		// There is nothing to do if dynamo is disabled
+		if(!config.getDynamoEnabled()) return;
+		
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
 				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 	}

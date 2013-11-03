@@ -133,6 +133,9 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -194,11 +197,19 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	private static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
 	private static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
+	private static final String WIKI_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2";
+	private static final String WIKI_ID_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s";
+	private static final String WIKI_ID_VERSION_URI_TEMPLATE_V2 = "/%1$s/%2$s/wiki2/%3$s/%4$s";
+	private static final String WIKI_TREE_URI_TEMPLATE_V2 = "/%1$s/%2$s/wikiheadertree2";
+	private static final String WIKI_HISTORY_V2 = "/wikihistory";
 	private static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	private static final String ATTACHMENT_FILE = "/attachment";
 	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	private static final String FILE_NAME_PARAMETER = "?fileName=";
 	private static final String REDIRECT_PARAMETER = "redirect=";
+	private static final String OFFSET_PARAMETER = "?offset=";
+	private static final String LIMIT_PARAMETER = "limit=";
+	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
 
@@ -1252,6 +1263,8 @@ public class SynapseClientImpl implements SynapseClient {
 			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
 		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
 			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
+		} else if (RestrictableObjectType.TEAM == subjectId.getType()) {
+			uri = TEAM+"/"+subjectId.getId()+ACCESS_REQUIREMENT_UNFULFILLED;
 		} else {
 			throw new SynapseException("Unsupported type "+subjectId.getType());
 		}
@@ -1273,6 +1286,8 @@ public class SynapseClientImpl implements SynapseClient {
 			uri = ENTITY+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
 		} else if (RestrictableObjectType.EVALUATION == subjectId.getType()) {
 			uri = EVALUATION_URI_PATH+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
+		} else if (RestrictableObjectType.TEAM == subjectId.getType()) {
+			uri = TEAM+"/"+subjectId.getId()+ACCESS_REQUIREMENT;
 		} else {
 			throw new SynapseException("Unsupported type "+subjectId.getType());
 		}
@@ -2419,6 +2434,270 @@ public class SynapseClientImpl implements SynapseClient {
 		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	
+	// V2 WIKIPAGE METHODS
+	
+	/**
+	 * Helper to create a V2 Wiki URL (No ID)
+	 */
+	private String createV2WikiURL(String ownerId, ObjectType ownerType) {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		return String.format(WIKI_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId);
+	}
+	
+	/**
+	 * Helper to build a URL for a V2 Wiki page, with ID
+	 * @param key
+	 * @return
+	 */
+	private String createV2WikiURL(WikiPageKey key) {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		return String.format(WIKI_ID_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), 
+				key.getOwnerObjectId(), key.getWikiPageId());
+	}
+	
+	/**
+	 * 
+	 * Create a V2 WikiPage for a given owner object.
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toCreate
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Override
+	public V2WikiPage createV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toCreate) throws JSONObjectAdapterException,
+			SynapseException {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		if(toCreate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		String uri = createV2WikiURL(ownerId, ownerType);
+		return createJSONEntity(getRepoEndpoint(), uri, toCreate);
+	}
+	
+	/**
+	 * Get a V2 WikiPage using its key
+	 * @param key
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Override
+	public V2WikiPage getV2WikiPage(WikiPageKey key)
+		throws JSONObjectAdapterException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createV2WikiURL(key);
+		return getJSONEntity(getRepoEndpoint(), uri, V2WikiPage.class);
+	}
+	
+	/**
+	 * Get a the root V2 WikiPage for a given owner.
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Override
+	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
+		throws JSONObjectAdapterException, SynapseException {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		String uri = createV2WikiURL(ownerId, ownerType);
+		return getJSONEntity(getRepoEndpoint(), uri, V2WikiPage.class);
+	}
+
+	/**
+	 * Update a V2 WikiPage
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toUpdate
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Override
+	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
+		V2WikiPage toUpdate) throws JSONObjectAdapterException,
+		SynapseException {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(toUpdate.getId() == null) throw new IllegalArgumentException("WikiPage.getId() cannot be null");
+		String uri = String.format(WIKI_ID_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId());
+		return updateJSONEntity(getRepoEndpoint(), uri, toUpdate);
+	}
+
+	/**
+	 * Restore contents of a V2 WikiPage to the contents
+	 * of a particular version.
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toUpdate
+	 * @param versionToRestore
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Override
+	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
+		V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+		SynapseException {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(versionToRestore == null) throw new IllegalArgumentException("Version cannot be null");
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), String.valueOf(versionToRestore));
+		return updateJSONEntity(getRepoEndpoint(), uri, toUpdate);
+	}
+
+	/**
+	 * Get all of the FileHandles associated with a V2 WikiPage, including any PreviewHandles.
+	 * @param key
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Override
+	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
+		throws JSONObjectAdapterException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createV2WikiURL(key)+ATTACHMENT_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
+	}
+
+	/**
+	 * 
+	 * @param key - Identifies a V2 wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	@Override
+	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
+		throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
+		return downloadFile(getRepoEndpoint(), uri);
+	}
+	
+	/**
+	 * Download the preview of a V2 wiki attachment file.
+	 * @param key - Identifies a V2 wiki page.
+	 * @param fileName - The name of the original attachment file that you want to download a preview for.
+	 * @return
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws ClientProtocolException 
+	 */
+	@Override
+	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+		throws ClientProtocolException, FileNotFoundException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
+		return downloadFile(getRepoEndpoint(), uri);
+	}
+	
+	/**
+	 * Get the temporary URL for a V2 WikiPage attachment. This is an alternative to downloading the attachment to a file.
+	 * @param key - Identifies a V2 wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	@Override
+	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = getRepoEndpoint()+createV2WikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName+AND_REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+	
+	/**
+	 * Get the temporary URL for a V2 WikiPage attachment preview. This is an alternative to downloading the attachment to a file.
+	 * @param key - Identifies a V2 wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	@Override
+	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = getRepoEndpoint()+createV2WikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName+AND_REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+	
+	/**
+	 * Delete a V2 WikiPage
+	 * @param key
+	 * @throws SynapseException
+	 */
+	@Override
+	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createV2WikiURL(key);
+		deleteUri(getRepoEndpoint(), uri);
+	}
+	
+	/**
+	 * Get the WikiHeader tree for a given owner object.
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Override
+	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
+		ObjectType ownerType) throws SynapseException,
+		JSONObjectAdapterException {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		String uri = String.format(WIKI_TREE_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId);
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultGETDELETEHeaders);
+		JSONObject object = signAndDispatchSynapseRequest(getRepoEndpoint(), uri, "GET", null,requestHeaders);
+		PaginatedResults<V2WikiHeader> paginated = new PaginatedResults<V2WikiHeader>(V2WikiHeader.class);
+		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
+		return paginated;
+	}
+	
+	/**
+	 * Get the tree of snapshots (outlining each modification) for a particular V2 WikiPage
+	 * @param key
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Override
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
+		throws JSONObjectAdapterException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2 + OFFSET_PARAMETER + offset + AND_LIMIT_PARAMETER + limit;
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultGETDELETEHeaders);
+		JSONObject object = signAndDispatchSynapseRequest(getRepoEndpoint(), uri, "GET", null,requestHeaders);
+		PaginatedResults<V2WikiHistorySnapshot> paginated = new PaginatedResults<V2WikiHistorySnapshot>(V2WikiHistorySnapshot.class);
+		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
+		return paginated;
+	}
 	
 	/**
 	 * Download the locationable to a tempfile
@@ -3763,15 +4042,9 @@ public class SynapseClientImpl implements SynapseClient {
 		}
 	}
 	
-	@Deprecated
 	@Override
-	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(EvaluationStatus status, int offset, int limit) throws SynapseException {
-		String url = null;
-		if (null==status) {
-			url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
-		} else {
-			url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit +"&status=" + status;			
-		}
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit) throws SynapseException {
+		String url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);

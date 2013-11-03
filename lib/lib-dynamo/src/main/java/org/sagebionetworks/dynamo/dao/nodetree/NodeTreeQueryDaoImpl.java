@@ -23,6 +23,17 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper readMapper;
 
+	private boolean isDynamoEnabled;
+
+	@Override
+	public boolean isDynamoEnabled() {
+		return isDynamoEnabled;
+	}
+ 
+	public void setDynamoEnabled(boolean isDynamoEnabled) {
+		this.isDynamoEnabled = isDynamoEnabled;
+	}
+	
 	public NodeTreeQueryDaoImpl(AmazonDynamoDB dynamoClient) {
 
 		if (dynamoClient == null) {
@@ -36,6 +47,7 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 
 	@Override
 	public boolean isRoot(String nodeId) {
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -44,7 +56,7 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 
 	@Override
 	public List<String> getAncestors(String nodeId) throws IncompletePathException {
-
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -63,7 +75,7 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 
 	@Override
 	public String getParent(String nodeId) {
-
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -77,7 +89,7 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 
 	@Override
 	public List<String> getDescendants(String nodeId, int pageSize, String lastDescIdExcl) {
-
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -96,7 +108,7 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 
 	@Override
 	public List<String> getDescendants(String nodeId, int generation, int pageSize, String lastDescIdExcl) {
-
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -212,5 +224,12 @@ public class NodeTreeQueryDaoImpl implements NodeTreeQueryDao {
 		AttributeValue rangeKeyValue = new AttributeValue().withS(rangeKey);
 		Key lastKeyEvaluated = new Key().withHashKeyElement(hashKeyValue).withRangeKeyElement(rangeKeyValue);
 		return lastKeyEvaluated;
+	}
+	
+	/**
+	 * @throws UnsupportedOperationException when Dynamo is disabled
+	 */
+	public void validateDynamoEnabled(){
+		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
 	}
 }

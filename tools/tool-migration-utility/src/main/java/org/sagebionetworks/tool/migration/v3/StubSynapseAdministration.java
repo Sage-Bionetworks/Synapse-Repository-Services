@@ -92,7 +92,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.migration.CrowdMigrationResult;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -108,6 +107,9 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -137,7 +139,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	List<Long> replayChangeNumbersHistory = new LinkedList<Long>();
 	List<Set<Long>> deleteRequestsHistory = new LinkedList<Set<Long>>();
 	Set<Long> exceptionNodes = new HashSet<Long>();
-	List<CrowdMigrationResult> crowdMigrationResults = new LinkedList<CrowdMigrationResult>();
 
 	/**
 	 * Create a new stub
@@ -1326,7 +1327,113 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+	@Override
+	public V2WikiPage createV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toCreate) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
+
+	@Override
+	public V2WikiPage getV2WikiPage(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toUpdate) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
+			V2WikiPage toUpdate, Long versionToRestore)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
+			throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName) throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key, String fileName)
+			throws ClientProtocolException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String ownerId,
+			ObjectType ownerType) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(
+			WikiPageKey key, Long limit, Long offset) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
 	@Override
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(
 			String entityId) throws JSONObjectAdapterException,
@@ -1682,15 +1789,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
-			EvaluationStatus status, int offset, int limit)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public Long getEvaluationCount() throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2023,21 +2121,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public PaginatedResults<CrowdMigrationResult> migrateFromCrowd(long limit,
-			long offset) throws SynapseException, JSONObjectAdapterException {
-		PaginatedResults<CrowdMigrationResult> res = new PaginatedResults<CrowdMigrationResult>();
-		res.setTotalNumberOfResults(this.crowdMigrationResults.size());
-		res.setResults(this.crowdMigrationResults);
-		return res;
-	}
-
-
-	public void setCrowdMigrationResults(List<CrowdMigrationResult> crowdMigResults) {
-		this.crowdMigrationResults = crowdMigResults;
-	}
-
-
-	@Override
 	public ColumnModel createColumnModel(ColumnModel model)
 			throws SynapseException {
 		// TODO Auto-generated method stub
@@ -2295,6 +2378,14 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse)
 			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			int offset, int limit) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}

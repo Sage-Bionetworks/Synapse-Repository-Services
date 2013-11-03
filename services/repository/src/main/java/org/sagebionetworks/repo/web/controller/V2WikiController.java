@@ -74,7 +74,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * To view a timeline of changes made to a WikiPage, use the 
  * <a href="${GET.entity.ownerId.wiki2.wikiId.wikihistory}">GET/entity/{ownerId}
  * /wiki2/{wikiId}/wikihistory</a> method. The returned list of <a 
- * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot">V2WikiHistorySnapshots
+ * href="${org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot}">V2WikiHistorySnapshots
  * </a> contain information about who modified the WikiPage and when the changes were made. 
  * </p>
  * <p>
