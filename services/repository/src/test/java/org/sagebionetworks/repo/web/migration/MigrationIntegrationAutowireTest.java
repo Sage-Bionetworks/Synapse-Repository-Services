@@ -558,7 +558,7 @@ public class MigrationIntegrationAutowireTest {
 		dto.setCreatedBy(group.getId());
 		dto.setSubject("See you on the other side?");
 		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
+		dto.setRecipients(new HashSet<String>() {{add("-1");}});
 		dto.setMessageFileHandleId(fileHandleId);
 		dto = messageDAO.createMessage(dto);
 		

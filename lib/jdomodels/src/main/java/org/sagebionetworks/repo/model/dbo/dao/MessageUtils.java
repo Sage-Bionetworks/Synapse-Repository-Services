@@ -7,7 +7,9 @@ import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -95,11 +97,11 @@ public class MessageUtils {
 	 * @param longs Each element must be parsable as a long
 	 * @return A gzipped byte array of long ints 
 	 */
-	protected static byte[] zip(List<String> longs) throws IOException {
+	protected static byte[] zip(Set<String> longs) throws IOException {
 		// Convert the Strings into Longs into Bytes
 		ByteBuffer converter = ByteBuffer.allocate(Long.SIZE / 8 * longs.size());
-		for (int i = 0; i < longs.size(); i++) {
-			converter.putLong(Long.parseLong(longs.get(i)));
+		for (String num : longs) {
+			converter.putLong(Long.parseLong(num));
 		}
 		
 		// Zip up the bytes
@@ -116,7 +118,7 @@ public class MessageUtils {
 	 * @param zippedLongs Gzipped array of long ints
 	 * @return A list of longs in base 10 string form
 	 */
-	protected static List<String> unzip(byte[] zippedLongs) throws IOException {
+	protected static Set<String> unzip(byte[] zippedLongs) throws IOException {
 		// Unzip the bytes
 		ByteArrayInputStream in = new ByteArrayInputStream(zippedLongs);
 		GZIPInputStream unzip = new GZIPInputStream(in);
@@ -128,7 +130,7 @@ public class MessageUtils {
 		// Convert to bytes
 		ByteBuffer converter = ByteBuffer.wrap(out.toByteArray());
 		LongBuffer converted = converter.asLongBuffer();
-		List<String> verbose = new ArrayList<String>();
+		Set<String> verbose = new HashSet<String>();
 		while (converted.hasRemaining()) {
 			verbose.add(Long.toString(converted.get()));
 		}
