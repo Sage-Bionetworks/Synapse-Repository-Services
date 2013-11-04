@@ -242,7 +242,7 @@ public class MigrationIntegrationAutowireTest {
 		resetDatabase();
 		String sampleFileHandleId = createFileHandles();
 		createActivity();
-		createEntities();
+		String sampleNodeId = createEntities();
 		createFavorite();
 		createEvaluation();
 		createAccessRequirement();
@@ -254,7 +254,7 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
-		createMessages(sampleGroup, sampleFileHandleId);
+		createMessages(sampleGroup, sampleFileHandleId, sampleNodeId);
 		createColumnModel();
 	}
 
@@ -433,7 +433,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public void createEntities() throws JSONObjectAdapterException,
+	public String createEntities() throws JSONObjectAdapterException,
 			ServletException, IOException, NotFoundException {
 		entityToDelete = new LinkedList<String>();
 		// Create a project
@@ -458,6 +458,8 @@ public class MigrationIntegrationAutowireTest {
 		folderToTrash = serviceProvider.getEntityService().createEntity(userName, folderToTrash, null, mockRequest);
 		// Send it to the trash can
 		serviceProvider.getTrashService().moveToTrash(userName, folderToTrash.getId());
+		
+		return project.getId();
 	}
 	
 	private AccessRequirement newAccessRequirement() {
@@ -553,7 +555,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 	
 	@SuppressWarnings("serial")
-	private void createMessages(UserGroup group, String fileHandleId) {
+	private void createMessages(UserGroup group, String fileHandleId, String nodeId) {
 		Message dto = new Message();
 		dto.setCreatedBy(group.getId());
 		dto.setSubject("See you on the other side?");
@@ -563,6 +565,7 @@ public class MigrationIntegrationAutowireTest {
 		dto = messageDAO.createMessage(dto);
 		
 		messageDAO.registerMessageRecipient(dto.getMessageId(), group.getId());
+		messageDAO.registerThreadToNode(dto.getThreadId(), nodeId);
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {
