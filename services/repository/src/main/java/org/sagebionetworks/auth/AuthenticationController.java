@@ -79,7 +79,7 @@ public class AuthenticationController extends BaseController {
 	}
 
 	/**
-	 * Deauthenticate a session token.  This will sign out all active sessions using the session token.   
+	 * Deauthenticate a session token.  This will sign out all active sessions using the session token.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.DELETE)
@@ -99,6 +99,17 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user) throws NotFoundException {
 		authenticationService.createUser(user);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
+	}
+
+	/**
+	 * Resends the email for setting a new user's password.
+	 * 
+	 * @param user Only the email field is required
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
+	public void resendRegisteringUserPasswordEmail(@RequestBody NewUser user) throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
 	
@@ -171,7 +182,7 @@ public class AuthenticationController extends BaseController {
 		authenticationService.updateEmail(username, registrationInfo);
 	}
 
-	/* (non-Javadoc)
+	/**
 	 * Used by password reset emails to reset a user's password.
 	 * Must be used within 24 hours of sending the email.
 	 */

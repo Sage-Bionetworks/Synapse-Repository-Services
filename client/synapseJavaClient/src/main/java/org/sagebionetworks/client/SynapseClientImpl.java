@@ -5085,6 +5085,18 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	public void resendPasswordEmail(String email) throws SynapseException{
+		try {
+			NewUser user = new NewUser();
+			user.setEmail(email);
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+			createAuthEntity("/registeringUserEmail", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
 	public NewUser getAuthUserInfo() throws SynapseException {
 		try {
 			JSONObject obj = getSynapseEntity(authEndpoint, "/user");
