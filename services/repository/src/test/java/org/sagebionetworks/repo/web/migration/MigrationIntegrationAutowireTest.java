@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -71,6 +72,8 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.Message;
+import org.sagebionetworks.repo.model.message.RecipientType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -156,6 +159,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private AuthenticationDAO authDAO;
+	
+	@Autowired
+	private MessageDAO messageDAO;
 
 	@Autowired
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
@@ -218,9 +224,6 @@ public class MigrationIntegrationAutowireTest {
 	
 	ColumnModel columnModel;
 	
-	// UserGroups 
-	List<UserGroup> nonVitalUserGroups;
-	
 	HttpServletRequest mockRequest;
 	
 	@Before
@@ -232,7 +235,7 @@ public class MigrationIntegrationAutowireTest {
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
 		resetDatabase();
-		createFileHandles();
+		String sampleFileHandleId = createFileHandles();
 		createActivity();
 		createEntities();
 		createFavorite();
@@ -246,6 +249,7 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
+		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
 	}
 
@@ -455,7 +459,7 @@ public class MigrationIntegrationAutowireTest {
 	 * Create the file handles used by this test.
 	 * @throws NotFoundException
 	 */
-	public void createFileHandles() throws NotFoundException {
+	public String createFileHandles() throws NotFoundException {
 		fileHandlesToDelete = new LinkedList<String>();
 		// Create a file handle
 		handleOne = new S3FileHandle();
@@ -488,6 +492,8 @@ public class MigrationIntegrationAutowireTest {
 		// Set two as the preview of one
 		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
 		fileHandlesToDelete.add(handleOne.getId());
+		
+		return handleOne.getId();
 	}
 
 	private void createStorageQuota() {
@@ -530,6 +536,19 @@ public class MigrationIntegrationAutowireTest {
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
 		authDAO.changeSessionToken(principalId, null);
+	}
+	
+	@SuppressWarnings("serial")
+	private void createMessages(UserGroup group, String fileHandleId) {
+		Message dto = new Message();
+		dto.setCreatedBy(group.getId());
+		dto.setSubject("See you on the other side?");
+		dto.setRecipientType(RecipientType.PRINCIPAL);
+		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
+		dto.setMessageFileHandleId(fileHandleId);
+		dto = messageDAO.createMessage(dto);
+		
+		messageDAO.registerMessageRecipient(dto.getMessageId(), group.getId());
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {
