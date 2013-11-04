@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -13,16 +14,21 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.RecipientType;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -41,9 +47,13 @@ public class DBOMessageDAOImplTest {
 	private FileHandleDao fileDAO;
 	
 	@Autowired
+	private NodeDAO nodeDAO;
+	
+	@Autowired
 	private DBOBasicDao basicDAO;
 	
 	private String fileHandleId;
+	private String nodeId;
 	
 	private UserGroup maliciousUser;
 	private UserGroup maliciousGroup;
@@ -70,6 +80,10 @@ public class DBOMessageDAOImplTest {
 		S3FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId());
 		handle = fileDAO.createFile(handle);
 		fileHandleId = handle.getId();
+		
+		Node node = NodeTestUtils.createNew("MessageNodeTest", Long.parseLong(maliciousUser.getId()));
+		nodeId = nodeDAO.createNew(node);
+		nodeId = KeyFactory.stringToKey(nodeId).toString();
 		
 		// Create all the messages
 		userToUser = sendMessage(maliciousUser.getId(), null, "userToUser");
@@ -127,6 +141,9 @@ public class DBOMessageDAOImplTest {
 	public void cleanup() throws Exception {
 		// This will cascade delete all the messages generated for this test
 		fileDAO.delete(fileHandleId);
+		
+		// Linked to thread IDs
+		nodeDAO.delete(nodeId);
 	}
 	
 	@Test
@@ -246,5 +263,16 @@ public class DBOMessageDAOImplTest {
 		// Order of messages should be ascending by creation time
 		assertEquals(groupToUserAndGroup, messages.get(0).getMessage());
 		assertEquals(MessageStatusType.UNREAD, messages.get(0).getStatus().getStatus());
+	}
+	
+	@Test
+	public void testNodeThreadLinkage() throws Exception {
+		try {
+			messageDAO.getThreadOfNode(nodeId);
+			fail();
+		} catch (NotFoundException e) { }
+		
+		messageDAO.registerThreadToNode(userCreateThread.getThreadId(), nodeId);
+		assertEquals("Node should be linked to the thread", userCreateThread.getThreadId(), messageDAO.getThreadOfNode(nodeId));
 	}
 }

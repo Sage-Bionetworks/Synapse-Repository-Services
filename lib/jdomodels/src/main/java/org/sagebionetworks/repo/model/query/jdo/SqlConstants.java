@@ -159,6 +159,12 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
  	public static final String COL_MESSAGE_STATUS                   = "STATUS";
  	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
+ 	
+ 	// Node message
+ 	public static final String TABLE_NODE_MESSAGES                  = "NODE_MESSAGES";
+ 	public static final String COL_NODE_MESSAGES_NODE_ID            = "NODE_ID";
+ 	public static final String COL_NODE_MESSAGES_THREAD_ID          = "THREAD_ID";
+ 	public static final String DDL_NODE_MESSAGES                    = "schema/NodeMessages-ddl.sql";
 
 	// The file metadata table
 	public static final String TABLE_FILES							= "FILES";

@@ -205,10 +205,12 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 		return DBONode.class;
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
 		list.add(new DBORevision());
+		list.add(new DBONodeMessages());
 		return list;
 	}
 	
