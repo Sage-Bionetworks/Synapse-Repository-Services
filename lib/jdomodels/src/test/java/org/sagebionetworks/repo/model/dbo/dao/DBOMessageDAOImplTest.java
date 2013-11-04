@@ -141,6 +141,20 @@ public class DBOMessageDAOImplTest {
 	}
 	
 	@Test
+	public void testGetThread_NoFilter_DescendSubject() throws Exception {
+		assertEquals("There should be 3 messages in the thread", 3L, messageDAO.getThreadSize(userCreateThread.getThreadId()));
+		
+		// Test the user's visibility
+		List<Message> thread = messageDAO.getThread(userCreateThread.getThreadId(), MessageSortBy.SUBJECT, true, 3, 0);
+		assertEquals("Should get back 3 messages", 3, thread.size());
+		
+		// Order of messages should be descending alphabetical order by subject
+		assertEquals(userToThread, thread.get(0));
+		assertEquals(userCreateThread, thread.get(1));
+		assertEquals(groupToThread, thread.get(2));
+	}
+	
+	@Test
 	public void testGetThread_DescendSubject() throws Exception {
 		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(userToUser.getThreadId(), maliciousUser.getId()));
 		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(userToGroup.getThreadId(), maliciousUser.getId()));

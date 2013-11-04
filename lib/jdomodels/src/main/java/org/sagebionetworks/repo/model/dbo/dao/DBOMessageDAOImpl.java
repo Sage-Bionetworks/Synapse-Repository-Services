@@ -41,6 +41,16 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String USER_ID_PARAM_NAME = "userId";
 	private static final String INBOX_FILTER_PARAM_NAME = "filterTypes";
 	
+	private static final String FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE = 
+			" FROM "+SqlConstants.TABLE_MESSAGE+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
+	
+	private static final String SELECT_MESSAGES_IN_THREAD_NO_FILTER = 
+			"SELECT *"+FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE;
+	
+	private static final String COUNT_MESSAGES_IN_THREAD_NO_FILTER = 
+			"SELECT COUNT(*)"+FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE;
+	
 	private static final String FROM_MESSAGES_IN_THREAD_CORE = 
 			" FROM "+SqlConstants.TABLE_MESSAGE+
 				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS+
@@ -149,6 +159,23 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		DBOMessage saved = basicDAO.createNew(MessageUtils.convertDTO(dto));
 		return MessageUtils.convertDBO(saved);
+	}
+	
+	@Override
+	public List<Message> getThread(String threadId, MessageSortBy sortBy, boolean descending, long limit, long offset) {
+		String sql = SELECT_MESSAGES_IN_THREAD_NO_FILTER + constructSqlSuffix(sortBy, descending, limit, offset);
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		return MessageUtils.convertDBOs(messages);
+	}
+
+	@Override
+	public long getThreadSize(String threadId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD_NO_FILTER, params);
 	}
 
 	@Override

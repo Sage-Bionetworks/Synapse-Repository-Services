@@ -26,12 +26,25 @@ public interface MessageDAO {
 	
 	/**
 	 * Retrieves all messages (subject to limit and offset) within a given thread
+	 * Regardless of the sender or receiver
+	 * @param sortBy What value to sort the results by
+	 */
+	public List<Message> getThread(String threadId, MessageSortBy sortBy, boolean descending, long limit, long offset);
+	
+	/**
+	 * Returns the number of messages within the thread
+	 * Regardless of the sender or receiver
+	 */
+	public long getThreadSize(String threadId);
+	
+	/**
+	 * Retrieves all messages (subject to limit and offset) within a given thread, visible to the user
 	 * @param sortBy What value to sort the results by
 	 */
 	public List<Message> getThread(String threadId, String userId, MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
-	 * Returns the number of messages within the thread, regardless of visibility
+	 * Returns the number of messages within the thread
 	 */
 	public long getThreadSize(String threadId, String userId);
 	
