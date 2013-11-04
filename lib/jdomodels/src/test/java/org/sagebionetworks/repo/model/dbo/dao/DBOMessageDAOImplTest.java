@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import org.junit.After;
@@ -107,7 +107,7 @@ public class DBOMessageDAOImplTest {
 		// to determine who to send messages to
 		// For the sake of this test, the values do not matter (as long as they are non-null)
 		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
+		dto.setRecipients(new HashSet<String>() {{add("-1");}});
 		
 		dto.setMessageFileHandleId(fileHandleId);
 		

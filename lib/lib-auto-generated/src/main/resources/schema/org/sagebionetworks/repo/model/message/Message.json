@@ -27,6 +27,7 @@
 		"recipients": {
 			"type": "array",
 			"description": "The unique identifiers of the intended recipients of this message",
+            "uniqueItems":true,
 			"items": {
 				"type": "string"
 			}

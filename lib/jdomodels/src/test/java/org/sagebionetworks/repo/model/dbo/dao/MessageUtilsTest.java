@@ -5,10 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
@@ -33,7 +31,7 @@ public class MessageUtilsTest {
 		dto.setThreadId("-2");
 		dto.setCreatedBy("-3");
 		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-4");}});
+		dto.setRecipients(new HashSet<String>() {{add("-4");}});
 		dto.setMessageFileHandleId("-5");
 		dto.setCreatedOn(new Date());
 		return dto;
@@ -62,7 +60,7 @@ public class MessageUtilsTest {
 		dto.setMessageFileHandleId(null);
 		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
 		
-		dto.setRecipients(new ArrayList<String>());
+		dto.setRecipients(new HashSet<String>());
 		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
 		
 		// Except for this one, which is the same message as the previous one
@@ -119,7 +117,8 @@ public class MessageUtilsTest {
 	
 	@Test
 	public void testZipUnzip() throws Exception {
-		List<String> original = new ArrayList<String>();
+		Set<String> original = new HashSet<String>();
+		original.add("1");
 		original.add("1");
 		original.add("2");
 		original.add("34");
@@ -129,7 +128,7 @@ public class MessageUtilsTest {
 		original.add(Long.toString(Long.MIN_VALUE));
 		original.add(Long.toString(Long.MAX_VALUE));
 		
-		List<String> processed = MessageUtils.unzip(MessageUtils.zip(original));
+		Set<String> processed = MessageUtils.unzip(MessageUtils.zip(original));
 		assertTrue(original.containsAll(processed));
 		assertTrue(processed.containsAll(original));
 	}
