@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -83,7 +82,6 @@ public class DBOMessageDAOImplTest {
 		
 		Node node = NodeTestUtils.createNew("MessageNodeTest", Long.parseLong(maliciousUser.getId()));
 		nodeId = nodeDAO.createNew(node);
-		nodeId = KeyFactory.stringToKey(nodeId).toString();
 		
 		// Create all the messages
 		userToUser = sendMessage(maliciousUser.getId(), null, "userToUser");
