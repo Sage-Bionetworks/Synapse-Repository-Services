@@ -218,11 +218,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// Query AccessRestriction
 		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
 		paginatedResults = synapseTwo.getAccessRequirements(subjectId);
-		checkTOUlist(paginatedResults, tou);
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
 		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
-		checkTOUlist(paginatedResults, tou);
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Create AccessApproval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
@@ -231,24 +231,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// Query AccessRestriction
 		paginatedResults = synapseTwo.getAccessRequirements(subjectId);
-		checkTOUlist(paginatedResults, tou);
+		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
 		paginatedResults = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
-	}
-	
-	// check that a paginated results wrapping a ToU matches a given ToU
-	private static void checkTOUlist(VariableContentPaginatedResults<AccessRequirement> pagingatedResults, TermsOfUseAccessRequirement tou) {
-		assertEquals(1L, pagingatedResults.getTotalNumberOfResults());
-		List<AccessRequirement> ars = pagingatedResults.getResults();
-		assertEquals(1, ars.size());
-		AccessRequirement ar = ars.iterator().next();
-		assertTrue(ar instanceof TermsOfUseAccessRequirement);
-		TermsOfUseAccessRequirement tou2 = (TermsOfUseAccessRequirement)ar;
-		assertEquals(tou.getAccessType(), tou2.getAccessType());
-		assertEquals(tou.getSubjectIds(), tou2.getSubjectIds());	
 	}
 	
 	@Test

@@ -191,14 +191,11 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			DBOSubjectAccessRequirement nar = new DBOSubjectAccessRequirement();
 			nar.setAccessRequirementId(accessRequirementId);
 			RestrictableObjectType subjectType = subjectId.getType();
-			String typeName = subjectType.toString();
 			if (subjectType==RestrictableObjectType.ENTITY) {
 				Long nodeId = KeyFactory.stringToKey(subjectId.getId());
 				nar.setSubjectId(nodeId);
-			} else  if (subjectType==RestrictableObjectType.EVALUATION) {
-				nar.setSubjectId(Long.parseLong(subjectId.getId()));
 			} else {
-				throw new IllegalArgumentException("Unsupported type: "+subjectType);
+				nar.setSubjectId(Long.parseLong(subjectId.getId()));
 			}
 			nar.setSubjectType(subjectType.toString());
 			batch.add(nar);
@@ -239,10 +236,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			subjectId.setType(RestrictableObjectType.valueOf(nar.getSubjectType()));
 			if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 				subjectId.setId(KeyFactory.keyToString(nar.getSubjectId()));
-			} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
-				subjectId.setId(nar.getSubjectId().toString());
 			} else {
-				throw new IllegalStateException("Unsupported type: "+subjectId.getType());
+				subjectId.setId(nar.getSubjectId().toString());
 			}
 			ans.add(subjectId);
 		}

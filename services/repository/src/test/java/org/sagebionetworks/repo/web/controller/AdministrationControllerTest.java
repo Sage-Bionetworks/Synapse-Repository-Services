@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -14,19 +16,33 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -38,17 +54,32 @@ public class AdministrationControllerTest {
 	@Autowired
 	public NodeManager nodeManager;
 	
+	@Autowired
+	private EntityServletTestHelper entityServletHelper;
+	
+	@Autowired
+	private V2WikiPageDao v2wikiPageDAO;
+	
+	@Autowired
+	private FileHandleDao fileMetadataDao;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
+	
 	private static HttpServlet dispatchServlet;
 	
 	@Autowired
 	StackStatusDao stackStatusDao;
 	
 	private List<String> toDelete;
+	private List<WikiPageKey> wikisToDelete;
 	private UserInfo adminUserInfo;
+	private Project entity;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		toDelete = new ArrayList<String>();
+		wikisToDelete = new ArrayList<WikiPageKey>();
 		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 	}
 	
@@ -63,6 +94,29 @@ public class AdministrationControllerTest {
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
 		stackStatusDao.updateStatus(status);
+		
+		for(WikiPageKey key: wikisToDelete){
+			try {
+				V2WikiPage wiki = v2wikiPageDAO.get(key);
+				String markdownHandleId = wiki.getMarkdownFileHandleId();
+				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+				fileMetadataDao.delete(markdownHandleId);
+				entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
+			} catch (Exception e) {
+				// nothing to do here
+			}
+		}
+		
+		if(entity != null){
+			try {
+				nodeManager.delete(adminUserInfo, entity.getId());
+			} catch (DatastoreException e) {
+				// nothing to do here
+			} catch (NotFoundException e) {
+				// nothing to do here
+			}	
+		}
 		
 		if (nodeManager != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
@@ -114,5 +168,68 @@ public class AdministrationControllerTest {
 		setDown.setCurrentMessage(null);
 		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), setDown);
 		assertEquals(setDown, back);
+	}
+	
+	@Test
+	public void testMigrateWikis() throws Exception {
+		// create an entity
+		entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = (Project) entityServletHelper.createEntity(entity, AuthorizationConstants.ADMIN_USER_NAME, null);
+		createWikiPages(entity.getId());
+		
+		Map<String, String> extraParams = new HashMap<String, String>();
+		extraParams.put("offset", "0");
+		extraParams.put("limit", "5");
+		
+		PaginatedResults<WikiMigrationResult> results = 
+			ServletTestHelper.migrateWikisToV2(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), extraParams);
+		assertEquals(2, results.getResults().size());
+	}
+	
+	private void createWikiPages(String ownerId) {
+		ObjectType ownerType = ObjectType.ENTITY;
+		
+		WikiPage page = new WikiPage();
+		page.setId("1");
+		page.setCreatedBy(AuthorizationConstants.ADMIN_USER_NAME);
+		page.setModifiedBy(AuthorizationConstants.ADMIN_USER_NAME);
+		page.setMarkdown("markdown1");
+		page.setTitle("title1");
+		page.setAttachmentFileHandleIds(new ArrayList<String>());
+		page.setParentWikiId(null);
+		try {
+			WikiPage result = entityServletHelper.createWikiPage(AuthorizationConstants.ADMIN_USER_NAME, ownerId, ownerType, page);
+		} catch (Exception e) {
+		}
+		WikiPageKey parentKey = new WikiPageKey(ownerId, ownerType, page.getId());
+		wikisToDelete.add(parentKey);
+		
+		// Child
+		WikiPage pageChild = new WikiPage();
+		pageChild.setId("2");
+		pageChild.setCreatedBy(AuthorizationConstants.ADMIN_USER_NAME);
+		pageChild.setModifiedBy(AuthorizationConstants.ADMIN_USER_NAME);
+		pageChild.setMarkdown("markdown2");
+		pageChild.setTitle("title2");
+		pageChild.setAttachmentFileHandleIds(new ArrayList<String>());
+		pageChild.setParentWikiId(page.getId());
+		try {
+			WikiPage result2 = entityServletHelper.createWikiPage(AuthorizationConstants.ADMIN_USER_NAME, ownerId, ownerType, pageChild);
+		} catch (Exception e) {
+		}
+		
+		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, pageChild.getId());
+		wikisToDelete.add(childKey);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testMigrateWikisAsNonAdmit() throws Exception {
+		Map<String, String> extraParams = new HashMap<String, String>();
+		extraParams.put("offset", "0");
+		extraParams.put("limit", "10");
+		
+		// Not an admin, so this should fail with a 403
+		ServletTestHelper.migrateWikisToV2(dispatchServlet, StackConfiguration.getIntegrationTestUserOneName(), extraParams);
 	}
 }

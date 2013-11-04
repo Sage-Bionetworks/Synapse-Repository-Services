@@ -52,4 +52,10 @@ public interface NodeTreeQueryDao {
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
 	List<String> getDescendants(String nodeId, int generation, int pageSize, String lastDescIdExcl);
+	
+	/**
+	 * Are Dyanmo related feature enabled?
+	 * @return
+	 */
+	boolean isDynamoEnabled();
 }

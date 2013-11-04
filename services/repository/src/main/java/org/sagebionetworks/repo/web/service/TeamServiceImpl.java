@@ -289,7 +289,8 @@ public class TeamServiceImpl implements TeamService {
 	public void addMember(String userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		teamManager.addMember(userInfo, teamId, principalId);
+		UserInfo memberUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		teamManager.addMember(userInfo, teamId, memberUserInfo);
 	}
 
 	/* (non-Javadoc)
@@ -315,7 +316,8 @@ public class TeamServiceImpl implements TeamService {
 			String teamId, String principalId) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return teamManager.getTeamMembershipStatus(userInfo, teamId, principalId);
+		UserInfo principalUserInfo = userManager.getUserInfo(Long.parseLong(principalId));
+		return teamManager.getTeamMembershipStatus(userInfo, teamId, principalUserInfo);
 	}
 
 }

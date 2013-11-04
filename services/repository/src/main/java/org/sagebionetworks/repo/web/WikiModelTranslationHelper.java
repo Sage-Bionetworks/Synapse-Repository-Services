@@ -101,6 +101,10 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		
 		// Set the file handle id
 		wiki.setMarkdownFileHandleId(handle.getId());
+		
+		if(markdownTemp != null){
+			markdownTemp.delete();
+		}
 		return wiki;
 	}
 	
@@ -140,6 +144,9 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		// Read the file as a string
 		String markdownString = FileUtils.readFileToString(markdownTemp, "UTF-8");
 		wiki.setMarkdown(markdownString);
+		if(markdownTemp != null){
+			markdownTemp.delete();
+		}
 		return wiki;
 	}
 
