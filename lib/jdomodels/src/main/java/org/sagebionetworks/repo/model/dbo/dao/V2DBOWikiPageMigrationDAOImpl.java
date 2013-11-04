@@ -84,17 +84,13 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 		dbo = create(ownerType, dbo, ownerIdLong);
 		
 		long currentTime = System.currentTimeMillis();
-		// Create the attachments
+		// Create the attachments with the current timestamp
 		long timeStamp = (currentTime/1000)*1000;
 		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandleIds, dbo.getId(), timeStamp);
-		// Save them to the attachments archive
+		// Save them to the attachments archive, update if there are duplicate file handle ids for this wiki
 		if(attachments.size() > 0){
 			String attachmentsInsertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiAttachmentReservation().getTableMapping());
 			createOrUpdateOnDuplicateBatch(attachments, attachmentsInsertSql);
-			/*
-			for(V2DBOWikiAttachmentReservation attachment: attachments) {
-				createOrUpdateOnDuplicate(attachment, attachmentsInsertSql);
-			}*/
 		}
 		
 		// Create the markdown snapshot
@@ -103,7 +99,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 		markdownDbo.setMarkdownVersion(new Long(0));
 		markdownDbo.setModifiedOn(currentTime);
 		markdownDbo.setModifiedBy(dbo.getModifiedBy());
-		// Save this new version to the markdown DB
+		// Save this new version to the markdown DB, updates if there's already a markdown version 0 for this wiki
 		String markdownInsertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiMarkdown().getTableMapping());
 		createOrUpdateOnDuplicate(markdownDbo, markdownInsertSql);
 		
@@ -122,7 +118,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 			Long ownerIdLong) throws NotFoundException {
 		// If the parentID is null then this is a root wiki
 		setRoot(ownerIdLong, ownerType, dbo);
-		// Save it to the DB
+		// Save it to the DB, update if a wiki with this id exists already
 		String insertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiPage().getTableMapping());
 		dbo = createOrUpdateOnDuplicate(dbo, insertSql);
 		// If the parentID is null then this must be a root.
@@ -166,7 +162,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 	 * @throws DatastoreException
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public <T extends DatabaseObject<T>> List<T> createOrUpdateOnDuplicateBatch(List<T> batch, String insertSql) throws DatastoreException {
+	private <T extends DatabaseObject<T>> List<T> createOrUpdateOnDuplicateBatch(List<T> batch, String insertSql) throws DatastoreException {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
 		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
 
@@ -189,7 +185,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 	public boolean doesParentExist(String parentWikiId) {
 		if(parentWikiId == null) throw new IllegalArgumentException("Id cannot be null");
 		try{
-			// Is this in the database.
+			// Is this in the database?
 			simpleJdbcTemplate.queryForLong(SQL_DOES_EXIST, parentWikiId);
 			return true;
 		}catch(EmptyResultDataAccessException e){
@@ -248,6 +244,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 		ownerEntry.setOwnerId(new Long(ownerId));
 		ownerEntry.setOwnerTypeEnum(ownerType);
 		ownerEntry.setRootWikiId(rootWikiId);
+		// Insert into owners table, updates if there's already an entry for this owner id and type
 		String insertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiOwner().getTableMapping());
 		createOrUpdateOnDuplicate(ownerEntry, insertSql);
 	}

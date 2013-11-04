@@ -111,7 +111,7 @@ public class WikiMigrationServiceTest {
 	}
 	
 	@Test
-	public void testMigrateSomeWikis() throws NotFoundException, IOException {
+	public void testMigrateAndRemigrateSomeWikis() throws NotFoundException, IOException {
 		// Create some wiki pages
 		createWikiPages(1, 3);
 		String userName = adminUserInfo.getIndividualGroup().getName();
