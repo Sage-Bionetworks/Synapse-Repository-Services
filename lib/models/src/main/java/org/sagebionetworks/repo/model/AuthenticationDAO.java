@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Date;
+
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -36,6 +38,12 @@ public interface AuthenticationDAO {
 	 * It is the caller's responsibility to make sure the token does not go into unauthorized hands
 	 */
 	public Session getSessionTokenIfValid(String username);
+
+	/**
+	 * For testing purposes only
+	 * Allows the current time to be spoofed for testing purposes
+	 */
+	public Session getSessionTokenIfValid(String username, Date now);
 	
 	/**
 	 * Nullifies the session token
