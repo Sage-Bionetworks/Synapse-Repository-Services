@@ -30,6 +30,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeMessages" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />

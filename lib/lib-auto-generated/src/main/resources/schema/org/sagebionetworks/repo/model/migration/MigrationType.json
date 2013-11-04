@@ -19,6 +19,7 @@
         "ACTIVITY",
         "NODE",
         "NODE_REVISION",
+        "NODE_MESSAGES", 
         "ACL",
         "ACL_ACCESS",
         "ACL_ACCESS_TYPE",

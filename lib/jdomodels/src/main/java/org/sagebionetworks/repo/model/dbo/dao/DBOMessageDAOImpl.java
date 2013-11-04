@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONodeMessages;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -265,5 +266,21 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		toUpdate.setRecipientId(Long.parseLong(userId));
 		toUpdate.setStatus(status);
 		basicDAO.update(toUpdate);
+	}
+
+	@Override
+	public void registerThreadToNode(String threadId, String nodeId) {
+		DBONodeMessages dbo = new DBONodeMessages();
+		dbo.setNodeId(Long.parseLong(nodeId));
+		dbo.setThreadId(Long.parseLong(threadId));
+		basicDAO.createNew(dbo);
+	}
+
+	@Override
+	public String getThreadOfNode(String nodeId) throws NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("nodeId", nodeId);
+		DBONodeMessages dbo = basicDAO.getObjectByPrimaryKey(DBONodeMessages.class, params);
+		return dbo.getThreadId().toString();
 	}
 }

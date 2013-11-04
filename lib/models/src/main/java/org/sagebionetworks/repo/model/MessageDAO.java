@@ -79,4 +79,14 @@ public interface MessageDAO {
 	 * Marks a message with the given status
 	 */
 	public void updateMessageStatus(String messageId, String userId, MessageStatusType status);
+	
+	/**
+	 * Links a thread to a node
+	 */
+	public void registerThreadToNode(String threadId, String nodeId);
+	
+	/**
+	 * Returns the thread ID linked to the node
+	 */
+	public String getThreadOfNode(String nodeId) throws NotFoundException;
 }
