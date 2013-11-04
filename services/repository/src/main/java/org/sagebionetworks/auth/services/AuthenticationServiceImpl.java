@@ -10,7 +10,6 @@ import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -99,15 +98,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user) throws UnauthorizedException {
+	public void createUser(NewUser user) throws UnauthorizedException, NameConflictException {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Required fields are missing for user creation");
 		}
-		try {
-			userManager.createUser(user);
-		} catch (DatastoreException e) {
-			throw new NameConflictException("User '" + user.getEmail() + "' already exists", e);
-		}
+		
+		userManager.createUser(user);
 		
 		// For integration test to confirm that a user can be created
 		if (!StackConfiguration.isProductionStack()) {

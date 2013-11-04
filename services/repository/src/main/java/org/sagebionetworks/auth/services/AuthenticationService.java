@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import org.openid4java.message.ParameterList;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,7 +57,7 @@ public interface AuthenticationService {
 	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
 	public void createUser(NewUser user)
-			throws UnauthorizedException;
+			throws UnauthorizedException, NameConflictException;
 	
 	/**
 	 * Returns information on the user
