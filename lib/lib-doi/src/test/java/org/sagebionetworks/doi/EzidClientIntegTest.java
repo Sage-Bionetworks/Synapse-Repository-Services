@@ -9,11 +9,9 @@ import java.util.Calendar;
 import java.util.Random;
 
 import org.junit.Test;
-import org.junit.Ignore;
 
 import org.sagebionetworks.repo.model.doi.Doi;
 
-@Ignore
 public class EzidClientIntegTest {
 
 	@Test
