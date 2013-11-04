@@ -29,8 +29,6 @@ public class SearchQueueWorkerFactory implements MessageWorkerFactory {
 	private WikiPageDao wikPageDao;
 	
 	public void initialize(){
-		System.out.println("Starting");
-		SchedulerFactoryBean bean;
 	}
 
 	@Override

@@ -137,6 +137,9 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"
 		scope="singleton">
 	</bean>
+	
+	<bean id="messageDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMessageDAOImpl"
+		scope="singleton" />
 
 	<bean id="changeDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAOImpl"
 		scope="singleton">

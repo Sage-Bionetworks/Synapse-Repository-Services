@@ -21,5 +21,5 @@ public class AnnotationsWorkerFactory implements MessageWorkerFactory{
 	public Callable<List<Message>> createWorker(List<Message> messages) {
 		return new AnnotationsWorker(messages, ssAsyncMgr);
 	}
-
+	
 }

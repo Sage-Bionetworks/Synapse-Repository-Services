@@ -34,4 +34,10 @@ public interface DynamoSetup {
 	 * @param timeoutInMillis How long to wait for the tables to be active
 	 */
 	void setup(boolean blockOnCreation, long timeoutInMillis, DynamoConfig config);
+	
+	/**
+	 * Are Dyanmo related feature enabled?
+	 * @return
+	 */
+	boolean isDynamoEnabled();
 }

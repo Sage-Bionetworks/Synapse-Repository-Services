@@ -16,6 +16,7 @@ import javax.servlet.ServletException;
 
 import org.json.JSONException;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -60,7 +61,10 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
+		StackConfiguration config = new StackConfiguration();
+		// Only run this test if search is enabled.
+		Assume.assumeTrue(config.getSearchEnabled());
+		
 		synapse = new SynapseClientImpl();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());

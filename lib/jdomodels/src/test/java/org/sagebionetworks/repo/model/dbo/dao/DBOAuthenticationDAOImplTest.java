@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNotNull;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -165,7 +165,7 @@ public class DBOAuthenticationDAOImplTest {
 
 		// A second hasn't passed yet
 		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		assertNotNull(session);
+		assumeNotNull(session);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
 		Thread.sleep(1500);

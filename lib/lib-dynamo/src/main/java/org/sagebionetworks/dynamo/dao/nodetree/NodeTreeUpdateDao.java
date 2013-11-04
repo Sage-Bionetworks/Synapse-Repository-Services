@@ -27,4 +27,10 @@ public interface NodeTreeUpdateDao {
 	 * @return True if the delete succeeds; false otherwise.
 	 */
 	boolean delete(String nodeId, Date timestamp) throws ObsoleteChangeException;
+	
+	/**
+	 * Are Dyanmo related feature enabled?
+	 * @return
+	 */
+	boolean isDynamoEnabled();
 }

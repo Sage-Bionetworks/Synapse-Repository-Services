@@ -7,6 +7,8 @@
     	"CREDENTIAL", 
     	"USER_PROFILE",
         "FILE_HANDLE",
+        "MESSAGE", 
+        "MESSAGE_STATUS", 
         "WIKI_PAGE",
         "WIKI_ATTACHMENT",
         "WIKI_OWNERS",
