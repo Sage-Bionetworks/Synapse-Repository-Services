@@ -19,11 +19,13 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.dao.V2WikiPageMigrationDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DDLUtils;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
@@ -51,7 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @author hso
  *
  */
-public class V2DBOWikiPageMigrationDAO {
+public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
@@ -67,18 +69,8 @@ public class V2DBOWikiPageMigrationDAO {
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();	
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
 	
-	
-	/**
-	 * Creates a V2 WikiPage in the V2 DB
-	 * @param wikiPage
-	 * @param fileNameToFileHandleMap
-	 * @param ownerId
-	 * @param ownerType
-	 * @param newFileHandleIds
-	 * @return
-	 * @throws NotFoundException
-	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public V2WikiPage create(V2WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException {
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
@@ -99,7 +91,12 @@ public class V2DBOWikiPageMigrationDAO {
 		List<V2DBOWikiAttachmentReservation> attachments = V2WikiTranslationUtils.createDBOAttachmentReservationFromDTO(newFileHandleIds, dbo.getId(), timeStamp);
 		// Save them to the attachments archive
 		if(attachments.size() > 0){
-			basicDao.createBatch(attachments);
+			String attachmentsInsertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiAttachmentReservation().getTableMapping());
+			createOrUpdateOnDuplicateBatch(attachments, attachmentsInsertSql);
+			/*
+			for(V2DBOWikiAttachmentReservation attachment: attachments) {
+				createOrUpdateOnDuplicate(attachment, attachmentsInsertSql);
+			}*/
 		}
 		
 		// Create the markdown snapshot
@@ -109,7 +106,9 @@ public class V2DBOWikiPageMigrationDAO {
 		markdownDbo.setModifiedOn(currentTime);
 		markdownDbo.setModifiedBy(dbo.getModifiedBy());
 		// Save this new version to the markdown DB
-		basicDao.createNew(markdownDbo);
+		String markdownInsertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiMarkdown().getTableMapping());
+		createOrUpdateOnDuplicate(markdownDbo, markdownInsertSql);
+		
 		// Send the create message
 		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, ChangeType.CREATE);
 		
@@ -120,13 +119,14 @@ public class V2DBOWikiPageMigrationDAO {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	private V2DBOWikiPage create(ObjectType ownerType, V2DBOWikiPage dbo,
 			Long ownerIdLong) throws NotFoundException {
 		// If the parentID is null then this is a root wiki
 		setRoot(ownerIdLong, ownerType, dbo);
 		// Save it to the DB
-		dbo = createOrUpdateOnDuplicate(dbo);
+		String insertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiPage().getTableMapping());
+		dbo = createOrUpdateOnDuplicate(dbo, insertSql);
 		// If the parentID is null then this must be a root.
 		if(dbo.getParentId() == null){
 			// Set the root entry.
@@ -136,17 +136,22 @@ public class V2DBOWikiPageMigrationDAO {
 	}
 	
 	/**
-	 * Creates the V2 WikiPage; updates on duplicate key
+	 * Creates a database object; updates on duplicate key
+	 * 
+	 * With ON DUPLICATE KEY UPDATE, the affected-rows value per row is 1 if the row is inserted as new, and 2 if an existing row is updated.
+	 * @param <T>
 	 * @param toCreate
+	 * @param insertSql
 	 * @return
+	 * @throws DatastoreException
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	private V2DBOWikiPage createOrUpdateOnDuplicate(V2DBOWikiPage toCreate) {
-		String insertSQL = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiPage().getTableMapping());
+	private <T extends DatabaseObject<T>> T createOrUpdateOnDuplicate(T toCreate, String insertSql) throws DatastoreException {
+		if(toCreate == null) throw new IllegalArgumentException("The object cannot be null");
 		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toCreate);
 		try{
-			int updatedCount = simpleJdbcTemplate.update(insertSQL, namedParameters);
-			if(updatedCount != 1) throw new DatastoreException("Failed to insert without error");
+			int updatedCount = simpleJdbcTemplate.update(insertSql, namedParameters);
+			if(updatedCount != 1 && updatedCount != 2) throw new DatastoreException("Failed to insert without error");
 			return toCreate;
 		}catch(DataIntegrityViolationException e){
 			throw new IllegalArgumentException(e);
@@ -154,10 +159,36 @@ public class V2DBOWikiPageMigrationDAO {
 	}
 	
 	/**
-	 * Returns whether a wiki's parent exists in the V2 DB already
-	 * @param parentWikiId
+	 * Creates a batch of database objects; updates on duplicate key
+	 * With ON DUPLICATE KEY UPDATE, the affected-rows value per row is 1 if the row is inserted as new, and 2 if an existing row is updated.
+	 * @param <T>
+	 * @param batch
+	 * @param insertSql
 	 * @return
+	 * @throws DatastoreException
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public <T extends DatabaseObject<T>> List<T> createOrUpdateOnDuplicateBatch(List<T> batch, String insertSql) throws DatastoreException {
+		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
+		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
+
+		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+		for(int i=0; i<batch.size(); i++){
+			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+		}
+		try{
+			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(insertSql, namedParameters);
+			for(int count: updatedCountArray){
+				System.out.println("Inside batch: " + count);
+				if(count != 1 && count != 2) throw new DatastoreException("Failed to insert without error");
+			}
+			return batch;
+		}catch(DataIntegrityViolationException e){
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	@Override
 	public boolean doesParentExist(String parentWikiId) {
 		if(parentWikiId == null) throw new IllegalArgumentException("Id cannot be null");
 		try{
@@ -206,7 +237,7 @@ public class V2DBOWikiPageMigrationDAO {
 			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
 	}
-	
+
 	/**
 	 * Create the root owner entry.
 	 * @param ownerId
@@ -220,13 +251,8 @@ public class V2DBOWikiPageMigrationDAO {
 		ownerEntry.setOwnerId(new Long(ownerId));
 		ownerEntry.setOwnerTypeEnum(ownerType);
 		ownerEntry.setRootWikiId(rootWikiId);
-		try{
-			basicDao.createNew(ownerEntry);
-		} catch (DatastoreException e) {
-			throw new IllegalArgumentException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
-		} catch (DuplicateKeyException e) {
-			throw new ConflictingUpdateException("The wiki you are attempting to create already exists.  Try fetching the Wiki and then updating it.");
-		}
+		String insertSql = DMLUtils.getBatchInsertOrUdpate(new V2DBOWikiOwner().getTableMapping());
+		createOrUpdateOnDuplicate(ownerEntry, insertSql);
 	}
 	
 	/**

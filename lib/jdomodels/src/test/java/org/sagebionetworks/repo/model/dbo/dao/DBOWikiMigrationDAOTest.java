@@ -164,22 +164,7 @@ public class DBOWikiMigrationDAOTest {
 		toDeleteFromV2.add(key);
 		assertEquals(1, v2WikiPageDao.getCount());
 		
-		V2WikiPage pageChild = new V2WikiPage();
-		pageChild.setId("2");
-		pageChild.setCreatedBy(creatorUserGroupId);
-		pageChild.setModifiedBy(creatorUserGroupId);
-		pageChild.setMarkdownFileHandleId(markdown.getId());
-		pageChild.setTitle("title2");
-		pageChild.setAttachmentFileHandleIds(new ArrayList<String>());
-		pageChild.getAttachmentFileHandleIds().add(attachOne.getId());
-		pageChild.setParentWikiId("3"); // Invalid parent id
-		try {
-			wikiMigrationDao.migrateWiki(pageChild);
-			fail("Parent wiki with id 3 should not have been found.");
-		} catch(Exception e) {
-			// Expected
-		}
-		// V2 WikiPage db should still only have one wiki because the second attemp failed
-		assertEquals(1, v2WikiPageDao.getCount());
+		V2WikiPage retrieved = v2WikiPageDao.get(key);
+		assertNotNull(retrieved);
 	}
 }
