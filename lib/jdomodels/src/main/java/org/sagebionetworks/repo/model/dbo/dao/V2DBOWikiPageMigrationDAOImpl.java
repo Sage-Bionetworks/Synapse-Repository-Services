@@ -55,8 +55,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 	@Autowired
-	private DBOBasicDao basicDao;
-	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	private TagMessenger tagMessenger;
@@ -179,7 +177,6 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 		try{
 			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(insertSql, namedParameters);
 			for(int count: updatedCountArray){
-				System.out.println("Inside batch: " + count);
 				if(count != 1 && count != 2) throw new DatastoreException("Failed to insert without error");
 			}
 			return batch;

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
@@ -23,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class WikiMigrationService {
 	@Autowired
 	private DBOWikiMigrationDAO wikiMigrationDao;
+	@Autowired
+	private WikiPageDao wikiPageDao;
 	@Autowired
 	private WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
@@ -85,7 +88,21 @@ public class WikiMigrationService {
 		
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {		
+	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {	
+		String parentId = wiki.getParentWikiId();
+		if(parentId != null && !wikiMigrationDao.hasParentMigrated(parentId)) {
+			//get parent wiki
+			WikiPage parent = wikiMigrationDao.getWikiPage(parentId);
+			try {
+				V2WikiPage migratedParent = migrate(parent, userInfo);
+				if(migratedParent == null) {
+					return null;
+				}
+			} catch(Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
 		V2WikiPage clone;
 		try {
 			// Convert the WikiPage to a V2WikiPage

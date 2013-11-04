@@ -125,6 +125,43 @@ public class DBOWikiMigrationDAOTest {
 		assertEquals(total, new Long(wikis.size()));
 	}
 	
+	@Test
+	public void testGetWikiPage() throws NotFoundException {
+		createWikiPages();
+		WikiPage pageWithId2 = wikiMigrationDao.getWikiPage("2");
+		assertNotNull(pageWithId2);
+		assertEquals("2", pageWithId2.getId());
+		assertEquals("markdown2", pageWithId2.getMarkdown());
+		assertEquals("title2", pageWithId2.getTitle());
+		assertEquals(1, pageWithId2.getAttachmentFileHandleIds().size());
+		assertEquals(creatorUserGroupId, pageWithId2.getCreatedBy());
+	}
+	
+	@Test
+	public void testMigrateWikis() throws NotFoundException {
+		createWikiPages();
+		// "Translate" a wiki page and migrate
+		V2WikiPage page = new V2WikiPage();
+		page.setId("1");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setCreatedOn(new Date(1));
+		page.setModifiedOn(new Date(1));
+		page.setMarkdownFileHandleId(markdown.getId());
+		page.setTitle("title1");
+		page.setEtag("etag");
+		page.setAttachmentFileHandleIds(new ArrayList<String>());
+		page.getAttachmentFileHandleIds().add(attachOne.getId());
+		V2WikiPage result = wikiMigrationDao.migrateWiki(page);
+		assertNotNull(result);
+		WikiPageKey key = v2WikiPageDao.lookupWikiKey(result.getId());
+		toDeleteFromV2.add(key);
+		assertEquals(1, v2WikiPageDao.getCount());
+		
+		V2WikiPage retrieved = v2WikiPageDao.get(key);
+		assertNotNull(retrieved);
+	}
+	
 	private void createWikiPages() throws NotFoundException {
 		for(int i = 1; i < 11; i++) {
 			String ownerId = "syn" + i;
@@ -144,27 +181,5 @@ public class DBOWikiMigrationDAOTest {
 			WikiPageKey key = wikiPageDao.lookupWikiKey(result.getId());
 			toDeleteFromV1.add(key);
 		}
-	}
-	
-	@Test
-	public void testMigrateWikis() throws NotFoundException {
-		createWikiPages();
-		// "Translate" a wiki page and migrate
-		V2WikiPage page = new V2WikiPage();
-		page.setId("1");
-		page.setCreatedBy(creatorUserGroupId);
-		page.setModifiedBy(creatorUserGroupId);
-		page.setMarkdownFileHandleId(markdown.getId());
-		page.setTitle("title1");
-		page.setAttachmentFileHandleIds(new ArrayList<String>());
-		page.getAttachmentFileHandleIds().add(attachOne.getId());
-		V2WikiPage result = wikiMigrationDao.migrateWiki(page);
-		assertNotNull(result);
-		WikiPageKey key = v2WikiPageDao.lookupWikiKey(result.getId());
-		toDeleteFromV2.add(key);
-		assertEquals(1, v2WikiPageDao.getCount());
-		
-		V2WikiPage retrieved = v2WikiPageDao.get(key);
-		assertNotNull(retrieved);
 	}
 }

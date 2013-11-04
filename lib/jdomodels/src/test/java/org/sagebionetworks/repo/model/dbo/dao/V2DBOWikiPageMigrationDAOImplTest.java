@@ -145,7 +145,7 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 	}
 	
 	@Test
-	public void testCreate() throws DatastoreException, NotFoundException, InterruptedException {
+	public void testCreateAndUpdateOnDuplicate() throws DatastoreException, NotFoundException, InterruptedException {
 		String ownerId = "syn1";
 		ObjectType ownerType = ObjectType.ENTITY;
 		
