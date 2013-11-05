@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.Random;
 
 import org.junit.Test;
+
 import org.sagebionetworks.repo.model.doi.Doi;
 
 public class EzidClientIntegTest {
