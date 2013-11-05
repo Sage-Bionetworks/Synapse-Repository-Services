@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -272,5 +273,6 @@ public class DBOMessageDAOImplTest {
 		
 		messageDAO.registerThreadToNode(userCreateThread.getThreadId(), nodeId);
 		assertEquals("Node should be linked to the thread", userCreateThread.getThreadId(), messageDAO.getThreadOfNode(nodeId));
+		assertEquals("Thread should be linked to the node", KeyFactory.stringToKey(nodeId).toString(), messageDAO.getNodeOfThread(userCreateThread.getThreadId()));
 	}
 }
