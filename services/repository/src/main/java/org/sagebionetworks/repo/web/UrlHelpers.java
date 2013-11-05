@@ -499,6 +499,7 @@ public class UrlHelpers {
 	
 	// Messaging URLs
 	public static final String MESSAGE                  = "/message";
+	public static final String MESSAGE_STATUS           = MESSAGE + "/status";
 	public static final String MESSAGE_REPLY_TO_PARAM   = "replyTo";
 	public static final String MESSAGE_INBOX            = MESSAGE + "/inbox";
 	public static final String MESSAGE_OUTBOX           = MESSAGE + "/outbox";
@@ -506,6 +507,7 @@ public class UrlHelpers {
 	public static final String MESSAGE_DESCENDING_PARAM = "descending";
 	public static final String MESSAGE_ID_PATH_VAR      = "messageId";
 	public static final String MESSAGE_ID               = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
+	public static final String MESSAGE_ID_FORWARD       = MESSAGE_ID + "/forward";
 	public static final String MESSAGE_ID_THREAD        = MESSAGE_ID + "/thread";
 	public static final String MESSAGE_ID_STATUS        = MESSAGE_ID + "/status";
 	public static final String ENTITY_ID_COMMENTS       = ENTITY_ID + "/comments";
