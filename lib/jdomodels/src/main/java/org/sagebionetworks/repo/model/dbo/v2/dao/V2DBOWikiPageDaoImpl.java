@@ -338,7 +338,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} catch (DatastoreException e) {
 			throw new IllegalArgumentException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		} catch (DuplicateKeyException e) {
-			throw new NameConflictException("The root owner of the wiki you are attempting to create already exists.");
+			throw new NameConflictException("The root owner with ownerId: " + ownerId + " and ownerType: " + ownerType + " of the wiki you are attempting to create already exists.");
 		}
 
 	}
