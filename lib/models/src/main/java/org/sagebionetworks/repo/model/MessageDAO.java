@@ -89,4 +89,9 @@ public interface MessageDAO {
 	 * Returns the thread ID linked to the node
 	 */
 	public String getThreadOfNode(String nodeId) throws NotFoundException;
+	
+	/**
+	 * Returns the node ID linked to the thread
+	 */
+	public String getNodeOfThread(String threadId) throws NotFoundException;
 }
