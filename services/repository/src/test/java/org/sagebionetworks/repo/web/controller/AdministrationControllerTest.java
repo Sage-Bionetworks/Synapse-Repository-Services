@@ -100,7 +100,7 @@ public class AdministrationControllerTest {
 				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
 				fileMetadataDao.delete(markdownHandleId);
-				//entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
+				entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
 			} catch (Exception e) {
 				// nothing to do here
 			}
