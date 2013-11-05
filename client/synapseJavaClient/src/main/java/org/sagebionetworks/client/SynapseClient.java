@@ -96,7 +96,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * @author jmhill
  * 
  */
-public interface SynapseClient {
+public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Get the current status of the stack
@@ -108,16 +108,6 @@ public interface SynapseClient {
 	 * Get the endpoint of the repository service
 	 */
 	public String getRepoEndpoint();
-
-	/**
-	 * Each request includes the 'User-Agent' header. This is set to:
-	 * 'User-Agent':'Synpase-Java-Client/<version_number>'
-	 * 
-	 * @param toAppend
-	 *            Addition User-Agent information can be appended to this string
-	 *            via this parameter
-	 */
-	public void appendUserAgent(String toAppend);
 
 	/**
 	 * The repository endpoint includes the host and version. For example:
@@ -146,11 +136,6 @@ public interface SynapseClient {
 	 * Get the endpoint of the file service
 	 */
 	public String getFileEndpoint();
-
-	/**
-	 * Authenticate the Synapse client with an existing session token
-	 */
-	public void setSessionToken(String sessionToken);
 
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp, String fileName) 
 			throws JSONObjectAdapterException, SynapseException, IOException;
@@ -206,13 +191,6 @@ public interface SynapseClient {
 	 * Refreshes the cached session token so that it can be used for another 24 hours
 	 */
 	public boolean revalidateSession() throws SynapseException;
-
-	/**
-	 * Get the current session token used by this client.
-	 * 
-	 * @return the session token
-	 */
-	public String getCurrentSessionToken();
 
 	/**
 	 * Create a new Entity.

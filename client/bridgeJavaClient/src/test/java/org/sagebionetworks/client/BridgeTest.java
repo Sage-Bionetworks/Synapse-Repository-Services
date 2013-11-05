@@ -1,60 +1,23 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
-import javax.servlet.ServletException;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * Unit test for Bridge.
@@ -65,279 +28,45 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 public class BridgeTest {
 	
 	HttpClientProvider mockProvider = null;
-	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
     BridgeClientImpl bridge;
 	
+	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-        bridge = new BridgeClientImpl(mockProvider, mockUploader);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateNullEntity() throws Exception{
-        bridge.createEntity(null);
-	}
-	
-	@Test (expected=SynapseTermsOfUseException.class)
-	public void testTermsOfUseNotAccepted() throws Exception{
-		HttpClientHelperException simulatedHttpException = new HttpClientHelperException(){
-			public int getHttpStatus() {return 403;};
-		};
-		
-		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenThrow(simulatedHttpException);
-        bridge.login("username", "password", false);
-	}
-	
-	@Test
-	public void testGetBenefactor() throws Exception {
-		EntityHeader eh = new EntityHeader();
-		eh.setId("syn101");
-		// This is what we want returned.
-		String jsonString = EntityFactory.createJSONStringForEntity(eh);
-
-		StringEntity responseEntity = new StringEntity(jsonString);
-		// We want the mock response to return JSON for this entity.
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-        EntityHeader clone = bridge.getEntityBenefactor("syn101");
-		// For this test we want return 
-		assertNotNull(clone);
-		// The clone should equal the original ds
-		assertEquals(eh, clone);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testDeleteEntityNull() throws Exception{
-        bridge.deleteEntity((Entity) null);
-	}
-
-	@Test
-	public void testGetEntityPath() throws Exception {
-		Data layer = new Data();
-		// create test hierarchy
-		
-		EntityHeader layerHeader = new EntityHeader();
-		layerHeader.setId("layerid");
-		layerHeader.setName("layer name");
-		layerHeader.setType("/layer");	
-		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
-		entityHeaders.add(layerHeader);
-		EntityPath entityPath = new EntityPath();
-		entityPath.setPath(entityHeaders);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		entityPath.writeToJSONObject(adapter);
-		
-		// We want the mock response to return JSON for the hierarchy.
-		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-		// execute and verify
-        EntityPath returnedEntityPath = bridge.getEntityPath(layer);
-		List<EntityHeader> returnedHeaders = returnedEntityPath.getPath();
-		
-		assertEquals(1, returnedHeaders.size());
-		EntityHeader firstHeader = returnedHeaders.get(0);
-		assertEquals(layerHeader, firstHeader);
-		
-	}
-	
-	@Test
-	public void testGetEntityReferencedBy() throws Exception {							
-		Project proj2 = new Project();
-		proj2.setId("5");
-		proj2.setName("proj2");
-		
-		EntityHeader proj1Header = new EntityHeader();
-		proj1Header.setId("id");
-		proj1Header.setName("name");
-		proj1Header.setType("type");		
-		List<EntityHeader> eHeaderList = new ArrayList<EntityHeader>();
-		eHeaderList.add(proj1Header);		
-		
-		PaginatedResults<EntityHeader> paginatedResult = new PaginatedResults<EntityHeader>();
-		paginatedResult.setResults(eHeaderList);
-		paginatedResult.setTotalNumberOfResults(1);
-		paginatedResult.setPaging(new HashMap<String, String>());
-				
-		// setup mock
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		paginatedResult.writeToJSONObject(adapter);		
-		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-		
-        PaginatedResults<EntityHeader> realResults = bridge.getEntityReferencedBy(proj2);
-		
-		assertEquals(1, realResults.getTotalNumberOfResults());
-		EntityHeader firstHeader = realResults.getResults().get(0);
-		assertEquals(proj1Header, firstHeader);
-	}		
-	
-	@Test
-	public void testCreateAccessRequirement() throws Exception {
-		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
-		ar.setEntityType(ar.getClass().getName());
-		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
-		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		ar.setTermsOfUse("foo");
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		ar.writeToJSONObject(adapter);
-		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-        bridge.createAccessRequirement(ar);
-	}
-	
-	@Test
-	public void testCreateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
-		aa.setEntityType(aa.getClass().getName());
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		aa.writeToJSONObject(adapter);
-		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-        bridge.createAccessApproval(aa);
-	}
-	
-	@Test
-	public void testGetVersionInfo() throws Exception {
-		SynapseVersionInfo expectedVersion = new SynapseVersionInfo();
-		expectedVersion.setVersion("versionString");
-		String jsonString = EntityFactory.createJSONStringForEntity(expectedVersion);
-		StringEntity responseEntity = new StringEntity(jsonString);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-        SynapseVersionInfo vi = bridge.getVersionInfo();
-		assertNotNull(vi);
-		assertEquals(vi, expectedVersion);
-	};
-
-	@Test
-	public void testGetActivity() throws Exception {
-		Activity act = new Activity();
-		String id = "123";
-		StringEntity responseEntity = createActivityStringEntity(id, act);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-        Activity clone = bridge.getActivity(id);
-		assertNotNull(clone);
-		assertEquals(act, clone);
-	}	
-	
-	@Test
-	public void testGetUnmetEvaluationAccessRequirements() throws Exception {
-		VariableContentPaginatedResults<AccessRequirement> result = 
-			new VariableContentPaginatedResults<AccessRequirement>();
-		StringEntity responseEntity = createVCPRStringEntity(result);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
-		subjectId.setType(RestrictableObjectType.EVALUATION);
-		subjectId.setId("12345");
-		VariableContentPaginatedResults<AccessRequirement> clone = 
- bridge.getUnmetAccessRequirements(subjectId);
-		assertNotNull(clone);
-		assertEquals(result, clone);
-	}	
-	
-	@Test
-	public void testPutActivity() throws Exception {
-		Activity act = new Activity();
-		String id = "123";
-		StringEntity responseEntity = createActivityStringEntity(id, act);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-        Activity clone = bridge.putActivity(act);
-		assertNotNull(clone);
-		assertEquals(act, clone);
-	}	
-		
-	@Test
-	public void testDeleteActivity() throws Exception {
-		String id = "123";
-        bridge.deleteActivity(id);
-		verify(mockResponse).getEntity();
-	}		
-	
-	@Test
-	public void testGetActivityForEntity() throws Exception {
-		Activity act = new Activity();
-		String id = "123";
-		StringEntity responseEntity = createActivityStringEntity(id, act);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-		String entityId = "syn456";
-        Activity clone = bridge.getActivityForEntity(entityId);
-		assertNotNull(clone);
-		assertEquals(act, clone);		
-	}
-
-	@Test
-	public void testGetActivityForEntityVersion() throws Exception {
-		Activity act = new Activity();
-		String id = "123";
-		StringEntity responseEntity = createActivityStringEntity(id, act);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-		String entityId = "syn456";
-        Activity clone = bridge.getActivityForEntityVersion(entityId, 1L);
-		assertNotNull(clone);
-		assertEquals(act, clone);		
-	}
-
-	@Test
-	public void testSetActivityForEntity() throws Exception {
-		Activity act = new Activity();
-		String id = "123";
-		StringEntity responseEntity = createActivityStringEntity(id, act);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-		String entityId = "syn456";
-        Activity clone = bridge.setActivityForEntity(entityId, id);
-		assertNotNull(clone);
-		assertEquals(act, clone);				
-	}
-
-	@Test
-	public void testDeleteGeneratedByForEntity() throws Exception {
-		Activity act = new Activity();
-		String id = "123";
-		StringEntity responseEntity = createActivityStringEntity(id, act);
-		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		
-		String entityId = "syn456";
-        bridge.deleteGeneratedByForEntity(entityId);
-		verify(mockResponse, atLeast(1)).getEntity();
+		bridge = new BridgeClientImpl(mockProvider);
 	}
 	
 	@Test
 	public void testUserAgent() throws SynapseException, JSONObjectAdapterException, UnsupportedEncodingException{
 		// The user agent 
-		SynapseVersionInfo info = new SynapseVersionInfo();
+		BridgeVersionInfo info = new BridgeVersionInfo();
 		info.setVersion("someversion");
 		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
-		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-        bridge = new BridgeClientImpl(stubProvider, mockUploader);
+		BridgeStubHttpClientProvider stubProvider = new BridgeStubHttpClientProvider(mockResponse);
+        bridge = new BridgeClientImpl(stubProvider);
 		// Make a call and ensure 
         bridge.getVersionInfo();
 		// Validate that the User-Agent was sent
 		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
 		String value = sentHeaders.get("User-Agent");
 		assertNotNull(value);
-        assertTrue(value.startsWith(BridgeClientImpl.SYNPASE_JAVA_CLIENT));
+        assertTrue(value.startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT));
  	}
 	
 	@Test
 	public void testAppendUserAgent() throws SynapseException, JSONObjectAdapterException, UnsupportedEncodingException{
 		// The user agent 
-		SynapseVersionInfo info = new SynapseVersionInfo();
+		BridgeVersionInfo info = new BridgeVersionInfo();
 		info.setVersion("someversion");
 		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
-		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-        bridge = new BridgeClientImpl(stubProvider, mockUploader);
+		BridgeStubHttpClientProvider stubProvider = new BridgeStubHttpClientProvider(mockResponse);
+        bridge = new BridgeClientImpl(stubProvider);
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
         bridge.appendUserAgent(appended);
@@ -348,71 +77,7 @@ public class BridgeTest {
 		String value = sentHeaders.get("User-Agent");
 		System.out.println(value);
 		assertNotNull(value);
-        assertTrue(value.startsWith(BridgeClientImpl.SYNPASE_JAVA_CLIENT));
+        assertTrue(value.startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT));
 		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
  	}
-	
-	@Test
-	public void testBuildListColumnModelUrl(){
-		String prefix = null;
-		Long limit = null;
-		Long offset = null;
-		String expected ="/column";
-        assertEquals(expected, BridgeClientImpl.buildListColumnModelUrl(prefix, limit, offset));
-		
-		prefix = "abc";
-		limit = null;
-		offset = null;
-		expected ="/column?prefix=abc";
-        assertEquals(expected, BridgeClientImpl.buildListColumnModelUrl(prefix, limit, offset));
-		
-		prefix = null;
-		limit = 123l;
-		offset = null;
-		expected ="/column?limit=123";
-        assertEquals(expected, BridgeClientImpl.buildListColumnModelUrl(prefix, limit, offset));
-		
-		prefix = null;
-		limit = null;
-		offset = 44l;
-		expected ="/column?offset=44";
-        assertEquals(expected, BridgeClientImpl.buildListColumnModelUrl(prefix, limit, offset));
-		
-		prefix = null;
-		limit = 123l;
-		offset = 44l;
-		expected ="/column?limit=123&offset=44";
-        assertEquals(expected, BridgeClientImpl.buildListColumnModelUrl(prefix, limit, offset));
-		
-		prefix = "abc";
-		limit = 123l;
-		offset = 44l;
-		expected ="/column?prefix=abc&limit=123&offset=44";
-        assertEquals(expected, BridgeClientImpl.buildListColumnModelUrl(prefix, limit, offset));
-	}
-	
-	
-	/*
-	 * Private methods
-	 */
-	private StringEntity createActivityStringEntity(String id, Activity act)
-			throws JSONObjectAdapterException, UnsupportedEncodingException {
-		act.setId(id);
-		// Setup return
-		JSONObjectAdapter adapter = act.writeToJSONObject(new JSONObjectAdapterImpl());
-		String jsonString = adapter.toJSONString();
-		StringEntity responseEntity = new StringEntity(jsonString);
-		return responseEntity;
-	}
-	
-	private <T extends JSONEntity> StringEntity createVCPRStringEntity(VariableContentPaginatedResults<T> vcpr)
-				throws JSONObjectAdapterException, UnsupportedEncodingException {
-		// Setup return
-		JSONObjectAdapter adapter = vcpr.writeToJSONObject(new JSONObjectAdapterImpl());
-		String jsonString = adapter.toJSONString();
-		StringEntity responseEntity = new StringEntity(jsonString);
-		return responseEntity;
-	}
-	
-	
 }

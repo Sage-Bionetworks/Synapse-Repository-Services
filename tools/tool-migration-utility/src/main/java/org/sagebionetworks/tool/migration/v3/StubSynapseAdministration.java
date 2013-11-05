@@ -23,6 +23,7 @@ import java.util.Stack;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
+import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -2386,6 +2387,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			int offset, int limit) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public SharedClientConnection getSharedClientConnection() {
 		// TODO Auto-generated method stub
 		return null;
 	}

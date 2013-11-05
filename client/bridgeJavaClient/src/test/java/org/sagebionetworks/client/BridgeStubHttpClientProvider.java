@@ -17,7 +17,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
  * @author John
  *
  */
-public class StubHttpClientProvider implements HttpClientProvider {
+public class BridgeStubHttpClientProvider implements HttpClientProvider {
 	
 	Map<String, String> requestHeaders;
 	HttpResponse response;
@@ -25,7 +25,7 @@ public class StubHttpClientProvider implements HttpClientProvider {
 	 * Create a new stub with the expected response.
 	 * @param response
 	 */
-	public StubHttpClientProvider(HttpResponse response){
+	public BridgeStubHttpClientProvider(HttpResponse response){
 		this.response = response;
 	}
 
