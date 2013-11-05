@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -49,6 +50,10 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void createUser(NewUser user) throws DatastoreException {
+		if (userGroupDAO.doesPrincipalExist(user.getEmail())) {
+			throw new NameConflictException("User '" + user.getEmail() + "' already exists");
+		}
+		
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setName(user.getEmail());
 		individualGroup.setIsIndividual(true);
