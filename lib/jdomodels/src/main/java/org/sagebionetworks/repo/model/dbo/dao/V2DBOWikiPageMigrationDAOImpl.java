@@ -76,6 +76,11 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 		// Start markdown version at 0
 		dbo.setMarkdownVersion(new Long(0));
 		
+		// Check for a cycle in parent/child relationship
+		if(dbo.getParentId() != null && dbo.getParentId().equals(dbo.getId())) {
+			throw new IllegalArgumentException("A wiki page cannot be its own parent.");
+		}
+		
 		Long ownerIdLong = KeyFactory.stringToKey(ownerId);
 		dbo = create(ownerType, dbo, ownerIdLong);
 		

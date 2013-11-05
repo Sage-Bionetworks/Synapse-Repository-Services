@@ -135,6 +135,36 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		}
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testParentCycle() throws NotFoundException {
+		// NOTE: Tried this without a check for parent/child id cycle
+		// and an exception was thrown because no root wiki exists
+		
+		String ownerId = "syn1";
+		ObjectType ownerType = ObjectType.ENTITY;
+		// Create a V2 WikiPage with id, etag, dates etc all set from conversion
+		V2WikiPage page = new V2WikiPage();
+		page.setId("1");
+		page.setParentWikiId("1");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdown.getId());
+		page.setTitle("title1");
+		page.setEtag("etag");	
+		page.setCreatedOn(new Date(1));
+		page.setModifiedOn(new Date(1));
+		page.setAttachmentFileHandleIds(new ArrayList<String>());
+		page.getAttachmentFileHandleIds().add(attachOne.getId());
+		Map<String, FileHandle> fileNameToFileHandleMap = new HashMap<String, FileHandle>();
+		fileNameToFileHandleMap.put(attachOne.getFileName(), fileMetadataDao.get(attachOne.getId()));
+		List<String> newFileHandleIds = new ArrayList<String>();
+		newFileHandleIds.add(attachOne.getId());
+		
+		// Create
+		V2WikiPage result = v2WikiPageMigrationDao.create(page, fileNameToFileHandleMap, 
+				ownerId, ownerType, newFileHandleIds);
+	}
+	
 	@Test
 	public void testCreateAndUpdateOnDuplicate() throws DatastoreException, NotFoundException, InterruptedException {
 		String ownerId = "syn1";

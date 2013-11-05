@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
@@ -24,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class WikiMigrationService {
 	@Autowired
 	private DBOWikiMigrationDAO wikiMigrationDao;
-	@Autowired
-	private WikiPageDao wikiPageDao;
 	@Autowired
 	private WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
@@ -82,8 +79,8 @@ public class WikiMigrationService {
 
 			migrationResults.add(result);
 		}
-			return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
-				wikiMigrationDao.getTotalCount(), offset, limit, "", false);
+		return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
+			wikiMigrationDao.getTotalCount(), offset, limit, "", false);
 	}
 		
 	/**
