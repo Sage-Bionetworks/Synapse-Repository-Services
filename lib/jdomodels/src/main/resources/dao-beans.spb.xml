@@ -186,7 +186,8 @@
 	
 	<bean id="tableRowTruthDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
-		scope="singleton">
+		scope="singleton" init-method="initialize">
+		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
 	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>

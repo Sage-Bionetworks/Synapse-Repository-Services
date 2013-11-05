@@ -35,6 +35,11 @@ public class TableModelUtils {
 	 */
 	public static final int MAX_STRING_LENGTH = 2000;
 	
+	/**
+	 * Delimiter used to list column model IDs as a string.
+	 */
+	public static final String COLUMN_MODEL_ID_STRING_DELIMITER = ",";
+	
 
 	/**
 	 * This utility will validate and convert the passed RowSet to an output
@@ -322,5 +327,108 @@ public class TableModelUtils {
 				csvReader.close();
 			}
 		}
+	}
+	
+	/**
+	 * Extract the headers from a list of column Models.s
+	 * @param models
+	 * @return
+	 */
+	public static List<String> getHeaders(List<ColumnModel> models){
+		if(models == null) throw new IllegalArgumentException("ColumnModels cannot be null");
+		List<String> headers = new LinkedList<String>();
+		for(ColumnModel model: models){
+			if(model.getId() == null) throw new IllegalArgumentException("ColumnModel ID cannot be null");
+			headers.add(model.getId());
+		}
+		return headers;
+	}
+	
+	/**
+	 * Create a delimited string of column model IDs.
+	 * @param models
+	 * @return
+	 */
+	public static String createDelimitedColumnModelIdString(List<String> headers){
+		if(headers == null) throw new IllegalArgumentException("headers cannot be null");
+		StringBuilder builder = new StringBuilder();
+		boolean first = true;
+		for(String id: headers){
+			if(!first){
+				builder.append(COLUMN_MODEL_ID_STRING_DELIMITER);
+			}
+			builder.append(id);
+			first=false;
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Read the list of column model ids from the passed delimited string.
+	 * @param in
+	 * @return
+	 */
+	public static List<String> readColumnModelIdsFromDelimitedString(String in){
+		if(in == null) throw new IllegalArgumentException("String cannot be null");
+		String[] split = in.split(COLUMN_MODEL_ID_STRING_DELIMITER);
+		List<String> result = new LinkedList<String>();
+		for(String id: split){
+			result.add(id);
+		}
+		return result;
+	}
+	
+	/**
+	 * Create one column of each type.
+	 * @return
+	 */
+	public static List<ColumnModel> createOneOfEachType(){
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(int i=0; i<ColumnType.values().length; i++){
+			ColumnType type = ColumnType.values()[i];
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(type);
+			cm.setName("i"+i);
+			cm.setId(""+i);
+			results.add(cm);
+		}
+		return results;
+	}
+	
+	/**
+	 * Create the given number of rows.
+	 * @param cms
+	 * @param count
+	 * @return
+	 */
+	public static List<Row> createRows(List<ColumnModel> cms, int count){
+		List<Row> rows = new LinkedList<Row>();
+		for(int i=0; i<count; i++){
+			Row row = new Row();
+			// Add a value for each column
+			List<String> values = new LinkedList<String>();
+			for(ColumnModel cm: cms){
+				if(ColumnType.STRING.equals(cm.getColumnType())){
+					values.add("string"+i);
+				}else if(ColumnType.LONG.equals(cm.getColumnType())){
+					values.add(""+i);
+				}else if(ColumnType.BOOLEAN.equals(cm.getColumnType())){
+					if(i % 2 > 0){
+						values.add(Boolean.TRUE.toString());
+					}else{
+						values.add(Boolean.FALSE.toString());
+					}
+				}else if(ColumnType.FILEHANDLEID.equals(cm.getColumnType())){
+					values.add(""+i);
+				}else if(ColumnType.DOUBLE.equals(cm.getColumnType())){
+					values.add(""+(i*3.41));
+				}else{
+					throw new IllegalArgumentException("Unknown ColumnType: "+cm.getColumnType());
+				}
+			}
+			row.setValues(values);
+			rows.add(row);
+		}
+		return rows;
 	}
 }

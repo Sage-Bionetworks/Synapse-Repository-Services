@@ -34,7 +34,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException 
 	 */
-	public RowReferenceSet appendRowSetToTable(String tableId, List<ColumnModel> models, RowSet delta) throws IOException;
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta) throws IOException;
 	
 	/**
 	 * Store a change set of rows for a table.

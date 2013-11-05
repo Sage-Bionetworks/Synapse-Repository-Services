@@ -442,4 +442,30 @@ public class TableModelUtilsTest {
 		assertNotNull(clone);
 		assertEquals(validRowSet2, clone);
 	}
+	
+	@Test
+	public void testGetHeaders(){
+		List<String> expected = new LinkedList<String>();
+		expected.add("1");
+		expected.add("2");
+		List<String> headers = TableModelUtils.getHeaders(validModel);
+		assertNotNull(headers);
+		assertEquals(expected, headers);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testGetHeadersNullId(){
+		validModel.get(0).setId(null);
+		List<String> headers = TableModelUtils.getHeaders(validModel);
+	}
+	
+	@Test
+	public void testDelimitedStringRoundTrip(){
+		List<String> headers = TableModelUtils.getHeaders(validModel);
+		String del = TableModelUtils.createDelimitedColumnModelIdString(headers);
+		assertNotNull(del);
+		System.out.println(del);
+		List<String> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
+		assertEquals(headers, result);
+	}
 }
