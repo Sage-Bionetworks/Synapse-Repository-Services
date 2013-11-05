@@ -150,9 +150,6 @@ public class WikiControllerTest {
 		WikiPage wiki = new WikiPage();
 		wiki.setTitle("testCreateEntityWikiRoundTrip-"+ownerId+"-"+ownerType);
 		wiki.setMarkdown("markdown");
-		wiki.setCreatedBy(creator);
-		wiki.setModifiedBy(creator);
-		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
 		// Create it!
 		wiki = entityServletHelper.createWikiPage(userName, ownerId, ownerType, wiki);
 		assertNotNull(wiki);
@@ -185,8 +182,6 @@ public class WikiControllerTest {
 		child.setMarkdown("child markdown");
 		child.setParentWikiId(wiki.getId());
 		child.setAttachmentFileHandleIds(new LinkedList<String>());
-		child.setCreatedBy(creator);
-		child.setModifiedBy(creator);
 		// Note, we are adding a file handle with a preview.
 		// Both the S3FileHandle and its Preview should be returned from getWikiFileHandles()
 		child.getAttachmentFileHandleIds().add(handleOne.getId());

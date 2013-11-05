@@ -45,24 +45,8 @@ public class WikiServiceImpl implements WikiService {
 		// Resolve the userID
 		UserInfo user = userManager.getUserInfo(userId);
 		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(toCreate, user);
-		if(translated != null) {
-			System.out.println("Translated!");
-		} else {
-			System.out.println("Translated is NULL!");
-		}
 		V2WikiPage result = v2WikiManager.createWikiPage(user, objectId, objectType, translated);
-		if(result != null) {
-			System.out.println("Return from v2 manager. Created Wiki");
-		} else {
-			System.out.println("V2Wiki is NULL");
-		}
-		WikiPage converted = wikiModelTranslationHelper.convertToWikiPage(result);
-		if(converted != null) {
-			System.out.println("Converted successfully!");
-		} else {
-			System.out.println("Converted is NULL.");
-		}
-		return converted;
+		return wikiModelTranslationHelper.convertToWikiPage(result);
 	}
 
 	@Override
