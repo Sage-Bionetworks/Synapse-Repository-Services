@@ -37,6 +37,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -157,6 +158,11 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			if(doesExist(wikiPage.getId())) throw new IllegalArgumentException("A wiki page already exists with ID: "+wikiPage.getId());
 			// Make sure the ID generator has reserved this ID.
 			idGenerator.reserveId(new Long(wikiPage.getId()), TYPE.WIKI_ID);
+		}
+		
+		// Check for a cycle in parent/child relationship
+		if(dbo.getParentId() != null && dbo.getParentId().equals(dbo.getId())) {
+			throw new IllegalArgumentException("A wiki page cannot be its own parent.");
 		}
 		
 		// When we migrate we keep the original etag.  When it is null we set it.
@@ -332,7 +338,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} catch (DatastoreException e) {
 			throw new IllegalArgumentException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		} catch (DuplicateKeyException e) {
-			throw new ConflictingUpdateException("The wiki you are attempting to create already exists.  Try fetching the Wiki and then updating it.");
+			throw new NameConflictException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
 
 	}

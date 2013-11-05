@@ -201,6 +201,28 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(key, lookupKey);
 	}
 	
+	@Test (expected=IllegalArgumentException.class)
+	public void testParentCycle() throws NotFoundException {
+		V2WikiPage page = new V2WikiPage();
+		String ownerId = "syn182";
+		ObjectType ownerType = ObjectType.ENTITY;
+		// Set id
+		page.setId("123");
+		// Set parent as itself
+		page.setParentWikiId("123");
+		page.setTitle("Title");
+		page.setCreatedBy(creatorUserGroupId);
+		page.setModifiedBy(creatorUserGroupId);
+		page.setMarkdownFileHandleId(markdownOne.getId());
+		page.setAttachmentFileHandleIds(new LinkedList<String>());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		List<String> newIds = new ArrayList<String>();
+		
+		// Create it for the first time.
+		// Comparison of id and parent id should now throw an IllegalArgumentException
+		wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
+	}
+	
 	/**
 	 * Create and update a wiki page. Restore an older version and 
 	 * confirm wiki history is accurate
