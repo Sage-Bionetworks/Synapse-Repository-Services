@@ -161,7 +161,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		}
 		
 		// Check for a cycle in parent/child relationship
-		if(wikiPage.getParentWikiId() != null && wikiPage.getParentWikiId().equals(wikiPage.getId())) {
+		if(dbo.getParentId() != null && dbo.getParentId().equals(dbo.getId())) {
 			throw new IllegalArgumentException("A wiki page cannot be its own parent.");
 		}
 		
