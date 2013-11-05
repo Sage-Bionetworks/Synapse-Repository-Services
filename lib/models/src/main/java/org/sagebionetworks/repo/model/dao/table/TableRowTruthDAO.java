@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.dao.table;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableChange;
 
@@ -12,6 +16,25 @@ import org.sagebionetworks.repo.model.table.TableChange;
  *
  */
 public interface TableRowTruthDAO {
+	
+	/**
+	 * Reserver a range of IDs for a given table and count.
+	 * 
+	 * @param tableId
+	 * @param coutToReserver
+	 * @return
+	 */
+	public IdRange reserveIdsInRange(String tableId, long coutToReserver);
+	
+	/**
+	 * Append a RowSet to a table.
+	 * @param tableId
+	 * @param models
+	 * @param delta
+	 * @return
+	 * @throws IOException 
+	 */
+	public RowReferenceSet appendRowSetToTable(String tableId, List<ColumnModel> models, RowSet delta) throws IOException;
 	
 	/**
 	 * Store a change set of rows for a table.

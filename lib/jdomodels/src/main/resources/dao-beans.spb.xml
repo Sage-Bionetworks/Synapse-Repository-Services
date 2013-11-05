@@ -180,7 +180,12 @@
 	</bean>
 	
 	<bean id="columnModelDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOColumnModelDAOImpl"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.DBOColumnModelDAOImpl"
+		scope="singleton">
+	</bean>
+	
+	<bean id="tableRowTruthDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
 		scope="singleton">
 	</bean>
 

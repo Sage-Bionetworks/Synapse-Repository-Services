@@ -1,7 +1,12 @@
-package org.sagebionetworks.repo.model.table;
+package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -11,7 +16,11 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.repo.manager.table.TableModelUtils;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -25,6 +34,7 @@ public class TableModelUtilsTest {
 	
 	List<ColumnModel> validModel;
 	RowSet validRowSet;
+	RowSet validRowSet2;
 	StringWriter outWritter;
 	CSVWriter out;
 	
@@ -71,6 +81,37 @@ public class TableModelUtilsTest {
 		
 		outWritter = new StringWriter();
 		out = new CSVWriter(outWritter);
+		
+		// Create a second set that has the same order as the schema.
+		String tableId = "456";
+		headers = new LinkedList<String>();
+		headers.add("1");
+		headers.add("2");
+
+		rows = new LinkedList<Row>();
+		// row one
+		row = new Row();
+		row.setRowId(new Long(456));
+		row.setVersionNumber(new Long(2));
+		values = new LinkedList<String>();
+		values.add("true");
+		values.add("123");
+		row.setValues(values);
+		rows.add(row);
+		// row two
+		row = new Row();
+		row.setRowId(new Long(457));
+		row.setVersionNumber(new Long(2));
+		values = new LinkedList<String>();
+		values.add("false");
+		values.add("0");
+		row.setValues(values);
+		rows.add(row);
+		// Create the set
+		validRowSet2 = new RowSet();
+		validRowSet2.setHeaders(headers);
+		validRowSet2.setRows(rows);
+		validRowSet2.setTableId(tableId);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -263,5 +304,142 @@ public class TableModelUtilsTest {
 		// Set the default to boolean
 		cm.setDefaultValue("-89.3e12");
 		assertEquals("-89.3e12", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+	
+	@Test
+	public void testCountEmptyOrInvalidRowIdsNone(){
+		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+	}
+	
+	@Test
+	public void testCountEmptyOrInvalidRowIdsNull(){
+		validRowSet.getRows().get(0).setRowId(null);
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+	}
+	
+	@Test
+	public void testCountEmptyOrInvalidRowIdsInvalid(){
+		validRowSet.getRows().get(0).setRowId(-1l);
+		assertEquals(1, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+	}
+	
+	@Test
+	public void testCountEmptyOrInvalidRowIdsMixed(){
+		validRowSet.getRows().get(0).setRowId(-1l);
+		validRowSet.getRows().get(1).setRowId(null);
+		assertEquals(2, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
+	}
+	
+	@Test
+	public void testAssignRowIdsAndVersionNumbers_NoRowIdsNeeded(){
+		IdRange range = new IdRange();
+		range.setMaximumId(null);
+		range.setMinimumId(null);
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		// Validate each row was assigned a version number
+		for (Row row : validRowSet.getRows()) {
+			assertEquals(versionNumber, row.getVersionNumber());
+		}
+	}
+	
+	@Test
+	public void testAssignRowIdsAndVersionNumbers_MixedRowIdsNeeded(){
+		IdRange range = new IdRange();
+		range.setMaximumId(new Long(100));
+		range.setMinimumId(new Long(100));
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		validRowSet.getRows().get(1).setRowId(null);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		// Validate each row was assigned a version number
+		for (Row row : validRowSet.getRows()) {
+			assertEquals(versionNumber, row.getVersionNumber());
+		}
+		assertEquals(new Long(456), validRowSet.getRows().get(0).getRowId());
+		// The second row should have been provided
+		assertEquals(new Long(100), validRowSet.getRows().get(1).getRowId());
+	}
+	
+	@Test
+	public void testAssignRowIdsAndVersionNumbers_AllNeeded(){
+		IdRange range = new IdRange();
+		range.setMaximumId(new Long(101));
+		range.setMinimumId(new Long(100));
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		// Clear all the row ids
+		validRowSet.getRows().get(0).setRowId(null);
+		validRowSet.getRows().get(1).setRowId(null);
+		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+		// Validate each row was assigned a version number
+		for (Row row : validRowSet.getRows()) {
+			assertEquals(versionNumber, row.getVersionNumber());
+		}
+		assertEquals(new Long(100), validRowSet.getRows().get(0).getRowId());
+		// The second row should have been provided
+		assertEquals(new Long(101), validRowSet.getRows().get(1).getRowId());
+	}
+	
+	@Test
+	public void testAssignRowIdsAndVersionNumbers_NoneAllocatedButNeeded(){
+		IdRange range = new IdRange();
+		// no ids allocated
+		range.setMaximumId(null);
+		range.setMinimumId(null);
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		// Clear all the row ids
+		validRowSet.getRows().get(1).setRowId(null);
+		try {
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			fail("should have failed");
+		} catch (IllegalStateException e) {
+			assertEquals("RowSet required at least one row ID but none were allocated.", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testAssignRowIdsAndVersionNumbers_NotEnoutAllocated(){
+		IdRange range = new IdRange();
+		//  only allocate on id
+		range.setMaximumId(3l);
+		range.setMinimumId(3l);
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		// Clear all the row ids
+		validRowSet.getRows().get(0).setRowId(null);
+		validRowSet.getRows().get(1).setRowId(null);
+		try {
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			fail("should have failed");
+		} catch (IllegalStateException e) {
+			assertEquals("RowSet required more row IDs than were allocated.", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCSVRoundTrip() throws IOException{
+		// Write this to a string
+		StringWriter writer = new StringWriter();
+		CSVWriter csvWriter = new CSVWriter(writer);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
+		StringReader reader = new StringReader(writer.toString());
+		CSVReader csvReader = new CSVReader(reader);
+		RowSet clone = TableModelUtils.readFromCSV(csvReader, validRowSet2.getTableId(), validRowSet2.getHeaders());
+		assertNotNull(clone);
+		assertEquals(validRowSet2, clone);
+	}
+	
+	@Test
+	public void testCSVGZipRoundTrip() throws IOException{
+		// Write this to a string
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
+		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+		RowSet clone = TableModelUtils.readFromCSVgzStream(in, validRowSet2.getTableId(), validRowSet2.getHeaders());
+		assertNotNull(clone);
+		assertEquals(validRowSet2, clone);
 	}
 }

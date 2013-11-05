@@ -326,6 +326,13 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// This table controls IDs issued to TableEntities.
+	public static final String TABLE_TABLE_ID_SEQUENCE		= "TABLE_ID_SEQUENCE";
+	public static final String COL_ID_SEQUENCE_TABLE_ID		= "TABLE_ID";
+	public static final String COL_ID_SEQUENCE_VERSION		= "VERSION_NUMBER";
+	public static final String COL_ID_SEQUENCE				= "SEQUENCE";
+	public static final String DDL_TABLE_ID_SEQUENCE = "schema/TableIdSequence-ddl.sql";
+	
 	// The table changes
 	public static final String TABLE_TABLE_CHANGE			= "TABLE_CHANGE";
 	public static final String COL_TABLE_CHANGE_NUMBER		= "CHANGE_NUMBER";
