@@ -25,10 +25,12 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +51,9 @@ public class EvaluationDAOImplTest {
 	
 	private Evaluation eval;	
 	private AccessControlList aclToDelete = null;
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 
 	List<String> toDelete;
 	
@@ -253,7 +258,8 @@ public class EvaluationDAOImplTest {
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		aclDAO.create(acl);
+		String aclId = aclDAO.create(acl);
+		acl.setId(aclId);
 		aclToDelete = acl;
 		
 		// As a participant, I can find:
@@ -267,7 +273,24 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
 		assertTrue(evalList.isEmpty());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids));
-    }
+		
+		
+		// PLFM-2312 problem with repeated entries
+		UserGroup au = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
+		assertNotNull(au);
+		ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(au.getId()));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
+		ras = acl.getResourceAccess();
+		ras.add(ra);
+		aclDAO.update(acl);
+		// should still find just one result, even though I'm in the ACL twice
+		pids = Arrays.asList(new Long[]{participantId,Long.parseLong(au.getId())});
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids));
+   }
     
     @Test
     public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {        
