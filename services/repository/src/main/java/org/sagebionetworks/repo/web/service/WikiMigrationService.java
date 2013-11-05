@@ -86,7 +86,16 @@ public class WikiMigrationService {
 				wikiMigrationDao.getTotalCount(), offset, limit, "", false);
 	}
 		
-	
+	/**
+	 * Converts the wiki to a V2 wiki, ensures that its parent wiki 
+	 * is already migrated, and then migrates a wiki.
+	 * 
+	 * @param wiki
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {	
 		String parentId = wiki.getParentWikiId();

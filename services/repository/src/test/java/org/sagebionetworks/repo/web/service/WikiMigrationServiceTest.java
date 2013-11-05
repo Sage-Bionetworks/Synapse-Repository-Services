@@ -11,7 +11,6 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -123,7 +121,7 @@ public class WikiMigrationServiceTest {
 		// Size of the V2 DB should be equal to the number of wikis successfully migrated
 		assertEquals(3, v2wikiPageDAO.getCount());	
 		
-		// Re-migrate the same wiki page.
+		// Re-migrate the same wiki page. No error should be thrown and we should get back 1 result
 		PaginatedResults<WikiMigrationResult> duplicateMigrationResults = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
 		assertNotNull(duplicateMigrationResults);
 		assertEquals(1, duplicateMigrationResults.getResults().size());
@@ -202,16 +200,16 @@ public class WikiMigrationServiceTest {
 		WikiPageKey key5 = new WikiPageKey(ownerId, ownerType, child.getId());
 		
 		// Migrate the PARENT first
+		// NOTE: Took out the recursive migration of parents, and this test failed to migrate the PARENT successfully
 		// greatAncestor, ancestor, and grandparent must be migrated first
 		V2WikiPage parentResult = wikiMigrationService.migrate(parent, adminUserInfo);
 		// By migrating parent, the V2 DB should hold four wiki pages
 		assertEquals(4, v2wikiPageDAO.getCount());
-		/*
 		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(parent.getParentWikiId()));
 		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(grandparent.getParentWikiId()));
 		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(ancestor.getParentWikiId()));
 		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(child.getParentWikiId()));
-		*/
+		
 		V2WikiPage childResult = wikiMigrationService.migrate(child, adminUserInfo);
 		assertEquals(5, v2wikiPageDAO.getCount());
 		

@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -94,7 +93,6 @@ public class AdministrationControllerTest {
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
 		stackStatusDao.updateStatus(status);
-		
 		for(WikiPageKey key: wikisToDelete){
 			try {
 				V2WikiPage wiki = v2wikiPageDAO.get(key);
@@ -102,12 +100,11 @@ public class AdministrationControllerTest {
 				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
 				fileMetadataDao.delete(markdownHandleId);
-				entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
+				//entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
 			} catch (Exception e) {
 				// nothing to do here
 			}
 		}
-		
 		if(entity != null){
 			try {
 				nodeManager.delete(adminUserInfo, entity.getId());

@@ -19,20 +19,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION_NUM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OWNER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_ROOT_WIKI_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_TITLE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_OWNERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_ATTACHMENT_RESERVATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -44,7 +36,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
-import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -149,6 +140,7 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		String ownerId = "syn1";
 		ObjectType ownerType = ObjectType.ENTITY;
 		
+		// Create a V2 WikiPage with id, etag, dates etc all set from conversion
 		V2WikiPage page = new V2WikiPage();
 		page.setId("1");
 		page.setCreatedBy(creatorUserGroupId);
@@ -156,40 +148,40 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		page.setMarkdownFileHandleId(markdown.getId());
 		page.setTitle("title1");
 		page.setEtag("etag");	
-		long currentTime = System.currentTimeMillis();
-		page.setCreatedOn(new Date(currentTime));
-		page.setModifiedOn(new Date(currentTime));
+		page.setCreatedOn(new Date(1));
+		page.setModifiedOn(new Date(1));
 		page.setAttachmentFileHandleIds(new ArrayList<String>());
 		page.getAttachmentFileHandleIds().add(attachOne.getId());
-		
 		Map<String, FileHandle> fileNameToFileHandleMap = new HashMap<String, FileHandle>();
 		fileNameToFileHandleMap.put(attachOne.getFileName(), fileMetadataDao.get(attachOne.getId()));
 		List<String> newFileHandleIds = new ArrayList<String>();
 		newFileHandleIds.add(attachOne.getId());
 		
+		// Create
 		V2WikiPage result = v2WikiPageMigrationDao.create(page, fileNameToFileHandleMap, 
 				ownerId, ownerType, newFileHandleIds);
 		assertNotNull(result);
 		assertEquals(1, v2WikiPageDao.getCount());
-		// ID, etag, etc should not change
+		
+		// ID, etag, etc shouldn't have reset by creation method
 		assertEquals("etag", result.getEtag());
 		assertEquals("1", result.getId());
-		assertEquals(currentTime, result.getCreatedOn().getTime());
-		
+		assertEquals(1, result.getCreatedOn().getTime());
 		WikiPageKey key = v2WikiPageDao.lookupWikiKey(result.getId());
 		toDeleteFromV2.add(key);
-		assertEquals(ownerId, key.getOwnerObjectId());
-		assertEquals(ownerType, key.getOwnerObjectType());
-		assertEquals("1", key.getWikiPageId());
 		
+		// Store the timestamp on the file attachments
 		List<Timestamp> ts = simpleJdbcTemplate.query(SQL_SELECT_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP, 
 				WIKI_ATTACHMENT_TIMESTAMP_MAPPER, new Long(1), new Long(attachOne.getId()));
 		long firstTimestamp = ts.get(0).getTime();
 		
 		// Sleep and make sure timestamp of the attachment will change on update
 		Thread.sleep(1000);
+		
+		// Edit the wiki to check for the update
 		result.setTitle("titleEdited");
-		// Same ID, so it should update the V2 DB and not throw an error
+		
+		// The ID is the same, so it should update the V2 DB and not throw an error
 		V2WikiPage resultAfterUpdate = v2WikiPageMigrationDao.create(result, fileNameToFileHandleMap, 
 				ownerId, ownerType, newFileHandleIds);
 		assertNotNull(resultAfterUpdate);
@@ -197,7 +189,7 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		assertEquals(1, v2WikiPageDao.getCount());
 		// The title should be updated
 		assertEquals("titleEdited", resultAfterUpdate.getTitle());
-		// There should still just be one markdown version (0)
+		// There should still just be one markdown version (0), but with the updated title
 		assertEquals(1, v2WikiPageDao.getWikiHistory(key, new Long(10), new Long(0)).size());
 		List<String> title = simpleJdbcTemplate.query(SQL_SELECT_WIKI_MARKDOWN_USING_ID_AND_VERSION, new RowMapper<String>() {
 			@Override
@@ -209,6 +201,7 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		assertEquals(1, title.size());
 		assertEquals("titleEdited", title.get(0));
 		
+		// Check the timestamp of the same file attachment
 		List<Timestamp> tsAfterUpdate = simpleJdbcTemplate.query(SQL_SELECT_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP, 
 				WIKI_ATTACHMENT_TIMESTAMP_MAPPER, new Long(1), new Long(attachOne.getId()));
 		assertEquals(1, ts.size());
