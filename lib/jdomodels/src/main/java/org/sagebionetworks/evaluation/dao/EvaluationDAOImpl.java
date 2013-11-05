@@ -392,7 +392,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
-		"SELECT e.* " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
+		"SELECT DISTINCT e.* " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 	
 	// parameters here are LIMIT and OFFSET
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
