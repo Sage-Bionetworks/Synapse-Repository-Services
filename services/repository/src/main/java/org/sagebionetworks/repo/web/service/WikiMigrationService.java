@@ -96,7 +96,7 @@ public class WikiMigrationService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {	
 		String parentId = wiki.getParentWikiId();
-		if(parentId != null && !wikiMigrationDao.hasParentMigrated(parentId)) {
+		if(parentId != null && !wikiMigrationDao.hasWikiMigrated(parentId)) {
 			//get parent wiki
 			WikiPage parent = wikiMigrationDao.getWikiPage(parentId);
 			try {

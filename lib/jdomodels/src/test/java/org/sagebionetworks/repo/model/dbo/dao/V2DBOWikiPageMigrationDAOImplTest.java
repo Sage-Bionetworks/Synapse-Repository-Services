@@ -270,7 +270,7 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		child.setId("2");
 		child.setParentWikiId("1");
 		// Before creating the child, we will make this call
-		boolean doesParentExist = v2WikiPageMigrationDao.doesParentExist(child.getParentWikiId());
+		boolean doesParentExist = v2WikiPageMigrationDao.doesWikiExist(child.getParentWikiId());
 		assertEquals(true, doesParentExist);
 	}
 }

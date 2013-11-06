@@ -161,11 +161,11 @@ public class DBOWikiMigrationDAO {
 	
 	/**
 	 * Returns whether or not the parent wiki has migrated successfully to V2
-	 * @param parentWikiId
+	 * @param wikiId
 	 * @return
 	 */
-	public boolean hasParentMigrated(String parentWikiId) {
-		return v2WikiPageMigrationDao.doesParentExist(parentWikiId);
+	public boolean hasWikiMigrated(String wikiId) {
+		return v2WikiPageMigrationDao.doesWikiExist(wikiId);
 	}
 	
 	/**

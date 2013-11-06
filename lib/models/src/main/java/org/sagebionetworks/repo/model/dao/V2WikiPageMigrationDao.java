@@ -24,9 +24,9 @@ public interface V2WikiPageMigrationDao {
 	
 	/**
 	 * Returns whether a wiki's parent exists in the V2 DB already
-	 * @param parentWikiId
+	 * @param wikiId
 	 * @return
 	 */
-	public boolean doesParentExist(String parentWikiId);
+	public boolean doesWikiExist(String wikiId);
 		
 }

@@ -183,11 +183,11 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 	}
 	
 	@Override
-	public boolean doesParentExist(String parentWikiId) {
-		if(parentWikiId == null) throw new IllegalArgumentException("Id cannot be null");
+	public boolean doesWikiExist(String wikiId) {
+		if(wikiId == null) throw new IllegalArgumentException("Id cannot be null");
 		try{
 			// Is this in the database?
-			simpleJdbcTemplate.queryForLong(SQL_DOES_EXIST, parentWikiId);
+			simpleJdbcTemplate.queryForLong(SQL_DOES_EXIST, wikiId);
 			return true;
 		}catch(EmptyResultDataAccessException e){
 			return false;

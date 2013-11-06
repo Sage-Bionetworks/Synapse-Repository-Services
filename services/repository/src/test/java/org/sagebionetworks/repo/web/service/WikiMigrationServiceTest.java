@@ -205,10 +205,10 @@ public class WikiMigrationServiceTest {
 		V2WikiPage parentResult = wikiMigrationService.migrate(parent, adminUserInfo);
 		// By migrating parent, the V2 DB should hold four wiki pages
 		assertEquals(4, v2wikiPageDAO.getCount());
-		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(parent.getParentWikiId()));
-		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(grandparent.getParentWikiId()));
-		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(ancestor.getParentWikiId()));
-		assertEquals(true, v2WikiPageMigrationDao.doesParentExist(child.getParentWikiId()));
+		assertEquals(true, v2WikiPageMigrationDao.doesWikiExist(parent.getParentWikiId()));
+		assertEquals(true, v2WikiPageMigrationDao.doesWikiExist(grandparent.getParentWikiId()));
+		assertEquals(true, v2WikiPageMigrationDao.doesWikiExist(ancestor.getParentWikiId()));
+		assertEquals(true, v2WikiPageMigrationDao.doesWikiExist(child.getParentWikiId()));
 		
 		V2WikiPage childResult = wikiMigrationService.migrate(child, adminUserInfo);
 		assertEquals(5, v2wikiPageDAO.getCount());
