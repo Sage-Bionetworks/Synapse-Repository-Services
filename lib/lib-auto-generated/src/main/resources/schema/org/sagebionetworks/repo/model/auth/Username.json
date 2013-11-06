@@ -3,6 +3,6 @@
     "implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.auth.UsernameInterface"
-		},
+		}
 	]
 }

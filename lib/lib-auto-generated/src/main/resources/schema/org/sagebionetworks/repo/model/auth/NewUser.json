@@ -3,7 +3,7 @@
     "implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.auth.CredentialsInterface"
-		},
+		}
 	], 
 	"properties": {
 		"firstName": {
