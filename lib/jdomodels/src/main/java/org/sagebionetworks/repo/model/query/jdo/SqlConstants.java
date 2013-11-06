@@ -152,6 +152,13 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_SUBJECT                  = "SUBJECT";
  	public static final String DDL_MESSAGE                          = "schema/Message-ddl.sql";
  	
+ 	// User message status
+ 	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
+ 	public static final String COL_MESSAGE_STATUS_MESSAGE_ID        = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
+ 	public static final String COL_MESSAGE_STATUS                   = "STATUS";
+ 	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
+ 	
  	// User message thread
  	public static final String TABLE_MESSAGE_THREAD                 = "MESSAGE_THREAD";
  	public static final String COL_MESSAGE_THREAD_ID                = "THREAD_ID";
@@ -164,13 +171,6 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_THREAD_OBJECT_ID         = "OBJECT_ID";
  	public static final String COL_MESSAGE_THREAD_OBJECT_TYPE       = "OBJECT_TYPE";
  	public static final String DDL_MESSAGE_THREAD_OBJECT            = "schema/MessageThreadObject-ddl.sql";
- 	
- 	// User message status
- 	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
- 	public static final String COL_MESSAGE_STATUS_MESSAGE_ID        = "MESSAGE_ID";
- 	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
- 	public static final String COL_MESSAGE_STATUS                   = "STATUS";
- 	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
 
 	// The file metadata table
 	public static final String TABLE_FILES							= "FILES";

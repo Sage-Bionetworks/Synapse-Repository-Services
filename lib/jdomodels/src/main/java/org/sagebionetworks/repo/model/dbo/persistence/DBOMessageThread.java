@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -97,7 +98,9 @@ public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThre
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject> secondaries = new ArrayList<MigratableDatabaseObject>();
+		secondaries.add(new DBOMessageThreadObject());
+		return secondaries;
 	}
 
 	public Long getThreadId() {

@@ -49,25 +49,29 @@ public class MessageUtils {
 	}
 	
 	/**
-	 * Checks for all required fields of the DTO
+	 * Checks for all required fields of the DBO
 	 */
-	public static void validateDTO(Message dto) {
-		if (dto.getMessageId() == null) {
+	public static void validateDBO(DBOMessage dbo) {
+		if (dbo.getMessageId() == null) {
 			throw new IllegalArgumentException("Message ID must be specified");
 		}
-		if (dto.getCreatedBy() == null) {
+		if (dbo.getCreatedBy() == null) {
 			throw new IllegalArgumentException("Sender's ID must be specified");
 		}
-		if (dto.getRecipientType() == null) {
+		if (dbo.getRecipientType() == null) {
 			throw new IllegalArgumentException("Recipient type must be specified");
 		}
-		if (dto.getRecipients() == null || dto.getRecipients().size() <= 0) {
-			throw new IllegalArgumentException("Recipients must be specified");
+		try {
+			if (dbo.getRecipients() == null || unzip(dbo.getRecipients()).size() <= 0) {
+				throw new IllegalArgumentException("Recipients must be specified");
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
-		if (dto.getMessageFileHandleId() == null) {
+		if (dbo.getFileHandleId() == null) {
 			throw new IllegalArgumentException("Message body's file handle must be specified");
 		}
-		if (dto.getCreatedOn() == null) {
+		if (dbo.getCreatedOn() == null) {
 			throw new IllegalArgumentException("Time of sending must be specified");
 		}
 	}
