@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.message.RecipientType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
@@ -22,7 +21,6 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_ID, true).withIsBackupId(true),
-		new FieldColumn("threadId", SqlConstants.COL_MESSAGE_THREAD_ID),
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CREATED_BY),
 		new FieldColumn("recipientType", SqlConstants.COL_MESSAGE_RECIPIENT_TYPE),
 		new FieldColumn("recipients", SqlConstants.COL_MESSAGE_RECIPIENTS),
@@ -32,9 +30,8 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	};
 	
 	private Long messageId;
-	private Long threadId;
 	private Long createdBy;
-	private RecipientType recipientType;
+	private String recipientType;
 	private byte[] recipients;
 	private Long fileHandleId;
 	private Long createdOn;
@@ -48,9 +45,8 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 			public DBOMessage mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOMessage result = new DBOMessage();
 				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_ID));
-				result.setThreadId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_ID));
 				result.setCreatedBy(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_BY));
-				result.setRecipientType(RecipientType.valueOf(rs.getString(SqlConstants.COL_MESSAGE_RECIPIENT_TYPE)));
+				result.setRecipientType(rs.getString(SqlConstants.COL_MESSAGE_RECIPIENT_TYPE));
 				Blob recipients = rs.getBlob(SqlConstants.COL_MESSAGE_RECIPIENTS);
 				result.setRecipients(recipients.getBytes(1, (int) recipients.length()));
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_FILE_HANDLE_ID));
@@ -89,14 +85,6 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	public void setMessageId(Long messageId) {
 		this.messageId = messageId;
 	}
-	
-	public Long getThreadId() {
-		return threadId;
-	}
-
-	public void setThreadId(Long threadId) {
-		this.threadId = threadId;
-	}
 
 	public Long getCreatedBy() {
 		return createdBy;
@@ -105,15 +93,14 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	public void setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
 	}
-	
+
 	public String getRecipientType() {
-		return recipientType.name();
+		return recipientType;
 	}
 
-	public void setRecipientType(RecipientType recipientType) {
+	public void setRecipientType(String recipientType) {
 		this.recipientType = recipientType;
 	}
-
 
 	public byte[] getRecipients() {
 		return recipients;
@@ -127,7 +114,6 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		return fileHandleId;
 	}
 
-
 	public void setFileHandleId(Long fileHandleId) {
 		this.fileHandleId = fileHandleId;
 	}
@@ -135,7 +121,6 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	public Long getCreatedOn() {
 		return createdOn;
 	}
-
 
 	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
@@ -206,8 +191,6 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				+ ((recipientType == null) ? 0 : recipientType.hashCode());
 		result = prime * result + Arrays.hashCode(recipients);
 		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
-		result = prime * result
-				+ ((threadId == null) ? 0 : threadId.hashCode());
 		return result;
 	}
 
@@ -250,19 +233,14 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				return false;
 		} else if (!subject.equals(other.subject))
 			return false;
-		if (threadId == null) {
-			if (other.threadId != null)
-				return false;
-		} else if (!threadId.equals(other.threadId))
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMessage [messageId=" + messageId + ", threadId=" + threadId
-				+ ", createdBy=" + createdBy + ", recipientType="
-				+ recipientType + ", recipients=" + Arrays.toString(recipients)
+		return "DBOMessage [messageId=" + messageId + ", createdBy="
+				+ createdBy + ", recipientType=" + recipientType
+				+ ", recipients=" + Arrays.toString(recipients)
 				+ ", fileHandleId=" + fileHandleId + ", createdOn=" + createdOn
 				+ ", subject=" + subject + "]";
 	}

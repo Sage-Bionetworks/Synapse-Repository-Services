@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONodeMessages;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThread;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -42,6 +43,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String THREAD_ID_PARAM_NAME = "threadId";
 	private static final String USER_ID_PARAM_NAME = "userId";
 	private static final String INBOX_FILTER_PARAM_NAME = "filterTypes";
+	private static final String NODE_ID_PARAM_NAME = "paramId";
 	
 	private static final String FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE = 
 			" FROM "+SqlConstants.TABLE_MESSAGE+
@@ -98,6 +100,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
+	
+	private static final String SELECT_NODE_ID_FROM_THREAD_ID = 
+			"SELECT "+SqlConstants.COL_NODE_MESSAGES_NODE_ID+" FROM "+SqlConstants.TABLE_NODE_MESSAGES+
+			" WHERE "+SqlConstants.COL_NODE_MESSAGES_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
+	
+	private static final String SELECT_THREAD_ID_FROM_NODE_ID = 
+			"SELECT "+SqlConstants.COL_NODE_MESSAGES_THREAD_ID+" FROM "+SqlConstants.TABLE_NODE_MESSAGES+
+			" WHERE "+SqlConstants.COL_NODE_MESSAGES_NODE_ID+"=:"+NODE_ID_PARAM_NAME;
 	
 	private static final RowMapper<DBOMessage> messageRowMapper = new DBOMessage().getTableMapping();
 	
@@ -270,8 +280,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void registerThreadToNode(String threadId, String nodeId) {
-		DBONodeMessages dbo = new DBONodeMessages();
+		DBOMessageThread dbo = new DBOMessageThread();
 		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
 		dbo.setThreadId(Long.parseLong(threadId));
 		basicDAO.createNew(dbo);
@@ -280,8 +291,22 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	public String getThreadOfNode(String nodeId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("nodeId", KeyFactory.stringToKey(nodeId));
-		DBONodeMessages dbo = basicDAO.getObjectByPrimaryKey(DBONodeMessages.class, params);
-		return dbo.getThreadId().toString();
+		params.addValue(NODE_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_THREAD_ID_FROM_NODE_ID, String.class, params);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("There is no entity linked to the provided node (" + nodeId + ")");
+		}
+	}
+
+	@Override
+	public String getNodeOfThread(String threadId) throws NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_NODE_ID_FROM_THREAD_ID, String.class, params);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("There is no entity linked to the provided thread (" + threadId + ")");
+		}
 	}
 }
