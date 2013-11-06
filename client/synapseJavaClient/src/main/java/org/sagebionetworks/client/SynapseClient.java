@@ -78,6 +78,8 @@ import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
+import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -725,6 +727,8 @@ public interface SynapseClient {
 			throws SynapseException;
 
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
+	
+	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) throws SynapseException;
 
 	public void moveToTrash(String entityId) throws SynapseException;
 

@@ -133,6 +133,8 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
+import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -229,6 +231,8 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String STATUS_SUFFIX = "?status=";
 	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	
+	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
 	protected static final String COLUMN = "/column";
 
@@ -4421,6 +4425,21 @@ public class SynapseClientImpl implements SynapseClient {
 			JSONObjectAdapter joa = new JSONObjectAdapterImpl(jsonObj);
 			return new QueryTableResults(joa);
 		} catch (Exception e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
+	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) 
+			throws SynapseException {
+		String uri = STORAGE_SUMMARY_PATH;
+		if (aggregation != null && aggregation.size() > 0) {
+			uri += "?aggregation=" + StringUtils.join(aggregation, ",");
+		}
+		
+		try {
+			return getJSONEntity(repoEndpoint, uri, StorageUsageSummaryList.class);
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}

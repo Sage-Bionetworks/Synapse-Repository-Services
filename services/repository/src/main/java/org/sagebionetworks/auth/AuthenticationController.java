@@ -111,7 +111,7 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Retrieve basic information about the current authenticated user.  
-	 * Information includes the user's display name, email, and whether they have accepted the terms of use.
+	 * Information includes the user's display name, and email.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
