@@ -19,6 +19,16 @@ public interface MessageManager {
 	public String getThreadId(String messageId) throws NotFoundException;
 	
 	/**
+	 * Performs format and permission checking on the message.  
+	 * This check is more thorough than the check within {@link #createMessage(UserInfo, Message)}
+	 * and will return the first error it encounters as a string.  
+	 * </br>
+	 * This allows the user to be immediately notified about bad messages 
+	 * rather than waiting for a possible bounce message.   
+	 */
+	public String checkMessage(UserInfo userInfo, Message dto);
+	
+	/**
 	 * Saves the message so that it can be processed by other queries.
 	 * If the message is going to exactly one recipient, then the message will be sent in this transaction  
 	 * and any failures will be propagated immediately.
@@ -26,28 +36,26 @@ public interface MessageManager {
 	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
 	 * In case of failure, the user will be notified via bounce message.  
 	 * </br> 
-	 * If the recipient type is ENTITY, then a new thread will be created. 
+	 * If the recipient type is ENTITY, then a few extra conditions are applied:
+	 * <ul>
+	 *   <li>Only one recipient is allowed</li> 
+	 *   <li>The user must have SEND_MESSAGE permission on the entity</li>
+	 * </ul>
 	 * 
 	 * @throws NotFoundException If the user is commenting on an Entity that does not exist
 	 */
 	public Message createMessage(UserInfo userInfo, Message dto) throws NotFoundException;
 	
 	/**
-	 * Ties this message to the same thread as the message being replied to.  
-	 * 
-	 * See {@link #createMessage(UserInfo, Message)}
-	 */
-	public Message createMessage(UserInfo userInfo, Message dto, String replyTo_MessageId) throws NotFoundException;
-	
-	/**
 	 * Retrieves all messages within a thread tied to an entity
-	 * The entity must be accessible to the user
+	 * The user must have READ permission on the entity
 	 */
 	public QueryResults<Message> getCommentThread(UserInfo userInfo, String threadId, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException;
 	
 	/**
 	 * Retrieves all messages within a thread that are visible to the user
+	 * (i.e. the user is either the sender or receiver of the messages)
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
@@ -75,9 +83,10 @@ public interface MessageManager {
 	
 	/**
 	 * Takes an existing message and processes it, 
-	 * updating tables and sending emails where necessary and permitted
-	 * 
-	 * Note: This should only be used by the worker in charge of sending messages.  
+	 * updating tables and sending emails where necessary and permitted.
+	 * </br>
+	 * Some non-fatal errors will be caught and their error messages will be returned in a list.
+	 * It is the caller's responsibility to send a bounce message to the user.
 	 */
-	public void sendMessage(String messageId) throws NotFoundException;
+	public List<String> sendMessage(String messageId) throws NotFoundException;
 }
