@@ -6,23 +6,12 @@
 			"type": "string",
 			"description":"The unique identifier of the message."
 		},
-		"threadId": {
-			"type": "string",
-			"description":"The unique identifier of the thread this message belongs to."
-		},
 		"createdBy": {
 			"type": "string",
 			"description":"The unique identifier of the sender of this message."
 		},
 		"recipientType": {
-			"type": "string",
-			"description": "For messages sent to other users, recipientType=PRINCIPAL.  For comments on Synapse objects (projects, files, etc.) recipientType=ENTITY",
-			"name": "RecipientType",
-			"id": "org.sagebionetworks.repo.model.message.RecipientType",
-			"enum": [
-				"PRINCIPAL",
-				"ENTITY"
-			]
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
 		},
 		"recipients": {
 			"type": "array",

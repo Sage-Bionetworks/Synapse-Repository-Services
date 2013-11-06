@@ -14,12 +14,13 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
-import org.sagebionetworks.repo.model.message.RecipientType;
 
 public class MessageUtils {
 	
@@ -34,9 +35,8 @@ public class MessageUtils {
 	public static Message convertDBO(DBOMessage dbo) {
 		Message dto = new Message();
 		dto.setMessageId(dbo.getMessageId().toString());
-		dto.setThreadId(dbo.getThreadId().toString());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
-		dto.setRecipientType(RecipientType.valueOf(dbo.getRecipientType()));
+		dto.setRecipientType(ObjectType.valueOf(dbo.getRecipientType()));
 		try {
 			dto.setRecipients(unzip(dbo.getRecipients()));
 		} catch (IOException e) {
@@ -54,9 +54,6 @@ public class MessageUtils {
 	public static void validateDTO(Message dto) {
 		if (dto.getMessageId() == null) {
 			throw new IllegalArgumentException("Message ID must be specified");
-		}
-		if (dto.getThreadId() == null) {
-			throw new IllegalArgumentException("Thread ID must be specified");
 		}
 		if (dto.getCreatedBy() == null) {
 			throw new IllegalArgumentException("Sender's ID must be specified");
@@ -78,9 +75,8 @@ public class MessageUtils {
 	public static DBOMessage convertDTO(Message dto) {
 		DBOMessage dbo = new DBOMessage();
 		dbo.setMessageId(Long.parseLong(dto.getMessageId()));
-		dbo.setThreadId(Long.parseLong(dto.getThreadId()));
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		dbo.setRecipientType(dto.getRecipientType());
+		dbo.setRecipientType(dto.getRecipientType().name());
 		try {
 			dbo.setRecipients(zip(dto.getRecipients()));
 		} catch (IOException e) {
@@ -101,7 +97,7 @@ public class MessageUtils {
 		// Convert the Strings into Longs into Bytes
 		ByteBuffer converter = ByteBuffer.allocate(Long.SIZE / 8 * longs.size());
 		for (String num : longs) {
-			converter.putLong(Long.parseLong(num));
+			converter.putLong(KeyFactory.stringToKey(num));
 		}
 		
 		// Zip up the bytes

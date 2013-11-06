@@ -141,10 +141,9 @@ public class SqlConstants {
 	public static final String COL_PROCESSED_MESSAGES_QUEUE_NAME	= "QUEUE_NAME";
  	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
  	
- 	// User messages
+ 	// User message
  	public static final String TABLE_MESSAGE                        = "MESSAGE";
  	public static final String COL_MESSAGE_ID                       = "ID";
- 	public static final String COL_MESSAGE_THREAD_ID                = "THREAD_ID";
  	public static final String COL_MESSAGE_CREATED_BY               = "CREATED_BY";
  	public static final String COL_MESSAGE_RECIPIENT_TYPE           = "RECIPIENT_TYPE";
  	public static final String COL_MESSAGE_RECIPIENTS               = "RECIPIENTS";
@@ -153,18 +152,25 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_SUBJECT                  = "SUBJECT";
  	public static final String DDL_MESSAGE                          = "schema/Message-ddl.sql";
  	
+ 	// User message thread
+ 	public static final String TABLE_MESSAGE_THREAD                 = "MESSAGE_THREAD";
+ 	public static final String COL_MESSAGE_THREAD_ID                = "THREAD_ID";
+ 	public static final String COL_MESSAGE_THREAD_MESSAGE_ID        = "MESSAGE_ID";
+ 	public static final String DDL_MESSAGE_THREAD                   = "schema/MessageThread-ddl.sql";
+ 	
+ 	// Message thread object link
+ 	public static final String TABLE_MESSAGE_THREAD_OBJECT          = "MESSAGE_THREAD_OBJECT";
+ 	public static final String COL_MESSAGE_THREAD_OBJECT_THREAD_ID  = "MESSAGE_THREAD_ID";
+ 	public static final String COL_MESSAGE_THREAD_OBJECT_ID         = "OBJECT_ID";
+ 	public static final String COL_MESSAGE_THREAD_OBJECT_TYPE       = "OBJECT_TYPE";
+ 	public static final String DDL_MESSAGE_THREAD_OBJECT            = "schema/MessageThreadObject-ddl.sql";
+ 	
  	// User message status
  	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
  	public static final String COL_MESSAGE_STATUS_MESSAGE_ID        = "MESSAGE_ID";
  	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
  	public static final String COL_MESSAGE_STATUS                   = "STATUS";
  	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
- 	
- 	// Node message
- 	public static final String TABLE_NODE_MESSAGES                  = "NODE_MESSAGES";
- 	public static final String COL_NODE_MESSAGES_NODE_ID            = "NODE_ID";
- 	public static final String COL_NODE_MESSAGES_THREAD_ID          = "THREAD_ID";
- 	public static final String DDL_NODE_MESSAGES                    = "schema/NodeMessages-ddl.sql";
 
 	// The file metadata table
 	public static final String TABLE_FILES							= "FILES";
