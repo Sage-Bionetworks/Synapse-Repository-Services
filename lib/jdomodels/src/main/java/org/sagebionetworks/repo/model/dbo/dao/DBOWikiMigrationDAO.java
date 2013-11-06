@@ -27,17 +27,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.V2WikiPageMigrationDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +49,7 @@ public class DBOWikiMigrationDAO {
 	@Autowired
 	private WikiPageDao wikiPageDao;
 	@Autowired
-	private V2WikiPageDao v2WikiPageDao;
+	private V2WikiPageMigrationDao v2WikiPageMigrationDao;
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	@Autowired
@@ -59,6 +57,7 @@ public class DBOWikiMigrationDAO {
 	
 	static private Log log = LogFactory.getLog(DBOWikiMigrationDAO.class);
 	private static final String SELECT_WIKI_PAGES = "SELECT * FROM " + TABLE_WIKI_PAGE + " LIMIT ?, ?";
+	private static final String SELECT_WIKI_PAGE = "SELECT * FROM " + TABLE_WIKI_PAGE + " WHERE " + COL_WIKI_ID + " = ?";
 	private static final String SELECT_COUNT_OF_WIKIS = "SELECT COUNT(" + COL_WIKI_ID + ") FROM " + TABLE_WIKI_PAGE;;
 	
 	private static final RowMapper<WikiPage> wikiPageRowMapper = new RowMapper<WikiPage>() {
@@ -112,6 +111,23 @@ public class DBOWikiMigrationDAO {
 	}
 	
 	/**
+	 * Returns the wiki page with the given id from the V1 DB
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public WikiPage getWikiPage(String wikiId) throws NotFoundException {
+		List<WikiPage> list = simpleJdbcTemplate.query(SELECT_WIKI_PAGE, wikiPageRowMapper, wikiId);
+		if(list.size() > 1) throw new DatastoreException("More than one Wiki page found with the id: " + wikiId);
+		if(list.size() < 1) throw new NotFoundException("No wiki page found with id: " + wikiId);
+		WikiPage page = list.get(0);
+		WikiPageKey key = wikiPageDao.lookupWikiKey(page.getId());
+		List<String> ids = wikiPageDao.getWikiFileHandleIds(key);
+		page.setAttachmentFileHandleIds(ids);
+		return page;
+	}
+	
+	/**
 	 * Returns the total number of wikis in the WikiPage table
 	 * @return
 	 */
@@ -135,12 +151,21 @@ public class DBOWikiMigrationDAO {
 			}
 			WikiPageKey key = wikiPageDao.lookupWikiKey(toMigrate.getId());
 			// Store in the V2 WikiPage DB
-			result = v2WikiPageDao.create(toMigrate, fileNameToFileHandleMap, key.getOwnerObjectId(), key.getOwnerObjectType(), newFileHandlesToInsert);
+			result = v2WikiPageMigrationDao.create(toMigrate, fileNameToFileHandleMap, key.getOwnerObjectId(), key.getOwnerObjectType(), newFileHandlesToInsert);
 		} catch(Exception e) {
 			// To roll back all exceptions
 			throw new RuntimeException(e);
 		}
 		return result;
+	}
+	
+	/**
+	 * Returns whether or not the parent wiki has migrated successfully to V2
+	 * @param wikiId
+	 * @return
+	 */
+	public boolean hasWikiMigrated(String wikiId) {
+		return v2WikiPageMigrationDao.doesWikiExist(wikiId);
 	}
 	
 	/**

@@ -245,5 +245,8 @@
 		
 	<bean id="wikiMigrationDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
+		
+	<bean id="v2WikiPageMigrationDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMigrationDAOImpl" />
 
 </beans>
