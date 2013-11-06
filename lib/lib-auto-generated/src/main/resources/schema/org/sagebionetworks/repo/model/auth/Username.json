@@ -1,0 +1,8 @@
+{
+	"description": "Used to login via username and password",
+    "implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.auth.UsernameInterface"
+		},
+	]
+}
