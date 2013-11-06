@@ -42,12 +42,17 @@ public class MessageUtilsTest {
 		DBOMessage dbo = MessageUtils.convertDTO(generateSortaValidMessage());
 		MessageUtils.validateDBO(dbo);
 		
-		// The only optional field of a message is the subject
+		// Set optional fields
 		dbo.setSubject("I'm not null");
+		dbo.setReplyTo(-12345L);
 		MessageUtils.validateDBO(dbo);
 		
 		// Still valid
 		dbo.setSubject(null);
+		MessageUtils.validateDBO(dbo);
+
+		// Still valid
+		dbo.setReplyTo(null);
 		MessageUtils.validateDBO(dbo);
 		
 		// All of the following should throw different error messages

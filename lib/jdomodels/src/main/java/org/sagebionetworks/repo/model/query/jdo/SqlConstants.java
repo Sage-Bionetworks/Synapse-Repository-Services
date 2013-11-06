@@ -150,6 +150,7 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_FILE_HANDLE_ID           = "FILE_HANDLE_ID";
  	public static final String COL_MESSAGE_CREATED_ON               = "CREATED_ON";
  	public static final String COL_MESSAGE_SUBJECT                  = "SUBJECT";
+ 	public static final String COL_MESSAGE_REPLY_TO                 = "REPLY_TO";
  	public static final String DDL_MESSAGE                          = "schema/Message-ddl.sql";
  	
  	// User message status

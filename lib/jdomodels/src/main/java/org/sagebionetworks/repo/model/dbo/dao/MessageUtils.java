@@ -45,6 +45,7 @@ public class MessageUtils {
 		dto.setMessageFileHandleId(dbo.getFileHandleId().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setSubject(dbo.getSubject());
+		dto.setReplyTo(dbo.getReplyTo().toString());
 		return dto;
 	}
 	
@@ -96,6 +97,7 @@ public class MessageUtils {
 		dbo.setFileHandleId(Long.parseLong(dto.getMessageFileHandleId()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setSubject(dto.getSubject());
+		dbo.setReplyTo(Long.parseLong(dto.getReplyTo()));
 		return dbo;
 	}
 	
