@@ -1,0 +1,37 @@
+{
+    "description":"Metadata about Table row change set.",
+    "properties":{
+        "tableId":{
+            "type":"string",
+            "description":"The ID of the table that this change is for."
+        },
+        "rowVersion":{
+            "type":"integer",
+            "description":"The version number of the table row change"
+        },
+		"headers": {
+		    "description":"The list of ColumnModels ID that describes the rows of this change.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this change was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this change."
+		},
+		"bucket": {
+			"type": "string",
+			"description": "The name of the S3 bucket where this change is stored"
+		},
+		"key": {
+			"type": "string",
+			"description": "The name of the S3 key where this change is stored"
+		}
+    }
+}

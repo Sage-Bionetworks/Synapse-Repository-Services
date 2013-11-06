@@ -1,0 +1,23 @@
+{
+    "description":"Represents a set of RowReferences of a TablEntity",
+    "properties":{
+		"tableId":{
+			"description":"The ID of the TableEntity than owns these rows",
+			"type": "string"
+		},
+		"headers": {
+		    "description":"The list of ColumnModels ID that describes the rows of this set.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},		
+		"rows": {
+		    "description":"Each RowReference of this list refers to a single version of a single row of a TableEntity.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.RowReference"
+			}
+		}
+    }
+}

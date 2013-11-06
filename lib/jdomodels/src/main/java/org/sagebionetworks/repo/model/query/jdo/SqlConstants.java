@@ -326,6 +326,24 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// This table controls IDs issued to TableEntities.
+	public static final String TABLE_TABLE_ID_SEQUENCE		= "TABLE_ID_SEQUENCE";
+	public static final String COL_ID_SEQUENCE_TABLE_ID		= "TABLE_ID";
+	public static final String COL_ID_SEQUENCE_VERSION		= "ROW_VERSION";
+	public static final String COL_ID_SEQUENCE				= "SEQUENCE";
+	public static final String DDL_TABLE_ID_SEQUENCE = "schema/TableIdSequence-ddl.sql";
+	
+	// The table row changes
+	public static final String TABLE_ROW_CHANGE				= "TABLE_ROW_CHANGE";
+	public static final String COL_TABLE_ROW_TABLE_ID		= "TABLE_ID";
+	public static final String COL_TABLE_ROW_VERSION		= "ROW_VERSION";
+	public static final String COL_TABLE_ROW_COL_IDS		= "COLUMN_IDS";
+	public static final String COL_TABLE_ROW_CREATED_BY		= "CREATED_BY";
+	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
+	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
+	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
+	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
+	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
