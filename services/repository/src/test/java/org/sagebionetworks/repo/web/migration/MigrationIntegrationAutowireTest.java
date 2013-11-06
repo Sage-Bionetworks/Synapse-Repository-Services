@@ -74,7 +74,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.Message;
-import org.sagebionetworks.repo.model.message.RecipientType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -242,7 +241,7 @@ public class MigrationIntegrationAutowireTest {
 		resetDatabase();
 		String sampleFileHandleId = createFileHandles();
 		createActivity();
-		String sampleNodeId = createEntities();
+		createEntities();
 		createFavorite();
 		createEvaluation();
 		createAccessRequirement();
@@ -254,7 +253,7 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups();
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
-		createMessages(sampleGroup, sampleFileHandleId, sampleNodeId);
+		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
 	}
 
@@ -433,7 +432,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public String createEntities() throws JSONObjectAdapterException,
+	public void createEntities() throws JSONObjectAdapterException,
 			ServletException, IOException, NotFoundException {
 		entityToDelete = new LinkedList<String>();
 		// Create a project
@@ -458,8 +457,6 @@ public class MigrationIntegrationAutowireTest {
 		folderToTrash = serviceProvider.getEntityService().createEntity(userName, folderToTrash, null, mockRequest);
 		// Send it to the trash can
 		serviceProvider.getTrashService().moveToTrash(userName, folderToTrash.getId());
-		
-		return project.getId();
 	}
 	
 	private AccessRequirement newAccessRequirement() {
@@ -555,17 +552,18 @@ public class MigrationIntegrationAutowireTest {
 	}
 	
 	@SuppressWarnings("serial")
-	private void createMessages(UserGroup group, String fileHandleId, String nodeId) {
+	private void createMessages(UserGroup group, String fileHandleId) {
 		Message dto = new Message();
 		dto.setCreatedBy(group.getId());
 		dto.setSubject("See you on the other side?");
-		dto.setRecipientType(RecipientType.PRINCIPAL);
+		dto.setRecipientType(ObjectType.PRINCIPAL);
 		dto.setRecipients(new HashSet<String>() {{add("-1");}});
 		dto.setMessageFileHandleId(fileHandleId);
 		dto = messageDAO.createMessage(dto);
 		
 		messageDAO.registerMessageRecipient(dto.getMessageId(), group.getId());
-		messageDAO.registerThreadToNode(dto.getThreadId(), nodeId);
+		String threadId = messageDAO.registerMessageToThread(dto.getMessageId(), null);
+		messageDAO.registerThreadToObject(threadId, ObjectType.ENTITY, "-9999");
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {

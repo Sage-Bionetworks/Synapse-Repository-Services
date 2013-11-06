@@ -61,6 +61,13 @@ public class MessageUtils {
 		if (dbo.getRecipientType() == null) {
 			throw new IllegalArgumentException("Recipient type must be specified");
 		}
+		switch (ObjectType.valueOf(dbo.getRecipientType())) {
+		case PRINCIPAL:
+		case ENTITY:
+			break;
+		default:
+			throw new IllegalArgumentException("Recipient type must be either PRINCIPAL or ENTITY");
+		}
 		try {
 			if (dbo.getRecipients() == null || unzip(dbo.getRecipients()).size() <= 0) {
 				throw new IllegalArgumentException("Recipients must be specified");

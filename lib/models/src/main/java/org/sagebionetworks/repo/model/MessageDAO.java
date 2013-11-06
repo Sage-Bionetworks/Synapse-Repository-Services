@@ -94,7 +94,17 @@ public interface MessageDAO {
 	 * @throws IllegalArgumentException If the message already belongs to a thread
 	 * @return The thread ID 
 	 */
-	public String registerMessageThread(String messageId, String threadId) throws IllegalArgumentException;
+	public String registerMessageToThread(String messageId, String threadId) throws IllegalArgumentException;
+	
+	/**
+	 * Returns the thread IDs linked to the object
+	 */
+	public List<String> getThreadsOfObject(ObjectType objectType, String objectId);
+	
+	/**
+	 * Returns the object linked to the thread
+	 */
+	public Pair<ObjectType, String> getObjectOfThread(String threadId) throws NotFoundException;
 	
 	/**
 	 * Assigns a thread to an object
@@ -102,14 +112,4 @@ public interface MessageDAO {
 	 * @throws IllegalArgumentException If the thread already belongs to an object
 	 */
 	public void registerThreadToObject(String threadId, ObjectType objectType, String objectId) throws IllegalArgumentException;
-	
-	/**
-	 * Returns the thread IDs linked to the object
-	 */
-	public List<String> getThreadsOfObject(ObjectType objectType, String objectId) throws NotFoundException;
-	
-	/**
-	 * Returns the object linked to the thread
-	 */
-	public Pair<ObjectType, String> getObjectOfThread(String threadId) throws NotFoundException;
 }

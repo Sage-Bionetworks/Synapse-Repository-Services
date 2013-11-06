@@ -9,11 +9,12 @@ import java.util.List;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThread;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThreadObject;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -27,6 +28,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.sun.tools.javac.util.Pair;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
@@ -43,11 +46,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String THREAD_ID_PARAM_NAME = "threadId";
 	private static final String USER_ID_PARAM_NAME = "userId";
 	private static final String INBOX_FILTER_PARAM_NAME = "filterTypes";
-	private static final String NODE_ID_PARAM_NAME = "paramId";
+	private static final String MESSAGE_ID_PARAM_NAME = "messageId";
+	private static final String OBJECT_TYPE_PARAM_NAME = "objectType";
+	private static final String OBJECT_ID_PARAM_NAME = "objectId";
 	
 	private static final String FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE = 
-			" FROM "+SqlConstants.TABLE_MESSAGE+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
+			" FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_THREAD+
+			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID+
+			" AND "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
 	
 	private static final String SELECT_MESSAGES_IN_THREAD_NO_FILTER = 
 			"SELECT *"+FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE;
@@ -58,14 +64,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String FROM_MESSAGES_IN_THREAD_CORE = 
 			" FROM "+SqlConstants.TABLE_MESSAGE+
 				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS+
-				" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+")"+
+					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+")"+
+				" INNER JOIN "+SqlConstants.TABLE_MESSAGE_THREAD+
+					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID+")"+
 			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME+
 			" AND ("+SqlConstants.COL_MESSAGE_CREATED_BY+"=:"+USER_ID_PARAM_NAME+
 				" OR "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+USER_ID_PARAM_NAME+")";
 	
 	private static final String SELECT_MESSAGES_IN_THREAD = 
 			"SELECT DISTINCT("+SqlConstants.COL_MESSAGE_ID+"),"+
-				 	SqlConstants.COL_MESSAGE_THREAD_ID+","+
 					SqlConstants.COL_MESSAGE_CREATED_BY+","+
 				 	SqlConstants.COL_MESSAGE_RECIPIENT_TYPE+","+
 				 	SqlConstants.COL_MESSAGE_RECIPIENTS+","+
@@ -101,13 +108,18 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
 	
-	private static final String SELECT_NODE_ID_FROM_THREAD_ID = 
-			"SELECT "+SqlConstants.COL_NODE_MESSAGES_NODE_ID+" FROM "+SqlConstants.TABLE_NODE_MESSAGES+
-			" WHERE "+SqlConstants.COL_NODE_MESSAGES_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
+	private static final String SELECT_THREAD_ID_OF_MESSAGE = 
+			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID+"=:"+MESSAGE_ID_PARAM_NAME;
 	
-	private static final String SELECT_THREAD_ID_FROM_NODE_ID = 
-			"SELECT "+SqlConstants.COL_NODE_MESSAGES_THREAD_ID+" FROM "+SqlConstants.TABLE_NODE_MESSAGES+
-			" WHERE "+SqlConstants.COL_NODE_MESSAGES_NODE_ID+"=:"+NODE_ID_PARAM_NAME;
+	private static final String SELECT_THREADS_OF_OBJECT = 
+			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE+"=:"+OBJECT_TYPE_PARAM_NAME+
+			" AND "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID+"=:"+OBJECT_ID_PARAM_NAME;
+	
+	private static final String SELECT_OBJECT_OF_THREAD = 
+			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
 	
 	private static final RowMapper<DBOMessage> messageRowMapper = new DBOMessage().getTableMapping();
 	
@@ -124,6 +136,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			return bundle;
 		}
 	};
+	
+	private static final RowMapper<String> threadIdRowMapper = new RowMapper<String>() {
+		@Override
+		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return "" + rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID);
+		}
+	};
+	private static final RowMapper<DBOMessageThreadObject> messageThreadObjectRowMapper = new DBOMessageThreadObject().getTableMapping();
 	
 	/**
 	 * Builds up ordering and pagination keywords to append to various message select statements
@@ -160,16 +180,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Message createMessage(Message dto) {
-		// Fill in new IDs for the message
+		// Fill in new ID for the message
 		dto.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID).toString());
-		if (dto.getThreadId() == null) {
-			dto.setThreadId(idGenerator.generateNewId(TYPE.MESSAGE_THREAD_ID).toString());
-		}
 		dto.setCreatedOn(new Date());
 		
-		MessageUtils.validateDTO(dto);
+		DBOMessage dbo = MessageUtils.convertDTO(dto);
 		
-		DBOMessage saved = basicDAO.createNew(MessageUtils.convertDTO(dto));
+		MessageUtils.validateDBO(dbo);
+		
+		DBOMessage saved = basicDAO.createNew(dbo);
 		return MessageUtils.convertDBO(saved);
 	}
 	
@@ -278,35 +297,64 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		toUpdate.setStatus(status);
 		basicDAO.update(toUpdate);
 	}
+	
+	@Override
+	public String getMessageThread(String messageId) throws NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_THREAD_ID_OF_MESSAGE, String.class, params);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("No thread associated with message (" + messageId + ")");
+		}
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void registerThreadToNode(String threadId, String nodeId) {
+	public String registerMessageToThread(String messageId, String threadId)
+			throws IllegalArgumentException {
 		DBOMessageThread dbo = new DBOMessageThread();
-		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
-		dbo.setThreadId(Long.parseLong(threadId));
-		basicDAO.createNew(dbo);
-	}
-
-	@Override
-	public String getThreadOfNode(String nodeId) throws NotFoundException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(NODE_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
-		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_THREAD_ID_FROM_NODE_ID, String.class, params);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("There is no entity linked to the provided node (" + nodeId + ")");
+		dbo.setMessageId(Long.parseLong(messageId));
+		if (threadId == null) {
+			dbo.setThreadId(idGenerator.generateNewId(TYPE.MESSAGE_THREAD_ID));
+		} else {
+			dbo.setThreadId(Long.parseLong(threadId));
 		}
+		dbo = basicDAO.createNew(dbo);
+		return dbo.getThreadId().toString();
 	}
 
 	@Override
-	public String getNodeOfThread(String threadId) throws NotFoundException {
+	public List<String> getThreadsOfObject(ObjectType objectType,
+			String objectId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
+		params.addValue(OBJECT_ID_PARAM_NAME, objectId);
+		return simpleJdbcTemplate.query(SELECT_THREADS_OF_OBJECT, threadIdRowMapper, params);
+	}
+
+	@Override
+	public Pair<ObjectType, String> getObjectOfThread(String threadId)
+			throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		DBOMessageThreadObject dbo;
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_NODE_ID_FROM_THREAD_ID, String.class, params);
+			 dbo = simpleJdbcTemplate.queryForObject(SELECT_OBJECT_OF_THREAD, messageThreadObjectRowMapper, params);
 		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("There is no entity linked to the provided thread (" + threadId + ")");
+			throw new NotFoundException("No object associated with thread (" + threadId + ")");
 		}
+		return new Pair<ObjectType, String>(ObjectType.valueOf(dbo.getObjectType()), dbo.getObjectId().toString());
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void registerThreadToObject(String threadId, ObjectType objectType,
+			String objectId) throws IllegalArgumentException {
+		DBOMessageThreadObject dbo = new DBOMessageThreadObject();
+		dbo.setThreadId(Long.parseLong(threadId));
+		dbo.setObjectType(objectType.name());
+		dbo.setObjectId(Long.parseLong(objectId));
+		basicDAO.createNew(dbo);
 	}
 }

@@ -14,24 +14,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MessageDAO;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
-import org.sagebionetworks.repo.model.message.RecipientType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.sun.tools.javac.util.Pair;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -47,13 +45,9 @@ public class DBOMessageDAOImplTest {
 	private FileHandleDao fileDAO;
 	
 	@Autowired
-	private NodeDAO nodeDAO;
-	
-	@Autowired
 	private DBOBasicDao basicDAO;
 	
 	private String fileHandleId;
-	private String nodeId;
 	
 	private UserGroup maliciousUser;
 	private UserGroup maliciousGroup;
@@ -65,6 +59,8 @@ public class DBOMessageDAOImplTest {
 	private Message userCreateThread;
 	private Message userToThread;
 	private Message groupToThread;
+	
+	private String threadId;
 	
 	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD });
 	
@@ -80,23 +76,25 @@ public class DBOMessageDAOImplTest {
 		S3FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId());
 		handle = fileDAO.createFile(handle);
 		fileHandleId = handle.getId();
-		
-		Node node = NodeTestUtils.createNew("MessageNodeTest", Long.parseLong(maliciousUser.getId()));
-		nodeId = nodeDAO.createNew(node);
-		
+
 		// Create all the messages
-		userToUser = sendMessage(maliciousUser.getId(), null, "userToUser");
-		userToGroup = sendMessage(maliciousUser.getId(), null, "userToGroup");
-		groupToUserAndGroup = sendMessage(maliciousGroup.getId(), null, "groupToUserAndGroup");
-		userCreateThread = sendMessage(maliciousUser.getId(), null, "userCreateThread");
-		userToThread = sendMessage(maliciousUser.getId(), userCreateThread.getThreadId(), "userToThread");
-		groupToThread = sendMessage(maliciousGroup.getId(), userCreateThread.getThreadId(), "groupToThread");
+		userToUser = createMessage(maliciousUser.getId(), "userToUser");
+		userToGroup = createMessage(maliciousUser.getId(), "userToGroup");
+		groupToUserAndGroup = createMessage(maliciousGroup.getId(), "groupToUserAndGroup");
+		userCreateThread = createMessage(maliciousUser.getId(), "userCreateThread");
+		userToThread = createMessage(maliciousUser.getId(), "userToThread");
+		groupToThread = createMessage(maliciousGroup.getId(), "groupToThread");
 		
-		// "Send" all the messages
+		// Send the first three messages
 		messageDAO.registerMessageRecipient(userToUser.getMessageId(), maliciousUser.getId());
 		messageDAO.registerMessageRecipient(userToGroup.getMessageId(), maliciousGroup.getId());
 		messageDAO.registerMessageRecipient(groupToUserAndGroup.getMessageId(), maliciousUser.getId());
 		messageDAO.registerMessageRecipient(groupToUserAndGroup.getMessageId(), maliciousGroup.getId());
+		
+		// Assign the last three messages to the same thread
+		threadId = messageDAO.registerMessageToThread(userCreateThread.getMessageId(), null);
+		messageDAO.registerMessageToThread(userToThread.getMessageId(), threadId);
+		messageDAO.registerMessageToThread(groupToThread.getMessageId(), threadId);
 	}
 	
 	/**
@@ -104,22 +102,20 @@ public class DBOMessageDAOImplTest {
 	 * Message ID will be auto generated
 	 * 
 	 * @param userId The sender
-	 * @param threadId Set to null to auto generate
 	 * @param subject Arbitrary string, can be null
 	 */
 	@SuppressWarnings("serial")
-	private Message sendMessage(String userId, String threadId, String subject) throws InterruptedException {
+	private Message createMessage(String userId, String subject) throws InterruptedException {
 		assertNotNull(userId);
 		
 		Message dto = new Message();
 		dto.setCreatedBy(userId);
-		dto.setThreadId(threadId);
 		dto.setSubject(subject);
 		
 		// These two fields will be eventually be used by a worker
 		// to determine who to send messages to
 		// For the sake of this test, the values do not matter (as long as they are non-null)
-		dto.setRecipientType(RecipientType.PRINCIPAL);
+		dto.setRecipientType(ObjectType.PRINCIPAL);
 		dto.setRecipients(new HashSet<String>() {{add("-1");}});
 		
 		dto.setMessageFileHandleId(fileHandleId);
@@ -127,7 +123,6 @@ public class DBOMessageDAOImplTest {
 		// Insert the row
 		dto = messageDAO.createMessage(dto);
 		assertNotNull(dto.getMessageId());
-		assertNotNull(dto.getThreadId());
 		assertNotNull(dto.getCreatedOn());
 		
 		// Make sure the timestamps on the messages are different 
@@ -140,9 +135,6 @@ public class DBOMessageDAOImplTest {
 	public void cleanup() throws Exception {
 		// This will cascade delete all the messages generated for this test
 		fileDAO.delete(fileHandleId);
-		
-		// Linked to thread IDs
-		nodeDAO.delete(nodeId);
 	}
 	
 	@Test
@@ -158,10 +150,10 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testGetThread_NoFilter_DescendSubject() throws Exception {
-		assertEquals("There should be 3 messages in the thread", 3L, messageDAO.getThreadSize(userCreateThread.getThreadId()));
+		assertEquals("There should be 3 messages in the thread", 3L, messageDAO.getThreadSize(threadId));
 		
 		// Test the user's visibility
-		List<Message> thread = messageDAO.getThread(userCreateThread.getThreadId(), MessageSortBy.SUBJECT, true, 3, 0);
+		List<Message> thread = messageDAO.getThread(threadId, MessageSortBy.SUBJECT, true, 3, 0);
 		assertEquals("Should get back 3 messages", 3, thread.size());
 		
 		// Order of messages should be descending alphabetical order by subject
@@ -172,14 +164,11 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testGetThread_DescendSubject() throws Exception {
-		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(userToUser.getThreadId(), maliciousUser.getId()));
-		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(userToGroup.getThreadId(), maliciousUser.getId()));
-		assertEquals("All messages belong to their own thread", 1L, messageDAO.getThreadSize(groupToUserAndGroup.getThreadId(), maliciousGroup.getId()));
-		assertEquals("There should be 2 messages in the thread visible to the user", 2L, messageDAO.getThreadSize(userToThread.getThreadId(), maliciousUser.getId()));
-		assertEquals("There should be 1 message in the thread visible to the group", 1L, messageDAO.getThreadSize(groupToThread.getThreadId(), maliciousGroup.getId()));
+		assertEquals("There should be 2 messages in the thread visible to the user", 2L, messageDAO.getThreadSize(threadId, maliciousUser.getId()));
+		assertEquals("There should be 1 message in the thread visible to the group", 1L, messageDAO.getThreadSize(threadId, maliciousGroup.getId()));
 		
 		// Test the user's visibility
-		List<Message> thread = messageDAO.getThread(userCreateThread.getThreadId(), maliciousUser.getId(), MessageSortBy.SUBJECT, true, 3, 0);
+		List<Message> thread = messageDAO.getThread(threadId, maliciousUser.getId(), MessageSortBy.SUBJECT, true, 3, 0);
 		assertEquals("Should get back 2 messages", 2, thread.size());
 		
 		// Order of messages should be descending alphabetical order by subject
@@ -187,7 +176,7 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userCreateThread, thread.get(1));
 
 		// Test the group's visibility
-		thread = messageDAO.getThread(userCreateThread.getThreadId(), maliciousGroup.getId(), MessageSortBy.SUBJECT, true, 3, 0);
+		thread = messageDAO.getThread(threadId, maliciousGroup.getId(), MessageSortBy.SUBJECT, true, 3, 0);
 		assertEquals("Should get back 1 message", 1, thread.size());
 		assertEquals(groupToThread, thread.get(0));
 	}
@@ -265,14 +254,28 @@ public class DBOMessageDAOImplTest {
 	}
 	
 	@Test
-	public void testNodeThreadLinkage() throws Exception {
+	public void testGetThreadId() throws Exception {
+		assertEquals("Thread ID should be fetchable from message ID", threadId, messageDAO.getMessageThread(userCreateThread.getMessageId())); 
+		assertEquals("Thread ID should be fetchable from message ID", threadId, messageDAO.getMessageThread(userToThread.getMessageId()));
+		assertEquals("Thread ID should be fetchable from message ID", threadId, messageDAO.getMessageThread(groupToThread.getMessageId()));
+	}
+	
+	@Test
+	public void testThreadToObjectLinkage() throws Exception {
 		try {
-			messageDAO.getThreadOfNode(nodeId);
+			messageDAO.getObjectOfThread(threadId);
 			fail();
 		} catch (NotFoundException e) { }
 		
-		messageDAO.registerThreadToNode(userCreateThread.getThreadId(), nodeId);
-		assertEquals("Node should be linked to the thread", userCreateThread.getThreadId(), messageDAO.getThreadOfNode(nodeId));
-		assertEquals("Thread should be linked to the node", KeyFactory.stringToKey(nodeId).toString(), messageDAO.getNodeOfThread(userCreateThread.getThreadId()));
+		ObjectType oType = ObjectType.ENTITY;
+		String oId = "-1";
+		
+		messageDAO.registerThreadToObject(threadId, oType, oId);
+		List<String> threads = messageDAO.getThreadsOfObject(oType, oId);
+		assertEquals("Should be one thread", 1, threads.size());
+		assertEquals("Should be the only thread", threadId, threads.get(0));
+		Pair<ObjectType, String> obj = messageDAO.getObjectOfThread(threadId);
+		assertEquals(oType, obj.fst);
+		assertEquals(oId, obj.snd);
 	}
 }
