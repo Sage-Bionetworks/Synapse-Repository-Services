@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
@@ -20,14 +21,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class BaseController {
 	private static final Logger log = LogManager.getLogger(BaseController.class
 			.getName());
+
+	/**
+	 * This exception is thrown when an entity with a given name already exists.
+	 */
+	@ExceptionHandler(NameConflictException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public @ResponseBody
+	ErrorResponse handleNameConflictException(NameConflictException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
 	
 	/**
 	 * This is thrown whenever a requested object is not found
-	 * 
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
 	 */
 	@ExceptionHandler(NotFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
@@ -39,12 +46,8 @@ public class BaseController {
 	}
 	
 	/**
-	 * This is thrown when there are problems authenticating the user
-	 * 
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
+	 * This is thrown when there are problems authenticating the user.
+	 * The user is usually advised to correct their credentials and try again.  
 	 */
 	@ExceptionHandler(UnauthorizedException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
@@ -57,11 +60,6 @@ public class BaseController {
 	
 	/**
 	 * This is thrown when the user has not accepted the terms of use
-	 * 
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
 	 */
 	@ExceptionHandler(TermsOfUseException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
@@ -72,18 +70,10 @@ public class BaseController {
 		return handleException(ex, request, false);
 	}
 
-
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional
 	 * message with higher severity because we really do want to know what sorts
 	 * of new exceptions are occurring.
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
 	 */
 	@ExceptionHandler(Exception.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

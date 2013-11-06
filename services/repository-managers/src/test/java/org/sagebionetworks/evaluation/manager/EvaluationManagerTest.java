@@ -172,6 +172,8 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testGetAvailableInRange() throws Exception {
+		// availability is based on SUBMIT access, not READ
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(false);
 		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L);
 		assertEquals(evaluations, qr.getResults());
 		assertEquals(1L, qr.getTotalNumberOfResults());

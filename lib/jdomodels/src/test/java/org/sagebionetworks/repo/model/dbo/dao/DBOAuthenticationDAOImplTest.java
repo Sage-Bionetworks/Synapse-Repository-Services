@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeNotNull;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -159,19 +159,23 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testSessionTokenRevalidation() throws Exception {
 		// Test fast!  Only one second before expiration!
-		Date almostExpired = secretRow.getValidatedOn();
-		almostExpired.setTime(almostExpired.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000);
+		Date now = secretRow.getValidatedOn();
+		secretRow.setValidatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
 		basicDAO.update(secretRow);
 
-		// A second hasn't passed yet
-		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		assumeNotNull(session);
+		// Still valid
+		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME, now);
+		assertNotNull(session);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
-		Thread.sleep(1500);
+		// Right on the dot!  Too bad, that's invalid :P
+		now.setTime(now.getTime() + 1000);
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME, now);
+		assertNull(session);
 		
 		// Session should no longer be valid
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		now.setTime(now.getTime() + 1000);
+		session = authDAO.getSessionTokenIfValid(GROUP_NAME, now);
 		assertNull(session);
 
 		// Session is valid again

@@ -174,9 +174,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 
 	@Override
 	public Session getSessionTokenIfValid(String username) {
+		return getSessionTokenIfValid(username, new Date());
+	}
+	
+	@Override
+	public Session getSessionTokenIfValid(String username, Date now) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(EMAIL_PARAM_NAME, username);
-		param.addValue(TIME_PARAM_NAME, new Date(new Date().getTime() - SESSION_EXPIRATION_TIME));
+		param.addValue(TIME_PARAM_NAME, new Date(now.getTime() - SESSION_EXPIRATION_TIME));
 		try {
 			return simpleJdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID, 
 					sessionRowMapper, param);

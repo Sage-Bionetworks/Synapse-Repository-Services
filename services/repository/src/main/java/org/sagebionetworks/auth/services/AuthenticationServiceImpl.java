@@ -2,8 +2,6 @@ package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
@@ -12,7 +10,7 @@ import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -26,8 +24,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class AuthenticationServiceImpl implements AuthenticationService {
-	
-	private static Log log = LogFactory.getLog(AuthenticationServiceImpl.class);
 
 	@Autowired
 	private UserManager userManager;
@@ -102,15 +98,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user) throws UnauthorizedException {
+	public void createUser(NewUser user) throws UnauthorizedException, NameConflictException {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Required fields are missing for user creation");
 		}
-		try {
-			userManager.createUser(user);
-		} catch (DatastoreException e) {
-			throw new UnauthorizedException("User '" + user.getEmail() + "' already exists", e);
-		}
+		
+		userManager.createUser(user);
 		
 		// For integration test to confirm that a user can be created
 		if (!StackConfiguration.isProductionStack()) {
@@ -221,12 +214,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		mailTarget.setFirstName(user.getUser().getFname());
 		mailTarget.setLastName(user.getUser().getLname());
 		
-		// Don't spam emails for integration tests
-		if (!StackConfiguration.isProductionStack()) {
-			log.debug("Prevented " + mode + " email from being sent to " + mailTarget + " with session token " + sessionToken);
-			return;
-		}
-		
 		SendMail sendMail = new SendMail();
 		switch (mode) {
 			case SET_PW:
@@ -283,16 +270,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Dig out a ToU boolean from the request
+		// Defaults to false
 		String toUParam = parameters.getParameterValue(OpenIDInfo.ACCEPTS_TERMS_OF_USE_PARAM_NAME);
-		Boolean acceptsTermsOfUse = new Boolean(toUParam);
+		boolean acceptsTermsOfUse = new Boolean(toUParam);
 		
-		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse);
+		// Dig out a createUser boolean from the request
+		// Defaults to false
+		String createParam = parameters.getParameterValue(OpenIDInfo.CREATE_USER_IF_NECESSARY_PARAM_NAME);
+		boolean shouldCreateUser = new Boolean(createParam);
+		
+		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse, shouldCreateUser);
 	}
 	
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse) throws NotFoundException {
+	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
 		String fname = info.getFirstName();
@@ -303,13 +296,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		if (!userManager.doesPrincipalExist(email)) {
-			// A new user must be created
-			NewUser user = new NewUser();
-			user.setEmail(email);
-			user.setFirstName(fname);
-			user.setLastName(lname);
-			user.setDisplayName(fullName);
-			userManager.createUser(user);
+			if (createUserIffNecessary) {
+				// A new user must be created
+				NewUser user = new NewUser();
+				user.setEmail(email);
+				user.setFirstName(fname);
+				user.setLastName(lname);
+				user.setDisplayName(fullName);
+				userManager.createUser(user);
+				
+				// Send the user a welcoming message
+				SendMail sendMail = new SendMail();
+				sendMail.sendWelcomeMail(user);
+			} else {
+				throw new NotFoundException(email);
+			}
 		}
 		
 		// The user does not need to accept the terms of use to get a session token via OpenID

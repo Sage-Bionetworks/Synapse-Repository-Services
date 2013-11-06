@@ -5085,6 +5085,18 @@ public class SynapseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	public void resendPasswordEmail(String email) throws SynapseException{
+		try {
+			NewUser user = new NewUser();
+			user.setEmail(email);
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+			createAuthEntity("/registeringUserEmail", obj);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	@Override
 	public NewUser getAuthUserInfo() throws SynapseException {
 		try {
 			JSONObject obj = getSynapseEntity(authEndpoint, "/user");
@@ -5152,12 +5164,24 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString) throws SynapseException {
+		return passThroughOpenIDParameters(queryString, false);
+	}
 	
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException {
+		return passThroughOpenIDParameters(queryString, false, false);
+	}
+	
+	@Override
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary) throws SynapseException {
 		try {
 			URI uri = new URI(null, null, "/openIdCallback", 
-					queryString + "&org.sagebionetworks.acceptsTermsOfUse=" + acceptsTermsOfUse, null);
+					queryString + "&org.sagebionetworks.acceptsTermsOfUse=" + acceptsTermsOfUse 
+							+ "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, 
+					null);
 			JSONObject session = createAuthEntity(uri.toString(), new JSONObject());
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
