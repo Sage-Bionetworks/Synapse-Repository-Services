@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,10 +22,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableChange;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -30,6 +36,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.sns.model.NotFoundException;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -38,6 +46,9 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
+	private static final String SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION = "SELECT * FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ? AND "+COL_TABLE_ROW_VERSION+" = ?";
+	private static final String SQL_LIST_ALL_KEYS = "SELECT "+COL_TABLE_ROW_KEY+" FROM "+TABLE_ROW_CHANGE;
+	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE = "SELECT * FROM "+TABLE_ROW_CHANGE+" WHERE "+COL_TABLE_ROW_TABLE_ID+" = ? ORDER BY "+COL_TABLE_ROW_VERSION+" ASC";
 	private static final String KEY_TEMPLATE = "%1$s.csv.gz";
 	private static final String SQL_TRUNCATE_SEQUENCE_TABLE = "DELETE FROM "+TABLE_TABLE_ID_SEQUENCE+" WHERE "+COL_ID_SEQUENCE_TABLE_ID+" > 0";
 	private static final String SQL_SELECT_SEQUENCE_FOR_UPDATE = "SELECT * FROM "+TABLE_TABLE_ID_SEQUENCE+" WHERE "+COL_ID_SEQUENCE_TABLE_ID+" = ? FOR UPDATE";
@@ -63,6 +74,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	RowMapper<DBOTableIdSequence> sequenceRowMapper = new DBOTableIdSequence().getTableMapping();
+	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange().getTableMapping();
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -111,24 +123,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return range;
 	}
 
-	@Override
-	public TableChange storeRowSet(TableChange change, RowSet rows) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public RowSet getRowSet(String key) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<TableChange> listRowSetsKeysForTable(String tableId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	/**
 	 * Called after bean creation.
 	 */
@@ -161,7 +155,20 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setBucket(s3Bucket);
 		basicDao.createNew(changeDBO);
 		
-		return null;
+		// Prepare the results
+		RowReferenceSet results = new RowReferenceSet();
+		results.setHeaders(headers);
+		results.setTableId(tableId);
+		List<RowReference> refs = new LinkedList<RowReference>();
+		// Build up the row references
+		for(Row row: delta.getRows()){
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(row.getVersionNumber());
+			refs.add(ref);
+		}
+		results.setRows(refs);
+		return results;
 	}
 
 	/**
@@ -194,6 +201,40 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 	}
 	
+
+	/**
+	 * List all changes for this table.
+	 */
+	@Override
+	public List<TableRowChange> listRowSetsKeysForTable(String tableIdString) {
+		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		List<DBOTableRowChange> dboList =  simpleJdbcTemplate.query(SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
+		return TableModelUtils.ceateDTOFromDBO(dboList);
+	}
+	
+	/**
+	 * Read the RowSet from S3.
+	 */
+	@Override
+	public RowSet getRowSet(String tableIdString, long rowVersion) throws IOException {
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		try {
+			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION, rowChangeMapper, tableId, rowVersion);
+			List<String> headers = TableModelUtils.readColumnModelIdsFromDelimitedString(dbo.getColumnIds());
+			// Downlaod the file from S3
+			S3Object object = s3Client.getObject(dbo.getBucket(), dbo.getKey());
+			try{
+				return TableModelUtils.readFromCSVgzStream(object.getObjectContent(), tableIdString, headers);
+			}finally{
+				// Need to close the stream unconditionally.
+				object.getObjectContent().close();
+			}
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("RowSet does not exist for tableId: "+tableId+" and row version: "+rowVersion);
+		}
+	}
+	
 	@Override
 	public void truncateAllRowData() {
 		// List key so we can delete them
@@ -210,7 +251,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 */
 	private List<String> listAllKeys() {
-		return simpleJdbcTemplate.query("SELECT "+COL_TABLE_ROW_KEY+" FROM "+TABLE_ROW_CHANGE, new RowMapper<String>() {
+		return simpleJdbcTemplate.query(SQL_LIST_ALL_KEYS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_TABLE_ROW_KEY);

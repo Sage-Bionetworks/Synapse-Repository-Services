@@ -11,16 +11,19 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
@@ -467,5 +470,26 @@ public class TableModelUtilsTest {
 		System.out.println(del);
 		List<String> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
 		assertEquals(headers, result);
+	}
+	
+	@Test
+	public void testDTOandDBORoundTrip(){
+		TableRowChange dto = new TableRowChange();
+		dto.setTableId("syn123");
+		dto.setRowVersion(12l);
+		dto.setCreatedBy("456");
+		dto.setCreatedOn(new Date(101));
+		dto.setHeaders(new LinkedList<String>());
+		dto.getHeaders().add("111");
+		dto.getHeaders().add("222");
+		dto.setBucket("bucket");
+		dto.setKey("key");
+		// To DBO
+		DBOTableRowChange dbo = TableModelUtils.createDBOFromDTO(dto);
+		assertNotNull(dbo);
+		// Create a clone
+		TableRowChange clone = TableModelUtils.ceateDTOFromDBO(dbo);
+		assertNotNull(clone);
+		assertEquals(dto, clone);
 	}
 }

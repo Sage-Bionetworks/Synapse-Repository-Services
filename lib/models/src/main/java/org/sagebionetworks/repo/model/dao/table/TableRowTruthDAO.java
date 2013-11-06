@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableChange;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -35,23 +35,14 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 */
 	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta) throws IOException;
-	
+		
 	/**
-	 * Store a change set of rows for a table.
-	 * 
-	 * @param tableId
-	 * @param schema
-	 * @param rows
-	 * @return The key of this change set.
-	 */
-	public TableChange storeRowSet(TableChange change, RowSet rows);
-	
-	/**
-	 * Fetch a row set using its key.
+	 * Fetch a change set for a given table and 
 	 * @param key
 	 * @return
+	 * @throws IOException 
 	 */
-	public RowSet getRowSet(String key);
+	public RowSet getRowSet(String tableId, long rowVersion) throws IOException;
 	
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -61,7 +52,7 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<TableChange> listRowSetsKeysForTable(String tableId);
+	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
 	
 	/**
 	 * This should never be called in a production setting.
