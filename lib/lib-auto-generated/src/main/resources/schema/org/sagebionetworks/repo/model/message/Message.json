@@ -6,6 +6,10 @@
 			"type": "string",
 			"description":"The unique identifier of the message."
 		},
+		"replyTo": {
+			"type": "string",
+			"description":"The unique identifier of the message being replied to.  Can be null"
+		}, 
 		"createdBy": {
 			"type": "string",
 			"description":"The unique identifier of the sender of this message."

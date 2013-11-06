@@ -26,7 +26,8 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		new FieldColumn("recipients", SqlConstants.COL_MESSAGE_RECIPIENTS),
 		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_FILE_HANDLE_ID),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CREATED_ON),
-		new FieldColumn("subject", SqlConstants.COL_MESSAGE_SUBJECT)
+		new FieldColumn("subject", SqlConstants.COL_MESSAGE_SUBJECT), 
+		new FieldColumn("replyTo", SqlConstants.COL_MESSAGE_REPLY_TO)
 	};
 	
 	private Long messageId;
@@ -36,6 +37,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	private Long fileHandleId;
 	private Long createdOn;
 	private String subject;
+	private Long replyTo;
 
 	@Override
 	public TableMapping<DBOMessage> getTableMapping() {
@@ -52,6 +54,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_FILE_HANDLE_ID));
 				result.setCreatedOn(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_ON));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_SUBJECT));
+				result.setReplyTo(rs.getLong(SqlConstants.COL_MESSAGE_REPLY_TO));
 				return result;
 			}
 			
@@ -135,6 +138,16 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	}
 
 	
+	public Long getReplyTo() {
+		return replyTo;
+	}
+
+
+	public void setReplyTo(Long replyTo) {
+		this.replyTo = replyTo;
+	}
+
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.MESSAGE;
@@ -191,6 +204,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 		result = prime * result
 				+ ((recipientType == null) ? 0 : recipientType.hashCode());
 		result = prime * result + Arrays.hashCode(recipients);
+		result = prime * result + ((replyTo == null) ? 0 : replyTo.hashCode());
 		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
 		return result;
 	}
@@ -225,9 +239,17 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				return false;
 		} else if (!messageId.equals(other.messageId))
 			return false;
-		if (recipientType != other.recipientType)
+		if (recipientType == null) {
+			if (other.recipientType != null)
+				return false;
+		} else if (!recipientType.equals(other.recipientType))
 			return false;
 		if (!Arrays.equals(recipients, other.recipients))
+			return false;
+		if (replyTo == null) {
+			if (other.replyTo != null)
+				return false;
+		} else if (!replyTo.equals(other.replyTo))
 			return false;
 		if (subject == null) {
 			if (other.subject != null)
@@ -243,7 +265,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				+ createdBy + ", recipientType=" + recipientType
 				+ ", recipients=" + Arrays.toString(recipients)
 				+ ", fileHandleId=" + fileHandleId + ", createdOn=" + createdOn
-				+ ", subject=" + subject + "]";
+				+ ", subject=" + subject + ", replyTo=" + replyTo + "]";
 	}
 
 }

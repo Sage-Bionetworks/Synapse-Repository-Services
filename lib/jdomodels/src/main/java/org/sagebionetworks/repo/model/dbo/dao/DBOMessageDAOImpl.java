@@ -78,7 +78,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 				 	SqlConstants.COL_MESSAGE_RECIPIENTS+","+
 				 	SqlConstants.COL_MESSAGE_FILE_HANDLE_ID+","+
 				 	SqlConstants.COL_MESSAGE_CREATED_ON+","+
-				 	SqlConstants.COL_MESSAGE_SUBJECT+
+				 	SqlConstants.COL_MESSAGE_SUBJECT+","+
+				 	SqlConstants.COL_MESSAGE_REPLY_TO+
 			FROM_MESSAGES_IN_THREAD_CORE;
 	
 	private static final String COUNT_MESSAGES_IN_THREAD = 
