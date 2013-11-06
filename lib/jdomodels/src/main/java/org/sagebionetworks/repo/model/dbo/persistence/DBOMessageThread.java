@@ -98,9 +98,7 @@ public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThre
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> secondaries = new ArrayList<MigratableDatabaseObject>();
-		secondaries.add(new DBOMessageThreadObject());
-		return secondaries;
+		return null;
 	}
 
 	public Long getThreadId() {

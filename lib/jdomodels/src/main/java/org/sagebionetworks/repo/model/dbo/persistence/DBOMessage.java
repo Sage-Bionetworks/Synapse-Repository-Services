@@ -170,6 +170,7 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> secondaries = new ArrayList<MigratableDatabaseObject>();
 		secondaries.add(new DBOMessageStatus());
+		secondaries.add(new DBOMessageThread());
 		return secondaries;
 	}
 
