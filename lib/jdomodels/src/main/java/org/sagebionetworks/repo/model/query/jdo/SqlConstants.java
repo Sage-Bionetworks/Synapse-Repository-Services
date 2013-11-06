@@ -162,7 +162,7 @@ public class SqlConstants {
  	// User message thread
  	public static final String TABLE_MESSAGE_THREAD                 = "MESSAGE_THREAD";
  	public static final String COL_MESSAGE_THREAD_ID                = "THREAD_ID";
- 	public static final String COL_MESSAGE_THREAD_MESSAGE_ID        = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_THREAD_MESSAGE_ID        = "THREAD_MESSAGE_ID";
  	public static final String DDL_MESSAGE_THREAD                   = "schema/MessageThread-ddl.sql";
  	
  	// Message thread object link
