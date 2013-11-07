@@ -126,8 +126,8 @@ public class MessageManagerImplTest {
 	 */
 	@SuppressWarnings("serial")
 	private void initOtherToThreadMessage() throws Exception {
-		otherToThread = sendMessage(otherTestUser, userCreateThread.getThreadId(), "otherToThread", 
-				RecipientType.ENTITY, new HashSet<String>() {{add(testUserNodeId);}});
+		otherToThread = sendMessage(otherTestUser, "otherToThread", 
+				RecipientType.ENTITY, new HashSet<String>() {{add(testUserNodeId);}}, userCreateThread.getMessageId());
 	}
 	
 	/**
@@ -155,18 +155,18 @@ public class MessageManagerImplTest {
 		testUserNodeId = nodeManager.createNewNode(newNode, testUser);
 		
 		// Create all the messages, but don't send them yet
-		userToUser = sendMessage(testUser, null, "userToUser", 
-				RecipientType.PRINCIPAL, new HashSet<String>() {{add(testUserId);}});
-		userToOther = sendMessage(testUser, null, "userToOther", 
-				RecipientType.PRINCIPAL, new HashSet<String>() {{add(otherTestUserId);}});
-		otherReplyToUser = sendMessage(otherTestUser, userToOther.getThreadId(), "otherReplyToUser", 
-				RecipientType.PRINCIPAL, new HashSet<String>() {{add(testUserId);}});
-		otherToUserAndSelf = sendMessage(otherTestUser, null, "otherToUserAndSelf", 
-				RecipientType.PRINCIPAL, new HashSet<String>() {{add(testUserId); add(otherTestUserId);}});
-		userCreateThread = sendMessage(testUser, null, "userCreateThread", 
-				RecipientType.ENTITY, new HashSet<String>() {{add(testUserNodeId);}});
-		userToThread = sendMessage(testUser, null, "userToThread", 
-				RecipientType.ENTITY, new HashSet<String>() {{add(testUserNodeId);}});
+		userToUser = sendMessage(testUser, "userToUser", 
+				RecipientType.PRINCIPAL, new HashSet<String>() {{add(testUserId);}}, null);
+		userToOther = sendMessage(testUser, "userToOther", 
+				RecipientType.PRINCIPAL, new HashSet<String>() {{add(otherTestUserId);}}, null);
+		otherReplyToUser = sendMessage(otherTestUser, "otherReplyToUser", 
+				RecipientType.PRINCIPAL, new HashSet<String>() {{add(testUserId);}}, userToOther.getMessageId());
+		otherToUserAndSelf = sendMessage(otherTestUser, "otherToUserAndSelf", 
+				RecipientType.PRINCIPAL, new HashSet<String>() {{add(testUserId); add(otherTestUserId);}}, null);
+		userCreateThread = sendMessage(testUser, "userCreateThread", 
+				RecipientType.ENTITY, new HashSet<String>() {{add(testUserNodeId);}}, null);
+		userToThread = sendMessage(testUser, "userToThread", 
+				RecipientType.ENTITY, new HashSet<String>() {{add(testUserNodeId);}}, null);
 		// Note: the groupToThread message is not initialized since the group does not have access to the entity
 	}
 	
@@ -179,18 +179,18 @@ public class MessageManagerImplTest {
 	 * @param subject Arbitrary string, can be null
 	 * @throws NotFoundException 
 	 */
-	private Message sendMessage(UserInfo userInfo, String threadId, String subject, 
-			RecipientType rType, Set<String> recipients) throws Exception {
+	private Message sendMessage(UserInfo userInfo, String subject, 
+			RecipientType rType, Set<String> recipients, String replyTo) throws Exception {
 		assertNotNull(userInfo);
 		assertNotNull(rType);
 		assertNotNull(recipients);
 		assertTrue(recipients.size() > 0);
 		
 		Message dto = new Message();
-		dto.setThreadId(threadId);
 		dto.setSubject(subject);
 		dto.setRecipientType(rType);
 		dto.setRecipients(recipients);
+		dto.setReplyTo(replyTo);
 		
 		// Common file handle
 		dto.setMessageFileHandleId(fileHandleId);
@@ -317,14 +317,14 @@ public class MessageManagerImplTest {
 	
 	@Test
 	public void testGetMessageThread() throws Exception {
-		QueryResults<Message> messages = messageManager.getMessageThread(testUser, userToOther.getThreadId(), testUser.getIndividualGroup().getId(), 
+		QueryResults<Message> messages = messageManager.getMessageThread(testUser, userToOther.getThreadId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("User can only see the sent message", 1L, messages.getTotalNumberOfResults());
 		assertEquals("User can only see the sent message", 1, messages.getResults().size());
 		assertEquals(userToOther, messages.getResults().get(0));
 		
 		// Ignoring the fact that you can't reply to a message you can't see :)
-		messages = messageManager.getMessageThread(otherTestUser, otherReplyToUser.getThreadId(), otherTestUser.getIndividualGroup().getId(), 
+		messages = messageManager.getMessageThread(otherTestUser, otherReplyToUser.getThreadId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("Other user can only see the sent message", 1L, messages.getTotalNumberOfResults());
 		assertEquals("Other user can only see the sent message", 1, messages.getResults().size());
@@ -334,26 +334,26 @@ public class MessageManagerImplTest {
 		messageManager.sendMessage(userToOther.getMessageId());
 		messageManager.sendMessage(otherReplyToUser.getMessageId());
 		
-		messages = messageManager.getMessageThread(testUser, userToOther.getThreadId(), testUser.getIndividualGroup().getId(), 
+		messages = messageManager.getMessageThread(testUser, userToOther.getThreadId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("Now both messages are visible", 2L, messages.getTotalNumberOfResults());
 		assertEquals("Now both messages are visible", 2, messages.getResults().size());
 		assertEquals(otherReplyToUser, messages.getResults().get(0));
 		assertEquals(userToOther, messages.getResults().get(1));
 		
-		QueryResults<Message> whatTheOtherUserSees = messageManager.getMessageThread(otherTestUser, otherReplyToUser.getThreadId(), otherTestUser.getIndividualGroup().getId(), 
+		QueryResults<Message> whatTheOtherUserSees = messageManager.getMessageThread(otherTestUser, otherReplyToUser.getThreadId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("The users have the same privileges regarding the thread's visibility", messages, whatTheOtherUserSees);
 	}
 	
 	@Test
 	public void testGetInbox_ChronologicalSending() throws Exception {
-		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, testUser.getIndividualGroup().getId(), 
+		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("Nothing has been sent yet", 0L, messages.getTotalNumberOfResults());
 		assertEquals("Nothing has been sent yet", 0, messages.getResults().size());
 		
-		QueryResults<MessageBundle> whatTheOtherUserSees = messageManager.getInbox(otherTestUser, otherTestUser.getIndividualGroup().getId(), 
+		QueryResults<MessageBundle> whatTheOtherUserSees = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals("Nothing has been sent yet", messages, whatTheOtherUserSees);
 
@@ -367,7 +367,7 @@ public class MessageManagerImplTest {
 		messageManager.sendMessage(userToThread.getMessageId());
 		
 		// Now the inboxes diverge in their contents
-		messages = messageManager.getInbox(testUser, testUser.getIndividualGroup().getId(), 
+		messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(3L, messages.getTotalNumberOfResults());
 		assertEquals(3, messages.getResults().size());
@@ -375,7 +375,7 @@ public class MessageManagerImplTest {
 		assertEquals(otherReplyToUser, messages.getResults().get(1).getMessage());
 		assertEquals(userToUser, messages.getResults().get(2).getMessage());
 		
-		whatTheOtherUserSees = messageManager.getInbox(otherTestUser, otherTestUser.getIndividualGroup().getId(), 
+		whatTheOtherUserSees = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(2L, whatTheOtherUserSees.getTotalNumberOfResults());
 		assertEquals(2, whatTheOtherUserSees.getResults().size());
@@ -385,9 +385,9 @@ public class MessageManagerImplTest {
 	
 	@Test
 	public void testGetOutbox_UnchangedAfterSending_ReverseSendOrder() throws Exception {
-		QueryResults<Message> messages = messageManager.getOutbox(testUser, testUser.getIndividualGroup().getId(), 
+		QueryResults<Message> messages = messageManager.getOutbox(testUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		QueryResults<Message> whatTheOtherUserSees = messageManager.getOutbox(otherTestUser, otherTestUser.getIndividualGroup().getId(), 
+		QueryResults<Message> whatTheOtherUserSees = messageManager.getOutbox(otherTestUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		tesGetOutbox_AssertStatements(messages, whatTheOtherUserSees);
 
@@ -401,9 +401,9 @@ public class MessageManagerImplTest {
 		messageManager.sendMessage(userToUser.getMessageId());
 		
 		// Outboxes are unchanged
-		messages = messageManager.getOutbox(testUser, testUser.getIndividualGroup().getId(), 
+		messages = messageManager.getOutbox(testUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		whatTheOtherUserSees = messageManager.getOutbox(otherTestUser, otherTestUser.getIndividualGroup().getId(), 
+		whatTheOtherUserSees = messageManager.getOutbox(otherTestUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		tesGetOutbox_AssertStatements(messages, whatTheOtherUserSees);
 	}
