@@ -137,6 +137,9 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"
 		scope="singleton">
 	</bean>
+	
+	<bean id="messageDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMessageDAOImpl"
+		scope="singleton" />
 
 	<bean id="changeDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAOImpl"
 		scope="singleton">
@@ -177,8 +180,14 @@
 	</bean>
 	
 	<bean id="columnModelDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOColumnModelDAOImpl"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.DBOColumnModelDAOImpl"
 		scope="singleton">
+	</bean>
+	
+	<bean id="tableRowTruthDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
+		scope="singleton" init-method="initialize">
+		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
 	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
@@ -242,5 +251,8 @@
 		
 	<bean id="wikiMigrationDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
+		
+	<bean id="v2WikiPageMigrationDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMigrationDAOImpl" />
 
 </beans>

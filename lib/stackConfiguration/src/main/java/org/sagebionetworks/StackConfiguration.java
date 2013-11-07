@@ -1193,6 +1193,16 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.id");
 	}
+	
+
+	/**
+	 * Get the name of the audit record bucket.
+	 * 
+	 * @return
+	 */
+	public String getTableRowChangeBucketName() {
+		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, StackConfiguration.getStack());
+	}
 
 	/**
 	 * Get the name of the audit record bucket.

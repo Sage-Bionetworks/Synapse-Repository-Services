@@ -34,7 +34,7 @@ public class EmailUtils {
         mailFrom = props.getProperty("org.sagebionetworks.mailFrom");
     }
     
-    public static void sendGmail(
+    private static void sendGmail(
     		final String user, 
     		final String pass, 
     		String from, 

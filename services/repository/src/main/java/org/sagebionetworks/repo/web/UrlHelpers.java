@@ -672,6 +672,7 @@ public class UrlHelpers {
 	public static final String AUTH_SESSION = "/session";
 	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
 	public static final String AUTH_USER = "/user";
+	public static final String AUTH_REGISTERING_USER_EMAIL = "/registeringUserEmail";
 	public static final String AUTH_USER_PASSWORD_EMAIL = "/userPasswordEmail";
 	public static final String AUTH_API_PASSWORD_EMAIL = "/apiPasswordEmail";
 	public static final String AUTH_USER_PASSWORD = "/userPassword";

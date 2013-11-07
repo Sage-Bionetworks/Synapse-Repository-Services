@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
  */
 public interface DBOBasicDao {
 	
-
+	
 	/**
 	 * Create a new Database object.
 	 * @param <T>
