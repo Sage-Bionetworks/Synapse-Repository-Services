@@ -146,7 +146,7 @@ public class MigrationClientTest {
 	
 	@Test (expected=RuntimeException.class)
 	public void testWikiMigrationFailure() throws SynapseException, JSONObjectAdapterException {
-		List<WikiMigrationResult> results = createSomeFailedResults(300);
+		List<WikiMigrationResult> results = createSomeFailedResults(200);
 		assertEquals(200, results.size());
 		destSynapse.setWikiMigrationResults(results);
 		migrationClient.migrateWikisToV2();

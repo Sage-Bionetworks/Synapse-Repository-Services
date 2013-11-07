@@ -77,7 +77,15 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		// Zip up the markdown into a file
 		// The upload file will hold the newly created markdown file.
 		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
-		FileUtils.writeByteArrayToFile(markdownTemp, from.getMarkdown().getBytes());
+		String markdown = from.getMarkdown();
+		if(markdown != null) {
+			FileUtils.writeByteArrayToFile(markdownTemp, markdown.getBytes());
+		} else {
+			// When creating a wiki for the first time, markdown content doesn't exist
+			// Uploaded file should be empty
+			byte[] emptyByteArray = new byte[0];
+			FileUtils.writeByteArrayToFile(markdownTemp, emptyByteArray);
+		}
 		String contentType = guessContentTypeFromStream(markdownTemp);
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setContentType(contentType);
