@@ -136,6 +136,11 @@ public class MigrationClientTest {
 		return list;
 	}
 	
+	/**
+	 * Test migration of wikis to V2 with successful results
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
 	@Test
 	public void testWikiMigration() throws SynapseException, JSONObjectAdapterException {
 		List<WikiMigrationResult> results = createSuccessfulMigrationResults(300);
@@ -144,6 +149,13 @@ public class MigrationClientTest {
 		migrationClient.migrateWikisToV2();
 	}
 	
+	/**
+	 * Test migration of wikis to V2 with mixed failures. After,
+	 * an exception should be thrown to show migration failure.
+	 * 
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
 	@Test (expected=RuntimeException.class)
 	public void testWikiMigrationFailure() throws SynapseException, JSONObjectAdapterException {
 		List<WikiMigrationResult> results = createSomeFailedResults(200);

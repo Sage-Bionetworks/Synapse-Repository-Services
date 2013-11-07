@@ -442,8 +442,7 @@ public class MigrationClient {
 		for(WikiMigrationResult result: results) {
 			if(result.getResultType().equals(WikiMigrationResultType.FAILURE)) {
 				failures++;
-				log.info("Migration failure for wiki with ID: " + result.getWikiId() + 
-						" because: " + result.getMessage());
+				log.info("[MIGRATION FAILURE] " + result.getMessage());
 			}
 		}
 		// Return the number of failures in these results

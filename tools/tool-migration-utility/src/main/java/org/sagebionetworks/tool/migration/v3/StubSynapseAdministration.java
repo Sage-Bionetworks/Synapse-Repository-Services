@@ -2417,17 +2417,25 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
-
 	@Override
 	public PaginatedResults<WikiMigrationResult> migrateWikisToV2(long offset,
 			long limit) throws SynapseException, JSONObjectAdapterException {
+		// Return the requested migration results for processing
 		PaginatedResults<WikiMigrationResult> results = new PaginatedResults<WikiMigrationResult>();
 		List<WikiMigrationResult> subResults = createSubResultAtOffset(offset, limit);
 		results.setResults(subResults);
 		results.setTotalNumberOfResults(wikiMigrationResults.size());
 		return results;
 	}
-	
+
+	/**
+	 * Returns a subset of all the migration results, specified by the
+	 * offset and limit parameters.
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @return
+	 */
 	private List<WikiMigrationResult> createSubResultAtOffset(long offset, long limit) {
 		List<WikiMigrationResult> subResults = new ArrayList<WikiMigrationResult>();
 		long counter = offset;
@@ -2438,6 +2446,10 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return subResults;
 	}
 	
+	/**
+	 * Keep track of all the migration results.
+	 * @param results
+	 */
 	public void setWikiMigrationResults(List<WikiMigrationResult> results) {
 		wikiMigrationResults = results;
 	}
