@@ -34,18 +34,18 @@ public class MessageUtils {
 	
 	public static Message convertDBO(DBOMessage dbo) {
 		Message dto = new Message();
-		dto.setMessageId(dbo.getMessageId().toString());
-		dto.setCreatedBy(dbo.getCreatedBy().toString());
+		dto.setMessageId(toString(dbo.getMessageId()));
+		dto.setCreatedBy(toString(dbo.getCreatedBy()));
 		dto.setRecipientType(ObjectType.valueOf(dbo.getRecipientType()));
 		try {
 			dto.setRecipients(unzip(dbo.getRecipients()));
 		} catch (IOException e) {
 			throw new DatastoreException("Could not unpack the list of intended recipients", e);
 		}
-		dto.setMessageFileHandleId(dbo.getFileHandleId().toString());
+		dto.setMessageFileHandleId(toString(dbo.getFileHandleId()));
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setSubject(dbo.getSubject());
-		dto.setReplyTo(dbo.getReplyTo().toString());
+		dto.setReplyTo(toString(dbo.getReplyTo()));
 		return dto;
 	}
 	
@@ -86,18 +86,22 @@ public class MessageUtils {
 	
 	public static DBOMessage convertDTO(Message dto) {
 		DBOMessage dbo = new DBOMessage();
-		dbo.setMessageId(Long.parseLong(dto.getMessageId()));
-		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		dbo.setRecipientType(dto.getRecipientType().name());
+		dbo.setMessageId(parseLong(dto.getMessageId()));
+		dbo.setCreatedBy(parseLong(dto.getCreatedBy()));
+		if (dto.getRecipientType() != null) {
+			dbo.setRecipientType(dto.getRecipientType().name());
+		}
 		try {
 			dbo.setRecipients(zip(dto.getRecipients()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		dbo.setFileHandleId(Long.parseLong(dto.getMessageFileHandleId()));
-		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		dbo.setFileHandleId(parseLong(dto.getMessageFileHandleId()));
+		if (dto.getCreatedOn() != null) {
+			dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		}
 		dbo.setSubject(dto.getSubject());
-		dbo.setReplyTo(Long.parseLong(dto.getReplyTo()));
+		dbo.setReplyTo(parseLong(dto.getReplyTo()));
 		return dbo;
 	}
 	
@@ -107,6 +111,10 @@ public class MessageUtils {
 	 * @return A gzipped byte array of long ints 
 	 */
 	protected static byte[] zip(Set<String> longs) throws IOException {
+		if (longs == null) {
+			return null;
+		}
+		
 		// Convert the Strings into Longs into Bytes
 		ByteBuffer converter = ByteBuffer.allocate(Long.SIZE / 8 * longs.size());
 		for (String num : longs) {
@@ -128,6 +136,10 @@ public class MessageUtils {
 	 * @return A list of longs in base 10 string form
 	 */
 	protected static Set<String> unzip(byte[] zippedLongs) throws IOException {
+		if (zippedLongs == null) {
+			return null;
+		}
+		
 		// Unzip the bytes
 		ByteArrayInputStream in = new ByteArrayInputStream(zippedLongs);
 		GZIPInputStream unzip = new GZIPInputStream(in);
@@ -148,17 +160,37 @@ public class MessageUtils {
 	
 	public static MessageStatus convertDBO(DBOMessageStatus dbo) {
 		MessageStatus dto = new MessageStatus();
-		dto.setMessageId(dbo.getMessageId().toString());
-		dto.setRecipientId(dbo.getRecipientId().toString());
+		dto.setMessageId(toString(dbo.getMessageId()));
+		dto.setRecipientId(toString(dbo.getRecipientId()));
 		dto.setStatus(MessageStatusType.valueOf(dbo.getStatus()));
 		return dto;
 	}
 	
 	public static DBOMessageStatus convertDTO(MessageStatus dto) {
 		DBOMessageStatus dbo = new DBOMessageStatus();
-		dbo.setMessageId(Long.parseLong(dto.getMessageId()));
-		dbo.setRecipientId(Long.parseLong(dto.getRecipientId()));
+		dbo.setMessageId(parseLong(dto.getMessageId()));
+		dbo.setRecipientId(parseLong(dto.getRecipientId()));
 		dbo.setStatus(dto.getStatus());
 		return dbo;
+	}
+	
+	/**
+	 * Null tolerant call to input.toString()
+	 */
+	private static String toString(Long input) {
+		if (input == null) {
+			return null;
+		}
+		return input.toString();
+	}
+	
+	/**
+	 * Null-tolerant call to Long.parseLong(...)
+	 */
+	private static Long parseLong(String input) {
+		if (input == null) {
+			return null;	
+		}
+		return Long.parseLong(input);
 	}
 }

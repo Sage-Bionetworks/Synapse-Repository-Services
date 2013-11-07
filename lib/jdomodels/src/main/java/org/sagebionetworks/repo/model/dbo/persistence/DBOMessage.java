@@ -54,7 +54,10 @@ public class DBOMessage implements MigratableDatabaseObject<DBOMessage, DBOMessa
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_FILE_HANDLE_ID));
 				result.setCreatedOn(rs.getLong(SqlConstants.COL_MESSAGE_CREATED_ON));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_SUBJECT));
-				result.setReplyTo(rs.getLong(SqlConstants.COL_MESSAGE_REPLY_TO));
+				String replyTo = rs.getString(SqlConstants.COL_MESSAGE_REPLY_TO);
+				if (replyTo != null) {
+					result.setReplyTo(Long.parseLong(replyTo));
+				}
 				return result;
 			}
 			

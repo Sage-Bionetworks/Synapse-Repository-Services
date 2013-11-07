@@ -181,11 +181,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Message createMessage(Message dto) {
-		// Fill in new ID for the message
-		dto.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID).toString());
-		dto.setCreatedOn(new Date());
-		
 		DBOMessage dbo = MessageUtils.convertDTO(dto);
+		
+		// Fill in new ID for the message
+		dbo.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID));
+		dbo.setCreatedOn(new Date().getTime());
 		
 		MessageUtils.validateDBO(dbo);
 		
