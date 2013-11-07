@@ -42,10 +42,10 @@
 			<artifactId>lib-securityUtilities</artifactId>
 		</dependency>
 
-        <dependency>
-            <groupId>org.sagebionetworks</groupId>
-            <artifactId>lib-javaclient</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-javaclient</artifactId>
+		</dependency>
 
 		<!-- JSON -->
 		<dependency>

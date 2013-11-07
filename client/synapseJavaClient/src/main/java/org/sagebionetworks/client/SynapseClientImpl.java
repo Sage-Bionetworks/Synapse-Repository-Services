@@ -4538,7 +4538,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			NewUser user = new NewUser();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			createAuthEntity("/registeringUserEmail", obj);
+			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
