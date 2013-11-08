@@ -40,6 +40,10 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.auth.LoginCredentials;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
@@ -58,8 +62,6 @@ public class SharedClientConnection {
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
 	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
-
-	private static final String PASSWORD_FIELD = "password";
 
 	protected String authEndpoint;
 
@@ -167,58 +169,53 @@ public class SharedClientConnection {
 		this.apiKey = apiKey;
 	}
 
+	/**
+	 * Log into Synapse
+	 * 
+	 * @return A session token
+	 */
 	public String login(String username, String password, boolean explicitlyAcceptsTermsOfUse, String userAgent) throws SynapseException {
-		try {
-			JSONObject loginRequest = new JSONObject();
-			loginRequest.put("email", username);
-			loginRequest.put(PASSWORD_FIELD, password);
-			if (explicitlyAcceptsTermsOfUse) {
-				loginRequest.put("acceptsTermsOfUse", true);
-			}
-			
-			boolean reqPr = requestProfile;
-			requestProfile = false;
+		LoginCredentials loginRequest = new LoginCredentials();
+		loginRequest.setEmail(username);
+		loginRequest.setPassword(password);
+		if (explicitlyAcceptsTermsOfUse) {
+			loginRequest.setAcceptsTermsOfUse(true);
+		}
 
-			try {
-				JSONObject credentials = createAuthEntity("/session", loginRequest, userAgent);
-				String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
-				defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-				defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-				requestProfile = reqPr;
-				return sessionToken;
-			} catch (SynapseForbiddenException e) {
-				//403 error
-				throw new SynapseTermsOfUseException(e.getMessage());
-			}
-		} catch (JSONException e) {
+		boolean reqPr = requestProfile;
+		requestProfile = false;
+
+		try {
+			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
+			Session session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
+			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+			requestProfile = reqPr;
+			return session.getSessionToken();
+		} catch (SynapseForbiddenException e) {
+			throw new SynapseTermsOfUseException(e.getMessage());
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
 	
 	/**
-	 * 
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitely accept terms of use
-	 * 
-	 * @param userName
-	 * @param password
-	 * @param userAgent 
-	 * @throws SynapseException 
+	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitly accept terms of use
 	 */
 	public void loginWithNoProfile(String userName, String password, String userAgent) throws SynapseException {
-		JSONObject loginRequest = new JSONObject();
-		JSONObject credentials = null;
+		LoginCredentials loginRequest = new LoginCredentials();
+		loginRequest.setEmail(userName);
+		loginRequest.setPassword(password);
+		Session session;
 		try {
-			loginRequest.put("email", userName);
-			loginRequest.put(PASSWORD_FIELD, password);
-			
-			credentials = createAuthEntity("/session", loginRequest, userAgent);
-			String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-
-		} catch (JSONException e) {
+			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
+			session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+		
+		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 	}
 
 	public void logout(String userAgent) throws SynapseException {
@@ -228,17 +225,13 @@ public class SharedClientConnection {
 	}
 	
 	public boolean revalidateSession(String userAgent) throws SynapseException {
-		JSONObject sessionInfo = new JSONObject();
+		Session session = new Session();
+		session.setSessionToken(getCurrentSessionToken());
 		try {
-			sessionInfo.put("sessionToken", getCurrentSessionToken());
-			try {
-				putAuthEntity("/session", sessionInfo, userAgent);
-			} catch (SynapseForbiddenException e) {
-				//403 error
-				throw new SynapseTermsOfUseException(e.getMessage());
-			}
-			
-		} catch (JSONException e) {
+			putAuthEntity("/session", EntityFactory.createJSONObjectForEntity(session), userAgent);
+		} catch (SynapseForbiddenException e) {
+			throw new SynapseTermsOfUseException(e.getMessage());
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 		return true;
