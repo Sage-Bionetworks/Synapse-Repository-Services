@@ -37,6 +37,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -363,7 +364,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} catch (DatastoreException e) {
 			throw new IllegalArgumentException("A root wiki already exists for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		} catch (DuplicateKeyException e) {
-			throw new ConflictingUpdateException("The wiki you are attempting to create already exists.  Try fetching the Wiki and then updating it.");
+			throw new NameConflictException("An owner already exists with the ownerId: " + ownerId + " and ownerType: " + ownerType);
 		}
 
 	}
