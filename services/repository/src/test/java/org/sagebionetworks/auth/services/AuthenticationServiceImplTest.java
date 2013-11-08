@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 
@@ -29,7 +30,7 @@ public class AuthenticationServiceImplTest {
 	private UserManager mockUserManager;
 	private AuthenticationManager mockAuthenticationManager;
 	
-	private NewUser credential;
+	private LoginCredentials credential;
 	private UserInfo userInfo;
 	private static String username = "AuthServiceUser";
 	private static String fullName = "Auth User";
@@ -39,7 +40,7 @@ public class AuthenticationServiceImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		credential = new NewUser();
+		credential = new LoginCredentials();
 		credential.setEmail(username);
 		credential.setPassword(password);
 		
