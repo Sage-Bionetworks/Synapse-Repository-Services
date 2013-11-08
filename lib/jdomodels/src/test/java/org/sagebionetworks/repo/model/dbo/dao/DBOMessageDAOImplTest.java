@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThread;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThreadObject;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -26,6 +28,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -133,6 +137,10 @@ public class DBOMessageDAOImplTest {
 	
 	@After
 	public void cleanup() throws Exception {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("threadId", threadId);
+		basicDAO.deleteObjectByPrimaryKey(DBOMessageThreadObject.class, params);
+		
 		// This will cascade delete all the messages generated for this test
 		fileDAO.delete(fileHandleId);
 	}
@@ -277,5 +285,28 @@ public class DBOMessageDAOImplTest {
 		Pair<ObjectType, String> obj = messageDAO.getObjectOfThread(threadId);
 		assertEquals(oType, obj.fst);
 		assertEquals(oId, obj.snd);
+	}
+	
+	@Test
+	public void testDeleteCascadeForNonUniqueForeignKey() throws Exception {
+		ObjectType oType = ObjectType.ENTITY;
+		String oId = "-1";
+		
+		// Register the thread to an object
+		messageDAO.registerThreadToObject(threadId, oType, oId);
+		
+		// Check the registration
+		List<String> threads = messageDAO.getThreadsOfObject(oType, oId);
+		assertEquals("Should be one thread", 1, threads.size());
+		assertEquals("Should be the only thread", threadId, threads.get(0));
+		
+		// Delete one of the messages from the bigger thread
+		// The foreign key should prevent the delete
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("childMessageId", groupToThread.getMessageId());
+		try {
+			basicDAO.deleteObjectByPrimaryKey(DBOMessageThread.class, params);
+			fail();
+		} catch (DataIntegrityViolationException e) { }
 	}
 }

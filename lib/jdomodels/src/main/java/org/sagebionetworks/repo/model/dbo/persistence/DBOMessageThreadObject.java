@@ -21,8 +21,8 @@ public class DBOMessageThreadObject implements MigratableDatabaseObject<DBOMessa
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
 		new FieldColumn("threadId", SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID, true).withIsBackupId(true), 
-		new FieldColumn("objectId", SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID, true), 
-		new FieldColumn("objectType", SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE, true)
+		new FieldColumn("objectId", SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID), 
+		new FieldColumn("objectType", SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE)
 	};
 	
 	@Override

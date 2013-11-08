@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -16,12 +15,12 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  * Mapping between messages and their associated message thread
  */
 public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThread, DBOMessageThread> {
-	private Long threadId;
-	private Long messageId;
+	private Long childMessageId;
+	private Long parentMessageId;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
-		new FieldColumn("threadId", SqlConstants.COL_MESSAGE_THREAD_ID, true), 
-		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID, true).withIsBackupId(true)
+		new FieldColumn("childMessageId", SqlConstants.COL_MESSAGE_THREAD_CHILD_ID, true).withIsBackupId(true), 
+		new FieldColumn("parentMessageId", SqlConstants.COL_MESSAGE_THREAD_PARENT_ID)
 	};
 	
 	@Override
@@ -32,8 +31,8 @@ public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThre
 			public DBOMessageThread mapRow(ResultSet rs, int index)
 					throws SQLException {
 				DBOMessageThread dbo = new DBOMessageThread();
-				dbo.setThreadId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_ID));
-				dbo.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID));
+				dbo.setChildMessageId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_CHILD_ID));
+				dbo.setParentMessageId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_PARENT_ID));
 				return dbo;
 			}
 
@@ -101,20 +100,20 @@ public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThre
 		return null;
 	}
 
-	public Long getThreadId() {
-		return threadId;
+	public Long getChildMessageId() {
+		return childMessageId;
 	}
 
-	public void setThreadId(Long threadId) {
-		this.threadId = threadId;
+	public void setChildMessageId(Long childMessageId) {
+		this.childMessageId = childMessageId;
 	}
 
-	public Long getMessageId() {
-		return messageId;
+	public Long getParentMessageId() {
+		return parentMessageId;
 	}
 
-	public void setMessageId(Long messageId) {
-		this.messageId = messageId;
+	public void setParentMessageId(Long parentMessageId) {
+		this.parentMessageId = parentMessageId;
 	}
 
 	@Override
@@ -122,9 +121,9 @@ public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThre
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((messageId == null) ? 0 : messageId.hashCode());
+				+ ((childMessageId == null) ? 0 : childMessageId.hashCode());
 		result = prime * result
-				+ ((threadId == null) ? 0 : threadId.hashCode());
+				+ ((parentMessageId == null) ? 0 : parentMessageId.hashCode());
 		return result;
 	}
 
@@ -137,23 +136,23 @@ public class DBOMessageThread implements MigratableDatabaseObject<DBOMessageThre
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMessageThread other = (DBOMessageThread) obj;
-		if (messageId == null) {
-			if (other.messageId != null)
+		if (childMessageId == null) {
+			if (other.childMessageId != null)
 				return false;
-		} else if (!messageId.equals(other.messageId))
+		} else if (!childMessageId.equals(other.childMessageId))
 			return false;
-		if (threadId == null) {
-			if (other.threadId != null)
+		if (parentMessageId == null) {
+			if (other.parentMessageId != null)
 				return false;
-		} else if (!threadId.equals(other.threadId))
+		} else if (!parentMessageId.equals(other.parentMessageId))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMessageThread [threadId=" + threadId + ", messageId="
-				+ messageId + "]";
+		return "DBOMessageThread [childMessageId=" + childMessageId
+				+ ", parentMessageId=" + parentMessageId + "]";
 	}
 
 }
