@@ -1,0 +1,18 @@
+{
+    "title":"ID Ragne",
+    "description":"Represents a range of IDs",
+    "properties":{
+        "minimumId":{
+            "type":"integer",
+            "description":"The first ID of the range (inclusive)."
+        },
+        "maximumId":{
+            "type":"integer",
+            "description":"The last ID of the range (inclusive)."
+        },
+        "versionNumber":{
+            "type":"integer",
+            "description":"The versionNumber for this range"
+        }
+    }
+}

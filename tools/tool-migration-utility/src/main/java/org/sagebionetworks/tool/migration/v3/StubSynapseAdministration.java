@@ -2390,4 +2390,28 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+
+	@Override
+	public void resendPasswordEmail(String email) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean acceptsTermsOfUse, Boolean createUserIfNecessary)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

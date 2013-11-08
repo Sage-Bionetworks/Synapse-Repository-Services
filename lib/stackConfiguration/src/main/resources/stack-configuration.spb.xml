@@ -59,6 +59,9 @@
 	<bean id="stackConfiguration.migrationBackupBatchMax" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.migrationMaxAllowedPacketBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<!-- TableEntity -->
+	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	
 	<!-- Semaphore gated runner configuration -->
 	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersRds" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

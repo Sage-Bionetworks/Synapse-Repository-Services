@@ -32,6 +32,7 @@ public class AuthenticationServiceImplTest {
 	private NewUser credential;
 	private UserInfo userInfo;
 	private static String username = "AuthServiceUser";
+	private static String fullName = "Auth User";
 	private static String password = "NeverUse_thisPassword";
 	private static long userId = 123456789L;
 	private static String sessionToken = "Some session token";
@@ -105,8 +106,9 @@ public class AuthenticationServiceImplTest {
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
+		info.setFullName(fullName);
 		
-		service.processOpenIDInfo(info, null);
+		service.processOpenIDInfo(info, null, true);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));
@@ -121,8 +123,9 @@ public class AuthenticationServiceImplTest {
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
+		info.setFullName(fullName);
 		
-		service.processOpenIDInfo(info, true);
+		service.processOpenIDInfo(info, true, false);
 		
 		// User should not be created, ToU should be updated
 		verify(mockUserManager, times(0)).createUser(any(NewUser.class));

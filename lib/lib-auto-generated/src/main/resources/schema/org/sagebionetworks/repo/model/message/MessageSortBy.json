@@ -1,0 +1,9 @@
+{
+	"title": "MessageSortBy",
+	"description": "JSON enum dictating how messages should be sorted",
+    "type":"string",
+	"enum": [
+		"SEND_DATE",
+		"SUBJECT"
+	]
+}

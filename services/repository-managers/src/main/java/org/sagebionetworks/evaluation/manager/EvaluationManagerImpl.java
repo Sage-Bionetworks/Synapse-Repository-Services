@@ -129,14 +129,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			principalIds.add(Long.parseLong(g.getId()));
 		}
 		List<Evaluation> evalList = evaluationDAO.getAvailableInRange(principalIds, limit, offset);
-		List<Evaluation> evaluations = new ArrayList<Evaluation>();
-		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
-				evaluations.add(eval);
-			}
-		}
 		long totalNumberOfResults = evaluationDAO.getAvailableCount(principalIds);
-		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evaluations, totalNumberOfResults);
+		QueryResults<Evaluation> res = new QueryResults<Evaluation>(evalList, totalNumberOfResults);
 		return res;
 	}
 

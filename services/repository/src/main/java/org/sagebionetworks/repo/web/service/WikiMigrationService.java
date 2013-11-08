@@ -79,13 +79,36 @@ public class WikiMigrationService {
 
 			migrationResults.add(result);
 		}
-			return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
-				wikiMigrationDao.getTotalCount(), offset, limit, "", false);
+		return new PaginatedResults<WikiMigrationResult>(servletPath + UrlHelpers.ADMIN_MIGRATE_WIKI, migrationResults, 
+			wikiMigrationDao.getTotalCount(), offset, limit, "", false);
 	}
 		
-	
+	/**
+	 * Converts the wiki to a V2 wiki, ensures that its parent wiki 
+	 * is already migrated, and then migrates a wiki.
+	 * 
+	 * @param wiki
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {		
+	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {	
+		String parentId = wiki.getParentWikiId();
+		if(parentId != null && !wikiMigrationDao.hasWikiMigrated(parentId)) {
+			//get parent wiki
+			WikiPage parent = wikiMigrationDao.getWikiPage(parentId);
+			try {
+				V2WikiPage migratedParent = migrate(parent, userInfo);
+				if(migratedParent == null) {
+					return null;
+				}
+			} catch(Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
 		V2WikiPage clone;
 		try {
 			// Convert the WikiPage to a V2WikiPage
