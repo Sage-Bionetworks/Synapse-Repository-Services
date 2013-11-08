@@ -159,6 +159,13 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			idGenerator.reserveId(new Long(wikiPage.getId()), TYPE.WIKI_ID);
 		}
 		
+		// Check for parent cycle
+		if(wikiPage.getParentWikiId() != null) {
+			if(checkForParentCycle(new WikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
+				throw new IllegalArgumentException("There will be a cycle if this wiki is updated. Put in valid parentId");
+			}
+		}
+		
 		// When we migrate we keep the original etag.  When it is null we set it.
 		if(dbo.getEtag() == null) {
 			dbo.setEtag(UUID.randomUUID().toString());
@@ -225,6 +232,13 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		if(!doesExist(wikiPage.getId())) throw new NotFoundException("No WikiPage exists with id: "+wikiPage.getId());
 		Long wikiId = new Long(wikiPage.getId());
 		
+		// Check for parent cycle
+		if(wikiPage.getParentWikiId() != null) {
+			if(checkForParentCycle(new WikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
+				throw new IllegalArgumentException("There will be a cycle if this wiki is updated. Put in valid parentId");
+			}
+		}
+		
 		long currentTime = System.currentTimeMillis();
 
 		V2DBOWikiPage oldDbo = getWikiPageDBO(ownerId, ownerType, wikiPage.getId());
@@ -268,6 +282,23 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		setRoot(ownerIdLong, ownerType, newDBO);
 		// Update
 		basicDao.update(newDBO);
+	}
+	
+	private boolean checkForParentCycle(WikiPageKey parentKey, String childId) throws NotFoundException {
+		if(parentKey == null) {
+			return false;
+		} else if(parentKey.getWikiPageId().equals(childId)) {
+			return true;
+		} else {
+			V2WikiPage parent = get(parentKey);
+			WikiPageKey nextParentKey;
+			if(parent.getParentWikiId() == null) {
+				nextParentKey = null;
+			} else {
+				nextParentKey = new WikiPageKey(parentKey.getOwnerObjectId(), parentKey.getOwnerObjectType(), parent.getParentWikiId());
+			}
+			return checkForParentCycle(nextParentKey, childId);
+		}
 	}
 	
 	@Override
