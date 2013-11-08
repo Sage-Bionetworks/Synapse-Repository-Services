@@ -45,6 +45,35 @@ public interface TableRowTruthDAO {
 	public RowSet getRowSet(String tableId, long rowVersion) throws IOException;
 	
 	/**
+	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
+	 * set, the passed handler will be called with the value of the row.
+	 * @param tableId
+	 * @param rowVersion
+	 * @param handler
+	 * @throws IOException
+	 */
+	public void scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException;
+	
+	/**
+	 * Get a RowSet for all rows referenced.
+	 * 
+	 * @param ref
+	 * @return
+	 * @throws IOException 
+	 */
+	public RowSet getRowSet(RowReferenceSet ref) throws IOException;
+	
+	/**
+	 * Get all the rows referenced in their unmodified form.
+	 * There will be one RowSet for each distinct row version requested.
+	 * Note: The headers can vary from one version to another.
+	 * @param ref
+	 * @return
+	 * @throws IOException
+	 */
+	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException;
+	
+	/**
 	 * List the keys of all change sets applied to a table.
 	 * 
 	 * This can be used to synch the "truth" store with secondary stores.  This is the full history of the table.
@@ -53,6 +82,14 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
+	
+	/**
+	 * Get the TableRowChange for a given tableId and row version number.
+	 * @param tableId
+	 * @param rowVersion
+	 * @return
+	 */
+	public TableRowChange getTableRowChange(String tableId, long rowVersion);
 	
 	/**
 	 * This should never be called in a production setting.

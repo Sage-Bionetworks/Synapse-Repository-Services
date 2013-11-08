@@ -5,7 +5,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -183,4 +186,21 @@ public class TableRowTruthDAOImplTest {
 			// expected;
 		}
 	}
+	
+	@Test
+	public void testGetRowSetOriginals() throws IOException{
+		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelUtils.createRows(models, 5);
+		
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		assertNotNull(refSet);
+	}
+	
 }

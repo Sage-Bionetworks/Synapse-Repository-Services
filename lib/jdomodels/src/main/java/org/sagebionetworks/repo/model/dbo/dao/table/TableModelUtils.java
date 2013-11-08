@@ -7,18 +7,22 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
@@ -289,8 +293,32 @@ public class TableModelUtils {
 		if(reader == null) throw new IllegalArgumentException("CSVReader cannot be null");
 		if(headers == null) throw new IllegalArgumentException("headers cannot be null");
 		if(tableId == null) throw new IllegalArgumentException("tableId cannot be null");
+		final List<Row> rows = new LinkedList<Row>();
+		// Scan the data.
+		scanFromCSV(reader, headers, new RowHandler() {
+			
+			@Override
+			public void nextRow(List<String> headers, Row row) {
+				// Add this to the rows
+				rows.add(row);
+			}
+		});
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		return set;
+	}
+	
+	/**
+	 * Read the passed CSV into a RowSet.
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	public static void scanFromCSV(CSVReader reader, List<String> headers, RowHandler handler) throws IOException{
+		if(reader == null) throw new IllegalArgumentException("CSVReader cannot be null");
 		String[] rowArray = null;
-		List<Row> rows = new LinkedList<Row>();
 		while((rowArray = reader.readNext()) != null){
 			Row row = new Row();
 			if(rowArray.length < 3) throw new IllegalArgumentException("Row does not contain at least three columns");
@@ -302,13 +330,9 @@ public class TableModelUtils {
 				values.add(rowArray[i]);
 			}
 			row.setValues(values);
-			rows.add(row);
+			// Pass to the handler
+			handler.nextRow(headers, row);
 		}
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(headers);
-		set.setTableId(tableId);
-		return set;
 	}
 	
 	/**
@@ -326,6 +350,30 @@ public class TableModelUtils {
 			isr = new InputStreamReader(zipIn);
 			csvReader = new CSVReader(isr);
 			return readFromCSV(csvReader, tableId, headers);
+		}finally{
+			if(csvReader != null){
+				csvReader.close();
+			}
+		}
+	}
+	
+	/**
+	 * Scan over the passed stream without loading it into memory
+	 * @param zippedStream
+	 * @param tableId
+	 * @param headers
+	 * @param handler
+	 * @throws IOException
+	 */
+	public static void scanFromCSVgzStream(InputStream zippedStream, List<String> headers, RowHandler handler) throws IOException{
+		GZIPInputStream zipIn = null;
+		InputStreamReader isr = null;
+		CSVReader csvReader = null;
+		try{
+			zipIn = new GZIPInputStream(zippedStream);
+			isr = new InputStreamReader(zipIn);
+			csvReader = new CSVReader(isr);
+			scanFromCSV(csvReader, headers, handler);
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
@@ -485,5 +533,21 @@ public class TableModelUtils {
 			dtos.add(dto);
 		}
 		return dtos;
+	}
+
+
+	/**
+	 * Get the distinct version from the the rows
+	 * 
+	 * @param rows
+	 * @return
+	 */
+	public static Set<Long> getDistictVersions(List<RowReference> rows) {
+		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
+		Set<Long> distictVersions = new HashSet<Long>();
+		for(RowReference ref: rows){
+			distictVersions.add(ref.getVersionNumber());
+		}
+		return distictVersions;
 	}
 }

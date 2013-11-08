@@ -12,8 +12,10 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
@@ -491,5 +494,28 @@ public class TableModelUtilsTest {
 		TableRowChange clone = TableModelUtils.ceateDTOFromDBO(dbo);
 		assertNotNull(clone);
 		assertEquals(dto, clone);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDistictVersionsNull(){
+		TableModelUtils.getDistictVersions(null);
+	}
+	
+	@Test
+	public void testDistictVersions(){
+		List<RowReference> refs = new LinkedList<RowReference>();
+		RowReference ref = new RowReference();
+		ref.setVersionNumber(100l);
+		refs.add(ref);
+		ref = new RowReference();
+		ref.setVersionNumber(100l);
+		refs.add(ref);
+		ref = new RowReference();
+		ref.setVersionNumber(101l);
+		refs.add(ref);
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(101l);
+		expected.add(100l);
+		assertEquals(expected, TableModelUtils.getDistictVersions(refs));
 	}
 }

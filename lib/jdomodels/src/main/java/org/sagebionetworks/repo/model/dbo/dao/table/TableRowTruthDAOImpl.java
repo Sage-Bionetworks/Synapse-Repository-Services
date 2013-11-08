@@ -13,10 +13,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
@@ -30,6 +35,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -214,27 +220,46 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return TableModelUtils.ceateDTOFromDBO(dboList);
 	}
 	
+	@Override
+	public TableRowChange getTableRowChange(String tableId, long rowVersion) {
+		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
+		try {
+			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION, rowChangeMapper, tableId, rowVersion);
+			return TableModelUtils.ceateDTOFromDBO(dbo);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("TableRowChange does not exist for tableId: "+tableId+" and row version: "+rowVersion);
+		}
+	}
+	
 	/**
 	 * Read the RowSet from S3.
 	 */
 	@Override
-	public RowSet getRowSet(String tableIdString, long rowVersion) throws IOException {
-		long tableId = KeyFactory.stringToKey(tableIdString);
-		try {
-			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION, rowChangeMapper, tableId, rowVersion);
-			List<String> headers = TableModelUtils.readColumnModelIdsFromDelimitedString(dbo.getColumnIds());
-			// Downlaod the file from S3
-			S3Object object = s3Client.getObject(dbo.getBucket(), dbo.getKey());
-			try{
-				return TableModelUtils.readFromCSVgzStream(object.getObjectContent(), tableIdString, headers);
-			}finally{
-				// Need to close the stream unconditionally.
-				object.getObjectContent().close();
-			}
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("RowSet does not exist for tableId: "+tableId+" and row version: "+rowVersion);
+	public RowSet getRowSet(String tableId, long rowVersion) throws IOException {
+		TableRowChange dto = getTableRowChange(tableId, rowVersion);
+		// Downlaod the file from S3
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		try{
+			return TableModelUtils.readFromCSVgzStream(object.getObjectContent(), tableId, dto.getHeaders());
+		}finally{
+			// Need to close the stream unconditionally.
+			object.getObjectContent().close();
 		}
 	}
+	
+	@Override
+	public void scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException {
+		TableRowChange dto = getTableRowChange(tableId, rowVersion);
+		// stream the file from S3
+		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
+		try{
+			TableModelUtils.scanFromCSVgzStream(object.getObjectContent(), dto.getHeaders(), handler);
+		}finally{
+			// Need to close the stream unconditionally.
+			object.getObjectContent().close();
+		}
+	}
+	
 	
 	@Override
 	public void truncateAllRowData() {
@@ -258,6 +283,49 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				return rs.getString(COL_TABLE_ROW_KEY);
 			}
 		} );
+	}
+
+	/**
+	 * Get the RowSet original for each row referenced.
+	 */
+	@Override
+	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException {
+		if(ref == null) throw new IllegalArgumentException("RowReferenceSet cannot be null");
+		if(ref.getTableId() == null) throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
+		if(ref.getHeaders() == null) throw new IllegalArgumentException("RowReferenceSet.headers cannot be null");
+		// First determine the versions we will need to inspect for this query.
+		Set<Long> versions = TableModelUtils.getDistictVersions(ref.getRows());
+		final Set<RowReference> rowsToFetch = new HashSet<RowReference>(ref.getRows());
+		List<RowSet> results = new LinkedList<RowSet>();
+		// For each version of the table
+		for(Long version: versions){
+			final RowSet thisSet = new RowSet();
+			thisSet.setTableId(ref.getTableId());
+			thisSet.setRows(new LinkedList<Row>());
+			results.add(thisSet);
+			// Scan over the delta
+			scanRowSet(ref.getTableId(), version, new RowHandler() {
+				@Override
+				public void nextRow(List<String> headers, Row row) {
+					// Is this a row we are looking for?
+					RowReference thisRowRef = new RowReference();
+					thisRowRef.setRowId(row.getRowId());
+					thisRowRef.setVersionNumber(row.getVersionNumber());
+					if(rowsToFetch.contains(thisRowRef)){
+						// This is a match
+						thisSet.getRows().add(row);
+						thisSet.setHeaders(headers);
+					}
+				}
+			});
+		}
+		return results;
+	}
+
+	@Override
+	public RowSet getRowSet(RowReferenceSet ref) throws IOException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
