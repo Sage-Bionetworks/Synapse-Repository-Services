@@ -52,8 +52,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE = 
 			" FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_THREAD+
-			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID+
-			" AND "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
+			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_CHILD_ID+
+			" AND "+SqlConstants.COL_MESSAGE_THREAD_PARENT_ID+"=:"+THREAD_ID_PARAM_NAME;
 	
 	private static final String SELECT_MESSAGES_IN_THREAD_NO_FILTER = 
 			"SELECT *"+FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE;
@@ -66,8 +66,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS+
 					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+")"+
 				" INNER JOIN "+SqlConstants.TABLE_MESSAGE_THREAD+
-					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID+")"+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME+
+					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_CHILD_ID+")"+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_PARENT_ID+"=:"+THREAD_ID_PARAM_NAME+
 			" AND ("+SqlConstants.COL_MESSAGE_CREATED_BY+"=:"+USER_ID_PARAM_NAME+
 				" OR "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+USER_ID_PARAM_NAME+")";
 	
@@ -110,8 +110,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
 	
 	private static final String SELECT_THREAD_ID_OF_MESSAGE = 
-			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_MESSAGE_ID+"=:"+MESSAGE_ID_PARAM_NAME;
+			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_PARENT_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD+
+			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_CHILD_ID+"=:"+MESSAGE_ID_PARAM_NAME;
 	
 	private static final String SELECT_THREADS_OF_OBJECT = 
 			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
@@ -315,14 +315,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public String registerMessageToThread(String messageId, String threadId)
 			throws IllegalArgumentException {
 		DBOMessageThread dbo = new DBOMessageThread();
-		dbo.setMessageId(Long.parseLong(messageId));
+		dbo.setChildMessageId(Long.parseLong(messageId));
 		if (threadId == null) {
-			dbo.setThreadId(idGenerator.generateNewId(TYPE.MESSAGE_THREAD_ID));
+			dbo.setParentMessageId(dbo.getChildMessageId());
 		} else {
-			dbo.setThreadId(Long.parseLong(threadId));
+			dbo.setParentMessageId(Long.parseLong(threadId));
 		}
 		dbo = basicDAO.createNew(dbo);
-		return dbo.getThreadId().toString();
+		return dbo.getParentMessageId().toString();
 	}
 
 	@Override
