@@ -1113,7 +1113,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void deleteAccessRequirement(Long arId) throws SynapseException {
-		// getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_REQUIREMENT + "/" + arId);
+		getSharedClientConnection().deleteUri(repoEndpoint, ACCESS_REQUIREMENT + "/" + arId, getUserAgent());
 	}
 	@Override
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements(RestrictableObjectDescriptor subjectId) throws SynapseException {
