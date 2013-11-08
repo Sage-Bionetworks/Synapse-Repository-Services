@@ -114,7 +114,6 @@ public class WikiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
 			throws DatastoreException, NotFoundException, IOException {
-		System.out.println("Inside CONTROLLER");
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toCreate);
 	}
