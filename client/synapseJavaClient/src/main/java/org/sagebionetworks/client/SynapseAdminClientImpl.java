@@ -2,8 +2,6 @@ package org.sagebionetworks.client;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -364,7 +362,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		String url = ADMIN_MIGRATE_WIKIS_TO_V2 + "?offset=" + offset +
 			"&limit=" + limit;
 		// Submit url and retrieve results
-		JSONObject jsonObject = postUri(url);
+		JSONObject jsonObject = getSharedClientConnection().postUri(repoEndpoint, url, getUserAgent());
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
 		PaginatedResults<WikiMigrationResult> results = new PaginatedResults<WikiMigrationResult>(WikiMigrationResult.class);
 		// Read in paginated migration results
