@@ -107,10 +107,12 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
+import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -131,6 +133,8 @@ import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
+import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -171,7 +175,6 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
 	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 
-	private static final String PASSWORD_FIELD = "password";
 	private static final String PARAM_GENERATED_BY = "generatedBy";
 	
 	private static final String QUERY_URI = "/query?query=";
@@ -228,6 +231,8 @@ public class SynapseClientImpl implements SynapseClient {
 	private static final String STATUS_SUFFIX = "?status=";
 	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	
+	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
 	protected static final String COLUMN = "/column";
 
@@ -534,81 +539,68 @@ public class SynapseClientImpl implements SynapseClient {
 
 	/**
 	 * Log into Synapse
-	 * 
-	 * @param username
-	 * @param password
-	 * @throws SynapseException
 	 */
 	@Override
 	public UserSessionData login(String username, String password) throws SynapseException {
-		/**
-		 * Log into Synapse
-		 * 
-		 * @param username
-		 * @param password
-		 * @throws SynapseException
-		 */
 		return login(username, password, false);
 	}
+
+	/**
+	 * Log into Synapse
+	 */
 	@Override
 	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
 		UserSessionData userData = null;
-			JSONObject loginRequest = new JSONObject();
-		JSONObject credentials = null;
+		LoginCredentials loginRequest = new LoginCredentials();
+		loginRequest.setEmail(username);
+		loginRequest.setPassword(password);
+		if (explicitlyAcceptsTermsOfUse) {
+			loginRequest.setAcceptsTermsOfUse(true);
+		}
+
+		boolean reqPr = requestProfile;
+		requestProfile = false;
+
 		try {
-			loginRequest.put("email", username);
-			loginRequest.put(PASSWORD_FIELD, password);
-			if (explicitlyAcceptsTermsOfUse) loginRequest.put("acceptsTermsOfUse", true);
-			
-			boolean reqPr = requestProfile;
-			requestProfile = false;
+			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest));
+			Session session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
+			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+			requestProfile = reqPr;
 
-			try {
-				credentials = createAuthEntity("/session", loginRequest);
-				String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
-				defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-				defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-				requestProfile = reqPr;
-
-				UserProfile profile = getMyProfile();
-				userData = new UserSessionData();
-				userData.setIsSSO(false);
-				userData.setSessionToken(sessionToken);
-				userData.setProfile(profile);
-			} catch (SynapseForbiddenException e) {
-				//403 error
-				throw new SynapseTermsOfUseException(e.getMessage());
-			}
-		} catch (JSONException e) {
+			UserProfile profile = getMyProfile();
+			userData = new UserSessionData();
+			userData.setIsSSO(false);
+			userData.setSessionToken(session.getSessionToken());
+			userData.setProfile(profile);
+		} catch (SynapseForbiddenException e) {
+			// 403 error
+			throw new SynapseTermsOfUseException(e.getMessage());
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 		return userData;
 	}
 	
 	/**
-	 * 
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitely accept terms of use
-	 * 
-	 * @param userName
-	 * @param password
-	 * @throws SynapseException 
+	 * Log into Synapse, do not return UserSessionData, 
+	 * do not request user profile, and do not explicitly accept terms of use
 	 */
 	@Override
 	public void loginWithNoProfile(String userName, String password) throws SynapseException {
-		JSONObject loginRequest = new JSONObject();
-		JSONObject credentials = null;
+		LoginCredentials loginRequest = new LoginCredentials();
+		loginRequest.setEmail(userName);
+		loginRequest.setPassword(password);
+		Session session;
 		try {
-			loginRequest.put("email", userName);
-			loginRequest.put(PASSWORD_FIELD, password);
-			
-			credentials = createAuthEntity("/session", loginRequest);
-			String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
-
-		} catch (JSONException e) {
+			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest));
+			session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+		
+		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 	}
 
 	@Override
@@ -4436,6 +4428,21 @@ public class SynapseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) 
+			throws SynapseException {
+		String uri = STORAGE_SUMMARY_PATH;
+		if (aggregation != null && aggregation.size() > 0) {
+			uri += "?aggregation=" + StringUtils.join(aggregation, ",");
+		}
+		
+		try {
+			return getJSONEntity(repoEndpoint, uri, StorageUsageSummaryList.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 
 	/**
 	 * Moves an entity and its descendants to the trash can.
@@ -5087,7 +5094,7 @@ public class SynapseClientImpl implements SynapseClient {
 	@Override
 	public void resendPasswordEmail(String email) throws SynapseException{
 		try {
-			NewUser user = new NewUser();
+			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
 			createAuthEntity("/registeringUserEmail", obj);
@@ -5155,7 +5162,7 @@ public class SynapseClientImpl implements SynapseClient {
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException {
 		try {
-			NewUser user = new NewUser();
+			Username user = new Username();
 			user.setEmail(email);
 			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
