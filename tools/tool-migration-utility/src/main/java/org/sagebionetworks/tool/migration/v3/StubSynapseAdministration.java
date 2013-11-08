@@ -24,6 +24,7 @@ import java.util.Stack;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
+import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -2393,7 +2394,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
-
 	@Override
 	public void resendPasswordEmail(String email) throws SynapseException {
 		// TODO Auto-generated method stub
@@ -2452,6 +2452,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	 */
 	public void setWikiMigrationResults(List<WikiMigrationResult> results) {
 		wikiMigrationResults = results;
+	}
+
+	@Override
+	public SharedClientConnection getSharedClientConnection() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

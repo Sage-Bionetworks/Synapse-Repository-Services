@@ -11,9 +11,9 @@
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
-	<artifactId>synapseJavaClient</artifactId>
+	<artifactId>bridgeJavaClient</artifactId>
 	<packaging>jar</packaging>
-	<name>synapseJavaClient</name>
+	<name>bridgeJavaClient</name>
 
 	<dependencies>
 
@@ -45,6 +45,11 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-javaclient</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>synapseJavaClient</artifactId>
 		</dependency>
 
 		<!-- JSON -->
