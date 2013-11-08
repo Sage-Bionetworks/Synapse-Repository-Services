@@ -28,7 +28,9 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -58,6 +60,9 @@ public class AdministrationControllerTest {
 	
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
+	
+	@Autowired
+	private WikiPageDao wikiPageDao;
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
@@ -100,7 +105,7 @@ public class AdministrationControllerTest {
 				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
 				fileMetadataDao.delete(markdownHandleId);
-				entityServletHelper.deleteWikiPage(key, AuthorizationConstants.ADMIN_USER_NAME);
+				wikiPageDao.delete(key);
 			} catch (Exception e) {
 				// nothing to do here
 			}
@@ -166,7 +171,7 @@ public class AdministrationControllerTest {
 		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), setDown);
 		assertEquals(setDown, back);
 	}
-	
+
 	@Test
 	public void testMigrateWikis() throws Exception {
 		// create an entity
@@ -184,38 +189,32 @@ public class AdministrationControllerTest {
 		assertEquals(2, results.getResults().size());
 	}
 	
-	private void createWikiPages(String ownerId) {
+	private void createWikiPages(String ownerId) throws NotFoundException {
 		ObjectType ownerType = ObjectType.ENTITY;
-		
+		// Create wiki pages with the DAO to avoid the translation bridge 
+		// which will create V2 wiki pages.
 		WikiPage page = new WikiPage();
 		page.setId("1");
-		page.setCreatedBy(AuthorizationConstants.ADMIN_USER_NAME);
-		page.setModifiedBy(AuthorizationConstants.ADMIN_USER_NAME);
+		page.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		page.setModifiedBy(adminUserInfo.getIndividualGroup().getId());
 		page.setMarkdown("markdown1");
 		page.setTitle("title1");
 		page.setAttachmentFileHandleIds(new ArrayList<String>());
 		page.setParentWikiId(null);
-		try {
-			WikiPage result = entityServletHelper.createWikiPage(AuthorizationConstants.ADMIN_USER_NAME, ownerId, ownerType, page);
-		} catch (Exception e) {
-		}
+		WikiPage result = wikiPageDao.create(page, new HashMap<String, FileHandle>(), ownerId, ownerType);
 		WikiPageKey parentKey = new WikiPageKey(ownerId, ownerType, page.getId());
 		wikisToDelete.add(parentKey);
 		
 		// Child
 		WikiPage pageChild = new WikiPage();
 		pageChild.setId("2");
-		pageChild.setCreatedBy(AuthorizationConstants.ADMIN_USER_NAME);
-		pageChild.setModifiedBy(AuthorizationConstants.ADMIN_USER_NAME);
+		pageChild.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		pageChild.setModifiedBy(adminUserInfo.getIndividualGroup().getId());
 		pageChild.setMarkdown("markdown2");
 		pageChild.setTitle("title2");
 		pageChild.setAttachmentFileHandleIds(new ArrayList<String>());
 		pageChild.setParentWikiId(page.getId());
-		try {
-			WikiPage result2 = entityServletHelper.createWikiPage(AuthorizationConstants.ADMIN_USER_NAME, ownerId, ownerType, pageChild);
-		} catch (Exception e) {
-		}
-		
+		WikiPage result2 = wikiPageDao.create(pageChild, new HashMap<String, FileHandle>(), ownerId, ownerType);
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, pageChild.getId());
 		wikisToDelete.add(childKey);
 	}

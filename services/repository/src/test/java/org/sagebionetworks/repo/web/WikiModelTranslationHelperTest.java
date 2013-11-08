@@ -82,7 +82,7 @@ public class WikiModelTranslationHelperTest {
 		wiki.setTitle("v1-wiki");
 		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
 		wiki.setMarkdown(markdownAsString);
-		
+
 		// Pass it to the converter
 		v2Wiki = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
 		
@@ -113,5 +113,31 @@ public class WikiModelTranslationHelperTest {
 		WikiPage v1Wiki = wikiModelTranslationHelper.convertToWikiPage(v2Wiki);
 		// Make sure the WikiPage's markdown string field is accurate
 		assertEquals(markdownAsString, v1Wiki.getMarkdown());
+	}
+	
+	@Test
+	public void testNoMarkdown() throws IOException, DatastoreException, NotFoundException {
+		// Create a new wiki page with no markdown
+		WikiPage wiki = new WikiPage();
+		wiki.setId("123");
+		wiki.setCreatedBy(ownerId);
+		wiki.setModifiedBy(ownerId);
+		wiki.setParentWikiId(null);
+		wiki.setTitle("v1-wiki");
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+
+		// Pass it to the converter
+		v2Wiki = wikiModelTranslationHelper.convertToV2WikiPage(wiki, userInfo);
+		assertNotNull(v2Wiki);
+		String markdownHandleId = v2Wiki.getMarkdownFileHandleId();
+		assertNotNull(markdownHandleId);
+		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
+		// Retrieve uploaded markdown
+		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
+				markdownHandle.getKey()), markdownTemp);
+		// Read the file as a string
+		String markdownString = FileUtils.readFileToString(markdownTemp, "UTF-8");
+		assertEquals("", markdownString);
 	}
 }
