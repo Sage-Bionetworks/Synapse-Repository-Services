@@ -25,11 +25,13 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("tableId", COL_ID_SEQUENCE_TABLE_ID, true).withIsBackupId(true),
-		new FieldColumn("versionNumber", COL_ID_SEQUENCE_VERSION).withIsEtag(true),
+		new FieldColumn("etag", COL_ID_SEQUENCE_TABLE_ETAG).withIsEtag(true),
+		new FieldColumn("versionNumber", COL_ID_SEQUENCE_VERSION),
 		new FieldColumn("sequence", COL_ID_SEQUENCE),
 	};
 	
 	private Long tableId;
+	private String etag;
 	private Long versionNumber;
 	private Long sequence;
 	
@@ -43,6 +45,7 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 					throws SQLException {
 				DBOTableIdSequence seq = new DBOTableIdSequence();
 				seq.setTableId(rs.getLong(COL_ID_SEQUENCE_TABLE_ID));
+				seq.setEtag(rs.getString(COL_ID_SEQUENCE_TABLE_ETAG));
 				seq.setVersionNumber(rs.getLong(COL_ID_SEQUENCE_VERSION));
 				seq.setSequence(rs.getLong(COL_ID_SEQUENCE));
 				return seq;
@@ -67,6 +70,14 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 			public Class<? extends DBOTableIdSequence> getDBOClass() {
 				return DBOTableIdSequence.class;
 			}};
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 	public Long getTableId() {
@@ -135,6 +146,7 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result
 				+ ((sequence == null) ? 0 : sequence.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
@@ -152,6 +164,11 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 		if (getClass() != obj.getClass())
 			return false;
 		DBOTableIdSequence other = (DBOTableIdSequence) obj;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (sequence == null) {
 			if (other.sequence != null)
 				return false;

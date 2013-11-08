@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -41,8 +42,9 @@ public interface TableRowTruthDAO {
 	 * @param key
 	 * @return
 	 * @throws IOException 
+	 * @throws NotFoundException 
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion) throws IOException;
+	public RowSet getRowSet(String tableId, long rowVersion) throws IOException, NotFoundException;
 	
 	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
@@ -51,17 +53,19 @@ public interface TableRowTruthDAO {
 	 * @param rowVersion
 	 * @param handler
 	 * @throws IOException
+	 * @throws NotFoundException 
 	 */
-	public void scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException;
+	public TableRowChange scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException, NotFoundException;
 	
 	/**
-	 * Get a RowSet for all rows referenced.
+	 * Get a RowSet for all rows referenced in the requested form.
 	 * 
 	 * @param ref
 	 * @return
 	 * @throws IOException 
+	 * @throws NotFoundException 
 	 */
-	public RowSet getRowSet(RowReferenceSet ref) throws IOException;
+	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> result) throws IOException, NotFoundException;
 	
 	/**
 	 * Get all the rows referenced in their unmodified form.
@@ -70,8 +74,9 @@ public interface TableRowTruthDAO {
 	 * @param ref
 	 * @return
 	 * @throws IOException
+	 * @throws NotFoundException 
 	 */
-	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException;
+	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException, NotFoundException;
 	
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -88,8 +93,9 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public TableRowChange getTableRowChange(String tableId, long rowVersion);
+	public TableRowChange getTableRowChange(String tableId, long rowVersion) throws NotFoundException;
 	
 	/**
 	 * This should never be called in a production setting.

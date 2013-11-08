@@ -329,6 +329,7 @@ public class SqlConstants {
 	// This table controls IDs issued to TableEntities.
 	public static final String TABLE_TABLE_ID_SEQUENCE		= "TABLE_ID_SEQUENCE";
 	public static final String COL_ID_SEQUENCE_TABLE_ID		= "TABLE_ID";
+	public static final String COL_ID_SEQUENCE_TABLE_ETAG	= "ETAG";
 	public static final String COL_ID_SEQUENCE_VERSION		= "ROW_VERSION";
 	public static final String COL_ID_SEQUENCE				= "SEQUENCE";
 	public static final String DDL_TABLE_ID_SEQUENCE = "schema/TableIdSequence-ddl.sql";
@@ -336,6 +337,7 @@ public class SqlConstants {
 	// The table row changes
 	public static final String TABLE_ROW_CHANGE				= "TABLE_ROW_CHANGE";
 	public static final String COL_TABLE_ROW_TABLE_ID		= "TABLE_ID";
+	public static final String COL_TABLE_ROW_TABLE_ETAG		= "ETAG";
 	public static final String COL_TABLE_ROW_VERSION		= "ROW_VERSION";
 	public static final String COL_TABLE_ROW_COL_IDS		= "COLUMN_IDS";
 	public static final String COL_TABLE_ROW_CREATED_BY		= "CREATED_BY";

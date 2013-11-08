@@ -13,6 +13,10 @@
         "versionNumber":{
             "type":"integer",
             "description":"The versionNumber for this range"
+        },
+        "etag":{
+            "type":"string",
+            "description":"The etag for this range"
         }
     }
 }

@@ -3,12 +3,11 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,12 +23,10 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.services.sns.model.NotFoundException;
-import com.sun.tools.internal.xjc.generator.bean.field.NoExtendedContentField;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -62,24 +59,28 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(new Long(0), range.getMinimumId());
 		assertEquals(new Long(2), range.getMaximumId());
 		assertEquals(new Long(0), range.getVersionNumber());
+		assertNotNull(range.getEtag());
 		// Now reserver 1 more
 		range = tableRowTruthDao.reserveIdsInRange(tableId, 1);
 		assertNotNull(range);
 		assertEquals(new Long(3), range.getMinimumId());
 		assertEquals(new Long(3), range.getMaximumId());
 		assertEquals(new Long(1), range.getVersionNumber());
+		assertNotNull(range.getEtag());
 		// two more
 		range = tableRowTruthDao.reserveIdsInRange(tableId, 2);
 		assertNotNull(range);
 		assertEquals(new Long(4), range.getMinimumId());
 		assertEquals(new Long(5), range.getMaximumId());
 		assertEquals(new Long(2), range.getVersionNumber());
+		assertNotNull(range.getEtag());
 		// zero
 		range = tableRowTruthDao.reserveIdsInRange(tableId, 0);
 		assertNotNull(range);
 		assertEquals(null, range.getMinimumId());
 		assertEquals(null, range.getMaximumId());
 		assertEquals(new Long(3), range.getVersionNumber());
+		assertNotNull(range.getEtag());
 	}
 	
 	@Test
@@ -141,15 +142,18 @@ public class TableRowTruthDAOImplTest {
 		assertTrue(zero.getCreatedOn().getTime() > 0);
 		assertNotNull(zero.getBucket());
 		assertNotNull(zero.getKey());
+		assertNotNull(zero.getEtag());
 		// Next is should be version one.
 		// The first change should be version zero
 		TableRowChange one = results.get(1);
 		assertEquals(new Long(1), one.getRowVersion());
+		assertNotNull(one.getEtag());
+		assertFalse("Two changes cannot have the same Etag",zero.getEtag().equals(one.getEtag()));
 	}
 	
 	
 	@Test
-	public void testGetRowSet() throws IOException{
+	public void testGetRowSet() throws IOException, NotFoundException{
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
@@ -167,6 +171,7 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(set.getHeaders(), fetched.getHeaders());
 		assertEquals(tableId, fetched.getTableId());
 		assertNotNull(fetched.getRows());
+		assertNotNull(fetched.getEtag());
 		assertEquals(set.getRows().size(), fetched.getRows().size());
 		long expectedId = 0;
 		Long version = new Long(0);
@@ -188,7 +193,7 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
-	public void testGetRowSetOriginals() throws IOException{
+	public void testGetRowSetOriginals() throws IOException, NotFoundException{
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
@@ -201,6 +206,20 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
 		assertNotNull(refSet);
+		// Get the rows for this set
+		RowSet back = tableRowTruthDao.getRowSet(refSet, models);
+		assertNotNull(back);
+		assertEquals(set.getHeaders(), back.getHeaders());
+		assertEquals(tableId, back.getTableId());
+		assertNotNull(back.getRows());;
+		assertEquals(set.getRows().size(), back.getRows().size());
+		// The order should match the request
+		for(int i=0; i<refSet.getRows().size(); i++){
+			RowReference ref = refSet.getRows().get(i);
+			Row row = back.getRows().get(i);
+			assertEquals(ref.getRowId(), row.getRowId());
+			assertEquals(ref.getVersionNumber(), row.getVersionNumber());
+		}
 	}
 	
 }

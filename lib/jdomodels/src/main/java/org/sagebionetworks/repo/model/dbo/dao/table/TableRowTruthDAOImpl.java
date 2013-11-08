@@ -13,11 +13,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,8 +32,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -44,7 +42,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.sns.model.NotFoundException;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -67,19 +64,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private AmazonS3Client s3Client;
 	
 	private String s3Bucket;
+	private int maxRowsPerGet;
 	
-	public String getS3Bucket() {
-		return s3Bucket;
-	}
-
-	/**
-	 * IoC
-	 * @param s3Bucket
-	 */
-	public void setS3Bucket(String s3Bucket) {
-		this.s3Bucket = s3Bucket;
-	}
-
 	RowMapper<DBOTableIdSequence> sequenceRowMapper = new DBOTableIdSequence().getTableMapping();
 	RowMapper<DBOTableRowChange> rowChangeMapper = new DBOTableRowChange().getTableMapping();
 	
@@ -111,6 +97,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		dbo = new DBOTableIdSequence();
 		dbo.setSequence(currentSequence+countToReserver);
 		dbo.setTableId(tableId);
+		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setVersionNumber(currentVersion+1);
 		// create or update
 		if(exists){
@@ -127,6 +114,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			range.setMinimumId(dbo.getSequence()-countToReserver+1);
 		}
 		range.setVersionNumber(dbo.getVersionNumber());
+		range.setEtag(dbo.getEtag());
 		return range;
 	}
 
@@ -155,6 +143,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
+		changeDBO.setEtag(range.getEtag());
 		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(headers));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
@@ -221,8 +210,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 	
 	@Override
-	public TableRowChange getTableRowChange(String tableId, long rowVersion) {
-		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
+	public TableRowChange getTableRowChange(String tableIdString, long rowVersion) throws NotFoundException {
+		if(tableIdString == null) throw new IllegalArgumentException("TableID cannot be null");
+		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
 			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION, rowChangeMapper, tableId, rowVersion);
 			return TableModelUtils.ceateDTOFromDBO(dbo);
@@ -233,14 +223,21 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	
 	/**
 	 * Read the RowSet from S3.
+	 * @throws NotFoundException 
 	 */
 	@Override
-	public RowSet getRowSet(String tableId, long rowVersion) throws IOException {
+	public RowSet getRowSet(String tableId, long rowVersion) throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Downlaod the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try{
-			return TableModelUtils.readFromCSVgzStream(object.getObjectContent(), tableId, dto.getHeaders());
+			RowSet set = new RowSet();
+			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent());
+			set.setTableId(tableId);
+			set.setHeaders(dto.getHeaders());
+			set.setRows(rows);
+			set.setEtag(dto.getEtag());
+			return set;
 		}finally{
 			// Need to close the stream unconditionally.
 			object.getObjectContent().close();
@@ -248,12 +245,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 	
 	@Override
-	public void scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException {
+	public TableRowChange scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// stream the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try{
-			TableModelUtils.scanFromCSVgzStream(object.getObjectContent(), dto.getHeaders(), handler);
+			TableModelUtils.scanFromCSVgzStream(object.getObjectContent(), handler);
+			return dto;
 		}finally{
 			// Need to close the stream unconditionally.
 			object.getObjectContent().close();
@@ -287,12 +285,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	/**
 	 * Get the RowSet original for each row referenced.
+	 * @throws NotFoundException 
 	 */
 	@Override
-	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException {
+	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException, NotFoundException {
 		if(ref == null) throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		if(ref.getTableId() == null) throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
 		if(ref.getHeaders() == null) throw new IllegalArgumentException("RowReferenceSet.headers cannot be null");
+		if(ref.getRows() == null) throw new IllegalArgumentException("RowReferenceSet.rows cannot be null");
+		if(ref.getRows().size() > maxRowsPerGet) throw new IllegalArgumentException("The maximum number of rows per request is: "+maxRowsPerGet+", but "+ref.getRows().size()+" rows were requested");
 		// First determine the versions we will need to inspect for this query.
 		Set<Long> versions = TableModelUtils.getDistictVersions(ref.getRows());
 		final Set<RowReference> rowsToFetch = new HashSet<RowReference>(ref.getRows());
@@ -302,11 +303,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			final RowSet thisSet = new RowSet();
 			thisSet.setTableId(ref.getTableId());
 			thisSet.setRows(new LinkedList<Row>());
-			results.add(thisSet);
 			// Scan over the delta
-			scanRowSet(ref.getTableId(), version, new RowHandler() {
+			TableRowChange trc = scanRowSet(ref.getTableId(), version, new RowHandler() {
 				@Override
-				public void nextRow(List<String> headers, Row row) {
+				public void nextRow(Row row) {
 					// Is this a row we are looking for?
 					RowReference thisRowRef = new RowReference();
 					thisRowRef.setRowId(row.getRowId());
@@ -314,18 +314,48 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					if(rowsToFetch.contains(thisRowRef)){
 						// This is a match
 						thisSet.getRows().add(row);
-						thisSet.setHeaders(headers);
 					}
 				}
 			});
+			// fill in the rest of the values
+			thisSet.setEtag(trc.getEtag());
+			thisSet.setHeaders(trc.getHeaders());
+			results.add(thisSet);
 		}
 		return results;
 	}
 
 	@Override
-	public RowSet getRowSet(RowReferenceSet ref) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> restultForm)
+			throws IOException, NotFoundException {
+		// Get all of the data in the raw form.
+		List<RowSet> allSets = getRowSetOriginals(ref);
+		// Convert and merge all data into the requested form
+		return TableModelUtils.convertToSchemaAndMerge(allSets, restultForm, ref.getTableId());
 	}
 
+	public String getS3Bucket() {
+		return s3Bucket;
+	}
+
+	/**
+	 * IoC
+	 * @param s3Bucket
+	 */
+	public void setS3Bucket(String s3Bucket) {
+		this.s3Bucket = s3Bucket;
+	}
+
+	public int getMaxRowsPerGet() {
+		return maxRowsPerGet;
+	}
+
+	/**
+	 * IoC
+	 * @param maxRowsPerGet
+	 */
+	public void setMaxRowsPerGet(int maxRowsPerGet) {
+		this.maxRowsPerGet = maxRowsPerGet;
+	}
+	
 }

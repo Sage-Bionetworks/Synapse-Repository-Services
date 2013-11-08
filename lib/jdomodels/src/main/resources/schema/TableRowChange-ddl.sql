@@ -1,6 +1,7 @@
 CREATE TABLE `TABLE_ROW_CHANGE` (
   `TABLE_ID` bigint(20) NOT NULL,
   `ROW_VERSION` bigint(20) NOT NULL,
+  `ETAG` char(36) NOT NULL,
   `COLUMN_IDS`  varchar(1000) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
   `CREATED_BY`  bigint(20)  NOT NULL,
   `CREATED_ON`  bigint(20)  NOT NULL,
