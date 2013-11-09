@@ -1,5 +1,5 @@
 {
-	"description": "Used to login via username and password",
+	"description": "Contains the user's email",
     "implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.auth.UsernameInterface"
