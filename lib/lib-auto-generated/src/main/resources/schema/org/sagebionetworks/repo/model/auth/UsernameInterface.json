@@ -1,5 +1,5 @@
 {
-	"description": "Contains the user's email and password",
+	"description": "Contains the user's email",
 	"type": "interface",
 	"properties": {
 		"email": {

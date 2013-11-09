@@ -111,7 +111,9 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Retrieve basic information about the current authenticated user.  
-	 * Information includes the user's display name, and email.
+	 * Information includes the user's display name and email.
+	 * </br>
+	 * Consider using <a href="${GET.userProfile}">GET /userProfile</a> instead.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
