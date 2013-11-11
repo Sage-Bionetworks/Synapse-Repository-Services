@@ -317,6 +317,9 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		return getProperty("org.sagebionetworks.fileservice.endpoint");
 	}
 	
+	public String getBridgeServiceEndpoint() {
+		return getProperty("org.sagebionetworks.bridgeservice.endpoint");
+	}
 	
 	@Override
 	public String getSearchServiceEndpoint() {

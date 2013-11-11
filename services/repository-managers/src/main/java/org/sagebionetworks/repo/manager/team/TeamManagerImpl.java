@@ -90,6 +90,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
 		this.groupMembersDAO = groupMembersDAO;
+	
 		this.userGroupDAO = userGroupDAO;
 		this.aclDAO = aclDAO;
 		this.fileHandleManager = fileHandlerManager;
