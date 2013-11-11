@@ -413,7 +413,7 @@ public class MigrationClient {
 	public void migrateWikisToV2() throws SynapseException, JSONObjectAdapterException {
 		log.info("Migration Wikis to V2");
 		SynapseAdminClient destination = factory.createNewDestinationClient();
-		long limit = 100;
+		long limit = 10;
 		long offset = 0;
 		int failures = 0; // Number of failures
 		log.info("Migrating group of wikis at offset: " + offset);
