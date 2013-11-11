@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.io.IOException;
 import java.net.URL;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -22,10 +23,11 @@ public interface WikiService {
 	 * @param entity
 	 * @param toCreate
 	 * @return
-	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 * @throws IOException TODO
 	 */
-	WikiPage createWikiPage(String userId, String objectId, ObjectType entity,	WikiPage toCreate) throws DatastoreException, NotFoundException;
+	WikiPage createWikiPage(String userId, String objectId, ObjectType entity,	WikiPage toCreate) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Get a wiki page.
@@ -34,10 +36,11 @@ public interface WikiService {
 	 * @param entity
 	 * @param wikiId
 	 * @return
-	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 * @throws IOException TODO
 	 */
-	WikiPage getWikiPage(String userId, WikiPageKey key) throws DatastoreException, NotFoundException;
+	WikiPage getWikiPage(String userId, WikiPageKey key) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Update a wiki page.
@@ -46,10 +49,11 @@ public interface WikiService {
 	 * @param entity
 	 * @param toCreate
 	 * @return
-	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 * @throws IOException TODO
 	 */
-	WikiPage updateWikiPage(String userId, String objectId, ObjectType objectType,	WikiPage toUpdate) throws DatastoreException, NotFoundException;
+	WikiPage updateWikiPage(String userId, String objectId, ObjectType objectType,	WikiPage toUpdate) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a wiki page.
@@ -113,9 +117,10 @@ public interface WikiService {
 	 * @param ownerId
 	 * @param entity
 	 * @return
-	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
+	 * @throws IOException TODO
 	 */
-	WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
+	WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException, IOException;
 
 }

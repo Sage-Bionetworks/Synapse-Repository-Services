@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -104,6 +105,7 @@ public class WikiController extends BaseController {
 	 *             - Synapse error.
 	 * @throws NotFoundException
 	 *             - returned if the user or owner does not exist.
+	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI, method = RequestMethod.POST)
@@ -111,7 +113,7 @@ public class WikiController extends BaseController {
 	WikiPage createEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toCreate);
 	}
@@ -136,6 +138,7 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI, method = RequestMethod.POST)
@@ -143,7 +146,7 @@ public class WikiController extends BaseController {
 	WikiPage createCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @RequestBody WikiPage toCreate)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId,
 				ObjectType.EVALUATION, toCreate);
 	}
@@ -162,6 +165,8 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI, method = RequestMethod.GET)
@@ -169,7 +174,7 @@ public class WikiController extends BaseController {
 	WikiPage getEntityRootWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId) throws DatastoreException,
-			NotFoundException {
+			NotFoundException, UnauthorizedException, IOException {
 		return serviceProvider.getWikiService().getRootWikiPage(userId,
 				ownerId, ObjectType.ENTITY);
 	}
@@ -188,6 +193,8 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws UnauthorizedException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI, method = RequestMethod.GET)
@@ -195,7 +202,7 @@ public class WikiController extends BaseController {
 	WikiPage getCompetitionRootWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId) throws DatastoreException,
-			NotFoundException {
+			NotFoundException, UnauthorizedException, IOException {
 		return serviceProvider.getWikiService().getRootWikiPage(userId,
 				ownerId, ObjectType.EVALUATION);
 	}
@@ -216,6 +223,7 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.GET)
@@ -223,7 +231,7 @@ public class WikiController extends BaseController {
 	WikiPage getEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().getWikiPage(userId,
 				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
@@ -244,6 +252,7 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID, method = RequestMethod.GET)
@@ -251,7 +260,7 @@ public class WikiController extends BaseController {
 	WikiPage getCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().getWikiPage(userId,
 				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
@@ -286,6 +295,7 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.PUT)
@@ -294,7 +304,7 @@ public class WikiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate) throws DatastoreException,
-			NotFoundException {
+			NotFoundException, IOException {
 		validateUpateArguments(wikiId, toUpdate);
 		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
 				ObjectType.ENTITY, toUpdate);
@@ -328,6 +338,7 @@ public class WikiController extends BaseController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID, method = RequestMethod.PUT)
@@ -336,7 +347,7 @@ public class WikiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate) throws DatastoreException,
-			NotFoundException {
+			NotFoundException, IOException {
 		validateUpateArguments(wikiId, toUpdate);
 		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId,
 				ObjectType.EVALUATION, toUpdate);

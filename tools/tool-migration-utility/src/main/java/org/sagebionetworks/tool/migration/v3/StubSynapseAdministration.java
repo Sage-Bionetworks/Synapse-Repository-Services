@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -23,10 +24,10 @@ import java.util.Stack;
 
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
+import org.sagebionetworks.client.SharedClientConnection;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -99,12 +100,15 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
+import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -139,6 +143,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	List<Long> replayChangeNumbersHistory = new LinkedList<Long>();
 	List<Set<Long>> deleteRequestsHistory = new LinkedList<Set<Long>>();
 	Set<Long> exceptionNodes = new HashSet<Long>();
+	List<WikiMigrationResult> wikiMigrationResults = new ArrayList<WikiMigrationResult>();
 
 	/**
 	 * Create a new stub
@@ -1993,6 +1998,14 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public StorageUsageSummaryList getStorageUsageSummary(
+			List<StorageUsageDimension> aggregation) throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public void moveToTrash(String entityId) throws SynapseException {
 		// TODO Auto-generated method stub
 		
@@ -2390,7 +2403,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
-
 	@Override
 	public void resendPasswordEmail(String email) throws SynapseException {
 		// TODO Auto-generated method stub
@@ -2410,6 +2422,49 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean acceptsTermsOfUse, Boolean createUserIfNecessary)
 			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public PaginatedResults<WikiMigrationResult> migrateWikisToV2(long offset,
+			long limit) throws SynapseException, JSONObjectAdapterException {
+		// Return the requested migration results for processing
+		PaginatedResults<WikiMigrationResult> results = new PaginatedResults<WikiMigrationResult>();
+		List<WikiMigrationResult> subResults = createSubResultAtOffset(offset, limit);
+		results.setResults(subResults);
+		results.setTotalNumberOfResults(wikiMigrationResults.size());
+		return results;
+	}
+
+	/**
+	 * Returns a subset of all the migration results, specified by the
+	 * offset and limit parameters.
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @return
+	 */
+	private List<WikiMigrationResult> createSubResultAtOffset(long offset, long limit) {
+		List<WikiMigrationResult> subResults = new ArrayList<WikiMigrationResult>();
+		long counter = offset;
+		while(counter < offset + limit && counter < wikiMigrationResults.size()) {
+			subResults.add(wikiMigrationResults.get((int) counter));
+			counter++;
+		}
+		return subResults;
+	}
+	
+	/**
+	 * Keep track of all the migration results.
+	 * @param results
+	 */
+	public void setWikiMigrationResults(List<WikiMigrationResult> results) {
+		wikiMigrationResults = results;
+	}
+
+	@Override
+	public SharedClientConnection getSharedClientConnection() {
 		// TODO Auto-generated method stub
 		return null;
 	}
