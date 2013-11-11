@@ -47,7 +47,12 @@ public class MigrationClientMain {
 			System.exit(-1);
 		} else {
 			// Migrate wikis from V1 to V2 only if everything else migrated successfully
-			client.migrateWikisToV2();
+			try {
+				client.migrateWikisToV2();
+			} catch(Exception e) {
+				log.error("Migration of wikis to V2 failed.");
+				System.exit(-1);
+			}
 			System.exit(0);
 		}
 	}
