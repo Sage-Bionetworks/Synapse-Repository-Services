@@ -1,14 +1,11 @@
 {
-	"description": "Needs a description",
+	"description": "Fields required to create a new user account",
+    "implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.auth.CredentialsInterface"
+		}
+	], 
 	"properties": {
-		"email": {
-			"type": "string",
-			"description": "The user's email"
-		},
-		"password": {
-			"type": "string",
-			"description": "User's password"
-		},
 		"firstName": {
 			"type": "string",
 			"description": "User's first name"
@@ -20,10 +17,6 @@
 		"displayName": {
 			"type": "string",
 			"description": "User's display name"
-		},
-		"acceptsTermsOfUse": {
-			"type": "boolean",
-			"description": "Does the user accept the terms of use"
 		}
 	}
 }

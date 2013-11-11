@@ -271,6 +271,72 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	}
 	
 	@Test
+	public void testParentCycle() throws NotFoundException {
+		// When updating the parent wiki id, the check for valid parent ids
+		// should ensure that the update will not create a cycle. 
+		String ownerId = "syn182";
+		ObjectType ownerType = ObjectType.ENTITY;
+		
+		V2WikiPage grandparent = new V2WikiPage();
+		grandparent.setTitle("Title");
+		grandparent.setCreatedBy(creatorUserGroupId);
+		grandparent.setModifiedBy(creatorUserGroupId);
+		grandparent.setMarkdownFileHandleId(markdownOne.getId());
+		grandparent.setAttachmentFileHandleIds(new LinkedList<String>());
+		grandparent = wikiPageDao.create(grandparent, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		WikiPageKey key = new WikiPageKey(ownerId, ownerType, grandparent.getId());
+		toDelete.add(key);
+		
+		V2WikiPage parent = new V2WikiPage();
+		parent.setParentWikiId(grandparent.getId());
+		parent.setTitle("Title");
+		parent.setCreatedBy(creatorUserGroupId);
+		parent.setModifiedBy(creatorUserGroupId);
+		parent.setMarkdownFileHandleId(markdownOne.getId());
+		parent.setAttachmentFileHandleIds(new LinkedList<String>());
+		parent = wikiPageDao.create(parent, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		WikiPageKey key2 = new WikiPageKey(ownerId, ownerType, parent.getId());
+		toDelete.add(key2);
+		
+		V2WikiPage child = new V2WikiPage();
+		child.setParentWikiId(parent.getId());
+		child.setTitle("Title");
+		child.setCreatedBy(creatorUserGroupId);
+		child.setModifiedBy(creatorUserGroupId);
+		child.setMarkdownFileHandleId(markdownOne.getId());
+		child.setAttachmentFileHandleIds(new LinkedList<String>());
+		child = wikiPageDao.create(child, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		WikiPageKey key3 = new WikiPageKey(ownerId, ownerType, child.getId());
+		toDelete.add(key3);
+		
+		grandparent.setParentWikiId(child.getId());
+		// This creates a cycle
+		try {
+			grandparent = wikiPageDao.updateWikiPage(grandparent, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+			fail("Should have thrown an exception because this update makes a cycle.");
+		} catch(IllegalArgumentException e) {
+			// expected
+		}
+
+		// Create a wiki with its parent id equal to its own id
+		// Should detect this short cycle.
+		V2WikiPage thirdChild = new V2WikiPage();
+		thirdChild.setId("100");
+		thirdChild.setParentWikiId("100");
+		thirdChild.setTitle("Title");
+		thirdChild.setCreatedBy(creatorUserGroupId);
+		thirdChild.setModifiedBy(creatorUserGroupId);
+		thirdChild.setMarkdownFileHandleId(markdownOne.getId());
+		thirdChild.setAttachmentFileHandleIds(new LinkedList<String>());
+		try {
+			thirdChild = wikiPageDao.create(thirdChild, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+			fail("Should have failed because creating this wiki creates a cycle.");
+		} catch(Exception e) {
+			// expected
+		}
+	}
+	
+	@Test
 	public void testGetWikiHistoryAndRestore() throws NotFoundException, InterruptedException {
 		V2WikiPage page = new V2WikiPage();
 		String ownerId = "syn1082";

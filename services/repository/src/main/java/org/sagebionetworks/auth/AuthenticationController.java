@@ -13,10 +13,12 @@ import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -57,15 +59,11 @@ public class AuthenticationController extends BaseController {
 	/**
 	 * Retrieve a session token that will be usable for 24 hours or until invalidated.
 	 * The user must accept the terms of use before a session token is issued.
-	 * </br>
-	 * The passed request body must contain an email and password.  
-	 * Other fields will be ignored.  
-	 * See the <a href="${org.sagebionetworks.repo.model.auth.NewUser}">JSON schema</a> for more information.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
-	Session authenticate(@RequestBody NewUser credentials) throws NotFoundException {
+	Session authenticate(@RequestBody LoginCredentials credentials) throws NotFoundException {
 		return authenticationService.authenticate(credentials);
 	}
 
@@ -104,18 +102,18 @@ public class AuthenticationController extends BaseController {
 
 	/**
 	 * Resends the email for setting a new user's password.
-	 * 
-	 * @param user Only the email field is required
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
-	public void resendRegisteringUserPasswordEmail(@RequestBody NewUser user) throws NotFoundException {
+	public void resendRegisteringUserPasswordEmail(@RequestBody Username user) throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 	}
 	
 	/**
 	 * Retrieve basic information about the current authenticated user.  
-	 * Information includes the user's display name, email, and whether they have accepted the terms of use.
+	 * Information includes the user's display name and email.
+	 * </br>
+	 * Consider using <a href="${GET.userProfile}">GET /userProfile</a> instead.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
@@ -125,7 +123,6 @@ public class AuthenticationController extends BaseController {
 			throws NotFoundException {
 		UserInfo userInfo = authenticationService.getUserInfo(username);
 		NewUser user = new NewUser();
-		user.setAcceptsTermsOfUse(userInfo.getUser().isAgreesToTermsOfUse());
 		user.setDisplayName(userInfo.getUser().getDisplayName());
 		user.setEmail(userInfo.getIndividualGroup().getName());
 		user.setFirstName(userInfo.getUser().getFname());
@@ -135,13 +132,10 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Request a password change email.
-	 * </br>
-	 * Note: The passed request body must contain an email.  
-	 * Other fields will be ignored.  
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody NewUser credential)
+	public void sendChangePasswordEmail(@RequestBody Username credential)
 			throws NotFoundException {
 		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW);
 	}

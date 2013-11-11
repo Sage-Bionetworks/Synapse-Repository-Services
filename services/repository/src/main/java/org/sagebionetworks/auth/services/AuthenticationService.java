@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -24,7 +25,7 @@ public interface AuthenticationService {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @throws UnauthorizedException If the credentials are incorrect
 	 */
-	public Session authenticate(NewUser credential) throws NotFoundException, UnauthorizedException, TermsOfUseException;
+	public Session authenticate(LoginCredentials credential) throws NotFoundException, UnauthorizedException, TermsOfUseException;
 	
 	/**
 	 * Revalidates a session token and checks if the user has accepted the terms of use

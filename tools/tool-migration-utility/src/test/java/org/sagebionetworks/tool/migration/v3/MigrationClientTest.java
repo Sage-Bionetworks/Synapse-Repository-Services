@@ -3,6 +3,7 @@ package org.sagebionetworks.tool.migration.v3;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +15,8 @@ import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -131,6 +134,60 @@ public class MigrationClientTest {
 			}
 		}
 		return list;
+	}
+	
+	/**
+	 * Test migration of wikis to V2 with successful results
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test
+	public void testWikiMigration() throws SynapseException, JSONObjectAdapterException {
+		List<WikiMigrationResult> results = createSuccessfulMigrationResults(300);
+		assertEquals(300, results.size());
+		destSynapse.setWikiMigrationResults(results);
+		migrationClient.migrateWikisToV2();
+	}
+	
+	/**
+	 * Test migration of wikis to V2 with mixed failures. After,
+	 * an exception should be thrown to show migration failure.
+	 * 
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test (expected=RuntimeException.class)
+	public void testWikiMigrationFailure() throws SynapseException, JSONObjectAdapterException {
+		List<WikiMigrationResult> results = createSomeFailedResults(200);
+		assertEquals(200, results.size());
+		destSynapse.setWikiMigrationResults(results);
+		migrationClient.migrateWikisToV2();
+	}
+	
+	private List<WikiMigrationResult> createSuccessfulMigrationResults(int numOfResults) {
+		List<WikiMigrationResult> results = new ArrayList<WikiMigrationResult>();
+		for(int i = 0; i < numOfResults; i++) {
+			WikiMigrationResult result = new WikiMigrationResult();
+			result.setResultType(WikiMigrationResultType.SUCCESS);
+			results.add(result);
+		}
+		return results;
+	}
+	
+	private List<WikiMigrationResult> createSomeFailedResults(int numOfResults) {
+		List<WikiMigrationResult> results = new ArrayList<WikiMigrationResult>();
+		for(int i = 0; i < numOfResults; i++) {
+			WikiMigrationResult result = new WikiMigrationResult();
+			if(i % 2 == 1) {
+				result.setResultType(WikiMigrationResultType.FAILURE);
+				result.setWikiId("" + i);
+				result.setMessage("It's odd.");
+			} else {
+				result.setResultType(WikiMigrationResultType.SUCCESS);
+			}
+			results.add(result);
+		}
+		return results;
 	}
 
 }
