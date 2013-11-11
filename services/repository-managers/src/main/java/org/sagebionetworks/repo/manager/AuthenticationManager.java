@@ -22,6 +22,7 @@ public interface AuthenticationManager {
 	
 	/**
 	 * Looks for the given session token
+	 * Also revalidates the session token if valid
 	 * @return The principal ID of the holder
 	 * @throws UnauthorizedException If the token is not valid
 	 * @throws TermsOfUseException If the user has not signed the terms of use
