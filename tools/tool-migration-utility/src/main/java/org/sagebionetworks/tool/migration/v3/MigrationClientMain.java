@@ -50,7 +50,7 @@ public class MigrationClientMain {
 			try {
 				client.migrateWikisToV2();
 			} catch(Exception e) {
-				log.error("Migration of wikis to V2 failed.");
+				log.error("Migration of wikis to V2 failed. Error: " + e.getMessage(), e);
 				System.exit(-1);
 			}
 			System.exit(0);
