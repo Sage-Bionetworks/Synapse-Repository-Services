@@ -19,6 +19,10 @@
 				"type": "string"
 			}
 		}, 
+		"inReplyTo": {
+			"type": "string",
+			"description":"The unique identifier of the message being replied to.  Can be null"
+		}, 
         "inReplyToRoot": {
 			"type": "string",
 			"description":"The unique identifier of the root message being replied to"

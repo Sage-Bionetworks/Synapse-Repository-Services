@@ -21,7 +21,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_CONTENT_ID, true).withIsBackupId(true),
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY),
 		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID),
-		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_CONTENT_IN_REPLY_TO),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON),
 		new FieldColumn("etag", SqlConstants.COL_MESSAGE_CONTENT_ETAG)
 	};
@@ -29,7 +28,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 	private Long messageId;
 	private Long createdBy;
 	private Long fileHandleId;
-	private Long inReplyTo;
 	private Long createdOn;
 	private String etag;
 
@@ -43,10 +41,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_ID));
 				result.setCreatedBy(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY));
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID));
-				String replyTo = rs.getString(SqlConstants.COL_MESSAGE_CONTENT_IN_REPLY_TO);
-				if (replyTo != null) {
-					result.setInReplyTo(Long.parseLong(replyTo));
-				}
 				result.setCreatedOn(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON));
 				result.setEtag(rs.getString(SqlConstants.COL_MESSAGE_CONTENT_ETAG));
 				return result;
@@ -103,17 +97,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 	public void setFileHandleId(Long fileHandleId) {
 		this.fileHandleId = fileHandleId;
 	}
-
-
-	public Long getInReplyTo() {
-		return inReplyTo;
-	}
-
-
-	public void setInReplyTo(Long inReplyTo) {
-		this.inReplyTo = inReplyTo;
-	}
-
 
 	public Long getCreatedOn() {
 		return createdOn;
@@ -190,8 +173,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 		result = prime * result
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result
-				+ ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
-		result = prime * result
 				+ ((messageId == null) ? 0 : messageId.hashCode());
 		return result;
 	}
@@ -226,11 +207,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 				return false;
 		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
-		if (inReplyTo == null) {
-			if (other.inReplyTo != null)
-				return false;
-		} else if (!inReplyTo.equals(other.inReplyTo))
-			return false;
 		if (messageId == null) {
 			if (other.messageId != null)
 				return false;
@@ -242,9 +218,8 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 	@Override
 	public String toString() {
 		return "DBOMessageContent [messageId=" + messageId + ", createdBy="
-				+ createdBy + ", fileHandleId=" + fileHandleId + ", inReplyTo="
-				+ inReplyTo + ", createdOn=" + createdOn + ", etag=" + etag
-				+ "]";
+				+ createdBy + ", fileHandleId=" + fileHandleId + ", createdOn="
+				+ createdOn + ", etag=" + etag + "]";
 	}
 
 }

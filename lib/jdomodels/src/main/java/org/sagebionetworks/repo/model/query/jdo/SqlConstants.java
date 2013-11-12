@@ -146,7 +146,6 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_CONTENT_ID               = "ID";
  	public static final String COL_MESSAGE_CONTENT_CREATED_BY       = "CREATED_BY";
  	public static final String COL_MESSAGE_CONTENT_FILE_HANDLE_ID   = "FILE_HANDLE_ID";
- 	public static final String COL_MESSAGE_CONTENT_IN_REPLY_TO      = "IN_REPLY_TO";
  	public static final String COL_MESSAGE_CONTENT_CREATED_ON       = "CREATED_ON";
  	public static final String COL_MESSAGE_CONTENT_ETAG             = "ETAG";
  	public static final String DDL_MESSAGE_CONTENT                  = "schema/MessageContent-ddl.sql";
@@ -154,11 +153,12 @@ public class SqlConstants {
  	// Message to user
  	public static final String TABLE_MESSAGE_TO_USER                = "MESSAGE_TO_USER";
  	public static final String COL_MESSAGE_TO_USER_MESSAGE_ID       = "MESSAGE_ID";
- 	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
  	public static final String COL_MESSAGE_TO_USER_ROOT_ID          = "ROOT_MESSAGE_ID";
+ 	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
+ 	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
- 	// Message to user
+ 	// Message recipient
  	public static final String TABLE_MESSAGE_RECIPIENT              = "MESSAGE_RECIPIENT";
  	public static final String COL_MESSAGE_RECIPIENT_MESSAGE_ID     = "MESSAGE_ID";
  	public static final String COL_MESSAGE_RECIPIENT_ID             = "RECIPIENT_ID";

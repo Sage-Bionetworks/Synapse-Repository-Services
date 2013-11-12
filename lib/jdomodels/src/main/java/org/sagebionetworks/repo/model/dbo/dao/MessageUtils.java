@@ -49,7 +49,6 @@ public class MessageUtils {
 		if (content.getCreatedOn() != null) {
 			bundle.setCreatedOn(new Date(content.getCreatedOn()));
 		}
-		bundle.setInReplyTo(toString(content.getInReplyTo()));
 	}
 	
 	/**
@@ -58,8 +57,9 @@ public class MessageUtils {
 	 */
 	public static void copyDBOToDTO(DBOMessageToUser info, MessageToUser bundle) {
 		bundle.setId(toString(info.getMessageId()));
-		bundle.setSubject(info.getSubject());
 		bundle.setInReplyToRoot(toString(info.getRootMessageId()));
+		bundle.setInReplyTo(toString(info.getInReplyTo()));
+		bundle.setSubject(info.getSubject());
 	}
 	
 	/**
@@ -114,7 +114,6 @@ public class MessageUtils {
 		if (dto.getCreatedOn() != null) {
 			content.setCreatedOn(dto.getCreatedOn().getTime());
 		}
-		content.setInReplyTo(parseLong(dto.getInReplyTo()));
 	}
 	
 	/**
@@ -123,8 +122,9 @@ public class MessageUtils {
 	 */
 	public static void copyDTOToDBO(MessageToUser dto, DBOMessageToUser info) {
 		info.setMessageId(parseLong(dto.getId()));
-		info.setSubject(dto.getSubject());
 		info.setRootMessageId(parseLong(dto.getInReplyToRoot()));
+		info.setInReplyTo(parseLong(dto.getInReplyTo()));
+		info.setSubject(dto.getSubject());
 	}
 
 	/**
@@ -148,5 +148,50 @@ public class MessageUtils {
 			return null;	
 		}
 		return Long.parseLong(input);
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageContent dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message content must have an ID");
+		}
+		if (dbo.getCreatedBy() == null) {
+			throw new IllegalArgumentException("Message content must have a creator");
+		}
+		if (dbo.getFileHandleId() == null) {
+			throw new IllegalArgumentException("Message content must have a file handle");
+		}
+		if (dbo.getEtag() == null) {
+			throw new IllegalArgumentException("Message content must have an etag");
+		}
+		if (dbo.getCreatedOn() == null) {
+			throw new IllegalArgumentException("Message content must have a creation time");
+		}
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageToUser dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message info must have an ID");
+		}
+		if (dbo.getRootMessageId() == null) {
+			throw new IllegalArgumentException("Message info must point to a root message");
+		}
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageRecipient dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message recipient must have a message ID");
+		}
+		if (dbo.getRecipientId() == null) {
+			throw new IllegalArgumentException("Message recipient must have an user ID");
+		}
 	}
 }

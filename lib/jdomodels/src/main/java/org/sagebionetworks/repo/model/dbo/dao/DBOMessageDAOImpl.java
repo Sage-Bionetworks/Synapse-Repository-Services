@@ -57,6 +57,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String SELECT_MESSAGE_RECIPIENTS_BY_ID = 
 			"SELECT " + SqlConstants.COL_MESSAGE_RECIPIENT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
 			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
+	private static final String SELECT_ROOT_MESSAGE_ID_BY_ID = 
+			"SELECT " + SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_TO_USER + 
+			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 			
 	private static final String INSERT_MESSAGE_RECIPIENTS = 
 			"INSERT INTO " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
@@ -213,6 +217,18 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		// Insert the message info
 		info.setMessageId(messageId);
+		if (info.getInReplyTo() == null) {
+			info.setRootMessageId(messageId);
+		} else {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue(MESSAGE_ID_PARAM_NAME, info.getInReplyTo());
+			try {
+				Long rootMessage = simpleJdbcTemplate.queryForLong(SELECT_ROOT_MESSAGE_ID_BY_ID, params);
+				info.setRootMessageId(rootMessage);
+			} catch (EmptyResultDataAccessException e) {
+				throw new IllegalArgumentException("Cannot reply to a message (" + info.getInReplyTo() + ") that does not exist");
+			}
+		}
 		MessageUtils.validateDBO(info);
 		basicDAO.createNew(info);
 		

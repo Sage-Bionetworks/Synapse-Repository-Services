@@ -18,13 +18,15 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
-		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT), 
-		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID)
+		new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID), 
+		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
+		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT)
 	};
 	
 	private Long messageId;
-	private String subject;
 	private Long rootMessageId;
+	private Long inReplyTo;
+	private String subject;
 
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
@@ -34,8 +36,12 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			public DBOMessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOMessageToUser result = new DBOMessageToUser();
 				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID));
-				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
 				result.setRootMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID));
+				String replyTo = rs.getString(SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID);
+				if (replyTo != null) {
+					result.setInReplyTo(Long.parseLong(replyTo));
+				};
+				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
 				return result;
 			}
 			
@@ -60,36 +66,38 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 			}
 		};
 	}
-	
-	
+
 	public Long getMessageId() {
 		return messageId;
 	}
 
-
 	public void setMessageId(Long messageId) {
 		this.messageId = messageId;
-	}
-
-
-	public String getSubject() {
-		return subject;
-	}
-
-
-	public void setSubject(String subject) {
-		this.subject = subject;
 	}
 
 	public Long getRootMessageId() {
 		return rootMessageId;
 	}
 
-
 	public void setRootMessageId(Long rootMessageId) {
 		this.rootMessageId = rootMessageId;
 	}
 
+	public Long getInReplyTo() {
+		return inReplyTo;
+	}
+
+	public void setInReplyTo(Long inReplyTo) {
+		this.inReplyTo = inReplyTo;
+	}
+
+	public String getSubject() {
+		return subject;
+	}
+
+	public void setSubject(String subject) {
+		this.subject = subject;
+	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -132,6 +140,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((inReplyTo == null) ? 0 : inReplyTo.hashCode());
+		result = prime * result
 				+ ((messageId == null) ? 0 : messageId.hashCode());
 		result = prime * result
 				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
@@ -149,6 +159,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		if (getClass() != obj.getClass())
 			return false;
 		DBOMessageToUser other = (DBOMessageToUser) obj;
+		if (inReplyTo == null) {
+			if (other.inReplyTo != null)
+				return false;
+		} else if (!inReplyTo.equals(other.inReplyTo))
+			return false;
 		if (messageId == null) {
 			if (other.messageId != null)
 				return false;
@@ -170,8 +185,9 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 
 	@Override
 	public String toString() {
-		return "DBOMessageToUser [messageId=" + messageId + ", subject="
-				+ subject + ", rootMessageId=" + rootMessageId + "]";
+		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId="
+				+ rootMessageId + ", inReplyTo=" + inReplyTo + ", subject="
+				+ subject + "]";
 	}
 
 }
