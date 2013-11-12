@@ -1,113 +1,146 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
-import org.sagebionetworks.repo.model.message.Message;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
-
+import org.sagebionetworks.repo.model.message.MessageToUser;
 
 public class MessageUtilsTest {
 	
-	/**
-	 * Generates a message that passes the Message utility's validation method, 
-	 * but is otherwise filled with junk info 
-	 */
-	@SuppressWarnings("serial")
-	private Message generateSortaValidMessage() {
-		Message dto = new Message();
-		dto.setMessageId("-1");
-		dto.setCreatedBy("-3");
-		dto.setRecipientType(ObjectType.PRINCIPAL);
-		dto.setRecipients(new HashSet<String>() {{add("-4");}});
-		dto.setMessageFileHandleId("-5");
-		dto.setCreatedOn(new Date());
-		return dto;
-	}
-	
 	@Test
-	public void testValidateMessage() throws Exception {
-		// The static method gives us a passing message
-		DBOMessageContent dbo = MessageUtils.convertDTO(generateSortaValidMessage());
-		MessageUtils.validateDBO(dbo);
+	public void testMessageRecipientBucketing() throws Exception {
+		DBOMessageRecipient r1 = new DBOMessageRecipient();
+		r1.setMessageId(1L);
+		r1.setRecipientId(1L);
 		
-		// Set optional fields
-		dbo.setSubject("I'm not null");
-		dbo.setReplyTo(-12345L);
-		MessageUtils.validateDBO(dbo);
+		DBOMessageRecipient r2 = new DBOMessageRecipient();
+		r2.setMessageId(1L);
+		r2.setRecipientId(2L);
 		
-		// Still valid
-		dbo.setSubject(null);
-		MessageUtils.validateDBO(dbo);
+		DBOMessageRecipient r3 = new DBOMessageRecipient();
+		r3.setMessageId(2L);
+		r3.setRecipientId(3L);
+		
+		List<DBOMessageRecipient> recipients = new ArrayList<DBOMessageRecipient>();
+		recipients.add(r1);
+		recipients.add(r2);
+		recipients.add(r3);
 
-		// Still valid
-		dbo.setReplyTo(null);
-		MessageUtils.validateDBO(dbo);
+		MessageToUser b1 = new MessageToUser();
+		b1.setId("1");
 		
-		// All of the following should throw different error messages
-		Set<String> caughtMessages = new HashSet<String>();
+		MessageToUser b2 = new MessageToUser();
+		b2.setId("2");
 		
-		dbo.setCreatedOn(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
+		MessageToUser b3 = new MessageToUser();
+		b3.setId("3");
 		
-		dbo.setFileHandleId(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
+		List<MessageToUser> buckets = new ArrayList<MessageToUser>();
+		buckets.add(b1);
+		buckets.add(b2);
+		buckets.add(b3);
 		
-		dbo.setRecipients(MessageUtils.zip(new HashSet<String>()));
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
-		
-		// Except for this one, which is the same message as the previous one
-		dbo.setRecipients(null);
-		assertFalse(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
-		
-		dbo.setRecipientType(ObjectType.FAVORITE.name());
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
-		
-		dbo.setRecipientType(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
-		
-		dbo.setCreatedBy(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
-		
-		dbo.setMessageId(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
+		MessageUtils.copyDBOToDTO(recipients, buckets);
+		assertEquals(2, b1.getRecipients().size());
+		assertEquals(1, b2.getRecipients().size());
+		assertEquals(0, b3.getRecipients().size());
 	}
 	
-	/**
-	 * Helper for the test to validate the validateMessage helper
-	 */
-	private String validateMessageCatchIllegalArgument(DBOMessageContent dbo) {
-		try {
-			MessageUtils.validateDBO(dbo);
-			fail();
-		} catch (IllegalArgumentException e) {
-			return e.getMessage();
-		}
-		throw new RuntimeException("Impossible to reach this point in a test");
-	}
-	
+	@SuppressWarnings("serial")
 	@Test
-	public void testMessageConversion() throws Exception {
-		Message dto = generateSortaValidMessage();
-		DBOMessageContent dbo = MessageUtils.convertDTO(dto);
-		Message dto2 = MessageUtils.convertDBO(dbo);
-		
+	public void testMessageAggregateRoundTrip() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("1");
+		dto.setCreatedBy("2");
+		dto.setFileHandleId("3");
+		dto.setInReplyTo("4");
+		dto.setInReplyToRoot("5");
+		dto.setCreatedOn(new Date());
+		dto.setSubject("foo");
+		dto.setRecipients(new HashSet<String>() {{
+			add("1");
+			add("2");
+			add("3");
+			add("4");
+			add("5");
+		}});
+
+		DBOMessageContent content = new DBOMessageContent();
+		DBOMessageToUser info = new DBOMessageToUser();
+		List<DBOMessageRecipient> recipients = new ArrayList<DBOMessageRecipient>();
+		MessageUtils.copyDTOtoDBO(dto, content, info, recipients);
+
+		MessageToUser dto2 = new MessageToUser();
+		MessageUtils.copyDBOToDTO(content, info, recipients, dto2);
 		assertEquals(dto, dto2);
 	}
 	
 	@Test
-	public void testStatusConversion() throws Exception {
+	public void testMessageContentRoundTrip() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("123");
+		dto.setCreatedBy("456");
+		dto.setFileHandleId("789");
+		dto.setCreatedOn(new Date());
+		
+		DBOMessageContent content = new DBOMessageContent();
+		MessageUtils.copyDTOToDBO(dto, content);
+
+		MessageToUser dto2 = new MessageToUser();
+		MessageUtils.copyDBOToDTO(content, dto2);
+		assertEquals(dto, dto2);
+	}
+	
+	@Test
+	public void testMessageInfoRoundTrip() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("123");
+		dto.setInReplyTo("456");
+		dto.setInReplyToRoot("789");
+		dto.setSubject("foo");
+		
+		DBOMessageToUser info = new DBOMessageToUser();
+		MessageUtils.copyDTOToDBO(dto, info);
+
+		MessageToUser dto2 = new MessageToUser();
+		MessageUtils.copyDBOToDTO(info, dto2);
+		assertEquals(dto, dto2);
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testMessageRecipientRoundTrip() throws Exception {
+		MessageToUser dto = new MessageToUser();
+		dto.setId("12345");
+		dto.setRecipients(new HashSet<String>() {{
+			add("1");
+			add("2");
+			add("3");
+			add("4");
+			add("5");
+		}});
+		
+		List<DBOMessageRecipient> recipients = new ArrayList<DBOMessageRecipient>();
+		MessageUtils.copyDTOToDBO(dto, recipients);
+		
+		MessageToUser dto2 = new MessageToUser();
+		MessageUtils.copyDBOToDTO(recipients, dto2);
+		assertEquals(dto, dto2);
+	}
+	
+	@Test
+	public void testMessageStatusRoundTrip() throws Exception {
 		MessageStatus dto = new MessageStatus();
 		dto.setMessageId("-1");
 		dto.setRecipientId("-1");
@@ -117,23 +150,5 @@ public class MessageUtilsTest {
 		MessageStatus dto2 = MessageUtils.convertDBO(dbo);
 		
 		assertEquals(dto, dto2);
-	}
-	
-	@Test
-	public void testZipUnzip() throws Exception {
-		Set<String> original = new HashSet<String>();
-		original.add("1");
-		original.add("1");
-		original.add("2");
-		original.add("34");
-		original.add("567");
-		original.add("8901");
-		original.add("23456789");
-		original.add(Long.toString(Long.MIN_VALUE));
-		original.add(Long.toString(Long.MAX_VALUE));
-		
-		Set<String> processed = MessageUtils.unzip(MessageUtils.zip(original));
-		assertTrue(original.containsAll(processed));
-		assertTrue(processed.containsAll(original));
 	}
 }

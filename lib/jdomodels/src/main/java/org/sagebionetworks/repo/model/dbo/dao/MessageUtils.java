@@ -78,7 +78,7 @@ public class MessageUtils {
 		}
 		bundle.setRecipients(new HashSet<String>());
 		for (DBOMessageRecipient recipient : recipients) {
-			if (recipient.getMessageId() != recipients.get(0).getMessageId()) {
+			if (!recipient.getMessageId().equals(recipients.get(0).getMessageId())) {
 				throw new IllegalArgumentException("Message recipients should be belong to the same message");
 			}
 			bundle.getRecipients().add(toString(recipient.getRecipientId()));
@@ -93,6 +93,9 @@ public class MessageUtils {
 		// Map the message list to IDs for faster lookup
 		Map<Long, MessageToUser> buckets = new HashMap<Long, MessageToUser>();
 		for (MessageToUser message : bundles) {
+			if (message.getId() == null) {
+				throw new IllegalArgumentException("Message must have an ID");
+			}
 			buckets.put(Long.parseLong(message.getId()), message);
 			
 			// Also initialize the recipient set
@@ -102,7 +105,7 @@ public class MessageUtils {
 		// Chuck recipients into buckets
 		for (DBOMessageRecipient recipient : recipients) {
 			if (!buckets.containsKey(recipient.getMessageId())) {
-				throw new IllegalArgumentException("No matching MessageToUser (" + recipient.getMessageId() + ") found for recipient (" + recipient.getRecipientId());
+				throw new IllegalArgumentException("No matching MessageToUser (" + recipient.getMessageId() + ") found for recipient (" + recipient.getRecipientId() + ")");
 			}
 			buckets.get(recipient.getMessageId()).getRecipients().add(toString(recipient.getRecipientId()));
 		}
@@ -134,7 +137,7 @@ public class MessageUtils {
 	 * Note: some information, like message ID, will be duplicated
 	 * See {@link #copyDTOToDBO(MessageToUser, DBOMessageContent)}, 
 	 *     {@link #copyDTOToDBO(MessageToUser, DBOMessageToUser)}, and 
-	 *     {@link #copyDTOToDBO(MessageToUser, List<DBOMessageRecipient>)}
+	 *     {@link #copyDTOToDBO(MessageToUser, List)}
 	 */
 	public static void copyDTOtoDBO(MessageToUser dto, DBOMessageContent content, DBOMessageToUser info, List<DBOMessageRecipient> recipients) {
 		copyDTOToDBO(dto, content);
