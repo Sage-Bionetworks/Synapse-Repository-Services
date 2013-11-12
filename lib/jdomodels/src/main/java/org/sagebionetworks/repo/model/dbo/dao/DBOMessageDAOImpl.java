@@ -53,7 +53,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			" AND " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final String SELECT_MESSAGE_RECIPIENTS_BY_ID = 
-			"SELECT " + SqlConstants.COL_MESSAGE_RECIPIENT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
+			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
 			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + " IN(:" + MESSAGE_ID_PARAM_NAME + ")";
 	
 	private static final String SELECT_ROOT_MESSAGE_ID_BY_ID = 
@@ -71,10 +71,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String FROM_MESSAGES_IN_THREAD_CORE = 
 			" FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
-				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS + " status " + 
-					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "= status." + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + ")" + 
-				" INNER JOIN " + SqlConstants.TABLE_MESSAGE_TO_USER + 
-					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "=" + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + ")" + 
+				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS + " status" + 
+					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "=status." + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + ")" + 
+				" INNER JOIN " + SqlConstants.TABLE_MESSAGE_TO_USER + " info" + 
+					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "=info." + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + ")" + 
 			" WHERE " + SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID + "=:" + ROOT_MESSAGE_ID_PARAM_NAME+
 			" AND (" + SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY + "=:" + USER_ID_PARAM_NAME + 
 				" OR status." + SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID + "=:" + USER_ID_PARAM_NAME + ")";
@@ -96,8 +96,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String SELECT_MESSAGES_RECEIVED = 
 			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," +
 					SqlConstants.TABLE_MESSAGE_TO_USER + " info," + 
-					SqlConstants.TABLE_MESSAGE_STATUS + 
-			" WHERE "+SqlConstants.COL_MESSAGE_CONTENT_ID + "= info." + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + 
+					SqlConstants.TABLE_MESSAGE_STATUS + " status" + 
+			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=info." + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + 
+			" AND " +  SqlConstants.COL_MESSAGE_CONTENT_ID + "=status." + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + 
 			" AND " + FILTER_MESSAGES_RECEIVED;
 	
 	private static final String COUNT_MESSAGES_RECEIVED = 
