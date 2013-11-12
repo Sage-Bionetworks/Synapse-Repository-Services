@@ -155,6 +155,7 @@ public class SqlConstants {
  	public static final String TABLE_MESSAGE_TO_USER                = "MESSAGE_TO_USER";
  	public static final String COL_MESSAGE_TO_USER_MESSAGE_ID       = "MESSAGE_ID";
  	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
+ 	public static final String COL_MESSAGE_TO_USER_ROOT_ID          = "ROOT_MESSAGE_ID";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
  	// Message to user
@@ -169,12 +170,6 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
  	public static final String COL_MESSAGE_STATUS                   = "STATUS";
  	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
- 	
- 	// Message in-reply-to root 
- 	public static final String TABLE_MESSAGE_ROOT                   = "MESSAGE_IN_REPLY_TO_ROOT";
- 	public static final String COL_MESSAGE_ROOT_MESSAGE_ID          = "ROOT_MESSAGE_ID";
- 	public static final String COL_MESSAGE_ROOT_CHILD_ID            = "CHILD_MESSAGE_ID";
- 	public static final String DDL_MESSAGE_ROOT                     = "schema/MessageInReplyToRoot-ddl.sql";
  	
  	// Comment
  	public static final String TABLE_COMMENT                        = "COMMENT";

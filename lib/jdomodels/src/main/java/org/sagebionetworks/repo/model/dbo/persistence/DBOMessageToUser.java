@@ -18,12 +18,13 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
-		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT)
+		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT), 
+		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID)
 	};
 	
 	private Long messageId;
 	private String subject;
-
+	private Long rootMessageId;
 
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
@@ -34,6 +35,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				DBOMessageToUser result = new DBOMessageToUser();
 				result.setMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID));
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
+				result.setRootMessageId(rs.getLong(SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID));
 				return result;
 			}
 			
@@ -79,6 +81,15 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.subject = subject;
 	}
 
+	public Long getRootMessageId() {
+		return rootMessageId;
+	}
+
+
+	public void setRootMessageId(Long rootMessageId) {
+		this.rootMessageId = rootMessageId;
+	}
+
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -122,6 +133,8 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		int result = 1;
 		result = prime * result
 				+ ((messageId == null) ? 0 : messageId.hashCode());
+		result = prime * result
+				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
 		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
 		return result;
 	}
@@ -141,6 +154,11 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!messageId.equals(other.messageId))
 			return false;
+		if (rootMessageId == null) {
+			if (other.rootMessageId != null)
+				return false;
+		} else if (!rootMessageId.equals(other.rootMessageId))
+			return false;
 		if (subject == null) {
 			if (other.subject != null)
 				return false;
@@ -153,7 +171,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	@Override
 	public String toString() {
 		return "DBOMessageToUser [messageId=" + messageId + ", subject="
-				+ subject + "]";
+				+ subject + ", rootMessageId=" + rootMessageId + "]";
 	}
 
 }
