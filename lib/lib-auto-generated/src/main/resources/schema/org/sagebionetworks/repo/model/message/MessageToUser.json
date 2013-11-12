@@ -11,9 +11,6 @@
 			"type": "string",
 			"description":"Topic of this message.  Optional"
 		}, 
-		"recipientType": {
-			"$ref": "org.sagebionetworks.repo.model.ObjectType"
-		},
 		"recipients": {
 			"type": "array",
 			"description": "The unique identifiers of the intended recipients of this message",
@@ -21,6 +18,10 @@
 			"items": {
 				"type": "string"
 			}
+		}, 
+        "inReplyToRoot": {
+			"type": "string",
+			"description":"The unique identifier of the root message being replied to"
 		}
 	}
 }

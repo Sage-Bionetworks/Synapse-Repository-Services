@@ -172,7 +172,6 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 		secondaries.add(new DBOMessageToUser());
 		secondaries.add(new DBOMessageRecipient());
 		secondaries.add(new DBOMessageStatus());
-		secondaries.add(new DBOMessageInReplyToRoot());
 		secondaries.add(new DBOComment());
 		return secondaries;
 	}

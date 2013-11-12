@@ -5,20 +5,23 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageInReplyToRoot;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,12 +46,21 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	private static final String THREAD_ID_PARAM_NAME = "threadId";
-	private static final String USER_ID_PARAM_NAME = "userId";
-	private static final String INBOX_FILTER_PARAM_NAME = "filterTypes";
 	private static final String MESSAGE_ID_PARAM_NAME = "messageId";
-	private static final String OBJECT_TYPE_PARAM_NAME = "objectType";
-	private static final String OBJECT_ID_PARAM_NAME = "objectId";
+	private static final String USER_ID_PARAM_NAME = "userId";
+	
+	private static final String SELECT_MESSAGE_BY_ID = 
+			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," + SqlConstants.TABLE_MESSAGE_TO_USER +
+			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=" + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + 
+			" AND " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
+	private static final String SELECT_MESSAGE_RECIPIENTS_BY_ID = 
+			"SELECT " + SqlConstants.COL_MESSAGE_RECIPIENT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
+			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+			
+	private static final String INSERT_MESSAGE_RECIPIENTS = 
+			"INSERT INTO " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
+			" VALUES (:" + MESSAGE_ID_PARAM_NAME + ",:" + USER_ID_PARAM_NAME + ")";
 	
 	private static final String FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE = 
 			" FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_THREAD+
@@ -122,8 +134,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
 			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
 	
-	private static final RowMapper<DBOMessageContent> messageRowMapper = new DBOMessageContent().getTableMapping();
-	
+	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
+	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
 	private static final RowMapper<DBOMessageStatus> messageStatusRowMapper = new DBOMessageStatus().getTableMapping();
 	
 	private static final RowMapper<MessageBundle> messageBundleRowMapper = new RowMapper<MessageBundle>() {
@@ -137,14 +149,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			return bundle;
 		}
 	};
-	
-	private static final RowMapper<String> threadIdRowMapper = new RowMapper<String>() {
-		@Override
-		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return "" + rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID);
-		}
-	};
-	private static final RowMapper<DBOComment> messageThreadObjectRowMapper = new DBOComment().getTableMapping();
 	
 	/**
 	 * Builds up ordering and pagination keywords to append to various message select statements
@@ -169,28 +173,64 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		suffix.append(" OFFSET " + offset);
 		return suffix.toString();
 	}
+	
+	private static final RowMapper<MessageToUser> messageRowMapper = new RowMapper<MessageToUser>() {
+		@Override
+		public MessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOMessageContent messageContent = messageContentRowMapper.mapRow(rs, rowNum);
+			DBOMessageToUser messageToUser = messageToUserRowMapper.mapRow(rs, rowNum);
+
+			MessageToUser bundle = new MessageToUser();
+			MessageUtils.copyDBOToDTO(messageContent, messageToUser, bundle);
+			return bundle;
+		}
+	};
 
 	@Override
-	public Message getMessage(String messageId) throws NotFoundException {
+	public MessageToUser getMessage(String messageId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("messageId", messageId);
-		DBOMessageContent message = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
-		return MessageUtils.convertDBO(message);
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		return simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Message createMessage(Message dto) {
-		DBOMessageContent dbo = MessageUtils.convertDTO(dto);
+	public MessageToUser createMessage(MessageToUser dto) {
+		DBOMessageContent content = new DBOMessageContent();
+		DBOMessageToUser info = new DBOMessageToUser();
+		List<DBOMessageRecipient> recipients = new ArrayList<DBOMessageRecipient>();
+		MessageUtils.copyDTOtoDBO(dto, content, info, recipients);
 		
-		// Fill in new ID for the message
-		dbo.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID));
-		dbo.setCreatedOn(new Date().getTime());
+		// Generate an ID for all the new rows
+		Long messageId = idGenerator.generateNewId(TYPE.MESSAGE_ID);
 		
-		MessageUtils.validateDBO(dbo);
+		// Insert the message content
+		content.setMessageId(messageId);
+		content.setCreatedOn(new Date().getTime());
+		content.setEtag(UUID.randomUUID().toString());
+		MessageUtils.validateDBO(content);
+		basicDAO.createNew(content);
 		
-		DBOMessageContent saved = basicDAO.createNew(dbo);
-		return MessageUtils.convertDBO(saved);
+		// Insert the message info
+		info.setMessageId(messageId);
+		MessageUtils.validateDBO(info);
+		basicDAO.createNew(info);
+		
+		// Insert the message recipients
+		MapSqlParameterSource[] params = new MapSqlParameterSource[recipients.size()];
+		for (int i = 0; i < recipients.size(); i++) {
+			recipients.get(i).setMessageId(messageId);
+			MessageUtils.validateDBO(recipients.get(i));
+			
+			params[i] = new MapSqlParameterSource();
+			params[i].addValue(MESSAGE_ID_PARAM_NAME, recipients.get(i).getMessageId());
+			params[i].addValue(USER_ID_PARAM_NAME, recipients.get(i).getRecipientId());
+		}
+		simpleJdbcTemplate.batchUpdate(INSERT_MESSAGE_RECIPIENTS, params);
+		
+		MessageToUser bundle = new MessageToUser();
+		MessageUtils.copyDBOToDTO(content, info, recipients, bundle);
+		return bundle;
 	}
 	
 	@Override
