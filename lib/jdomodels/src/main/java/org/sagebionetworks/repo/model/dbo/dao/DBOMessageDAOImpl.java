@@ -10,14 +10,11 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
-import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
@@ -31,8 +28,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.sun.tools.javac.util.Pair;
 
 
 public class DBOMessageDAOImpl implements MessageDAO {
@@ -48,6 +43,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String MESSAGE_ID_PARAM_NAME = "messageId";
 	private static final String USER_ID_PARAM_NAME = "userId";
+	private static final String ETAG_PARAM_NAME = "etag";
+	private static final String ROOT_MESSAGE_ID_PARAM_NAME = "rootMessageId";
+	private static final String INBOX_FILTER_PARAM_NAME = "inboxFilter";
 	
 	private static final String SELECT_MESSAGE_BY_ID = 
 			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," + SqlConstants.TABLE_MESSAGE_TO_USER +
@@ -56,7 +54,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String SELECT_MESSAGE_RECIPIENTS_BY_ID = 
 			"SELECT " + SqlConstants.COL_MESSAGE_RECIPIENT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
-			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + " IN(:" + MESSAGE_ID_PARAM_NAME + ")";
 	
 	private static final String SELECT_ROOT_MESSAGE_ID_BY_ID = 
 			"SELECT " + SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_TO_USER + 
@@ -66,58 +64,50 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			"INSERT INTO " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
 			" VALUES (:" + MESSAGE_ID_PARAM_NAME + ",:" + USER_ID_PARAM_NAME + ")";
 	
-	private static final String FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE = 
-			" FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_THREAD+
-			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_CHILD_ID+
-			" AND "+SqlConstants.COL_MESSAGE_THREAD_PARENT_ID+"=:"+THREAD_ID_PARAM_NAME;
-	
-	private static final String SELECT_MESSAGES_IN_THREAD_NO_FILTER = 
-			"SELECT *"+FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE;
-	
-	private static final String COUNT_MESSAGES_IN_THREAD_NO_FILTER = 
-			"SELECT COUNT(*)"+FROM_MESSAGES_IN_THREAD_NO_FILTER_CORE;
+	private static final String UPDATE_ETAG_OF_MESSAGE = 
+			"UPDATE " + SqlConstants.TABLE_MESSAGE_CONTENT+
+			" SET " + SqlConstants.COL_MESSAGE_CONTENT_ETAG + "=:" + ETAG_PARAM_NAME + 
+			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final String FROM_MESSAGES_IN_THREAD_CORE = 
-			" FROM "+SqlConstants.TABLE_MESSAGE+
-				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS+
-					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+")"+
-				" INNER JOIN "+SqlConstants.TABLE_MESSAGE_THREAD+
-					" ON ("+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_THREAD_CHILD_ID+")"+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_PARENT_ID+"=:"+THREAD_ID_PARAM_NAME+
-			" AND ("+SqlConstants.COL_MESSAGE_CREATED_BY+"=:"+USER_ID_PARAM_NAME+
-				" OR "+SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+USER_ID_PARAM_NAME+")";
+			" FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
+				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS + " status " + 
+					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "= status." + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + ")" + 
+				" INNER JOIN " + SqlConstants.TABLE_MESSAGE_TO_USER + 
+					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "=" + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + ")" + 
+			" WHERE " + SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID + "=:" + ROOT_MESSAGE_ID_PARAM_NAME+
+			" AND (" + SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY + "=:" + USER_ID_PARAM_NAME + 
+				" OR status." + SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID + "=:" + USER_ID_PARAM_NAME + ")";
 	
 	private static final String SELECT_MESSAGES_IN_THREAD = 
-			"SELECT DISTINCT("+SqlConstants.COL_MESSAGE_ID+"),"+
-					SqlConstants.COL_MESSAGE_CREATED_BY+","+
-				 	SqlConstants.COL_MESSAGE_RECIPIENT_TYPE+","+
-				 	SqlConstants.COL_MESSAGE_RECIPIENTS+","+
-				 	SqlConstants.COL_MESSAGE_FILE_HANDLE_ID+","+
-				 	SqlConstants.COL_MESSAGE_CREATED_ON+","+
-				 	SqlConstants.COL_MESSAGE_SUBJECT+","+
-				 	SqlConstants.COL_MESSAGE_REPLY_TO+
+			"SELECT DISTINCT(" + SqlConstants.COL_MESSAGE_CONTENT_ID + ") AS EXTRA_ID_COLUMN," + 
+					SqlConstants.TABLE_MESSAGE_CONTENT + ".*," + 
+				 	SqlConstants.TABLE_MESSAGE_TO_USER + ".*" + 
 			FROM_MESSAGES_IN_THREAD_CORE;
 	
 	private static final String COUNT_MESSAGES_IN_THREAD = 
-			"SELECT COUNT(DISTINCT("+SqlConstants.COL_MESSAGE_ID+"))"+
+			"SELECT COUNT(DISTINCT(" + SqlConstants.COL_MESSAGE_CONTENT_ID + "))" + 
 			FROM_MESSAGES_IN_THREAD_CORE;
 	
 	private static final String FILTER_MESSAGES_RECEIVED = 
-			SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID+"=:"+USER_ID_PARAM_NAME+
-			" AND "+SqlConstants.COL_MESSAGE_STATUS+" IN (:"+INBOX_FILTER_PARAM_NAME+")";
+			SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID + "=:" + USER_ID_PARAM_NAME + 
+			" AND " + SqlConstants.COL_MESSAGE_STATUS + " IN (:" + INBOX_FILTER_PARAM_NAME + ")";
 	
 	private static final String SELECT_MESSAGES_RECEIVED = 
-			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE+","+SqlConstants.TABLE_MESSAGE_STATUS+
-			" WHERE "+SqlConstants.COL_MESSAGE_ID+"="+SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID+
-			" AND "+FILTER_MESSAGES_RECEIVED;
+			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," +
+					SqlConstants.TABLE_MESSAGE_TO_USER + " info," + 
+					SqlConstants.TABLE_MESSAGE_STATUS + 
+			" WHERE "+SqlConstants.COL_MESSAGE_CONTENT_ID + "= info." + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + 
+			" AND " + FILTER_MESSAGES_RECEIVED;
 	
 	private static final String COUNT_MESSAGES_RECEIVED = 
-			"SELECT COUNT(*) FROM "+SqlConstants.TABLE_MESSAGE_STATUS+
-			" WHERE "+FILTER_MESSAGES_RECEIVED;
+			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_STATUS+
+			" WHERE " + FILTER_MESSAGES_RECEIVED;
 	
 	private static final String FROM_MESSAGES_SENT_CORE = 
-			" FROM "+SqlConstants.TABLE_MESSAGE+ 
-			" WHERE "+SqlConstants.COL_MESSAGE_CREATED_BY+"=:" + USER_ID_PARAM_NAME;
+			" FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," + SqlConstants.TABLE_MESSAGE_TO_USER +  
+			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=" + SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID +  
+			" AND " + SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY + "=:" + USER_ID_PARAM_NAME;
 	
 	private static final String SELECT_MESSAGES_SENT = 
 			"SELECT *" + FROM_MESSAGES_SENT_CORE;
@@ -125,30 +115,30 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
 	
-	private static final String SELECT_THREAD_ID_OF_MESSAGE = 
-			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_PARENT_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_CHILD_ID+"=:"+MESSAGE_ID_PARAM_NAME;
-	
-	private static final String SELECT_THREADS_OF_OBJECT = 
-			"SELECT "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+" FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE+"=:"+OBJECT_TYPE_PARAM_NAME+
-			" AND "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID+"=:"+OBJECT_ID_PARAM_NAME;
-	
-	private static final String SELECT_OBJECT_OF_THREAD = 
-			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
-			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
-	
 	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
 	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
+	private static final RowMapper<DBOMessageRecipient> messageRecipientRowMapper = new DBOMessageRecipient().getTableMapping();
 	private static final RowMapper<DBOMessageStatus> messageStatusRowMapper = new DBOMessageStatus().getTableMapping();
+	
+	private static final RowMapper<MessageToUser> messageRowMapper = new RowMapper<MessageToUser>() {
+		@Override
+		public MessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOMessageContent messageContent = messageContentRowMapper.mapRow(rs, rowNum);
+			DBOMessageToUser messageToUser = messageToUserRowMapper.mapRow(rs, rowNum);
+
+			MessageToUser bundle = new MessageToUser();
+			MessageUtils.copyDBOToDTO(messageContent, messageToUser, bundle);
+			return bundle;
+		}
+	};
 	
 	private static final RowMapper<MessageBundle> messageBundleRowMapper = new RowMapper<MessageBundle>() {
 		@Override
 		public MessageBundle mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MessageBundle bundle = new MessageBundle();
-			DBOMessageContent messageContent = messageRowMapper.mapRow(rs, rowNum);
+			bundle.setMessage(messageRowMapper.mapRow(rs, rowNum));
+			
 			DBOMessageStatus messageStatus = messageStatusRowMapper.mapRow(rs, rowNum);
-			bundle.setMessage(MessageUtils.convertDBO(messageContent));
 			bundle.setStatus(MessageUtils.convertDBO(messageStatus));
 			return bundle;
 		}
@@ -163,10 +153,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		suffix.append(" ORDER BY ");
 		switch (sortBy) {
 		case SEND_DATE:
-			suffix.append(SqlConstants.COL_MESSAGE_CREATED_ON);
+			suffix.append(SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON);
 			break;
 		case SUBJECT:
-			suffix.append(SqlConstants.COL_MESSAGE_SUBJECT);
+			suffix.append(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT);
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown type: " + sortBy);
@@ -177,24 +167,18 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		suffix.append(" OFFSET " + offset);
 		return suffix.toString();
 	}
-	
-	private static final RowMapper<MessageToUser> messageRowMapper = new RowMapper<MessageToUser>() {
-		@Override
-		public MessageToUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-			DBOMessageContent messageContent = messageContentRowMapper.mapRow(rs, rowNum);
-			DBOMessageToUser messageToUser = messageToUserRowMapper.mapRow(rs, rowNum);
-
-			MessageToUser bundle = new MessageToUser();
-			MessageUtils.copyDBOToDTO(messageContent, messageToUser, bundle);
-			return bundle;
-		}
-	};
 
 	@Override
 	public MessageToUser getMessage(String messageId) throws NotFoundException {
+		// Get the message content and info 
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		return simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
+		MessageToUser bundle = simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
+		
+		// Then get the recipients
+		List<DBOMessageRecipient> recipients = simpleJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, messageRecipientRowMapper, params);
+		MessageUtils.copyDBOToDTO(recipients, bundle);
+		return bundle;
 	}
 
 	@Override
@@ -250,38 +234,46 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	public List<Message> getThread(String threadId, MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		String sql = SELECT_MESSAGES_IN_THREAD_NO_FILTER + constructSqlSuffix(sortBy, descending, limit, offset);
-		
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void touch(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(THREAD_ID_PARAM_NAME, threadId);
-		List<DBOMessageContent> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
-		return MessageUtils.convertDBOs(messages);
+		params.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		simpleJdbcTemplate.update(UPDATE_ETAG_OF_MESSAGE, params);
+	}
+	
+	/**
+	 * Fills in the intended recipients of all supplied messages 
+	 */
+	private void fillInMessageRecipients(List<MessageToUser> messages) {
+		List<String> messageIds = new ArrayList<String>();
+		for (MessageToUser message : messages) {
+			messageIds.add(message.getId());
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageIds);
+		List<DBOMessageRecipient> recipients = simpleJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, messageRecipientRowMapper, params);
+		MessageUtils.copyDBOToDTO(recipients, messages);
 	}
 
 	@Override
-	public long getThreadSize(String threadId) {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(THREAD_ID_PARAM_NAME, threadId);
-		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD_NO_FILTER, params);
-	}
-
-	@Override
-	public List<Message> getThread(String threadId, String userId, MessageSortBy sortBy,
-			boolean descending, long limit, long offset) {
+	public List<MessageToUser> getConversation(String rootMessageId, String userId, 
+			MessageSortBy sortBy, boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_IN_THREAD + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		params.addValue(ROOT_MESSAGE_ID_PARAM_NAME, rootMessageId);
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		List<DBOMessageContent> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
-		return MessageUtils.convertDBOs(messages);
+		List<MessageToUser> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		
+		fillInMessageRecipients(messages);
+		return messages;
 	}
 
 	@Override
-	public long getThreadSize(String threadId, String userId) {
+	public long getConversationSize(String rootMessageId, String userId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(THREAD_ID_PARAM_NAME, threadId);
+		params.addValue(ROOT_MESSAGE_ID_PARAM_NAME, rootMessageId);
 		params.addValue(USER_ID_PARAM_NAME, userId);
 		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD, params);
 	}
@@ -294,7 +286,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
 		params.addValue(INBOX_FILTER_PARAM_NAME, convertFilterToString(included));
-		return simpleJdbcTemplate.query(sql, messageBundleRowMapper, params);
+		List<MessageBundle> bundles =  simpleJdbcTemplate.query(sql, messageBundleRowMapper, params);
+
+		List<MessageToUser> messages = new ArrayList<MessageToUser>();
+		for (MessageBundle bundle : bundles) {
+			messages.add(bundle.getMessage());
+		}
+		fillInMessageRecipients(messages);
+		return bundles;
 	}
 
 	@Override
@@ -317,14 +316,16 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public List<Message> getSentMessages(String userId, MessageSortBy sortBy,
+	public List<MessageToUser> getSentMessages(String userId, MessageSortBy sortBy,
 			boolean descending, long limit, long offset) {
 		String sql = SELECT_MESSAGES_SENT + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		List<DBOMessageContent> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
-		return MessageUtils.convertDBOs(messages);
+		List<MessageToUser> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		
+		fillInMessageRecipients(messages);
+		return messages;
 	}
 
 	@Override
@@ -342,6 +343,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		status.setRecipientId(Long.parseLong(userId));
 		status.setStatus(MessageStatusType.UNREAD);
 		basicDAO.createNew(status);
+		
+		touch(messageId);
 	}
 
 	@Override
@@ -353,65 +356,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		toUpdate.setRecipientId(Long.parseLong(userId));
 		toUpdate.setStatus(status);
 		basicDAO.update(toUpdate);
-	}
-	
-	@Override
-	public String getMessageThread(String messageId) throws NotFoundException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_THREAD_ID_OF_MESSAGE, String.class, params);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No thread associated with message (" + messageId + ")");
-		}
-	}
-
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String registerMessageToThread(String messageId, String threadId)
-			throws IllegalArgumentException {
-		DBOMessageInReplyToRoot dbo = new DBOMessageInReplyToRoot();
-		dbo.setChildMessageId(Long.parseLong(messageId));
-		if (threadId == null) {
-			dbo.setParentMessageId(dbo.getChildMessageId());
-		} else {
-			dbo.setParentMessageId(Long.parseLong(threadId));
-		}
-		dbo = basicDAO.createNew(dbo);
-		return dbo.getParentMessageId().toString();
-	}
-
-	@Override
-	public List<String> getThreadsOfObject(ObjectType objectType,
-			String objectId) {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OBJECT_TYPE_PARAM_NAME, objectType.name());
-		params.addValue(OBJECT_ID_PARAM_NAME, objectId);
-		return simpleJdbcTemplate.query(SELECT_THREADS_OF_OBJECT, threadIdRowMapper, params);
-	}
-
-	@Override
-	public Pair<ObjectType, String> getObjectOfThread(String threadId)
-			throws NotFoundException {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(THREAD_ID_PARAM_NAME, threadId);
-		DBOComment dbo;
-		try {
-			 dbo = simpleJdbcTemplate.queryForObject(SELECT_OBJECT_OF_THREAD, messageThreadObjectRowMapper, params);
-		} catch (EmptyResultDataAccessException e) {
-			throw new NotFoundException("No object associated with thread (" + threadId + ")");
-		}
-		return new Pair<ObjectType, String>(ObjectType.valueOf(dbo.getObjectType()), dbo.getObjectId().toString());
-	}
-
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void registerThreadToObject(String threadId, ObjectType objectType,
-			String objectId) throws IllegalArgumentException {
-		DBOComment dbo = new DBOComment();
-		dbo.setThreadId(Long.parseLong(threadId));
-		dbo.setObjectType(objectType.name());
-		dbo.setObjectId(Long.parseLong(objectId));
-		basicDAO.createNew(dbo);
+		
+		touch(messageId);
 	}
 }

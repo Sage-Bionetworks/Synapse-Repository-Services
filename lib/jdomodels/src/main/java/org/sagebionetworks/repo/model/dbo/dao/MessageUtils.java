@@ -1,12 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 
 public class MessageUtils {
@@ -64,6 +69,7 @@ public class MessageUtils {
 	
 	/**
 	 * Copies message information 
+	 * All recipients must belong to the same message
 	 * Note: DBOMessageRecipient contains a subset of the fields of MessageToUser
 	 */
 	public static void copyDBOToDTO(List<DBOMessageRecipient> recipients, MessageToUser bundle) {
@@ -77,6 +83,40 @@ public class MessageUtils {
 			}
 			bundle.getRecipients().add(toString(recipient.getRecipientId()));
 		}
+	}
+	
+	/**
+	 * Copies message information from recipients into the appropriate and matching MessageToUser
+	 * Note: DBOMessageRecipient contains a subset of the fields of MessageToUser
+	 */
+	public static void copyDBOToDTO(List<DBOMessageRecipient> recipients, List<MessageToUser> bundles) {
+		// Map the message list to IDs for faster lookup
+		Map<Long, MessageToUser> buckets = new HashMap<Long, MessageToUser>();
+		for (MessageToUser message : bundles) {
+			buckets.put(Long.parseLong(message.getId()), message);
+			
+			// Also initialize the recipient set
+			message.setRecipients(new HashSet<String>());
+		}
+		
+		// Chuck recipients into buckets
+		for (DBOMessageRecipient recipient : recipients) {
+			if (!buckets.containsKey(recipient.getMessageId())) {
+				throw new IllegalArgumentException("No matching MessageToUser (" + recipient.getMessageId() + ") found for recipient (" + recipient.getRecipientId());
+			}
+			buckets.get(recipient.getMessageId()).getRecipients().add(toString(recipient.getRecipientId()));
+		}
+	}
+	
+	/**
+	 * Copies message status info 
+	 */
+	public static MessageStatus convertDBO(DBOMessageStatus dbo) {
+		MessageStatus dto = new MessageStatus();
+		dto.setMessageId(toString(dbo.getMessageId()));
+		dto.setRecipientId(toString(dbo.getRecipientId()));
+		dto.setStatus(MessageStatusType.valueOf(dbo.getStatus()));
+		return dto;
 	}
 	
 	/**
@@ -138,6 +178,17 @@ public class MessageUtils {
 			dbo.setRecipientId(parseLong(recipient));
 			recipients.add(dbo);
 		}
+	}
+	
+	/**
+	 * Copies message status info 
+	 */
+	public static DBOMessageStatus convertDTO(MessageStatus dto) {
+		DBOMessageStatus dbo = new DBOMessageStatus();
+		dbo.setMessageId(parseLong(dto.getMessageId()));
+		dbo.setRecipientId(parseLong(dto.getRecipientId()));
+		dbo.setStatus(dto.getStatus());
+		return dbo;
 	}
 	
 	/**
