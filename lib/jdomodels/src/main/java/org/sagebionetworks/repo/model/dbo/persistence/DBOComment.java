@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 /**
  * Mapping between messages and their associated message thread
  */
-public class DBOMessageThreadObject implements MigratableDatabaseObject<DBOMessageThreadObject, DBOMessageThreadObject> {
+public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComment> {
 	private Long threadId;
 	private Long objectId;
 	private String objectType;
@@ -26,13 +26,13 @@ public class DBOMessageThreadObject implements MigratableDatabaseObject<DBOMessa
 	};
 	
 	@Override
-	public TableMapping<DBOMessageThreadObject> getTableMapping() {
-		return new TableMapping<DBOMessageThreadObject>() {
+	public TableMapping<DBOComment> getTableMapping() {
+		return new TableMapping<DBOComment>() {
 
 			@Override
-			public DBOMessageThreadObject mapRow(ResultSet rs, int index)
+			public DBOComment mapRow(ResultSet rs, int index)
 					throws SQLException {
-				DBOMessageThreadObject dbo = new DBOMessageThreadObject();
+				DBOComment dbo = new DBOComment();
 				dbo.setThreadId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID));
 				dbo.setObjectId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID));
 				dbo.setObjectType(rs.getString(SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE));
@@ -55,8 +55,8 @@ public class DBOMessageThreadObject implements MigratableDatabaseObject<DBOMessa
 			}
 
 			@Override
-			public Class<? extends DBOMessageThreadObject> getDBOClass() {
-				return DBOMessageThreadObject.class;
+			public Class<? extends DBOComment> getDBOClass() {
+				return DBOComment.class;
 			}
 		};
 	}
@@ -68,32 +68,32 @@ public class DBOMessageThreadObject implements MigratableDatabaseObject<DBOMessa
 
 
 	@Override
-	public MigratableTableTranslation<DBOMessageThreadObject, DBOMessageThreadObject> getTranslator() {
+	public MigratableTableTranslation<DBOComment, DBOComment> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOMessageThreadObject, DBOMessageThreadObject>(){
+		return new MigratableTableTranslation<DBOComment, DBOComment>(){
 
 			@Override
-			public DBOMessageThreadObject createDatabaseObjectFromBackup(
-					DBOMessageThreadObject backup) {
+			public DBOComment createDatabaseObjectFromBackup(
+					DBOComment backup) {
 				return backup;
 			}
 
 			@Override
-			public DBOMessageThreadObject createBackupFromDatabaseObject(DBOMessageThreadObject dbo) {
+			public DBOComment createBackupFromDatabaseObject(DBOComment dbo) {
 				return dbo;
 			}};
 	}
 
 
 	@Override
-	public Class<? extends DBOMessageThreadObject> getBackupClass() {
-		return DBOMessageThreadObject.class;
+	public Class<? extends DBOComment> getBackupClass() {
+		return DBOComment.class;
 	}
 
 
 	@Override
-	public Class<? extends DBOMessageThreadObject> getDatabaseObjectClass() {
-		return DBOMessageThreadObject.class;
+	public Class<? extends DBOComment> getDatabaseObjectClass() {
+		return DBOComment.class;
 	}
 
 
@@ -148,7 +148,7 @@ public class DBOMessageThreadObject implements MigratableDatabaseObject<DBOMessa
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOMessageThreadObject other = (DBOMessageThreadObject) obj;
+		DBOComment other = (DBOComment) obj;
 		if (objectId == null) {
 			if (other.objectId != null)
 				return false;

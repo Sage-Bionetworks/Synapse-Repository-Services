@@ -19,8 +19,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThread;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThreadObject;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageInReplyToRoot;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -139,7 +139,7 @@ public class DBOMessageDAOImplTest {
 	public void cleanup() throws Exception {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("threadId", threadId);
-		basicDAO.deleteObjectByPrimaryKey(DBOMessageThreadObject.class, params);
+		basicDAO.deleteObjectByPrimaryKey(DBOComment.class, params);
 		
 		// This will cascade delete all the messages generated for this test
 		fileDAO.delete(fileHandleId);
@@ -305,7 +305,7 @@ public class DBOMessageDAOImplTest {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("childMessageId", groupToThread.getMessageId());
 		try {
-			basicDAO.deleteObjectByPrimaryKey(DBOMessageThread.class, params);
+			basicDAO.deleteObjectByPrimaryKey(DBOMessageInReplyToRoot.class, params);
 			fail();
 		} catch (DataIntegrityViolationException e) { }
 	}

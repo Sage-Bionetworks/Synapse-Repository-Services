@@ -13,8 +13,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThread;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThreadObject;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageInReplyToRoot;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -144,7 +144,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			return "" + rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID);
 		}
 	};
-	private static final RowMapper<DBOMessageThreadObject> messageThreadObjectRowMapper = new DBOMessageThreadObject().getTableMapping();
+	private static final RowMapper<DBOComment> messageThreadObjectRowMapper = new DBOComment().getTableMapping();
 	
 	/**
 	 * Builds up ordering and pagination keywords to append to various message select statements
@@ -314,7 +314,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String registerMessageToThread(String messageId, String threadId)
 			throws IllegalArgumentException {
-		DBOMessageThread dbo = new DBOMessageThread();
+		DBOMessageInReplyToRoot dbo = new DBOMessageInReplyToRoot();
 		dbo.setChildMessageId(Long.parseLong(messageId));
 		if (threadId == null) {
 			dbo.setParentMessageId(dbo.getChildMessageId());
@@ -339,7 +339,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
-		DBOMessageThreadObject dbo;
+		DBOComment dbo;
 		try {
 			 dbo = simpleJdbcTemplate.queryForObject(SELECT_OBJECT_OF_THREAD, messageThreadObjectRowMapper, params);
 		} catch (EmptyResultDataAccessException e) {
@@ -352,7 +352,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void registerThreadToObject(String threadId, ObjectType objectType,
 			String objectId) throws IllegalArgumentException {
-		DBOMessageThreadObject dbo = new DBOMessageThreadObject();
+		DBOComment dbo = new DBOComment();
 		dbo.setThreadId(Long.parseLong(threadId));
 		dbo.setObjectType(objectType.name());
 		dbo.setObjectId(Long.parseLong(objectId));
