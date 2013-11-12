@@ -63,9 +63,16 @@ public class WikiMigrationService {
 			try {
 				V2WikiPage clone = migrate(wiki, userInfo);
 				if(clone != null) {
-					result.setEtag(clone.getEtag());
-					result.setResultType(WikiMigrationResultType.SUCCESS);
-					result.setMessage("WikiPage with ID " + wiki.getId() + " has successfully migrated to the V2 WikiPage DB.");
+					if(clone.getId() != null) {
+						result.setEtag(clone.getEtag());
+						result.setResultType(WikiMigrationResultType.SUCCESS);
+						result.setMessage("WikiPage with ID " + wiki.getId() + " has successfully migrated to the V2 WikiPage DB.");
+					} else {
+						result.setEtag(null);
+						result.setResultType(WikiMigrationResultType.SKIPPED);
+						result.setMessage("WikiPage with ID " + wiki.getId() + "has not been modified since last migration. Nothing was changed.");
+					}
+				
 				} else {
 					result.setResultType(WikiMigrationResultType.FAILURE);
 					result.setMessage("WikiPage with ID " + wiki.getId() + " failed to migrate completely.");
@@ -95,6 +102,13 @@ public class WikiMigrationService {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public V2WikiPage migrate(WikiPage wiki, UserInfo userInfo) throws NotFoundException, IOException {	
+		// Compare etag of wiki page to the etag of the V2 wiki page
+		// If they are different, continue migration
+		// Otherwise, return an empty wiki page to signal this skip
+		if(wiki.getEtag().equals(wikiMigrationDao.getV2WikiPageEtag(wiki.getId()))) {
+			return new V2WikiPage();
+		}
+		
 		String parentId = wiki.getParentWikiId();
 		if(parentId != null && !wikiMigrationDao.hasWikiMigrated(parentId)) {
 			//get parent wiki

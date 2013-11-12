@@ -142,6 +142,12 @@ public class MigrationClient {
 		printCounts(startSourceCounts.getList(), startDestCounts.getList());
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
+		// Remove V2 Wiki Primary types to keep V2 data in place
+		for(MigrationType type: primaryTypes) {
+			if(type.equals(MigrationType.V2_WIKI_PAGE) || type.equals(MigrationType.V2_WIKI_OWNERS)) {
+				primaryTypes.remove(type);
+			}
+		}
 		// Do the actual migration.
 		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
 		// Print the final counts

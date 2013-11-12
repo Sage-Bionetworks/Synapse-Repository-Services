@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OBJECT_TYPE;
@@ -59,6 +60,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 	private static final String SQL_SELECT_WIKI_USING_ID_AND_ROOT = "SELECT * FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_MARKDOWN_USING_ID_AND_VERSION = "SELECT * FROM "+V2_TABLE_WIKI_MARKDOWN+" WHERE "+V2_COL_WIKI_MARKDOWN_ID+" = ? AND "+V2_COL_WIKI_MARKDOWN_VERSION_NUM+" = ?";
 	private static final String SQL_DOES_EXIST = "SELECT "+V2_COL_WIKI_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
+	private static final String SQL_SELECT_WIKI_ETAG = "SELECT "+V2_COL_WIKI_ETAG+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
 	
 	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();	
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
@@ -191,6 +193,17 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 			return true;
 		}catch(EmptyResultDataAccessException e){
 			return false;
+		}
+	}
+	
+	@Override
+	public String getWikiEtag(String wikiId) {
+		if(wikiId == null) throw new IllegalArgumentException("Id cannot be null");
+		try {
+			String etag = simpleJdbcTemplate.queryForObject(SQL_SELECT_WIKI_ETAG, String.class, wikiId);
+			return etag;
+		} catch(EmptyResultDataAccessException e) {
+			return null;
 		}
 	}
 	
