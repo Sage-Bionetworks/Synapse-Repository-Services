@@ -157,6 +157,12 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
+ 	// Message to user
+ 	public static final String TABLE_MESSAGE_RECIPIENT              = "MESSAGE_RECIPIENT";
+ 	public static final String COL_MESSAGE_RECIPIENT_MESSAGE_ID     = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_RECIPIENT_ID             = "RECIPIENT_ID";
+ 	public static final String DDL_MESSAGE_RECIPIENT                = "schema/MessageRecipient-ddl.sql";
+ 	
  	// User message status
  	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
  	public static final String COL_MESSAGE_RECIPIENT_TYPE           = "RECIPIENT_TYPE";
