@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -143,9 +144,11 @@ public class MigrationClient {
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
 		// Remove V2 Wiki Primary types to keep V2 data in place
-		for(MigrationType type: primaryTypes) {
+		ListIterator<MigrationType> iterator = primaryTypes.listIterator();
+		while(iterator.hasNext()) {
+			MigrationType type = iterator.next();
 			if(type.equals(MigrationType.V2_WIKI_PAGE) || type.equals(MigrationType.V2_WIKI_OWNERS)) {
-				primaryTypes.remove(type);
+				iterator.remove();
 			}
 		}
 		// Do the actual migration.
