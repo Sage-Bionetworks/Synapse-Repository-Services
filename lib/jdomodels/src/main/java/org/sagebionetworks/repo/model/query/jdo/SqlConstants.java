@@ -142,19 +142,19 @@ public class SqlConstants {
  	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
  	
  	// User message
- 	public static final String TABLE_MESSAGE                        = "MESSAGE";
- 	public static final String COL_MESSAGE_ID                       = "ID";
- 	public static final String COL_MESSAGE_CREATED_BY               = "CREATED_BY";
- 	public static final String COL_MESSAGE_RECIPIENT_TYPE           = "RECIPIENT_TYPE";
- 	public static final String COL_MESSAGE_RECIPIENTS               = "RECIPIENTS";
- 	public static final String COL_MESSAGE_FILE_HANDLE_ID           = "FILE_HANDLE_ID";
- 	public static final String COL_MESSAGE_CREATED_ON               = "CREATED_ON";
- 	public static final String COL_MESSAGE_SUBJECT                  = "SUBJECT";
- 	public static final String COL_MESSAGE_REPLY_TO                 = "REPLY_TO";
- 	public static final String DDL_MESSAGE                          = "schema/Message-ddl.sql";
+ 	public static final String TABLE_MESSAGE_CONTENT                = "MESSAGE_CONTENT";
+ 	public static final String COL_MESSAGE_CONTENT_ID               = "ID";
+ 	public static final String COL_MESSAGE_CONTENT_CREATED_BY       = "CREATED_BY";
+ 	public static final String COL_MESSAGE_CONTENT_FILE_HANDLE_ID   = "FILE_HANDLE_ID";
+ 	public static final String COL_MESSAGE_CONTENT_IN_REPLY_TO      = "IN_REPLY_TO";
+ 	public static final String COL_MESSAGE_CONTENT_CREATED_ON       = "CREATED_ON";
+ 	public static final String COL_MESSAGE_CONTENT_ETAG             = "ETAG";
+ 	public static final String DDL_MESSAGE_CONTENT                  = "schema/MessageContent-ddl.sql";
  	
  	// User message status
  	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
+ 	public static final String COL_MESSAGE_RECIPIENT_TYPE           = "RECIPIENT_TYPE";
+ 	public static final String COL_MESSAGE_RECIPIENTS               = "RECIPIENTS";
  	public static final String COL_MESSAGE_STATUS_MESSAGE_ID        = "MESSAGE_ID";
  	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
  	public static final String COL_MESSAGE_STATUS                   = "STATUS";

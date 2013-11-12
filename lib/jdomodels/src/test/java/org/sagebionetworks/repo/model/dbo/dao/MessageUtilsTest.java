@@ -11,7 +11,7 @@ import java.util.Set;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageStatus;
@@ -39,7 +39,7 @@ public class MessageUtilsTest {
 	@Test
 	public void testValidateMessage() throws Exception {
 		// The static method gives us a passing message
-		DBOMessage dbo = MessageUtils.convertDTO(generateSortaValidMessage());
+		DBOMessageContent dbo = MessageUtils.convertDTO(generateSortaValidMessage());
 		MessageUtils.validateDBO(dbo);
 		
 		// Set optional fields
@@ -87,7 +87,7 @@ public class MessageUtilsTest {
 	/**
 	 * Helper for the test to validate the validateMessage helper
 	 */
-	private String validateMessageCatchIllegalArgument(DBOMessage dbo) {
+	private String validateMessageCatchIllegalArgument(DBOMessageContent dbo) {
 		try {
 			MessageUtils.validateDBO(dbo);
 			fail();
@@ -100,7 +100,7 @@ public class MessageUtilsTest {
 	@Test
 	public void testMessageConversion() throws Exception {
 		Message dto = generateSortaValidMessage();
-		DBOMessage dbo = MessageUtils.convertDTO(dto);
+		DBOMessageContent dbo = MessageUtils.convertDTO(dto);
 		Message dto2 = MessageUtils.convertDBO(dbo);
 		
 		assertEquals(dto, dto2);

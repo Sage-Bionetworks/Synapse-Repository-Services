@@ -15,7 +15,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Message;
@@ -24,15 +24,15 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 
 public class MessageUtils {
 	
-	public static List<Message> convertDBOs(List<DBOMessage> dbos) {
+	public static List<Message> convertDBOs(List<DBOMessageContent> dbos) {
 		List<Message> dtos = new ArrayList<Message>();
-		for (DBOMessage dbo : dbos) {
+		for (DBOMessageContent dbo : dbos) {
 			dtos.add(convertDBO(dbo));
 		}
 		return dtos;
 	}
 	
-	public static Message convertDBO(DBOMessage dbo) {
+	public static Message convertDBO(DBOMessageContent dbo) {
 		Message dto = new Message();
 		dto.setMessageId(toString(dbo.getMessageId()));
 		dto.setCreatedBy(toString(dbo.getCreatedBy()));
@@ -52,7 +52,7 @@ public class MessageUtils {
 	/**
 	 * Checks for all required fields of the DBO
 	 */
-	public static void validateDBO(DBOMessage dbo) {
+	public static void validateDBO(DBOMessageContent dbo) {
 		if (dbo.getMessageId() == null) {
 			throw new IllegalArgumentException("Message ID must be specified");
 		}
@@ -84,8 +84,8 @@ public class MessageUtils {
 		}
 	}
 	
-	public static DBOMessage convertDTO(Message dto) {
-		DBOMessage dbo = new DBOMessage();
+	public static DBOMessageContent convertDTO(Message dto) {
+		DBOMessageContent dbo = new DBOMessageContent();
 		dbo.setMessageId(parseLong(dto.getMessageId()));
 		dbo.setCreatedBy(parseLong(dto.getCreatedBy()));
 		if (dto.getRecipientType() != null) {

@@ -11,7 +11,7 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThread;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageThreadObject;
@@ -122,7 +122,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			"SELECT * FROM "+SqlConstants.TABLE_MESSAGE_THREAD_OBJECT+
 			" WHERE "+SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID+"=:"+THREAD_ID_PARAM_NAME;
 	
-	private static final RowMapper<DBOMessage> messageRowMapper = new DBOMessage().getTableMapping();
+	private static final RowMapper<DBOMessageContent> messageRowMapper = new DBOMessageContent().getTableMapping();
 	
 	private static final RowMapper<DBOMessageStatus> messageStatusRowMapper = new DBOMessageStatus().getTableMapping();
 	
@@ -130,7 +130,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		@Override
 		public MessageBundle mapRow(ResultSet rs, int rowNum) throws SQLException {
 			MessageBundle bundle = new MessageBundle();
-			DBOMessage messageContent = messageRowMapper.mapRow(rs, rowNum);
+			DBOMessageContent messageContent = messageRowMapper.mapRow(rs, rowNum);
 			DBOMessageStatus messageStatus = messageStatusRowMapper.mapRow(rs, rowNum);
 			bundle.setMessage(MessageUtils.convertDBO(messageContent));
 			bundle.setStatus(MessageUtils.convertDBO(messageStatus));
@@ -174,14 +174,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public Message getMessage(String messageId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("messageId", messageId);
-		DBOMessage message = basicDAO.getObjectByPrimaryKey(DBOMessage.class, params);
+		DBOMessageContent message = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
 		return MessageUtils.convertDBO(message);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Message createMessage(Message dto) {
-		DBOMessage dbo = MessageUtils.convertDTO(dto);
+		DBOMessageContent dbo = MessageUtils.convertDTO(dto);
 		
 		// Fill in new ID for the message
 		dbo.setMessageId(idGenerator.generateNewId(TYPE.MESSAGE_ID));
@@ -189,7 +189,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		MessageUtils.validateDBO(dbo);
 		
-		DBOMessage saved = basicDAO.createNew(dbo);
+		DBOMessageContent saved = basicDAO.createNew(dbo);
 		return MessageUtils.convertDBO(saved);
 	}
 	
@@ -199,7 +199,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
-		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		List<DBOMessageContent> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
 		return MessageUtils.convertDBOs(messages);
 	}
 
@@ -218,7 +218,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(THREAD_ID_PARAM_NAME, threadId);
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		List<DBOMessageContent> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
 		return MessageUtils.convertDBOs(messages);
 	}
 
@@ -267,7 +267,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		List<DBOMessage> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
+		List<DBOMessageContent> messages = simpleJdbcTemplate.query(sql, messageRowMapper, params);
 		return MessageUtils.convertDBOs(messages);
 	}
 
