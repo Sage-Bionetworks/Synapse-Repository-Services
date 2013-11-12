@@ -9,6 +9,10 @@
             "type":"integer",
             "description":"The version number of the table row change"
         },
+        "etag":{
+            "type":"string",
+            "description":"The etag of this change"
+        },
 		"headers": {
 		    "description":"The list of ColumnModels ID that describes the rows of this change.",
 			"type": "array",

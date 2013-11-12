@@ -22,6 +22,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("tableId", COL_TABLE_ROW_TABLE_ID, true).withIsBackupId(true),
 		new FieldColumn("rowVersion", COL_TABLE_ROW_VERSION, true),
+		new FieldColumn("etag", COL_TABLE_ROW_TABLE_ETAG),
 		new FieldColumn("columnIds", COL_TABLE_ROW_COL_IDS),
 		new FieldColumn("createdBy", COL_TABLE_ROW_CREATED_BY),
 		new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
@@ -30,6 +31,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	};
 	
 	private Long tableId;
+	private String etag;
 	private Long rowVersion;
 	private String columnIds;
 	private Long createdBy;
@@ -47,6 +49,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				DBOTableRowChange change = new DBOTableRowChange();
 				change.setTableId(rs.getLong(COL_TABLE_ROW_TABLE_ID));
 				change.setRowVersion(rs.getLong(COL_TABLE_ROW_VERSION));
+				change.setEtag(rs.getString(COL_TABLE_ROW_TABLE_ETAG));
 				change.setColumnIds(rs.getString(COL_TABLE_ROW_COL_IDS));
 				change.setCreatedBy(rs.getLong(COL_TABLE_ROW_CREATED_BY));
 				change.setCreatedOn(rs.getLong(COL_TABLE_ROW_CREATED_ON));
@@ -75,6 +78,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				return DBOTableRowChange.class;
 			}
 		};
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 	public Long getTableId() {
@@ -180,6 +191,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result
 				+ ((rowVersion == null) ? 0 : rowVersion.hashCode());
@@ -215,6 +227,11 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 			if (other.createdOn != null)
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (key == null) {
 			if (other.key != null)
