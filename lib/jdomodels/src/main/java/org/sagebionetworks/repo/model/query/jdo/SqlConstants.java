@@ -141,7 +141,7 @@ public class SqlConstants {
 	public static final String COL_PROCESSED_MESSAGES_QUEUE_NAME	= "QUEUE_NAME";
  	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
  	
- 	// User message
+ 	// Message content
  	public static final String TABLE_MESSAGE_CONTENT                = "MESSAGE_CONTENT";
  	public static final String COL_MESSAGE_CONTENT_ID               = "ID";
  	public static final String COL_MESSAGE_CONTENT_CREATED_BY       = "CREATED_BY";
@@ -150,6 +150,12 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_CONTENT_CREATED_ON       = "CREATED_ON";
  	public static final String COL_MESSAGE_CONTENT_ETAG             = "ETAG";
  	public static final String DDL_MESSAGE_CONTENT                  = "schema/MessageContent-ddl.sql";
+ 	
+ 	// Message to user
+ 	public static final String TABLE_MESSAGE_TO_USER                = "MESSAGE_TO_USER";
+ 	public static final String COL_MESSAGE_TO_USER_MESSAGE_ID       = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
+ 	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
  	// User message status
  	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
