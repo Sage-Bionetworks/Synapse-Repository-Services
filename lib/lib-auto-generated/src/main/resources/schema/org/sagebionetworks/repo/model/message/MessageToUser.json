@@ -1,0 +1,26 @@
+{
+	"title": "Message",
+	"description": "JSON schema for a message to another user",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.MessageContent"
+		}
+	], 
+	"properties": {
+		"subject": {
+			"type": "string",
+			"description":"Topic of this message.  Optional"
+		}, 
+		"recipientType": {
+			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+		},
+		"recipients": {
+			"type": "array",
+			"description": "The unique identifiers of the intended recipients of this message",
+            "uniqueItems":true,
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}
