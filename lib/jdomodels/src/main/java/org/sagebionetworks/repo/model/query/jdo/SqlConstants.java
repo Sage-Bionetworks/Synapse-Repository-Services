@@ -163,22 +163,20 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_RECIPIENT_ID             = "RECIPIENT_ID";
  	public static final String DDL_MESSAGE_RECIPIENT                = "schema/MessageRecipient-ddl.sql";
  	
- 	// User message status
+ 	// Message status
  	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
- 	public static final String COL_MESSAGE_RECIPIENT_TYPE           = "RECIPIENT_TYPE";
- 	public static final String COL_MESSAGE_RECIPIENTS               = "RECIPIENTS";
  	public static final String COL_MESSAGE_STATUS_MESSAGE_ID        = "MESSAGE_ID";
  	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
  	public static final String COL_MESSAGE_STATUS                   = "STATUS";
  	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
  	
- 	// User message thread
- 	public static final String TABLE_MESSAGE_THREAD                 = "MESSAGE_THREAD";
- 	public static final String COL_MESSAGE_THREAD_CHILD_ID          = "CHILD_MESSAGE_ID";
- 	public static final String COL_MESSAGE_THREAD_PARENT_ID         = "PARENT_MESSAGE_ID";
- 	public static final String DDL_MESSAGE_THREAD                   = "schema/MessageThread-ddl.sql";
+ 	// Message in-reply-to root 
+ 	public static final String TABLE_MESSAGE_ROOT                   = "MESSAGE_IN_REPLY_TO_ROOT";
+ 	public static final String COL_MESSAGE_ROOT_MESSAGE_ID          = "ROOT_MESSAGE_ID";
+ 	public static final String COL_MESSAGE_ROOT_CHILD_ID            = "CHILD_MESSAGE_ID";
+ 	public static final String DDL_MESSAGE_ROOT                     = "schema/MessageInReplyToRoot-ddl.sql";
  	
- 	// Message thread object link
+ 	// Comment
  	public static final String TABLE_MESSAGE_THREAD_OBJECT          = "MESSAGE_THREAD_OBJECT";
  	public static final String COL_MESSAGE_THREAD_OBJECT_THREAD_ID  = "MESSAGE_THREAD_ID";
  	public static final String COL_MESSAGE_THREAD_OBJECT_ID         = "OBJECT_ID";
