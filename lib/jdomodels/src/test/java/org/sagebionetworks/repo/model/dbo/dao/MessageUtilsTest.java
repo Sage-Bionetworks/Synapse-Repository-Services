@@ -5,19 +5,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
-import org.sagebionetworks.repo.model.message.RecipientType;
 
 
 public class MessageUtilsTest {
@@ -30,10 +28,9 @@ public class MessageUtilsTest {
 	private Message generateSortaValidMessage() {
 		Message dto = new Message();
 		dto.setMessageId("-1");
-		dto.setThreadId("-2");
 		dto.setCreatedBy("-3");
-		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-4");}});
+		dto.setRecipientType(ObjectType.PRINCIPAL);
+		dto.setRecipients(new HashSet<String>() {{add("-4");}});
 		dto.setMessageFileHandleId("-5");
 		dto.setCreatedOn(new Date());
 		return dto;
@@ -42,52 +39,57 @@ public class MessageUtilsTest {
 	@Test
 	public void testValidateMessage() throws Exception {
 		// The static method gives us a passing message
-		Message dto = generateSortaValidMessage();
-		MessageUtils.validateDTO(dto);
+		DBOMessageContent dbo = MessageUtils.convertDTO(generateSortaValidMessage());
+		MessageUtils.validateDBO(dbo);
 		
-		// The only optional field of a message is the subject
-		dto.setSubject("I'm not null");
-		MessageUtils.validateDTO(dto);
+		// Set optional fields
+		dbo.setSubject("I'm not null");
+		dbo.setReplyTo(-12345L);
+		MessageUtils.validateDBO(dbo);
 		
 		// Still valid
-		dto.setSubject(null);
-		MessageUtils.validateDTO(dto);
+		dbo.setSubject(null);
+		MessageUtils.validateDBO(dbo);
+
+		// Still valid
+		dbo.setReplyTo(null);
+		MessageUtils.validateDBO(dbo);
 		
 		// All of the following should throw different error messages
 		Set<String> caughtMessages = new HashSet<String>();
 		
-		dto.setCreatedOn(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setCreatedOn(null);
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
-		dto.setMessageFileHandleId(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setFileHandleId(null);
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
-		dto.setRecipients(new ArrayList<String>());
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setRecipients(MessageUtils.zip(new HashSet<String>()));
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
 		// Except for this one, which is the same message as the previous one
-		dto.setRecipients(null);
-		assertFalse(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setRecipients(null);
+		assertFalse(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
-		dto.setRecipientType(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setRecipientType(ObjectType.FAVORITE.name());
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
-		dto.setCreatedBy(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setRecipientType(null);
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
-		dto.setThreadId(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setCreatedBy(null);
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 		
-		dto.setMessageId(null);
-		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dto)));
+		dbo.setMessageId(null);
+		assertTrue(caughtMessages.add(validateMessageCatchIllegalArgument(dbo)));
 	}
 	
 	/**
 	 * Helper for the test to validate the validateMessage helper
 	 */
-	private String validateMessageCatchIllegalArgument(Message dto) {
+	private String validateMessageCatchIllegalArgument(DBOMessageContent dbo) {
 		try {
-			MessageUtils.validateDTO(dto);
+			MessageUtils.validateDBO(dbo);
 			fail();
 		} catch (IllegalArgumentException e) {
 			return e.getMessage();
@@ -98,7 +100,7 @@ public class MessageUtilsTest {
 	@Test
 	public void testMessageConversion() throws Exception {
 		Message dto = generateSortaValidMessage();
-		DBOMessage dbo = MessageUtils.convertDTO(dto);
+		DBOMessageContent dbo = MessageUtils.convertDTO(dto);
 		Message dto2 = MessageUtils.convertDBO(dbo);
 		
 		assertEquals(dto, dto2);
@@ -119,7 +121,8 @@ public class MessageUtilsTest {
 	
 	@Test
 	public void testZipUnzip() throws Exception {
-		List<String> original = new ArrayList<String>();
+		Set<String> original = new HashSet<String>();
+		original.add("1");
 		original.add("1");
 		original.add("2");
 		original.add("34");
@@ -129,7 +132,7 @@ public class MessageUtilsTest {
 		original.add(Long.toString(Long.MIN_VALUE));
 		original.add(Long.toString(Long.MAX_VALUE));
 		
-		List<String> processed = MessageUtils.unzip(MessageUtils.zip(original));
+		Set<String> processed = MessageUtils.unzip(MessageUtils.zip(original));
 		assertTrue(original.containsAll(processed));
 		assertTrue(processed.containsAll(original));
 	}

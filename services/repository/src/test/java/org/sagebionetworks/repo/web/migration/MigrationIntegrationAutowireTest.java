@@ -74,7 +74,6 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.Message;
-import org.sagebionetworks.repo.model.message.RecipientType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -557,12 +556,14 @@ public class MigrationIntegrationAutowireTest {
 		Message dto = new Message();
 		dto.setCreatedBy(group.getId());
 		dto.setSubject("See you on the other side?");
-		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
+		dto.setRecipientType(ObjectType.PRINCIPAL);
+		dto.setRecipients(new HashSet<String>() {{add("-1");}});
 		dto.setMessageFileHandleId(fileHandleId);
 		dto = messageDAO.createMessage(dto);
 		
 		messageDAO.registerMessageRecipient(dto.getMessageId(), group.getId());
+		String threadId = messageDAO.registerMessageToThread(dto.getMessageId(), null);
+		messageDAO.registerThreadToObject(threadId, ObjectType.ENTITY, "-9999");
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {

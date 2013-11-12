@@ -8,6 +8,8 @@
     	"USER_PROFILE",
         "FILE_HANDLE",
         "MESSAGE", 
+        "MESSAGE_THREAD", 
+        "MESSAGE_THREAD_OBJECT", 
         "MESSAGE_STATUS", 
         "WIKI_PAGE",
         "WIKI_ATTACHMENT",
