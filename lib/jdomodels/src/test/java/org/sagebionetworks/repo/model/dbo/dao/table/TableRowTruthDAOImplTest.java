@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -243,6 +244,7 @@ public class TableRowTruthDAOImplTest {
 		}
 	}
 	
+	
 	@Test
 	public void testAppendRowsUpdate() throws IOException, NotFoundException{
 		// Create some test column models
@@ -367,6 +369,68 @@ public class TableRowTruthDAOImplTest {
 			assertEquals("Row id: 0 has been changes since lasted read.  Please get the latest value for this row and then attempt to update it again.", e.getMessage());
 		}
 
+	}
+	
+	@Test
+	public void testAppendOverMax() throws IOException{
+		// create some test rows.
+		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		
+		// Create a request that is too large
+		int allBytes = TableModelUtils.calculateMaxRowSize(models);
+		int maxBytes = tableRowTruthDao.getMaxBytesPerRequest();
+		int maxRow = maxBytes/allBytes;
+		
+		// create some test rows.
+		List<Row> rows = TableModelUtils.createRows(models, maxRow+1);
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		try{
+			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+			fail("should have failed since it is too large");
+		}catch(IllegalArgumentException e){
+			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
+		}
+	}
+	
+	@Test
+	public void testGetRowSetOverSize() throws IOException, NotFoundException{
+		// create some test rows.
+		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		
+		// Create a request that is too large
+		int allBytes = TableModelUtils.calculateMaxRowSize(models);
+		int maxBytes = tableRowTruthDao.getMaxBytesPerRequest();
+		int maxRow = maxBytes/allBytes;
+		
+		// create some test rows.
+		List<Row> rows = TableModelUtils.createRows(models, maxRow);
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// This set is just under the max
+		RowReferenceSet setOne = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		rows = TableModelUtils.createRows(models, maxRow);
+		set.setRows(rows);
+		// Add another set just under the max.
+		RowReferenceSet setTwo = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		// Now try to get both sets in one call
+		try{
+			RowReferenceSet requestSet = new RowReferenceSet();
+			requestSet.setHeaders(setTwo.getHeaders());
+			requestSet.setRows(new LinkedList<RowReference>());
+			requestSet.getRows().addAll(setOne.getRows());
+			requestSet.getRows().addAll(setTwo.getRows());
+			tableRowTruthDao.getRowSet(requestSet, models);
+			fail("Should have failed since the request is too large.");
+		}catch(IllegalArgumentException e){
+			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
+		}
 	}
 	
 }

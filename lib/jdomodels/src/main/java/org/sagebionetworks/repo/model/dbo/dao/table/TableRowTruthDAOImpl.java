@@ -93,7 +93,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private AmazonS3Client s3Client;
 
 	private String s3Bucket;
-	private int maxRowsPerGet;
+	private int maxBytesPerRequest;
 
 	RowMapper<DBOTableIdSequence> sequenceRowMapper = new DBOTableIdSequence()
 			.getTableMapping();
@@ -161,22 +161,16 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta) throws IOException {
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId,
+			List<ColumnModel> models, RowSet delta) throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
+		// Validate the request is under the max bytes per requested
+		validateRequestSize(models, delta.getRows().size());
 		// Reserver IDs for the missing
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Are any rows being updated?
-		if(coutToReserver < delta.getRows().size()){
-			// This indicates there was an update
-			if(delta.getEtag() == null) throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
-			// Lookup the version number for this update.
-			long versionOfEtag = getVersionForEtag(tableId, delta.getEtag() );
-			// Check each version greater than the version for the etag
-			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, versionOfEtag);
-			// check for row level conflicts
-			checkForRowLevelConflict(changes, TableModelUtils.getDistictValidRowIds(delta.getRows()));
-		}
+		// Validate that this update does not contain any row level conflicts.
+		checkForRowLevelConflict(tableId, delta, coutToReserver);
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
@@ -187,20 +181,21 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());
-		changeDBO.setColumnIds(TableModelUtils.createDelimitedColumnModelIdString(headers));
+		changeDBO.setColumnIds(TableModelUtils
+				.createDelimitedColumnModelIdString(headers));
 		changeDBO.setCreatedBy(Long.parseLong(userId));
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKey(key);
 		changeDBO.setBucket(s3Bucket);
 		basicDao.createNew(changeDBO);
-		
+
 		// Prepare the results
 		RowReferenceSet results = new RowReferenceSet();
 		results.setHeaders(headers);
 		results.setTableId(tableId);
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
-		for(Row row: delta.getRows()){
+		for (Row row : delta.getRows()) {
 			RowReference ref = new RowReference();
 			ref.setRowId(row.getRowId());
 			ref.setVersionNumber(row.getVersionNumber());
@@ -210,13 +205,51 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return results;
 	}
 
+	private void validateRequestSize(List<ColumnModel> models, int rowCount){
+		// Validate the request is under the max bytes per requested
+		if(!TableModelUtils.isRequestWithinMaxBytePerRequest(models, rowCount, this.maxBytesPerRequest)){
+			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+this.maxBytesPerRequest+" bytes");
+		}
+	}
 	/**
-	 * Check for a row level conflicts in the passed change sets, by scanning each
-	 * row of each change set and looking for the intersection with the passed row
-	 * Ids.
+	 * Check for a row level conflicts in the passed change sets, by scanning
+	 * each row of each change set and looking for the intersection with the
+	 * passed row Ids.
+	 * 
+	 * @param tableId
+	 * @param delta
+	 * @param coutToReserver
+	 * @throws ConflictingUpdateException
+	 *             when a conflict is found
+	 */
+	private void checkForRowLevelConflict(String tableId, RowSet delta, int coutToReserver)
+			throws IOException {
+		// Are any rows being updated?
+		if (coutToReserver < delta.getRows().size()) {
+			// This indicates there was an update
+			if (delta.getEtag() == null)
+				throw new IllegalArgumentException(
+						"RowSet.etag cannot be null when rows are being updated.");
+			// Lookup the version number for this update.
+			long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
+			// Check each version greater than the version for the etag
+			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(
+					tableId, versionOfEtag);
+			// check for row level conflicts
+			checkForRowLevelConflict(changes,
+					TableModelUtils.getDistictValidRowIds(delta.getRows()));
+		}
+	}
+
+	/**
+	 * Check for a row level conflicts in the passed change sets, by scanning
+	 * each row of each change set and looking for the intersection with the
+	 * passed row Ids.
+	 * 
 	 * @param changes
 	 * @param delta
-	 * @throws ConflictingUpdateException when a conflict is found
+	 * @throws ConflictingUpdateException
+	 *             when a conflict is found
 	 */
 	private void checkForRowLevelConflict(List<TableRowChange> changes,
 			final Set<Long> rowIds) throws IOException {
@@ -232,7 +265,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * 
 	 * @param change
 	 * @param rowIds
-	 * @throws ConflictingUpdateException when a conflict is found
+	 * @throws ConflictingUpdateException
+	 *             when a conflict is found
 	 */
 	private void checkForRowLevelConflict(final TableRowChange change,
 			final Set<Long> rowIds) throws IOException {
@@ -443,11 +477,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (ref.getRows() == null)
 			throw new IllegalArgumentException(
 					"RowReferenceSet.rows cannot be null");
-		if (ref.getRows().size() > maxRowsPerGet)
-			throw new IllegalArgumentException(
-					"The maximum number of rows per request is: "
-							+ maxRowsPerGet + ", but " + ref.getRows().size()
-							+ " rows were requested");
 		// First determine the versions we will need to inspect for this query.
 		Set<Long> versions = TableModelUtils.getDistictVersions(ref.getRows());
 		final Set<RowReference> rowsToFetch = new HashSet<RowReference>(
@@ -484,6 +513,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Override
 	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> restultForm)
 			throws IOException, NotFoundException {
+		// Validate the request is under the max bytes per requested
+		validateRequestSize(restultForm, ref.getRows().size());
 		// Get all of the data in the raw form.
 		List<RowSet> allSets = getRowSetOriginals(ref);
 		// Convert and merge all data into the requested form
@@ -504,17 +535,22 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		this.s3Bucket = s3Bucket;
 	}
 
-	public int getMaxRowsPerGet() {
-		return maxRowsPerGet;
+	/**
+	 * Get the maximum number of bytes per request.
+	 * @return
+	 */
+	@Override
+	public int getMaxBytesPerRequest() {
+		return maxBytesPerRequest;
 	}
 
 	/**
-	 * IoC
+	 * IoC.
 	 * 
-	 * @param maxRowsPerGet
+	 * @param maxBytesPerRequest
 	 */
-	public void setMaxRowsPerGet(int maxRowsPerGet) {
-		this.maxRowsPerGet = maxRowsPerGet;
+	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
+		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
 }

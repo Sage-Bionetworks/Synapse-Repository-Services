@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -10,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -640,5 +642,61 @@ public class TableModelUtilsTest {
 		row.setValues(Arrays.asList(new String[]{"string1", "string1", "true"}));
 		expectedRows.add(row);
 		assertEquals(expected, converted);
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeString() throws UnsupportedEncodingException{
+		int expected  = new String(new char[ColumnConstants.MAX_CHARS_IN_STRING_COLUMN]).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeBoolean() throws UnsupportedEncodingException{
+		int expected  = new String("false").getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeLong() throws UnsupportedEncodingException{
+		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LONG));
+	}
+	@Test
+	public void testCalculateMaxSizeForTypeDouble() throws UnsupportedEncodingException{
+		double big = -1.123456789123456789e123;
+		int expected  = Double.toString(big).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeFileHandle() throws UnsupportedEncodingException{
+		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeAll() throws UnsupportedEncodingException{
+		// The should be a size for each type.
+		for(ColumnType ct:ColumnType.values()){
+			TableModelUtils.calculateMaxSizeForType(ct);
+		}
+	}
+	
+	@Test
+	public void testCalculateMaxRowSize(){
+		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
+		assertEquals(2068, allBytes);
+	}
+	
+	@Test
+	public void testIsRequestWithinMaxBytePerRequest(){
+		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
+		// Set the max to be 100 rows
+		int maxBytes = allBytes*100;
+		// So 100 rows should be within limit but not 101;
+		assertTrue(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 100, maxBytes));
+		assertFalse(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 101, maxBytes));
 	}
 }
