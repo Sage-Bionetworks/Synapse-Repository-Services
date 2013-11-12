@@ -177,11 +177,11 @@ public class SqlConstants {
  	public static final String DDL_MESSAGE_ROOT                     = "schema/MessageInReplyToRoot-ddl.sql";
  	
  	// Comment
- 	public static final String TABLE_MESSAGE_THREAD_OBJECT          = "MESSAGE_THREAD_OBJECT";
- 	public static final String COL_MESSAGE_THREAD_OBJECT_THREAD_ID  = "MESSAGE_THREAD_ID";
- 	public static final String COL_MESSAGE_THREAD_OBJECT_ID         = "OBJECT_ID";
- 	public static final String COL_MESSAGE_THREAD_OBJECT_TYPE       = "OBJECT_TYPE";
- 	public static final String DDL_MESSAGE_THREAD_OBJECT            = "schema/MessageThreadObject-ddl.sql";
+ 	public static final String TABLE_COMMENT                        = "COMMENT";
+ 	public static final String COL_COMMENT_MESSAGE_ID               = "MESSAGE_ID";
+ 	public static final String COL_COMMENT_OBJECT_TYPE              = "OBJECT_TYPE";
+ 	public static final String COL_COMMENT_OBJECT_ID                = "OBJECT_ID";
+ 	public static final String DDL_COMMENT                          = "schema/Comment-ddl.sql";
 
 	// The file metadata table
 	public static final String TABLE_FILES							= "FILES";

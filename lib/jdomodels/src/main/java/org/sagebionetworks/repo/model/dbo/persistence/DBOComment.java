@@ -12,18 +12,19 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
- * Mapping between messages and their associated message thread
+ * Contains information about comments posted to arbitrary objects
  */
 public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComment> {
-	private Long threadId;
-	private Long objectId;
-	private String objectType;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
-		new FieldColumn("threadId", SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID, true).withIsBackupId(true), 
-		new FieldColumn("objectId", SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID), 
-		new FieldColumn("objectType", SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE)
+		new FieldColumn("threadId", SqlConstants.COL_COMMENT_MESSAGE_ID, true).withIsBackupId(true), 
+		new FieldColumn("objectId", SqlConstants.COL_COMMENT_OBJECT_TYPE), 
+		new FieldColumn("objectType", SqlConstants.COL_COMMENT_OBJECT_ID)
 	};
+	
+	private Long messageId;
+	private String objectType;
+	private Long objectId;
 	
 	@Override
 	public TableMapping<DBOComment> getTableMapping() {
@@ -33,20 +34,20 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 			public DBOComment mapRow(ResultSet rs, int index)
 					throws SQLException {
 				DBOComment dbo = new DBOComment();
-				dbo.setThreadId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_THREAD_ID));
-				dbo.setObjectId(rs.getLong(SqlConstants.COL_MESSAGE_THREAD_OBJECT_ID));
-				dbo.setObjectType(rs.getString(SqlConstants.COL_MESSAGE_THREAD_OBJECT_TYPE));
+				dbo.setMessageId(rs.getLong(SqlConstants.COL_COMMENT_MESSAGE_ID));
+				dbo.setObjectType(rs.getString(SqlConstants.COL_COMMENT_OBJECT_TYPE));
+				dbo.setObjectId(rs.getLong(SqlConstants.COL_COMMENT_OBJECT_ID));
 				return dbo;
 			}
 
 			@Override
 			public String getTableName() {
-				return SqlConstants.TABLE_MESSAGE_THREAD_OBJECT;
+				return SqlConstants.TABLE_COMMENT;
 			}
 
 			@Override
 			public String getDDLFileName() {
-				return SqlConstants.DDL_MESSAGE_THREAD_OBJECT;
+				return SqlConstants.DDL_COMMENT;
 			}
 
 			@Override
@@ -61,9 +62,33 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 		};
 	}
 
+	public Long getMessageId() {
+		return messageId;
+	}
+
+	public void setMessageId(Long messageId) {
+		this.messageId = messageId;
+	}
+
+	public String getObjectType() {
+		return objectType;
+	}
+
+	public void setObjectType(String objectType) {
+		this.objectType = objectType;
+	}
+
+	public Long getObjectId() {
+		return objectId;
+	}
+
+	public void setObjectId(Long objectId) {
+		this.objectId = objectId;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MESSAGE_THREAD_OBJECT;
+		return MigrationType.COMMENT;
 	}
 
 
@@ -103,40 +128,16 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 		return null;
 	}
 
-	public Long getThreadId() {
-		return threadId;
-	}
-
-	public void setThreadId(Long threadId) {
-		this.threadId = threadId;
-	}
-
-	public Long getObjectId() {
-		return objectId;
-	}
-
-	public void setObjectId(Long objectId) {
-		this.objectId = objectId;
-	}
-
-	public String getObjectType() {
-		return objectType;
-	}
-
-	public void setObjectType(String objectType) {
-		this.objectType = objectType;
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((messageId == null) ? 0 : messageId.hashCode());
+		result = prime * result
 				+ ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result
 				+ ((objectType == null) ? 0 : objectType.hashCode());
-		result = prime * result
-				+ ((threadId == null) ? 0 : threadId.hashCode());
 		return result;
 	}
 
@@ -149,6 +150,11 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 		if (getClass() != obj.getClass())
 			return false;
 		DBOComment other = (DBOComment) obj;
+		if (messageId == null) {
+			if (other.messageId != null)
+				return false;
+		} else if (!messageId.equals(other.messageId))
+			return false;
 		if (objectId == null) {
 			if (other.objectId != null)
 				return false;
@@ -159,18 +165,13 @@ public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComme
 				return false;
 		} else if (!objectType.equals(other.objectType))
 			return false;
-		if (threadId == null) {
-			if (other.threadId != null)
-				return false;
-		} else if (!threadId.equals(other.threadId))
-			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOMessageThreadObject [threadId=" + threadId + ", objectId="
-				+ objectId + ", objectType=" + objectType + "]";
+		return "DBOComment [messageId=" + messageId + ", objectType="
+				+ objectType + ", objectId=" + objectId + "]";
 	}
 
 }
