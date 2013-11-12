@@ -240,7 +240,7 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 	}
 	
 	@Test
-	public void testParentCheck() throws NotFoundException {
+	public void testParentCheckAndGetEtag() throws NotFoundException {
 		// Test parent wiki check
 		String ownerId = "syn1";
 		ObjectType ownerType = ObjectType.ENTITY;
@@ -272,5 +272,12 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 		// Before creating the child, we will make this call
 		boolean doesParentExist = v2WikiPageMigrationDao.doesWikiExist(child.getParentWikiId());
 		assertEquals(true, doesParentExist);
+		
+		String etagResult = v2WikiPageMigrationDao.getWikiEtag(result.getId());
+		assertEquals("etag", etagResult);
+		
+		// Try to get the etag of a wiki that doesn't exist
+		String invalidEtagResult = v2WikiPageMigrationDao.getWikiEtag("3");
+		assertEquals(null, invalidEtagResult);
 	}
 }
