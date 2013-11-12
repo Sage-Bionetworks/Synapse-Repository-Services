@@ -501,7 +501,7 @@ public class TableModelUtils {
 						+ cm.getColumnType());
 			}
 		}
-
+		toUpdatet.setValues(values);
 	}
 	
 	/**
