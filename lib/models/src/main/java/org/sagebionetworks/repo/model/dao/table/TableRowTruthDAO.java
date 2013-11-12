@@ -28,6 +28,15 @@ public interface TableRowTruthDAO {
 	public IdRange reserveIdsInRange(String tableId, long coutToReserver);
 	
 	/**
+	 * Get the version number for a given table ID and etag.
+	 * 
+	 * @param tableIdString
+	 * @param etag
+	 * @return
+	 */
+	public long getVersionForEtag(String tableIdString, String etag);
+	
+	/**
 	 * Append a RowSet to a table.
 	 * @param tableId
 	 * @param models
@@ -87,6 +96,14 @@ public interface TableRowTruthDAO {
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
+	
+	/**
+	 * List all changes for a table with a version number greater than the given value (exclusive).
+	 * @param tableId
+	 * @param version
+	 * @return
+	 */
+	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);
 	
 	/**
 	 * Get the TableRowChange for a given tableId and row version number.

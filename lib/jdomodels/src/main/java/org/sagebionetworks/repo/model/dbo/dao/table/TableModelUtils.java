@@ -478,6 +478,32 @@ public class TableModelUtils {
 		return rows;
 	}
 	
+	public static void updateRow(List<ColumnModel> cms, Row toUpdatet, int i) {
+		// Add a value for each column
+		List<String> values = new LinkedList<String>();
+		for (ColumnModel cm : cms) {
+			if (ColumnType.STRING.equals(cm.getColumnType())) {
+				values.add("updateString" + i);
+			} else if (ColumnType.LONG.equals(cm.getColumnType())) {
+				values.add("" + i);
+			} else if (ColumnType.BOOLEAN.equals(cm.getColumnType())) {
+				if (i % 2 > 0) {
+					values.add(Boolean.TRUE.toString());
+				} else {
+					values.add(Boolean.FALSE.toString());
+				}
+			} else if (ColumnType.FILEHANDLEID.equals(cm.getColumnType())) {
+				values.add("" + i);
+			} else if (ColumnType.DOUBLE.equals(cm.getColumnType())) {
+				values.add("" + (i * 3.41));
+			} else {
+				throw new IllegalArgumentException("Unknown ColumnType: "
+						+ cm.getColumnType());
+			}
+		}
+
+	}
+	
 	/**
 	 * Convert from the DBO to the DTO
 	 * @param dbo
@@ -545,6 +571,23 @@ public class TableModelUtils {
 			distictVersions.add(ref.getVersionNumber());
 		}
 		return distictVersions;
+	}
+	
+	
+	/**
+	 * Get the distinct and valid rowIds from the passed rows
+	 * @param rows
+	 * @return
+	 */
+	public static Set<Long> getDistictValidRowIds(List<Row> rows) {
+		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
+		Set<Long> distictRowIds = new HashSet<Long>();
+		for(Row ref: rows){
+			if(!isNullOrInvalid(ref.getRowId())){
+				distictRowIds.add(ref.getRowId());
+			}
+		}
+		return distictRowIds;
 	}
 	
 	/**

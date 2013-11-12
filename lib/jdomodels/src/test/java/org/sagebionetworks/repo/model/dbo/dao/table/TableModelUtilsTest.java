@@ -521,6 +521,30 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testDistictRowIds(){
+		List<Row> refs = new LinkedList<Row>();
+		Row ref = new Row();
+		ref.setRowId(100l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(100l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(101l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(null);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(-1l);
+		refs.add(ref);
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(101l);
+		expected.add(100l);
+		assertEquals(expected, TableModelUtils.getDistictValidRowIds(refs));
+	}
+	
+	@Test
 	public void testConvertToSchemaAndMerge(){
 		List<ColumnModel> models = new LinkedList<ColumnModel>();
 		// Create three columns
