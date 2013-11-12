@@ -137,7 +137,7 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MESSAGE;
+		return MigrationType.MESSAGE_CONTENT;
 	}
 
 	@Override
@@ -169,8 +169,11 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> secondaries = new ArrayList<MigratableDatabaseObject>();
+		secondaries.add(new DBOMessageToUser());
+		secondaries.add(new DBOMessageRecipient());
 		secondaries.add(new DBOMessageStatus());
-		secondaries.add(new DBOMessageThread());
+		secondaries.add(new DBOMessageInReplyToRoot());
+		secondaries.add(new DBOComment());
 		return secondaries;
 	}
 

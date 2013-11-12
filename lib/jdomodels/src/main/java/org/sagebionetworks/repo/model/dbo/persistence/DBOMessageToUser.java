@@ -82,7 +82,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.MESSAGE_STATUS;
+		return MigrationType.MESSAGE_TO_USER;
 	}
 
 	@Override
