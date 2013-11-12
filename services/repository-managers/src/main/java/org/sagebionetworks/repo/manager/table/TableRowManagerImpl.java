@@ -25,9 +25,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	AuthorizationManager authorizationManager;
 
 	@Autowired
-	FileHandleDao fileHandleDao;
-
-	@Autowired
 	TableRowTruthDAO tableRowTruthDao;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

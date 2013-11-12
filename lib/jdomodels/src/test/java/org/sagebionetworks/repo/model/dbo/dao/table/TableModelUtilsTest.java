@@ -646,7 +646,9 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateMaxSizeForTypeString() throws UnsupportedEncodingException{
-		int expected  = new String(new char[ColumnConstants.MAX_CHARS_IN_STRING_COLUMN]).getBytes("UTF-8").length;
+		char[] array = new char[ColumnConstants.MAX_CHARS_IN_STRING_COLUMN];
+		Arrays.fill(array, Character.MAX_VALUE);
+		int expected  = new String(array).getBytes("UTF-8").length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING));
 	}
 	
@@ -686,7 +688,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize(){
 		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(2068, allBytes);
+		assertEquals(6068, allBytes);
 	}
 	
 	@Test

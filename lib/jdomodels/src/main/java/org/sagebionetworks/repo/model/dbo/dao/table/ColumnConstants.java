@@ -8,17 +8,21 @@ public class ColumnConstants {
 	 * The maximum number of characters in a string column.
 	 */
 	public static final int MAX_CHARS_IN_STRING_COLUMN = 2000;
-	/**
-	 * The maximum number of bytes of a string.
-	 */
-	public static final int MAX_STRING_BYTES;
+	
+	public static final int MAX_BYTES_PER_CHAR_UTF_8;
 	static{
+		char[] chars = new char[]{Character.MAX_VALUE};
 		try {
-			MAX_STRING_BYTES = new String(new char[MAX_CHARS_IN_STRING_COLUMN]).getBytes("UTF-8").length;
+			MAX_BYTES_PER_CHAR_UTF_8 = new String(chars).getBytes("UTF-8").length;
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
 	}
+	/**
+	 * The maximum number of bytes of a string.
+	 */
+	public static final int MAX_STRING_BYTES = MAX_CHARS_IN_STRING_COLUMN * MAX_BYTES_PER_CHAR_UTF_8;
+	
 	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
 	 */
