@@ -123,13 +123,6 @@ public class CommunityManagerImplTest {
 	}
 
 	@Test(expected = InvalidModelException.class)
-	public void testCreateNoDescription() throws Exception {
-		Community community = new Community();
-		community.setName("hi");
-		communityManager.create(validUser, community);
-	}
-
-	@Test(expected = InvalidModelException.class)
 	public void testCreateIdNotExpected() throws Exception {
 		Community community = new Community();
 		community.setName(USER_ID);
@@ -167,7 +160,7 @@ public class CommunityManagerImplTest {
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
-		Community community = communityManager.put(validUser, testCommunity);
+		Community community = communityManager.update(validUser, testCommunity);
 		assertNotNull(community);
 
 		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE);
@@ -179,7 +172,7 @@ public class CommunityManagerImplTest {
 	public void testPutNotAuthorized() throws Throwable {
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		try {
-			communityManager.put(validUser, testCommunity);
+			communityManager.update(validUser, testCommunity);
 
 		} catch (Throwable t) {
 			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE);
@@ -192,9 +185,10 @@ public class CommunityManagerImplTest {
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE)).thenReturn(true);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
-		communityManager.delete(validUser, testCommunity);
+		communityManager.delete(validUser, COMMUNITY_ID);
 
 		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE);
+		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
 		verify(userGroupDAO).delete(GROUP_ID);
 		verify(entityManager).deleteEntity(validUser, COMMUNITY_ID);
 	}
@@ -203,7 +197,7 @@ public class CommunityManagerImplTest {
 	public void testDeleteNotAuthorized() throws Throwable {
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE)).thenReturn(false);
 		try {
-			communityManager.delete(validUser, testCommunity);
+			communityManager.delete(validUser, COMMUNITY_ID);
 
 		} catch (Throwable t) {
 			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE);

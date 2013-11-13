@@ -131,6 +131,13 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		return update(COMMUNITY + "/" + community.getId(), community);
 	}
 
+	@Override
+	public void deleteCommunity(String communityId) throws SynapseException {
+		if (communityId == null)
+			throw new IllegalArgumentException("Community Id cannot be null");
+		delete(COMMUNITY + "/" + communityId);
+	}
+
 	private <T extends JSONEntity> T get(String uri, Class<T> klass) throws SynapseException {
 		// Get the json for this entity
 		try {
@@ -180,5 +187,10 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+
+	private void delete(String uri) throws SynapseException {
+		// Get the json for this entity
+		getSharedClientConnection().deleteUri(bridgeEndpoint, uri, getUserAgent());
 	}
 }

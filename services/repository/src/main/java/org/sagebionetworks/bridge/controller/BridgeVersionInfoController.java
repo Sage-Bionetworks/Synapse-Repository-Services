@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
-public class BridgeVersionInfoController extends BaseController {
+public class BridgeVersionInfoController extends BridgeBaseController {
 	
 	private static class Holder {
 		private static String versionInfo = "";

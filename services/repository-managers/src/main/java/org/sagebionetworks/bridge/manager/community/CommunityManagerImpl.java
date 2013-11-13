@@ -64,7 +64,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		Validate.notSpecifiable(community.getGroupId(), "groupId");
 
 		Validate.required(community.getName(), "name");
-		Validate.required(community.getDescription(), "description");
+		Validate.optional(community.getDescription(), "description");
 	}
 
 	public static void validateForUpdate(Community community) {
@@ -73,7 +73,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		Validate.missing(community.getGroupId(), "groupId");
 
 		Validate.required(community.getName(), "name");
-		Validate.required(community.getDescription(), "description");
+		Validate.optional(community.getDescription(), "description");
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, Community community) {
@@ -177,9 +177,9 @@ public class CommunityManagerImpl implements CommunityManager {
 		String communityId = entityManager.createEntity(userInfo, community, null);
 		Community created = entityManager.getEntity(userInfo, communityId, Community.class);
 
-		groupMembersDAO.addMembers(communityId, Collections.singletonList(userInfo.getIndividualGroup().getId()));
+		groupMembersDAO.addMembers(groupId, Collections.singletonList(userInfo.getIndividualGroup().getId()));
 		// create ACL, adding the current user to the community, as an admin
-		AccessControlList acl = createInitialAcl(userInfo, communityId);
+		AccessControlList acl = createInitialAcl(userInfo, groupId);
 		aclDAO.create(acl);
 		return created;
 	}
@@ -236,7 +236,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	 */
 	@Override
 	public Community get(UserInfo userInfo, String communityId) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.COMMUNITY, ACCESS_TYPE.READ)) {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException("Cannot read Community.");
 		}
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
@@ -251,14 +251,14 @@ public class CommunityManagerImpl implements CommunityManager {
 	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Community put(UserInfo userInfo, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
+	public Community update(UserInfo userInfo, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
 			NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, community.getId(), ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)) {
+		if (!authorizationManager.canAccess(userInfo, community.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException("Cannot update Community.");
 		}
 		validateForUpdate(community);
 		populateUpdateFields(userInfo, community);
-		entityManager.updateEntity(userInfo, community, true, null);
+		entityManager.updateEntity(userInfo, community, false, null);
 		community = entityManager.getEntity(userInfo, community.getId(), Community.class);
 		return community;
 	}
@@ -271,13 +271,15 @@ public class CommunityManagerImpl implements CommunityManager {
 	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void delete(UserInfo userInfo, Community community) throws DatastoreException, UnauthorizedException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, community.getId(), ObjectType.COMMUNITY, ACCESS_TYPE.DELETE)) {
+	public void delete(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException("Cannot delete Community.");
 		}
+
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
 		// delete userGroup
 		userGroupDAO.delete(community.getGroupId());
-		entityManager.deleteEntity(userInfo, community.getId());
+		entityManager.deleteEntity(userInfo, communityId);
 	}
 
 	/**

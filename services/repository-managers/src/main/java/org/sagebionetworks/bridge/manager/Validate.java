@@ -21,4 +21,7 @@ public class Validate {
 			throw new InvalidModelException("'" + fieldName + "' field is required.");
 		}
 	}
+
+	public static void optional(String description, String string) {
+	}
 }

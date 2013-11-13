@@ -1,7 +1,5 @@
 package org.sagebionetworks.bridge;
 
-import java.util.logging.Logger;
-
 import org.sagebionetworks.bridge.model.BridgePrefixConst;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
@@ -18,10 +16,11 @@ import org.sagebionetworks.repo.web.UrlHelpers;
  */
 public class BridgeUrlHelpers extends UrlHelpers {
 
-	private static final Logger log = Logger.getLogger(BridgeUrlHelpers.class.getName());
+	public static final String BASE_V1 = "bridge/v1";
 	
 	public static final String VERSION = "/version";
 
 	public static final String COMMUNITY = BridgePrefixConst.COMMUNITY;
+	public static final String COMMUNITY_ID = COMMUNITY + ID;
 
 }

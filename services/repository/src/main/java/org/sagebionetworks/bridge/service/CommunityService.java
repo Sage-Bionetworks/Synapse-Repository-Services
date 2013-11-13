@@ -1,11 +1,10 @@
-package org.sagebionetworks.bridge.manager.community;
+package org.sagebionetworks.bridge.service;
 
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface CommunityManager {
-
+public interface CommunityService {
 	/**
 	 * Create a new Community
 	 * 
@@ -17,7 +16,7 @@ public interface CommunityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public Community create(UserInfo userInfo, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
+	public Community create(String userId, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
 			NotFoundException;
 
 	/**
@@ -31,7 +30,7 @@ public interface CommunityManager {
 	 */
 	// public PaginatedResults<Community> getByMember(String principalId, long limit, long offset) throws
 	// DatastoreException;
-	
+
 	/**
 	 * Get a Community by its ID
 	 * 
@@ -40,7 +39,7 @@ public interface CommunityManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Community get(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
+	public Community get(String userId, String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a Community
@@ -53,9 +52,9 @@ public interface CommunityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public Community update(UserInfo userInfo, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
+	public Community update(String userId, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
 			NotFoundException;
-	
+
 	/**
 	 * Delete a Community by its ID
 	 * 
@@ -65,8 +64,8 @@ public interface CommunityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void delete(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
-	
+	public void delete(String userId, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
 	/**
 	 * Get the ACL for a Community
 	 * 
@@ -77,10 +76,10 @@ public interface CommunityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	// public AccessControlList getACL(UserInfo userInfo, String communityId) throws DatastoreException,
+	// public AccessControlList getACL(String userId, String communityId) throws DatastoreException,
 	// UnauthorizedException,
 	// NotFoundException;
-	
+
 	/**
 	 * Update the ACL for a Community
 	 * 
@@ -91,9 +90,9 @@ public interface CommunityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	// public void updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException,
+	// public void updateACL(String userId, AccessControlList acl) throws DatastoreException, UnauthorizedException,
 	// NotFoundException;
-	
+
 	/**
 	 * 
 	 * @param userInfo
@@ -104,7 +103,7 @@ public interface CommunityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	// public void setPermissions(UserInfo userInfo, String communityId, String principalId, boolean isAdmin) throws
+	// public void setPermissions(String userId, String communityId, String principalId, boolean isAdmin) throws
 	// DatastoreException,
 	// UnauthorizedException, NotFoundException;
 }
