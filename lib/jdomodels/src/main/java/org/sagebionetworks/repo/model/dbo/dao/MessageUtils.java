@@ -6,10 +6,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.message.Comment;
+import org.sagebionetworks.repo.model.message.MessageContent;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -19,10 +23,10 @@ public class MessageUtils {
 	/**
 	 * Copies message information from three DBOs into one DTO
 	 * The DBOs should be complimentary (same message ID)
-	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageToUser)} and {@link #copyDBOToDTO(DBOMessageToUser, MessageToUser)}
+	 * See {@link #copyDBOToDTO(DBOMessageContent, DBOMessageToUser, MessageToUser)} and {@link #copyDBOToDTO(List, MessageToUser)}
 	 */
 	public static void copyDBOToDTO(DBOMessageContent content, DBOMessageToUser info, List<DBOMessageRecipient> recipients, MessageToUser bundle) {
-		if (recipients.size() > 0 && content.getMessageId() != recipients.get(0).getMessageId()) {
+		if (recipients.size() > 0 && !content.getMessageId().equals(recipients.get(0).getMessageId())) {
 			throw new IllegalArgumentException("Message content and recipients should be belong to the same message");
 		}
 		copyDBOToDTO(content, info, bundle);
@@ -32,10 +36,23 @@ public class MessageUtils {
 	/**
 	 * Copies message information from two DBOs into one DTO
 	 * The DBOs should be complimentary (same message ID)
-	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageToUser)} and {@link #copyDBOToDTO(DBOMessageToUser, MessageToUser)}
+	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageContent)} and {@link #copyDBOToDTO(DBOMessageContent, MessageToUser)}
 	 */
 	public static void copyDBOToDTO(DBOMessageContent content, DBOMessageToUser info, MessageToUser bundle) {
-		if (content.getMessageId() != info.getMessageId()) {
+		if (!content.getMessageId().equals(info.getMessageId())) {
+			throw new IllegalArgumentException("Message content and information should belong to the same message");
+		}
+		copyDBOToDTO(content, bundle);
+		copyDBOToDTO(info, bundle);
+	}
+	
+	/**
+	 * Copies comment information from two DBOs into one DTO
+	 * The DBOs should be complimentary (same message ID)
+	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageContent)} and {@link #copyDBOToDTO(DBOComment, Comment)}
+	 */
+	public static void copyDBOToDTO(DBOMessageContent content, DBOComment info, Comment bundle) {
+		if (!content.getMessageId().equals(info.getMessageId())) {
 			throw new IllegalArgumentException("Message content and information should belong to the same message");
 		}
 		copyDBOToDTO(content, bundle);
@@ -47,7 +64,7 @@ public class MessageUtils {
 	 * Note: DBOMessageContent contains a subset of the fields of MessageToUser
 	 * Note: Etag information is not transfered
 	 */
-	public static void copyDBOToDTO(DBOMessageContent content, MessageToUser bundle) {
+	public static void copyDBOToDTO(DBOMessageContent content, MessageContent bundle) {
 		bundle.setId(toString(content.getMessageId()));
 		bundle.setCreatedBy(toString(content.getCreatedBy()));
 		bundle.setFileHandleId(toString(content.getFileHandleId()));
@@ -65,6 +82,18 @@ public class MessageUtils {
 		bundle.setInReplyToRoot(toString(info.getRootMessageId()));
 		bundle.setInReplyTo(toString(info.getInReplyTo()));
 		bundle.setSubject(info.getSubject());
+	}
+	
+	/**
+	 * Copies comment information 
+	 * Note: DBOComment contains a subset of the fields of Comment
+	 */
+	public static void copyDBOToDTO(DBOComment info, Comment bundle) {
+		bundle.setId(toString(info.getMessageId()));
+		bundle.setTargetId(toString(info.getObjectId()));
+		if (info.getObjectType() != null) {
+			bundle.setTargetType(ObjectType.valueOf(info.getObjectType()));
+		}
 	}
 	
 	/**
@@ -135,7 +164,7 @@ public class MessageUtils {
 	/**
 	 * Copies message information from one DTO into three DBOs
 	 * Note: some information, like message ID, will be duplicated
-	 * See {@link #copyDTOToDBO(MessageToUser, DBOMessageContent)}, 
+	 * See {@link #copyDTOToDBO(MessageContent, DBOMessageContent)}, 
 	 *     {@link #copyDTOToDBO(MessageToUser, DBOMessageToUser)}, and 
 	 *     {@link #copyDTOToDBO(MessageToUser, List)}
 	 */
@@ -146,11 +175,21 @@ public class MessageUtils {
 	}
 	
 	/**
+	 * Copies comment information from one DTO into two DBOs
+	 * Note: some information, like message ID, will be duplicated
+	 * See {@link #copyDTOToDBO(MessageContent, DBOMessageContent)} and {@link #copyDTOToDBO(Comment, DBOComment)}
+	 */
+	public static void copyDTOtoDBO(Comment dto, DBOMessageContent content, DBOComment info) {
+		copyDTOToDBO(dto, content);
+		copyDTOToDBO(dto, info);
+	}
+	
+	/**
 	 * Copies message information
 	 * Note: DBOMessageContent contains a subset of the fields of MessageToUser
 	 * Note: Etag information is not transfered
 	 */
-	public static void copyDTOToDBO(MessageToUser dto, DBOMessageContent content) {
+	public static void copyDTOToDBO(MessageContent dto, DBOMessageContent content) {
 		content.setMessageId(parseLong(dto.getId()));
 		content.setCreatedBy(parseLong(dto.getCreatedBy()));
 		content.setFileHandleId(parseLong(dto.getFileHandleId()));
@@ -168,6 +207,18 @@ public class MessageUtils {
 		info.setRootMessageId(parseLong(dto.getInReplyToRoot()));
 		info.setInReplyTo(parseLong(dto.getInReplyTo()));
 		info.setSubject(dto.getSubject());
+	}
+	
+	/**
+	 * Copies comment information
+	 * Note: DBOComment contains a subset of the fields of Comment
+	 */
+	public static void copyDTOToDBO(Comment dto, DBOComment info) {
+		info.setMessageId(parseLong(dto.getId()));
+		info.setObjectId(parseLong(dto.getTargetId()));
+		if (dto.getTargetType() != null) {
+			info.setObjectType(dto.getTargetType().name());
+		}
 	}
 
 	/**
@@ -234,6 +285,21 @@ public class MessageUtils {
 		}
 		if (dbo.getRootMessageId() == null) {
 			throw new IllegalArgumentException("Message info must point to a root message");
+		}
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOComment dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Comment info must have an ID");
+		}
+		if (dbo.getObjectId() == null) {
+			throw new IllegalArgumentException("Comment info must point to an object");
+		}
+		if (dbo.getObjectType() == null) {
+			throw new IllegalArgumentException("Comment info must point to an object type");
 		}
 	}
 	

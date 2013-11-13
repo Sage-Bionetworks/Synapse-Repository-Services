@@ -17,9 +17,9 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 public class DBOComment implements MigratableDatabaseObject<DBOComment, DBOComment> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
-		new FieldColumn("threadId", SqlConstants.COL_COMMENT_MESSAGE_ID, true).withIsBackupId(true), 
-		new FieldColumn("objectId", SqlConstants.COL_COMMENT_OBJECT_TYPE), 
-		new FieldColumn("objectType", SqlConstants.COL_COMMENT_OBJECT_ID)
+		new FieldColumn("messageId", SqlConstants.COL_COMMENT_MESSAGE_ID, true).withIsBackupId(true), 
+		new FieldColumn("objectType", SqlConstants.COL_COMMENT_OBJECT_TYPE), 
+		new FieldColumn("objectId", SqlConstants.COL_COMMENT_OBJECT_ID)
 	};
 	
 	private Long messageId;

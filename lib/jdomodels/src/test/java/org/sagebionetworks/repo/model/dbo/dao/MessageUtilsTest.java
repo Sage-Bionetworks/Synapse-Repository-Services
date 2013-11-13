@@ -8,10 +8,13 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -57,6 +60,25 @@ public class MessageUtilsTest {
 		assertEquals(0, b3.getRecipients().size());
 	}
 	
+	@Test
+	public void testCommentAggregateRoundTrip() throws Exception {
+		Comment dto = new Comment();
+		dto.setId("1");
+		dto.setCreatedBy("2");
+		dto.setFileHandleId("3");
+		dto.setCreatedOn(new Date());
+		dto.setTargetId("456");
+		dto.setTargetType(ObjectType.ENTITY);
+
+		DBOMessageContent content = new DBOMessageContent();
+		DBOComment info = new DBOComment();
+		MessageUtils.copyDTOtoDBO(dto, content, info);
+
+		Comment dto2 = new Comment();
+		MessageUtils.copyDBOToDTO(content, info, dto2);
+		assertEquals(dto, dto2);
+	}
+	
 	@SuppressWarnings("serial")
 	@Test
 	public void testMessageAggregateRoundTrip() throws Exception {
@@ -83,6 +105,21 @@ public class MessageUtilsTest {
 
 		MessageToUser dto2 = new MessageToUser();
 		MessageUtils.copyDBOToDTO(content, info, recipients, dto2);
+		assertEquals(dto, dto2);
+	}
+	
+	@Test
+	public void testCommentInfoRoundTrip() throws Exception {
+		Comment dto = new Comment();
+		dto.setId("123");
+		dto.setTargetId("456");
+		dto.setTargetType(ObjectType.ENTITY);
+
+		DBOComment info = new DBOComment();
+		MessageUtils.copyDTOToDBO(dto, info);
+
+		Comment dto2 = new Comment();
+		MessageUtils.copyDBOToDTO(info, dto2);
 		assertEquals(dto, dto2);
 	}
 	
