@@ -4,40 +4,56 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.utils.EmailUtils;
 
 //http://www.mkyong.com/java/javamail-api-sending-email-via-gmail-smtp-example/
 public class SendMail {
-    private static String synapseURL;
-    private static String resetPWURI;
 	
 	private static Log log = LogFactory.getLog(SendMail.class);
-
-    static {
-    	synapseURL = "https://www.synapse.org";
-		
-		// read values from the properties file
-        Properties props = new Properties();
-        InputStream is = EmailUtils.class.getClassLoader().getResourceAsStream("authutil.properties");
-        try {
-        	props.load(is);
-        } catch (IOException e) {
-        	throw new RuntimeException(e);
-        }
-
-        resetPWURI = props.getProperty("org.sagebionetworks.resetPasswordURI");
-    }
     
+    private static Map<OriginatingClient, Properties> propertiesMap = new HashMap<OriginatingClient, Properties>();
+	static {
+    	propertiesMap.put(OriginatingClient.SYNAPSE, loadProperties(OriginatingClient.SYNAPSE));
+    	propertiesMap.put(OriginatingClient.BRIDGE, loadProperties(OriginatingClient.BRIDGE));
+	}
 
-    
-    
-    public static String readMailTemplate(String fname) {
+	private String baseURL;
+	private String resetPasswordURL;
+	private String passwordEmailFile;
+	private String resetPasswordEmailFile;
+	private String apiPasswordResetFile;
+	private String welcomeEmailFile;
+	private String welcomeEmailSubject;
+	private String resetPasswordSubject;
+	private String endpointProperty;
+	
+	public SendMail() {
+		this(OriginatingClient.SYNAPSE);
+	}
+	
+	public SendMail(OriginatingClient originClient) {
+		Properties props = propertiesMap.get(originClient);
+		baseURL = props.getProperty("org.sagebionetworks.baseURL");
+		resetPasswordURL = props.getProperty("org.sagebionetworks.resetPasswordURI");
+		passwordEmailFile = props.getProperty("org.sagebionetworks.passwordEmail");
+		resetPasswordEmailFile = props.getProperty("org.sagebionetworks.resetPasswordEmail");
+		apiPasswordResetFile = props.getProperty("org.sagebionetworks.APIPasswordEmail");
+		welcomeEmailFile = props.getProperty("org.sagebionetworks.welcomeEmail");
+		welcomeEmailSubject = props.getProperty("org.sagebionetworks.welcomeEmailSubject");
+		resetPasswordSubject = props.getProperty("org.sagebionetworks.resetPasswordSubject");
+		endpointProperty = props.getProperty("org.sagebionetworks.endpointProperty");
+	}
+	
+    public String readMailTemplate(String fname) {
     	try {
 	        InputStream is = SendMail.class.getClassLoader().getResourceAsStream(fname);
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -56,31 +72,32 @@ public class SendMail {
     }
     
     public void sendSetPasswordMail(NewUser user, String sessionToken) {
-    	sendUserMail(user, sessionToken, "setpasswordEmail.txt");
+    	sendUserMail(user, sessionToken, passwordEmailFile);
     } 
     
     public void sendResetPasswordMail(NewUser user, String sessionToken) {
-    	sendUserMail(user, sessionToken, "resetpasswordEmail.txt");
+    	sendUserMail(user, sessionToken, resetPasswordEmailFile);
     } 
     
     public void sendSetAPIPasswordMail(NewUser user, String sessionToken) {
-    	sendUserMail(user, sessionToken, "setAPIpasswordEmail.txt");
+    	sendUserMail(user, sessionToken, apiPasswordResetFile);
     } 
     
     public void sendUserMail(NewUser user, String sessionToken, String fname) {
+    	String templateText = baseURL + resetPasswordURL + sessionToken;
     	// read in email template
     	String msg = readMailTemplate(fname);
     	// fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
     	try {
-    		msg = msg.replaceAll("#link#", synapseURL+resetPWURI+sessionToken);
+    		msg = msg.replaceAll("#link#", templateText);
     	} catch (IllegalArgumentException e) {
-    		throw new IllegalArgumentException("replacement string=<"+synapseURL+resetPWURI+sessionToken+"> "+
-    				"org.sagebionetworks.portal.endpoint="+System.getProperty("org.sagebionetworks.portal.endpoint"));
+    		throw new IllegalArgumentException("replacement string=<"+templateText+"> "+
+    				endpointProperty+"="+System.getProperty(endpointProperty));
     	}
     	// fill in link, with token
-    	sendMail(user.getEmail(), "Set Synapse password", msg);
+    	sendMail(user.getEmail(), resetPasswordSubject, msg);
     }
     
     /**
@@ -90,7 +107,7 @@ public class SendMail {
      */
     public void sendWelcomeMail(NewUser user) {
     	// Read in email template
-    	String msg = readMailTemplate("welcomeToSynapseEmail.txt");
+    	String msg = readMailTemplate( welcomeEmailFile );
     	
     	// fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
@@ -98,7 +115,7 @@ public class SendMail {
 		
     	
     	// fill in link, with token
-    	sendMail(user.getEmail(), "Welcome to Synapse!", msg);
+    	sendMail(user.getEmail(), welcomeEmailSubject, msg);
     }
     
     /**
@@ -112,6 +129,20 @@ public class SendMail {
 			return;
 		}
 
-    	EmailUtils.sendMail(to, subj, msg);
+		EmailUtils.sendMail(to, subj, msg);
     }
+    
+	private static Properties loadProperties(OriginatingClient client) {
+		Properties properties = new Properties();
+		// read values from the properties files
+        try {
+            InputStream is = EmailUtils.class.getClassLoader().getResourceAsStream("authutil-"+client.name().toLowerCase()+".properties");
+        	properties.load(is);
+        	is.close();
+        } catch (IOException e) {
+        	throw new RuntimeException(e);
+        }
+        return properties;
+	}
+    
 }

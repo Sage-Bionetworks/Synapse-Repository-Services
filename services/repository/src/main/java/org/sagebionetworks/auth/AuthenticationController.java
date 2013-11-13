@@ -12,6 +12,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -95,18 +96,23 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
-	public void createUser(@RequestBody NewUser user) throws NotFoundException {
+	public void createUser(@RequestBody NewUser user,
+			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client)
+			throws NotFoundException {
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.createUser(user);
-		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, originClient);
 	}
-
+	
 	/**
 	 * Resends the email for setting a new user's password.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
-	public void resendRegisteringUserPasswordEmail(@RequestBody Username user) throws NotFoundException {
-		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
+	public void resendRegisteringUserPasswordEmail(@RequestBody Username user,
+			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, originClient);
 	}
 	
 	/**
@@ -135,9 +141,10 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody Username credential)
-			throws NotFoundException {
-		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW);
+	public void sendChangePasswordEmail(@RequestBody Username credential,
+			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW, originClient);
 	}
 	
 	/**
@@ -146,9 +153,10 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException {
-		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username,
+			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW, originClient);
 	}
 	
 	/**

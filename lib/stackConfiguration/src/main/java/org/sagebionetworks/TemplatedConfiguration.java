@@ -135,6 +135,11 @@ public interface TemplatedConfiguration {
 	public String getPortalEndpoint();
 
 	/**
+	 * @return Bridge endpoint
+	 */
+	public String getBridgeEndpoint();
+	
+	/**
 	 * The repository Apache HttpClient connection pool properties
 	 * 
 	 * @return the max number of connections per route

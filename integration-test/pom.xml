@@ -22,6 +22,7 @@
 		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-file-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
 		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/repository-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
+		<org.sagebionetworks.bridge.endpoint>http://localhost:8888/webapp</org.sagebionetworks.bridge.endpoint>
 		<!-- This is where the repository war will be deployed -->
 		<org.sagebionetworks.auth.context>services-authentication-${project.version}</org.sagebionetworks.auth.context>
 		<org.sagebionetworks.repository.context>services-repository-${project.version}</org.sagebionetworks.repository.context>

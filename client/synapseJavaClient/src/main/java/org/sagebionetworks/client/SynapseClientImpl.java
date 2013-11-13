@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -4545,9 +4546,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void createUser(NewUser user) throws SynapseException {
+		createUser(user, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent());
+			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), originClient);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4555,11 +4561,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void resendPasswordEmail(String email) throws SynapseException{
+		resendPasswordEmail(email, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent());
+			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent(),
+					originClient);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4618,21 +4630,33 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void sendPasswordResetEmail() throws SynapseException {
-		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent());
+		sendPasswordResetEmail(OriginatingClient.SYNAPSE);
 	}
 	
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException {
+		sendPasswordResetEmail(email, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
+		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent(), originClient);
+	}
+	
+	@Override
+	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException {
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/userPasswordEmail", obj.toString(), getUserAgent());
+			getSharedClientConnection().postJson(authEndpoint, "/userPasswordEmail", obj.toString(), getUserAgent(),
+					originClient);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
+	
 
 	@Override
 	public Session passThroughOpenIDParameters(String queryString) throws SynapseException {
@@ -4646,12 +4670,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary) throws SynapseException {
+		return passThroughOpenIDParameters(queryString, acceptsTermsOfUse, createUserIfNecessary, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
 		try {
-			URI uri = new URI(null, null, "/openIdCallback", 
-					queryString + "&org.sagebionetworks.acceptsTermsOfUse=" + acceptsTermsOfUse 
-							+ "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, 
-					null);
-			JSONObject session = getSharedClientConnection().postJson(authEndpoint, uri.toString(), "", getUserAgent());
+			URI uri = new URI(null, null, "/openIdCallback", queryString + "&org.sagebionetworks.acceptsTermsOfUse="
+					+ acceptsTermsOfUse + "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, null);
+			JSONObject session = getSharedClientConnection().postJson(authEndpoint, uri.toString(), "", getUserAgent(), originClient);
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -4659,5 +4686,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+		
 }
 
