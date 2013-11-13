@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -207,7 +208,7 @@ public class TeamManagerImpl implements TeamManager {
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
 		if (userManager.doesPrincipalExist(team.getName())) {
-			throw new InvalidModelException("Name "+team.getName()+" is already used.");
+			throw new NameConflictException("Name "+team.getName()+" is already used.");
 		}
 		UserGroup ug = new UserGroup();
 		ug.setName(team.getName());
