@@ -1207,6 +1207,16 @@ public class StackConfiguration {
 	public String getTableRowChangeBucketName() {
 		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, StackConfiguration.getStack());
 	}
+	
+	/**
+	 * Get the name of the audit record bucket.
+	 * 
+	 * @return
+	 */
+	public int getTableMaxRowsPerGet() {
+		return Integer.parseInt(configuration
+				.getProperty("org.sagebionetworks.table.max.rows.per.get"));
+	}
 
 	/**
 	 * Get the name of the audit record bucket.

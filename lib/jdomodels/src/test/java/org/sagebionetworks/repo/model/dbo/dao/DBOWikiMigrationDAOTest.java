@@ -160,6 +160,8 @@ public class DBOWikiMigrationDAOTest {
 		
 		V2WikiPage retrieved = v2WikiPageDao.get(key);
 		assertNotNull(retrieved);
+		String etag = wikiMigrationDao.getV2WikiPageEtag(retrieved.getId());
+		assertEquals("etag", etag);
 	}
 	
 	private void createWikiPages() throws NotFoundException {

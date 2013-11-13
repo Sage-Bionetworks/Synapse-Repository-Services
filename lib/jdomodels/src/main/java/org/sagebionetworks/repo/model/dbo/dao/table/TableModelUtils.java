@@ -7,18 +7,22 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
@@ -285,12 +289,30 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	public static RowSet readFromCSV(CSVReader reader, String tableId, List<String> headers) throws IOException{
+	public static List<Row> readFromCSV(CSVReader reader) throws IOException{
 		if(reader == null) throw new IllegalArgumentException("CSVReader cannot be null");
-		if(headers == null) throw new IllegalArgumentException("headers cannot be null");
-		if(tableId == null) throw new IllegalArgumentException("tableId cannot be null");
+		final List<Row> rows = new LinkedList<Row>();
+		// Scan the data.
+		scanFromCSV(reader,new RowHandler() {
+			
+			@Override
+			public void nextRow(Row row) {
+				// Add this to the rows
+				rows.add(row);
+			}
+		});
+		return rows;
+	}
+	
+	/**
+	 * Read the passed CSV into a RowSet.
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	public static void scanFromCSV(CSVReader reader, RowHandler handler) throws IOException{
+		if(reader == null) throw new IllegalArgumentException("CSVReader cannot be null");
 		String[] rowArray = null;
-		List<Row> rows = new LinkedList<Row>();
 		while((rowArray = reader.readNext()) != null){
 			Row row = new Row();
 			if(rowArray.length < 3) throw new IllegalArgumentException("Row does not contain at least three columns");
@@ -302,13 +324,9 @@ public class TableModelUtils {
 				values.add(rowArray[i]);
 			}
 			row.setValues(values);
-			rows.add(row);
+			// Pass to the handler
+			handler.nextRow(row);
 		}
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(headers);
-		set.setTableId(tableId);
-		return set;
 	}
 	
 	/**
@@ -317,7 +335,7 @@ public class TableModelUtils {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static RowSet readFromCSVgzStream(InputStream zippedStream, String tableId, List<String> headers) throws IOException{
+	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException{
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
 		CSVReader csvReader = null;
@@ -325,7 +343,31 @@ public class TableModelUtils {
 			zipIn = new GZIPInputStream(zippedStream);
 			isr = new InputStreamReader(zipIn);
 			csvReader = new CSVReader(isr);
-			return readFromCSV(csvReader, tableId, headers);
+			return readFromCSV(csvReader);
+		}finally{
+			if(csvReader != null){
+				csvReader.close();
+			}
+		}
+	}
+	
+	/**
+	 * Scan over the passed stream without loading it into memory
+	 * @param zippedStream
+	 * @param tableId
+	 * @param headers
+	 * @param handler
+	 * @throws IOException
+	 */
+	public static void scanFromCSVgzStream(InputStream zippedStream, RowHandler handler) throws IOException{
+		GZIPInputStream zipIn = null;
+		InputStreamReader isr = null;
+		CSVReader csvReader = null;
+		try{
+			zipIn = new GZIPInputStream(zippedStream);
+			isr = new InputStreamReader(zipIn);
+			csvReader = new CSVReader(isr);
+			scanFromCSV(csvReader, handler);
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
@@ -436,6 +478,32 @@ public class TableModelUtils {
 		return rows;
 	}
 	
+	public static void updateRow(List<ColumnModel> cms, Row toUpdatet, int i) {
+		// Add a value for each column
+		List<String> values = new LinkedList<String>();
+		for (ColumnModel cm : cms) {
+			if (ColumnType.STRING.equals(cm.getColumnType())) {
+				values.add("updateString" + i);
+			} else if (ColumnType.LONG.equals(cm.getColumnType())) {
+				values.add("" + i);
+			} else if (ColumnType.BOOLEAN.equals(cm.getColumnType())) {
+				if (i % 2 > 0) {
+					values.add(Boolean.TRUE.toString());
+				} else {
+					values.add(Boolean.FALSE.toString());
+				}
+			} else if (ColumnType.FILEHANDLEID.equals(cm.getColumnType())) {
+				values.add("" + i);
+			} else if (ColumnType.DOUBLE.equals(cm.getColumnType())) {
+				values.add("" + (i * 3.41));
+			} else {
+				throw new IllegalArgumentException("Unknown ColumnType: "
+						+ cm.getColumnType());
+			}
+		}
+		toUpdatet.setValues(values);
+	}
+	
 	/**
 	 * Convert from the DBO to the DTO
 	 * @param dbo
@@ -446,6 +514,7 @@ public class TableModelUtils {
 		TableRowChange dto = new TableRowChange();
 		dto.setTableId(KeyFactory.keyToString(dbo.getTableId()));
 		dto.setRowVersion(dbo.getRowVersion());
+		dto.setEtag(dbo.getEtag());
 		dto.setHeaders(readColumnModelIdsFromDelimitedString(dbo.getColumnIds()));
 		dto.setCreatedBy(Long.toString(dbo.getCreatedBy()));
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
@@ -464,6 +533,7 @@ public class TableModelUtils {
 		DBOTableRowChange dbo = new DBOTableRowChange();
 		dbo.setTableId(KeyFactory.stringToKey(dto.getTableId()));
 		dbo.setRowVersion(dto.getRowVersion());
+		dbo.setEtag(dto.getEtag());
 		dbo.setColumnIds(createDelimitedColumnModelIdString(dto.getHeaders()));
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
@@ -485,5 +555,106 @@ public class TableModelUtils {
 			dtos.add(dto);
 		}
 		return dtos;
+	}
+
+
+	/**
+	 * Get the distinct version from the the rows
+	 * 
+	 * @param rows
+	 * @return
+	 */
+	public static Set<Long> getDistictVersions(List<RowReference> rows) {
+		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
+		Set<Long> distictVersions = new HashSet<Long>();
+		for(RowReference ref: rows){
+			distictVersions.add(ref.getVersionNumber());
+		}
+		return distictVersions;
+	}
+	
+	
+	/**
+	 * Get the distinct and valid rowIds from the passed rows
+	 * @param rows
+	 * @return
+	 */
+	public static Set<Long> getDistictValidRowIds(List<Row> rows) {
+		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
+		Set<Long> distictRowIds = new HashSet<Long>();
+		for(Row ref: rows){
+			if(!isNullOrInvalid(ref.getRowId())){
+				distictRowIds.add(ref.getRowId());
+			}
+		}
+		return distictRowIds;
+	}
+	
+	/**
+	 * Convert each passed RowSet into the passed schema and merge all results into a single output set.
+	 * @param sets
+	 * @param resultSchema
+	 * @return
+	 */
+	public static RowSet convertToSchemaAndMerge(List<RowSet> sets, List<ColumnModel> resultSchema, String tableId){
+		// Prepare the final set
+		RowSet out = new RowSet();
+		out.setTableId(tableId);
+		out.setRows(new LinkedList<Row>());
+		out.setHeaders(getHeaders(resultSchema));
+		// Transform each
+		for(RowSet set: sets){
+			// Transform each and merge the results
+			convertToSchemaAndMerge(set, resultSchema, out);
+		}
+		return out;
+	}
+	
+	/**
+	 * Convert the passed RowSet into the passed schema and append the rows to the passed output set.
+	 * @param sets
+	 * @param resultSchema
+	 * @param sets
+	 */
+	public static void convertToSchemaAndMerge(RowSet in, List<ColumnModel> resultSchema, RowSet out){
+		// map the index of each column
+		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		int index = 0;
+		for (String header : in.getHeaders()) {
+			columnIndexMap.put(header, index);
+			index++;
+		}
+		// Now convert each row into the requested format.
+		// Process each row
+		for (Row row : in.getRows()) {
+			// First convert the values to
+			if (row.getValues() == null) continue;
+			// Convert the values to an array for quick lookup
+			String[] values = row.getValues().toArray(new String[row.getValues().size()]);
+			
+			// Create the new row
+			Row newRow = new Row();
+			newRow.setRowId(row.getRowId());
+			newRow.setVersionNumber(row.getVersionNumber());
+			List<String> newValues = new LinkedList<String>();
+			newRow.setValues(newValues);
+			
+			// Now process all of the columns as defined by the schema
+			for (int i = 0; i < resultSchema.size(); i++) {
+				ColumnModel cm = resultSchema.get(i);
+				Integer valueIndex = columnIndexMap.get(cm.getId());
+				String value = null;
+				if (valueIndex == null){
+					// this means this column did not exist when this row as created, so set the value to the default value
+					value = cm.getDefaultValue();
+				}else{
+					// Get the value
+					value = values[valueIndex];
+				}
+				newValues.add(value);
+			}
+			// add the new row to the out set
+			out.getRows().add(newRow);
+		}
 	}
 }

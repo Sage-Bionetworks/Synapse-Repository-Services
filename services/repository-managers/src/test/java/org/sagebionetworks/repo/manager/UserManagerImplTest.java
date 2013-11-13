@@ -130,7 +130,6 @@ public class UserManagerImplTest {
 		
 		// Create a user to change the email of
 		NewUser oldie = new NewUser();
-		oldie.setAcceptsTermsOfUse(true);
 		oldie.setEmail(oldEmail);
 		oldie.setPassword("foobar");
 		userManager.createUser(oldie);
