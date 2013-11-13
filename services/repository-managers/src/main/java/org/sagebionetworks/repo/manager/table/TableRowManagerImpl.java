@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -39,8 +38,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
-
-		return null;
+		// Let the DAO do the rest of the work.
+		return tableRowTruthDao.appendRowSetToTable(user.getIndividualGroup().getId(), tableId, models, delta);
 	}
 	
 
