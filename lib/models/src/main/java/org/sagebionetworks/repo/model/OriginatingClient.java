@@ -12,7 +12,7 @@ public enum OriginatingClient {
 	private Map<String,String> parameters;
 	
 	private OriginatingClient() {
-		parameters = new HashMap<>();
+		parameters = new HashMap<String,String>();
 		parameters.put("originClient", this.name().toLowerCase());
 	}
 

@@ -89,7 +89,11 @@ public class AuthenticationController extends BaseController {
 
 	/**
 	 * Create a new user.  An email will be sent regarding how to set a password for the account.    
-	 * </br>
+	 * <br/>
+	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * set to "synapse", the service will send email specific to the Synapse application; if set 
+	 * to "bridge", the application will send email appropriate to the Bridge application.
+	 * <br/>
 	 * Note: The passed request body must contain an email.  
 	 * First, last, and full name are recommended but not required.
 	 * All other fields will be ignored.  
@@ -106,6 +110,10 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Resends the email for setting a new user's password.
+	 * <br/>
+	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * set to "synapse", the service will send email specific to the Synapse application; if set 
+	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
@@ -118,7 +126,7 @@ public class AuthenticationController extends BaseController {
 	/**
 	 * Retrieve basic information about the current authenticated user.  
 	 * Information includes the user's display name and email.
-	 * </br>
+	 * <br/>
 	 * Consider using <a href="${GET.userProfile}">GET /userProfile</a> instead.
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -138,6 +146,10 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Request a password change email.
+	 * <br/>
+	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * set to "synapse", the service will send email specific to the Synapse application; if set 
+	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
@@ -149,6 +161,10 @@ public class AuthenticationController extends BaseController {
 	
 	/**
 	 * Request a password change email via an API key.
+	 * <br/>
+	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * set to "synapse", the service will send email specific to the Synapse application; if set 
+	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
