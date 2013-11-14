@@ -4,29 +4,14 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
-
-	/**
-	 * Retrieves the thread ID of a message
-	 */
-	public String getThreadId(String messageId) throws NotFoundException;
-	
-	/**
-	 * Performs format and permission checking on the message.  
-	 * This check is more thorough than the check within {@link #createMessage(UserInfo, Message)}
-	 * and will return the first error it encounters as a string.  
-	 * </br>
-	 * This allows the user to be immediately notified about bad messages 
-	 * rather than waiting for a possible bounce message.   
-	 */
-	public String checkMessage(UserInfo userInfo, Message dto);
 	
 	/**
 	 * Saves the message so that it can be processed by other queries.
@@ -35,35 +20,21 @@ public interface MessageManager {
 	 * </br> 
 	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
 	 * In case of failure, the user will be notified via bounce message.  
-	 * </br> 
-	 * If the recipient type is ENTITY, then a few extra conditions are applied:
-	 * <ul>
-	 *   <li>Only one recipient is allowed</li> 
-	 *   <li>The user must have SEND_MESSAGE permission on the entity</li>
-	 * </ul>
-	 * 
-	 * @throws NotFoundException If the user is commenting on an Entity that does not exist
 	 */
-	public Message createMessage(UserInfo userInfo, Message dto) throws NotFoundException;
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto);
 	
 	/**
-	 * Retrieves all messages within a thread tied to an entity
-	 * The user must have READ permission on the entity
-	 */
-	public QueryResults<Message> getCommentThread(UserInfo userInfo, String threadId, 
-			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException;
-	
-	/**
-	 * Retrieves all messages within a thread that are visible to the user
+	 * Retrieves all messages within the same conversation as the associated message.
+	 * All returned messages will be visible to the user
 	 * (i.e. the user is either the sender or receiver of the messages)
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
-	public QueryResults<Message> getMessageThread(UserInfo userInfo, String threadId, 
+	public QueryResults<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
-	 * Retrieves all unread messages received by the user
+	 * Retrieves all messages received by the user
 	 * 
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
@@ -73,7 +44,7 @@ public interface MessageManager {
 	/**
 	 * Retrieves all messages sent by the user
 	 */
-	public QueryResults<Message> getOutbox(UserInfo userInfo, 
+	public QueryResults<MessageToUser> getOutbox(UserInfo userInfo, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset);
 	
 	/**
@@ -85,7 +56,7 @@ public interface MessageManager {
 	 * Takes an existing message and processes it, 
 	 * updating tables and sending emails where necessary and permitted.
 	 * </br>
-	 * Some non-fatal errors will be caught and their error messages will be returned in a list.
+	 * Non-fatal errors will be caught and their error messages will be returned in a list.
 	 * It is the caller's responsibility to send a bounce message to the user.
 	 */
 	public List<String> sendMessage(String messageId) throws NotFoundException;
