@@ -279,6 +279,11 @@ public class TableModelUtils {
 				if(row.getRowId() > range.getMaximumId()){
 					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
 				}
+			}else{
+				// Validate the rowId is within range
+				if(row.getRowId() > range.getMaximumUpdateId()){
+					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
+				}
 			}
 		}
 	}

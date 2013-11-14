@@ -343,6 +343,7 @@ public class TableModelUtilsTest {
 		IdRange range = new IdRange();
 		range.setMaximumId(null);
 		range.setMinimumId(null);
+		range.setMaximumUpdateId(999l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
@@ -355,8 +356,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testAssignRowIdsAndVersionNumbers_MixedRowIdsNeeded(){
 		IdRange range = new IdRange();
-		range.setMaximumId(new Long(100));
-		range.setMinimumId(new Long(100));
+		range.setMaximumId(new Long(457));
+		range.setMinimumId(new Long(457));
+		range.setMaximumUpdateId(new Long(456));
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		validRowSet.getRows().get(1).setRowId(null);
@@ -367,7 +369,7 @@ public class TableModelUtilsTest {
 		}
 		assertEquals(new Long(456), validRowSet.getRows().get(0).getRowId());
 		// The second row should have been provided
-		assertEquals(new Long(100), validRowSet.getRows().get(1).getRowId());
+		assertEquals(new Long(457), validRowSet.getRows().get(1).getRowId());
 	}
 	
 	@Test
@@ -396,6 +398,7 @@ public class TableModelUtilsTest {
 		// no ids allocated
 		range.setMaximumId(null);
 		range.setMinimumId(null);
+		range.setMaximumUpdateId(999l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		// Clear all the row ids
@@ -414,6 +417,7 @@ public class TableModelUtilsTest {
 		//  only allocate on id
 		range.setMaximumId(3l);
 		range.setMinimumId(3l);
+		range.setMaximumUpdateId(2l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		// Clear all the row ids
@@ -424,6 +428,26 @@ public class TableModelUtilsTest {
 			fail("should have failed");
 		} catch (IllegalStateException e) {
 			assertEquals("RowSet required more row IDs than were allocated.", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testAssignRowIdsInvalidUpdateRowId(){
+		IdRange range = new IdRange();
+		//  only allocate on id
+		range.setMaximumId(null);
+		range.setMinimumId(null);
+		range.setMaximumUpdateId(1l);
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		// Clear all the row ids
+		validRowSet.getRows().get(0).setRowId(0l);
+		validRowSet.getRows().get(1).setRowId(2l);
+		try {
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Cannot update row: 2 because it does not exist.", e.getMessage());
 		}
 	}
 	

@@ -146,6 +146,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			range.setMaximumId(dbo.getSequence());
 			range.setMinimumId(dbo.getSequence() - countToReserver + 1);
 		}
+		range.setMaximumUpdateId(currentSequence);
 		range.setVersionNumber(dbo.getVersionNumber());
 		range.setEtag(dbo.getEtag());
 		return range;

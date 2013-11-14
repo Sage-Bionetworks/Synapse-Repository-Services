@@ -19,7 +19,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface TableRowManager {
 	
 	/**
-	 * Store a RowSet
+	 * Append a set of rows to a table.
+	 * 
 	 * @param user
 	 * @param delta
 	 * @return

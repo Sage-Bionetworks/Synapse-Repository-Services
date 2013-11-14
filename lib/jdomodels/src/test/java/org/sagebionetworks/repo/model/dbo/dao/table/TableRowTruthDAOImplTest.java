@@ -61,6 +61,7 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(new Long(0), range.getMinimumId());
 		assertEquals(new Long(2), range.getMaximumId());
 		assertEquals(new Long(0), range.getVersionNumber());
+		assertTrue(range.getMaximumUpdateId() < 0);
 		assertNotNull(range.getEtag());
 		// Now reserver 1 more
 		range = tableRowTruthDao.reserveIdsInRange(tableId, 1);
@@ -68,6 +69,7 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(new Long(3), range.getMinimumId());
 		assertEquals(new Long(3), range.getMaximumId());
 		assertEquals(new Long(1), range.getVersionNumber());
+		assertEquals(new Long(2), range.getMaximumUpdateId());
 		assertNotNull(range.getEtag());
 		// two more
 		range = tableRowTruthDao.reserveIdsInRange(tableId, 2);
@@ -75,12 +77,14 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(new Long(4), range.getMinimumId());
 		assertEquals(new Long(5), range.getMaximumId());
 		assertEquals(new Long(2), range.getVersionNumber());
+		assertEquals(new Long(3), range.getMaximumUpdateId());
 		assertNotNull(range.getEtag());
 		// zero
 		range = tableRowTruthDao.reserveIdsInRange(tableId, 0);
 		assertNotNull(range);
 		assertEquals(null, range.getMinimumId());
 		assertEquals(null, range.getMaximumId());
+		assertEquals(new Long(5), range.getMaximumUpdateId());
 		assertEquals(new Long(3), range.getVersionNumber());
 		assertNotNull(range.getEtag());
 	}
@@ -430,6 +434,34 @@ public class TableRowTruthDAOImplTest {
 			fail("Should have failed since the request is too large.");
 		}catch(IllegalArgumentException e){
 			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
+		}
+	}
+	
+	@Test
+	public void testAppendRowIdOutOfRange() throws IOException, NotFoundException{
+		// create some test rows.
+		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+			
+		// create some test rows.
+		List<Row> rows = TableModelUtils.createRows(models, 1);
+		// Set the ID of the row to be beyond the valid range
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		// get the rows back
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l);
+		// Create a row with an ID that is beyond the current max ID for the table
+		Row toAdd = TableModelUtils.createRows(models, 1).get(0);
+		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);
+		toUpdateOne.getRows().add(toAdd);
+		try{
+			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateOne);
+			fail("should have failed since one of the row IDs was beyond the current max");
+		}catch(IllegalArgumentException e){
+			assertEquals("Cannot update row: 1 because it does not exist.", e.getMessage());
 		}
 	}
 	

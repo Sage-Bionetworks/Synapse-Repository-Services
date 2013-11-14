@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -144,6 +148,49 @@ public class TableController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getTableServices().listColumnModels(userId,
 				prefix, limit, offset);
+	}
+
+	/**
+	 * This method is used to both add and update rows to a TableEntity. The
+	 * passed RowSet will contain all data for the rows to add or update. The
+	 * RowSet.rows is a list of Rows, one of each row to add or update. If the
+	 * Row.rowId is null, then a row will be added for that request, if a rowId
+	 * is provided then the row with that ID will be updated (a 400 will be
+	 * returned if a row ID is provided that does not actually exist). The
+	 * Row.values list should contain a value for each column of the row. The
+	 * RowSet.headers identifies the columns (by ID) that are to be updated by
+	 * this request. Each Row.value list must be the same size as the
+	 * RowSet.headers, as each value is mapped to a column by the index of these
+	 * two arrays. When a row is added it will be issued both a rowId and a
+	 * version number. When a row is updated it will be issued a new version
+	 * number (each row version is immutable). The resulting TableRowReference
+	 * will enumerate all rowIds and versionNumbers for this update. The
+	 * resulting RowReferecnes will be listed in the same order as the passed
+	 * result set. A single POST to this services will be treated as a single
+	 * transaction, meaning all of the rows will be added/updated or none of the
+	 * rows will be added/updated. If this web-services fails for any reason all
+	 * changes will be "rolled back".
+	 * 
+	 * @param userId
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows to add/update.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE, method = RequestMethod.POST)
+	public @ResponseBody
+	RowReferenceSet appendRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String id, @RequestBody RowSet rows)
+			throws DatastoreException, NotFoundException, IOException {
+		if(id == null) throw new IllegalArgumentException("{id} cannot be null");
+		rows.setTableId(id);
+		return serviceProvider.getTableServices().appendRows(userId, rows);
 	}
 
 }
