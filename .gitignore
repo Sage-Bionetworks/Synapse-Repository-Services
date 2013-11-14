@@ -6,4 +6,3 @@ target/
 .pydevproject
 .DS_Store
 *.pyc
- tools/SynapseDeployer/synapse/

@@ -28,5 +28,14 @@ public interface V2WikiPageMigrationDao {
 	 * @return
 	 */
 	public boolean doesWikiExist(String wikiId);
+	
+	/**
+	 * Returns the etag of the wiki specified by its wiki ID. If
+	 * wiki is not found, null is returned.
+	 * 
+	 * @param wikiId
+	 * @return
+	 */
+	public String getWikiEtag(String wikiId);
 		
 }

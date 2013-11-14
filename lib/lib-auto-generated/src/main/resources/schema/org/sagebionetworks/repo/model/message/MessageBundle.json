@@ -3,7 +3,7 @@
 	"description": "JSON schema for a user message bundled with a status",
 	"properties": {
 		"message": {
-            "$ref": "org.sagebionetworks.repo.model.message.Message"
+            "$ref": "org.sagebionetworks.repo.model.message.MessageToUser"
         },
         "status": {
             "$ref": "org.sagebionetworks.repo.model.message.MessageStatus"

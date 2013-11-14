@@ -55,11 +55,15 @@ public class BridgeClientTest {
 		BridgeVersionInfo version = new BridgeVersionInfo();
 		version.setVersion("none");
 
-		expectRequest(URIBASE + "/version", "GET", null, EntityFactory.createJSONStringForEntity(version));
+		// You cannot set originClient to bridge here, because getVersionInfo() has no version
+		// that takes OriginatingClient (there's no difference in the call between clients). 
+		// The underlying libraries always set this to synapse (and it's ignored).
+		
+		expectRequest(URIBASE + "/version?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(version));
 
 		bridgeClient.getVersionInfo();
 
-		verifyRequest(URIBASE + "/version", "GET", null, EntityFactory.createJSONStringForEntity(version));
+		verifyRequest(URIBASE + "/version?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(version));
 	}
 
 	@Test
@@ -84,7 +88,6 @@ public class BridgeClientTest {
 		when(mockEntity.getContentLength()).thenReturn((long) answer.length());
 		when(mockEntity.getContent()).thenReturn(new StringInputStream(answer));
 		when(mockEntity.getContentType()).thenReturn(null);
-
 		when(mockHttpClientProvider.performRequest(eq(uri), eq(method), eq(content), Mockito.anyMap())).thenReturn(mockHttpResponse);
 	}
 
@@ -94,7 +97,6 @@ public class BridgeClientTest {
 		verify(mockEntity, times(2)).getContentLength();
 		verify(mockEntity).getContent();
 		verify(mockEntity).getContentType();
-
 		verify(mockHttpClientProvider).performRequest(eq(uri), eq(method), eq(content), Mockito.anyMap());
 	}
 

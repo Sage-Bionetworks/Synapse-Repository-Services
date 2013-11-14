@@ -11,10 +11,12 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -146,4 +148,5 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager, times(2)).getUserInfo(eq(username));
 		verify(mockUserManager).updateEmail(eq(userInfo), eq(username));
 	}
+	
 }

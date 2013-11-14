@@ -48,10 +48,11 @@ public class DBOAuthenticationDAOImplTest {
 	@Autowired
 	private DBOBasicDao basicDAO;
 		
-	List<String> groupsToDelete;
+	private List<String> groupsToDelete;
 	
 	private static final String GROUP_NAME = "auth-test-group";
 	private DBOCredential secretRow;
+	private static String userEtag;
 
 	@Before
 	public void setUp() throws Exception {
@@ -67,6 +68,7 @@ public class DBOAuthenticationDAOImplTest {
 		}
 		groupsToDelete.add(ug.getId());
 		Long principalId = Long.parseLong(ug.getId());
+		userEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
 
 		// Make a row of Credentials but apply it yet
 		secretRow = new DBOCredential();
@@ -131,17 +133,31 @@ public class DBOAuthenticationDAOImplTest {
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertNull(session.getSessionToken());
 		
+		// Verify that the parent group's etag has changed
+		String changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
+		assertTrue(!userEtag.equals(changedEtag));
+		
 		// Change to a string
 		String foobarSessionToken = "foobar";
 		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), foobarSessionToken);
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertEquals(foobarSessionToken, session.getSessionToken());
 		
+		// Verify that the parent group's etag has changed
+		userEtag = changedEtag;
+		changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
+		assertTrue(!userEtag.equals(changedEtag));
+		
 		// Change to a UUID
 		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), null);
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
+		
+		// Verify that the parent group's etag has changed
+		userEtag = changedEtag;
+		changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
+		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test
@@ -209,6 +225,10 @@ public class DBOAuthenticationDAOImplTest {
 		// Setter should work
 		authDAO.changeSecretKey(userId);
 		assertFalse(secretRow.getSecretKey().equals(authDAO.getSecretKey(userId)));
+		
+		// Verify that the parent group's etag has changed
+		String changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test
@@ -240,17 +260,36 @@ public class DBOAuthenticationDAOImplTest {
 		assertFalse(authDAO.hasUserAcceptedToU(userId));
 		assertNull(authDAO.getSessionTokenIfValid(GROUP_NAME));
 		
+		// Verify that the parent group's etag has changed
+		String changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		assertTrue(!userEtag.equals(changedEtag));
+		
 		// Accept the terms
 		authDAO.setTermsOfUseAcceptance(userId, true);
 		assertTrue(authDAO.hasUserAcceptedToU(userId));
+		
+		// Verify that the parent group's etag has changed
+		userEtag = changedEtag;
+		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Pretend we haven't had a chance to see the terms yet
 		authDAO.setTermsOfUseAcceptance(userId, null);
 		assertFalse(authDAO.hasUserAcceptedToU(userId));
 		
+		// Verify that the parent group's etag has changed
+		userEtag = changedEtag;
+		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		assertTrue(!userEtag.equals(changedEtag));
+		
 		// Accept the terms again
 		authDAO.setTermsOfUseAcceptance(userId, true);
 		assertTrue(authDAO.hasUserAcceptedToU(userId));
+		
+		// Verify that the parent group's etag has changed
+		userEtag = changedEtag;
+		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test

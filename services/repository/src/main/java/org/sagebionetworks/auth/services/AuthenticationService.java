@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -109,13 +110,19 @@ public interface AuthenticationService {
 	public String getUsername(String principalId)
 			throws NotFoundException;
 	
+	/**
+	 * Sends a password-related email to the user
+	 * This method assumes that the required authentication has passed for the user
+	 * Note: Should only send emails in Production stacks (instead log where emails would have been sent)
+	 */
+	public void sendUserPasswordEmail(String username, PW_MODE mode) throws NotFoundException;
 	
 	/**
 	 * Sends a password-related email to the user
 	 * This method assumes that the required authentication has passed for the user
 	 * Note: Should only send emails in Production stacks (instead log where emails would have been sent)
 	 */
-	public void sendUserPasswordEmail(String username, PW_MODE mode)
+	public void sendUserPasswordEmail(String username, PW_MODE mode, OriginatingClient originClient)
 			 throws NotFoundException;
 	
 	/**

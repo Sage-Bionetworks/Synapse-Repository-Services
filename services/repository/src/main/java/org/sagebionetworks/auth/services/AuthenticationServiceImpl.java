@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,9 +48,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Fetch the user's session token
-			if (credential.getPassword() == null) {
-				throw new UnauthorizedException("Password may not be null");
-			}
+		if (credential.getPassword() == null) {
+			throw new UnauthorizedException("Password may not be null");
+		}
 		Session session = authManager.authenticate(credential.getEmail(), credential.getPassword());
 		
 		// Only hand back the session token if ToU has been accepted
@@ -199,8 +200,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public void sendUserPasswordEmail(String username, PW_MODE mode) throws NotFoundException {
+		sendUserPasswordEmail(username, mode, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void sendUserPasswordEmail(String username, PW_MODE mode, OriginatingClient originClient) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
+		}
+		if (originClient == null) {
+			throw new IllegalArgumentException("OriginatingClient may not be null");
 		}
 		
 		// Get the user's info and session token (which is refreshed)
@@ -215,7 +224,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		mailTarget.setFirstName(user.getUser().getFname());
 		mailTarget.setLastName(user.getUser().getLname());
 		
-		SendMail sendMail = new SendMail();
+		SendMail sendMail = new SendMail(originClient);
 		switch (mode) {
 			case SET_PW:
 				sendMail.sendSetPasswordMail(mailTarget, AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
@@ -280,13 +289,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		String createParam = parameters.getParameterValue(OpenIDInfo.CREATE_USER_IF_NECESSARY_PARAM_NAME);
 		boolean shouldCreateUser = new Boolean(createParam);
 		
-		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse, shouldCreateUser);
+		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(originClientParam);
+		
+		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse, shouldCreateUser, originClient);
+	}
+	
+	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary) throws NotFoundException {
+		return processOpenIDInfo(info, acceptsTermsOfUse, createUserIffNecessary, OriginatingClient.SYNAPSE);
 	}
 	
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary) throws NotFoundException {
+	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary,
+			OriginatingClient originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
 		String fname = info.getFirstName();
@@ -294,6 +311,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		String fullName = info.getFullName();
 		if (email == null) {
 			throw new UnauthorizedException("An email must be returned from the OpenID provider");
+		}
+		if (originClient == null) {
+			throw new IllegalArgumentException("OriginatingClient may not be null");
 		}
 		
 		if (!userManager.doesPrincipalExist(email)) {
@@ -306,8 +326,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setDisplayName(fullName);
 				userManager.createUser(user);
 				
-				// Send the user a welcoming message
-				SendMail sendMail = new SendMail();
+				SendMail sendMail = new SendMail(originClient);
 				sendMail.sendWelcomeMail(user);
 			} else {
 				throw new NotFoundException(email);

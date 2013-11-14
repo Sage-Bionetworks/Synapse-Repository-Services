@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -142,8 +143,15 @@ public class MigrationClient {
 		printCounts(startSourceCounts.getList(), startDestCounts.getList());
 		// Get the primary types
 		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
+		// Remove V2 Wiki Primary types to keep V2 data in place
+		List<MigrationType> finalPrimaryTypes = new ArrayList<MigrationType>();
+		for(MigrationType type: primaryTypes) {
+			if(!type.equals(MigrationType.V2_WIKI_PAGE) && !type.equals(MigrationType.V2_WIKI_OWNERS)) {
+				finalPrimaryTypes.add(type);
+			}
+		}
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(batchSize, timeoutMS, retryDenominator, finalPrimaryTypes, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();

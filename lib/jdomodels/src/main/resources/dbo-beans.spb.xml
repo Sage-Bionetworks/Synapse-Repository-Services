@@ -8,7 +8,7 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
 	<!-- Import the stack configuration -->
@@ -27,8 +27,11 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
+                <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser" />
+                <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus" />
+                <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOComment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
@@ -97,7 +100,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessage" />
+                <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
