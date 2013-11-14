@@ -503,14 +503,9 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID			= "TEAM_ID";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID		= "INVITEE_ID";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION	= "schema/MembershipInvitationSubmission-ddl.sql";
-	
-	// Membership-Invitee Table
-	public static final String TABLE_MEMBERSHIP_INVITEE = "MEMBERSHIP_INVITEE";
-	public static final String COL_MEMBERSHIP_INVITEE_INVITATION_ID		= "MEMBERSHIP_INVITATION_ID";
-	public static final String COL_MEMBERSHIP_INVITEE_INVITEE_ID		= "INVITEE_ID";
-	public static final String DDL_FILE_MEMBERSHIP_INVITEE_SUBMISSION	= "schema/Membership-Invitee-ddl.sql";
 	
 	// MembershipRequest Table
 	public static final String TABLE_MEMBERSHIP_REQUEST_SUBMISSION	= "MEMBERSHIP_REQUEST_SUBMISSION";

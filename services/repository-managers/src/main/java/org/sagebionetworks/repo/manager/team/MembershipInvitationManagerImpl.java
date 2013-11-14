@@ -47,7 +47,7 @@ public class MembershipInvitationManagerImpl implements
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
 		if (mis.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if (mis.getInvitees()==null) throw new InvalidModelException("'invitees' field is required.");
+		if (mis.getInviteeId()==null) throw new InvalidModelException("'inviteeId' field is required.");
 		if (mis.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 
