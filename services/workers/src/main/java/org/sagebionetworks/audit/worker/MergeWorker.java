@@ -113,11 +113,6 @@ public class MergeWorker {
 	private boolean mergeBatch(BatchData data) {
 		if(data != null){
 			if(data.mergedKeys.size() > 0){
-				// If this batch only contains one file there is nothing to do.
-				if(data.mergedKeys.size() < 2){
-					log.info("A batch only contains data from one file so there is nothing to merge for file: "+data.mergedKeys.get(0));
-					return false;
-				}
 				try {
 					// Load the data from each file to merge
 					List<AccessRecord> mergedBatches = new LinkedList<AccessRecord>();
