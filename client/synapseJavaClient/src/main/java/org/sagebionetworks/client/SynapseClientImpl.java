@@ -119,6 +119,8 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -209,6 +211,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
 	protected static final String COLUMN = "/column";
+	protected static final String TABLE = "/table";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -4191,6 +4194,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Override
+	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException {
+		if(toAppend == null) throw new IllegalArgumentException("RowSet cannot be null");
+		if(toAppend.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
+		String url = ENTITY+toAppend.getTableId()+TABLE;
+		return asymmetricalPost(url, toAppend, RowReferenceSet.class);
+	}
+	
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
