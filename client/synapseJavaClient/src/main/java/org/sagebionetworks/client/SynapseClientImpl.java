@@ -4686,18 +4686,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			builder.setQuery(queryString);
 			builder.setParameter("org.sagebionetworks.acceptsTermsOfUse", acceptsTermsOfUse.toString());
 			builder.setParameter("org.sagebionetworks.createUserIfNecessary", acceptsTermsOfUse.toString());
-			/*
-			URI uri = new URI(null, null, "/openIdCallback", queryString + "&org.sagebionetworks.acceptsTermsOfUse="
-					+ acceptsTermsOfUse + "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, null);
-					*/
 			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
 					getUserAgent(), originClient.getParameterMap());
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
-		} /*catch (URISyntaxException e) {
-			throw new SynapseException(e);
-		}*/
+		}
 	}
 		
 }
