@@ -1,6 +1,7 @@
 package org.sagebionetworks.audit.worker;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -48,9 +49,17 @@ public class MergeWorker {
 				ObjectListing listing = accessRecordDAO.listBatchKeys(marker);
 				marker = listing.getNextMarker();
 				if(listing.getObjectSummaries() != null){
-					for(S3ObjectSummary summ: listing.getObjectSummaries()){
+					List<String> rollingKeys = new ArrayList<String>();
+					for (S3ObjectSummary summ: listing.getObjectSummaries()) {
+						final String key = summ.getKey();
+						if (key.contains(KeyGeneratorUtil.ROLLING)) {
+							rollingKeys.add(key);
+						}
+					}
+					for(String key: rollingKeys){
+						
 						// Bucket by date/hour
-						String fileDateHour = KeyGeneratorUtil.getDateAndHourFromKey(summ.getKey());
+						String fileDateHour = KeyGeneratorUtil.getDateAndHourFromKey(key);
 						// Do we have a complete batch?
 						if (batchData != null) {
 							// The current batch is completed if the next file
@@ -79,7 +88,7 @@ public class MergeWorker {
 							batchData = new BatchData(new LinkedList<String>(),	fileDateHour);
 						}
 						// This is a file we would like to merge
-						batchData.mergedKeys.add(summ.getKey());
+						batchData.mergedKeys.add(key);
 					}
 				}
 			}while(marker != null);
@@ -119,7 +128,7 @@ public class MergeWorker {
 					// Use the time stamp from the first record as the time stamp for the new batch.
 					long timestamp = mergedBatches.get(0).getTimestamp();
 					// Save the merged batches
-					String newfileKey = accessRecordDAO.saveBatch(mergedBatches, timestamp);
+					String newfileKey = accessRecordDAO.saveBatch(mergedBatches, timestamp, false);
 					
 					// Now delete all of the files that were merged.
 					for(String key: data.mergedKeys){

@@ -84,13 +84,13 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 	}
 	
 	@Override
-	public String saveBatch(List<AccessRecord> batch) throws IOException {
+	public String saveBatch(List<AccessRecord> batch, boolean rolling) throws IOException {
 		// Save with the current timesamp
-		return saveBatch(batch, System.currentTimeMillis());
+		return saveBatch(batch, System.currentTimeMillis(), rolling);
 	}
-	
+
 	@Override
-	public String saveBatch(List<AccessRecord> batch, long timestamp) throws IOException {
+	public String saveBatch(List<AccessRecord> batch, long timestamp, boolean rolling) throws IOException {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// Order the batch by timestamp
 		AccessRecordUtils.sortByTimestamp(batch);
@@ -110,7 +110,7 @@ public class AccessRecordDAOImpl implements AccessRecordDAO {
 		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 		// Build a new key
 		String key = KeyGeneratorUtil.createNewKey(stackInstanceNumber,
-				timestamp);
+				timestamp, rolling);
 		ObjectMetadata om = new ObjectMetadata();
 		om.setContentType("application/x-gzip");
 		om.setContentEncoding("gzip");
