@@ -12,8 +12,10 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
@@ -430,9 +433,9 @@ public class TableModelUtilsTest {
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
 		CSVReader csvReader = new CSVReader(reader);
-		RowSet clone = TableModelUtils.readFromCSV(csvReader, validRowSet2.getTableId(), validRowSet2.getHeaders());
-		assertNotNull(clone);
-		assertEquals(validRowSet2, clone);
+		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
+		assertNotNull(cloneRows);
+		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
 	
 	@Test
@@ -441,9 +444,9 @@ public class TableModelUtilsTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-		RowSet clone = TableModelUtils.readFromCSVgzStream(in, validRowSet2.getTableId(), validRowSet2.getHeaders());
-		assertNotNull(clone);
-		assertEquals(validRowSet2, clone);
+		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in);
+		assertNotNull(cloneRows);
+		assertEquals(validRowSet2.getRows(), cloneRows);
 	}
 	
 	@Test
@@ -484,6 +487,7 @@ public class TableModelUtilsTest {
 		dto.getHeaders().add("222");
 		dto.setBucket("bucket");
 		dto.setKey("key");
+		dto.setEtag("someEtag");
 		// To DBO
 		DBOTableRowChange dbo = TableModelUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);
@@ -491,5 +495,150 @@ public class TableModelUtilsTest {
 		TableRowChange clone = TableModelUtils.ceateDTOFromDBO(dbo);
 		assertNotNull(clone);
 		assertEquals(dto, clone);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testDistictVersionsNull(){
+		TableModelUtils.getDistictVersions(null);
+	}
+	
+	@Test
+	public void testDistictVersions(){
+		List<RowReference> refs = new LinkedList<RowReference>();
+		RowReference ref = new RowReference();
+		ref.setVersionNumber(100l);
+		refs.add(ref);
+		ref = new RowReference();
+		ref.setVersionNumber(100l);
+		refs.add(ref);
+		ref = new RowReference();
+		ref.setVersionNumber(101l);
+		refs.add(ref);
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(101l);
+		expected.add(100l);
+		assertEquals(expected, TableModelUtils.getDistictVersions(refs));
+	}
+	
+	@Test
+	public void testDistictRowIds(){
+		List<Row> refs = new LinkedList<Row>();
+		Row ref = new Row();
+		ref.setRowId(100l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(100l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(101l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(null);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(-1l);
+		refs.add(ref);
+		Set<Long> expected = new HashSet<Long>();
+		expected.add(101l);
+		expected.add(100l);
+		assertEquals(expected, TableModelUtils.getDistictValidRowIds(refs));
+	}
+	
+	@Test
+	public void testConvertToSchemaAndMerge(){
+		List<ColumnModel> models = new LinkedList<ColumnModel>();
+		// Create three columns
+		// One
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setId("1");
+		cm.setDefaultValue("defaultOne");
+		models.add(cm);
+		// two
+		cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setId("2");
+		cm.setDefaultValue(null);
+		models.add(cm);
+		
+		// Create some data for this model
+		List<Row> v1Rows = TableModelUtils.createRows(models, 2);
+		RowSet v1Set = new RowSet();
+		v1Set.setHeaders(TableModelUtils.getHeaders(models));
+		v1Set.setRows(v1Rows);
+		IdRange range = new IdRange();
+		range.setVersionNumber(0l);
+		range.setMinimumId(0l);
+		range.setMaximumId(1l);
+		TableModelUtils.assignRowIdsAndVersionNumbers(v1Set, range);
+		// now remove column two 
+		models.remove(1);
+		// Now add back two new columns one with a default value and one without
+		// three
+		cm = new ColumnModel();
+		cm.setColumnType(ColumnType.BOOLEAN);
+		cm.setId("3");
+		cm.setDefaultValue(null);
+		models.add(cm);
+		// four
+		cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setId("4");
+		cm.setDefaultValue("default4");
+		models.add(cm);
+		
+		// Create some more data with the new schema
+		List<Row> v2Rows = TableModelUtils.createRows(models, 2);
+		RowSet v2Set = new RowSet();
+		v2Set.setHeaders(TableModelUtils.getHeaders(models));
+		v2Set.setRows(v2Rows);
+		range = new IdRange();
+		range.setVersionNumber(1l);
+		range.setMinimumId(2l);
+		range.setMaximumId(3l);
+		TableModelUtils.assignRowIdsAndVersionNumbers(v2Set, range);
+		
+		// Now request the data in a different order
+		List<ColumnModel> newOrder = new LinkedList<ColumnModel>();
+		newOrder.add(models.get(2));
+		newOrder.add(models.get(0));
+		newOrder.add(models.get(1));
+		List<RowSet> all = new LinkedList<RowSet>();
+		all.add(v1Set);
+		all.add(v2Set);
+		// Now get a single result set that contains all data in this new form
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder, "syn123");
+//		System.out.println(converted.toString());
+		// This is what we expect to come back
+		RowSet expected = new RowSet();
+		expected.setHeaders(TableModelUtils.getHeaders(newOrder));
+		expected.setTableId("syn123");
+		List<Row> expectedRows = new LinkedList<Row>();
+		expected.setRows(expectedRows);
+		// one
+		Row row = new Row();
+		row.setRowId(0l);
+		row.setVersionNumber(0l);
+		row.setValues(Arrays.asList(new String[]{"default4", "string0", null}));
+		expectedRows.add(row);
+		// two
+		row = new Row();
+		row.setRowId(1l);
+		row.setVersionNumber(0l);
+		row.setValues(Arrays.asList(new String[]{"default4", "string1", null}));
+		expectedRows.add(row);
+		// three
+		row = new Row();
+		row.setRowId(2l);
+		row.setVersionNumber(1l);
+		row.setValues(Arrays.asList(new String[]{"string0", "string0", "false"}));
+		expectedRows.add(row);
+		// four
+		row = new Row();
+		row.setRowId(3l);
+		row.setVersionNumber(1l);
+		row.setValues(Arrays.asList(new String[]{"string1", "string1", "true"}));
+		expectedRows.add(row);
+		assertEquals(expected, converted);
 	}
 }

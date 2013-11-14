@@ -16,6 +16,7 @@
 			"id": "org.sagebionetworks.repo.model.migration.WikiMigrationResultType",
 			"enum": [
 				"SUCCESS",
+				"SKIPPED",
 				"FAILURE"
 			]
 		}, 

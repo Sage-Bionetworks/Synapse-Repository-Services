@@ -116,5 +116,35 @@ public class QueryResults<T> {
 		return "QueryResults [totalNumberOfResults=" + totalNumberOfResults
 				+ ", results=" + results + "]";
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((results == null) ? 0 : results.hashCode());
+		result = prime * result
+				+ (int) (totalNumberOfResults ^ (totalNumberOfResults >>> 32));
+		return result;
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		QueryResults other = (QueryResults) obj;
+		if (results == null) {
+			if (other.results != null)
+				return false;
+		} else if (!results.equals(other.results))
+			return false;
+		if (totalNumberOfResults != other.totalNumberOfResults)
+			return false;
+		return true;
+	}
 	
 }

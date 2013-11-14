@@ -150,6 +150,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void revalidateSessionToken(String principalId) {
+		userGroupDAO.touch(principalId);
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TIME_PARAM_NAME, new Date());
@@ -159,6 +161,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public String changeSessionToken(String principalId, String sessionToken) {
+		userGroupDAO.touch(principalId);
+		
 		if (sessionToken == null) {
 			sessionToken = UUID.randomUUID().toString();
 		}
@@ -193,6 +197,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void deleteSessionToken(String sessionToken) {
+		Long principalId = getPrincipal(sessionToken);
+		if (principalId != null) {
+			userGroupDAO.touch(principalId.toString());
+		}
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
 		simpleJdbcTemplate.update(NULLIFY_SESSION_TOKEN, param);
@@ -242,6 +251,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void changePassword(String id, String passHash) {
+		userGroupDAO.touch(id);
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		param.addValue(PASSWORD_PARAM_NAME, passHash);
@@ -264,6 +275,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void changeSecretKey(String id, String secretKey) {
+		userGroupDAO.touch(id);
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		param.addValue(TOKEN_PARAM_NAME, secretKey);
@@ -284,6 +297,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
+		userGroupDAO.touch(id);
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		param.addValue(TOU_PARAM_NAME, acceptance);

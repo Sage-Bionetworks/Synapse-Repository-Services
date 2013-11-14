@@ -128,6 +128,16 @@ public class DBOWikiMigrationDAO {
 	}
 	
 	/**
+	 * Returns the etag of the specified V2 wiki page. Returns null if
+	 * wiki page does not exist in the V2 table.
+	 * @param wikiId
+	 * @return
+	 */
+	public String getV2WikiPageEtag(String wikiId) {
+		return v2WikiPageMigrationDao.getWikiEtag(wikiId);
+	}
+	
+	/**
 	 * Returns the total number of wikis in the WikiPage table
 	 * @return
 	 */

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
+import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -120,13 +121,63 @@ public class WikiMigrationServiceTest {
 		assertEquals(3, results.getResults().size());
 		// Size of the V2 DB should be equal to the number of wikis successfully migrated
 		assertEquals(3, v2wikiPageDAO.getCount());	
-		
-		// Re-migrate the same wiki page. No error should be thrown and we should get back 1 result
+
+		// Re-migrate the same wiki page. No error should be thrown; should just skip.
 		PaginatedResults<WikiMigrationResult> duplicateMigrationResults = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
 		assertNotNull(duplicateMigrationResults);
 		assertEquals(1, duplicateMigrationResults.getResults().size());
+		assertEquals(WikiMigrationResultType.SKIPPED, duplicateMigrationResults.getResults().get(0).getResultType());
 		// Size of the V2 DB should still remain 3.
 		assertEquals(3, v2wikiPageDAO.getCount());	
+	}
+	
+	@Test
+	public void testRemigration() throws NotFoundException, IOException {
+		// If there is a change in the wiki page that needs to be updated in the V2 table, we'll remigrate.
+		// Otherwise, we skip the remigration of a wiki page.
+		
+		String userName = adminUserInfo.getIndividualGroup().getName();
+		String ownerId = "syn1";
+		ObjectType ownerType = ObjectType.ENTITY;
+		// Create a V2 Wiki
+		WikiPage wiki = new WikiPage();
+		wiki.setId("5");
+		wiki.setEtag("etag");
+		wiki.setCreatedBy(creatorUserGroupId);
+		wiki.setModifiedBy(creatorUserGroupId);
+		wiki.setMarkdown("markdown1");
+		wiki.setTitle("title1");			
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		Map<String, FileHandle> fileNameToFileHandleMap = new HashMap<String, FileHandle>();
+		wiki = wikiPageDao.create(wiki, fileNameToFileHandleMap, ownerId, ownerType);
+		assertNotNull(wiki);
+		
+		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
+		toDelete.add(key);
+		
+		// Migrate successfully
+		PaginatedResults<WikiMigrationResult> results = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
+		assertNotNull(results);
+		assertEquals(WikiMigrationResultType.SUCCESS, results.getResults().get(0).getResultType());
+		
+		// Update the wiki page in the V1 DB and make sure etag is changed
+		wiki.setEtag("etag2");
+		wiki.setTitle("title2");
+		wiki = wikiPageDao.updateWikiPage(wiki, fileNameToFileHandleMap, ownerId, ownerType, false);
+		// Migrate the wiki again; should return success after updating the V2 DB
+		PaginatedResults<WikiMigrationResult> resultsAfterUpdate = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
+		assertNotNull(resultsAfterUpdate);
+		assertEquals(WikiMigrationResultType.SUCCESS, resultsAfterUpdate.getResults().get(0).getResultType());
+		V2WikiPage retrievedFromV2 = v2wikiPageDAO.get(key);
+		// V2 should show changes
+		assertEquals("title2", retrievedFromV2.getTitle());
+		
+		// Migrate again without any changes
+		PaginatedResults<WikiMigrationResult> resultsAfterNoUpdate = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
+		assertNotNull(resultsAfterNoUpdate);
+		// Since nothing changed, we should have just skipped this wiki during migration
+		assertEquals(WikiMigrationResultType.SKIPPED, resultsAfterNoUpdate.getResults().get(0).getResultType());
+		
 	}
 
 	@Test
@@ -221,7 +272,7 @@ public class WikiMigrationServiceTest {
 		toDeleteForParentCase.add(key);
 
 		// Nothing to clean up in V1 wiki pages, so casacde deleting is okay
-		toDelete.add(key5);
+		toDelete.add(key);
 	}
 	
 	private void createWikiPages(int start, int end) throws NotFoundException {

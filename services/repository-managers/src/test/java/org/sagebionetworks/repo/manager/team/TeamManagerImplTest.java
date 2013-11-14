@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -264,6 +265,16 @@ public class TeamManagerImplTest {
 	public void testCreateInvalidTeam() throws Exception {
 		// not allowed to specify ID of team being created
 		Team team = createTeam(TEAM_ID, "name", "description", null, "101", null, null, null, null);
+		when(mockTeamDAO.create(team)).thenReturn(team);
+		teamManagerImpl.create(userInfo,team);
+	}
+	
+	// verify that an invalid team creates an exception
+	@Test(expected=NameConflictException.class)
+	public void testCreateExistingTeam() throws Exception {
+		// not allowed to specify ID of team being created
+		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
+		when(mockUserManager.doesPrincipalExist("name")).thenReturn(true);
 		when(mockTeamDAO.create(team)).thenReturn(team);
 		teamManagerImpl.create(userInfo,team);
 	}
