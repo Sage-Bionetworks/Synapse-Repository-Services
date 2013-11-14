@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -15,9 +17,11 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.MembershipInvtnSubmissionUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -110,5 +114,45 @@ public class DBOMembershipInvtnSubmissionTest {
 		DBOMembershipInvtnSubmission clone2 = dboBasicDao.getObjectByPrimaryKey(DBOMembershipInvtnSubmission.class, params);
 		assertEquals(clone, clone2);
 	}
+
+	@Test
+	public void testTranslator() throws Exception {
+		//It's easiest to create a DBO object by first creating a DTO object and then converting it
+		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		dto.setId("101");
+		dto.setCreatedOn(new Date());
+		dto.setExpiresOn(null);
+		dto.setInviteeId("987");
+		dto.setTeamId("456");
+		dto.setCreatedBy("123");
+		dto.setMessage("foo");
+		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
+		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
+		// now do the round trip
+		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
+		assertEquals(dbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
+		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
+	}
+
+	@Test
+	public void testTranslatorWithLegacyInput() throws Exception {
+		fail("NYI");
+		//It's easiest to create a DBO object by first creating a DTO object and then converting it
+		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		dto.setId("101");
+		dto.setCreatedOn(new Date());
+		dto.setExpiresOn(null);
+		dto.setInviteeId("987");
+		dto.setTeamId("456");
+		dto.setCreatedBy("123");
+		dto.setMessage("foo");
+		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
+		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
+		// now do the round trip
+		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
+		assertEquals(dbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
+		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
+	}
+
 
 }

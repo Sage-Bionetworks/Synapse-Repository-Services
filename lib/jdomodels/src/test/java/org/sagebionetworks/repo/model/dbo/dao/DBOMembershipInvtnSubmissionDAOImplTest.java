@@ -208,23 +208,4 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		misToDelete=-1L; // no need to delete in 'tear down'
 	}
 	
-	@Test
-	public void testTranslator() throws Exception {
-		//It's easiest to create a DBO object by first creating a DTO object and then converting it
-		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
-		dto.setId("101");
-		dto.setCreatedOn(new Date());
-		dto.setExpiresOn(null);
-		dto.setInviteeId("987");
-		dto.setTeamId("456");
-		dto.setCreatedBy("123");
-		dto.setMessage("foo");
-		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
-		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
-		// now do the round trip
-		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
-		assertEquals(dbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
-		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
-	}
-
 }
