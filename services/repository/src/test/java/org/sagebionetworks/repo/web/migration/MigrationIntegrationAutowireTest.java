@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -73,8 +74,8 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.message.Message;
-import org.sagebionetworks.repo.model.message.RecipientType;
+import org.sagebionetworks.repo.model.message.Comment;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -163,6 +164,9 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Autowired
 	private MessageDAO messageDAO;
+	
+	@Autowired
+	private CommentDAO commentDAO;
 
 	@Autowired
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
@@ -553,16 +557,27 @@ public class MigrationIntegrationAutowireTest {
 	}
 	
 	@SuppressWarnings("serial")
-	private void createMessages(UserGroup group, String fileHandleId) {
-		Message dto = new Message();
+	private void createMessages(final UserGroup group, String fileHandleId) {
+		MessageToUser dto = new MessageToUser();
+		// Note: ID is auto generated
 		dto.setCreatedBy(group.getId());
+		dto.setFileHandleId(fileHandleId);
+		// Note: CreatedOn is set by the DAO
 		dto.setSubject("See you on the other side?");
-		dto.setRecipientType(RecipientType.PRINCIPAL);
-		dto.setRecipients(new ArrayList<String>() {{add("-1");}});
-		dto.setMessageFileHandleId(fileHandleId);
+		dto.setRecipients(new HashSet<String>() {{add(group.getId());}});
+		dto.setInReplyTo(null);
+		// Note: InReplyToRoot is calculated by the DAO
+
 		dto = messageDAO.createMessage(dto);
 		
-		messageDAO.registerMessageRecipient(dto.getMessageId(), group.getId());
+		messageDAO.registerMessageRecipient(dto.getId(), group.getId());
+		
+		Comment dto2 = new Comment();
+		dto2.setCreatedBy(group.getId());
+		dto2.setFileHandleId(fileHandleId);
+		dto2.setTargetId("1337");
+		dto2.setTargetType(ObjectType.ENTITY);
+		commentDAO.createComment(dto2);
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {

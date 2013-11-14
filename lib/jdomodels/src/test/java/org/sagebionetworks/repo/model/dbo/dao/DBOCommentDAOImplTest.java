@@ -1,0 +1,69 @@
+package org.sagebionetworks.repo.model.dbo.dao;
+
+import static junit.framework.Assert.assertNotNull;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.CommentDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.Comment;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
+public class DBOCommentDAOImplTest {
+	
+	@Autowired
+	private CommentDAO commentDAO;
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private FileHandleDao fileDAO;
+	
+	private String fileHandleId;	
+	private UserGroup maliciousUser;
+	
+	@Before
+	public void setup() throws Exception {
+		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
+		
+		// We need a file handle to satisfy a foreign key constraint
+		// But it doesn't need to point to an actual file
+		// Also, it doesn't matter who the handle is tied to
+		S3FileHandle handle = TestUtils.createS3FileHandle(maliciousUser.getId());
+		handle = fileDAO.createFile(handle);
+		fileHandleId = handle.getId();
+	}
+	
+	@After
+	public void cleanup() throws Exception {
+		// This will cascade delete all the messages generated for this test
+		fileDAO.delete(fileHandleId);
+	}
+	
+	@Test
+	public void testCreate() throws Exception {
+		Comment dto = new Comment();
+		// Note: ID is auto generated
+		dto.setCreatedBy(maliciousUser.getId());
+		dto.setFileHandleId(fileHandleId);
+		// Note: CreatedOn is set by the DAO
+		dto.setTargetId("1337");
+		dto.setTargetType(ObjectType.ENTITY);
+		
+		dto = commentDAO.createComment(dto);
+		assertNotNull(dto.getId());
+		assertNotNull(dto.getCreatedOn());
+	}
+}
