@@ -4,20 +4,14 @@
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.message.MessageContent"
+		}, {
+			"$ref": "org.sagebionetworks.repo.model.message.MessageRecipientSetInterface"
 		}
 	], 
 	"properties": {
 		"subject": {
 			"type": "string",
 			"description":"Topic of this message.  Optional"
-		}, 
-		"recipients": {
-			"type": "array",
-			"description": "The unique identifiers of the intended recipients of this message",
-            "uniqueItems":true,
-			"items": {
-				"type": "string"
-			}
 		}, 
 		"inReplyTo": {
 			"type": "string",

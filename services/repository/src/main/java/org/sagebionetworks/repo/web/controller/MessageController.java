@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.web.controller;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.message.Message;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageStatus;
-import org.sagebionetworks.repo.model.message.RecipientBundle;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -39,26 +39,27 @@ public class MessageController extends BaseController {
 
 	/**
 	 * Sends a message.  
-	 * To chain messages together into a message thread, specify the message you are replying to via the "replyTo" parameter.  
+	 * To chain messages together into a conversation, specify the message you are replying to via the "inReplyTo" field.  
+	 * See the <a href="${org.sagebionetworks.repo.model.message.MessageToUser}">message schema</a>.
 	 * </br>
 	 * In most cases, message delivery is asynchronous to message creation.  
-	 * i.e. It may take several seconds for a sent message to appear in a user's inbox.
+	 * i.e. It may take several seconds for a message to appear in a user's inbox.
 	 * </br>
-	 * Note: Unauthorized delivery, such as commenting on a restricted entity, 
+	 * Note: Unauthorized delivery, such as messaging a team you are not affiliated with, 
 	 * may result in a silent failure or a bounce message, depending on your notification settings.
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE, method = RequestMethod.POST)
 	public @ResponseBody
-	Message createMessage(
+	MessageToUser createMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
-			@RequestParam(value = UrlHelpers.MESSAGE_REPLY_TO_PARAM, required = false) String replyTo, 
-			@RequestBody Message toCreate) throws NotFoundException {
-		return serviceProvider.getMessageService().create(username, replyTo, toCreate);
+			@RequestBody MessageToUser toCreate) throws NotFoundException {
+		return serviceProvider.getMessageService().create(username, toCreate);
 	}
 	
 	/**
 	 * Retrieves the current authenticated user's inbox.  
+	 * It may take several seconds for a message to appear in the inbox after creation.  
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_INBOX, method = RequestMethod.GET)
@@ -79,7 +80,7 @@ public class MessageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_OUTBOX, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Message> getOutbox(
+	PaginatedResults<MessageToUser> getOutbox(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, required = false, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, required = false, defaultValue = defaultSortDescending) boolean descending, 
@@ -96,7 +97,7 @@ public class MessageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	Message getMessage(
+	MessageToUser getMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@PathVariable String messageId) throws NotFoundException {
 		return serviceProvider.getMessageService().getMessage(username, messageId);
@@ -109,10 +110,10 @@ public class MessageController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FORWARD, method = RequestMethod.POST)
 	public @ResponseBody
-	Message forwardMessage(
+	MessageToUser forwardMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@PathVariable String messageId, 
-			@RequestBody RecipientBundle recipients) throws NotFoundException {
+			@RequestBody MessageRecipientSet recipients) throws NotFoundException {
 		return serviceProvider.getMessageService().forwardMessage(username, messageId, recipients);
 	}
 	
@@ -121,9 +122,9 @@ public class MessageController extends BaseController {
 	 * The current authenticated user will be either the sender or receiver of all returned messages.     
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MESSAGE_ID_THREAD, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.MESSAGE_ID_CONVERSATION, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Message> getMessageThread(
+	PaginatedResults<MessageToUser> getConversation(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@PathVariable String messageId, 
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, required = false, defaultValue = defaultSortOrder) String orderBy, 
@@ -131,19 +132,7 @@ public class MessageController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset) 
 					throws NotFoundException {
-		return serviceProvider.getMessageService().getMessageThread(username, messageId, orderBy, descending, limit, offset);
-	}
-	
-	/**
-	 * Gets the current status of a message relative to the current authenticated user.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.MESSAGE_ID_STATUS, method = RequestMethod.GET)
-	public @ResponseBody
-	MessageStatus getMessageStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
-			@PathVariable String messageId) throws NotFoundException {
-		return serviceProvider.getMessageService().getMessageStatus(username, messageId);
+		return serviceProvider.getMessageService().getConversation(username, messageId, orderBy, descending, limit, offset);
 	}
 	
 	/**
@@ -155,37 +144,5 @@ public class MessageController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@RequestBody MessageStatus status) throws NotFoundException {
 		serviceProvider.getMessageService().updateMessageStatus(username, status);
-	}
-	
-	/**
-	 * Retrieves comments on the entity.  
-	 * The current authenticated user must have READ permission on the entity.     
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID_COMMENTS, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<Message> getCommentThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
-			@PathVariable String id, 
-			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, required = false, defaultValue = defaultSortOrder) String orderBy, 
-			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, required = false, defaultValue = defaultSortDescending) boolean descending, 
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset) 
-					throws NotFoundException {
-		return serviceProvider.getMessageService().getCommentThread(username, id, orderBy, descending, limit, offset);
-	}
-	
-	/**
-	 * Comments on the entity.  
-	 * The current authenticated user must have SEND_MESSAGE permission on the entity.     
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_ID_COMMENTS, method = RequestMethod.POST)
-	public @ResponseBody
-	Message commentOnThread(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
-			@PathVariable String id, 
-			@RequestBody Message toCreate) throws NotFoundException {
-		return serviceProvider.getMessageService().commentOnThread(username, id, toCreate);
 	}
 }

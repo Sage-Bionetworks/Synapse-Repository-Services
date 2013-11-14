@@ -1,0 +1,8 @@
+{
+	"description": "Contains a set of IDs of the intended recipients of a message",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.MessageRecipientSetInterface"
+		}
+	]
+}
