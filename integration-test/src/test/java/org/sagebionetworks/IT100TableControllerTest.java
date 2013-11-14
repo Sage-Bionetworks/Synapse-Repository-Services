@@ -28,8 +28,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
-import org.sagebionetworks.repo.web.controller.ServletTestHelper;
 
 /**
  * Tests for TableEntity and ColumnModel services.
