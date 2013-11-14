@@ -8,7 +8,7 @@ public class EmailUtilsTest {
 	@Ignore
 	@Test
 	public void test() {
-		new EmailUtils().sendMail("integration.test@sagebase.org", "test subject", "test body");
+		EmailUtils.sendMail("integration.test@sagebase.org", "test subject", "test body");
 	}
 
 }

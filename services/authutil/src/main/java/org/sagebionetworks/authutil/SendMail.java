@@ -34,7 +34,6 @@ public class SendMail {
 	private String welcomeEmailFile;
 	private String welcomeEmailSubject;
 	private String resetPasswordSubject;
-	private String endpointProperty;
 	
 	public SendMail() {
 		this(OriginatingClient.SYNAPSE);
@@ -50,7 +49,6 @@ public class SendMail {
 		welcomeEmailFile = props.getProperty("org.sagebionetworks.welcomeEmail");
 		welcomeEmailSubject = props.getProperty("org.sagebionetworks.welcomeEmailSubject");
 		resetPasswordSubject = props.getProperty("org.sagebionetworks.resetPasswordSubject");
-		endpointProperty = props.getProperty("org.sagebionetworks.endpointProperty");
 	}
 	
     public String readMailTemplate(String fname) {
@@ -93,8 +91,7 @@ public class SendMail {
     	try {
     		msg = msg.replaceAll("#link#", templateText);
     	} catch (IllegalArgumentException e) {
-    		throw new IllegalArgumentException("replacement string=<"+templateText+"> "+
-    				endpointProperty+"="+System.getProperty(endpointProperty));
+    		throw new IllegalArgumentException("replacement string=<"+templateText+">");
     	}
     	// fill in link, with token
     	sendMail(user.getEmail(), resetPasswordSubject, msg);

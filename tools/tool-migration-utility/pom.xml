@@ -40,7 +40,6 @@
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}</org.sagebionetworks.portal.endpoint>
-		<org.sagebionetworks.bridge.endpoint>http://localhost:8888/webapp</org.sagebionetworks.bridge.endpoint>
 	</properties>
 
 	<build>

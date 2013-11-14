@@ -329,11 +329,6 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	}
 	
 	@Override
-	public String getBridgeEndpoint() {
-		return getProperty("org.sagebionetworks.bridge.endpoint");
-	}
-
-	@Override
 	public int getHttpClientMaxConnsPerRoute() {
 		// We get connection timeouts from HttpClient if max conns is zero,
 		// which is a confusing

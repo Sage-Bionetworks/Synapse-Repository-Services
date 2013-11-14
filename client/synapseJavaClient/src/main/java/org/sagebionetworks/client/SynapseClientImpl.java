@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -4553,7 +4555,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), originClient);
+			Map<String,String> parameters = originClient.getParameterMap();
+			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4570,8 +4573,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
+			Map<String,String> parameters = originClient.getParameterMap();
 			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent(),
-					originClient);
+					parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4640,7 +4644,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
-		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent(), originClient);
+		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent(),
+				originClient.getParameterMap());
 	}
 	
 	@Override
@@ -4651,7 +4656,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
 			getSharedClientConnection().postJson(authEndpoint, "/userPasswordEmail", obj.toString(), getUserAgent(),
-					originClient);
+					originClient.getParameterMap());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4676,15 +4681,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
 		try {
+			URIBuilder builder = new URIBuilder();
+			builder.setPath("/openIdCallback");
+			builder.setQuery(queryString);
+			builder.setParameter("org.sagebionetworks.acceptsTermsOfUse", acceptsTermsOfUse.toString());
+			builder.setParameter("org.sagebionetworks.createUserIfNecessary", acceptsTermsOfUse.toString());
+			/*
 			URI uri = new URI(null, null, "/openIdCallback", queryString + "&org.sagebionetworks.acceptsTermsOfUse="
 					+ acceptsTermsOfUse + "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, null);
-			JSONObject session = getSharedClientConnection().postJson(authEndpoint, uri.toString(), "", getUserAgent(), originClient);
+					*/
+			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
+					getUserAgent(), originClient.getParameterMap());
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
-		} catch (URISyntaxException e) {
+		} /*catch (URISyntaxException e) {
 			throw new SynapseException(e);
-		}
+		}*/
 	}
 		
 }

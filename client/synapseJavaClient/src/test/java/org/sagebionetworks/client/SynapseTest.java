@@ -86,10 +86,13 @@ public class SynapseTest {
 	@Test
 	public void testOriginatingClient() throws Exception {
 		SharedClientConnection connection = synapse.getSharedClientConnection();
-		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", OriginatingClient.BRIDGE);
+		Map<String,String> map = new HashMap<String,String>();
+		map.put("originClient", "bridge");
+		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=bridge", url);
 		
-		url = connection.createRequestUrl("http://localhost:8888/", "createUser", OriginatingClient.SYNAPSE);
+		map.put("originClient", "synapse");
+		url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=synapse", url);
 	}
 	
