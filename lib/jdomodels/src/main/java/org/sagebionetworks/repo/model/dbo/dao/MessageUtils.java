@@ -1,153 +1,317 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.Map;
 
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessage;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
-import org.sagebionetworks.repo.model.message.Message;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.message.Comment;
+import org.sagebionetworks.repo.model.message.MessageContent;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
-import org.sagebionetworks.repo.model.message.RecipientType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 
 public class MessageUtils {
-	
-	public static List<Message> convertDBOs(List<DBOMessage> dbos) {
-		List<Message> dtos = new ArrayList<Message>();
-		for (DBOMessage dbo : dbos) {
-			dtos.add(convertDBO(dbo));
+
+	/**
+	 * Copies message information from three DBOs into one DTO
+	 * The DBOs should be complimentary (same message ID)
+	 * See {@link #copyDBOToDTO(DBOMessageContent, DBOMessageToUser, MessageToUser)} and {@link #copyDBOToDTO(List, MessageToUser)}
+	 */
+	public static void copyDBOToDTO(DBOMessageContent content, DBOMessageToUser info, List<DBOMessageRecipient> recipients, MessageToUser bundle) {
+		if (recipients.size() > 0 && !content.getMessageId().equals(recipients.get(0).getMessageId())) {
+			throw new IllegalArgumentException("Message content and recipients should be belong to the same message");
 		}
-		return dtos;
-	}
-	
-	public static Message convertDBO(DBOMessage dbo) {
-		Message dto = new Message();
-		dto.setMessageId(dbo.getMessageId().toString());
-		dto.setThreadId(dbo.getThreadId().toString());
-		dto.setCreatedBy(dbo.getCreatedBy().toString());
-		dto.setRecipientType(RecipientType.valueOf(dbo.getRecipientType()));
-		try {
-			dto.setRecipients(unzip(dbo.getRecipients()));
-		} catch (IOException e) {
-			throw new DatastoreException("Could not unpack the list of intended recipients", e);
-		}
-		dto.setMessageFileHandleId(dbo.getFileHandleId().toString());
-		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setSubject(dbo.getSubject());
-		return dto;
+		copyDBOToDTO(content, info, bundle);
+		copyDBOToDTO(recipients, bundle);
 	}
 	
 	/**
-	 * Checks for all required fields of the DTO
+	 * Copies message information from two DBOs into one DTO
+	 * The DBOs should be complimentary (same message ID)
+	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageContent)} and {@link #copyDBOToDTO(DBOMessageContent, MessageToUser)}
 	 */
-	public static void validateDTO(Message dto) {
-		if (dto.getMessageId() == null) {
-			throw new IllegalArgumentException("Message ID must be specified");
+	public static void copyDBOToDTO(DBOMessageContent content, DBOMessageToUser info, MessageToUser bundle) {
+		if (!content.getMessageId().equals(info.getMessageId())) {
+			throw new IllegalArgumentException("Message content and information should belong to the same message");
 		}
-		if (dto.getThreadId() == null) {
-			throw new IllegalArgumentException("Thread ID must be specified");
-		}
-		if (dto.getCreatedBy() == null) {
-			throw new IllegalArgumentException("Sender's ID must be specified");
-		}
-		if (dto.getRecipientType() == null) {
-			throw new IllegalArgumentException("Recipient type must be specified");
-		}
-		if (dto.getRecipients() == null || dto.getRecipients().size() <= 0) {
-			throw new IllegalArgumentException("Recipients must be specified");
-		}
-		if (dto.getMessageFileHandleId() == null) {
-			throw new IllegalArgumentException("Message body's file handle must be specified");
-		}
-		if (dto.getCreatedOn() == null) {
-			throw new IllegalArgumentException("Time of sending must be specified");
-		}
-	}
-	
-	public static DBOMessage convertDTO(Message dto) {
-		DBOMessage dbo = new DBOMessage();
-		dbo.setMessageId(Long.parseLong(dto.getMessageId()));
-		dbo.setThreadId(Long.parseLong(dto.getThreadId()));
-		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		dbo.setRecipientType(dto.getRecipientType());
-		try {
-			dbo.setRecipients(zip(dto.getRecipients()));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		dbo.setFileHandleId(Long.parseLong(dto.getMessageFileHandleId()));
-		dbo.setCreatedOn(dto.getCreatedOn().getTime());
-		dbo.setSubject(dto.getSubject());
-		return dbo;
+		copyDBOToDTO(content, bundle);
+		copyDBOToDTO(info, bundle);
 	}
 	
 	/**
-	 * Gzips the given list. 
-	 * @param longs Each element must be parsable as a long
-	 * @return A gzipped byte array of long ints 
+	 * Copies comment information from two DBOs into one DTO
+	 * The DBOs should be complimentary (same message ID)
+	 * See {@link #copyDBOToDTO(DBOMessageContent, MessageContent)} and {@link #copyDBOToDTO(DBOComment, Comment)}
 	 */
-	protected static byte[] zip(List<String> longs) throws IOException {
-		// Convert the Strings into Longs into Bytes
-		ByteBuffer converter = ByteBuffer.allocate(Long.SIZE / 8 * longs.size());
-		for (int i = 0; i < longs.size(); i++) {
-			converter.putLong(Long.parseLong(longs.get(i)));
+	public static void copyDBOToDTO(DBOMessageContent content, DBOComment info, Comment bundle) {
+		if (!content.getMessageId().equals(info.getMessageId())) {
+			throw new IllegalArgumentException("Message content and information should belong to the same message");
+		}
+		copyDBOToDTO(content, bundle);
+		copyDBOToDTO(info, bundle);
+	}
+	
+	/**
+	 * Copies message information
+	 * Note: DBOMessageContent contains a subset of the fields of MessageToUser
+	 * Note: Etag information is not transfered
+	 */
+	public static void copyDBOToDTO(DBOMessageContent content, MessageContent bundle) {
+		bundle.setId(toString(content.getMessageId()));
+		bundle.setCreatedBy(toString(content.getCreatedBy()));
+		bundle.setFileHandleId(toString(content.getFileHandleId()));
+		if (content.getCreatedOn() != null) {
+			bundle.setCreatedOn(new Date(content.getCreatedOn()));
+		}
+	}
+	
+	/**
+	 * Copies message information 
+	 * Note: DBOMessageToUser contains a subset of the fields of MessageToUser
+	 */
+	public static void copyDBOToDTO(DBOMessageToUser info, MessageToUser bundle) {
+		bundle.setId(toString(info.getMessageId()));
+		bundle.setInReplyToRoot(toString(info.getRootMessageId()));
+		bundle.setInReplyTo(toString(info.getInReplyTo()));
+		bundle.setSubject(info.getSubject());
+	}
+	
+	/**
+	 * Copies comment information 
+	 * Note: DBOComment contains a subset of the fields of Comment
+	 */
+	public static void copyDBOToDTO(DBOComment info, Comment bundle) {
+		bundle.setId(toString(info.getMessageId()));
+		bundle.setTargetId(toString(info.getObjectId()));
+		if (info.getObjectType() != null) {
+			bundle.setTargetType(ObjectType.valueOf(info.getObjectType()));
+		}
+	}
+	
+	/**
+	 * Copies message information 
+	 * All recipients must belong to the same message
+	 * Note: DBOMessageRecipient contains a subset of the fields of MessageToUser
+	 */
+	public static void copyDBOToDTO(List<DBOMessageRecipient> recipients, MessageToUser bundle) {
+		if (recipients.size() > 0) {
+			bundle.setId(toString(recipients.get(0).getMessageId()));
+		}
+		bundle.setRecipients(new HashSet<String>());
+		for (DBOMessageRecipient recipient : recipients) {
+			if (!recipient.getMessageId().equals(recipients.get(0).getMessageId())) {
+				throw new IllegalArgumentException("Message recipients should be belong to the same message");
+			}
+			bundle.getRecipients().add(toString(recipient.getRecipientId()));
+		}
+	}
+	
+	/**
+	 * Copies message information from recipients into the appropriate and matching MessageToUser
+	 * Note: DBOMessageRecipient contains a subset of the fields of MessageToUser
+	 */
+	public static void copyDBOToDTO(List<DBOMessageRecipient> recipients, List<MessageToUser> bundles) {
+		// Map the message list to IDs for faster lookup
+		Map<Long, MessageToUser> buckets = new HashMap<Long, MessageToUser>();
+		for (MessageToUser message : bundles) {
+			if (message.getId() == null) {
+				throw new IllegalArgumentException("Message must have an ID");
+			}
+			buckets.put(Long.parseLong(message.getId()), message);
+			
+			// Also initialize the recipient set
+			message.setRecipients(new HashSet<String>());
 		}
 		
-		// Zip up the bytes
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		GZIPOutputStream zipped = new GZIPOutputStream(out);
-		zipped.write(converter.array());
-		zipped.flush();
-		zipped.close();
-		return out.toByteArray();
+		// Chuck recipients into buckets
+		for (DBOMessageRecipient recipient : recipients) {
+			if (!buckets.containsKey(recipient.getMessageId())) {
+				throw new IllegalArgumentException("No matching MessageToUser (" + recipient.getMessageId() + ") found for recipient (" + recipient.getRecipientId() + ")");
+			}
+			buckets.get(recipient.getMessageId()).getRecipients().add(toString(recipient.getRecipientId()));
+		}
 	}
 	
 	/**
-	 * Un-gzips the given array.  
-	 * @param zippedLongs Gzipped array of long ints
-	 * @return A list of longs in base 10 string form
+	 * Copies message status info 
 	 */
-	protected static List<String> unzip(byte[] zippedLongs) throws IOException {
-		// Unzip the bytes
-		ByteArrayInputStream in = new ByteArrayInputStream(zippedLongs);
-		GZIPInputStream unzip = new GZIPInputStream(in);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		while (unzip.available() > 0) {
-			out.write(unzip.read());
-		}
-		
-		// Convert to bytes
-		ByteBuffer converter = ByteBuffer.wrap(out.toByteArray());
-		LongBuffer converted = converter.asLongBuffer();
-		List<String> verbose = new ArrayList<String>();
-		while (converted.hasRemaining()) {
-			verbose.add(Long.toString(converted.get()));
-		}
-		return verbose;
-	}
-	
 	public static MessageStatus convertDBO(DBOMessageStatus dbo) {
 		MessageStatus dto = new MessageStatus();
-		dto.setMessageId(dbo.getMessageId().toString());
-		dto.setRecipientId(dbo.getRecipientId().toString());
+		dto.setMessageId(toString(dbo.getMessageId()));
+		dto.setRecipientId(toString(dbo.getRecipientId()));
 		dto.setStatus(MessageStatusType.valueOf(dbo.getStatus()));
 		return dto;
 	}
 	
+	/**
+	 * Null tolerant call to input.toString()
+	 */
+	private static String toString(Long input) {
+		if (input == null) {
+			return null;
+		}
+		return input.toString();
+	}
+	
+	/**
+	 * Copies message information from one DTO into three DBOs
+	 * Note: some information, like message ID, will be duplicated
+	 * See {@link #copyDTOToDBO(MessageContent, DBOMessageContent)}, 
+	 *     {@link #copyDTOToDBO(MessageToUser, DBOMessageToUser)}, and 
+	 *     {@link #copyDTOToDBO(MessageToUser, List)}
+	 */
+	public static void copyDTOtoDBO(MessageToUser dto, DBOMessageContent content, DBOMessageToUser info, List<DBOMessageRecipient> recipients) {
+		copyDTOToDBO(dto, content);
+		copyDTOToDBO(dto, info);
+		copyDTOToDBO(dto, recipients);
+	}
+	
+	/**
+	 * Copies comment information from one DTO into two DBOs
+	 * Note: some information, like message ID, will be duplicated
+	 * See {@link #copyDTOToDBO(MessageContent, DBOMessageContent)} and {@link #copyDTOToDBO(Comment, DBOComment)}
+	 */
+	public static void copyDTOtoDBO(Comment dto, DBOMessageContent content, DBOComment info) {
+		copyDTOToDBO(dto, content);
+		copyDTOToDBO(dto, info);
+	}
+	
+	/**
+	 * Copies message information
+	 * Note: DBOMessageContent contains a subset of the fields of MessageToUser
+	 * Note: Etag information is not transfered
+	 */
+	public static void copyDTOToDBO(MessageContent dto, DBOMessageContent content) {
+		content.setMessageId(parseLong(dto.getId()));
+		content.setCreatedBy(parseLong(dto.getCreatedBy()));
+		content.setFileHandleId(parseLong(dto.getFileHandleId()));
+		if (dto.getCreatedOn() != null) {
+			content.setCreatedOn(dto.getCreatedOn().getTime());
+		}
+	}
+	
+	/**
+	 * Copies message information
+	 * Note: DBOMessageToUser contains a subset of the fields of MessageToUser
+	 */
+	public static void copyDTOToDBO(MessageToUser dto, DBOMessageToUser info) {
+		info.setMessageId(parseLong(dto.getId()));
+		info.setRootMessageId(parseLong(dto.getInReplyToRoot()));
+		info.setInReplyTo(parseLong(dto.getInReplyTo()));
+		info.setSubject(dto.getSubject());
+	}
+	
+	/**
+	 * Copies comment information
+	 * Note: DBOComment contains a subset of the fields of Comment
+	 */
+	public static void copyDTOToDBO(Comment dto, DBOComment info) {
+		info.setMessageId(parseLong(dto.getId()));
+		info.setObjectId(parseLong(dto.getTargetId()));
+		if (dto.getTargetType() != null) {
+			info.setObjectType(dto.getTargetType().name());
+		}
+	}
+
+	/**
+	 * Copies message information
+	 * Note: DBOMessageRecipient contains a subset of the fields of MessageToUser
+	 */
+	public static void copyDTOToDBO(MessageToUser dto, List<DBOMessageRecipient> recipients) {
+		for (String recipient : dto.getRecipients()) {
+			DBOMessageRecipient dbo = new DBOMessageRecipient();
+			dbo.setMessageId(parseLong(dto.getId()));
+			dbo.setRecipientId(parseLong(recipient));
+			recipients.add(dbo);
+		}
+	}
+	
+	/**
+	 * Copies message status info 
+	 */
 	public static DBOMessageStatus convertDTO(MessageStatus dto) {
 		DBOMessageStatus dbo = new DBOMessageStatus();
-		dbo.setMessageId(Long.parseLong(dto.getMessageId()));
-		dbo.setRecipientId(Long.parseLong(dto.getRecipientId()));
+		dbo.setMessageId(parseLong(dto.getMessageId()));
+		dbo.setRecipientId(parseLong(dto.getRecipientId()));
 		dbo.setStatus(dto.getStatus());
 		return dbo;
+	}
+	
+	/**
+	 * Null-tolerant call to Long.parseLong(...)
+	 */
+	private static Long parseLong(String input) {
+		if (input == null) {
+			return null;	
+		}
+		return Long.parseLong(input);
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageContent dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message content must have an ID");
+		}
+		if (dbo.getCreatedBy() == null) {
+			throw new IllegalArgumentException("Message content must have a creator");
+		}
+		if (dbo.getFileHandleId() == null) {
+			throw new IllegalArgumentException("Message content must have a file handle");
+		}
+		if (dbo.getEtag() == null) {
+			throw new IllegalArgumentException("Message content must have an etag");
+		}
+		if (dbo.getCreatedOn() == null) {
+			throw new IllegalArgumentException("Message content must have a creation time");
+		}
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageToUser dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message info must have an ID");
+		}
+		if (dbo.getRootMessageId() == null) {
+			throw new IllegalArgumentException("Message info must point to a root message");
+		}
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOComment dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Comment info must have an ID");
+		}
+		if (dbo.getObjectId() == null) {
+			throw new IllegalArgumentException("Comment info must point to an object");
+		}
+		if (dbo.getObjectType() == null) {
+			throw new IllegalArgumentException("Comment info must point to an object type");
+		}
+	}
+	
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageRecipient dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message recipient must have a message ID");
+		}
+		if (dbo.getRecipientId() == null) {
+			throw new IllegalArgumentException("Message recipient must have an user ID");
+		}
 	}
 }
