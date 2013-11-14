@@ -4198,7 +4198,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException {
 		if(toAppend == null) throw new IllegalArgumentException("RowSet cannot be null");
 		if(toAppend.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
-		String url = ENTITY+toAppend.getTableId()+TABLE;
+		String url = getRepoEndpoint()+ENTITY+"/"+toAppend.getTableId()+TABLE;
 		return asymmetricalPost(url, toAppend, RowReferenceSet.class);
 	}
 	
