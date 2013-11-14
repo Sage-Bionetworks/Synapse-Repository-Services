@@ -77,8 +77,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String SELECT_MESSAGES_IN_CONVERSATION = 
 			"SELECT DISTINCT(" + SqlConstants.COL_MESSAGE_CONTENT_ID + ") AS EXTRA_ID_COLUMN," + 
-					SqlConstants.TABLE_MESSAGE_CONTENT + ".*," + 
-				 	SqlConstants.TABLE_MESSAGE_TO_USER + ".*" + 
+					SqlConstants.TABLE_MESSAGE_CONTENT + ".*," + "info.*" + 
 			FROM_MESSAGES_IN_CONVERSATION_CORE;
 	
 	private static final String COUNT_MESSAGES_IN_CONVERSATION = 

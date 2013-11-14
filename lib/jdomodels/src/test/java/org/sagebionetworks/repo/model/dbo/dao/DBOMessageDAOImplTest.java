@@ -198,6 +198,20 @@ public class DBOMessageDAOImplTest {
 		// Order of messages should be ascending by time
 		assertEquals(groupReplyToUser, messages.get(0));
 	}
+	
+	@Test
+	public void testGetConversation_AscendDate() throws Exception {
+		assertEquals("There are 3 messages in the conversation", 3L, messageDAO.getConversationSize(userToGroup.getId(), maliciousUser.getId()));
+		
+		List<MessageToUser> messages = messageDAO.getConversation(userToGroup.getId(), maliciousUser.getId(), 
+				MessageSortBy.SEND_DATE, false, 100, 0);
+		assertEquals("Should get back all messages", 3, messages.size());
+		
+		// Order of messages should be ascending by creation time
+		assertEquals(userToGroup, messages.get(0));
+		assertEquals(groupReplyToUser, messages.get(1));
+		assertEquals(userReplyToGroup, messages.get(2));
+	}
 
 	
 	@Test

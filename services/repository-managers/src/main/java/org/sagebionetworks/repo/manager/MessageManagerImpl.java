@@ -68,10 +68,13 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	public QueryResults<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
-			MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		List<MessageToUser> dtos = messageDAO.getConversation(associatedMessageId, userInfo.getIndividualGroup().getId(), 
+			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException {
+		MessageToUser dto = messageDAO.getMessage(associatedMessageId);
+		String rootMessageId = dto.getInReplyToRoot();
+		
+		List<MessageToUser> dtos = messageDAO.getConversation(rootMessageId, userInfo.getIndividualGroup().getId(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getConversationSize(associatedMessageId, userInfo.getIndividualGroup().getId());
+		long totalMessages = messageDAO.getConversationSize(rootMessageId, userInfo.getIndividualGroup().getId());
 		return new QueryResults<MessageToUser>(dtos, totalMessages);
 	}
 

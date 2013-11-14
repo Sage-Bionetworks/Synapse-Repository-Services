@@ -31,7 +31,7 @@ public interface MessageManager {
 	 * Note: The behavior of received messages will be eventually consistent
 	 */
 	public QueryResults<MessageToUser> getConversation(UserInfo userInfo, String associatedMessageId, 
-			MessageSortBy sortBy, boolean descending, long limit, long offset);
+			MessageSortBy sortBy, boolean descending, long limit, long offset) throws NotFoundException;
 	
 	/**
 	 * Retrieves all messages received by the user
