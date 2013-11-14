@@ -59,17 +59,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String SELECT_ROOT_MESSAGE_ID_BY_ID = 
 			"SELECT " + SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID + " FROM " + SqlConstants.TABLE_MESSAGE_TO_USER + 
 			" WHERE " + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
-			
-	private static final String INSERT_MESSAGE_RECIPIENTS = 
-			"INSERT INTO " + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
-			" VALUES (:" + MESSAGE_ID_PARAM_NAME + ",:" + USER_ID_PARAM_NAME + ")";
 	
 	private static final String UPDATE_ETAG_OF_MESSAGE = 
 			"UPDATE " + SqlConstants.TABLE_MESSAGE_CONTENT+
 			" SET " + SqlConstants.COL_MESSAGE_CONTENT_ETAG + "=:" + ETAG_PARAM_NAME + 
 			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
-	private static final String FROM_MESSAGES_IN_THREAD_CORE = 
+	private static final String FROM_MESSAGES_IN_CONVERSATION_CORE = 
 			" FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
 				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS + " status" + 
 					" ON (" + SqlConstants.COL_MESSAGE_CONTENT_ID + "=status." + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + ")" + 
@@ -79,15 +75,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			" AND (" + SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY + "=:" + USER_ID_PARAM_NAME + 
 				" OR status." + SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID + "=:" + USER_ID_PARAM_NAME + ")";
 	
-	private static final String SELECT_MESSAGES_IN_THREAD = 
+	private static final String SELECT_MESSAGES_IN_CONVERSATION = 
 			"SELECT DISTINCT(" + SqlConstants.COL_MESSAGE_CONTENT_ID + ") AS EXTRA_ID_COLUMN," + 
 					SqlConstants.TABLE_MESSAGE_CONTENT + ".*," + 
 				 	SqlConstants.TABLE_MESSAGE_TO_USER + ".*" + 
-			FROM_MESSAGES_IN_THREAD_CORE;
+			FROM_MESSAGES_IN_CONVERSATION_CORE;
 	
-	private static final String COUNT_MESSAGES_IN_THREAD = 
+	private static final String COUNT_MESSAGES_IN_CONVERSATION = 
 			"SELECT COUNT(DISTINCT(" + SqlConstants.COL_MESSAGE_CONTENT_ID + "))" + 
-			FROM_MESSAGES_IN_THREAD_CORE;
+			FROM_MESSAGES_IN_CONVERSATION_CORE;
 	
 	private static final String FILTER_MESSAGES_RECEIVED = 
 			SqlConstants.COL_MESSAGE_STATUS_RECIPIENT_ID + "=:" + USER_ID_PARAM_NAME + 
@@ -218,16 +214,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		basicDAO.createNew(info);
 		
 		// Insert the message recipients
-		MapSqlParameterSource[] params = new MapSqlParameterSource[recipients.size()];
 		for (int i = 0; i < recipients.size(); i++) {
 			recipients.get(i).setMessageId(messageId);
 			MessageUtils.validateDBO(recipients.get(i));
-			
-			params[i] = new MapSqlParameterSource();
-			params[i].addValue(MESSAGE_ID_PARAM_NAME, recipients.get(i).getMessageId());
-			params[i].addValue(USER_ID_PARAM_NAME, recipients.get(i).getRecipientId());
 		}
-		simpleJdbcTemplate.batchUpdate(INSERT_MESSAGE_RECIPIENTS, params);
+		basicDAO.createBatch(recipients);
 		
 		MessageToUser bundle = new MessageToUser();
 		MessageUtils.copyDBOToDTO(content, info, recipients, bundle);
@@ -260,7 +251,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	public List<MessageToUser> getConversation(String rootMessageId, String userId, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		String sql = SELECT_MESSAGES_IN_THREAD + constructSqlSuffix(sortBy, descending, limit, offset);
+		String sql = SELECT_MESSAGES_IN_CONVERSATION + constructSqlSuffix(sortBy, descending, limit, offset);
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ROOT_MESSAGE_ID_PARAM_NAME, rootMessageId);
@@ -276,7 +267,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(ROOT_MESSAGE_ID_PARAM_NAME, rootMessageId);
 		params.addValue(USER_ID_PARAM_NAME, userId);
-		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_THREAD, params);
+		return simpleJdbcTemplate.queryForLong(COUNT_MESSAGES_IN_CONVERSATION, params);
 	}
 
 	@Override
@@ -338,12 +329,18 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void registerMessageRecipient(String messageId, String userId) {
-		DBOMessageStatus status = new DBOMessageStatus();
-		status.setMessageId(Long.parseLong(messageId));
-		status.setRecipientId(Long.parseLong(userId));
-		status.setStatus(MessageStatusType.UNREAD);
-		basicDAO.createNew(status);
+	public void createMessageStatus(String messageId, String userId) {
+		createMessageStatus(messageId, userId, MessageStatusType.UNREAD);
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void createMessageStatus(String messageId, String userId, MessageStatusType status) {
+		DBOMessageStatus dbo = new DBOMessageStatus();
+		dbo.setMessageId(Long.parseLong(messageId));
+		dbo.setRecipientId(Long.parseLong(userId));
+		dbo.setStatus(MessageStatusType.UNREAD);
+		basicDAO.createNew(dbo);
 		
 		touch(messageId);
 	}

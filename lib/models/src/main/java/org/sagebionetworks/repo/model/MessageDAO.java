@@ -59,10 +59,15 @@ public interface MessageDAO {
 	public long getNumSentMessages(String userId);
 	
 	/**
-	 * Marks a user as a recipient of a message
-	 * The status of the message is initially UNREAD
+	 * See {@link #createMessageStatus(String, String, MessageStatusType)}
+	 * The status of the message defaults to UNREAD
 	 */
-	public void registerMessageRecipient(String messageId, String userId);
+	public void createMessageStatus(String messageId, String userId);
+	
+	/**
+	 * Marks a user as a recipient of a message
+	 */
+	public void createMessageStatus(String messageId, String userId, MessageStatusType status);
 	
 	/**
 	 * Marks a message within the user's inbox with the given status
