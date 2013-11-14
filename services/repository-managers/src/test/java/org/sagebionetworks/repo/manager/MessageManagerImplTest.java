@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,10 +15,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
+import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -46,10 +49,10 @@ public class MessageManagerImplTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private AuthorizationManager authorizationManager;
+	private TeamManager teamManager;
 	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private MembershipRequestManager membershipRequestManager;
 	
 	@Autowired
 	private FileHandleDao fileDAO;
@@ -61,8 +64,8 @@ public class MessageManagerImplTest {
 	
 	// Mutual spammers
 	private UserInfo testUser;
-	private UserGroup testGroup;
 	private UserInfo otherTestUser;
+	private Team testTeam;
 	
 	private String fileHandleId;
 	
@@ -74,6 +77,7 @@ public class MessageManagerImplTest {
 	private MessageToUser userReplyToOtherAndSelf;
 	private MessageToUser otherReplyToUserAndSelf;
 	private MessageToUser userToSelfAndGroup;
+	private MessageToUser otherToSelfAndGroup;
 	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
@@ -82,11 +86,15 @@ public class MessageManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		testGroup = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false);
 		otherTestUser = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		final String testUserId = testUser.getIndividualGroup().getId();
-		final String testGroupId = testGroup.getId();
 		final String otherTestUserId = otherTestUser.getIndividualGroup().getId();
+		
+		// Create a team
+		testTeam = new Team();
+		testTeam.setName("MessageManagerImplTest");
+		testTeam = teamManager.create(testUser, testTeam);
+		final String testTeamId = testTeam.getId();
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -108,7 +116,9 @@ public class MessageManagerImplTest {
 		otherReplyToUserAndSelf = createMessage(otherTestUser, "otherReplyToUserAndSelf", 
 				new HashSet<String>() {{add(testUserId); add(otherTestUserId);}}, userReplyToOtherAndSelf.getId());
 		userToSelfAndGroup = createMessage(testUser, "userToSelfAndGroup", 
-				new HashSet<String>() {{add(testUserId); add(testGroupId);}}, null);
+				new HashSet<String>() {{add(testUserId); add(testTeamId);}}, null);
+		otherToSelfAndGroup = createMessage(otherTestUser, "otherToSelfAndGroup", 
+				new HashSet<String>() {{add(otherTestUserId); add(testTeamId);}}, null);
 	}
 	
 	/**
@@ -135,25 +145,66 @@ public class MessageManagerImplTest {
 		assertNotNull(dto.getInReplyToRoot());
 		
 		// Make sure the timestamps on the messages are different 
-		Thread.sleep(2);
+		Thread.sleep(5);
 		
 		return dto;
+	}
+	
+	/**
+	 * Sends the messages that must be sent by a worker
+	 * 
+	 * @param send_otherToSelfAndGroup This message may or may not have the proper permissions associated with it
+	 */
+	private List<String> sendUnsentMessages(boolean send_otherToSelfAndGroup) throws Exception {
+		assertEquals(0, messageManager.sendMessage(userReplyToOtherAndSelf.getId()).size());
+		assertEquals(0, messageManager.sendMessage(otherReplyToUserAndSelf.getId()).size());
+		assertEquals(0, messageManager.sendMessage(userToSelfAndGroup.getId()).size());
+		if (send_otherToSelfAndGroup) {
+			return messageManager.sendMessage(otherToSelfAndGroup.getId());
+		}
+		return new ArrayList<String>();
 	}
 	
 	@After
 	public void cleanup() throws Exception {
 		// This will cascade delete all the messages generated for this test
 		fileDAO.delete(fileHandleId);
+		
+		// Cleanup the team
+		teamManager.delete(testUser, testTeam.getId());
 	}
 	
 	@Test
 	public void testGetConversation_BeforeSending() throws Exception {
 		QueryResults<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals("Only half of the messages should have been sent", 2L, messages.getTotalNumberOfResults());
-		assertEquals(2, messages.getResults().size());
-		assertEquals(otherReplyToUser, messages.getResults().get(0));
-		assertEquals(userToOther, messages.getResults().get(1));
+		assertEquals(3L, messages.getTotalNumberOfResults());
+		assertEquals(3, messages.getResults().size());
+		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(0));
+		assertEquals(otherReplyToUser, messages.getResults().get(1));
+		assertEquals(userToOther, messages.getResults().get(2));
+		
+		messages = messageManager.getConversation(otherTestUser, otherReplyToUser.getId(), 
+				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(3L, messages.getTotalNumberOfResults());
+		assertEquals(3, messages.getResults().size());
+		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(0));
+		assertEquals(otherReplyToUser, messages.getResults().get(1));
+		assertEquals(userToOther, messages.getResults().get(2));
+	}
+	
+	@Test
+	public void testGetConversation_AfterSending() throws Exception {
+		sendUnsentMessages(false);
+		
+		QueryResults<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
+				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals("All messages should have been sent", 4L, messages.getTotalNumberOfResults());
+		assertEquals(4, messages.getResults().size());
+		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(0));
+		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(1));
+		assertEquals(otherReplyToUser, messages.getResults().get(2));
+		assertEquals(userToOther, messages.getResults().get(3));
 		
 		QueryResults<MessageToUser> whatTheOtherUserSees = messageManager.getConversation(otherTestUser, otherReplyToUser.getId(), 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
@@ -164,19 +215,87 @@ public class MessageManagerImplTest {
 	public void testGetInbox_BeforeSending() throws Exception {
 		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals("Only half of the messages should have been sent", 1L, messages.getTotalNumberOfResults());
+		assertEquals(1L, messages.getTotalNumberOfResults());
 		assertEquals(1, messages.getResults().size());
 		assertEquals(otherReplyToUser, messages.getResults().get(0).getMessage());
 		
 		messages = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals("Only half of the messages should have been sent", 1L, messages.getTotalNumberOfResults());
+		assertEquals(1L, messages.getTotalNumberOfResults());
 		assertEquals(1, messages.getResults().size());
 		assertEquals(userToOther, messages.getResults().get(0).getMessage());
+	}
+	
+	@Test
+	public void testGetInbox_AfterSending() throws Exception {
+		sendUnsentMessages(false);
+		
+		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(4L, messages.getTotalNumberOfResults());
+		assertEquals(4, messages.getResults().size());
+		assertEquals(userToSelfAndGroup, messages.getResults().get(0).getMessage());
+		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(1).getMessage());
+		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(2).getMessage());
+		assertEquals(otherReplyToUser, messages.getResults().get(3).getMessage());
+		
+		messages = messageManager.getInbox(otherTestUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(3L, messages.getTotalNumberOfResults());
+		assertEquals(3, messages.getResults().size());
+		assertEquals(otherReplyToUserAndSelf, messages.getResults().get(0).getMessage());
+		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(1).getMessage());
+		assertEquals(userToOther, messages.getResults().get(2).getMessage());
+	}
+	
+	@Test
+	public void testGetOutbox() throws Exception {
+		QueryResults<MessageToUser> messages = messageManager.getOutbox(testUser, 
+				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals("All sent messages should appear in the outbox regardless of sending status", 3L, messages.getTotalNumberOfResults());
+		assertEquals(3, messages.getResults().size());
+		assertEquals(userToSelfAndGroup, messages.getResults().get(0));
+		assertEquals(userReplyToOtherAndSelf, messages.getResults().get(1));
+		assertEquals(userToOther, messages.getResults().get(2));
+		
+		sendUnsentMessages(false);
+		
+		QueryResults<MessageToUser> afterSending = messageManager.getOutbox(testUser, 
+				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(messages, afterSending);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testSendMessage_NotIdempotent() throws Exception {
 		messageManager.sendMessage(userToOther.getId());
+	}
+	
+	@Test
+	public void testSendMessage_NotAllowed() throws Exception {
+		List<String> errors = sendUnsentMessages(true);
+		assertEquals(1, errors.size());
+		assertTrue(errors.get(0).contains("may not send"));
+	}
+	
+	/**
+	 * Bottom part of the test is related to {@link #testGetInbox_AfterSending()}
+	 */
+	@Test
+	public void testSendMessage_AfterJoinTeam() throws Exception {
+		// Join the team
+		MembershipRqstSubmission request = new MembershipRqstSubmission();
+		request.setUserId(otherTestUser.getIndividualGroup().getId());
+		request.setTeamId(testTeam.getId());
+		membershipRequestManager.create(otherTestUser, request);
+		teamManager.addMember(testUser, testTeam.getId(), otherTestUser);
+		
+		// Now all the messages should be sent without error
+		List<String> errors = sendUnsentMessages(true);
+		assertEquals(0, errors.size());
+		
+		// The last message should show up in the testUser's inbox, even though the testUser was not in the recipient list
+		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(otherToSelfAndGroup, messages.getResults().get(0).getMessage());
 	}
 }
