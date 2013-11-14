@@ -21,6 +21,7 @@ public class MembershipInvtnSubmissionUtils {
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		if(dto.getExpiresOn()==null) dbo.setExpiresOn(null); else dbo.setExpiresOn(dto.getExpiresOn().getTime());
 		dbo.setTeamId(Long.parseLong(dto.getTeamId()));
+		dbo.setInviteeId(Long.parseLong(dto.getInviteeId()));
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -30,6 +31,7 @@ public class MembershipInvtnSubmissionUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		if (dbo.getExpiresOn()==null) dto.setExpiresOn(null); else dto.setExpiresOn(new Date(dbo.getExpiresOn()));
 		dto.setTeamId(dbo.getTeamId().toString());
+		dto.setInviteeId(dbo.getInviteeId().toString());
 		return dto;
 	}
 

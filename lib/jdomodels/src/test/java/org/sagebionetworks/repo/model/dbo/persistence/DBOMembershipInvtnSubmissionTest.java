@@ -13,7 +13,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -74,6 +76,10 @@ public class DBOMembershipInvtnSubmissionTest {
 		team = dboBasicDao.createNew(team);
 		invitation.setTeamId(team.getId());
 		invitation.setProperties((new String("abcdefg")).getBytes());
+		assertNotNull(userGroupDAO);
+		UserGroup bug = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
+		assertNotNull(bug);
+		invitation.setInviteeId(Long.parseLong(bug.getId()));
 		return invitation;
 	}
 	

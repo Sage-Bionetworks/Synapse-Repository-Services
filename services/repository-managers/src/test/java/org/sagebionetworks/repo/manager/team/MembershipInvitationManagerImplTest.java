@@ -43,7 +43,7 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setId(id);
 		mis.setTeamId(TEAM_ID);
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		return mis;
 	}
 	
@@ -86,39 +86,39 @@ public class MembershipInvitationManagerImplTest {
 		
 		// Happy case
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		MembershipInvitationManagerImpl.validateForCreate(mis);
 
 		// can't set createdBy
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy("me");
 		validateForCreateExpectFailure(mis);
 		
 		
 		// must set invitees
 		mis.setTeamId("101");
-		mis.setInvitees(null);
+		mis.setInviteeId(null);
 		mis.setCreatedBy(null);
 		validateForCreateExpectFailure(mis);
 
 		// can't set createdOn
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy(null);
 		mis.setCreatedOn(new Date());
 		validateForCreateExpectFailure(mis);
 
 		// must set Team
 		mis.setTeamId(null);
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy(null);
 		mis.setCreatedOn(null);
 		validateForCreateExpectFailure(mis);
 
 		// can't set id
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy(null);
 		mis.setCreatedOn(null);
 		mis.setId("007");

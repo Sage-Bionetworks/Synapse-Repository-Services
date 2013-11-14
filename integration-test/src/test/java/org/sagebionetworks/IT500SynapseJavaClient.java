@@ -1595,7 +1595,7 @@ public class IT500SynapseJavaClient {
 		String somePrincipalId = getSomeGroup(createdTeam.getId());
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
-		dto.setInvitees(Arrays.asList(new String[]{somePrincipalId}));
+		dto.setInviteeId(somePrincipalId);
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
@@ -1604,7 +1604,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
 		assertNotNull(created.getId());
-		assertEquals(Arrays.asList(new String[]{somePrincipalId}), created.getInvitees());
+		assertEquals(somePrincipalId, created.getInviteeId());
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		// get the invitation

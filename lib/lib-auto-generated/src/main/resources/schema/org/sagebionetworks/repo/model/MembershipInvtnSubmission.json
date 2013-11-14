@@ -11,12 +11,9 @@
 			"type": "string",
 			"description": "The id of the Team which the user is invited to join."
 		},
-		"invitees": {
-			"type": "array",
+		"inviteeId": {
 			"description": "The principal IDs of the ones being invited to join the Team.",
-			"items": {
-        		"type":"string"
-			}
+      		"type":"string"
 		},
 		"message": {
 			"type": "string",

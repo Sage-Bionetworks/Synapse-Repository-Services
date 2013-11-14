@@ -594,7 +594,7 @@ public class MigrationIntegrationAutowireTest {
 		mis.setTeamId(""+group.getId());
 		
 		// need another valid user group
-		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		mis.setInviteeId(individUser.getId());
 		Long.parseLong(individUser.getId());
 		
 		membershipInvtnSubmissionDAO.create(mis);

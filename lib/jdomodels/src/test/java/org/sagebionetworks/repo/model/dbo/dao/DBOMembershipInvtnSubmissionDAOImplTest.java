@@ -20,8 +20,15 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.DMLUtils;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -89,7 +96,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		
 		// need another valid user group
 		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		mis.setInviteeId(individUser.getId());
 		long pgLong = Long.parseLong(individUser.getId());
 		
 		mis = membershipInvtnSubmissionDAO.create(mis);
@@ -125,7 +132,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		
 		// need another valid user group
 		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		mis.setInviteeId(individUser.getId());
 		long pgLong = Long.parseLong(individUser.getId());
 		
 		mis = membershipInvtnSubmissionDAO.create(mis);
@@ -199,6 +206,25 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 			// OK
 		}
 		misToDelete=-1L; // no need to delete in 'tear down'
+	}
+	
+	@Test
+	public void testTranslator() throws Exception {
+		//It's easiest to create a DBO object by first creating a DTO object and then converting it
+		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
+		dto.setId("101");
+		dto.setCreatedOn(new Date());
+		dto.setExpiresOn(null);
+		dto.setInviteeId("987");
+		dto.setTeamId("456");
+		dto.setCreatedBy("123");
+		dto.setMessage("foo");
+		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
+		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
+		// now do the round trip
+		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
+		assertEquals(dbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
+		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
 	}
 
 }
