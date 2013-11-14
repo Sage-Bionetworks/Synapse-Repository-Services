@@ -140,6 +140,9 @@
 	
 	<bean id="messageDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMessageDAOImpl"
 		scope="singleton" />
+    
+    <bean id="commentDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOCommentDAOImpl"
+        scope="singleton" />
 
 	<bean id="changeDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAOImpl"
 		scope="singleton">

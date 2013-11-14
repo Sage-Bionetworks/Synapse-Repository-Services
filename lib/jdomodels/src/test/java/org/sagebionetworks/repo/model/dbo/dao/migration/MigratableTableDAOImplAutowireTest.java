@@ -229,7 +229,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
-		expectedPrimaryTypes.add(MigrationType.MESSAGE);
+		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);
 		expectedPrimaryTypes.add(MigrationType.WIKI_PAGE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_OWNERS);
 		expectedPrimaryTypes.add(MigrationType.V2_WIKI_PAGE);
