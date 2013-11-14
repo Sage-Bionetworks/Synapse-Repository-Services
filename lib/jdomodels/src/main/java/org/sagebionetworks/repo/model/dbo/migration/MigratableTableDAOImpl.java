@@ -271,7 +271,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		for(int i=0; i<batch.size(); i++){
 			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
 			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
-			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);			Long id = (Long) obj;
+			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
+			Long id = (Long) obj;
 			createOrUpdateIds.add(id);
 		}
 		// execute the batch
