@@ -19,6 +19,8 @@ import java.util.Map;
 
 import javax.servlet.ServletException;
 
+import junit.framework.Assert;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.junit.Before;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -45,6 +48,7 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
@@ -77,6 +81,19 @@ public class SynapseTest {
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 		synapse = new SynapseClientImpl(mockProvider, mockUploader);
+	}
+	
+	@Test
+	public void testOriginatingClient() throws Exception {
+		SharedClientConnection connection = synapse.getSharedClientConnection();
+		Map<String,String> map = new HashMap<String,String>();
+		map.put("originClient", "bridge");
+		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
+		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=bridge", url);
+		
+		map.put("originClient", "synapse");
+		url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
+		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=synapse", url);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

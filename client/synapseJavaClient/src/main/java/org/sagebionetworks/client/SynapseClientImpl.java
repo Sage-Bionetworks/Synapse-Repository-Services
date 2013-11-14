@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -65,6 +67,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -4545,9 +4548,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void createUser(NewUser user) throws SynapseException {
+		createUser(user, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent());
+			Map<String,String> parameters = originClient.getParameterMap();
+			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4555,11 +4564,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void resendPasswordEmail(String email) throws SynapseException{
+		resendPasswordEmail(email, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent());
+			Map<String,String> parameters = originClient.getParameterMap();
+			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent(),
+					parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4618,21 +4634,34 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void sendPasswordResetEmail() throws SynapseException {
-		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent());
+		sendPasswordResetEmail(OriginatingClient.SYNAPSE);
 	}
 	
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException {
+		sendPasswordResetEmail(email, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
+		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent(),
+				originClient.getParameterMap());
+	}
+	
+	@Override
+	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException {
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/userPasswordEmail", obj.toString(), getUserAgent());
+			getSharedClientConnection().postJson(authEndpoint, "/userPasswordEmail", obj.toString(), getUserAgent(),
+					originClient.getParameterMap());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
+	
 
 	@Override
 	public Session passThroughOpenIDParameters(String queryString) throws SynapseException {
@@ -4646,18 +4675,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary) throws SynapseException {
+		return passThroughOpenIDParameters(queryString, acceptsTermsOfUse, createUserIfNecessary, OriginatingClient.SYNAPSE);
+	}
+	
+	@Override
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
 		try {
-			URI uri = new URI(null, null, "/openIdCallback", 
-					queryString + "&org.sagebionetworks.acceptsTermsOfUse=" + acceptsTermsOfUse 
-							+ "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, 
-					null);
-			JSONObject session = getSharedClientConnection().postJson(authEndpoint, uri.toString(), "", getUserAgent());
+			URIBuilder builder = new URIBuilder();
+			builder.setPath("/openIdCallback");
+			builder.setQuery(queryString);
+			builder.setParameter("org.sagebionetworks.acceptsTermsOfUse", acceptsTermsOfUse.toString());
+			builder.setParameter("org.sagebionetworks.createUserIfNecessary", acceptsTermsOfUse.toString());
+			/*
+			URI uri = new URI(null, null, "/openIdCallback", queryString + "&org.sagebionetworks.acceptsTermsOfUse="
+					+ acceptsTermsOfUse + "&org.sagebionetworks.createUserIfNecessary=" + createUserIfNecessary, null);
+					*/
+			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
+					getUserAgent(), originClient.getParameterMap());
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
-		} catch (URISyntaxException e) {
+		} /*catch (URISyntaxException e) {
 			throw new SynapseException(e);
-		}
+		}*/
 	}
+		
 }
 

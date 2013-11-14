@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -975,10 +976,21 @@ public interface SynapseClient extends BaseClient {
 	public void createUser(NewUser user) throws SynapseException;
 	
 	/**
-	 * Prompts Synapse to resent the email used to set a new user's password
+	 * Creates a user
+	 */
+	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException;
+	
+	/**
+	 * Prompts Synapse to resent the email used to set a new user's password, as if request 
+	 * was sent from Synapse.
 	 */
 	public void resendPasswordEmail(String email) throws SynapseException;
 
+	/**
+	 * Prompts Synapse to resent the email used to set a new user's password
+	 */
+	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException;
+	
 	/**
 	 * Retrieves the bare-minimum amount of information about the current user
 	 * i.e. email and name
@@ -1001,14 +1013,24 @@ public interface SynapseClient extends BaseClient {
 	public void changeEmail(String sessionToken, String newPassword) throws SynapseException;
 	
 	/**
-	 * Sends a password reset email to the current user 
+	 * Sends a password reset email to the current user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail() throws SynapseException;
 	
 	/**
-	 * Sends a password reset email to the given user
+	 * Sends a password reset email to the current user 
+	 */
+	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException;
+	
+	/**
+	 * Sends a password reset email to the given user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
+	
+	/**
+	 * Sends a password reset email to the given user
+	 */
+	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException;
 	
 	/**
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
@@ -1022,9 +1044,20 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
 	
-	/** 
+	/**
 	 * See {@link #passThroughOpenIDParameters(String)}
-	 * @param createUserIfNecessary Whether a user should be created if the user does not already exist
+	 * 
+	 * @param createUserIfNecessary
+	 *            Whether a user should be created if the user does not already
+	 *            exist
 	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary) throws SynapseException;
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
+			Boolean createUserIfNecessary) throws SynapseException;
+	
+	/**
+	 * @param originClient
+	 * 		Which client did the user access to authenticate via a third party provider (Synapse or Bridge)?
+	 */
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
+			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException;
 }
