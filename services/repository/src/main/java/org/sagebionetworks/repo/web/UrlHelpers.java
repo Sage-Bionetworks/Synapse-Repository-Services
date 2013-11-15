@@ -498,17 +498,18 @@ public class UrlHelpers {
 	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
 	
 	// Messaging URLs
-	public static final String MESSAGE                  = "/message";
-	public static final String MESSAGE_STATUS           = MESSAGE + "/status";
-	public static final String MESSAGE_INBOX            = MESSAGE + "/inbox";
-	public static final String MESSAGE_OUTBOX           = MESSAGE + "/outbox";
-	public static final String MESSAGE_ORDER_BY_PARAM   = "orderBy";
-	public static final String MESSAGE_DESCENDING_PARAM = "descending";
-	public static final String MESSAGE_ID_PATH_VAR      = "messageId";
-	public static final String MESSAGE_ID               = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
-	public static final String MESSAGE_ID_FORWARD       = MESSAGE_ID + "/forward";
-	public static final String MESSAGE_ID_CONVERSATION  = MESSAGE_ID + "/conversation";
-	public static final String MESSAGE_ID_STATUS        = MESSAGE_ID + "/status";
+	public static final String MESSAGE                    = "/message";
+	public static final String MESSAGE_STATUS             = MESSAGE + "/status";
+	public static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
+	public static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
+	public static final String MESSAGE_INBOX_FILTER_PARAM = "inboxFilter";
+	public static final String MESSAGE_ORDER_BY_PARAM     = "orderBy";
+	public static final String MESSAGE_DESCENDING_PARAM   = "descending";
+	public static final String MESSAGE_ID_PATH_VAR        = "messageId";
+	public static final String MESSAGE_ID                 = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
+	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + "/forward";
+	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + "/conversation";
+	public static final String MESSAGE_ID_STATUS          = MESSAGE_ID + "/status";
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes

@@ -1,11 +1,18 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -34,6 +41,7 @@ public class MessageController extends BaseController {
 	@Autowired
 	private ServiceProvider serviceProvider;
 	
+	private static final String defaultInboxFilter = "UNREAD";
 	private static final String defaultSortOrder = "SEND_DATE";
 	private static final String defaultSortDescending = "true";
 
@@ -60,22 +68,45 @@ public class MessageController extends BaseController {
 	/**
 	 * Retrieves the current authenticated user's inbox.  
 	 * It may take several seconds for a message to appear in the inbox after creation.  
+	 * </br>
+	 * By default, the most recent unread messages are returned first.  
+	 * To flip the ordering, set the "descending" parameter to "false".
+	 * To change the way the messages are ordered, set the "orderBy" parameter to 
+	 *   a value defined in the <a href="${org.sagebionetworks.repo.model.message.MessageSortBy}">MessageSortBy enumeration</a>.
+	 * To retrieve messages that have been read or archived, set the "inboxFilter" parameter to 
+	 *   a comma-separated list of values defined in the <a href="${org.sagebionetworks.repo.model.message.MessageStatusType}">MessageStatusType enumeration</a>.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_INBOX, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<MessageBundle> getInbox(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = UrlHelpers.MESSAGE_INBOX_FILTER_PARAM, required = false, defaultValue = defaultInboxFilter) String inboxFilter, 
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, required = false, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, required = false, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset) 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset, 
+			HttpServletRequest request) 
 					throws NotFoundException {
-		return serviceProvider.getMessageService().getInbox(username, orderBy, descending, limit, offset);
+		// Convert inbox filter param into a list
+		List<MessageStatusType> filter = new ArrayList<MessageStatusType>();
+		String[] splits = inboxFilter.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
+		for (String split : splits) {
+			MessageStatusType d = MessageStatusType.valueOf(split.toUpperCase());
+			filter.add(d);
+		}
+		
+		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
+		return serviceProvider.getMessageService().getInbox(username, filter, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_INBOX);
 	}
 	
 	/**
 	 * Retrieves the current authenticated user's outbox.  
+	 * </br>
+	 * By default, the most recent messages are returned first.  
+	 * To flip the ordering, set the "descending" parameter to "false".
+	 * To change the way the messages are ordered, set the "orderBy" parameter to 
+	 *   a value defined in the <a href="${org.sagebionetworks.repo.model.message.MessageSortBy}">MessageSortBy enumeration</a>.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_OUTBOX, method = RequestMethod.GET)
@@ -85,9 +116,11 @@ public class MessageController extends BaseController {
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, required = false, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, required = false, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset) 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset, 
+			HttpServletRequest request) 
 					throws NotFoundException {
-		return serviceProvider.getMessageService().getOutbox(username, orderBy, descending, limit, offset);
+		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
+		return serviceProvider.getMessageService().getOutbox(username, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_OUTBOX);
 	}
 	
 	/**
@@ -119,7 +152,12 @@ public class MessageController extends BaseController {
 	
 	/**
 	 * Retrieves messages belonging to the same thread as the given message.
-	 * The current authenticated user will be either the sender or receiver of all returned messages.     
+	 * The current authenticated user will be either the sender or receiver of all returned messages.
+	 * </br>
+	 * By default, the most recent messages are returned first.  
+	 * To flip the ordering, set the "descending" parameter to "false".
+	 * To change the way the messages are ordered, set the "orderBy" parameter to 
+	 *   a value defined in the <a href="${org.sagebionetworks.repo.model.message.MessageSortBy}">MessageSortBy enumeration</a>.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_CONVERSATION, method = RequestMethod.GET)
@@ -130,9 +168,11 @@ public class MessageController extends BaseController {
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, required = false, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, required = false, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset) 
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset, 
+			HttpServletRequest request) 
 					throws NotFoundException {
-		return serviceProvider.getMessageService().getConversation(username, messageId, orderBy, descending, limit, offset);
+		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
+		return serviceProvider.getMessageService().getConversation(username, messageId, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_ID_CONVERSATION);
 	}
 	
 	/**
