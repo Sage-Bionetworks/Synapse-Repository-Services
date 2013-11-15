@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -18,9 +19,12 @@ import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -95,6 +99,9 @@ public class MessageManagerImplTest {
 		testTeam.setName("MessageManagerImplTest");
 		testTeam = teamManager.create(testUser, testTeam);
 		final String testTeamId = testTeam.getId();
+		
+		// This user info needs to be updated to contain the team
+		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -172,6 +179,29 @@ public class MessageManagerImplTest {
 		
 		// Cleanup the team
 		teamManager.delete(testUser, testTeam.getId());
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testGetMessagePermissions() throws Exception {
+		// User should be able to see both messages that have been delivered
+		assertEquals(userToOther, messageManager.getMessage(testUser, userToOther.getId()));
+		assertEquals(otherReplyToUser, messageManager.getMessage(testUser, otherReplyToUser.getId()));
+		
+		// User should be able to get a message directed at it, but that hasn't been sent yet
+		assertEquals(otherReplyToUserAndSelf, messageManager.getMessage(testUser, otherReplyToUserAndSelf.getId()));
+		
+		// User should be able to see a message that cannot be sent, but is directed at a group the user is in
+		assertEquals(otherToSelfAndGroup, messageManager.getMessage(testUser, otherToSelfAndGroup.getId()));
+		
+		// User should not be able to see a message that the other user sends to itself
+		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getIndividualGroup().getId());}}, null);
+		try {
+			messageManager.getMessage(testUser, invisible.getId());
+			fail();
+		} catch (UnauthorizedException e) {
+			assertTrue(e.getMessage().contains("not the sender or receiver"));
+		}
 	}
 	
 	@Test
@@ -265,6 +295,11 @@ public class MessageManagerImplTest {
 		assertEquals(messages, afterSending);
 	}
 	
+	@Test
+	public void testUpdateMessageStatus_NotAllowed() throws Exception {
+		messageManager.markMessageStatus(testUser, 
+	}
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testSendMessage_NotIdempotent() throws Exception {
 		messageManager.sendMessage(userToOther.getId());
@@ -297,5 +332,27 @@ public class MessageManagerImplTest {
 		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(otherToSelfAndGroup, messages.getResults().get(0).getMessage());
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testSendMessageTo_AUTH_USERS() throws Exception {
+		// Find the ID of the AUTHENTICATED_USERS group
+		String findingAuthUsers = null;
+		for (UserGroup ug : testUser.getGroups()) {
+			if (ug.getName().equals(DEFAULT_GROUPS.AUTHENTICATED_USERS.toString())) {
+				findingAuthUsers = ug.getId();
+			}
+		}
+		assertNotNull(findingAuthUsers);
+		final String authUsersId = findingAuthUsers;
+		
+		// This should fail since no one has permission to send to this public group
+		try {
+			createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("may not send"));
+		}
 	}
 }

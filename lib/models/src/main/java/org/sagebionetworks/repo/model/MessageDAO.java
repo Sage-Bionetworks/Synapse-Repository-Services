@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -72,5 +73,5 @@ public interface MessageDAO {
 	/**
 	 * Marks a message within the user's inbox with the given status
 	 */
-	public void updateMessageStatus(String messageId, String userId, MessageStatusType status);
+	public void updateMessageStatus(MessageStatus status);
 }

@@ -6,12 +6,20 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
+	
+	/**
+	 * Retrieves a single message by ID.  
+	 * The user must be either the sender or *intended* recipient of the message.  
+	 * Otherwise, an UnauthorizedException is thrown.  
+	 */
+	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
 	 * Saves the message so that it can be processed by other queries.
@@ -50,7 +58,7 @@ public interface MessageManager {
 	/**
 	 * Changes the status of the user's message 
 	 */
-	public void markMessageStatus(UserInfo userInfo, String messageId, MessageStatusType status);
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status);
 	
 	/**
 	 * Takes an existing message and processes it, 
