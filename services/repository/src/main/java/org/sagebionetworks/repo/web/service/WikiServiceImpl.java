@@ -8,13 +8,13 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
-import org.sagebionetworks.repo.manager.wiki.V2WikiMirrorManager;
 import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -36,7 +36,7 @@ public class WikiServiceImpl implements WikiService {
 	@Autowired
 	V2WikiManager v2WikiManager;
 	@Autowired
-	V2WikiMirrorManager v2WikiMirrorManager;
+	DBOWikiMigrationDAO wikiMigrationDao;
 	@Autowired
 	WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
@@ -51,7 +51,7 @@ public class WikiServiceImpl implements WikiService {
 		WikiPage createdResult = wikiManager.createWikiPage(user, objectId, objectType, toCreate);
 		// Translate the created V1 wiki into a V2 and create it
 		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(createdResult, user);
-		V2WikiPage result = v2WikiMirrorManager.createWikiPage(user, objectId, objectType, translated);
+		V2WikiPage result = wikiMigrationDao.migrateWiki(translated);
 		return createdResult;
 	}
 
@@ -69,10 +69,8 @@ public class WikiServiceImpl implements WikiService {
 		WikiPage updateResult = wikiManager.updateWikiPage(user, objectId, objectType, toUpdate);
 		// Translate the updated V1 wiki
 		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(updateResult, user);
-		// Reset the updated etag to the previous etag so we can lock / updated etag will be set after the lock
-		translated.setEtag(toUpdate.getEtag());
-		// Update the V2 wiki and pass in the updated etag we will set
-		V2WikiPage result = v2WikiMirrorManager.updateWikiPage(user, objectId, objectType, translated, updateResult.getEtag());
+		// Update the V2 mirror
+		V2WikiPage result = wikiMigrationDao.migrateWiki(translated);
 		return updateResult;
 	}
 
@@ -82,7 +80,7 @@ public class WikiServiceImpl implements WikiService {
 		UserInfo user = userManager.getUserInfo(userId);
 		// Delete the V1 wiki and its mirror V2 wiki
 		wikiManager.deleteWiki(user, wikiPageKey);
-		v2WikiMirrorManager.deleteWiki(user, wikiPageKey);
+		v2WikiManager.deleteWiki(user, wikiPageKey);
 	}
 
 	@Override

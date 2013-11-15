@@ -258,8 +258,5 @@
 		
 	<bean id="v2WikiPageMigrationDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMigrationDAOImpl" />
-		
-	<bean id="v2WikiPageMirrorDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMirrorDAOImpl" />
 
 </beans>

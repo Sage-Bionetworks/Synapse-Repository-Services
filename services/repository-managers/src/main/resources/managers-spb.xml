@@ -209,9 +209,6 @@
 		
 	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 
 		scope="singleton" />
-		
-	<bean id="v2WikiMirrorManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiMirrorManagerImpl" 
-		scope="singleton" />
 
 	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
 		scope="singleton" />
