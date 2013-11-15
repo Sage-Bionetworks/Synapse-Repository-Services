@@ -191,7 +191,7 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAOImpl"
 		scope="singleton" init-method="initialize">
 		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
-		<property name="maxRowsPerGet" ref="stackConfiguration.tableMaxRowsPerGet"/>
+		<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
 	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>

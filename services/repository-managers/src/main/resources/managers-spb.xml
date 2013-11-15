@@ -224,6 +224,9 @@
 
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
+		
+	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl"
+		scope="singleton" />	
 
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
 		<constructor-arg index="0" ref="nodeTreeUpdateDao" />

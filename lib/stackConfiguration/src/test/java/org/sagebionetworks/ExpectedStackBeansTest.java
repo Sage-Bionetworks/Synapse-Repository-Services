@@ -37,7 +37,7 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.migrationMaxAllowedPacketBytes",
 
 			"stackConfiguration.tableRowChangeBucketName",
-			"stackConfiguration.tableMaxRowsPerGet",
+			"stackConfiguration.tableMaxBytesPerRequest",
 			// Semaphore gated runner configuration.
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersRds",

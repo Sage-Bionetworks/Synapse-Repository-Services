@@ -146,7 +146,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return null;
+		return MigrationType.TABLE_CHANGE;
 	}
 
 	@Override

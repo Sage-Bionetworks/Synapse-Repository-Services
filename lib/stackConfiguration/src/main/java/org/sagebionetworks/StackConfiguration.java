@@ -1209,9 +1209,9 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public int getTableMaxRowsPerGet() {
+	public int getTableMaxBytesPerRequest() {
 		return Integer.parseInt(configuration
-				.getProperty("org.sagebionetworks.table.max.rows.per.get"));
+				.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
 	}
 
 	/**
