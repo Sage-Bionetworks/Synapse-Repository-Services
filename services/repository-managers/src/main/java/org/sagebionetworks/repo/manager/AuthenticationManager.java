@@ -18,16 +18,18 @@ public interface AuthenticationManager {
 	 * Looks for the user holding the given session token
 	 * @throws UnauthorizedException If the token has expired
 	 */
-	public Long getPrincipalId(String sessionToken) throws UnauthorizedException;
+	public Long getPrincipalId(String sessionToken);
 	
 	/**
 	 * Looks for the given session token
 	 * Also revalidates the session token if valid
+	 * 
+	 * @param checkToU Should an exception be thrown if the terms of use haven't been signed?
 	 * @return The principal ID of the holder
 	 * @throws UnauthorizedException If the token is not valid
 	 * @throws TermsOfUseException If the user has not signed the terms of use
 	 */
-	public Long checkSessionToken(String sessionToken) throws UnauthorizedException, TermsOfUseException;
+	public Long checkSessionToken(String sessionToken, boolean checkToU);
 	
 	/**
 	 * Deletes the given session token, thereby invalidating it
@@ -51,6 +53,7 @@ public interface AuthenticationManager {
 	
 	/**
 	 * Returns the user's session token
+	 * If the user's token is invalid or expired, a new one is created and returned
 	 */
 	public Session getSessionToken(String username) throws NotFoundException;
 	

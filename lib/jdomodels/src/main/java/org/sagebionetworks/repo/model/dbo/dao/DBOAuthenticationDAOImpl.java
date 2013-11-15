@@ -69,15 +69,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
 	
 	private static final String IF_VALID_SUFFIX = 
-			" AND "+SqlConstants.COL_CREDENTIAL_VALIDATED_ON+">:"+TIME_PARAM_NAME+
-			" AND "+SqlConstants.COL_CREDENTIAL_TOU+"=1";
+			" AND "+SqlConstants.COL_CREDENTIAL_VALIDATED_ON+">:"+TIME_PARAM_NAME;
 	
 	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID = 
-			"SELECT "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+
-				" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
+			"SELECT "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+","+SqlConstants.COL_CREDENTIAL_TOU+
+			" FROM "+SqlConstants.TABLE_CREDENTIAL+", "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"="+SqlConstants.COL_USER_GROUP_ID+
-				" AND "+SqlConstants.COL_USER_GROUP_NAME+"=:"+EMAIL_PARAM_NAME+
-				IF_VALID_SUFFIX;
+					" AND "+SqlConstants.COL_USER_GROUP_NAME+"=:"+EMAIL_PARAM_NAME+
+					IF_VALID_SUFFIX;
 	
 	private static final String NULLIFY_SESSION_TOKEN = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
@@ -130,13 +129,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 				throws SQLException {
 			Session session = new Session();
 			session.setSessionToken(rs.getString(SqlConstants.COL_CREDENTIAL_SESSION_TOKEN));
+			session.setAcceptedTermsOfUse(rs.getBoolean(SqlConstants.COL_CREDENTIAL_TOU));
 			return session;
 		}
 		
 	};
 	
 	@Override
-	public Long checkEmailAndPassword(String email, String passHash) throws UnauthorizedException {
+	public Long checkEmailAndPassword(String email, String passHash) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(EMAIL_PARAM_NAME, email);
 		param.addValue(PASSWORD_PARAM_NAME, passHash);
@@ -307,7 +307,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void bootstrapCredentials() throws Exception {
+	public void bootstrapCredentials() throws NotFoundException {
 		if (StackConfiguration.isProductionStack()) {
 			// The migration admin should only be used in specific, non-development stacks
 			String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
