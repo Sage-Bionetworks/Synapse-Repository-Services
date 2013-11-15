@@ -8,6 +8,7 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiMirrorManager;
 import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -35,6 +36,8 @@ public class WikiServiceImpl implements WikiService {
 	@Autowired
 	V2WikiManager v2WikiManager;
 	@Autowired
+	V2WikiMirrorManager v2WikiMirrorManager;
+	@Autowired
 	WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
 	FileHandleManager fileHandleManager;
@@ -44,16 +47,17 @@ public class WikiServiceImpl implements WikiService {
 	public WikiPage createWikiPage(String userId, String objectId,	ObjectType objectType, WikiPage toCreate) throws DatastoreException, NotFoundException, IOException {
 		// Resolve the userID
 		UserInfo user = userManager.getUserInfo(userId);
-		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(toCreate, user);
-		V2WikiPage result = v2WikiManager.createWikiPage(user, objectId, objectType, translated);
-		WikiPage translatedResult = wikiModelTranslationHelper.convertToWikiPage(result);
-		return wikiManager.createWikiPage(user, objectId, objectType, toCreate);
+		WikiPage createdResult = wikiManager.createWikiPage(user, objectId, objectType, toCreate);
+		// Translate and create V2 wiki after creating the V1 wiki so that metadata set by the
+		// manager/DAO is all copied over to the V2 wiki.
+		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(createdResult, user);
+		V2WikiPage result = v2WikiMirrorManager.createWikiPage(user, objectId, objectType, translated);
+		return createdResult;
 	}
 
 	@Override
 	public WikiPage getWikiPage(String userId, WikiPageKey key) throws DatastoreException, NotFoundException, IOException {
 		UserInfo user = userManager.getUserInfo(userId);
-		//V2WikiPage result = v2WikiManager.getWikiPage(user, key);
 		return wikiManager.getWikiPage(user, key);
 	}
 
@@ -61,44 +65,30 @@ public class WikiServiceImpl implements WikiService {
 	@Override
 	public WikiPage updateWikiPage(String userId, String objectId,	ObjectType objectType, WikiPage toUpdate) throws DatastoreException, NotFoundException, IOException {
 		UserInfo user = userManager.getUserInfo(userId);
-		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(toUpdate, user);
-		V2WikiPage result = v2WikiManager.updateWikiPage(user, objectId, objectType, translated);
-		WikiPage translatedResult = wikiModelTranslationHelper.convertToWikiPage(result);
-		return wikiManager.updateWikiPage(user, objectId, objectType, toUpdate);
+		WikiPage updateResult = wikiManager.updateWikiPage(user, objectId, objectType, toUpdate);
+		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(updateResult, user);
+		translated.setEtag(toUpdate.getEtag());
+		V2WikiPage result = v2WikiMirrorManager.updateWikiPage(user, objectId, objectType, translated, updateResult.getEtag());
+		return updateResult;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteWikiPage(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		v2WikiManager.deleteWiki(user, wikiPageKey);
 		wikiManager.deleteWiki(user, wikiPageKey);
+		v2WikiMirrorManager.deleteWiki(user, wikiPageKey);
 	}
 
 	@Override
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(String userId, String ownerId, ObjectType type, Long limit, Long offest) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		/*
-		PaginatedResults<V2WikiHeader> headerResults = v2WikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
-		List<V2WikiHeader> resultAsList = headerResults.getResults();
-		List<WikiHeader> convertedList = new ArrayList<WikiHeader>(); 
-		for(int i = 0; i < resultAsList.size(); i++) {
-			V2WikiHeader header = resultAsList.get(i);
-			WikiHeader newHeader = new WikiHeader();
-			newHeader.setId(header.getId());
-			newHeader.setParentId(header.getParentId());
-			newHeader.setTitle(header.getTitle());
-			convertedList.add(newHeader);
-		}
-		PaginatedResults<WikiHeader> convertedPaginatedResults = new PaginatedResults<WikiHeader>(convertedList, convertedList.size());
-		*/
 		return wikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
 	}
 
 	@Override
 	public FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		//FileHandleResults result = v2WikiManager.getAttachmentFileHandles(user, wikiPageKey);
 		return wikiManager.getAttachmentFileHandles(user, wikiPageKey);
 	}
 
@@ -106,7 +96,6 @@ public class WikiServiceImpl implements WikiService {
 	public URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey,	String fileName) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// First lookup the FileHandle
-		//String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
 		String fileHandleId = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
@@ -116,7 +105,6 @@ public class WikiServiceImpl implements WikiService {
 	public URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName)	throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// First lookup the FileHandle
-		//String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
 		String fileHandleId = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
 		// Get FileHandle
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
@@ -127,10 +115,6 @@ public class WikiServiceImpl implements WikiService {
 	@Override
 	public WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException, IOException {
 		UserInfo user = userManager.getUserInfo(userId);
-		/*
-		V2WikiPage result = v2WikiManager.getRootWikiPage(user, ownerId, type);
-		WikiPage translatedResult = wikiModelTranslationHelper.convertToWikiPage(result);
-		*/
 		return wikiManager.getRootWikiPage(user, ownerId, type);
 	}
 

@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -237,9 +238,6 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		// The archive should have one entry
 		assertTrue(reservationIdsBeforeUpdate.size() == 1);
 		
-		// Sleep to ensure the next date is higher.
-		Thread.sleep(1000);
-		
 		// Add another attachment to the list and update markdown filehandle id to new markdown
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
@@ -361,9 +359,6 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
-		// Sleep to ensure the next date is higher.
-		Thread.sleep(1000);
-		
 		// Add another attachment to the list and update markdown filehandle id to new markdown
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
@@ -469,7 +464,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		root.setCreatedBy(creatorUserGroupId);
 		root.setModifiedBy(creatorUserGroupId);
 		root.setMarkdownFileHandleId(markdownOne.getId());
-
+		
 		// Create it
 		root = wikiPageDao.create(root, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
 		assertNotNull(root);
@@ -559,9 +554,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		
 		List<V2WikiHistorySnapshot> historyBeforeUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyBeforeUpdate.size() == 1);
-		
-		Thread.sleep(1000);
-		
+
 		// Add another attachment to the list and update markdown filehandle id to another markdown
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
