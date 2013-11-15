@@ -240,14 +240,16 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			}
 		}
 
-		V2DBOWikiPage oldDbo = getWikiPageDBO(ownerId, ownerType, wikiPage.getId());
-		Long incrementedVersion = oldDbo.getMarkdownVersion() + 1;
-		
-		// Update this wiki's entry in the WikiPage database (update version)
-		V2DBOWikiPage newDbo = V2WikiTranslationUtils.createDBOFromDTO(wikiPage);
-		long currentTime = System.currentTimeMillis();
-		newDbo.setModifiedOn(currentTime);
-		newDbo.setMarkdownVersion(incrementedVersion);
+		 long currentTime = System.currentTimeMillis();
+
+         V2DBOWikiPage oldDbo = getWikiPageDBO(ownerId, ownerType, wikiPage.getId());
+         Long incrementedVersion = oldDbo.getMarkdownVersion() + 1;
+
+         // Update this wiki's entry in the WikiPage database (update version)
+         V2DBOWikiPage newDbo = V2WikiTranslationUtils.createDBOFromDTO(wikiPage);
+         // Set the modifiedon to current.
+         newDbo.setModifiedOn(currentTime);
+         newDbo.setMarkdownVersion(incrementedVersion);
 		
 		update(ownerType, ownerIdLong, newDbo);
 
