@@ -1,11 +1,6 @@
 package org.sagebionetworks.client;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,15 +8,8 @@ import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.*;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -39,6 +27,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String VERSION_INFO = "/version";
 
 	private static final String COMMUNITY = "/community";
+	private static final String JOIN = "/join";
+	private static final String LEAVE = "/leave";
 
 	protected String bridgeEndpoint;
 
@@ -136,6 +126,22 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		if (communityId == null)
 			throw new IllegalArgumentException("Community Id cannot be null");
 		delete(COMMUNITY + "/" + communityId);
+	}
+
+	@Override
+	public void joinCommunity(String communityId) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + JOIN;
+		get(uri);
+	}
+
+	@Override
+	public void leaveCommunity(String communityId) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + LEAVE;
+		get(uri);
+	}
+
+	private void get(String uri) throws SynapseException {
+		getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 	}
 
 	private <T extends JSONEntity> T get(String uri, Class<T> klass) throws SynapseException {
