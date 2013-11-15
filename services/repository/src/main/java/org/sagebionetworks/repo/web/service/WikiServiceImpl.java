@@ -47,9 +47,9 @@ public class WikiServiceImpl implements WikiService {
 	public WikiPage createWikiPage(String userId, String objectId,	ObjectType objectType, WikiPage toCreate) throws DatastoreException, NotFoundException, IOException {
 		// Resolve the userID
 		UserInfo user = userManager.getUserInfo(userId);
+		// Create the V1 wiki
 		WikiPage createdResult = wikiManager.createWikiPage(user, objectId, objectType, toCreate);
-		// Translate and create V2 wiki after creating the V1 wiki so that metadata set by the
-		// manager/DAO is all copied over to the V2 wiki.
+		// Translate the created V1 wiki into a V2 and create it
 		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(createdResult, user);
 		V2WikiPage result = v2WikiMirrorManager.createWikiPage(user, objectId, objectType, translated);
 		return createdResult;
@@ -65,9 +65,13 @@ public class WikiServiceImpl implements WikiService {
 	@Override
 	public WikiPage updateWikiPage(String userId, String objectId,	ObjectType objectType, WikiPage toUpdate) throws DatastoreException, NotFoundException, IOException {
 		UserInfo user = userManager.getUserInfo(userId);
+		// Update the V1 wiki
 		WikiPage updateResult = wikiManager.updateWikiPage(user, objectId, objectType, toUpdate);
+		// Translate the updated V1 wiki
 		V2WikiPage translated = wikiModelTranslationHelper.convertToV2WikiPage(updateResult, user);
+		// Reset the updated etag to the previous etag so we can lock / updated etag will be set after the lock
 		translated.setEtag(toUpdate.getEtag());
+		// Update the V2 wiki and pass in the updated etag we will set
 		V2WikiPage result = v2WikiMirrorManager.updateWikiPage(user, objectId, objectType, translated, updateResult.getEtag());
 		return updateResult;
 	}
@@ -76,6 +80,7 @@ public class WikiServiceImpl implements WikiService {
 	@Override
 	public void deleteWikiPage(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
+		// Delete the V1 wiki and its mirror V2 wiki
 		wikiManager.deleteWiki(user, wikiPageKey);
 		v2WikiMirrorManager.deleteWiki(user, wikiPageKey);
 	}
