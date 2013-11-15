@@ -78,7 +78,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvitee" />
 				<!-- Table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn" />
@@ -124,6 +123,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />

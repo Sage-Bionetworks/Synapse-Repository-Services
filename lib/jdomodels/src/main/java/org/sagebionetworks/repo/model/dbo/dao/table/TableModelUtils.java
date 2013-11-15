@@ -279,6 +279,11 @@ public class TableModelUtils {
 				if(row.getRowId() > range.getMaximumId()){
 					throw new IllegalStateException("RowSet required more row IDs than were allocated.");
 				}
+			}else{
+				// Validate the rowId is within range
+				if(row.getRowId() > range.getMaximumUpdateId()){
+					throw new IllegalArgumentException("Cannot update row: "+row.getRowId()+" because it does not exist.");
+				}
 			}
 		}
 	}
@@ -656,5 +661,56 @@ public class TableModelUtils {
 			// add the new row to the out set
 			out.getRows().add(newRow);
 		}
+	}
+	
+	/**
+	 * Calculate the maximum row size for a given schema.
+	 * 
+	 * @param models
+	 * @return
+	 */
+	public static int calculateMaxRowSize(List<ColumnModel> models){
+		if(models == null) throw new IllegalArgumentException("Models cannot be null");
+		int size = 0;
+		for(ColumnModel cm: models){
+			size += calculateMaxSizeForType(cm.getColumnType());
+		}
+		return size;
+	}
+	
+	/**
+	 * Calculate the maximum size in bytes that a column of this type can be when represented as a string. 
+	 * @param cm
+	 * @return
+	 */
+	public static int calculateMaxSizeForType(ColumnType type){
+		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
+		if(ColumnType.STRING.equals(type)){
+			return ColumnConstants.MAX_STRING_BYTES;
+		}else if(ColumnType.BOOLEAN.equals(type)){
+			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
+		}else if(ColumnType.LONG.equals(type)){
+			return ColumnConstants.MAX_LONG_BYTES_AS_STRING;
+		}else if(ColumnType.DOUBLE.equals(type)){
+			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
+		}else if(ColumnType.FILEHANDLEID.equals(type)){
+			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
+		}else{
+			throw new IllegalArgumentException("Unknown ColumnType: "+type);
+		}
+	}
+	
+	/**
+	 * Is a request within the maximum number of bytes per request?
+	 * 
+	 * @param models - The schema of the request.  This determines the maximum number of bytes per row.
+	 * @param rowCount - The number of rows requested.
+	 * @param maxBytesPerRequest - The limit of the maximum number of bytes per request.
+	 */
+	public static boolean isRequestWithinMaxBytePerRequest(List<ColumnModel> models, int rowCount, int maxBytesPerRequest){
+		// What is the size per row
+		int maxBytesPerRow = calculateMaxRowSize(models);
+		int neededBytes = rowCount*maxBytesPerRow;
+		return neededBytes <= maxBytesPerRequest;
 	}
 }

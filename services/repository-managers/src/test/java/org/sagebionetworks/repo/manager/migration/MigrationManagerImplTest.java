@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager.migration;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,14 +15,18 @@ import org.mockito.Mockito;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.MembershipInvtnSubmissionUtils;
 import org.sagebionetworks.repo.model.dbo.migration.DBOSubjectAccessRequirementBackup;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 /**
  * The Unit test for MigrationManagerImpl;
@@ -87,8 +93,6 @@ public class MigrationManagerImplTest {
 			out.close();
 		}
 		
-		System.out.println(out.toString());
-		
 		// now read back in
 		{
 			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
@@ -110,6 +114,7 @@ public class MigrationManagerImplTest {
 		}
 		
 	}
+	
 	/**
 	 * 
 	 * @throws Exception
@@ -137,8 +142,6 @@ public class MigrationManagerImplTest {
 			out.close();
 		}
 		
-		System.out.println(out.toString());
-		
 		// now read back in
 		{
 			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
@@ -160,6 +163,70 @@ public class MigrationManagerImplTest {
 			assertEquals(nar.getNodeId(), sarOut.getSubjectId());
 			assertEquals(nar.getAccessRequirementId(), sarOut.getAccessRequirementId());
 			assertEquals(RestrictableObjectType.ENTITY.toString(), sarOut.getSubjectType());
+		}
+		
+	}
+
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testInvitationRoundtrip() throws Exception {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		LegacyDBOMembershipInvtnSubmission legacy = new LegacyDBOMembershipInvtnSubmission();
+		// set the fields
+		String createdBy = "987";
+		Long createdOn = System.currentTimeMillis();
+		Long expiresOn = createdOn;
+		Long id = 1223L;
+		Long teamId = 456L;
+		Long inviteeId = 789L;
+		String message = "foo";
+		legacy.setCreatedOn(createdOn);
+		legacy.setExpiresOn(expiresOn);
+		legacy.setId(id);
+		legacy.setTeamId(teamId);
+		
+		LegacyMembershipInvtnSubmission legacyDTO = new LegacyMembershipInvtnSubmission();
+		legacyDTO.setCreatedBy(createdBy);
+		legacyDTO.setCreatedOn(new Date(createdOn));
+		legacyDTO.setExpiresOn(new Date(expiresOn));
+		legacyDTO.setId(id.toString());
+		legacyDTO.setInvitees(Collections.singletonList(inviteeId.toString()));
+		legacyDTO.setMessage(message);
+		legacyDTO.setTeamId(teamId.toString());
+		legacy.setProperties(JDOSecondaryPropertyUtils.compressObject(legacyDTO, "MembershipInvtnSubmission"));
+		
+		{
+			List<LegacyDBOMembershipInvtnSubmission> backupList = Arrays.asList(new LegacyDBOMembershipInvtnSubmission[]{legacy});
+			// Now write the backup list to the stream
+			// we use the table name as the Alias
+			String alias = legacy.getTableMapping().getTableName();
+			// Now write the backup to the stream
+			BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
+			out.close();
+		}
+		
+		// now read back in, into the new object
+		{
+			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+			DBOMembershipInvtnSubmission current = new DBOMembershipInvtnSubmission();
+			String alias = current.getTableMapping().getTableName();
+			List<DBOMembershipInvtnSubmission> backupList = 
+				(List<DBOMembershipInvtnSubmission>) BackupMarshalingUtils.readBackupFromStream(current.getBackupClass(), alias, in);
+			assertEquals(1, backupList.size());
+			// Now translate from the backup object to the (up-to-date) database object
+			DBOMembershipInvtnSubmission dbo = current.getTranslator().createDatabaseObjectFromBackup(backupList.get(0));
+			// did it come out OK?
+			MembershipInvtnSubmission dto = MembershipInvtnSubmissionUtils.copyDboToDto(dbo);
+			assertEquals(legacyDTO.getCreatedBy(), dto.getCreatedBy());
+			assertEquals(legacyDTO.getCreatedOn(), dto.getCreatedOn());
+			assertEquals(legacyDTO.getExpiresOn(), dto.getExpiresOn());
+			assertEquals(legacyDTO.getId(), dto.getId());
+			assertEquals(legacyDTO.getInvitees().get(0), dto.getInviteeId());
+			assertEquals(legacyDTO.getMessage(), dto.getMessage());
+			assertEquals(legacyDTO.getTeamId(), dto.getTeamId());
 		}
 		
 	}

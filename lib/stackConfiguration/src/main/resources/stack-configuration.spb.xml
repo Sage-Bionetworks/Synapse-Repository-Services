@@ -61,7 +61,7 @@
 	
 	<!-- TableEntity -->
 	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	<bean id="stackConfiguration.tableMaxRowsPerGet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	
 	<!-- Semaphore gated runner configuration -->
 	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
