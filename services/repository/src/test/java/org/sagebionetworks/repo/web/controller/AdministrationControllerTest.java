@@ -98,6 +98,8 @@ public class AdministrationControllerTest {
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
 		stackStatusDao.updateStatus(status);
+		// Delete starting from children to avoid losing
+		// resources on cascade delete
 		for(int i = wikisToDelete.size() - 1; i >= 0; i--) {
 			try {
 				WikiPageKey key = wikisToDelete.get(i);

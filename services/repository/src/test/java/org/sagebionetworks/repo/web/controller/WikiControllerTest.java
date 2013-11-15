@@ -170,6 +170,7 @@ public class WikiControllerTest {
 		assertNotNull(wiki.getEtag());
 		assertNotNull(ownerId, wiki.getModifiedBy());
 		assertNotNull(ownerId, wiki.getCreatedBy());
+		// A V2 wiki should also have been made to mirror this one
 		assertEquals(1, wikiPageDao.getCount());
 		assertEquals(1, v2WikiPageDao.getCount());
 		// Get the wiki page.
@@ -257,6 +258,8 @@ public class WikiControllerTest {
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);
 		
+		// Delete file handles etc made when creating V2 wikis
+		// Start with child so resources aren't lost when deleting the parent first
 		for(int i = toDelete.size() - 1; i >= 0; i--) {
 			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i));
 			String markdownHandleId = wikiPage.getMarkdownFileHandleId();

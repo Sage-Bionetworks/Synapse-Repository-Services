@@ -126,12 +126,13 @@ public class V2DBOWikiPageMirrorDAOTest {
 		fileNameMap.put(attachOne.getFileName(), attachOne);
 		List<String> newIds = new ArrayList<String>();
 		newIds.add(attachOne.getId());
+		// Update with attachments
 		V2WikiPage updatedClone = v2WikiPageMirrorDao.update(clone, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(updatedClone);
 		assertEquals(clone, updatedClone);
 		List<Long> reservation = v2WikiPageMirrorDao.getFileHandleReservationForWiki(key);
 		assertEquals(1, reservation.size());
-		fileMetadataDao.get(reservation.get(0).toString());
+		assertEquals(attachOne.getId(), reservation.get(0).toString());
 		
 		v2WikiPageMirrorDao.delete(key);
 		assertEquals(0, wikiPageDao.getCount());

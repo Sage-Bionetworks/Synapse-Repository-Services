@@ -99,7 +99,7 @@ public class V2DBOWikiPageMirrorDAOImpl implements V2WikiPageMirrorDao {
 		// Check for parent cycle
 		if(wikiPage.getParentWikiId() != null) {
 			if(checkForParentCycle(new WikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
-				throw new IllegalArgumentException("There will be a cycle if this wiki is updated. Put in valid parentId");
+				throw new IllegalArgumentException("There will be a cycle if this wiki is created. Put in valid parentId");
 			}
 		}
 		
