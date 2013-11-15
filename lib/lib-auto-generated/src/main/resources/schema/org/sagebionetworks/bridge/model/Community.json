@@ -7,9 +7,9 @@
         }
     ],
     "properties":{
-		"groupId": {
+		"teamId": {
 			"type": "string",
-			"description": "The id of the group associated with this community"
+			"description": "The id of the team associated with this community"
 		}
 	}
 }

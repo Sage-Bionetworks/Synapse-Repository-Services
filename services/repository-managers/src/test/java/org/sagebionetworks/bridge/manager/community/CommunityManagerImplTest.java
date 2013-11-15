@@ -9,6 +9,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.*;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,7 @@ import static org.junit.Assert.*;
 public class CommunityManagerImplTest {
 
 	private static final String USER_ID = "123";
-	private static final String GROUP_ID = "456";
+	private static final String TEAM_ID = "456";
 	private static final String COMMUNITY_ID = "789";
 
 	@Mock
@@ -38,12 +39,17 @@ public class CommunityManagerImplTest {
 	@Mock
 	private UserManager userManager;
 	@Mock
+	private TeamManager teamManager;
+	@Mock
 	private AccessRequirementDAO accessRequirementDAO;
 	@Mock
 	private EntityManager entityManager;
+	@Mock
+	private EntityPermissionsManager entityPermissionsManager;
 
 	private CommunityManager communityManager;
 	private UserInfo validUser;
+	private Team testTeam;
 	private Community testCommunity;
 
 	@Before
@@ -63,11 +69,15 @@ public class CommunityManagerImplTest {
 		testCommunity.setId(COMMUNITY_ID);
 		testCommunity.setName(USER_ID);
 		testCommunity.setDescription("hi");
-		testCommunity.setGroupId(GROUP_ID);
+		testCommunity.setTeamId(TEAM_ID);
 		testCommunity.setEtag("etag");
 
-		communityManager = new CommunityManagerImpl(authorizationManager, groupMembersDAO, userGroupDAO, aclDAO, userManager,
-				accessRequirementDAO, entityManager);
+		testTeam = new Team();
+		testTeam.setId(TEAM_ID);
+		testTeam.setName(COMMUNITY_ID);
+
+		communityManager = new CommunityManagerImpl(authorizationManager, groupMembersDAO, userGroupDAO, aclDAO, userManager, teamManager,
+				accessRequirementDAO, entityManager, entityPermissionsManager);
 	}
 
 	@After
@@ -78,30 +88,29 @@ public class CommunityManagerImplTest {
 
 	@Test
 	public void testCreate() throws Exception {
-		when(userManager.doesPrincipalExist(USER_ID)).thenReturn(false);
-		when(userGroupDAO.create(any(UserGroup.class))).thenReturn(GROUP_ID);
+		when(teamManager.create(eq(validUser), any(Team.class))).thenReturn(testTeam);
 
 		final CaptureStub<Community> newCommunity = CaptureStub.forClass(Community.class);
 		when(entityManager.createEntity(eq(validUser), newCommunity.capture(), (String) isNull())).thenReturn(COMMUNITY_ID);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenAnswer(newCommunity.answer());
 
-		// create ACL, adding the current user to the community, as an admin
+		// set ACL, adding the current user to the community, as an admin
+		when(entityPermissionsManager.getACL(COMMUNITY_ID, validUser)).thenReturn(new AccessControlList());
 
 		Community community = new Community();
 		community.setName(USER_ID);
 		community.setDescription("hi");
 		Community created = communityManager.create(validUser, community);
 
-		verify(userManager).doesPrincipalExist(USER_ID);
-		verify(userGroupDAO).create(any(UserGroup.class));
+		verify(teamManager).create(eq(validUser), any(Team.class));
 
 		verify(entityManager).createEntity(eq(validUser), newCommunity.capture(), (String) isNull());
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
 
-		verify(groupMembersDAO).addMembers(COMMUNITY_ID, Collections.singletonList(USER_ID));
-		verify(aclDAO).create(any(AccessControlList.class));
+		verify(entityPermissionsManager).getACL(COMMUNITY_ID, validUser);
+		verify(entityPermissionsManager).updateACL(any((AccessControlList.class)), eq(validUser));
 
-		assertEquals(GROUP_ID, created.getGroupId());
+		assertEquals(TEAM_ID, created.getTeamId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -133,74 +142,74 @@ public class CommunityManagerImplTest {
 
 	@Test
 	public void testGet() throws Exception {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		Community community = communityManager.get(validUser, COMMUNITY_ID);
 		assertNotNull(community);
 
-		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.READ);
+		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ);
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		try {
 			communityManager.get(validUser, COMMUNITY_ID);
 
 		} catch (Throwable t) {
-			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.READ);
+			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ);
 			throw t;
 		}
 	}
 
 	@Test
 	public void testPut() throws Exception {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		Community community = communityManager.update(validUser, testCommunity);
 		assertNotNull(community);
 
-		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE);
-		verify(entityManager).updateEntity(validUser, testCommunity, true, null);
+		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(entityManager).updateEntity(validUser, testCommunity, false, null);
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testPutNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		try {
 			communityManager.update(validUser, testCommunity);
 
 		} catch (Throwable t) {
-			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE);
+			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 			throw t;
 		}
 	}
 
 	@Test
 	public void testDelete() throws Exception {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(true);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		communityManager.delete(validUser, COMMUNITY_ID);
 
-		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE);
+		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE);
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
-		verify(userGroupDAO).delete(GROUP_ID);
+		verify(teamManager).delete(validUser, TEAM_ID);
 		verify(entityManager).deleteEntity(validUser, COMMUNITY_ID);
 	}
 
 	@Test(expected = UnauthorizedException.class)
 	public void testDeleteNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE)).thenReturn(false);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(false);
 		try {
 			communityManager.delete(validUser, COMMUNITY_ID);
 
 		} catch (Throwable t) {
-			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.COMMUNITY, ACCESS_TYPE.DELETE);
+			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE);
 			throw t;
 		}
 	}

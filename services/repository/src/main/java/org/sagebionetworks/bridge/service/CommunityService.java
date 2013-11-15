@@ -15,21 +15,37 @@ public interface CommunityService {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
+	 * @throws ACLInheritanceException
+	 * @throws NameConflictException
 	 */
 	public Community create(String userId, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
-			NotFoundException;
+			NotFoundException, NameConflictException, ACLInheritanceException;
 
 	/**
 	 * Retrieve the Communities to which the given user belongs, paginated
 	 * 
+	 * @param userId
 	 * @param principalId
 	 * @param offset
 	 * @param limit
 	 * @return
 	 * @throws DatastoreException
+	 * @throws NotFoundException
 	 */
-	// public PaginatedResults<Community> getByMember(String principalId, long limit, long offset) throws
-	// DatastoreException;
+	public PaginatedResults<Community> getByMember(String userId, String principalId, int limit, int offset) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * Retrieve all visible communities, paginated
+	 * 
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<Community> getAll(String userId, int limit, int offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a Community by its ID
@@ -65,6 +81,26 @@ public interface CommunityService {
 	 * @throws NotFoundException
 	 */
 	public void delete(String userId, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Join a community
+	 * 
+	 * @param userId
+	 * @param communityId
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public void joinCommunity(String userId, String communityId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Leave a community
+	 * 
+	 * @param userId
+	 * @param communityId
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public void leaveCommunity(String userId, String communityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the ACL for a Community

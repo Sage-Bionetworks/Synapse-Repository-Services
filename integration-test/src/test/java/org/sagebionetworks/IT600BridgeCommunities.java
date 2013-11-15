@@ -84,6 +84,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
+import com.google.common.collect.Lists;
+
 /**
  * Run this integration test as a sanity check to ensure our Synapse Java Client is working
  * 
@@ -95,9 +97,7 @@ public class IT600BridgeCommunities {
 
 	public static final int RDS_WORKER_TIMEOUT = 1000 * 60; // One min
 
-	private List<String> toDelete = null;
-
-	private static List<Long> accessRequirementsToDelete;
+	private List<String> communitiesToDelete = Lists.newArrayList();
 
 	private static BridgeClient bridge = null;
 	private static BridgeClient bridgeTwo = null;
@@ -155,22 +155,13 @@ public class IT600BridgeCommunities {
 	 */
 	@After
 	public void after() throws Exception {
-		// SynapseClient synapse = createSynapse(bridge);
-		// if (toDelete != null) {
-		// for (String id: toDelete) {
-		// try {
-		// synapse.deleteAndPurgeEntityById(id);
-		// } catch (Exception e) {}
-		// }
-		// }
-		// if (accessRequirementsToDelete!=null) {
-		// // clean up Access Requirements
-		// for (Long id : accessRequirementsToDelete) {
-		// try {
-		// synapse.deleteAccessRequirement(id);
-		// } catch (Exception e) {}
-		// }
-		// }
+		for (String communityId : communitiesToDelete) {
+			try {
+				bridge.deleteCommunity(communityId);
+			} catch (Exception e) {
+				System.err.println("Could not delete community: " + e.getMessage());
+			}
+		}
 	}
 
 	@Test
@@ -192,7 +183,7 @@ public class IT600BridgeCommunities {
 		Community newCommunity = bridge.createCommunity(communityToCreate);
 		assertEquals(communityName, newCommunity.getName());
 		assertNotNull(newCommunity.getId());
-		assertNotNull(newCommunity.getGroupId());
+		assertNotNull(newCommunity.getTeamId());
 		assertNull(newCommunity.getDescription());
 
 		newCommunity.setDescription("some description");
@@ -210,4 +201,32 @@ public class IT600BridgeCommunities {
 		} catch (SynapseNotFoundException e) {
 		}
 	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testAddRemoveUsers() throws Exception {
+		Community community = createCommunity();
+		bridgeTwo.joinCommunity(community.getId());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	private Community createCommunity() throws SynapseException {
+		String communityName = "my-first-community-" + System.currentTimeMillis() + "-" + communitiesToDelete.size();
+
+		Community communityToCreate = new Community();
+		communityToCreate.setName(communityName);
+
+		Community newCommunity = bridge.createCommunity(communityToCreate);
+		assertEquals(communityName, newCommunity.getName());
+		assertNotNull(newCommunity.getId());
+		assertNotNull(newCommunity.getTeamId());
+		assertNull(newCommunity.getDescription());
+
+		communitiesToDelete.add(newCommunity.getId());
+
+		return newCommunity;
+	}
 }
+

@@ -1,12 +1,12 @@
 package org.sagebionetworks.bridge.manager.community;
 
-import java.net.URL;
 import java.util.*;
 
 import org.sagebionetworks.bridge.manager.Validate;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class CommunityManagerImpl implements CommunityManager {
@@ -34,24 +35,31 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Autowired
 	private UserManager userManager;
 	@Autowired
+	private TeamManager teamManager;
+	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
 	private EntityManager entityManager;
+	@Autowired
+	private EntityPermissionsManager entityPermissionsManager;
 
 	public CommunityManagerImpl() {
 	}
 
 	// for testing
 	CommunityManagerImpl(AuthorizationManager authorizationManager, GroupMembersDAO groupMembersDAO, UserGroupDAO userGroupDAO,
-			AccessControlListDAO aclDAO, UserManager userManager, AccessRequirementDAO accessRequirementDAO, EntityManager entityManager) {
+			AccessControlListDAO aclDAO, UserManager userManager, TeamManager teamManager, AccessRequirementDAO accessRequirementDAO,
+			EntityManager entityManager, EntityPermissionsManager entityPermissionsManager) {
 		this.authorizationManager = authorizationManager;
 		this.groupMembersDAO = groupMembersDAO;
 
 		this.userGroupDAO = userGroupDAO;
 		this.aclDAO = aclDAO;
 		this.userManager = userManager;
+		this.teamManager = teamManager;
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.entityManager = entityManager;
+		this.entityPermissionsManager = entityPermissionsManager;
 	}
 
 	public static void validateForCreate(Community community) {
@@ -61,7 +69,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		Validate.notSpecifiable(community.getId(), "id");
 		Validate.notSpecifiable(community.getModifiedBy(), "modifiedBy");
 		Validate.notSpecifiable(community.getModifiedOn(), "modifiedOn");
-		Validate.notSpecifiable(community.getGroupId(), "groupId");
+		Validate.notSpecifiable(community.getTeamId(), "teamId");
 
 		Validate.required(community.getName(), "name");
 		Validate.optional(community.getDescription(), "description");
@@ -70,7 +78,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	public static void validateForUpdate(Community community) {
 		Validate.missing(community.getEtag(), "etag");
 		Validate.missing(community.getId(), "id");
-		Validate.missing(community.getGroupId(), "groupId");
+		Validate.missing(community.getTeamId(), "teamId");
 
 		Validate.required(community.getName(), "name");
 		Validate.optional(community.getDescription(), "description");
@@ -105,15 +113,12 @@ public class CommunityManagerImpl implements CommunityManager {
 		return ra;
 	}
 
-	public static AccessControlList createInitialAcl(final UserInfo creator, final String communityId) {
+	public static AccessControlList createInitialAcl(final UserInfo creator, final String communityId, final String teamId) {
 		Date now = new Date();
 
-		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		ResourceAccess adminRa = createResourceAccess(Long.parseLong(creator.getIndividualGroup().getId()), ADMIN_COMMUNITY_PERMISSIONS);
-		raSet.add(adminRa);
-
-		ResourceAccess communityRa = createResourceAccess(Long.parseLong(communityId), NON_ADMIN_COMMUNITY_PERMISSIONS);
-		raSet.add(communityRa);
+		Set<ResourceAccess> raSet = Sets.newHashSet(
+				createResourceAccess(Long.parseLong(creator.getIndividualGroup().getId()), ADMIN_COMMUNITY_PERMISSIONS),
+				createResourceAccess(Long.parseLong(teamId), NON_ADMIN_COMMUNITY_PERMISSIONS));
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId(communityId);
@@ -155,33 +160,43 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Community create(UserInfo userInfo, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
-			NotFoundException {
+			NotFoundException, NameConflictException, ACLInheritanceException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			throw new UnauthorizedException("Anonymous user cannot create Community.");
 		}
 		validateForCreate(community);
 
-		// create UserGroup for community (fail if UG with the given name already exists)
-		if (userManager.doesPrincipalExist(community.getName())) {
-			throw new InvalidModelException("Name " + community.getName() + " is already used.");
-		}
+		// create the team (this will do a uniqueness check on the team name
+		Team team = new Team();
+		team.setName(community.getName());
+		team.setDescription(community.getDescription());
+		team.setCanPublicJoin(true);
+		team = teamManager.create(userInfo, team);
 
-		UserGroup ug = new UserGroup();
-		ug.setName(community.getName());
-		ug.setIsIndividual(false);
-		String groupId = userGroupDAO.create(ug);
-
-		community.setGroupId(groupId);
+		community.setTeamId(team.getId());
 		populateCreationFields(userInfo, community);
 
 		String communityId = entityManager.createEntity(userInfo, community, null);
 		Community created = entityManager.getEntity(userInfo, communityId, Community.class);
 
-		groupMembersDAO.addMembers(groupId, Collections.singletonList(userInfo.getIndividualGroup().getId()));
-		// create ACL, adding the current user to the community, as an admin
-		AccessControlList acl = createInitialAcl(userInfo, groupId);
-		aclDAO.create(acl);
+		// adding the current user to the community as an admin, and the team as a non-admin
+		AccessControlList acl = entityPermissionsManager.getACL(communityId, userInfo);
+		Set<ResourceAccess> raSet = Sets.newHashSet(
+				createResourceAccess(Long.parseLong(userInfo.getIndividualGroup().getId()), ADMIN_COMMUNITY_PERMISSIONS),
+				createResourceAccess(Long.parseLong(team.getId()), NON_ADMIN_COMMUNITY_PERMISSIONS));
+		acl.setResourceAccess(raSet);
+		entityPermissionsManager.updateACL(acl, userInfo);
+
 		return created;
+	}
+
+	@Override
+	public Team getCommunityTeam(UserInfo userInfo, String communityId) throws DatastoreException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException("Cannot read Community.");
+		}
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+		return teamManager.get(community.getTeamId());
 	}
 
 	/*
@@ -213,21 +228,63 @@ public class CommunityManagerImpl implements CommunityManager {
 	// return queryResults;
 	// }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#getByMember(java.lang.String, long, long)
-	 */
 	// @Override
 	// public PaginatedResults<Community> getByMember(String principalId, long limit, long offset) throws
 	// DatastoreException {
-	// List<Community> results = communityDAO.getForMemberInRange(principalId, limit, offset);
-	// long count = communityDAO.getCountForMember(principalId);
-	// PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
-	// queryResults.setResults(results);
-	// queryResults.setTotalNumberOfResults(count);
-	// return queryResults;
 	// }
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#getByMember(java.lang.String, int, int)
+	 */
+	@Override
+	public PaginatedResults<Community> getByMember(UserInfo userInfo, String principalId, int limit, int offset) throws DatastoreException,
+			NotFoundException {
+		// temp code. Will add new table to connect community to teams and visa versa.
+		List<Community> communities = Lists.newArrayList();
+
+		for (Team team : teamManager.getByMember(principalId, 0, Long.MAX_VALUE).getResults()) {
+			try {
+				Community community = entityManager.getEntity(userInfo, team.getName(), Community.class);
+				communities.add(community);
+			} catch (NotFoundException e) {
+			}
+		}
+
+		PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
+		int start = Math.min(offset, communities.size());
+		int end = Math.min(start + limit, communities.size());
+		queryResults.setResults(communities.subList(start, end));
+		queryResults.setTotalNumberOfResults(communities.size());
+		return queryResults;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#getAll(java.lang.String, int, int)
+	 */
+	@Override
+	public PaginatedResults<Community> getAll(UserInfo userInfo, int limit, int offset) throws DatastoreException, NotFoundException {
+		// temp code. Will add new table to connect community to teams and visa versa.
+		List<Community> communities = Lists.newArrayList();
+
+		for (Team team : teamManager.getAllTeamsAndMembers().keySet()) {
+			try {
+				Community community = entityManager.getEntity(userInfo, team.getName(), Community.class);
+				communities.add(community);
+			} catch (NotFoundException e) {
+			}
+		}
+
+		PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
+		int start = Math.min(offset, communities.size());
+		int end = Math.min(start + limit, communities.size());
+		queryResults.setResults(communities.subList(start, end));
+		queryResults.setTotalNumberOfResults(communities.size());
+		return queryResults;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -277,8 +334,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		}
 
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
-		// delete userGroup
-		userGroupDAO.delete(community.getGroupId());
+		teamManager.delete(userInfo, community.getTeamId());
 		entityManager.deleteEntity(userInfo, communityId);
 	}
 

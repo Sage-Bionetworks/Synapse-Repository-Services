@@ -6,8 +6,9 @@ package org.sagebionetworks.bridge.controller;
 import org.sagebionetworks.bridge.BridgeUrlHelpers;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.service.BridgeServiceProvider;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,13 +39,18 @@ public class CommunityController extends BridgeBaseController {
 	 * @param community
 	 * @return
 	 * @throws NotFoundException
+	 * @throws ACLInheritanceException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws DatastoreException
+	 * @throws NameConflictException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY, method = RequestMethod.POST)
 	public @ResponseBody
 	Community createCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestBody Community community)
-			throws NotFoundException {
+			@RequestBody Community community) throws NotFoundException, NameConflictException, DatastoreException, InvalidModelException,
+			UnauthorizedException, ACLInheritanceException {
 		return serviceProvider.getCommunityService().create(userId, community);
 	}
 
@@ -59,8 +65,7 @@ public class CommunityController extends BridgeBaseController {
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	Community getCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id)
-			throws NotFoundException {
+			@PathVariable String id) throws NotFoundException {
 		return serviceProvider.getCommunityService().get(userId, id);
 	}
 
@@ -77,8 +82,7 @@ public class CommunityController extends BridgeBaseController {
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	Community updateCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestBody Community community)
-			throws NotFoundException {
+			@RequestBody Community community) throws NotFoundException {
 		return serviceProvider.getCommunityService().update(userId, community);
 	}
 
@@ -94,5 +98,79 @@ public class CommunityController extends BridgeBaseController {
 	public void deleteCommunity(@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws NotFoundException {
 		serviceProvider.getCommunityService().delete(userId, id);
+	}
+
+	/**
+	 * Retrieve a paginated list of all Communities.
+	 * 
+	 * @param limit the maximum number of Communities to return (default 10)
+	 * @param offset the starting index of the returned results (default 0)
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Community> getCommunities(
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getCommunityService().getAll(userId, limit, offset);
+	}
+
+	/**
+	 * Retrieve a paginated list of Communities to which the given user belongs.
+	 * 
+	 * @param id the principal ID of the user of interest.
+	 * @param limit the maximum number of Communities to return (default 10)
+	 * @param offset the starting index of the returned results (default 0)
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.USER_COMMUNITIES, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Community> getCommunitiesByMember(
+			@PathVariable String id,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getCommunityService().getByMember(userId, id, limit, offset);
+	}
+
+	/**
+	 * Join a Communities
+	 * 
+	 * @param id the ID of the Community to join
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.JOIN_COMMUNITY, method = RequestMethod.GET)
+	public void joinCommunity(@PathVariable String communityId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			NotFoundException {
+		serviceProvider.getCommunityService().joinCommunity(userId, communityId);
+	}
+
+	/**
+	 * Join a Communities
+	 * 
+	 * @param id the ID of the Community to join
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.LEAVE_COMMUNITY, method = RequestMethod.GET)
+	public void leaveCommunity(@PathVariable String communityId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			NotFoundException {
+		serviceProvider.getCommunityService().leaveCommunity(userId, communityId);
 	}
 }
