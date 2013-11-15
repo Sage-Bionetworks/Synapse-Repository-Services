@@ -208,4 +208,40 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		misToDelete=-1L; // no need to delete in 'tear down'
 	}
 	
+	@Test
+	public void testDeleteByTeamAndUser() throws Exception {
+		Team team = createTeam();
+		Long teamId = Long.parseLong(team.getId());
+		// create the submission
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		Date expiresOn = new Date();
+		mis.setCreatedOn(new Date());
+		mis.setExpiresOn(expiresOn);
+		mis.setMessage("Please join the team.");
+		mis.setTeamId(""+teamId);
+		
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mis.setInviteeId(individUser.getId());
+		long pgLong = Long.parseLong(individUser.getId());
+		
+		mis = membershipInvtnSubmissionDAO.create(mis);
+		String id = mis.getId();
+		assertNotNull(id);
+		misToDelete = Long.parseLong(id);
+		
+		assertEquals(1, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
+
+		membershipInvtnSubmissionDAO.deleteByTeamAndUser(teamId+1, pgLong);
+		membershipInvtnSubmissionDAO.deleteByTeamAndUser(teamId, pgLong+1);
+		// didn't delete our invitation
+		assertEquals(1, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		
+		membershipInvtnSubmissionDAO.deleteByTeamAndUser(teamId, pgLong);
+		// now we did!
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		
+		misToDelete=-1L; // no need to delete in 'tear down'
+	}
+	
 }

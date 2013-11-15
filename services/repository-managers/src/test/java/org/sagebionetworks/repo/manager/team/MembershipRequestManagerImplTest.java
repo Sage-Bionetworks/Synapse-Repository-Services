@@ -236,9 +236,9 @@ public class MembershipRequestManagerImplTest {
 		mr.setUserId(""+userId);
 		long teamId = 101L;
 		List<MembershipRequest> expected = Arrays.asList(new MembershipRequest[]{mr});
-		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
+		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
 			thenReturn(expected);
-		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
+		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
 		assertEquals(expected, actual.getResults());

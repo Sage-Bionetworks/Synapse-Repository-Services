@@ -131,8 +131,8 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
 		long requestorIdAsLong = Long.parseLong(requestorId);
-		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), limit, offset);
-		long count = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamIdAsLong, requestorIdAsLong, now.getTime());
+		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), limit, offset);
+		long count = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamIdAsLong, requestorIdAsLong, now.getTime());
 		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>();
 		results.setResults(mrList);
 		results.setTotalNumberOfResults(count);

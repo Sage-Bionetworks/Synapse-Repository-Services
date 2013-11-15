@@ -349,7 +349,7 @@ public class TeamManagerImpl implements TeamManager {
 			// the member to be added is someone other than me
 			if (!amTeamAdmin) return false; // can't add somone unless I'm a Team administrator
 			// can't add someone unless they are asking to be added
-			long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+			long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 			return openRequestCount>0L;
 		}
 	}
@@ -371,6 +371,11 @@ public class TeamManagerImpl implements TeamManager {
 		// check that user is not already in Team
 		if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId))
 			groupMembersDAO.addMembers(teamId, Arrays.asList(new String[]{principalId}));
+		// clean up any invitations
+		membershipInvtnSubmissionDAO.deleteByTeamAndUser(Long.parseLong(teamId), Long.parseLong(principalUserInfo.getIndividualGroup().getId()));
+		// clean up and membership requests
+		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), Long.parseLong(principalUserInfo.getIndividualGroup().getId()));
+		
 	}
 	
 	/**
@@ -484,7 +489,7 @@ public class TeamManagerImpl implements TeamManager {
 		long now = System.currentTimeMillis();
 		long openInvitationCount = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenInvitation(openInvitationCount>0L);
-		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
+		long openRequestCount = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(Long.parseLong(teamId), Long.parseLong(principalId), now);
 		tms.setHasOpenRequest(openRequestCount>0L);
 		tms.setCanJoin(canAddTeamMember(userInfo, teamId, principalUserInfo));
 		tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, teamId));
