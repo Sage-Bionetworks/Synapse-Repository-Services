@@ -119,7 +119,7 @@ public class V2WikiMirrorManagerImpl implements V2WikiMirrorManager {
 				newFileHandlesToInsert.add(handle.getId());
 			}
 		}
-		// Set etag
+		// Set etag to match the updated etag of the mirror V1 wiki
 		toUpdate.setEtag(etagToUpdate);
 		// Pass to the DAO
 		return v2WikiPageMirrorDao.update(toUpdate, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);
