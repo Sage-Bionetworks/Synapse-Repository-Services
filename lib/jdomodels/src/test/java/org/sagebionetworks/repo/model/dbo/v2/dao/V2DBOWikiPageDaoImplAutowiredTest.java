@@ -249,7 +249,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
         newIds2.add(attachTwo.getId());
         
         // Update
-        V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);                assertNotNull(clone2);
+        V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);                
+        assertNotNull(clone2);
         assertNotNull(clone2.getEtag());
         
         // The etag should be new and the modified time should be greater than the previous modified time
@@ -359,6 +360,9 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		V2WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType, newIds);
 		assertNotNull(clone);
 
+		// Sleep to ensure the next date is higher.
+		Thread.sleep(1000);
+		 
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
@@ -558,6 +562,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		List<V2WikiHistorySnapshot> historyBeforeUpdate = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyBeforeUpdate.size() == 1);
 
+		Thread.sleep(1000);
+		
 		// Add another attachment to the list and update markdown filehandle id to another markdown
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
