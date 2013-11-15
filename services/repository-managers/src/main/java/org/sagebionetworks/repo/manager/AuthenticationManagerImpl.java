@@ -54,7 +54,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	public Long checkSessionToken(String sessionToken) throws UnauthorizedException, TermsOfUseException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
