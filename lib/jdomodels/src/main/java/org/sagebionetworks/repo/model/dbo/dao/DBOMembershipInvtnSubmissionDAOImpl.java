@@ -84,6 +84,12 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 	
 	private static final String SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT = 
 			"SELECT COUNT(*) "+SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_CORE;
+	
+	private static final String DELETE_INVITATIONS_BY_TEAM_AND_INVITEE = 
+			"DELETE FROM "+TABLE_MEMBERSHIP_INVITATION_SUBMISSION+" WHERE "+
+			COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID+
+			" AND "+
+			COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID+"=:"+COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
@@ -181,6 +187,17 @@ public class DBOMembershipInvtnSubmissionDAOImpl implements MembershipInvtnSubmi
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, userId);
 		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_INVITATIONS_BY_TEAM_AND_USER_COUNT, param);
+	}
+
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteByTeamAndUser(long teamId, long inviteeId)
+			throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID, inviteeId);
+		simpleJdbcTemplate.update(DELETE_INVITATIONS_BY_TEAM_AND_INVITEE, param);
 	}
 
 }

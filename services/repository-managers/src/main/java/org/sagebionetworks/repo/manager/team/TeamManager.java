@@ -98,7 +98,7 @@ public interface TeamManager {
 	public void delete(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException; 
 
 	/**
-	 * Add a member to a Team
+	 * Add a member to a Team, removing applicable membership requests and invitations.
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalUserInfo
