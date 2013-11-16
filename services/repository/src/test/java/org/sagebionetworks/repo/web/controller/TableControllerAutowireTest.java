@@ -17,9 +17,13 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -97,6 +101,19 @@ public class TableControllerAutowireTest {
 		expected.add(one);
 		expected.add(two);
 		assertEquals(expected, cols);
+		
+		// Add some rows to the table.
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelUtils.createRows(cols, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, testUser);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(2, results.getRows().size());
+		assertEquals(table.getId(), results.getTableId());
+		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
 	}
 
 	@Test

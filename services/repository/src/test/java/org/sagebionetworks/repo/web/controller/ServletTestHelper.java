@@ -46,6 +46,8 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -1224,6 +1226,23 @@ public class ServletTestHelper {
 				.dispatchRequest(instance, request, HttpStatus.OK);
 		PaginatedColumnModels pcm =  ServletTestHelperUtils.readResponse(response, PaginatedColumnModels.class);
 		return pcm.getResults();
+	}
+	
+	/**
+	 * Append some rows to a table.
+	 * 
+	 * @param instance
+	 * @param rows
+	 * @param user
+	 * @return
+	 * @throws Exception
+	 */
+	public static RowReferenceSet appendTableRows(DispatcherServlet instance, RowSet rows, String user) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY+"/"+rows.getTableId()+UrlHelpers.TABLE, user, rows);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.CREATED);
+		return ServletTestHelperUtils.readResponse(response, RowReferenceSet.class);
 	}
 	
 	/**

@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -111,6 +112,8 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -2142,6 +2145,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public RowReferenceSet appendRowsToTable(RowSet toAppend) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public ColumnModel getColumnModel(String columnId) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2340,9 +2350,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public void createUser(NewUser user) throws SynapseException {
 		// TODO Auto-generated method stub
-		
 	}
 
+	@Override
+	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException {
+		// TODO Auto-generated method stub
+	}
 
 	@Override
 	public NewUser getAuthUserInfo() throws SynapseException {
@@ -2377,16 +2390,22 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public void sendPasswordResetEmail() throws SynapseException {
 		// TODO Auto-generated method stub
-		
 	}
 
+	@Override
+	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
+		// TODO Auto-generated method stub
+	}
 
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException {
 		// TODO Auto-generated method stub
-		
 	}
 
+	@Override
+	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException {
+		// TODO Auto-generated method stub
+	}
 
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse)
@@ -2406,9 +2425,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public void resendPasswordEmail(String email) throws SynapseException {
 		// TODO Auto-generated method stub
-		
 	}
 
+	@Override
+	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException {
+		// TODO Auto-generated method stub
+	}
 
 	@Override
 	public Session passThroughOpenIDParameters(String queryString)
@@ -2465,6 +2487,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 	@Override
 	public SharedClientConnection getSharedClientConnection() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
+			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}

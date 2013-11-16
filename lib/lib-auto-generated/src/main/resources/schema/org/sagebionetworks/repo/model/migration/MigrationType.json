@@ -38,10 +38,11 @@
         "DOI",
         "TEAM",
         "MEMBERSHIP_INVITATION_SUBMISSION",
-        "MEMBERSHIP_INVITEE",
         "MEMBERSHIP_REQUEST_SUBMISSION",
         "COLUMN_MODEL",
         "BOUND_COLUMN",
+        "TABLE_SEQUENCE",
+        "TABLE_CHANGE",
         "STORAGE_QUOTA",
         "CHANGE"
     ]

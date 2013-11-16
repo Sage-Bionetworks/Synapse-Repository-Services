@@ -69,4 +69,29 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public Community updateCommunity(Community community) throws SynapseException;
+
+	/**
+	 * Delete a community
+	 * 
+	 * @param communityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public void deleteCommunity(String communityId) throws SynapseException;
+
+	/**
+	 * Join a community
+	 * 
+	 * @param community
+	 * @throws SynapseException
+	 */
+	public void joinCommunity(String communityId) throws SynapseException;
+
+	/**
+	 * Leave a community
+	 * 
+	 * @param community
+	 * @throws SynapseException
+	 */
+	public void leaveCommunity(String communityId) throws SynapseException;
 }

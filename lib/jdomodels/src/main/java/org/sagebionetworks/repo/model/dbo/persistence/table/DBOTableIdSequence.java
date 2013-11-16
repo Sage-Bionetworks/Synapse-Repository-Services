@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -106,8 +107,7 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		// TODO Auto-generated method stub
-		return null;
+		return MigrationType.TABLE_SEQUENCE;
 	}
 
 	@Override
@@ -139,7 +139,9 @@ public class DBOTableIdSequence implements MigratableDatabaseObject<DBOTableIdSe
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBOTableRowChange());
+		return list;
 	}
 
 	@Override

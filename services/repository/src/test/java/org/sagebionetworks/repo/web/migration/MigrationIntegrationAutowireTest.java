@@ -70,6 +70,8 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -87,7 +89,8 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -178,6 +181,9 @@ public class MigrationIntegrationAutowireTest {
 	private ColumnModelDAO columnModelDao;
 	
 	@Autowired
+	private TableRowTruthDAO tableRowTruthDao;
+	
+	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
 	
 	@Autowired
@@ -231,8 +237,6 @@ public class MigrationIntegrationAutowireTest {
 	// Favorite
 	Favorite favorite;
 	
-	ColumnModel columnModel;
-	
 	HttpServletRequest mockRequest;
 	
 	@Before
@@ -263,19 +267,39 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	private void createColumnModel() throws DatastoreException, NotFoundException {
-		columnModel = new ColumnModel();
-		columnModel.setName("MigrationTest");
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel = columnModelDao.createColumnModel(columnModel);
-		// bind this column to an entity.
-		Set<String> toBind = new HashSet<String>();
-		toBind.add(columnModel.getId());
-		columnModelDao.bindColumnToObject(toBind, "syn123");
+	private void createColumnModel() throws DatastoreException, NotFoundException, IOException {
+		String tableId = "syn123";
+		// Create some test column models
+		List<ColumnModel> start = TableModelUtils.createOneOfEachType();
+		// Create each one
+		List<ColumnModel> models = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: start){
+			models.add(columnModelDao.createColumnModel(cm));
+		}
+
+		List<String> header = TableModelUtils.getHeaders(models);
+		// bind the columns to the entity
+		Set<String> toBind = new HashSet<String>(header);
+		columnModelDao.bindColumnToObject(toBind, tableId);
+
+		// create some test rows.
+		List<Row> rows = TableModelUtils.createRows(models, 5);
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append the rows to the table
+		tableRowTruthDao.appendRowSetToTable(adminId, tableId, models, set);
+		// Append some more rows
+		rows = TableModelUtils.createRows(models, 6);
+		set.setRows(rows);
+		tableRowTruthDao.appendRowSetToTable(adminId, tableId, models, set);
 	}
 
 
 	private void resetDatabase() throws Exception {
+		// This gives us a chance to also delete the S3 for table rows
+		tableRowTruthDao.truncateAllRowData();
 		// Before we start this test we want to start with a clean database
 		migrationManager.deleteAllData(userInfo);
 		// bootstrap to put back the bootstrap data
@@ -570,7 +594,7 @@ public class MigrationIntegrationAutowireTest {
 
 		dto = messageDAO.createMessage(dto);
 		
-		messageDAO.registerMessageRecipient(dto.getId(), group.getId());
+		messageDAO.createMessageStatus(dto.getId(), group.getId());
 		
 		Comment dto2 = new Comment();
 		dto2.setCreatedBy(group.getId());
@@ -609,7 +633,7 @@ public class MigrationIntegrationAutowireTest {
 		mis.setTeamId(""+group.getId());
 		
 		// need another valid user group
-		mis.setInvitees(Arrays.asList(new String[]{individUser.getId()}));
+		mis.setInviteeId(individUser.getId());
 		Long.parseLong(individUser.getId());
 		
 		membershipInvtnSubmissionDAO.create(mis);

@@ -168,7 +168,7 @@ public class DBOWikiMigrationDAO {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Returns whether or not the parent wiki has migrated successfully to V2
 	 * @param wikiId

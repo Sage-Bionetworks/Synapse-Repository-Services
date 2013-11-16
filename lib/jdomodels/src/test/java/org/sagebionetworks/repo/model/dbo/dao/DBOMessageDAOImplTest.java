@@ -87,12 +87,12 @@ public class DBOMessageDAOImplTest {
 				new HashSet<String>() {{add(maliciousGroup.getId());}}, groupReplyToUser.getId());
 		
 		// Send all the messages
-		messageDAO.registerMessageRecipient(userToUser.getId(), maliciousUser.getId());
-		messageDAO.registerMessageRecipient(userToUserAndGroup.getId(), maliciousUser.getId());
-		messageDAO.registerMessageRecipient(userToUserAndGroup.getId(), maliciousGroup.getId());
-		messageDAO.registerMessageRecipient(userToGroup.getId(), maliciousGroup.getId());
-		messageDAO.registerMessageRecipient(groupReplyToUser.getId(), maliciousUser.getId());
-		messageDAO.registerMessageRecipient(userReplyToGroup.getId(), maliciousGroup.getId());
+		messageDAO.createMessageStatus(userToUser.getId(), maliciousUser.getId());
+		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousUser.getId());
+		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousGroup.getId());
+		messageDAO.createMessageStatus(userToGroup.getId(), maliciousGroup.getId());
+		messageDAO.createMessageStatus(groupReplyToUser.getId(), maliciousUser.getId());
+		messageDAO.createMessageStatus(userReplyToGroup.getId(), maliciousGroup.getId());
 	}
 	
 	/**
@@ -197,6 +197,20 @@ public class DBOMessageDAOImplTest {
 		
 		// Order of messages should be ascending by time
 		assertEquals(groupReplyToUser, messages.get(0));
+	}
+	
+	@Test
+	public void testGetConversation_AscendDate() throws Exception {
+		assertEquals("There are 3 messages in the conversation", 3L, messageDAO.getConversationSize(userToGroup.getId(), maliciousUser.getId()));
+		
+		List<MessageToUser> messages = messageDAO.getConversation(userToGroup.getId(), maliciousUser.getId(), 
+				MessageSortBy.SEND_DATE, false, 100, 0);
+		assertEquals("Should get back all messages", 3, messages.size());
+		
+		// Order of messages should be ascending by creation time
+		assertEquals(userToGroup, messages.get(0));
+		assertEquals(groupReplyToUser, messages.get(1));
+		assertEquals(userReplyToGroup, messages.get(2));
 	}
 
 	

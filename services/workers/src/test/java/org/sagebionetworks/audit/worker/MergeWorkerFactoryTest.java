@@ -31,7 +31,7 @@ public class MergeWorkerFactoryTest {
 
 	@Autowired
 	private AccessRecordDAO accessRecordDAO;
-	
+
 	@After
 	public void after(){
 		// Delete all data created by this test.
@@ -49,8 +49,8 @@ public class MergeWorkerFactoryTest {
 
 		int count = 10;
 		// Create batches for day one
-		Set<String> dayOneSessionIds = createBatchesForDay(dayOneTimeStamp, count, 2);
-		
+		createBatchesForDay(dayOneTimeStamp, count, 2);
+
 		// Now if everything is wired correctly the MergeWorkerFactory timer will fire 
 		// and start the MegeWorker which should convert the 10 files into 2 files
 		long start = System.currentTimeMillis();
@@ -82,7 +82,7 @@ public class MergeWorkerFactoryTest {
 			for(AccessRecord ar: toTest){
 				sessionIds.add(ar.getSessionId());
 			}
-			String key = accessRecordDAO.saveBatch(toTest, toTest.get(0).getTimestamp());
+			String key = accessRecordDAO.saveBatch(toTest, toTest.get(0).getTimestamp(), true);
 			assertNotNull(key);
 		}
 		long elapse = System.currentTimeMillis()-start;
