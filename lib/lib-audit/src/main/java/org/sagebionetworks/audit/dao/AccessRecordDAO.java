@@ -17,21 +17,15 @@ public interface AccessRecordDAO {
 
 	/**
 	 * Save a batch of AccessRecord to the permanent store using the current time as the timestamp.
-	 * 
-	 * @param batch
-	 * @return The key
-	 * @throws IOException 
+	 *
+	 * @param rolling  Whether the batch is saved as "rolling". A rolling file will be collated and merged.
 	 */
-	public String saveBatch(List<AccessRecord> batch) throws IOException;
-	
+	String saveBatch(List<AccessRecord> batch, boolean rolling) throws IOException;
+
 	/**
-	 * Save a batch of AccessRecord to the permanent store using the the given timestamp
-	 * @param batch
-	 * @param timestamp
-	 * @return
-	 * @throws IOException
+	 * @param rolling  Whether the batch is saved as "rolling". A rolling file will be collated and merged.
 	 */
-	public String saveBatch(List<AccessRecord> batch, long timestamp) throws IOException;
+	String saveBatch(List<AccessRecord> batch, long timestamp, boolean rolling) throws IOException;
 
 	/**
 	 * Get a batch of AccessRecords from the permanent store using its key (see:  {@link #saveBatch(List)})
@@ -41,13 +35,13 @@ public interface AccessRecordDAO {
 	 * @return
 	 * @throws IOException 
 	 */
-	public List<AccessRecord> getBatch(String key) throws IOException;
-	
+	List<AccessRecord> getBatch(String key) throws IOException;
+
 	/**
 	 * Delete a batch.
 	 * @param key
 	 */
-	public void deleteBactch(String key);
+	void deleteBactch(String key);
 
 	/**
 	 * List the keys of all batches that makeup the complete access record
@@ -59,11 +53,11 @@ public interface AccessRecordDAO {
 	 *            marker to get the next page.
 	 * @return
 	 */
-	public ObjectListing listBatchKeys(String marker);
-	
+	ObjectListing listBatchKeys(String marker);
+
 	/**
 	 * Delete all stack instance batches from the bucket.  This should never be called on a production system.
 	 * 
 	 */
-	public void deleteAllStackInstanceBatches();
+	void deleteAllStackInstanceBatches();
 }

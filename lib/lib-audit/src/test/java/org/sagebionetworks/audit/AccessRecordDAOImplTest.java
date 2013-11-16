@@ -1,13 +1,13 @@
 package org.sagebionetworks.audit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -49,8 +49,9 @@ public class AccessRecordDAOImplTest {
 	public void testRoundTrip() throws IOException{
 		List<AccessRecord> toTest = AuditTestUtils.createList(5, 100);
 		// create the batch
-		String key = accessRecordDAO.saveBatch(toTest);
+		String key = accessRecordDAO.saveBatch(toTest, true);
 		assertNotNull(key);
+		assertTrue(key.contains(KeyGeneratorUtil.ROLLING));
 
 		List<AccessRecord> back = accessRecordDAO.getBatch(key);
 		assertEquals(toTest, back);
@@ -63,8 +64,9 @@ public class AccessRecordDAOImplTest {
 		String expected = "1982-05-20";
 		List<AccessRecord> toTest = AuditTestUtils.createList(1, 100);
 		// create the batch
-		String key = accessRecordDAO.saveBatch(toTest, cal.getTimeInMillis());
+		String key = accessRecordDAO.saveBatch(toTest, cal.getTimeInMillis(), false);
 		assertTrue(key.indexOf(expected) > 0);
+		assertFalse(key.contains(KeyGeneratorUtil.ROLLING));
 	}
 	
 	@Test
@@ -75,7 +77,7 @@ public class AccessRecordDAOImplTest {
 		Set<String> keys = new HashSet<String>();
 		for(int i=0; i< count; i++){
 			List<AccessRecord> toTest = AuditTestUtils.createList(1, 2001);
-			String key = accessRecordDAO.saveBatch(toTest);
+			String key = accessRecordDAO.saveBatch(toTest, true);
 			assertNotNull(key);
 			keys.add(key);
 		}

@@ -17,15 +17,16 @@ public class KeyGeneratorUtil {
 	 * This template is used to generated a key for a batch of AccessRecords:
 	 * <stack_instance>/<year><month><day>/<hour>/<uuid>.csv.gz
 	 */
-	static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
-	static final String DATE_TEMPLATE = "%1$04d-%2$02d-%3$02d";
-	static final String KEY_TEMPLATE = "%1$S/%2$S/%3$02d-%4$02d-%5$02d-%6$03d-%7$s.csv.gz";
+	private static final String INSTANCE_PREFIX_TEMPLATE = "%1$09d";
+	private static final String DATE_TEMPLATE = "%1$04d-%2$02d-%3$02d";
+	private static final String KEY_TEMPLATE = "%1$S/%2$S/%3$02d-%4$02d-%5$02d-%6$03d-%7$s%8$s.csv.gz";
+	public static final String ROLLING = "-rolling";
 
 	/**
 	 * Create a new Key.
 	 * @return
 	 */
-	public static String createNewKey(int stackInstanceNumber, long timeMS){
+	public static String createNewKey(int stackInstanceNumber, long timeMS, boolean rolling){
 	    Calendar cal = getCalendarUTC(timeMS);
 	    int year = cal.get(Calendar.YEAR);
 	    // We do a +1 because JANUARY=0 
@@ -35,7 +36,7 @@ public class KeyGeneratorUtil {
 		int mins = cal.get(Calendar.MINUTE);
 		int sec = cal.get(Calendar.SECOND);
 		int milli = cal.get(Calendar.MILLISECOND);
-	    return createKey(stackInstanceNumber, year, month, day, hour, mins, sec, milli, UUID.randomUUID().toString());
+	    return createKey(stackInstanceNumber, year, month, day, hour, mins, sec, milli, UUID.randomUUID().toString(), rolling);
 	}
 
 	/**
@@ -68,8 +69,9 @@ public class KeyGeneratorUtil {
 	 * @param uuid
 	 * @return
 	 */
-	public static String createKey(int instance, int year, int month, int day, int hour, int min, int sec, int milli, String uuid){
-		return String.format(KEY_TEMPLATE, getInstancePrefix(instance), getDateString(year, month, day), hour, min, sec, milli, uuid);
+	static String createKey(int instance, int year, int month, int day, int hour, int min, int sec, int milli, String uuid, boolean rolling){
+		String roll = rolling ? ROLLING : "";
+		return String.format(KEY_TEMPLATE, getInstancePrefix(instance), getDateString(year, month, day), hour, min, sec, milli, uuid, roll);
 	}
 	
 	/**

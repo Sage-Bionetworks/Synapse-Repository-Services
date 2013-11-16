@@ -14,7 +14,7 @@ public class KeyGeneratorUtilTest {
 	public void testPadding(){
 		// Since S3 does alpha-numeric sorting on key names, we must pad all numbers
 		String expected = "000000008/2020-01-01/01-09-04-003-uuid.csv.gz";
-		String resultsString = KeyGeneratorUtil.createKey(8, 2020, 1, 1, 1,9,4,3, "uuid");
+		String resultsString = KeyGeneratorUtil.createKey(8, 2020, 1, 1, 1,9,4,3, "uuid", false);
 		assertEquals(expected, resultsString);
 	}
 	
@@ -22,7 +22,7 @@ public class KeyGeneratorUtilTest {
 	public void testPadding2(){
 		// Since S3 does alpha-numeric sorting on key names, we must pad all numbers
 		String expected = "000000900/2020-12-25/59-58-57-999-uuid.csv.gz";
-		String resultsString = KeyGeneratorUtil.createKey(900, 2020, 12, 25, 59,58,57,999, "uuid");
+		String resultsString = KeyGeneratorUtil.createKey(900, 2020, 12, 25, 59,58,57,999, "uuid", false);
 		assertEquals(expected, resultsString);
 	}
 	
@@ -30,18 +30,22 @@ public class KeyGeneratorUtilTest {
 	public void testCreateKey(){
 	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(2012, 11, 30, 22, 49);
-		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());
+		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis(), false);
 		assertNotNull(resultsString);
 		System.out.println(resultsString);
 		assertTrue(resultsString.startsWith("000000101/2012-12-30/22-"));
 		assertTrue(resultsString.endsWith(".csv.gz"));
+		resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis(), true);
+		System.out.println(resultsString);
+		assertTrue(resultsString.startsWith("000000101/2012-12-30/22-"));
+		assertTrue(resultsString.endsWith("-rolling.csv.gz"));
 	}
 	
 	@Test
 	public void testCreateKeyBigInstanceNumber(){
 	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(2012, 11, 30, 22, 49);
-		String resultsString = KeyGeneratorUtil.createNewKey(999999999, cal.getTimeInMillis());
+		String resultsString = KeyGeneratorUtil.createNewKey(999999999, cal.getTimeInMillis(), false);
 		assertNotNull(resultsString);
 		System.out.println(resultsString);
 		assertTrue(resultsString.startsWith("999999999/2012-12-30/22-"));
@@ -76,7 +80,7 @@ public class KeyGeneratorUtilTest {
 	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(1982, 0, 1, 22, 49);
 		String expected = "1982-01-01";
-		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());
+		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis(), false);
 		String resultDateString = KeyGeneratorUtil.getDateStringFromKey(resultsString);
 		assertEquals(expected, resultDateString);
 	}
@@ -86,7 +90,7 @@ public class KeyGeneratorUtilTest {
 	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
 		cal.set(1982, 0, 1, 22, 49);
 		String expected = "1982-01-01/22";
-		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis());
+		String resultsString = KeyGeneratorUtil.createNewKey(101, cal.getTimeInMillis(), false);
 		String resultDateString = KeyGeneratorUtil.getDateAndHourFromKey(resultsString);
 		assertEquals(expected, resultDateString);
 	}

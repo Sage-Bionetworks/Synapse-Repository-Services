@@ -34,7 +34,7 @@ public class AccessRecordManagerImplTest {
 	@Test
 	public void test() throws IOException{
 		List<AccessRecord> list = AuditTestUtils.createList(3, 123);
-		when(mockAccessRecordDAO.saveBatch(list)).thenReturn("thekey!");
+		when(mockAccessRecordDAO.saveBatch(list, true)).thenReturn("thekey!");
 		String key = manager.saveBatch(list);
 		assertEquals("thekey!", key);
 	}

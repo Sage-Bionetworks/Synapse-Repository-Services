@@ -12,7 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:audit-dao.spb.xml" />
-	
+
 	<bean id="auditMergeWorkerFactory" class="org.sagebionetworks.audit.worker.MergeWorkerFactory"/>
 
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
@@ -40,8 +40,8 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="31" />
-		<!-- This is a slow worker and does not need to be run more than once every 30 seconds. -->
-		<property name="repeatInterval" value="10000" />
+		<!-- This is a slow worker and does not need to be run more than once every 1 hour. -->
+		<property name="repeatInterval" value="3600000" />
 	</bean>
 
 </beans>
