@@ -1,6 +1,5 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -62,11 +61,15 @@ public class IT990AuthenticationController {
 		synapse.login(username, "incorrectPassword");
 	}
 	
-	@Test(expected = SynapseTermsOfUseException.class)
+	@Test
 	public void testCreateSessionNoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
 		synapse.login(username, password);
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseTermsOfUseException e) { }
 	}
 	
 	
@@ -119,9 +122,12 @@ public class IT990AuthenticationController {
 		
 		synapse.createUser(user);
 		
-		// Expect a ToU failure here, which means the user was created
+		// Login should be successful, since this doesn't go through the auth filter
+		synapse.login(username, password);
+		
+		// Expect a ToU failure here, since this goes through the auth filter
 		try {
-			synapse.login(username, password);
+			synapse.getMyProfile();
 			fail();
 		} catch (SynapseTermsOfUseException e) { }
 		
@@ -131,67 +137,20 @@ public class IT990AuthenticationController {
 	}
 	
 	@Test
-	public void testGetUser() throws Exception {
-		NewUser user = synapse.getAuthUserInfo();
-		assertEquals(username, user.getEmail());
-		assertEquals("First-" + username, user.getFirstName());
-		assertEquals("Last-" + username, user.getLastName());
-		assertEquals(username, user.getDisplayName());
-	}
-	
-	@Test
 	public void testChangePassword() throws Exception {
 		String testNewPassword = "newPassword";
-		synapse.changePassword(testNewPassword);
+		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
 		synapse.logout();
 		synapse.login(username, testNewPassword);
 		
 		// Restore original password
-		synapse.changePassword(password);
-	}
-	
-	/**
-	 * Functionality is currently disabled pending PLFM-2231
-	 * https://sagebionetworks.jira.com/browse/PLFM-2231
-	 */
-	@Ignore
-	@Test(expected=SynapseNotFoundException.class)
-	public void testChangeEmail() throws Exception {
-		// Changes the current email (IT user 3) to the email of the session token (IT user 3)
-		synapse.changeEmail(synapse.getCurrentSessionToken(), password);
-		
-		//TODO actually change the email
-		//TODO change the email back
-	}
-	
-	@Test
-	public void testRegisterChangePassword() throws Exception {
-		String testNewPassword = "newPassword";
-		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
-		
-		// To check the password, we have to try to log-in:
-		synapse.login(username, testNewPassword);
-		
-		// Restore original password
-		synapse.changePassword(password);
-	}
-	
-	@Test
-	public void testResendPasswordEmail() throws Exception {
-		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.resendPasswordEmail(username);
+		synapse.changePassword(synapse.getCurrentSessionToken(), password);
 	}
 	
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
 		// Note: non-production stacks do not send emails, but instead print a log message
 		synapse.sendPasswordResetEmail(username);
-	}
-	
-	@Test
-	public void testSetAPIPasswordEmail() throws Exception {
-		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.sendPasswordResetEmail();
 	}
 	
 	

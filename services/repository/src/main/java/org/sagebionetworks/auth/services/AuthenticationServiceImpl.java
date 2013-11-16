@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
-import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -102,6 +101,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void sendPasswordEmail(String username, OriginatingClient originClient) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
@@ -148,6 +148,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteSecretKey(String username) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		authManager.changeSecretKey(userInfo.getIndividualGroup().getId());
@@ -156,34 +157,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public String getUsername(String principalId) throws NotFoundException {
 		return userManager.getGroupName(principalId);
-	}
-	
-	/**
-	 * Checks to see if the given user has accepted the terms of use
-	 * 
-	 * Note: Could be made into a public service sometime in the future
-	 * @param acceptsTermsOfUse Will check stored data on user if set to null or false
-	 */
-	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) 
-			throws NotFoundException, TermsOfUseException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		
-		// The ToU field might not be explicitly specified or false
-		if (acceptsTermsOfUse == null || !acceptsTermsOfUse) {
-			acceptsTermsOfUse = userInfo.getUser().isAgreesToTermsOfUse();
-		}
-		
-		// Check for ToU acceptance
-		if (!acceptsTermsOfUse) {
-			throw new TermsOfUseException();
-		}
-		
-		// If the user is accepting the terms in this request, save the time of acceptance
-		if (acceptsTermsOfUse) {
-			if (!userInfo.getUser().isAgreesToTermsOfUse()) {
-				authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTermsOfUse);
-			}
-		}
 	}
 	
 	@Override
@@ -213,10 +186,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(originClientParam);
 		
 		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse, shouldCreateUser, originClient);
-	}
-	
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary) throws NotFoundException {
-		return processOpenIDInfo(info, acceptsTermsOfUse, createUserIffNecessary, OriginatingClient.SYNAPSE);
 	}
 	
 	/**
@@ -253,11 +222,16 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			}
 		}
 		
-		// The user does not need to accept the terms of use to get a session token via OpenID
-		//TODO This should not be the case
-		try {
-			handleTermsOfUse(email, acceptsTermsOfUse);
-		} catch (TermsOfUseException e) { }
+		// The ToU field might not be explicitly specified or false
+		UserInfo userInfo = userManager.getUserInfo(email);
+		if (acceptsTermsOfUse == null || !acceptsTermsOfUse) {
+			acceptsTermsOfUse = userInfo.getUser().isAgreesToTermsOfUse();
+		}
+		
+		// If the user is accepting the terms in this request, save the time of acceptance
+		if (acceptsTermsOfUse && !userInfo.getUser().isAgreesToTermsOfUse()) {
+			authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTermsOfUse);
+		}
 		
 		// Open ID is successful
 		return authManager.authenticate(email, null);

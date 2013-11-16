@@ -67,7 +67,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		// Check the terms of use
-		if (checkToU && authDAO.hasUserAcceptedToU(principalId.toString())) {
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId.toString())) {
 			throw new TermsOfUseException();
 		}
 		

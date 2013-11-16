@@ -81,31 +81,32 @@ public class AuthenticationManagerImplUnitTest {
 	public void testCheckSessionToken() throws Exception {
 		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(Long.parseLong(userId));
 		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
-		String principalId = authManager.checkSessionToken(sessionToken).toString();
+		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		String principalId = authManager.checkSessionToken(sessionToken, true).toString();
 		Assert.assertEquals(userId, principalId);
+		
+		// Token matches, but terms haven't been signed
+		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
+		try {
+			authManager.checkSessionToken(sessionToken, true).toString();
+			fail();
+		} catch (TermsOfUseException e) { }
 
 		// Nothing matches the token
 		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(null);
 		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(null);
+		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
 		try {
-			authManager.checkSessionToken(sessionToken).toString();
+			authManager.checkSessionToken(sessionToken, true).toString();
 			fail();
 		} catch (UnauthorizedException e) {
 			assertTrue(e.getMessage().contains("invalid"));
 		}
 		
-		// Token matches, but terms haven't been signed
-		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
-		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
-		try {
-			authManager.checkSessionToken(sessionToken).toString();
-			fail();
-		} catch (TermsOfUseException e) { }
-		
 		// Token matches, but has expired
-		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
 		try {
-			authManager.checkSessionToken(sessionToken).toString();
+			authManager.checkSessionToken(sessionToken, true).toString();
 			fail();
 		} catch (UnauthorizedException e) {
 			assertTrue(e.getMessage().contains("expired"));

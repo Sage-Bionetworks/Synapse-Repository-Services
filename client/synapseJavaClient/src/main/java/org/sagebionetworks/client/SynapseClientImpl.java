@@ -47,10 +47,8 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -88,8 +86,8 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
+import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -4710,42 +4708,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void resendPasswordEmail(String email) throws SynapseException{
-		resendPasswordEmail(email, OriginatingClient.SYNAPSE);
+	public void sendPasswordResetEmail(String email) throws SynapseException{
+		sendPasswordResetEmail(email, OriginatingClient.SYNAPSE);
 	}
 	
 	@Override
-	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException{
+	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
 			Map<String,String> parameters = originClient.getParameterMap();
-			getSharedClientConnection().postJson(authEndpoint, "/registeringUserEmail", obj.toString(), getUserAgent(),
+			getSharedClientConnection().postJson(authEndpoint, "/user/password/email", obj.toString(), getUserAgent(),
 					parameters);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	@Override
-	public NewUser getAuthUserInfo() throws SynapseException {
-		try {
-			JSONObject obj = getSharedClientConnection().getJson(authEndpoint, "/user", getUserAgent());
-			return EntityFactory.createEntityFromJSONObject(obj, NewUser.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	@Override
-	public void changePassword(String newPassword) throws SynapseException {
-		try {
-			ChangeUserPassword change = new ChangeUserPassword();
-			change.setNewPassword(newPassword);
-			
-			JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
-			getSharedClientConnection().postJson(authEndpoint, "/userPassword", obj.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4754,61 +4729,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException {
 		try {
-			RegistrationInfo info = new RegistrationInfo();
-			info.setRegistrationToken(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
-			info.setPassword(newPassword);
+			ChangePasswordRequest change = new ChangePasswordRequest();
+			change.setSessionToken(sessionToken);
+			change.setPassword(newPassword);
 			
-			JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
-			getSharedClientConnection().postJson(authEndpoint, "/registeringUserPassword", obj.toString(), getUserAgent());
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
+			getSharedClientConnection().postJson(authEndpoint, "/user/password", obj.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
-	
-	@Override
-	public void changeEmail(String sessionToken, String newPassword) throws SynapseException {
-		try {
-			RegistrationInfo info = new RegistrationInfo();
-			info.setRegistrationToken(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX + sessionToken);
-			info.setPassword(newPassword);
-			
-			JSONObject obj = EntityFactory.createJSONObjectForEntity(info);
-			getSharedClientConnection().postJson(authEndpoint, "/changeEmail", obj.toString(), getUserAgent());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	@Override
-	public void sendPasswordResetEmail() throws SynapseException {
-		sendPasswordResetEmail(OriginatingClient.SYNAPSE);
-	}
-	
-	@Override
-	public void sendPasswordResetEmail(String email) throws SynapseException {
-		sendPasswordResetEmail(email, OriginatingClient.SYNAPSE);
-	}
-	
-	@Override
-	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
-		getSharedClientConnection().postJson(authEndpoint, "/apiPasswordEmail", "", getUserAgent(),
-				originClient.getParameterMap());
-	}
-	
-	@Override
-	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException {
-		try {
-			Username user = new Username();
-			user.setEmail(email);
-			
-			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/userPasswordEmail", obj.toString(), getUserAgent(),
-					originClient.getParameterMap());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
 
 	@Override
 	public Session passThroughOpenIDParameters(String queryString) throws SynapseException {

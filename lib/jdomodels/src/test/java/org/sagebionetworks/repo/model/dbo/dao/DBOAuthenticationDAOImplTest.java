@@ -119,6 +119,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Get by username
 		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
+		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptedTermsOfUse());
 		
 		// Get by token
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
@@ -132,6 +133,7 @@ public class DBOAuthenticationDAOImplTest {
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertNull(session.getSessionToken());
+		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptedTermsOfUse());
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
@@ -153,6 +155,7 @@ public class DBOAuthenticationDAOImplTest {
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
+		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptedTermsOfUse());
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
@@ -166,10 +169,10 @@ public class DBOAuthenticationDAOImplTest {
 		basicDAO.update(secretRow);
 		
 		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
-		assertNull(session);
+		assertNotNull(session);
 		
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
-		assertNull(id);
+		assertNotNull(id);
 	}
 	
 	@Test
@@ -258,7 +261,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Reject the terms
 		authDAO.setTermsOfUseAcceptance(userId, false);
 		assertFalse(authDAO.hasUserAcceptedToU(userId));
-		assertNull(authDAO.getSessionTokenIfValid(GROUP_NAME));
+		assertNotNull(authDAO.getSessionTokenIfValid(GROUP_NAME));
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate(userId);

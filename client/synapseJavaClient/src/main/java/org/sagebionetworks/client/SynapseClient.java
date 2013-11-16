@@ -1041,48 +1041,11 @@ public interface SynapseClient extends BaseClient {
 	 * Creates a user
 	 */
 	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException;
-	
-	/**
-	 * Prompts Synapse to resent the email used to set a new user's password, as if request 
-	 * was sent from Synapse.
-	 */
-	public void resendPasswordEmail(String email) throws SynapseException;
-
-	/**
-	 * Prompts Synapse to resent the email used to set a new user's password
-	 */
-	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException;
-	
-	/**
-	 * Retrieves the bare-minimum amount of information about the current user
-	 * i.e. email and name
-	 */
-	public NewUser getAuthUserInfo() throws SynapseException;
-	
-	/**
-	 * Changes the current user's password
-	 */
-	public void changePassword(String newPassword) throws SynapseException;
 
 	/**
 	 * Changes the registering user's password
 	 */
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
-	
-	/**
-	 * Changes the current user's email to the email corresponding to the supplied session token
-	 */
-	public void changeEmail(String sessionToken, String newPassword) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the current user as if request came from Synapse.
-	 */
-	public void sendPasswordResetEmail() throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the current user 
-	 */
-	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException;
 	
 	/**
 	 * Sends a password reset email to the given user as if request came from Synapse.
