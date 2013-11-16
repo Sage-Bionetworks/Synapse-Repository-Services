@@ -29,8 +29,6 @@ public class SendMail {
 	private String baseURL;
 	private String resetPasswordURL;
 	private String passwordEmailFile;
-	private String resetPasswordEmailFile;
-	private String apiPasswordResetFile;
 	private String welcomeEmailFile;
 	private String welcomeEmailSubject;
 	private String resetPasswordSubject;
@@ -44,8 +42,6 @@ public class SendMail {
 		baseURL = props.getProperty("org.sagebionetworks.baseURL");
 		resetPasswordURL = props.getProperty("org.sagebionetworks.resetPasswordURI");
 		passwordEmailFile = props.getProperty("org.sagebionetworks.passwordEmail");
-		resetPasswordEmailFile = props.getProperty("org.sagebionetworks.resetPasswordEmail");
-		apiPasswordResetFile = props.getProperty("org.sagebionetworks.APIPasswordEmail");
 		welcomeEmailFile = props.getProperty("org.sagebionetworks.welcomeEmail");
 		welcomeEmailSubject = props.getProperty("org.sagebionetworks.welcomeEmailSubject");
 		resetPasswordSubject = props.getProperty("org.sagebionetworks.resetPasswordSubject");
@@ -70,30 +66,16 @@ public class SendMail {
     }
     
     public void sendSetPasswordMail(NewUser user, String sessionToken) {
-    	sendUserMail(user, sessionToken, passwordEmailFile);
-    } 
-    
-    public void sendResetPasswordMail(NewUser user, String sessionToken) {
-    	sendUserMail(user, sessionToken, resetPasswordEmailFile);
-    } 
-    
-    public void sendSetAPIPasswordMail(NewUser user, String sessionToken) {
-    	sendUserMail(user, sessionToken, apiPasswordResetFile);
-    } 
-    
-    public void sendUserMail(NewUser user, String sessionToken, String fname) {
     	String templateText = baseURL + resetPasswordURL + sessionToken;
-    	// read in email template
-    	String msg = readMailTemplate(fname);
-    	// fill in display name and user name
+    	// Read in email template
+    	String msg = readMailTemplate(passwordEmailFile);
+    	
+    	// Fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
-    	try {
-    		msg = msg.replaceAll("#link#", templateText);
-    	} catch (IllegalArgumentException e) {
-    		throw new IllegalArgumentException("replacement string=<"+templateText+">");
-    	}
-    	// fill in link, with token
+    	msg = msg.replaceAll("#link#", templateText);
+    	
+    	// Fill in link, with token
     	sendMail(user.getEmail(), resetPasswordSubject, msg);
     }
     
@@ -106,12 +88,11 @@ public class SendMail {
     	// Read in email template
     	String msg = readMailTemplate( welcomeEmailFile );
     	
-    	// fill in display name and user name
+    	// Fill in display name and user name
     	msg = msg.replaceAll("#displayname#", user.getDisplayName());
     	msg = msg.replaceAll("#username#", user.getEmail());
-		
     	
-    	// fill in link, with token
+    	// Fill in link, with token
     	sendMail(user.getEmail(), welcomeEmailSubject, msg);
     }
     

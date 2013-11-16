@@ -47,6 +47,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new UnauthorizedException("Password may not be null");
 		}
 		
+		// Handle the ToU first
+		// If the password check fails, then this change will rollback
+		handleTermsOfUse(credential.getEmail(), credential.getAcceptsTermsOfUse());
+		
 		// Fetch the user's session token
 		return authManager.authenticate(credential.getEmail(), credential.getPassword());
 	}
@@ -222,18 +226,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			}
 		}
 		
-		// The ToU field might not be explicitly specified or false
-		UserInfo userInfo = userManager.getUserInfo(email);
-		if (acceptsTermsOfUse == null || !acceptsTermsOfUse) {
-			acceptsTermsOfUse = userInfo.getUser().isAgreesToTermsOfUse();
-		}
-		
-		// If the user is accepting the terms in this request, save the time of acceptance
-		if (acceptsTermsOfUse && !userInfo.getUser().isAgreesToTermsOfUse()) {
-			authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTermsOfUse);
-		}
+		handleTermsOfUse(email, acceptsTermsOfUse);
 		
 		// Open ID is successful
 		return authManager.authenticate(email, null);
+	}
+	
+	/**
+	 * Accepts the terms of use for the user if necessary
+	 */
+	private void handleTermsOfUse(String username, Boolean acceptsTerms) throws NotFoundException {
+		// The ToU field might not be explicitly specified or false
+		UserInfo userInfo = userManager.getUserInfo(username);
+		if (acceptsTerms == null || !acceptsTerms) {
+			acceptsTerms = userInfo.getUser().isAgreesToTermsOfUse();
+		}
+		
+		// If the user is accepting the terms in this request, save the time of acceptance
+		if (acceptsTerms && !userInfo.getUser().isAgreesToTermsOfUse()) {
+			authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTerms);
+		}
 	}
 }
