@@ -108,7 +108,7 @@ public class SynapseTest {
 		};
 		
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenThrow(simulatedHttpException);
-		synapse.login("username", "password", false);
+		synapse.revalidateSession();
 	}
 	
 	@Test

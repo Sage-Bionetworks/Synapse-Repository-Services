@@ -82,10 +82,6 @@
 
 	<filter-mapping>
 		<filter-name>authFilter</filter-name>
-		<url-pattern>/auth/v1/user</url-pattern>
-		<url-pattern>/auth/v1/userPassword</url-pattern>
-		<url-pattern>/auth/v1/changeEmail</url-pattern>
-		<url-pattern>/auth/v1/apiPasswordEmail</url-pattern>
 		<url-pattern>/auth/v1/secretKey</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>

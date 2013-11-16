@@ -185,30 +185,6 @@ public class SharedClientConnection {
 			loginRequest.setAcceptsTermsOfUse(true);
 		}
 
-		boolean reqPr = requestProfile;
-		requestProfile = false;
-
-		try {
-			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
-			Session session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
-			requestProfile = reqPr;
-			return session.getSessionToken();
-		} catch (SynapseForbiddenException e) {
-			throw new SynapseTermsOfUseException(e.getMessage());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	/**
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitly accept terms of use
-	 */
-	public void loginWithNoProfile(String userName, String password, String userAgent) throws SynapseException {
-		LoginCredentials loginRequest = new LoginCredentials();
-		loginRequest.setEmail(userName);
-		loginRequest.setPassword(password);
 		Session session;
 		try {
 			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
@@ -219,6 +195,19 @@ public class SharedClientConnection {
 		
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+		
+		if (!session.getAcceptedTermsOfUse()) {
+			throw new SynapseTermsOfUseException();
+		}
+		
+		return session.getSessionToken();
+	}
+	
+	/**
+	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitly accept terms of use
+	 */
+	public void loginWithNoProfile(String userName, String password, String userAgent) throws SynapseException {
+		login(userName, password, false, userAgent);
 	}
 
 	public void logout(String userAgent) throws SynapseException {

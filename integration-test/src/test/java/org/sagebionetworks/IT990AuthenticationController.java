@@ -65,9 +65,8 @@ public class IT990AuthenticationController {
 	public void testCreateSessionNoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
-		synapse.login(username, password);
 		try {
-			synapse.getMyProfile();
+			synapse.login(username, password);
 			fail();
 		} catch (SynapseTermsOfUseException e) { }
 	}
@@ -122,12 +121,9 @@ public class IT990AuthenticationController {
 		
 		synapse.createUser(user);
 		
-		// Login should be successful, since this doesn't go through the auth filter
-		synapse.login(username, password);
-		
-		// Expect a ToU failure here, since this goes through the auth filter
+		// Expect a ToU failure here
 		try {
-			synapse.getMyProfile();
+			synapse.login(username, password);
 			fail();
 		} catch (SynapseTermsOfUseException e) { }
 		
