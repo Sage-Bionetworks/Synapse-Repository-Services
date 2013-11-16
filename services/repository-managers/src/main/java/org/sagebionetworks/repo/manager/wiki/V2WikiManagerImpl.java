@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.wiki;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -90,6 +91,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Set created by and modified by
 		wikiPage.setCreatedBy(user.getIndividualGroup().getId());
 		wikiPage.setModifiedBy(wikiPage.getCreatedBy());
+
 		// First build up the map of names to FileHandles
 		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);
 		
