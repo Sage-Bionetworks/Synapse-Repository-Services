@@ -141,10 +141,18 @@ public class MigrationClient {
 		MigrationTypeCounts startDestCounts = destination.getTypeCounts();
 		log.info("Start counts:");
 		printCounts(startSourceCounts.getList(), startDestCounts.getList());
-		// Get the primary types
-		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
+		// Get the primary types for src and dest
+		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
+		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
+		// Only migrate the src primary types that are at destination
+		List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
+		for (MigrationType pt: srcPrimaryTypes) {
+			if (destPrimaryTypes.contains(pt)) {
+				primaryTypesToMigrate.add(pt);
+			}
+		}
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypesToMigrate, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -284,6 +292,7 @@ public class MigrationClient {
 			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
 		}
 		// All migration types of source should be at destination
+		// Note: deleted src migration types are covered, they're not in destination
 		for (MigrationTypeCount mtc: destCounts) {
 			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getCount());
 		}

@@ -14,4 +14,11 @@ public class BackupDriverImplTest {
 		MigrationType type = BackupDriverImpl.getTypeFromFileName(name);
 		assertEquals(MigrationType.FILE_HANDLE, type);
 	}
+	
+	@Test
+	public void testInvalidTypeFromFileName() {
+		String name = "SOME_INVALID_TYPE.xml";
+		MigrationType type = BackupDriverImpl.getTypeFromFileName(name);
+		assertNull(type);
+	}
 }

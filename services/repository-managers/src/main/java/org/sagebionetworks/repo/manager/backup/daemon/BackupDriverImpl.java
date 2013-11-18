@@ -123,16 +123,22 @@ public class BackupDriverImpl implements BackupDriver {
 				checkForTermination(progress);
 
 				MigrationType type = getTypeFromFileName(entry.getName());
-				// This is a backup file.
-				List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
-				// If this is a primary type then we must clear all data for secondary types
-				// that have these backup ids.
-				List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
-				if(secondaryTypes != null){
-					for(MigrationType secondary: secondaryTypes){
-						migrationManager.deleteObjectsById(user, secondary, primaryIds);
+				if (type == null) {
+					// This is a entry for a type at the source that does not exist at destination, skip
+					log.debug("Skipping entry " + entry.getName() + ", cannot map to MigrationType");
+				} else {
+					// This is a backup file.
+					List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
+					// If this is a primary type then we must clear all data for secondary types
+					// that have these backup ids.
+					List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
+					if(secondaryTypes != null){
+						for(MigrationType secondary: secondaryTypes){
+							migrationManager.deleteObjectsById(user, secondary, primaryIds);
+						}
 					}
 				}
+
 				progress.incrementProgressBy(entry.getCompressedSize());
 				if (log.isTraceEnabled()) {
 					log.trace(progress.toString());
@@ -156,7 +162,15 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @return
 	 */
 	public static MigrationType getTypeFromFileName(String name){
-		return MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
+		MigrationType t = null;
+		try {
+			t = MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
+		} catch (IllegalArgumentException e) {
+			if (log.isTraceEnabled()) {
+				log.trace("Unknown migration type for file entry " + name);
+			}
+		}
+		return t;
 	}
 	
 	/**
