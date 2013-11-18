@@ -12,6 +12,7 @@
     	"FAVORITE",
     	"ACCESS_REQUIREMENT",
     	"ACCESS_APPROVAL",
-    	"TEAM"
+    	"TEAM",
+    	"COMMUNITY"
     ]
 }

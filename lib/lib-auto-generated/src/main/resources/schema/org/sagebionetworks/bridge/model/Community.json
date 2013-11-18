@@ -1,52 +1,15 @@
 {
     "title": "Community",
 	"description": "This is a representation of a community.",
-	"properties": {
-		"name": {
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        }
+    ],
+    "properties":{
+		"teamId": {
 			"type": "string",
-			"description": "The name of this community.",
-			"title": "Name"
-		},
-		"description": {
-			"description": "The description of this community.",
-			"type": "string",
-			"title": "Description"
-		},
-		"id": {
-			"type": "string",
-			"description": "The unique immutable ID for this community.  A new ID will be generated for new Communities.  Once issued, this ID is guaranteed to never change or be re-issued",
-			"transient": true
-		},
-		"etag": {
-			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an community is updated it is used to detect when a client's current representation of an community is out-of-date.",
-			"transient": true
-		},
-		"createdOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date this community was created.",
-			"title": "Created On",
-			"transient": true
-		},
-		"modifiedOn": {
-			"type": "string",
-			"format": "date-time",
-			"description": "The date this community was last modified.",
-			"title": "Modified On",
-			"transient": true
-		},
-		"createdBy": {
-			"type": "string",
-			"description": "The ID of the user that created this community.",
-			"title": "Created By",
-			"transient": true
-		},
-		"modifiedBy": {
-			"type": "string",
-			"description": "The ID of the user that last modified this community.",
-			"title": "Modified By",
-			"transient": true
+			"description": "The id of the team associated with this community"
 		}
 	}
 }

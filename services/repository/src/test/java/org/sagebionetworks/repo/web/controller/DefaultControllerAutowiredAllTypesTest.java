@@ -7,11 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -22,33 +18,12 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -93,15 +68,19 @@ public class DefaultControllerAutowiredAllTypesTest {
 	private FileHandleDao fileMetadataDao;
 	@Autowired
 	private ColumnModelDAO columnModelDao;
+	@Autowired
+	private TeamManager teamManager;
 
 	private static HttpServlet dispatchServlet;
 	
 	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
 	private UserInfo testUser;
+	private Team testTeam;
 
 	private List<String> toDelete;
 	S3FileHandle handleOne;
 	ColumnModel columnModelOne;
+
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
@@ -111,6 +90,20 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Make sure we have a valid user.
 		testUser = userManager.getUserInfo(userName);
 		UserInfo.validateUserInfo(testUser);
+		Team team = new Team();
+		team.setName("test team");
+		try {
+			testTeam = teamManager.create(testUser, team);
+		} catch (NameConflictException e) {
+			Map<Team, Collection<TeamMember>> allTeamsAndMembers = teamManager.getAllTeamsAndMembers();
+			for (Team t : allTeamsAndMembers.keySet()) {
+				if (t.getName().equals(team.getName())) {
+					testTeam = t;
+					break;
+				}
+			}
+		}
+		assertNotNull(testTeam);
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(testUser.getIndividualGroup().getId());
 		handleOne.setCreatedOn(new Date());
@@ -142,6 +135,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 		if(handleOne != null && handleOne.getId() != null){
 			fileMetadataDao.delete(handleOne.getId());
+		}
+		if (testTeam != null) {
+			teamManager.delete(testUser, testTeam.getId());
 		}
 	}
 
@@ -226,6 +222,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 					List<String> idList = new LinkedList<String>();
 					idList.add(columnModelOne.getId());
 					table.setColumnIds(idList);
+				}
+				if (object instanceof Community) {
+					Community community = (Community) object;
+					community.setTeamId(testTeam.getId());
 				}
 				Entity clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
