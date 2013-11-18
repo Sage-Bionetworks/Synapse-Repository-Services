@@ -11,6 +11,7 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -94,6 +95,13 @@ public class CommunityManagerImplTest {
 		when(entityManager.createEntity(eq(validUser), newCommunity.capture(), (String) isNull())).thenReturn(COMMUNITY_ID);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenAnswer(newCommunity.answer());
 
+		UserGroup allUsers = new UserGroup();
+		allUsers.setId("1");
+		UserGroup authenticatedUsers = new UserGroup();
+		authenticatedUsers.setId("2");
+		when(userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS)).thenReturn(authenticatedUsers);
+		when(userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC)).thenReturn(allUsers);
+
 		// set ACL, adding the current user to the community, as an admin
 		when(entityPermissionsManager.getACL(COMMUNITY_ID, validUser)).thenReturn(new AccessControlList());
 
@@ -106,6 +114,9 @@ public class CommunityManagerImplTest {
 
 		verify(entityManager).createEntity(eq(validUser), newCommunity.capture(), (String) isNull());
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
+
+		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
+		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC);
 
 		verify(entityPermissionsManager).getACL(COMMUNITY_ID, validUser);
 		verify(entityPermissionsManager).updateACL(any((AccessControlList.class)), eq(validUser));
