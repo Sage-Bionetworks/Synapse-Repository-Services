@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @ControllerInfo(displayName = "Community Services", path = BridgeUrlHelpers.BASE_V1)
 @Controller
+@Deprecated
 public class CommunityController extends BridgeBaseController {
 
 	@Autowired
@@ -152,10 +153,10 @@ public class CommunityController extends BridgeBaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.JOIN_COMMUNITY, method = RequestMethod.GET)
-	public void joinCommunity(@PathVariable String communityId,
+	public void joinCommunity(@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
 			NotFoundException {
-		serviceProvider.getCommunityService().joinCommunity(userId, communityId);
+		serviceProvider.getCommunityService().joinCommunity(userId, id);
 	}
 
 	/**
@@ -168,9 +169,9 @@ public class CommunityController extends BridgeBaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.LEAVE_COMMUNITY, method = RequestMethod.GET)
-	public void leaveCommunity(@PathVariable String communityId,
+	public void leaveCommunity(@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
 			NotFoundException {
-		serviceProvider.getCommunityService().leaveCommunity(userId, communityId);
+		serviceProvider.getCommunityService().leaveCommunity(userId, id);
 	}
 }

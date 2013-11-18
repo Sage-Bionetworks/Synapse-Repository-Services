@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,10 +101,11 @@ public class CommunityManagerImpl implements CommunityManager {
 		community.setModifiedOn(now);
 	}
 
-	public static final ACCESS_TYPE[] ADMIN_COMMUNITY_PERMISSIONS = new ACCESS_TYPE[] { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE,
+	private static final ACCESS_TYPE[] ANONYMOUS_PERMISSIONS = { ACCESS_TYPE.READ };
+	private static final ACCESS_TYPE[] SIGNEDIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.PARTICIPATE };
+	private static final ACCESS_TYPE[] COMMUNITY_MEMBER_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.PARTICIPATE };
+	private static final ACCESS_TYPE[] COMMUNITY_ADMIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE,
 			ACCESS_TYPE.DELETE, ACCESS_TYPE.SEND_MESSAGE };
-
-	private static final ACCESS_TYPE[] NON_ADMIN_COMMUNITY_PERMISSIONS = new ACCESS_TYPE[] { ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE };
 
 	public static ResourceAccess createResourceAccess(long principalId, ACCESS_TYPE[] accessTypes) {
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(accessTypes));
@@ -111,24 +113,6 @@ public class CommunityManagerImpl implements CommunityManager {
 		ra.setAccessType(accessSet);
 		ra.setPrincipalId(principalId);
 		return ra;
-	}
-
-	public static AccessControlList createInitialAcl(final UserInfo creator, final String communityId, final String teamId) {
-		Date now = new Date();
-
-		Set<ResourceAccess> raSet = Sets.newHashSet(
-				createResourceAccess(Long.parseLong(creator.getIndividualGroup().getId()), ADMIN_COMMUNITY_PERMISSIONS),
-				createResourceAccess(Long.parseLong(teamId), NON_ADMIN_COMMUNITY_PERMISSIONS));
-
-		AccessControlList acl = new AccessControlList();
-		acl.setId(communityId);
-		acl.setCreatedBy(creator.getIndividualGroup().getId());
-		acl.setCreationDate(now);
-		acl.setModifiedBy(creator.getIndividualGroup().getId());
-		acl.setModifiedOn(now);
-		acl.setResourceAccess(raSet);
-
-		return acl;
 	}
 
 	public static void addToACL(AccessControlList acl, String principalId, ACCESS_TYPE[] accessTypes) {
@@ -181,22 +165,17 @@ public class CommunityManagerImpl implements CommunityManager {
 
 		// adding the current user to the community as an admin, and the team as a non-admin
 		AccessControlList acl = entityPermissionsManager.getACL(communityId, userInfo);
+		UserGroup authenticatedUsers = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
+		UserGroup allUsers = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC);
 		Set<ResourceAccess> raSet = Sets.newHashSet(
-				createResourceAccess(Long.parseLong(userInfo.getIndividualGroup().getId()), ADMIN_COMMUNITY_PERMISSIONS),
-				createResourceAccess(Long.parseLong(team.getId()), NON_ADMIN_COMMUNITY_PERMISSIONS));
+				createResourceAccess(Long.parseLong(allUsers.getId()), ANONYMOUS_PERMISSIONS),
+				createResourceAccess(Long.parseLong(authenticatedUsers.getId()), SIGNEDIN_PERMISSIONS),
+				createResourceAccess(Long.parseLong(team.getId()), COMMUNITY_MEMBER_PERMISSIONS),
+				createResourceAccess(Long.parseLong(userInfo.getIndividualGroup().getId()), COMMUNITY_ADMIN_PERMISSIONS));
 		acl.setResourceAccess(raSet);
 		entityPermissionsManager.updateACL(acl, userInfo);
 
 		return created;
-	}
-
-	@Override
-	public Team getCommunityTeam(UserInfo userInfo, String communityId) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("Cannot read Community.");
-		}
-		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
-		return teamManager.get(community.getTeamId());
 	}
 
 	/*
@@ -338,6 +317,36 @@ public class CommunityManagerImpl implements CommunityManager {
 		entityManager.deleteEntity(userInfo, communityId);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#join(org.sagebionetworks.repo.model.UserInfo,
+	 * java.lang.String)
+	 */
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void join(UserInfo userInfo, String communityId) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.PARTICIPATE)) {
+			throw new UnauthorizedException("Cannot join Community.");
+		}
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+		teamManager.addMember(userInfo, community.getTeamId(), userInfo);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#leave(org.sagebionetworks.repo.model.UserInfo,
+	 * java.lang.String)
+	 */
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void leave(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getIndividualGroup().getId());
+	}
+
 	/**
 	 * Either: principalId is self and membership invitation has been extended (and not yet accepted), or principalId is
 	 * self and have MEMBERSHIP permission on Community, or have MEMBERSHIP permission on Community and membership
@@ -389,27 +398,6 @@ public class CommunityManagerImpl implements CommunityManager {
 	// if (ug.getId().equals(principalId))
 	// return true;
 	// return false;
-	// }
-	//
-	// /*
-	// * (non-Javadoc)
-	// *
-	// * @see
-	// * org.sagebionetworks.repo.manager.community.CommunityManager#addMember(org.sagebionetworks.repo.model.UserInfo,
-	// * java.lang.String, java.lang.String)
-	// */
-	// @Override
-	// @Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	// public void addMember(UserInfo userInfo, String communityId, UserInfo principalUserInfo) throws
-	// DatastoreException,
-	// UnauthorizedException, NotFoundException {
-	// String principalId = principalUserInfo.getIndividualGroup().getId();
-	// if (!canAddCommunityMember(userInfo, communityId, principalUserInfo)) {
-	// throw new UnauthorizedException("Cannot add member to Community.");
-	// }
-	// // check that user is not already in Community
-	// if (!userGroupsHasPrincipalId(groupMembersDAO.getMembers(communityId), principalId))
-	// groupMembersDAO.addMembers(communityId, Arrays.asList(new String[] { principalId }));
 	// }
 	//
 	// /**

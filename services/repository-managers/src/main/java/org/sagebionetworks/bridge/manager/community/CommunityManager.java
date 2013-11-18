@@ -22,17 +22,6 @@ public interface CommunityManager {
 			NotFoundException, NameConflictException, ACLInheritanceException;
 
 	/**
-	 * get the team that is associated with this community
-	 * 
-	 * @param userInfo
-	 * @param community
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	public Team getCommunityTeam(UserInfo userInfo, String communityId) throws DatastoreException, NotFoundException;
-
-	/**
 	 * Retrieve the Communities to which the given user belongs, paginated
 	 * 
 	 * @param userInfo
@@ -91,6 +80,28 @@ public interface CommunityManager {
 	 * @throws NotFoundException
 	 */
 	public void delete(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * join the community
+	 * 
+	 * @param userInfo
+	 * @param communityId
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public void join(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * leave the community
+	 * 
+	 * @param userInfo
+	 * @param communityId
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public void leave(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get the ACL for a Community
