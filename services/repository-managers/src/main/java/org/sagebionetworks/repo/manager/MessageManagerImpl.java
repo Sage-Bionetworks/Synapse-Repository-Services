@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
@@ -97,6 +98,16 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		return dto;
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
+			MessageRecipientSet recipients) throws NotFoundException {
+		MessageToUser message = getMessage(userInfo, messageId);
+		message.setRecipients(recipients.getRecipients());
+		message.setInReplyTo(messageId);
+		return createMessage(userInfo, message);
 	}
 
 	@Override

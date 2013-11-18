@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
@@ -30,6 +31,12 @@ public interface MessageManager {
 	 * In case of failure, the user will be notified via bounce message.  
 	 */
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto);
+
+	/**
+	 * Saves an existing message so that it can be delivered to the given set of recipients
+	 */
+	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
+			MessageRecipientSet recipients) throws NotFoundException;
 	
 	/**
 	 * Retrieves all messages within the same conversation as the associated message.

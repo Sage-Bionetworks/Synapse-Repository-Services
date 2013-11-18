@@ -29,7 +29,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -204,6 +206,24 @@ public class MessageManagerImplTest {
 		}
 	}
 	
+	@SuppressWarnings("serial")
+	@Test
+	public void testForwardMessage() throws Exception {
+		// Forward a message
+		final String testUserId = testUser.getIndividualGroup().getId();
+		MessageRecipientSet recipients = new MessageRecipientSet();
+		recipients.setRecipients(new HashSet<String>() {{add(testUserId);}});
+		MessageToUser forwarded = messageManager.forwardMessage(testUser, userToOther.getId(), recipients);
+		
+		// It should appear in the test user's inbox immediately
+		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(2L, messages.getTotalNumberOfResults());
+		assertEquals(2, messages.getResults().size());
+		assertEquals(forwarded, messages.getResults().get(0).getMessage());
+		assertEquals(otherReplyToUser, messages.getResults().get(1).getMessage());
+	}
+	
 	@Test
 	public void testGetConversation_BeforeSending() throws Exception {
 		QueryResults<MessageToUser> messages = messageManager.getConversation(testUser, userToOther.getId(), 
@@ -295,9 +315,13 @@ public class MessageManagerImplTest {
 		assertEquals(messages, afterSending);
 	}
 	
-	@Test
+	@Test(expected=UnauthorizedException.class)
 	public void testUpdateMessageStatus_NotAllowed() throws Exception {
-		messageManager.markMessageStatus(testUser, 
+		MessageStatus status = new MessageStatus();
+		status.setMessageId(userToOther.getId());
+		status.setRecipientId(otherTestUser.getIndividualGroup().getId());
+		status.setStatus(MessageStatusType.ARCHIVED);
+		messageManager.markMessageStatus(testUser, status);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

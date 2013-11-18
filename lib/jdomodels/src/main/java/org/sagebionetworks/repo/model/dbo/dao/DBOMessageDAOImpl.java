@@ -238,6 +238,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	 * Fills in the intended recipients of all supplied messages 
 	 */
 	private void fillInMessageRecipients(List<MessageToUser> messages) {
+		if (messages.size() <= 0) {
+			return;
+		}
+		
 		List<String> messageIds = new ArrayList<String>();
 		for (MessageToUser message : messages) {
 			messageIds.add(message.getId());

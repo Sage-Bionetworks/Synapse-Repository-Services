@@ -499,6 +499,9 @@ public class UrlHelpers {
 	
 	// Messaging URLs
 	public static final String MESSAGE                    = "/message";
+	public static final String FORWARD                    = "/forward";
+	public static final String CONVERSATION               = "/conversation";
+	public static final String STATUS                     = "status";
 	public static final String MESSAGE_STATUS             = MESSAGE + "/status";
 	public static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
 	public static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
@@ -507,9 +510,9 @@ public class UrlHelpers {
 	public static final String MESSAGE_DESCENDING_PARAM   = "descending";
 	public static final String MESSAGE_ID_PATH_VAR        = "messageId";
 	public static final String MESSAGE_ID                 = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
-	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + "/forward";
-	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + "/conversation";
-	public static final String MESSAGE_ID_STATUS          = MESSAGE_ID + "/status";
+	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + FORWARD;
+	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + CONVERSATION;
+	public static final String MESSAGE_ID_STATUS          = MESSAGE_ID + STATUS;
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
@@ -553,7 +556,6 @@ public class UrlHelpers {
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
 	
-	public static final String STATUS = "status";
 	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";

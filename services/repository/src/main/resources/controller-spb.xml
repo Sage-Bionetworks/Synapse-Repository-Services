@@ -50,6 +50,9 @@
 
 	<!-- The S3Token Service -->
 	<bean id="s3TokenService" class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />
+	
+	<!-- The Messaging Service -->
+	<bean id="messageService" class="org.sagebionetworks.repo.web.service.MessageServiceImpl" />
 
 	<!-- The StorageUsage Service -->
 	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
