@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo.web.service.table;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -56,4 +62,17 @@ public interface TableServices {
 	 * @throws NotFoundException
 	 */
 	public PaginatedColumnModels listColumnModels(String userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Append rows to a table.
+	 * 
+	 * @param userId
+	 * @param rows
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws IOException 
+	 */
+	public RowReferenceSet appendRows(String userId, RowSet rows) throws DatastoreException, NotFoundException, IOException;
+	
 }

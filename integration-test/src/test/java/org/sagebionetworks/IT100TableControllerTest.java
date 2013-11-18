@@ -20,9 +20,13 @@ import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 
 /**
@@ -123,6 +127,19 @@ public class IT100TableControllerTest {
 		expected.add(one);
 		expected.add(two);
 		assertEquals(expected, columns);
+		
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelUtils.createRows(columns, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		RowReferenceSet results = synapse.appendRowsToTable(set);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(2, results.getRows().size());
+		assertEquals(table.getId(), results.getTableId());
+		assertEquals(TableModelUtils.getHeaders(columns), results.getHeaders());
 	}
 	
 	@Test

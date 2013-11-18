@@ -83,6 +83,8 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -750,6 +752,14 @@ public interface SynapseClient extends BaseClient {
 
 	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException;
+	
+	/**
+	 * Append rows to table entity.
+	 * @param toAppend
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException;
 
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,

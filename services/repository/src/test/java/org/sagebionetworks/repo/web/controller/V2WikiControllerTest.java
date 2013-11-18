@@ -108,7 +108,7 @@ public class V2WikiControllerTest {
 	@After
 	public void after() throws Exception{
 		for(WikiPageKey key: toDelete){
-			entityServletHelper.deleteWikiPage(key, userName);
+			entityServletHelper.deleteV2WikiPage(key, userName);
 		}
 		if(evaluation != null){
 			try {

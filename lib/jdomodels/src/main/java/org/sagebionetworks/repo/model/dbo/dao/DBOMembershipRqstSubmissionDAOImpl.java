@@ -81,6 +81,13 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT = 
 			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE;
 	
+	private static final String DELETE_REQUESTS_BY_TEAM_AND_REQUESTER = 
+			"DELETE FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+" WHERE "+
+			COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
+			" AND "+
+			COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
+
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.MemberRqstSubmissionDAO#create(org.sagebionetworks.repo.model.MemberRqstSubmission)
 	 */
@@ -155,7 +162,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	}
 
 	@Override
-	public List<MembershipRequest> getOpenByTeamAndRequestorInRange(
+	public List<MembershipRequest> getOpenByTeamAndRequesterInRange(
 			long teamId, long requestorId, long now, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
@@ -169,7 +176,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	}
 
 	@Override
-	public long getOpenByTeamAndRequestorCount(long teamId,
+	public long getOpenByTeamAndRequesterCount(long teamId,
 			long requestorId, long now) throws DatastoreException,
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
@@ -177,6 +184,16 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requestorId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT, param);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteByTeamAndRequester(long teamId, long requesterId)
+			throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
+		simpleJdbcTemplate.update(DELETE_REQUESTS_BY_TEAM_AND_REQUESTER, param);
 	}
 
 }

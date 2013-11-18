@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -10,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -341,6 +343,7 @@ public class TableModelUtilsTest {
 		IdRange range = new IdRange();
 		range.setMaximumId(null);
 		range.setMinimumId(null);
+		range.setMaximumUpdateId(999l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
@@ -353,8 +356,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testAssignRowIdsAndVersionNumbers_MixedRowIdsNeeded(){
 		IdRange range = new IdRange();
-		range.setMaximumId(new Long(100));
-		range.setMinimumId(new Long(100));
+		range.setMaximumId(new Long(457));
+		range.setMinimumId(new Long(457));
+		range.setMaximumUpdateId(new Long(456));
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		validRowSet.getRows().get(1).setRowId(null);
@@ -365,7 +369,7 @@ public class TableModelUtilsTest {
 		}
 		assertEquals(new Long(456), validRowSet.getRows().get(0).getRowId());
 		// The second row should have been provided
-		assertEquals(new Long(100), validRowSet.getRows().get(1).getRowId());
+		assertEquals(new Long(457), validRowSet.getRows().get(1).getRowId());
 	}
 	
 	@Test
@@ -394,6 +398,7 @@ public class TableModelUtilsTest {
 		// no ids allocated
 		range.setMaximumId(null);
 		range.setMinimumId(null);
+		range.setMaximumUpdateId(999l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		// Clear all the row ids
@@ -412,6 +417,7 @@ public class TableModelUtilsTest {
 		//  only allocate on id
 		range.setMaximumId(3l);
 		range.setMinimumId(3l);
+		range.setMaximumUpdateId(2l);
 		Long versionNumber = new Long(4);
 		range.setVersionNumber(versionNumber);
 		// Clear all the row ids
@@ -422,6 +428,26 @@ public class TableModelUtilsTest {
 			fail("should have failed");
 		} catch (IllegalStateException e) {
 			assertEquals("RowSet required more row IDs than were allocated.", e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testAssignRowIdsInvalidUpdateRowId(){
+		IdRange range = new IdRange();
+		//  only allocate on id
+		range.setMaximumId(null);
+		range.setMinimumId(null);
+		range.setMaximumUpdateId(1l);
+		Long versionNumber = new Long(4);
+		range.setVersionNumber(versionNumber);
+		// Clear all the row ids
+		validRowSet.getRows().get(0).setRowId(0l);
+		validRowSet.getRows().get(1).setRowId(2l);
+		try {
+			TableModelUtils.assignRowIdsAndVersionNumbers(validRowSet, range);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Cannot update row: 2 because it does not exist.", e.getMessage());
 		}
 	}
 	
@@ -640,5 +666,63 @@ public class TableModelUtilsTest {
 		row.setValues(Arrays.asList(new String[]{"string1", "string1", "true"}));
 		expectedRows.add(row);
 		assertEquals(expected, converted);
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeString() throws UnsupportedEncodingException{
+		char[] array = new char[ColumnConstants.MAX_CHARS_IN_STRING_COLUMN];
+		Arrays.fill(array, Character.MAX_VALUE);
+		int expected  = new String(array).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeBoolean() throws UnsupportedEncodingException{
+		int expected  = new String("false").getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeLong() throws UnsupportedEncodingException{
+		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LONG));
+	}
+	@Test
+	public void testCalculateMaxSizeForTypeDouble() throws UnsupportedEncodingException{
+		double big = -1.123456789123456789e123;
+		int expected  = Double.toString(big).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeFileHandle() throws UnsupportedEncodingException{
+		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID));
+	}
+	
+	@Test
+	public void testCalculateMaxSizeForTypeAll() throws UnsupportedEncodingException{
+		// The should be a size for each type.
+		for(ColumnType ct:ColumnType.values()){
+			TableModelUtils.calculateMaxSizeForType(ct);
+		}
+	}
+	
+	@Test
+	public void testCalculateMaxRowSize(){
+		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
+		assertEquals(6068, allBytes);
+	}
+	
+	@Test
+	public void testIsRequestWithinMaxBytePerRequest(){
+		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
+		int allBytes = TableModelUtils.calculateMaxRowSize(all);
+		// Set the max to be 100 rows
+		int maxBytes = allBytes*100;
+		// So 100 rows should be within limit but not 101;
+		assertTrue(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 100, maxBytes));
+		assertFalse(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 101, maxBytes));
 	}
 }

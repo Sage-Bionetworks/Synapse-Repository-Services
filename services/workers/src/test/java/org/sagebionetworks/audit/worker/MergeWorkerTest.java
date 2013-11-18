@@ -112,7 +112,7 @@ public class MergeWorkerTest {
 			for(AccessRecord ar: toTest){
 				sessionIds.add(ar.getSessionId());
 			}
-			String key = accessRecordDAO.saveBatch(toTest, toTest.get(0).getTimestamp());
+			String key = accessRecordDAO.saveBatch(toTest, toTest.get(0).getTimestamp(), true);
 			assertNotNull(key);
 		}
 		long elapse = System.currentTimeMillis()-start;

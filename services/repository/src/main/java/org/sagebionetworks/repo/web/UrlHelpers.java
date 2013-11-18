@@ -616,8 +616,10 @@ public class UrlHelpers {
 	
 	// Tables
 	public static final String COLUMN = "/column";
+	public static final String TABLE = "/table";
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
 	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
+	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
 	
 	// Team
 	public static final String TEAM = "/team";

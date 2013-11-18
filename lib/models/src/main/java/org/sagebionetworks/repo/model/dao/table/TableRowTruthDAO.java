@@ -119,5 +119,11 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
+	
+	/**
+	 * The maximum number of bytes per request.
+	 * @return
+	 */
+	public int getMaxBytesPerRequest();
 
 }

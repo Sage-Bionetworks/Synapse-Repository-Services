@@ -127,27 +127,27 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		// get-by-team-and-user query, returning only the *open* (unexpired) invitations
 		// OK
 		long pgLong = Long.parseLong(individUser.getId());
-		mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId, pgLong, expiresOn.getTime()-1000L, 1, 0);
+		mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamId, pgLong, expiresOn.getTime()-1000L, 1, 0);
 		assertEquals(1, mrList.size());
 		 mr = mrList.get(0);
 		assertEquals(mrs.getMessage(), mr.getMessage());
 		assertEquals(mrs.getExpiresOn(), mr.getExpiresOn());
 		assertEquals(mrs.getTeamId(), mr.getTeamId());
 		assertEquals(mrs.getUserId(), mr.getUserId());
-		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, expiresOn.getTime()-1000L));
 		
 		// expired
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId, pgLong, expiresOn.getTime()+1000L, 1, 0).size());
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamId, pgLong, expiresOn.getTime()+1000L));
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamId, pgLong, expiresOn.getTime()+1000L, 1, 0).size());
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, expiresOn.getTime()+1000L));
 		// wrong team
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(-10L, pgLong, expiresOn.getTime()-1000L, 1, 0).size());
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(-10L, pgLong, expiresOn.getTime()-1000L));
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(-10L, pgLong, expiresOn.getTime()-1000L, 1, 0).size());
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(-10L, pgLong, expiresOn.getTime()-1000L));
 		// wrong page
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId, pgLong, expiresOn.getTime()-1000L, 2, 1).size());
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamId, pgLong, expiresOn.getTime()-1000L, 2, 1).size());
 		// already in team
 		groupMembersDAO.addMembers(""+teamId,     Arrays.asList(new String[]{individUser.getId()}));
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId,  pgLong, expiresOn.getTime()-1000L, 1, 0).size());
-		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamId,  pgLong, expiresOn.getTime()-1000L, 1, 0).size());
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, expiresOn.getTime()-1000L));
 		groupMembersDAO.removeMembers(""+teamId,  Arrays.asList(new String[]{individUser.getId()}));
 		
 		// delete the mrs
@@ -189,10 +189,43 @@ public class DBOMembershipRqstSubmissionDAOImplTest {
 		// get-by-team-and-user query, returning only the *open* (unexpired) invitations
 		// OK
 		long pgLong = Long.parseLong(individUser.getId());
-		mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequestorInRange(teamId, pgLong, (new Date()).getTime(), 1, 0);
+		mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamId, pgLong, (new Date()).getTime(), 1, 0);
 		assertEquals(1, mrList.size());
-		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequestorCount(teamId, pgLong, (new Date()).getTime()));
+		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, (new Date()).getTime()));
 	}
 
+	@Test
+	public void testDeleteByTeamAndRequester() throws Exception {
+		Long teamId = createTeam();
+		// create the submission
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		Date expiresOn = new Date();
+		mrs.setCreatedOn(new Date());
+		mrs.setExpiresOn(expiresOn);
+		mrs.setMessage("Please let me join the team.");
+		mrs.setTeamId(""+teamId);
+		
+		// need another valid user group
+		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		mrs.setUserId(individUser.getId());
+		
+		mrs = membershipRqstSubmissionDAO.create(mrs);
+		String id = mrs.getId();
+		assertNotNull(id);
+		mrsToDelete = Long.parseLong(id);
+		
+		long pgLong = Long.parseLong(individUser.getId());
+		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		
+		membershipRqstSubmissionDAO.deleteByTeamAndRequester(teamId+1, pgLong);
+		membershipRqstSubmissionDAO.deleteByTeamAndRequester(teamId, pgLong+1);
+		// didn't delete our request
+		assertEquals(1, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		membershipRqstSubmissionDAO.deleteByTeamAndRequester(teamId, pgLong);
+		// now we did!
+		assertEquals(0, membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamId, pgLong, expiresOn.getTime()-1000L));
+			
+		mrsToDelete=-1L; // no need to delete in 'tear down'
+	}
 
 }

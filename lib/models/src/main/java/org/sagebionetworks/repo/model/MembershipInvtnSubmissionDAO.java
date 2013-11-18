@@ -77,5 +77,13 @@ public interface MembershipInvtnSubmissionDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param inviteeId
+	 * @throws DatastoreException
+	 */
+	public void deleteByTeamAndUser(long teamId, long inviteeId) throws DatastoreException;
 
 }

@@ -19,7 +19,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface TableRowManager {
 	
 	/**
-	 * Store a RowSet
+	 * Append a set of rows to a table.
+	 * 
 	 * @param user
 	 * @param delta
 	 * @return
@@ -27,6 +28,6 @@ public interface TableRowManager {
 	 * @throws DatastoreException 
 	 * @throws IOException 
 	 */
-	public RowReferenceSet storeChangeSet(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException;
+	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException;
 
 }
