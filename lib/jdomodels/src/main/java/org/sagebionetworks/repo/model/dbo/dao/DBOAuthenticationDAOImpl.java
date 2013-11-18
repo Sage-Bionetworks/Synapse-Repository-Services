@@ -129,7 +129,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 				throws SQLException {
 			Session session = new Session();
 			session.setSessionToken(rs.getString(SqlConstants.COL_CREDENTIAL_SESSION_TOKEN));
-			session.setAcceptedTermsOfUse(rs.getBoolean(SqlConstants.COL_CREDENTIAL_TOU));
+			session.setAcceptsTermsOfUse(rs.getBoolean(SqlConstants.COL_CREDENTIAL_TOU));
 			return session;
 		}
 		

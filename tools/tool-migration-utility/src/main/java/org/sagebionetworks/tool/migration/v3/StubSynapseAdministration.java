@@ -649,6 +649,14 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public String loginWithNoToU(String username, String password)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public void loginWithNoProfile(String userName, String password)
 			throws SynapseException {
 		// TODO Auto-generated method stub
@@ -2421,6 +2429,13 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 	@Override
 	public void changePassword(String sessionToken, String newPassword)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		

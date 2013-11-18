@@ -180,6 +180,12 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) 
 			throws SynapseException;
+	
+	/**
+	 * Log into Synapse without specifying terms of use acceptance 
+	 * Does not fail if the terms haven't been signed
+	 */
+	public String loginWithNoToU(String username, String password) throws SynapseException;
 
 	/**
 	 * Log into Synapse, 
@@ -1046,6 +1052,11 @@ public interface SynapseClient extends BaseClient {
 	 * Changes the registering user's password
 	 */
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
+	
+	/**
+	 * Signs the terms of use of a user, as identified by a session token
+	 */
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
 	
 	/**
 	 * Sends a password reset email to the given user as if request came from Synapse.

@@ -3,12 +3,9 @@
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.auth.SessionInterface"
+		}, 
+		{
+			"$ref": "org.sagebionetworks.repo.model.auth.TermsOfUseInterface"
 		}
-	], 
-	"properties": {
-		"acceptedTermsOfUse": {
-			"type": "boolean",
-			"description": "Has the user accepted the terms of use?"
-		}
-	}
+	]
 }

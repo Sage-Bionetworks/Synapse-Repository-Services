@@ -122,7 +122,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			session.setSessionToken(token);
 			
 			// Make sure to fetch the ToU state
-			session.setAcceptedTermsOfUse(toU);
+			session.setAcceptsTermsOfUse(toU);
 		}
 		
 		return session;

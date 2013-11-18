@@ -60,6 +60,11 @@ public interface AuthenticationService {
 	public void changePassword(ChangePasswordRequest request);
 	
 	/**
+	 * Identifies a user via session token and signs that user's terms of use
+	 */
+	public void signTermsOfUse(Session session) throws NotFoundException;
+	
+	/**
 	 * Gets the current secret key of the user
 	 */
 	public String getSecretKey(String username)

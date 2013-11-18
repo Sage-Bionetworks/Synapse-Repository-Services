@@ -487,27 +487,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().setApiKey(apiKey);
 	}
 
-	/**
-	 * Log into Synapse
-	 * 
-	 * @param username
-	 * @param password
-	 * @throws SynapseException
-	 */
 	@Override
 	public UserSessionData login(String username, String password) throws SynapseException {
-		/**
-		 * Log into Synapse
-		 * 
-		 * @param username
-		 * @param password
-		 * @throws SynapseException
-		 */
 		return login(username, password, false);
 	}
+	
 	@Override
 	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
-		String sessionToken = getSharedClientConnection().login(username, password, explicitlyAcceptsTermsOfUse, getUserAgent());
+		String sessionToken = getSharedClientConnection().login(username, password, explicitlyAcceptsTermsOfUse, true, getUserAgent());
 
 		UserProfile profile = getMyProfile();
 		UserSessionData userData = new UserSessionData();
@@ -517,14 +504,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return userData;
 	}
 	
-	/**
-	 * 
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitely accept terms of use
-	 * 
-	 * @param userName
-	 * @param password
-	 * @throws SynapseException 
-	 */
+	@Override
+	public String loginWithNoToU(String username, String password) throws SynapseException {
+		return getSharedClientConnection().login(username, password, false, false, getUserAgent());
+	}
+	
 	@Override
 	public void loginWithNoProfile(String userName, String password) throws SynapseException {
 		getSharedClientConnection().loginWithNoProfile(userName, password, getUserAgent());
@@ -4735,6 +4719,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
 			getSharedClientConnection().postJson(authEndpoint, "/user/password", obj.toString(), getUserAgent());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
+			throws SynapseException {
+		try {
+			Session session = new Session();
+			session.setSessionToken(sessionToken);
+			session.setAcceptsTermsOfUse(acceptTerms);
+			
+			JSONObject obj = EntityFactory.createJSONObjectForEntity(session);
+			getSharedClientConnection().postJson(authEndpoint, "/termsOfUse", obj.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

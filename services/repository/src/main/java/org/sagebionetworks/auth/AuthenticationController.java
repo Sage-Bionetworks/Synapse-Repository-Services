@@ -125,6 +125,15 @@ public class AuthenticationController extends BaseController {
 	}
 	
 	/**
+	 * Identifies a user by a session token and signs that user's terms of use
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
+	public void signTermsOfUse(@RequestBody Session session) throws NotFoundException {
+		authenticationService.signTermsOfUse(session);
+	}
+	
+	/**
 	 * Retrieves the API key associated with the current authenticated user.
 	 */
 	@ResponseStatus(HttpStatus.OK)

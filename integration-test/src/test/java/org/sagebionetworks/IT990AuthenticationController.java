@@ -1,23 +1,20 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
@@ -45,24 +42,24 @@ public class IT990AuthenticationController {
 	}
 
 	@Test
-	public void testCreateSession() throws Exception {
+	public void testLogin() throws Exception {
 		synapse.login(username, password);
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
 	@Test
-	public void testCreateSessionSigningTermsOfUse() throws Exception {
+	public void testLogin_SigningTermsOfUse() throws Exception {
 		synapse.login(username, password, true);
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
 	@Test(expected = SynapseUnauthorizedException.class)
-	public void testCreateSessionBadCredentials() throws Exception {
+	public void testLogin_BadCredentials() throws Exception {
 		synapse.login(username, "incorrectPassword");
 	}
 	
 	@Test
-	public void testCreateSessionNoTermsOfUse() throws Exception {
+	public void testLogin_NoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
 		try {
@@ -71,21 +68,36 @@ public class IT990AuthenticationController {
 		} catch (SynapseTermsOfUseException e) { }
 	}
 	
+	@Test
+	public void testLogin_IgnoreTermsOfUse() throws Exception {
+		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
+		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
+		synapse.loginWithNoToU(username, password);
+		
+		// The session token can't be used to do much though
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseForbiddenException e) { }
+	}
+	
 	
 	@Test
-	public void testRevalidateSvc() throws Exception {
+	public void testRevalidate() throws Exception {
 		synapse.revalidateSession();
 		assertNotNull(synapse.getCurrentSessionToken());
+		
+		synapse.getMyProfile();
 	}
 	
 	@Test(expected=SynapseUnauthorizedException.class)
-	public void testRevalidateBadTokenSvc() throws Exception {
+	public void testRevalidate_BadToken() throws Exception {
 		synapse.setSessionToken("invalid-session-token");
 		synapse.revalidateSession();
 	}
 	
 	@Test
-	public void testCreateSessionThenLogout() throws Exception {
+	public void testLoginThenLogout() throws Exception {
 		synapse.logout();
 		assertNull(synapse.getCurrentSessionToken());
 	}
@@ -105,9 +117,8 @@ public class IT990AuthenticationController {
 		}
 	}
 	
-	
 	@Test
-	public void testCreateUserAndAcceptToU() throws Exception {	
+	public void testCreateUser_AcceptToU() throws Exception {	
 		String username = "integration@test." + UUID.randomUUID();
 		String password = "password";
 		
@@ -144,6 +155,45 @@ public class IT990AuthenticationController {
 	}
 	
 	@Test
+	public void testChangePassword_NoToU() throws Exception {
+		String testNewPassword = "newPassword";
+		
+		// Reject the terms
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		
+		// Password change should still work
+		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+		synapse.logout();
+		synapse.loginWithNoToU(username, testNewPassword);
+		
+		// Restore original password
+		synapse.changePassword(synapse.getCurrentSessionToken(), password);
+		
+		// Accept the terms again (cleanup)
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+	}
+	
+	@Test
+	public void testSignTermsViaSessionToken() throws Exception {
+		String sessionToken = synapse.getCurrentSessionToken();
+		
+		// Reject the terms
+		synapse.signTermsOfUse(sessionToken, false);
+		
+		// Now I can't sign in
+		try {
+			synapse.login(username, password);
+			fail();
+		} catch (SynapseTermsOfUseException e) { }
+		
+		// Accept the terms
+		synapse.signTermsOfUse(sessionToken, true);
+		
+		synapse.login(username, password);
+		assertEquals(sessionToken, synapse.getCurrentSessionToken());
+	}
+	
+	@Test
 	public void testSendResetPasswordEmail() throws Exception {
 		// Note: non-production stacks do not send emails, but instead print a log message
 		synapse.sendPasswordResetEmail(username);
@@ -170,79 +220,6 @@ public class IT990AuthenticationController {
 		
 		// Should be different from the first one
 		assertFalse(apikey.equals(secondKey));
-	}
-
-	private static long UBER_TIMEOUT = 60 * 1000L;
-	private class MutableLong {
-		long L = 0L;
-
-		public void set(long L) {
-			this.L = L;
-	}
-
-		public long get() {
-			return L;
-				}
-			}
-	
-	private void authenticate() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
-	}
-	
-	/**
-	 * Without Crowd in place, this test may or may not be needed anymore
-	 */
-	@Ignore
-	@Test
-	public void testMultipleLoginsMultiThreaded() throws Exception {
-		for (int n : new int[] { 100 }) {
-		Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
-			for (int i = 0; i < n; i++) {
-			final MutableLong L = new MutableLong();
-			times.put(i, L);
-		 	Thread thread = new Thread() {
-				public void run() {
-					try {
-						long start = System.currentTimeMillis();
-						authenticate();
-							L.set(System.currentTimeMillis() - start);
-					} catch (Exception e) {
-							// fail(e.toString());
-						e.printStackTrace(); // 'fail' will be thrown below
-					}
-				}
-			};
-			thread.start();
-		}
-		int count = 0;
-		long elapsed = 0L;
-		Set<Long> sortedTimes = new TreeSet<Long>();
-			long uberTimeOut = System.currentTimeMillis() + UBER_TIMEOUT;
-			while (!times.isEmpty() && System.currentTimeMillis() < uberTimeOut) {
-				for (int i : times.keySet()) {
-				long L = times.get(i).get();
-					if (L != 0) {
-					elapsed += L;
-					sortedTimes.add(L);
-					count++;
-					times.remove(i);
-					break;
-				}
-			}
-		}
-			System.out.println(count
-					+ " authentication request response time (sec): min "
-					+ ((float) sortedTimes.iterator().next() / 1000L) + " avg "
-					+ ((float) elapsed / count / 1000L) + " max "
-					+ ((float) getLast(sortedTimes) / 1000L));
-	}
-	}
-	
-	private static <T> T getLast(Set<T> set) {
-		T ans = null;
-		for (T v : set) ans=v;
-		return ans;
 	}
 	
 	/**

@@ -49,7 +49,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// Handle the ToU first
 		// If the password check fails, then this change will rollback
-		handleTermsOfUse(credential.getEmail(), credential.getAcceptsTermsOfUse());
+		if (credential.getAcceptsTermsOfUse() != null) {
+			UserInfo userInfo = userManager.getUserInfo(credential.getEmail());
+			handleTermsOfUse(userInfo, credential.getAcceptsTermsOfUse());
+		}
 		
 		// Fetch the user's session token
 		return authManager.authenticate(credential.getEmail(), credential.getPassword());
@@ -146,6 +149,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void signTermsOfUse(Session session) throws NotFoundException {
+		if (session.getSessionToken() == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
+		if (session.getAcceptsTermsOfUse() == null) {
+			throw new IllegalArgumentException("Terms of use acceptance may not be null");
+		}
+		
+		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		handleTermsOfUse(userInfo, session.getAcceptsTermsOfUse());
+	}
+	
+	@Override
 	public String getSecretKey(String username) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		return authManager.getSecretKey(userInfo.getIndividualGroup().getId());
@@ -164,7 +182,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException, UnauthorizedException {
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException {
 		// Verify that the OpenID request is valid
 		OpenIDInfo openIDInfo;
 		try {
@@ -182,9 +201,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		boolean acceptsTermsOfUse = new Boolean(toUParam);
 		
 		// Dig out a createUser boolean from the request
-		// Defaults to false
+		// Defaults to null (different from false)
 		String createParam = parameters.getParameterValue(OpenIDInfo.CREATE_USER_IF_NECESSARY_PARAM_NAME);
-		boolean shouldCreateUser = new Boolean(createParam);
+		Boolean shouldCreateUser = createParam == null ? null : new Boolean(createParam);
 		
 		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(originClientParam);
@@ -195,7 +214,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary,
+	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, boolean createUserIffNecessary,
 			OriginatingClient originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
@@ -226,24 +245,25 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			}
 		}
 		
-		handleTermsOfUse(email, acceptsTermsOfUse);
+		if (acceptsTermsOfUse != null) {
+			UserInfo userInfo = userManager.getUserInfo(email);
+			handleTermsOfUse(userInfo, acceptsTermsOfUse);
+		}
 		
 		// Open ID is successful
 		return authManager.authenticate(email, null);
 	}
 	
 	/**
-	 * Accepts the terms of use for the user if necessary
+	 * Accepts the terms of use for the user
 	 */
-	private void handleTermsOfUse(String username, Boolean acceptsTerms) throws NotFoundException {
-		// The ToU field might not be explicitly specified or false
-		UserInfo userInfo = userManager.getUserInfo(username);
-		if (acceptsTerms == null || !acceptsTerms) {
-			acceptsTerms = userInfo.getUser().isAgreesToTermsOfUse();
+	private void handleTermsOfUse(UserInfo userInfo, boolean acceptsTerms) throws NotFoundException {
+		if (userInfo == null) {
+			throw new IllegalArgumentException("Must supply UserInfo");
 		}
 		
-		// If the user is accepting the terms in this request, save the time of acceptance
-		if (acceptsTerms && !userInfo.getUser().isAgreesToTermsOfUse()) {
+		// Save the state of acceptance
+		if (acceptsTerms != userInfo.getUser().isAgreesToTermsOfUse()) {
 			authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTerms);
 		}
 	}

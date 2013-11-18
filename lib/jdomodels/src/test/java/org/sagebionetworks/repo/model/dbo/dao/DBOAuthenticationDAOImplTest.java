@@ -119,7 +119,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Get by username
 		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
-		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptedTermsOfUse());
+		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
 		// Get by token
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
@@ -133,7 +133,7 @@ public class DBOAuthenticationDAOImplTest {
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertNull(session.getSessionToken());
-		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptedTermsOfUse());
+		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
@@ -155,7 +155,7 @@ public class DBOAuthenticationDAOImplTest {
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
-		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptedTermsOfUse());
+		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
