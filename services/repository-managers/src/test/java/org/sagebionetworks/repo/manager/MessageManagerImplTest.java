@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
-import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -313,15 +312,6 @@ public class MessageManagerImplTest {
 		QueryResults<MessageToUser> afterSending = messageManager.getOutbox(testUser, 
 				SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(messages, afterSending);
-	}
-	
-	@Test(expected=UnauthorizedException.class)
-	public void testUpdateMessageStatus_NotAllowed() throws Exception {
-		MessageStatus status = new MessageStatus();
-		status.setMessageId(userToOther.getId());
-		status.setRecipientId(otherTestUser.getIndividualGroup().getId());
-		status.setStatus(MessageStatusType.ARCHIVED);
-		messageManager.markMessageStatus(testUser, status);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

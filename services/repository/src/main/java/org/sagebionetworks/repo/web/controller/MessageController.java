@@ -177,6 +177,7 @@ public class MessageController extends BaseController {
 	
 	/**
 	 * Updates the current status of a message relative to the current authenticated user.
+	 * Note: the "recipientId" field of the request body will be ignored.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_STATUS, method = RequestMethod.PUT)

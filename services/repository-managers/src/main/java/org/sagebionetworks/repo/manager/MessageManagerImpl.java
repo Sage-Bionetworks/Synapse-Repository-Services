@@ -142,9 +142,8 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	public void markMessageStatus(UserInfo userInfo, MessageStatus status) {
-		if (!userInfo.getIndividualGroup().getId().equals(status.getRecipientId())) {
-			throw new UnauthorizedException("Only the recipient may change the status of his/her messages");
-		}
+		status.setRecipientId(userInfo.getIndividualGroup().getId());
+
 		messageDAO.updateMessageStatus(status);
 	}
 

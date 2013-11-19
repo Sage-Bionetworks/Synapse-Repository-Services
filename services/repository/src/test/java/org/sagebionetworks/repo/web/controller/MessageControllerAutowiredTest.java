@@ -245,10 +245,12 @@ public class MessageControllerAutowiredTest {
 		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(0, inboxOfBob.getResults().size());
 		
-		// Eve can't interfere
-		status.setStatus(MessageStatusType.READ);
-		try {
-			ServletTestHelper.updateMessageStatus(eve, status);
-		} catch (UnauthorizedException e) { }
+		// Eve can't interfere (does nothing)
+		status.setStatus(MessageStatusType.UNREAD);
+		ServletTestHelper.updateMessageStatus(eve, status);
+		
+		inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());
+		assertEquals(0, inboxOfBob.getResults().size());
 	}
 }
