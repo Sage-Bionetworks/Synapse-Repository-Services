@@ -123,9 +123,10 @@ public class BackupDriverImpl implements BackupDriver {
 				checkForTermination(progress);
 
 				MigrationType type = getTypeFromFileName(entry.getName());
-				if (type == null) {
+				
+				if (! migrationManager.isMigrationTypeUsed(user, type)) {
 					// This is a entry for a type at the source that does not exist at destination, skip
-					log.debug("Skipping entry " + entry.getName() + ", cannot map to MigrationType");
+					progress.appendLog("Skipping entry " + entry.getName() + ", unused migration type.");
 				} else {
 					// This is a backup file.
 					List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
@@ -162,14 +163,7 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @return
 	 */
 	public static MigrationType getTypeFromFileName(String name){
-		MigrationType t = null;
-		try {
-			t = MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
-		} catch (IllegalArgumentException e) {
-			if (log.isTraceEnabled()) {
-				log.trace("Unknown migration type for file entry " + name);
-			}
-		}
+		MigrationType t = MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
 		return t;
 	}
 	

@@ -292,7 +292,7 @@ public class MigrationClient {
 			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
 		}
 		// All migration types of source should be at destination
-		// Note: deleted src migration types are covered, they're not in destination
+		// Note: unused src migration types are covered, they're not in destination results
 		for (MigrationTypeCount mtc: destCounts) {
 			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getCount());
 		}
