@@ -290,27 +290,20 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @return true if mt is a primary or secondary type, false otherwise
 	 */
 	public boolean isMigrationTypeUsed(UserInfo user, MigrationType mt) {
-		boolean f = false;
 		for (MigrationType t: this.getPrimaryMigrationTypes(user)) {
-			f = (mt.equals(t));
-			if (!f) {
-				// Check secondary types
-				List<MigrationType> stList = this.getSecondaryTypes(t);
-				if (stList != null) {
-					for (MigrationType st: stList) {
-						f = (mt.equals(st));
-						if (f) {
-							break;
-						}
-					}
-					if (f) {
-						break;
+			if (mt.equals(t)) {
+				return true;
+			}
+			// Check secondary types
+			List<MigrationType> stList = this.getSecondaryTypes(t);
+			if (stList != null) {
+				for (MigrationType st: stList) {
+					if (mt.equals(st)) {
+						return true;
 					}
 				}
-			} else {
-				break;
 			}
 		}
-		return f;
+		return false;
 	}
 }
