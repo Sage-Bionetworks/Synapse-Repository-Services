@@ -8,8 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -109,6 +107,12 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -207,6 +211,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String STATUS_SUFFIX = "?status=";
 	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	
+	private static final String MESSAGE                    = "/message";
+	private static final String FORWARD                    = "/forward";
+	private static final String CONVERSATION               = "/conversation";
+	private static final String MESSAGE_STATUS             = MESSAGE + "/status";
+	private static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
+	private static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
+	private static final String MESSAGE_INBOX_FILTER_PARAM = "inboxFilter";
+	private static final String MESSAGE_ORDER_BY_PARAM     = "orderBy";
+	private static final String MESSAGE_DESCENDING_PARAM   = "descending";
 	
 	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
@@ -3142,6 +3156,128 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
+	 * Helper for pagination of messages
+	 */
+	private String setMessageParameters(String path,
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, Long limit, Long offset) {
+		if (path == null) {
+			throw new IllegalArgumentException("Path must be specified");
+		}
+
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(path);
+		if (inboxFilter != null) {
+			builder.setParameter(MESSAGE_INBOX_FILTER_PARAM,
+					StringUtils.join(inboxFilter.toArray(), ','));
+		}
+		if (orderBy != null) {
+			builder.setParameter(MESSAGE_ORDER_BY_PARAM, orderBy.name());
+		}
+		if (descending != null) {
+			builder.setParameter(MESSAGE_DESCENDING_PARAM, "" + descending);
+		}
+		if (limit != null) {
+			builder.setParameter(LIMIT, "" + limit);
+		}
+		if (offset != null) {
+			builder.setParameter(OFFSET, "" + offset);
+		}
+		return builder.toString();
+	}
+	
+	@Override
+	public MessageToUser sendMessage(MessageToUser message) throws SynapseException {
+		String uri = MESSAGE;
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(message);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<MessageBundle> getInbox(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws SynapseException {
+		String uri = setMessageParameters(MESSAGE_INBOX, inboxFilter, orderBy, descending, limit, offset);
+		try {
+			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			PaginatedResults<MessageBundle> messages = new PaginatedResults<MessageBundle>();
+			messages.initializeFromJSONObject(new JSONObjectAdapterImpl(obj));
+			return messages;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<MessageToUser> getOutbox(MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws SynapseException {
+		String uri = setMessageParameters(MESSAGE_OUTBOX, null, orderBy, descending, limit, offset);
+		try {
+			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			PaginatedResults<MessageToUser> messages = new PaginatedResults<MessageToUser>();
+			messages.initializeFromJSONObject(new JSONObjectAdapterImpl(obj));
+			return messages;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public MessageToUser getMessage(String messageId) throws SynapseException {
+		String uri = MESSAGE + "/" + messageId;
+		try {
+			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public MessageToUser forwardMessage(String messageId,
+			MessageRecipientSet recipients) throws SynapseException {
+		String uri = MESSAGE + "/" + messageId + FORWARD;
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(recipients);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<MessageToUser> getConversation(
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws SynapseException {
+		String uri = setMessageParameters(MESSAGE + "/" + associatedMessageId + CONVERSATION, null, orderBy, descending, limit, offset);
+		try {
+			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			PaginatedResults<MessageToUser> messages = new PaginatedResults<MessageToUser>();
+			messages.initializeFromJSONObject(new JSONObjectAdapterImpl(obj));
+			return messages;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public void updateMessageStatus(MessageStatus status) throws SynapseException {
+		String uri = MESSAGE_STATUS;
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(status);
+			getSharedClientConnection().putJson(repoEndpoint, uri, jsonBody, getUserAgent());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
 	 * Get the child count for this entity
 	 * @param entityId
 	 * @return
@@ -4704,6 +4840,5 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
-		
 }
 
