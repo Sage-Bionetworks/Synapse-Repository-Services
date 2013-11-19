@@ -87,6 +87,7 @@ public class IT501SynapseJavaClientMessagingTest {
 				add(oneId);
 			}
 		});
+		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
 	}
 
@@ -136,7 +137,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				null, null, LIMIT, OFFSET);
-		assertEquals(1, messages.getResults().size());
+		assertEquals(2, messages.getResults().size());
 		assertEquals(forwarded, messages.getResults().get(0).getMessage());
 		assertEquals(twoToOne, messages.getResults().get(1).getMessage());
 	}

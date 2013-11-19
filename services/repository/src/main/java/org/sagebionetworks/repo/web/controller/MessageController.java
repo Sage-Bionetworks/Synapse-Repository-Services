@@ -72,7 +72,7 @@ public class MessageController extends BaseController {
 	 * By default, the most recent unread messages are returned first.  
 	 * To flip the ordering, set the "descending" parameter to "false".
 	 * To change the way the messages are ordered, set the "orderBy" parameter to 
-	 *   a value defined in the <a href="${org.sagebionetworks.repo.model.message.MessageSortBy}">MessageSortBy enumeration</a>.
+	 *   either "SEND_DATE" or "SUBJECT".
 	 * To retrieve messages that have been read or archived, set the "inboxFilter" parameter to 
 	 *   a comma-separated list of values defined in the <a href="${org.sagebionetworks.repo.model.message.MessageStatusType}">MessageStatusType enumeration</a>.
 	 */
@@ -106,7 +106,7 @@ public class MessageController extends BaseController {
 	 * By default, the most recent messages are returned first.  
 	 * To flip the ordering, set the "descending" parameter to "false".
 	 * To change the way the messages are ordered, set the "orderBy" parameter to 
-	 *   a value defined in the <a href="${org.sagebionetworks.repo.model.message.MessageSortBy}">MessageSortBy enumeration</a>.
+	 *   either "SEND_DATE" or "SUBJECT".
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_OUTBOX, method = RequestMethod.GET)
@@ -157,7 +157,7 @@ public class MessageController extends BaseController {
 	 * By default, the most recent messages are returned first.  
 	 * To flip the ordering, set the "descending" parameter to "false".
 	 * To change the way the messages are ordered, set the "orderBy" parameter to 
-	 *   a value defined in the <a href="${org.sagebionetworks.repo.model.message.MessageSortBy}">MessageSortBy enumeration</a>.
+	 *   either "SEND_DATE" or "SUBJECT".
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_CONVERSATION, method = RequestMethod.GET)

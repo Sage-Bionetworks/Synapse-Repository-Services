@@ -3205,7 +3205,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = setMessageParameters(MESSAGE_INBOX, inboxFilter, orderBy, descending, limit, offset);
 		try {
 			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
-			PaginatedResults<MessageBundle> messages = new PaginatedResults<MessageBundle>();
+			PaginatedResults<MessageBundle> messages = new PaginatedResults<MessageBundle>(MessageBundle.class);
 			messages.initializeFromJSONObject(new JSONObjectAdapterImpl(obj));
 			return messages;
 		} catch (JSONObjectAdapterException e) {
@@ -3219,7 +3219,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = setMessageParameters(MESSAGE_OUTBOX, null, orderBy, descending, limit, offset);
 		try {
 			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
-			PaginatedResults<MessageToUser> messages = new PaginatedResults<MessageToUser>();
+			PaginatedResults<MessageToUser> messages = new PaginatedResults<MessageToUser>(MessageToUser.class);
 			messages.initializeFromJSONObject(new JSONObjectAdapterImpl(obj));
 			return messages;
 		} catch (JSONObjectAdapterException e) {
@@ -3258,7 +3258,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = setMessageParameters(MESSAGE + "/" + associatedMessageId + CONVERSATION, null, orderBy, descending, limit, offset);
 		try {
 			JSONObject obj = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
-			PaginatedResults<MessageToUser> messages = new PaginatedResults<MessageToUser>();
+			PaginatedResults<MessageToUser> messages = new PaginatedResults<MessageToUser>(MessageToUser.class);
 			messages.initializeFromJSONObject(new JSONObjectAdapterImpl(obj));
 			return messages;
 		} catch (JSONObjectAdapterException e) {
