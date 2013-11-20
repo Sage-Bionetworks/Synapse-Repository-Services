@@ -279,7 +279,7 @@ public class MigrationIntegrationAutowireTest {
 
 		List<String> header = TableModelUtils.getHeaders(models);
 		// bind the columns to the entity
-		Set<String> toBind = new HashSet<String>(header);
+		List<String> toBind = new LinkedList<String>();
 		columnModelDao.bindColumnToObject(toBind, tableId);
 
 		// create some test rows.

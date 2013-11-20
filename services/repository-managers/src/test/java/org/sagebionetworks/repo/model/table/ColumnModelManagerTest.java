@@ -148,7 +148,7 @@ public class ColumnModelManagerTest {
 	public void testBindColumnToObjectHappy() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
-		Set<String> ids = new HashSet<String>();
+		List<String> ids = new LinkedList<String>();
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
 		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));

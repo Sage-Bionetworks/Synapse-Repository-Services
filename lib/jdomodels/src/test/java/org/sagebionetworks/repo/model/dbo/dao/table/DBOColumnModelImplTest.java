@@ -114,7 +114,7 @@ public class DBOColumnModelImplTest {
 	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{
 		// Now bind one column
-		Set<String> toBind = new HashSet<String>();
+		List<String> toBind = new LinkedList<String>();
 		toBind.add(two.getId());
 		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
@@ -129,7 +129,7 @@ public class DBOColumnModelImplTest {
 	@Test
 	public void testBindColumnsDoesNotExist() throws Exception {
 		// Now bind one column
-		Set<String> toBind = new HashSet<String>();
+		List<String> toBind = new LinkedList<String>();
 		// This should not exist
 		String fakeId = "999999999999";
 		toBind.add(fakeId);
@@ -145,7 +145,7 @@ public class DBOColumnModelImplTest {
 	@Test
 	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
 		// bind two columns to two objects
-		Set<String> toBind = new HashSet<String>();
+		List<String> toBind = new LinkedList<String>();
 		toBind.add(two.getId());
 		toBind.add(one.getId());
 		columnModelDao.bindColumnToObject(toBind, "syn123");

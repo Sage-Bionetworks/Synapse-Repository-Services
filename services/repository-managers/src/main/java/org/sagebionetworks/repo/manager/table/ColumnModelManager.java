@@ -62,7 +62,7 @@ public interface ColumnModelManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean bindColumnToObject(UserInfo user, Set<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
 	
 	
 	/**

@@ -74,15 +74,16 @@ public interface ColumnModelDAO {
 	public void delete(String id);
 	
 	/**
-	 * Bind a set of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
+	 * Bind a list of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
 	 * Once an object is bound to a column it cannot be unbound.  A ColumnModel can no longer be deleted once bound to an object.
+	 * The order of the list is maintained for the current column models of a table.
 	 * @param columnId The ID of the column to bind.
 	 * @param objectId The ID of the object to bind.
 	 * 
 	 * @return True if the this object was not already bound to this object.
 	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(Set<String> columnIds, String objectId) throws NotFoundException;
+	public int bindColumnToObject(List<String> columnIds, String objectId) throws NotFoundException;
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.

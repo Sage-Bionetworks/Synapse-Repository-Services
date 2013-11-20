@@ -76,7 +76,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 
 	@Override
-	public boolean bindColumnToObject(UserInfo user, Set<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.
