@@ -74,6 +74,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -589,6 +595,52 @@ public interface SynapseClient extends BaseClient {
 			throws JSONObjectAdapterException, SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
+
+	/**
+	 * Sends a message to another user
+	 */
+	public MessageToUser sendMessage(MessageToUser message)
+			throws SynapseException;
+
+	/**
+	 * Gets the current authenticated user's received messages
+	 */
+	public PaginatedResults<MessageBundle> getInbox(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Gets the current authenticated user's outbound messages
+	 */
+	public PaginatedResults<MessageToUser> getOutbox(MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Gets a specific message
+	 */
+	public MessageToUser getMessage(String messageId) throws SynapseException;
+
+	/**
+	 * Sends an existing message to another set of users
+	 */
+	public MessageToUser forwardMessage(String messageId,
+			MessageRecipientSet recipients) throws SynapseException;
+
+	/**
+	 * Gets messages associated with the specified message
+	 */
+	public PaginatedResults<MessageToUser> getConversation(
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Changes the status of a message in a user's inbox
+	 */
+	public void updateMessageStatus(MessageStatus status)
+			throws SynapseException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 

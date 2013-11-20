@@ -94,6 +94,12 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -1660,6 +1666,61 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public MessageToUser sendMessage(MessageToUser message) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MessageBundle> getInbox(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MessageToUser> getOutbox(MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MessageToUser getMessage(String messageId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MessageToUser forwardMessage(String messageId,
+			MessageRecipientSet recipients) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MessageToUser> getConversation(
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void updateMessageStatus(MessageStatus status) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
 	public Long getChildCount(String entityId) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2497,5 +2558,4 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 }
