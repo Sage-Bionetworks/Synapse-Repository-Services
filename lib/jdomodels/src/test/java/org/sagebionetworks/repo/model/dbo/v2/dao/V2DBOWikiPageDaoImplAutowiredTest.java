@@ -366,10 +366,12 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
-		// Add another attachment to the list and update markdown filehandle id to new markdown
+		// Add another attachment to the list, change the title, and update markdown filehandle id to new markdown
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
+		
+		clone.setTitle("Updated title");
 		
 		List<String> newIds2 = new ArrayList<String>();
 		newIds2.add(attachTwo.getId());
@@ -390,6 +392,29 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertTrue(currentWikiVersion.getModifiedOn().getTime() > oldWikiVersion.getModifiedOn().getTime());
 		assertTrue(Long.parseLong(currentWikiVersion.getVersion()) > Long.parseLong(oldWikiVersion.getVersion()));
 		
+		// Get the first version with one attatchment and the old markdown file handle
+		V2WikiPage getFirstVersion = wikiPageDao.getVersion(key, new Long(oldWikiVersion.getVersion()));
+		List<String> firstVersionIds = getFirstVersion.getAttachmentFileHandleIds();
+		assertEquals(1, firstVersionIds.size());
+		assertEquals(attachOne.getId(), firstVersionIds.get(0));
+		assertEquals(markdownOne.getId(), getFirstVersion.getMarkdownFileHandleId());
+		// Title of wikipage should be the old title
+		assertEquals("Title", getFirstVersion.getTitle());
+		// Make sure ModifiedOn information is not equal to the most recent version's.
+		assertTrue(!clone2.getModifiedOn().equals(getFirstVersion.getModifiedOn()));
+		
+		// Get the most recent version
+		V2WikiPage getRecentVersion = wikiPageDao.getVersion(key, new Long(currentWikiVersion.getVersion()));
+		List<String> recentVersionIds = getRecentVersion.getAttachmentFileHandleIds();
+		// Should be two attachments
+		assertEquals(2, recentVersionIds.size());
+		// Should have the new markdown handle
+		assertEquals(markdownTwo.getId(), getRecentVersion.getMarkdownFileHandleId());
+		// Wiki title should be the updated title
+		assertEquals("Updated title", getRecentVersion.getTitle());
+		// Wiki modified on should be updated
+		assertTrue(clone2.getModifiedOn().equals(getRecentVersion.getModifiedOn()));
+		
 		// Test that correct versions are being accessed
 		String currentMarkdownFileHandleId = wikiPageDao.getMarkdownHandleIdFromHistory(key, Long.parseLong(currentWikiVersion.getVersion()));
 		List<String> currentAttachmentIds = wikiPageDao.getWikiFileHandleIdsFromHistory(key, Long.parseLong(currentWikiVersion.getVersion()));
@@ -397,7 +422,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertTrue(currentAttachmentIds.size() == 2);
 		assertTrue(currentAttachmentIds.contains(attachOne.getId()) && currentAttachmentIds.contains(attachTwo.getId()));
 		
-		// To restore wiki to a the oldWikiVersion, download old version of attachments and markdown, set, and update again
+		// To restore wiki to a the oldWikiVersion, mimick what Manager does.
+		// Download old version of attachments and markdown, set, and update again
 		String oldMarkdownFileHandleId = wikiPageDao.getMarkdownHandleIdFromHistory(key, Long.parseLong(oldWikiVersion.getVersion()));
 		List<String> oldAttachmentIds = wikiPageDao.getWikiFileHandleIdsFromHistory(key, Long.parseLong(oldWikiVersion.getVersion()));
 		// Test getMarkdownHandleIdFromHistory and getWikiFileHandleIdsFromHistory

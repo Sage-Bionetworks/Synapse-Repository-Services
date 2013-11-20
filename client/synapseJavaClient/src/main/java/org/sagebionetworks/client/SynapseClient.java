@@ -454,6 +454,9 @@ public interface SynapseClient extends BaseClient {
 	public V2WikiPage getV2WikiPage(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException;
+	
 	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
 			V2WikiPage toUpdate) throws JSONObjectAdapterException,
 			SynapseException;

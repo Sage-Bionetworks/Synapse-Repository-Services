@@ -44,6 +44,17 @@ public interface V2WikiManager {
 	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException;
 	
 	/**
+	 * Get a version of a wiki page.
+	 * @param user
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	V2WikiPage getVersionOfWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException;
+	
+	/**
 	 * Get the root wiki page for an object.
 	 * @param user
 	 * @param objectId

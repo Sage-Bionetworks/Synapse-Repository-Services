@@ -152,6 +152,21 @@ public class V2WikiManagerTest {
 	}
 	
 	@Test (expected=UnauthorizedException.class)
+	public void testGetVersionUnauthorized() throws DatastoreException, NotFoundException {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		wikiManager.getVersionOfWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+	}
+	
+	@Test
+	public void testGetVersionAuthorized() throws UnauthorizedException, NotFoundException {
+		Long version = new Long(0);
+		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		wikiManager.getVersionOfWikiPage(new UserInfo(false),key, version);
+		verify(mockWikiDao, times(1)).getVersion(key, version);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
 	public void testFileHandleIdForFileNameUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
