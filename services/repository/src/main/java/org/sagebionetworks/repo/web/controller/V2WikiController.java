@@ -208,7 +208,7 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
-	 * Get a specific WikiPage of of an Entity.
+	 * Get a specific WikiPage of an Entity.
 	 * <p>
 	 * Note: The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -236,7 +236,7 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
-	 * Get a specific WikiPage of of an Evaluation.
+	 * Get a specific WikiPage of an Evaluation.
 	 * <p>
 	 * Note: The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -263,6 +263,60 @@ public class V2WikiController extends BaseController {
 				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
 
+	/**
+	 * Get a specific version of a WikiPage of an Entity.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @param wikiVersion
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_AND_VERSION_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	V2WikiPage getVersionOfEntityWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@PathVariable Long wikiVersion)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().getVersionOfWikiPage(userId,
+				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+	}
+	
+	/**
+	 * Get a specific version of a WikiPage of an Evaluation.
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @param wikiVersion
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_AND_VERSION_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	V2WikiPage getVersionOfEvaluationWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@PathVariable Long wikiVersion)
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().getVersionOfWikiPage(userId,
+				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
+	}
+	
 	// Update methods.
 	/**
 	 * Update a specific WikiPage of an Entity. This adds a new entry 

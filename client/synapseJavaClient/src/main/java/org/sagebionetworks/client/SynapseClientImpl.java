@@ -2220,6 +2220,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	/**
+	 * Get a version of a V2 WikiPage using its key and version number
+	 */
+	@Override
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(version == null) throw new IllegalArgumentException("Version cannot be null");
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), 
+				key.getOwnerObjectId(), key.getWikiPageId(), String.valueOf(version));
+		return getJSONEntity(uri, V2WikiPage.class);
+	}
+	
+	/**
 	 * Get a the root V2 WikiPage for a given owner.
 	 * 
 	 * @param ownerId
