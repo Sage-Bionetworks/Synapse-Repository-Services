@@ -1,20 +1,28 @@
 package org.sagebionetworks.bridge.manager.community;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
-import org.sagebionetworks.bridge.manager.Validate;
+import org.apache.commons.fileupload.FileItemStream;
 import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -22,23 +30,13 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired
-	private GroupMembersDAO groupMembersDAO;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private AccessControlListDAO aclDAO;
-	@Autowired
 	private FileHandleManager fileHandleManager;
-	@Autowired
-	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
-	@Autowired
-	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
 	private TeamManager teamManager;
 	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;
+	private V2WikiManager wikiManager;
 	@Autowired
 	private EntityManager entityManager;
 	@Autowired
@@ -48,19 +46,15 @@ public class CommunityManagerImpl implements CommunityManager {
 	}
 
 	// for testing
-	CommunityManagerImpl(AuthorizationManager authorizationManager, GroupMembersDAO groupMembersDAO, UserGroupDAO userGroupDAO,
-			AccessControlListDAO aclDAO, UserManager userManager, TeamManager teamManager, AccessRequirementDAO accessRequirementDAO,
-			EntityManager entityManager, EntityPermissionsManager entityPermissionsManager) {
+	CommunityManagerImpl(AuthorizationManager authorizationManager, FileHandleManager fileHandleManager, UserManager userManager,
+			TeamManager teamManager, EntityManager entityManager, EntityPermissionsManager entityPermissionsManager, V2WikiManager wikiManager) {
 		this.authorizationManager = authorizationManager;
-		this.groupMembersDAO = groupMembersDAO;
-
-		this.userGroupDAO = userGroupDAO;
-		this.aclDAO = aclDAO;
+		this.fileHandleManager = fileHandleManager;
 		this.userManager = userManager;
 		this.teamManager = teamManager;
-		this.accessRequirementDAO = accessRequirementDAO;
 		this.entityManager = entityManager;
 		this.entityPermissionsManager = entityPermissionsManager;
+		this.wikiManager = wikiManager;
 	}
 
 	public static void validateForCreate(Community community) {
@@ -70,6 +64,9 @@ public class CommunityManagerImpl implements CommunityManager {
 		Validate.notSpecifiable(community.getId(), "id");
 		Validate.notSpecifiable(community.getModifiedBy(), "modifiedBy");
 		Validate.notSpecifiable(community.getModifiedOn(), "modifiedOn");
+		Validate.notSpecifiable(community.getTeamId(), "teamId");
+		Validate.notSpecifiable(community.getWelcomePageWikiId(), "welcomePageWikiId");
+		Validate.notSpecifiable(community.getIndexPageWikiId(), "indexPageWikiId");
 		Validate.notSpecifiable(community.getTeamId(), "teamId");
 
 		Validate.required(community.getName(), "name");
@@ -104,7 +101,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	private static final ACCESS_TYPE[] ANONYMOUS_PERMISSIONS = { ACCESS_TYPE.READ };
 	private static final ACCESS_TYPE[] SIGNEDIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.PARTICIPATE };
 	private static final ACCESS_TYPE[] COMMUNITY_MEMBER_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.PARTICIPATE };
-	private static final ACCESS_TYPE[] COMMUNITY_ADMIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE,
+	private static final ACCESS_TYPE[] COMMUNITY_ADMIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE,
 			ACCESS_TYPE.DELETE, ACCESS_TYPE.SEND_MESSAGE };
 
 	public static ResourceAccess createResourceAccess(long principalId, ACCESS_TYPE[] accessTypes) {
@@ -144,7 +141,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Community create(UserInfo userInfo, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
-			NotFoundException, NameConflictException, ACLInheritanceException {
+			NotFoundException, NameConflictException, ACLInheritanceException, IOException, ServiceUnavailableException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			throw new UnauthorizedException("Anonymous user cannot create Community.");
 		}
@@ -156,61 +153,74 @@ public class CommunityManagerImpl implements CommunityManager {
 		team.setDescription(community.getDescription());
 		team.setCanPublicJoin(true);
 		team = teamManager.create(userInfo, team);
-
 		community.setTeamId(team.getId());
+
 		populateCreationFields(userInfo, community);
 
 		String communityId = entityManager.createEntity(userInfo, community, null);
-		Community created = entityManager.getEntity(userInfo, communityId, Community.class);
+		community = entityManager.getEntity(userInfo, communityId, Community.class);
 
 		// adding the current user to the community as an admin, and the team as a non-admin
 		AccessControlList acl = entityPermissionsManager.getACL(communityId, userInfo);
 		UserGroup authenticatedUsers = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
 		UserGroup allUsers = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC);
-		Set<ResourceAccess> raSet = Sets.newHashSet(
-				createResourceAccess(Long.parseLong(allUsers.getId()), ANONYMOUS_PERMISSIONS),
+		Set<ResourceAccess> raSet = Sets.newHashSet(createResourceAccess(Long.parseLong(allUsers.getId()), ANONYMOUS_PERMISSIONS),
 				createResourceAccess(Long.parseLong(authenticatedUsers.getId()), SIGNEDIN_PERMISSIONS),
 				createResourceAccess(Long.parseLong(team.getId()), COMMUNITY_MEMBER_PERMISSIONS),
 				createResourceAccess(Long.parseLong(userInfo.getIndividualGroup().getId()), COMMUNITY_ADMIN_PERMISSIONS));
 		acl.setResourceAccess(raSet);
 		entityPermissionsManager.updateACL(acl, userInfo);
 
-		return created;
+		V2WikiPage rootPage = createWikiPage(userInfo, community, communityId, null, community.getName(), "Root");
+		V2WikiPage welcomePage = createWikiPage(userInfo, community, communityId, rootPage, "Welcome to " + community.getName(), "Welcome");
+		V2WikiPage indexPage = createWikiPage(userInfo, community, communityId, rootPage, "Index of " + community.getName(), "index");
+
+		community.setWelcomePageWikiId(welcomePage.getId());
+		community.setIndexPageWikiId(indexPage.getId());
+		entityManager.updateEntity(userInfo, community, false, null);
+
+		community = entityManager.getEntity(userInfo, communityId, Community.class);
+		return community;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#get(long, long)
-	 */
-	// @Override
-	// public PaginatedResults<Community> get(long limit, long offset) throws DatastoreException {
-	// List<Community> results = communityDAO.getInRange(limit, offset);
-	// long count = communityDAO.getCount();
-	// PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
-	// queryResults.setResults(results);
-	// queryResults.setTotalNumberOfResults(count);
-	// return queryResults;
-	// }
+	private V2WikiPage createWikiPage(UserInfo userInfo, Community community, String communityId, V2WikiPage rootPage, String title,
+			final String content) throws NotFoundException, IOException, ServiceUnavailableException {
 
-	/**
-	 * 
-	 */
-	// @Override
-	// public PaginatedResults<CommunityMember> getMembers(String communityId, long limit, long offset) throws
-	// DatastoreException {
-	// List<CommunityMember> results = communityDAO.getMembersInRange(communityId, limit, offset);
-	// long count = communityDAO.getMembersCount(communityId);
-	// PaginatedResults<CommunityMember> queryResults = new PaginatedResults<CommunityMember>();
-	// queryResults.setResults(results);
-	// queryResults.setTotalNumberOfResults(count);
-	// return queryResults;
-	// }
+		FileItemStream fis = new FileItemStream() {
+			@Override
+			public InputStream openStream() throws IOException {
+				return new StringInputStream(content);
+			}
 
-	// @Override
-	// public PaginatedResults<Community> getByMember(String principalId, long limit, long offset) throws
-	// DatastoreException {
-	// }
+			@Override
+			public boolean isFormField() {
+				return false;
+			}
+
+			@Override
+			public String getName() {
+				return "initial_markdown.txt";
+			}
+
+			@Override
+			public String getFieldName() {
+				return "none";
+			}
+
+			@Override
+			public String getContentType() {
+				return "application/text";
+			}
+		};
+		S3FileHandle uploadedFile = fileHandleManager.uploadFile(userInfo.getIndividualGroup().getId(), fis);
+
+		V2WikiPage page = new V2WikiPage();
+		page.setTitle(title);
+		page.setParentWikiId(rootPage == null ? null : rootPage.getId());
+		page.setMarkdownFileHandleId(uploadedFile.getId());
+		page = wikiManager.createWikiPage(userInfo, communityId, ObjectType.ENTITY, page);
+		return page;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -325,8 +335,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void join(UserInfo userInfo, String communityId) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
+	public void join(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.PARTICIPATE)) {
 			throw new UnauthorizedException("Cannot join Community.");
 		}
@@ -346,215 +355,4 @@ public class CommunityManagerImpl implements CommunityManager {
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
 		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getIndividualGroup().getId());
 	}
-
-	/**
-	 * Either: principalId is self and membership invitation has been extended (and not yet accepted), or principalId is
-	 * self and have MEMBERSHIP permission on Community, or have MEMBERSHIP permission on Community and membership
-	 * request has been created (but not yet accepted) for principalId
-	 * 
-	 * @param userInfo
-	 * @param communityId the ID of the community
-	 * @param principalId the ID of the one to be added to the community
-	 * @return
-	 */
-	// public boolean canAddCommunityMember(UserInfo userInfo, String communityId, UserInfo principalUserInfo) throws
-	// NotFoundException {
-	// if (userInfo.isAdmin())
-	// return true;
-	// if (hasUnmetAccessRequirements(principalUserInfo, communityId))
-	// return false;
-	// String principalId = principalUserInfo.getIndividualGroup().getId();
-	// boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
-	// boolean amCommunityAdmin = authorizationManager.canAccess(userInfo, communityId, ObjectType.COMMUNITY,
-	// ACCESS_TYPE.COMMUNITY_MEMBERSHIP_UPDATE);
-	// long now = System.currentTimeMillis();
-	// if (principalIsSelf) {
-	// // trying to add myself to Community.
-	// if (amCommunityAdmin)
-	// return true;
-	// // if the community is open, I can join
-	// Community community = communityDAO.get(communityId);
-	// if (community.getCanPublicJoin() != null && community.getCanPublicJoin() == true)
-	// return true;
-	// // if I'm not a community admin and the community is not open, then I need to have an open invitation
-	// long openInvitationCount =
-	// membershipInvtnSubmissionDAO.getOpenByCommunityAndUserCount(Long.parseLong(communityId),
-	// Long.parseLong(principalId), now);
-	// return openInvitationCount > 0L;
-	// } else {
-	// // the member to be added is someone other than me
-	// if (!amCommunityAdmin)
-	// return false; // can't add somone unless I'm a Community administrator
-	// // can't add someone unless they are asking to be added
-	// long openRequestCount =
-	// membershipRqstSubmissionDAO.getOpenByCommunityAndRequestorCount(Long.parseLong(communityId),
-	// Long.parseLong(principalId), now);
-	// return openRequestCount > 0L;
-	// }
-	// }
-	//
-	// public static boolean userGroupsHasPrincipalId(Collection<UserGroup> userGroups, String principalId) {
-	// for (UserGroup ug : userGroups)
-	// if (ug.getId().equals(principalId))
-	// return true;
-	// return false;
-	// }
-	//
-	// /**
-	// * MEMBERSHIP permission on group OR user issuing request is the one being removed.
-	// *
-	// * @param userInfo
-	// * @param communityId
-	// * @param principalId
-	// * @return
-	// */
-	// public boolean canRemoveCommunityMember(UserInfo userInfo, String communityId, String principalId) throws
-	// NotFoundException {
-	// if (userInfo.isAdmin())
-	// return true;
-	// boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
-	// if (principalIsSelf)
-	// return true;
-	// boolean amCommunityAdmin = authorizationManager.canAccess(userInfo, communityId, ObjectType.COMMUNITY,
-	// ACCESS_TYPE.COMMUNITY_MEMBERSHIP_UPDATE);
-	// if (amCommunityAdmin)
-	// return true;
-	// return false;
-	// }
-	//
-	// /*
-	// * (non-Javadoc)
-	// *
-	// * @see
-	// *
-	// org.sagebionetworks.repo.manager.community.CommunityManager#removeMember(org.sagebionetworks.repo.model.UserInfo,
-	// * java.lang.String, java.lang.String)
-	// */
-	// @Override
-	// @Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	// public void removeMember(UserInfo userInfo, String communityId, String principalId) throws DatastoreException,
-	// UnauthorizedException,
-	// NotFoundException {
-	// if (!canRemoveCommunityMember(userInfo, communityId, principalId)) {
-	// throw new UnauthorizedException("Cannot remove member from Community.");
-	// }
-	// // check that member is actually in Community
-	// if (userGroupsHasPrincipalId(groupMembersDAO.getMembers(communityId), principalId)) {
-	// groupMembersDAO.removeMembers(communityId, Arrays.asList(new String[] { principalId }));
-	// // remove from ACL
-	// AccessControlList acl = aclDAO.get(communityId, ObjectType.COMMUNITY);
-	// removeFromACL(acl, principalId);
-	// aclDAO.update(acl);
-	// }
-	// }
-	//
-	// /*
-	// * (non-Javadoc)
-	// *
-	// * @see
-	// org.sagebionetworks.repo.manager.community.CommunityManager#getACL(org.sagebionetworks.repo.model.UserInfo,
-	// * java.lang.String)
-	// */
-	// @Override
-	// public AccessControlList getACL(UserInfo userInfo, String communityId) throws DatastoreException,
-	// UnauthorizedException,
-	// NotFoundException {
-	// if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.COMMUNITY, ACCESS_TYPE.READ)) {
-	// throw new UnauthorizedException("Cannot read Community ACL.");
-	// }
-	// return aclDAO.get(communityId, ObjectType.COMMUNITY);
-	// }
-	//
-	// /*
-	// * (non-Javadoc)
-	// *
-	// * @see
-	// * org.sagebionetworks.repo.manager.community.CommunityManager#updateACL(org.sagebionetworks.repo.model.UserInfo,
-	// * org.sagebionetworks.repo.model.AccessControlList)
-	// */
-	// @Override
-	// public void updateACL(UserInfo userInfo, AccessControlList acl) throws DatastoreException, UnauthorizedException,
-	// NotFoundException {
-	// if (!authorizationManager.canAccess(userInfo, acl.getId(), ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)) {
-	// throw new UnauthorizedException("Cannot change Community permissions.");
-	// }
-	// aclDAO.update(acl);
-	// }
-	//
-	// @Override
-	// public URL getIconURL(String communityId) throws NotFoundException {
-	// Community community = communityDAO.get(communityId);
-	// String handleId = community.getIcon();
-	// if (handleId == null) {
-	// throw new NotFoundException("Community " + communityId + " has no icon file handle.");
-	// }
-	// return fileHandleManager.getRedirectURLForFileHandle(handleId);
-	// }
-	//
-	// @Override
-	// public Map<Community, Collection<CommunityMember>> getAllCommunitysAndMembers() throws DatastoreException {
-	// return communityDAO.getAllCommunitysAndMembers();
-	// }
-	//
-	// @Override
-	// @Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	// public void setPermissions(UserInfo userInfo, String communityId, String principalId, boolean isAdmin) throws
-	// DatastoreException,
-	// UnauthorizedException, NotFoundException {
-	// if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.COMMUNITY, ACCESS_TYPE.UPDATE)) {
-	// throw new UnauthorizedException("Cannot change Community permissions.");
-	// }
-	// AccessControlList acl = aclDAO.get(communityId, ObjectType.COMMUNITY);
-	// // first, remove the principal's entries from the ACL
-	// removeFromACL(acl, principalId);
-	// // now, if isAdmin is false, the community membership is enough to give the user basic permissions
-	// if (isAdmin) {
-	// // if isAdmin is true, then we add the specified admin permissions
-	// addToACL(acl, principalId, ADMIN_COMMUNITY_PERMISSIONS);
-	// }
-	// // finally, update the ACL
-	// aclDAO.update(acl);
-	// }
-	//
-	// // answers the question about whether membership approval is required to add principal to community
-	// // the logic is !userIsSynapseAdmin && !userIsCommunityAdmin && !publicCanJoinCommunity
-	// public boolean isMembershipApprovalRequired(UserInfo principalUserInfo, String communityId) throws
-	// DatastoreException, NotFoundException {
-	// boolean userIsSynapseAdmin = principalUserInfo.isAdmin();
-	// if (userIsSynapseAdmin)
-	// return false;
-	// boolean userIsCommunityAdmin = authorizationManager.canAccess(principalUserInfo, communityId,
-	// ObjectType.COMMUNITY,
-	// ACCESS_TYPE.COMMUNITY_MEMBERSHIP_UPDATE);
-	// if (userIsCommunityAdmin)
-	// return false;
-	// Community community = communityDAO.get(communityId);
-	// boolean publicCanJoinCommunity = community.getCanPublicJoin() != null && community.getCanPublicJoin() == true;
-	// return !publicCanJoinCommunity;
-	// }
-	//
-	// @Override
-	// public CommunityMembershipStatus getCommunityMembershipStatus(UserInfo userInfo, String communityId, UserInfo
-	// principalUserInfo)
-	// throws DatastoreException, NotFoundException {
-	// CommunityMembershipStatus tms = new CommunityMembershipStatus();
-	// tms.setCommunityId(communityId);
-	// String principalId = principalUserInfo.getIndividualGroup().getId();
-	// tms.setUserId(principalId);
-	// tms.setIsMember(userGroupsHasPrincipalId(groupMembersDAO.getMembers(communityId), principalId));
-	// long now = System.currentTimeMillis();
-	// long openInvitationCount =
-	// membershipInvtnSubmissionDAO.getOpenByCommunityAndUserCount(Long.parseLong(communityId),
-	// Long.parseLong(principalId), now);
-	// tms.setHasOpenInvitation(openInvitationCount > 0L);
-	// long openRequestCount =
-	// membershipRqstSubmissionDAO.getOpenByCommunityAndRequestorCount(Long.parseLong(communityId),
-	// Long.parseLong(principalId), now);
-	// tms.setHasOpenRequest(openRequestCount > 0L);
-	// tms.setCanJoin(canAddCommunityMember(userInfo, communityId, principalUserInfo));
-	// tms.setHasUnmetAccessRequirement(hasUnmetAccessRequirements(principalUserInfo, communityId));
-	// tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, communityId));
-	// return tms;
-	// }
-	//
 }

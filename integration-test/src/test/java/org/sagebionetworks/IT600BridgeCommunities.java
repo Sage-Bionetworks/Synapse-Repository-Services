@@ -39,47 +39,12 @@ import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.*;
 import org.sagebionetworks.client.exceptions.*;
 import org.sagebionetworks.ids.UuidETagGenerator;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -118,7 +83,10 @@ public class IT600BridgeCommunities {
 	}
 
 	public static SynapseClient createSynapse(BridgeClient bridge) {
-		return new SynapseClientImpl(bridge);
+		SynapseClient synapse = new SynapseClientImpl(bridge);
+		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
+		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
+		return synapse;
 	}
 
 	/**
@@ -185,6 +153,16 @@ public class IT600BridgeCommunities {
 		assertNotNull(newCommunity.getId());
 		assertNotNull(newCommunity.getTeamId());
 		assertNull(newCommunity.getDescription());
+		assertNotNull(newCommunity.getWelcomePageWikiId());
+		assertNotNull(newCommunity.getIndexPageWikiId());
+
+		WikiPageKey key = new WikiPageKey(newCommunity.getId(), ObjectType.ENTITY, newCommunity.getWelcomePageWikiId());
+		V2WikiPage v2WikiPage = createSynapse(bridge).getV2WikiPage(key);
+		assertEquals("Welcome to " + communityName, v2WikiPage.getTitle());
+
+		key = new WikiPageKey(newCommunity.getId(), ObjectType.ENTITY, newCommunity.getIndexPageWikiId());
+		v2WikiPage = createSynapse(bridge).getV2WikiPage(key);
+		assertEquals("Index of " + communityName, v2WikiPage.getTitle());
 
 		newCommunity.setDescription("some description");
 		newCommunity = bridge.updateCommunity(newCommunity);
@@ -194,6 +172,7 @@ public class IT600BridgeCommunities {
 		assertEquals(newCommunity.getId(), community.getId());
 		assertEquals("some description", community.getDescription());
 
+		
 		bridge.deleteCommunity(newCommunity.getId());
 		try {
 			community = bridge.getCommunity(newCommunity.getId());

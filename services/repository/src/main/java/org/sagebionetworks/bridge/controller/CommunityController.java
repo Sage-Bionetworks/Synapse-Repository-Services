@@ -3,12 +3,13 @@
  */
 package org.sagebionetworks.bridge.controller;
 
+import java.io.IOException;
+
 import org.sagebionetworks.bridge.BridgeUrlHelpers;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.service.BridgeServiceProvider;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.*;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -45,13 +46,15 @@ public class CommunityController extends BridgeBaseController {
 	 * @throws InvalidModelException
 	 * @throws DatastoreException
 	 * @throws NameConflictException
+	 * @throws IOException
+	 * @throws ServiceUnavailableException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY, method = RequestMethod.POST)
 	public @ResponseBody
 	Community createCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody Community community) throws NotFoundException, NameConflictException, DatastoreException, InvalidModelException,
-			UnauthorizedException, ACLInheritanceException {
+			UnauthorizedException, ACLInheritanceException, ServiceUnavailableException, IOException {
 		return serviceProvider.getCommunityService().create(userId, community);
 	}
 

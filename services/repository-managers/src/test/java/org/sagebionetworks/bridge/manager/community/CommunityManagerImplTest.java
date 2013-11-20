@@ -2,16 +2,23 @@ package org.sagebionetworks.bridge.manager.community;
 
 import java.util.*;
 
+import org.apache.commons.fileupload.FileItemStream;
 import org.junit.*;
+import org.junit.runner.RunWith;
 import org.mockito.*;
 import org.mockito.internal.matchers.CapturingMatcher;
 import org.mockito.invocation.InvocationOnMock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.*;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -22,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 import static org.junit.Assert.*;
 
-public class CommunityManagerImplTest {
+public class CommunityManagerImplTest extends MockitoTestBase {
 
 	private static final String USER_ID = "123";
 	private static final String TEAM_ID = "456";
@@ -47,6 +54,10 @@ public class CommunityManagerImplTest {
 	private EntityManager entityManager;
 	@Mock
 	private EntityPermissionsManager entityPermissionsManager;
+	@Mock
+	private V2WikiManager wikiManager;
+	@Mock
+	private FileHandleManager fileHandleManager;
 
 	private CommunityManager communityManager;
 	private UserInfo validUser;
@@ -55,7 +66,7 @@ public class CommunityManagerImplTest {
 
 	@Before
 	public void doBefore() {
-		MockitoAnnotations.initMocks(this);
+		initMockito();
 
 		validUser = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
@@ -77,14 +88,8 @@ public class CommunityManagerImplTest {
 		testTeam.setId(TEAM_ID);
 		testTeam.setName(COMMUNITY_ID);
 
-		communityManager = new CommunityManagerImpl(authorizationManager, groupMembersDAO, userGroupDAO, aclDAO, userManager, teamManager,
-				accessRequirementDAO, entityManager, entityPermissionsManager);
-	}
-
-	@After
-	public void doAfter() {
-		Mockito.verifyNoMoreInteractions(authorizationManager, groupMembersDAO, userGroupDAO, aclDAO, userManager, accessRequirementDAO,
-				entityManager);
+		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager, entityManager, entityPermissionsManager,
+				wikiManager);
 	}
 
 	@Test
@@ -93,7 +98,8 @@ public class CommunityManagerImplTest {
 
 		final CaptureStub<Community> newCommunity = CaptureStub.forClass(Community.class);
 		when(entityManager.createEntity(eq(validUser), newCommunity.capture(), (String) isNull())).thenReturn(COMMUNITY_ID);
-		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenAnswer(newCommunity.answer());
+		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenAnswer(newCommunity.answer()).thenAnswer(
+				newCommunity.answer());
 
 		UserGroup allUsers = new UserGroup();
 		allUsers.setId("1");
@@ -105,6 +111,34 @@ public class CommunityManagerImplTest {
 		// set ACL, adding the current user to the community, as an admin
 		when(entityPermissionsManager.getACL(COMMUNITY_ID, validUser)).thenReturn(new AccessControlList());
 
+		V2WikiPage rootPage = new V2WikiPage();
+		rootPage.setMarkdownFileHandleId("f1");
+		rootPage.setTitle(USER_ID);
+		V2WikiPage newRootPage = new V2WikiPage();
+		newRootPage.setId("5");
+		newRootPage.setMarkdownFileHandleId("f1");
+		when(wikiManager.createWikiPage(validUser, COMMUNITY_ID, ObjectType.ENTITY, rootPage)).thenReturn(newRootPage);
+
+		V2WikiPage welcomePage = new V2WikiPage();
+		welcomePage.setTitle("Welcome to " + USER_ID);
+		welcomePage.setParentWikiId("5");
+		welcomePage.setMarkdownFileHandleId("f2");
+		when(wikiManager.createWikiPage(validUser, COMMUNITY_ID, ObjectType.ENTITY, welcomePage)).thenReturn(welcomePage);
+
+		V2WikiPage indexPage = new V2WikiPage();
+		indexPage.setTitle("Index of " + USER_ID);
+		indexPage.setParentWikiId("5");
+		indexPage.setMarkdownFileHandleId("f3");
+		when(wikiManager.createWikiPage(validUser, COMMUNITY_ID, ObjectType.ENTITY, indexPage)).thenReturn(indexPage);
+
+		S3FileHandle fileHandle1 = new S3FileHandle();
+		S3FileHandle fileHandle2 = new S3FileHandle();
+		S3FileHandle fileHandle3 = new S3FileHandle();
+		fileHandle1.setId("f1");
+		fileHandle2.setId("f2");
+		fileHandle3.setId("f3");
+		when(fileHandleManager.uploadFile(eq(USER_ID), any(FileItemStream.class))).thenReturn(fileHandle1, fileHandle2, fileHandle3);
+		
 		Community community = new Community();
 		community.setName(USER_ID);
 		community.setDescription("hi");
@@ -113,13 +147,19 @@ public class CommunityManagerImplTest {
 		verify(teamManager).create(eq(validUser), any(Team.class));
 
 		verify(entityManager).createEntity(eq(validUser), newCommunity.capture(), (String) isNull());
-		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
+		verify(entityManager, times(2)).getEntity(validUser, COMMUNITY_ID, Community.class);
 
 		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
 		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC);
 
 		verify(entityPermissionsManager).getACL(COMMUNITY_ID, validUser);
 		verify(entityPermissionsManager).updateACL(any((AccessControlList.class)), eq(validUser));
+
+		verify(fileHandleManager, times(3)).uploadFile(eq(USER_ID), any(FileItemStream.class));
+		verify(wikiManager).createWikiPage(validUser, COMMUNITY_ID, ObjectType.ENTITY, rootPage);
+		verify(wikiManager).createWikiPage(validUser, COMMUNITY_ID, ObjectType.ENTITY, welcomePage);
+		verify(wikiManager).createWikiPage(validUser, COMMUNITY_ID, ObjectType.ENTITY, indexPage);
+		verify(entityManager).updateEntity(eq(validUser), newCommunity.capture(), eq(false), (String) isNull());
 
 		assertEquals(TEAM_ID, created.getTeamId());
 	}

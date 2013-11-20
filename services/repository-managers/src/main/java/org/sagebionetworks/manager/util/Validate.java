@@ -1,4 +1,4 @@
-package org.sagebionetworks.bridge.manager;
+package org.sagebionetworks.manager.util;
 
 import org.sagebionetworks.repo.model.InvalidModelException;
 
