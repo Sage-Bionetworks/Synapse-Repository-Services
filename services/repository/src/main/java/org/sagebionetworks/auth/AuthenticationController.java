@@ -101,7 +101,7 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client)
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client)
 			throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.createUser(user);
@@ -118,7 +118,7 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
 	public void resendRegisteringUserPasswordEmail(@RequestBody Username user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, originClient);
 	}
@@ -154,7 +154,7 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody Username credential,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW, originClient);
 	}
@@ -170,7 +170,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW, originClient);
 	}
