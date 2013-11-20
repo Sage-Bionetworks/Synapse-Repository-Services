@@ -1,11 +1,14 @@
 package org.sagebionetworks.bridge.service;
 
+import java.io.IOException;
+
 import org.sagebionetworks.bridge.manager.community.CommunityManager;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CommunityServiceImpl implements CommunityService {
@@ -18,7 +21,7 @@ public class CommunityServiceImpl implements CommunityService {
 
 	@Override
 	public Community create(String userId, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
-			NotFoundException, NameConflictException, ACLInheritanceException {
+			NotFoundException, NameConflictException, ACLInheritanceException, ServiceUnavailableException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return communityManager.create(userInfo, community);
 	}
