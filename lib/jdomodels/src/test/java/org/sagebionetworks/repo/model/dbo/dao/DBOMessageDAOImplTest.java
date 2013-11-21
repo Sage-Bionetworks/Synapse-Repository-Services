@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,12 +17,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
@@ -48,6 +51,9 @@ public class DBOMessageDAOImplTest {
 	@Autowired
 	private DBOBasicDao basicDAO;
 	
+	@Autowired
+	private DBOChangeDAO changeDAO;
+	
 	private String fileHandleId;
 	
 	private UserGroup maliciousUser;
@@ -68,6 +74,8 @@ public class DBOMessageDAOImplTest {
 	@Before
 	public void spamMessages() throws Exception {
 		cleanup = new ArrayList<String>();
+		
+		changeDAO.deleteAllChanges();
 		
 		// These two principals will act as mutual spammers
 		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
@@ -146,6 +154,19 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userToGroup, messageDAO.getMessage(userToGroup.getId()));
 		assertEquals(groupReplyToUser, messageDAO.getMessage(groupReplyToUser.getId()));
 		assertEquals(userReplyToGroup, messageDAO.getMessage(userReplyToGroup.getId()));
+	}
+	
+	@Test
+	public void testChangeMessageGenerated() throws Exception {
+		List<ChangeMessage> changes = changeDAO.listUnsentMessages(1000);
+		
+		// Look for one of the messages
+		for (ChangeMessage change : changes) {
+			if (ObjectType.MESSAGE == change.getObjectType() && userToUser.getId().equals(change.getObjectId())) {
+				return;
+			}
+		}
+		fail("Change message was not created for a message");
 	}
 	
 	@Test

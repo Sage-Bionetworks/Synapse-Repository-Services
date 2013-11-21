@@ -25,7 +25,7 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY),
 		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON),
-		new FieldColumn("etag", SqlConstants.COL_MESSAGE_CONTENT_ETAG)
+		new FieldColumn("eTag", SqlConstants.COL_MESSAGE_CONTENT_ETAG).withIsEtag(true)
 	};
 	
 	private Long messageId;

@@ -194,12 +194,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		// Generate an ID for all the new rows
 		Long messageId = idGenerator.generateNewId(TYPE.MESSAGE_ID);
 		
-		// Generate an etag and a CREATE message
-		tagMessenger.generateEtagAndSendMessage(content, ChangeType.CREATE);
-		
 		// Insert the message content
 		content.setMessageId(messageId);
 		content.setCreatedOn(new Date().getTime());
+		
+		// Generate an etag and a CREATE message
+		tagMessenger.generateEtagAndSendMessage(content, ChangeType.CREATE);
+		
 		MessageUtils.validateDBO(content);
 		basicDAO.createNew(content);
 		
