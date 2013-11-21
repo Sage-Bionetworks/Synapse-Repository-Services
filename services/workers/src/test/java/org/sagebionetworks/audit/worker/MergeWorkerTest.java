@@ -3,7 +3,6 @@ package org.sagebionetworks.audit.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -43,9 +42,11 @@ public class MergeWorkerTest {
 	@Before
 	public void before() {
 		// Prevent the main scheduler from running another instance of the MergeWorker
-		lockToken = semaphoreDAO.attemptToAcquireLock(SEMAPHORE_KEY, MAX_WAIT);
-		if (lockToken == null) {
-			fail();
+		long start = System.currentTimeMillis();
+		while (lockToken == null) {
+			lockToken = semaphoreDAO.attemptToAcquireLock(SEMAPHORE_KEY, MAX_WAIT);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for merge worker to acquire lock", elapse < MAX_WAIT);
 		}
 	}
 	
