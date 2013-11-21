@@ -177,14 +177,11 @@ public class SharedClientConnection {
 	 * 
 	 * @return A session token
 	 */
-	public String login(String username, String password, boolean explicitlyAcceptsTermsOfUse, boolean throwTermsOfUseException, String userAgent) 
+	public Session login(String username, String password, String userAgent) 
 			throws SynapseException {
 		LoginCredentials loginRequest = new LoginCredentials();
 		loginRequest.setEmail(username);
 		loginRequest.setPassword(password);
-		if (explicitlyAcceptsTermsOfUse) {
-			loginRequest.setAcceptsTermsOfUse(true);
-		}
 
 		Session session;
 		try {
@@ -197,18 +194,7 @@ public class SharedClientConnection {
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		
-		if (throwTermsOfUseException && !session.getAcceptsTermsOfUse()) {
-			throw new SynapseTermsOfUseException();
-		}
-		
-		return session.getSessionToken();
-	}
-	
-	/**
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitly accept terms of use
-	 */
-	public void loginWithNoProfile(String userName, String password, String userAgent) throws SynapseException {
-		login(userName, password, false, true, userAgent);
+		return session;
 	}
 
 	public void logout(String userAgent) throws SynapseException {

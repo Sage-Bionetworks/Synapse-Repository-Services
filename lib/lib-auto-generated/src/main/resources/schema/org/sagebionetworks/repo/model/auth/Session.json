@@ -1,11 +1,14 @@
 {
+	"title": "Session", 
 	"description": "Holds a session token used for short-term authentication with Synapse",
-	"implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.auth.SessionInterface"
+	"properties": {
+		"sessionToken": {
+			"type": "string",
+			"description": "A token that identifies the user"
 		}, 
-		{
-			"$ref": "org.sagebionetworks.repo.model.auth.TermsOfUseInterface"
+		"acceptsTermsOfUse": {
+			"type": "boolean",
+			"description": "Does the user accept the terms of use?"
 		}
-	]
+	}
 }

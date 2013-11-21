@@ -174,27 +174,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public UserSessionData login(String username, String password)
 			throws SynapseException;
-
-	/**
-	 * Log into Synapse and specify whether you agree to the terms of use
-	 */
-	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) 
-			throws SynapseException;
-	
-	/**
-	 * Log into Synapse without specifying terms of use acceptance 
-	 * Does not fail if the terms haven't been signed
-	 */
-	public String loginWithNoToU(String username, String password) throws SynapseException;
-
-	/**
-	 * Log into Synapse, 
-	 *   do not return UserSessionData, 
-	 *   do not request a user profile, 
-	 *   and do not explicitly accept the terms of use
-	 */
-	public void loginWithNoProfile(String userName, String password)
-			throws SynapseException;
 	
 	/**
 	 * Log out of Synapse
@@ -1076,24 +1055,20 @@ public interface SynapseClient extends BaseClient {
 	
 	/**
 	 * See {@link #passThroughOpenIDParameters(String)}
-	 * @param acceptsTermsOfUse Whether this request should also mark the user as having accepted the terms of use
-	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
-	
-	/**
-	 * See {@link #passThroughOpenIDParameters(String)}
 	 * 
 	 * @param createUserIfNecessary
 	 *            Whether a user should be created if the user does not already
 	 *            exist
 	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
+	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary) throws SynapseException;
-	
+
 	/**
 	 * @param originClient
-	 * 		Which client did the user access to authenticate via a third party provider (Synapse or Bridge)?
+	 *            Which client did the user access to authenticate via a third
+	 *            party provider (Synapse or Bridge)?
 	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
-			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException;
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary, OriginatingClient originClient)
+			throws SynapseException;
 }

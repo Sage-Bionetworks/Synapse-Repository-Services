@@ -47,12 +47,6 @@ public class IT990AuthenticationController {
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
-	@Test
-	public void testLogin_SigningTermsOfUse() throws Exception {
-		synapse.login(username, password, true);
-		assertNotNull(synapse.getCurrentSessionToken());
-	}
-	
 	@Test(expected = SynapseUnauthorizedException.class)
 	public void testLogin_BadCredentials() throws Exception {
 		synapse.login(username, "incorrectPassword");
@@ -72,7 +66,7 @@ public class IT990AuthenticationController {
 	public void testLogin_IgnoreTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
-		synapse.loginWithNoToU(username, password);
+		synapse.login(username, password);
 		
 		// The session token can't be used to do much though
 		try {
@@ -132,15 +126,16 @@ public class IT990AuthenticationController {
 		
 		synapse.createUser(user);
 		
-		// Expect a ToU failure here
+		// Login and fail an authenticated request
+		synapse.login(username, password);
 		try {
-			synapse.login(username, password);
+			synapse.getMyProfile();
 			fail();
-		} catch (SynapseTermsOfUseException e) { }
+		} catch (SynapseForbiddenException e) { }
 		
-		// Now accept the terms and get a session token
-		synapse.login(username, password, true);
-		assertNotNull(synapse.getCurrentSessionToken());
+		// Now accept the terms and try an authenticated request
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+		synapse.getMyProfile();
 	}
 	
 	@Test
@@ -164,7 +159,7 @@ public class IT990AuthenticationController {
 		// Password change should still work
 		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
 		synapse.logout();
-		synapse.loginWithNoToU(username, testNewPassword);
+		synapse.login(username, testNewPassword);
 		
 		// Restore original password
 		synapse.changePassword(synapse.getCurrentSessionToken(), password);

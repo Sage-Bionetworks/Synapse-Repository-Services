@@ -641,30 +641,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public UserSessionData login(String username, String password,
-			boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public String loginWithNoToU(String username, String password)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void loginWithNoProfile(String userName, String password)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
-
-	@Override
 	public UserSessionData getUserSessionData() throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2473,15 +2449,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
-
-	@Override
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean acceptsTermsOfUse, Boolean createUserIfNecessary)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	@Override
 	public PaginatedResults<WikiMigrationResult> migrateWikisToV2(long offset,
 			long limit) throws SynapseException, JSONObjectAdapterException {
@@ -2525,9 +2492,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
-			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary, OriginatingClient originClient)
+			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -1,8 +1,10 @@
 {
+	"title": "Username", 
 	"description": "Contains the user's email",
-    "implements": [
-		{
-			"$ref": "org.sagebionetworks.repo.model.auth.UsernameInterface"
+    "properties": {
+		"email": {
+			"type": "string",
+			"description": "The user's email"
 		}
-	]
+	}
 }

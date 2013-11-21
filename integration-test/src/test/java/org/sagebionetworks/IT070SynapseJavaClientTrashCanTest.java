@@ -41,7 +41,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		UserSessionData session = synapse.login(user, pw);
 		assertNotNull(session);
 		assertNotNull(session.getProfile().getUserName());
-		assertNotNull(session.getSessionToken());
+		assertNotNull(session.getSession());
+		assertNotNull(session.getSession().getSessionToken());
 
 		synapseAdmin = new SynapseAdminClientImpl();
 		synapseAdmin.setAuthEndpoint(
@@ -55,7 +56,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		UserSessionData adminSession = synapseAdmin.login(adminUsr, adminPwd);
 		assertNotNull(adminSession);
 		assertNotNull(adminSession.getProfile().getUserName());
-		assertNotNull(adminSession.getSessionToken());
+		assertNotNull(adminSession.getSession());
+		assertNotNull(adminSession.getSession().getSessionToken());
 
 		parent = new Project();
 		parent.setName("IT070SynapseJavaClientTrashCanTest.parent");

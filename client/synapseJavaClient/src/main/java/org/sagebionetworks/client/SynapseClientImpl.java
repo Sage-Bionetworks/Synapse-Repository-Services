@@ -486,32 +486,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void setApiKey(String apiKey) {
 		getSharedClientConnection().setApiKey(apiKey);
 	}
-
+	
 	@Override
 	public UserSessionData login(String username, String password) throws SynapseException {
-		return login(username, password, false);
-	}
-	
-	@Override
-	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
-		String sessionToken = getSharedClientConnection().login(username, password, explicitlyAcceptsTermsOfUse, true, getUserAgent());
+		Session session = getSharedClientConnection().login(username, password, getUserAgent());
 
-		UserProfile profile = getMyProfile();
 		UserSessionData userData = new UserSessionData();
+		userData.setSession(session);
 		userData.setIsSSO(false);
-		userData.setSessionToken(sessionToken);
-		userData.setProfile(profile);
+		userData.setProfile(getMyProfile());
 		return userData;
-	}
-	
-	@Override
-	public String loginWithNoToU(String username, String password) throws SynapseException {
-		return getSharedClientConnection().login(username, password, false, false, getUserAgent());
-	}
-	
-	@Override
-	public void loginWithNoProfile(String userName, String password) throws SynapseException {
-		getSharedClientConnection().loginWithNoProfile(userName, password, getUserAgent());
 	}
 
 	@Override
@@ -521,14 +505,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public UserSessionData getUserSessionData() throws SynapseException {
-		//get the UserSessionData if the session token is set
+		// Note: this method does not fill in whether the user has accepted the terms of use or not
+		Session session = new Session();
+		session.setSessionToken(getCurrentSessionToken());
+		
 		UserSessionData userData = null;
-		String sessionToken = getCurrentSessionToken();
-		UserProfile profile = getMyProfile();
 		userData = new UserSessionData();
+		userData.setSession(session);
 		userData.setIsSSO(false);
-		userData.setSessionToken(sessionToken);
-		userData.setProfile(profile);
+		userData.setProfile(getMyProfile());
 		return userData;
 	}
 	
@@ -4745,23 +4730,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException {
-		return passThroughOpenIDParameters(queryString, false, false);
+	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary) throws SynapseException {
+		return passThroughOpenIDParameters(queryString, createUserIfNecessary, OriginatingClient.SYNAPSE);
 	}
 	
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary) throws SynapseException {
-		return passThroughOpenIDParameters(queryString, acceptsTermsOfUse, createUserIfNecessary, OriginatingClient.SYNAPSE);
-	}
-	
-	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
 		try {
 			URIBuilder builder = new URIBuilder();
 			builder.setPath("/openIdCallback");
 			builder.setQuery(queryString);
-			builder.setParameter("org.sagebionetworks.acceptsTermsOfUse", acceptsTermsOfUse.toString());
-			builder.setParameter("org.sagebionetworks.createUserIfNecessary", acceptsTermsOfUse.toString());
+			builder.setParameter("org.sagebionetworks.createUserIfNecessary", createUserIfNecessary.toString());
 			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
 					getUserAgent(), originClient.getParameterMap());
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);

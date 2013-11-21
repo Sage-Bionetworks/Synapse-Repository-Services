@@ -924,17 +924,10 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testSignTermsOfUse() throws Exception {
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword(), /*acceptTermsOfUse*/true);
-
-	}
-	
-	@Test
 	public void testUserSessionData() throws Exception {
 		UserSessionData userSessionData = synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
-		String sessionToken = userSessionData.getSessionToken();
+		String sessionToken = userSessionData.getSession().getSessionToken();
 		assertNotNull("Failed to find session token", sessionToken);
 		Boolean isSso = userSessionData.getIsSSO();
 		assertFalse(isSso);
@@ -947,12 +940,6 @@ public class IT500SynapseJavaClient {
 		String termsOfUse = synapse.getSynapseTermsOfUse();
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
-	}
-	
-	@Test
-	public void testRevalidateSession() throws Exception {
-		boolean isValid = synapse.revalidateSession();
-		assertTrue(isValid);
 	}
 	
 	

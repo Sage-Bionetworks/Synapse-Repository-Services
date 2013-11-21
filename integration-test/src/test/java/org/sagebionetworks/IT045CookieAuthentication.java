@@ -39,7 +39,7 @@ public class IT045CookieAuthentication {
 				.getRepositoryServiceEndpoint());
 		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
 		session =synapse.login(user, pw);
-		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, session.getSessionToken());
+		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, session.getSession().getSessionToken());
 		return synapse;
 	}
 	

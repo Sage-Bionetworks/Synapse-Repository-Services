@@ -4,7 +4,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -88,30 +87,11 @@ public class AuthenticationServiceImplTest {
 		info.setEmail(username);
 		info.setFullName(fullName);
 		
-		service.processOpenIDInfo(info, null, true, OriginatingClient.SYNAPSE);
+		service.processOpenIDInfo(info, true, OriginatingClient.SYNAPSE);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));
 		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
-	}
-	
-	@Test
-	public void testOpenIDAuthentication_acceptToU() throws Exception {
-		// This user is returning to accept the ToU
-		when(mockUserManager.doesPrincipalExist(eq(username))).thenReturn(true);
-		userInfo.getUser().setAgreesToTermsOfUse(false);
-		
-		OpenIDInfo info = new OpenIDInfo();
-		info.setEmail(username);
-		info.setFullName(fullName);
-		
-		service.processOpenIDInfo(info, true, false, OriginatingClient.SYNAPSE);
-		
-		// User should not be created, ToU should be updated
-		verify(mockUserManager, times(0)).createUser(any(NewUser.class));
-		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
-		verify(mockUserManager).getUserInfo(anyString());
-		verify(mockAuthenticationManager).setTermsOfUseAcceptance(eq("" + userId), eq(true));
 	}
 	
 }
