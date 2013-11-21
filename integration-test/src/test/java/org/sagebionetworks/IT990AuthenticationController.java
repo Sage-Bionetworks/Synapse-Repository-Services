@@ -20,6 +20,7 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT990AuthenticationController {
 	private static SynapseClient synapse;
@@ -56,9 +57,10 @@ public class IT990AuthenticationController {
 	public void testLogin_NoTermsOfUse() throws Exception {
 		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
 		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
+		Session session = synapse.login(username, password);
+		assertFalse(session.getAcceptsTermsOfUse());
 		try {
-			synapse.login(username, password);
-			fail();
+			synapse.revalidateSession();
 		} catch (SynapseTermsOfUseException e) { }
 	}
 	
@@ -175,17 +177,16 @@ public class IT990AuthenticationController {
 		// Reject the terms
 		synapse.signTermsOfUse(sessionToken, false);
 		
-		// Now I can't sign in
-		try {
-			synapse.login(username, password);
-			fail();
-		} catch (SynapseTermsOfUseException e) { }
+		// Now I can't do authenticated requests
+		Session session = synapse.login(username, password);
+		assertFalse(session.getAcceptsTermsOfUse());
 		
 		// Accept the terms
 		synapse.signTermsOfUse(sessionToken, true);
 		
-		synapse.login(username, password);
+		session = synapse.login(username, password);
 		assertEquals(sessionToken, synapse.getCurrentSessionToken());
+		assertTrue(session.getAcceptsTermsOfUse());
 	}
 	
 	@Test

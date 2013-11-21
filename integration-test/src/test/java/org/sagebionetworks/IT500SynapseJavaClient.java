@@ -925,12 +925,12 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testUserSessionData() throws Exception {
-		UserSessionData userSessionData = synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
+		
+		UserSessionData userSessionData = synapse.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		assertNotNull("Failed to find session token", sessionToken);
-		Boolean isSso = userSessionData.getIsSSO();
-		assertFalse(isSso);
 		UserProfile integrationTestUserProfile = userSessionData.getProfile();
 		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
 	}

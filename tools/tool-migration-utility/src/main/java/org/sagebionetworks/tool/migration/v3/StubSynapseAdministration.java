@@ -633,7 +633,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public UserSessionData login(String username, String password)
+	public Session login(String username, String password)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;

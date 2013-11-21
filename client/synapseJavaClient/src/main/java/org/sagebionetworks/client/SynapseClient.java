@@ -172,7 +172,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Log into Synapse
 	 */
-	public UserSessionData login(String username, String password)
+	public Session login(String username, String password)
 			throws SynapseException;
 	
 	/**
@@ -180,6 +180,11 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void logout() throws SynapseException;
 
+	/**
+	 * Returns a Session and UserProfile object
+	 * 
+	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
+	 */
 	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**

@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -488,14 +489,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public UserSessionData login(String username, String password) throws SynapseException {
-		Session session = getSharedClientConnection().login(username, password, getUserAgent());
-
-		UserSessionData userData = new UserSessionData();
-		userData.setSession(session);
-		userData.setIsSSO(false);
-		userData.setProfile(getMyProfile());
-		return userData;
+	public Session login(String username, String password) throws SynapseException {
+		return getSharedClientConnection().login(username, password, getUserAgent());
 	}
 
 	@Override
@@ -505,15 +500,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public UserSessionData getUserSessionData() throws SynapseException {
-		// Note: this method does not fill in whether the user has accepted the terms of use or not
 		Session session = new Session();
 		session.setSessionToken(getCurrentSessionToken());
+		try {
+			revalidateSession();
+			session.setAcceptsTermsOfUse(true);
+		} catch (SynapseTermsOfUseException e) {
+			session.setAcceptsTermsOfUse(false);
+		}
 		
 		UserSessionData userData = null;
 		userData = new UserSessionData();
 		userData.setSession(session);
-		userData.setIsSSO(false);
-		userData.setProfile(getMyProfile());
+		if (session.getAcceptsTermsOfUse()) {
+			userData.setProfile(getMyProfile());
+		}
 		return userData;
 	}
 	
