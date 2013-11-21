@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -237,6 +238,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	 * Fills in the intended recipients of all supplied messages 
 	 */
 	private void fillInMessageRecipients(List<MessageToUser> messages) {
+		if (messages.size() <= 0) {
+			return;
+		}
+		
 		List<String> messageIds = new ArrayList<String>();
 		for (MessageToUser message : messages) {
 			messageIds.add(message.getId());
@@ -339,6 +344,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		dbo.setMessageId(Long.parseLong(messageId));
 		dbo.setRecipientId(Long.parseLong(userId));
 		dbo.setStatus(MessageStatusType.UNREAD);
+		MessageUtils.validateDBO(dbo);
 		basicDAO.createNew(dbo);
 		
 		touch(messageId);
@@ -346,14 +352,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateMessageStatus(String messageId, String userId,
-			MessageStatusType status) {
-		DBOMessageStatus toUpdate = new DBOMessageStatus();
-		toUpdate.setMessageId(Long.parseLong(messageId));
-		toUpdate.setRecipientId(Long.parseLong(userId));
-		toUpdate.setStatus(status);
+	public void updateMessageStatus(MessageStatus status) {
+		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
+		MessageUtils.validateDBO(toUpdate);
 		basicDAO.update(toUpdate);
 		
-		touch(messageId);
+		touch(status.getMessageId());
 	}
 }

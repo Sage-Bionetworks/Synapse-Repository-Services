@@ -12,11 +12,14 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,6 +44,37 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	
+	@Override
+	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException {
+		MessageToUser message = messageDAO.getMessage(messageId);
+		
+		// Get the user's ID and the user's groups' IDs
+		String userId = userInfo.getIndividualGroup().getId();
+		Set<String> userGroups = new HashSet<String>();
+		for (UserGroup ug : userInfo.getGroups()) {
+			userGroups.add(ug.getId());
+		}
+		userGroups.add(userId);
+		
+		// Is the user the sender?
+		if (!message.getCreatedBy().equals(userId)) {
+			// Is the user an intended recipient?
+			boolean isRecipient = false;
+			for (String recipient : message.getRecipients()) {
+				if (userGroups.contains(recipient)) {
+					isRecipient = true;
+					break;
+				}
+			}
+			
+			// Not allowed to get the message
+			if (!isRecipient) {
+				throw new UnauthorizedException("You are not the sender or receiver of this message (" + messageId + ")");
+			}
+		}
+		return message;
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -64,6 +98,16 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		return dto;
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
+			MessageRecipientSet recipients) throws NotFoundException {
+		MessageToUser message = getMessage(userInfo, messageId);
+		message.setRecipients(recipients.getRecipients());
+		message.setInReplyTo(messageId);
+		return createMessage(userInfo, message);
 	}
 
 	@Override
@@ -97,8 +141,10 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	public void markMessageStatus(UserInfo userInfo, String messageId, MessageStatusType status) {
-		messageDAO.updateMessageStatus(messageId, userInfo.getIndividualGroup().getId(), status);
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status) {
+		status.setRecipientId(userInfo.getIndividualGroup().getId());
+
+		messageDAO.updateMessageStatus(status);
 	}
 
 	@Override

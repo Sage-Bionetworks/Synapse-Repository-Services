@@ -4,11 +4,13 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServlet;
 
+import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -38,6 +40,12 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
@@ -730,6 +738,126 @@ public class ServletTestHelper {
 
 		return objectMapper.readValue(response.getContentAsString(),
 				SearchResults.class);
+	}
+
+	public static MessageToUser sendMessage(String username,
+			MessageToUser message) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.MESSAGE, username, message);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return ServletTestHelperUtils.readResponse(response,
+				MessageToUser.class);
+	}
+
+	private static Map<String, String> fillInMessagingParams(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		HashMap<String, String> params = new HashMap<String, String>();
+		if (inboxFilter != null) {
+			params.put(UrlHelpers.MESSAGE_INBOX_FILTER_PARAM,
+					StringUtils.join(inboxFilter.toArray(), ','));
+		}
+		if (orderBy != null) {
+			params.put(UrlHelpers.MESSAGE_ORDER_BY_PARAM, orderBy.name());
+		}
+		if (descending != null) {
+			params.put(UrlHelpers.MESSAGE_DESCENDING_PARAM, "" + descending);
+		}
+		params.put(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
+		params.put(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
+		return params;
+	}
+
+	public static PaginatedResults<MessageBundle> getInbox(String username,
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE_INBOX, username, null);
+		ServletTestHelperUtils.addExtraParams(
+				request,
+				fillInMessagingParams(inboxFilter, orderBy, descending, limit,
+						offset));
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MessageBundle.class);
+	}
+
+	public static PaginatedResults<MessageToUser> getOutbox(String username,
+			MessageSortBy orderBy, Boolean descending, long limit, long offset)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE_OUTBOX, username, null);
+		ServletTestHelperUtils
+				.addExtraParams(
+						request,
+						fillInMessagingParams(null, orderBy, descending, limit,
+								offset));
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MessageToUser.class);
+	}
+
+	public static MessageToUser getMessage(String username, String messageId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + messageId, username,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response,
+				MessageToUser.class);
+	}
+
+	public static MessageToUser forwardMessage(String username,
+			String messageId, MessageRecipientSet recipients) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.MESSAGE + "/" + messageId
+						+ UrlHelpers.FORWARD, username, recipients);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return ServletTestHelperUtils.readResponse(response,
+				MessageToUser.class);
+	}
+
+	public static PaginatedResults<MessageToUser> getConversation(
+			String username, String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + associatedMessageId
+						+ UrlHelpers.CONVERSATION, username, null);
+		ServletTestHelperUtils
+				.addExtraParams(
+						request,
+						fillInMessagingParams(null, orderBy, descending, limit,
+								offset));
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MessageToUser.class);
+	}
+	
+	public static void updateMessageStatus(String username, MessageStatus status)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.MESSAGE_STATUS, username, status);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
 	}
 
 	public static ConceptResponsePage getConceptsForParent(String parentId,

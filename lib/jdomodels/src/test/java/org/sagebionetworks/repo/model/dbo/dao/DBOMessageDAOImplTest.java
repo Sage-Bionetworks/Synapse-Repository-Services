@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -212,6 +213,15 @@ public class DBOMessageDAOImplTest {
 		assertEquals(groupReplyToUser, messages.get(1));
 		assertEquals(userReplyToGroup, messages.get(2));
 	}
+	
+	@Test
+	public void testGetConversation_Empty() throws Exception {
+		assertEquals(0L, messageDAO.getConversationSize(userToUser.getId(), maliciousGroup.getId()));
+		
+		List<MessageToUser> messages = messageDAO.getConversation(userToUser.getId(), maliciousGroup.getId(), 
+				MessageSortBy.SEND_DATE, true, 100, 0);
+		assertEquals(0, messages.size());
+	}
 
 	
 	@Test
@@ -225,7 +235,11 @@ public class DBOMessageDAOImplTest {
 		String etag = content.getEtag();
 		
 		// Change one message to READ
-		messageDAO.updateMessageStatus(userToUser.getId(), maliciousUser.getId(), MessageStatusType.READ);
+		MessageStatus status = new MessageStatus();
+		status.setMessageId(userToUser.getId());
+		status.setRecipientId(maliciousUser.getId());
+		status.setStatus(MessageStatusType.READ);
+		messageDAO.updateMessageStatus(status);
 		
 		// Etag should have changed
 		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
