@@ -804,6 +804,17 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The name of the AWS SQS where message (to user) updates are pushed.
+	 * 
+	 * @return
+	 */
+	public String getMessageUpdateQueueName() {
+		return String.format(StackConstants.MESSAGE_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+
+	/**
 	 * The name of the AWS SQS where file updates are pushed.
 	 * 
 	 * @return
@@ -1003,6 +1014,15 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.rds"));
+	}
+
+	/**
+	 * The maximum number of workers in the cluster that will send messages to users
+	 */
+	public Integer getSemaphoreGatedMaxRunnersMessageToUser() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.message.to.users"));
 	}
 
 	/**
