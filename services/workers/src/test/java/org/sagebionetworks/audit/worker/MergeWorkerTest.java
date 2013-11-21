@@ -3,6 +3,7 @@ package org.sagebionetworks.audit.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -11,10 +12,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -23,18 +26,35 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:audit-dao.spb.xml" })
+@ContextConfiguration(locations = { "classpath:audit-dao.spb.xml", "classpath:dao-beans.spb.xml" })
 public class MergeWorkerTest {
 	
 	private long MAX_WAIT = 1000*208;
+	private final String SEMAPHORE_KEY = "auditMergeWorkerFactory";
 
 	@Autowired
 	private AccessRecordDAO accessRecordDAO;
+	
+	@Autowired
+	private SemaphoreDao semaphoreDAO;
+	
+	private String lockToken;
+	
+	@Before
+	public void before() {
+		// Prevent the main scheduler from running another instance of the MergeWorker
+		lockToken = semaphoreDAO.attemptToAcquireLock(SEMAPHORE_KEY, MAX_WAIT);
+		if (lockToken == null) {
+			fail();
+		}
+	}
 	
 	@After
 	public void after(){
 		// Delete all data created by this test.
 		accessRecordDAO.deleteAllStackInstanceBatches();
+		
+		semaphoreDAO.releaseLock(SEMAPHORE_KEY, lockToken);
 	}
 	
 	@Test
