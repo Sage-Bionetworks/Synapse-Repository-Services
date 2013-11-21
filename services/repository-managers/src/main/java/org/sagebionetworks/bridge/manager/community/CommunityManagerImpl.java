@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.jdo.NodeField;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -41,6 +43,9 @@ public class CommunityManagerImpl implements CommunityManager {
 	private EntityManager entityManager;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired
+	private NodeQueryDao nodeQueryDao;
 
 	public CommunityManagerImpl() {
 	}
@@ -228,25 +233,33 @@ public class CommunityManagerImpl implements CommunityManager {
 	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#getByMember(java.lang.String, int, int)
 	 */
 	@Override
-	public PaginatedResults<Community> getByMember(UserInfo userInfo, String principalId, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<Community> getCommunitiesByMember(UserInfo userInfo, String principalId, int limit, int offset) throws DatastoreException,
 			NotFoundException {
+		
 		// temp code. Will add new table to connect community to teams and visa versa.
-		List<Community> communities = Lists.newArrayList();
+		BasicQuery basicQuery = createCommunityQuery();
+		
+		// This exposes the user's community memberships, though that appears to be the intent of this method.
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(basicQuery, userInfo);
 
-		for (Team team : teamManager.getByMember(principalId, 0, Long.MAX_VALUE).getResults()) {
-			try {
-				Community community = entityManager.getEntity(userInfo, team.getName(), Community.class);
-				communities.add(community);
-			} catch (NotFoundException e) {
+		List<Community> communities = Lists.newArrayList();
+		UserInfo principal = userManager.getUserInfo(principalId);
+		for (String id : nodeResults.getResultIds()) {
+			Community community = entityManager.getEntity(userInfo, id, Community.class);
+			String teamId = community.getTeamId();
+			
+			TeamMembershipStatus status = teamManager.getTeamMembershipStatus(userInfo, teamId, principal);
+			if (status.getIsMember()) {
+				communities.add(community);	
 			}
 		}
-
-		PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
+		
+		PaginatedResults<Community> page = new PaginatedResults<Community>();
 		int start = Math.min(offset, communities.size());
 		int end = Math.min(start + limit, communities.size());
-		queryResults.setResults(communities.subList(start, end));
-		queryResults.setTotalNumberOfResults(communities.size());
-		return queryResults;
+		page.setResults(communities.subList(start, end));
+		page.setTotalNumberOfResults(communities.size());
+		return page;
 	}
 
 	/*
@@ -257,22 +270,42 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	public PaginatedResults<Community> getAll(UserInfo userInfo, int limit, int offset) throws DatastoreException, NotFoundException {
 		// temp code. Will add new table to connect community to teams and visa versa.
+		
+		BasicQuery basicQuery = createCommunityQuery();
+		
+		// userGroupDao. get those two groups, and then remove the
+		// DEFAULT_GROUPS.AUTHENTICATED_USERS
+		// DEFAULT_GROUPS.PUBLIC;
+		//userInfo.getGroups().remove(DEFAULT_GROUPS.AUTHENTICATED_USERS);
+		//userInfo.getGroups().remove(DEFAULT_GROUPS.PUBLIC);
+		
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(basicQuery, userInfo);
+		
 		List<Community> communities = Lists.newArrayList();
-
-		for (Team team : teamManager.getAllTeamsAndMembers().keySet()) {
-			try {
-				Community community = entityManager.getEntity(userInfo, team.getName(), Community.class);
-				communities.add(community);
-			} catch (NotFoundException e) {
-			}
+		for (String id : nodeResults.getResultIds()) {
+			Community community = entityManager.getEntity(userInfo, id, Community.class);
+			communities.add(community);
 		}
-
-		PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
+		
+		PaginatedResults<Community> page = new PaginatedResults<Community>();
 		int start = Math.min(offset, communities.size());
 		int end = Math.min(start + limit, communities.size());
-		queryResults.setResults(communities.subList(start, end));
-		queryResults.setTotalNumberOfResults(communities.size());
-		return queryResults;
+		page.setResults(communities.subList(start, end));
+		page.setTotalNumberOfResults(communities.size());
+		return page;
+	}
+	
+	private BasicQuery createCommunityQuery() {
+		EntityType type =  EntityType.getNodeTypeForClass(Community.class);
+		BasicQuery basicQuery = new BasicQuery();
+		basicQuery.setSelect(new ArrayList<String>());
+		basicQuery.getSelect().add(NodeField.ID.getFieldName());
+		basicQuery.setFrom(type.name());
+		basicQuery.setLimit(100);
+		basicQuery.setOffset(0);
+		basicQuery.setAscending(true);
+		basicQuery.setSort("name");
+		return basicQuery;
 	}
 
 	/*

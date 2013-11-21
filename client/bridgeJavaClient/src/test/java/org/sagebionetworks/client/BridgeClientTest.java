@@ -1,6 +1,8 @@
 package org.sagebionetworks.client;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.*;
@@ -12,15 +14,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.*;
 import org.mockito.*;
+import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.util.StringInputStream;
 
 import static org.mockito.Mockito.*;
-
 import static org.junit.Assert.fail;
 
 public class BridgeClientTest {
@@ -80,6 +86,26 @@ public class BridgeClientTest {
 
 	@Test
 	public void testUpdateCommunity() throws Exception {
+	}
+	
+	@Test
+	public void testGetCommunityMemberships() throws Exception {
+		List<Community> communities = new ArrayList<Community>();
+		
+		Community community = new Community();
+		community.setId("syn123");
+		community.setName("Bridge Test Community");
+		communities.add(community);
+		
+		PaginatedResults<Community> results = new PaginatedResults<Community>();
+		results.setResults(communities);
+		results.setTotalNumberOfResults(1L);
+		
+		expectRequest(URIBASE + "/user/community?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(results));
+		List<Community> list = bridgeClient.getCommunitiesByMember();
+		verifyRequest(URIBASE + "/user/community?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(results));
+		
+		Assert.assertEquals("Bridge Test Community", list.get(0).getName());
 	}
 
 	@SuppressWarnings("unchecked")
