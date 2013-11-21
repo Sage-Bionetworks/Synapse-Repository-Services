@@ -11,6 +11,7 @@ import org.sagebionetworks.bridge.service.BridgeServiceProvider;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.*;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -137,16 +138,15 @@ public class CommunityController extends BridgeBaseController {
 	@RequestMapping(value = BridgeUrlHelpers.USER_COMMUNITIES, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Community> getCommunitiesByMember(
-			@PathVariable String id,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
 			throws DatastoreException, NotFoundException {
-		return serviceProvider.getCommunityService().getByMember(userId, id, limit, offset);
+		return serviceProvider.getCommunityService().getCommunitiesByMember(userId, userId, limit, offset);
 	}
 
 	/**
-	 * Join a Communities
+	 * Join a Community
 	 * 
 	 * @param id the ID of the Community to join
 	 * @return
@@ -162,7 +162,7 @@ public class CommunityController extends BridgeBaseController {
 	}
 
 	/**
-	 * Join a Communities
+	 * Leave a Community
 	 * 
 	 * @param id the ID of the Community to join
 	 * @return
@@ -176,4 +176,5 @@ public class CommunityController extends BridgeBaseController {
 			NotFoundException {
 		serviceProvider.getCommunityService().leaveCommunity(userId, id);
 	}
+	
 }

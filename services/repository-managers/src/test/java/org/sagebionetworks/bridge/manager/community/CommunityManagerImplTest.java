@@ -34,6 +34,10 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	private static final String USER_ID = "123";
 	private static final String TEAM_ID = "456";
 	private static final String COMMUNITY_ID = "789";
+	private static final String OTHER_USER_ID = "111";
+	private static final String OTHER_TEAM_ID = "222";
+	private static final String OTHER_COMMUNITY_ID = "333";
+	
 
 	@Mock
 	private AuthorizationManager authorizationManager;
@@ -63,6 +67,10 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	private UserInfo validUser;
 	private Team testTeam;
 	private Community testCommunity;
+	
+	private UserInfo otherUser;
+	private Community otherUserTestCommunity;
+	private Team otherTestTeam;
 
 	@Before
 	public void doBefore() {
@@ -87,9 +95,31 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		testTeam = new Team();
 		testTeam.setId(TEAM_ID);
 		testTeam.setName(COMMUNITY_ID);
+		
+		createCommunityFromOtherUser();
 
-		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager, entityManager, entityPermissionsManager,
-				wikiManager);
+		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager,
+				entityManager, entityPermissionsManager, wikiManager);
+	}
+	
+	private void createCommunityFromOtherUser() {
+		otherUser = new UserInfo(false);
+		UserGroup individualGroup = new UserGroup();
+		individualGroup.setId(OTHER_USER_ID);
+		User user = new User();
+		user.setUserId(OTHER_USER_ID);
+		otherUser.setUser(user);
+		otherUser.setIndividualGroup(individualGroup);
+		otherUser.setGroups(Arrays.asList(new UserGroup[] { individualGroup }));
+
+		otherUserTestCommunity = new Community();
+		// otherUserTestCommunity.setId(OTHER_COMMUNITY_ID);
+		otherUserTestCommunity.setName(OTHER_USER_ID);
+		otherUserTestCommunity.setDescription("bye");
+		
+		otherTestTeam = new Team();
+		otherTestTeam.setId(OTHER_TEAM_ID);
+		otherTestTeam.setName(OTHER_COMMUNITY_ID);
 	}
 
 	@Test
@@ -263,5 +293,15 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE);
 			throw t;
 		}
+	}
+	
+	@Test
+	public void getCommunitiesReturnsAll() throws Exception {
+		// This implementation is temporary and possibly wrong, so I'm not going to write tests for it.
+	}
+	
+	@Test 
+	public void getCommunitiesByMemberReturnsSubset() {
+		// This implementation is temporary and possibly wrong, so I'm not going to write tests for it.
 	}
 }

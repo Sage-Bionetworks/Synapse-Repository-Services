@@ -37,7 +37,7 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Community> getByMember(String userId, String principalId, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<Community> getCommunitiesByMember(String userId, String principalId, int limit, int offset) throws DatastoreException,
 			NotFoundException;
 
 	/**

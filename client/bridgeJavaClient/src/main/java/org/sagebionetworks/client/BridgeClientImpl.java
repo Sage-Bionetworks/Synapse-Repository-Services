@@ -9,6 +9,8 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.schema.adapter.*;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -27,6 +29,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String VERSION_INFO = "/version";
 
 	private static final String COMMUNITY = "/community";
+	private static final String USER = "/user";
+	
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
 
@@ -133,13 +137,18 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = COMMUNITY + "/" + communityId + JOIN;
 		get(uri);
 	}
-
+	
 	@Override
 	public void leaveCommunity(String communityId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + LEAVE;
 		get(uri);
 	}
-
+	
+	@Override
+	public List<Community> getCommunitiesByMember() throws SynapseException {
+		return getList(USER + COMMUNITY, Community.class);
+	}
+	
 	private void get(String uri) throws SynapseException {
 		getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 	}
