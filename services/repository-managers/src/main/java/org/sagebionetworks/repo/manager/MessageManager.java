@@ -65,7 +65,7 @@ public interface MessageManager {
 	/**
 	 * Changes the status of the user's message 
 	 */
-	public void markMessageStatus(UserInfo userInfo, MessageStatus status);
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException;
 	
 	/**
 	 * Takes an existing message and processes it, 
