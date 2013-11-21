@@ -8,11 +8,11 @@
     	"EVALUATION",
     	"SUBMISSION",
     	"FILE",
+    	"MESSAGE", 
     	"WIKI",
     	"FAVORITE",
     	"ACCESS_REQUIREMENT",
     	"ACCESS_APPROVAL",
     	"TEAM",
-    	"COMMUNITY"
     ]
 }

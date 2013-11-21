@@ -10,11 +10,13 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
@@ -38,6 +40,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
+	
+	@Autowired
+	private TagMessenger tagMessenger;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -189,10 +194,12 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		// Generate an ID for all the new rows
 		Long messageId = idGenerator.generateNewId(TYPE.MESSAGE_ID);
 		
+		// Generate an etag and a CREATE message
+		tagMessenger.generateEtagAndSendMessage(content, ChangeType.CREATE);
+		
 		// Insert the message content
 		content.setMessageId(messageId);
 		content.setCreatedOn(new Date().getTime());
-		content.setEtag(UUID.randomUUID().toString());
 		MessageUtils.validateDBO(content);
 		basicDAO.createNew(content);
 		
