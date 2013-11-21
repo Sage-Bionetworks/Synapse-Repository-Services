@@ -117,6 +117,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
 	
+	private static final String COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE =
+			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_STATUS + 
+			" WHERE " +SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
 	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
 	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
 	private static final RowMapper<DBOMessageRecipient> messageRecipientRowMapper = new DBOMessageRecipient().getTableMapping();
@@ -340,13 +344,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	public void createMessageStatus(String messageId, String userId) {
 		createMessageStatus(messageId, userId, MessageStatusType.UNREAD);
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	public void createMessageStatus(String messageId, String userId, MessageStatusType status) {
 		DBOMessageStatus dbo = new DBOMessageStatus();
 		dbo.setMessageId(Long.parseLong(messageId));
@@ -376,5 +380,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		basicDAO.deleteObjectByPrimaryKey(DBOMessageContent.class, params);
+	}
+
+	@Override
+	public boolean hasMessageBeenSent(String messageId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		long recipients = simpleJdbcTemplate.queryForLong(COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE, params);
+		return recipients > 0;
 	}
 }

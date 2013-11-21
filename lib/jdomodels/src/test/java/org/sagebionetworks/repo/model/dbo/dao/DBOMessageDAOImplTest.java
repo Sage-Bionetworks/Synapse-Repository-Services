@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -283,5 +284,14 @@ public class DBOMessageDAOImplTest {
 		assertEquals(groupReplyToUser, messages.get(1).getMessage());
 		assertEquals(MessageStatusType.UNREAD, messages.get(0).getStatus().getStatus());
 		assertEquals(MessageStatusType.UNREAD, messages.get(1).getStatus().getStatus());
+	}
+	
+	@Test
+	public void testHasMessageBeenSent() throws Exception {
+		assertTrue(messageDAO.hasMessageBeenSent(userToUser.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(userToUserAndGroup.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(userToGroup.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(groupReplyToUser.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(userReplyToGroup.getId()));
 	}
 }

@@ -67,6 +67,8 @@ public interface MessageDAO {
 	
 	/**
 	 * Marks a user as a recipient of a message
+	 * Note: This should only be used by a worker to send messages
+	 * Note: This operation occurs in a separate transaction (REQUIRES_NEW)
 	 */
 	public void createMessageStatus(String messageId, String userId, MessageStatusType status);
 	
@@ -81,4 +83,9 @@ public interface MessageDAO {
 	 * Deletes a message.  Only used for test cleanup.
 	 */
 	public void deleteMessage(String messageId);
+
+	/**
+	 * Returns true if there is at least one recipient of the message
+	 */
+	public boolean hasMessageBeenSent(String messageId);
 }

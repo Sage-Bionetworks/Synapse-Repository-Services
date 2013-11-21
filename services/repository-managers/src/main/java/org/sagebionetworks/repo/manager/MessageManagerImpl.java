@@ -162,6 +162,12 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
+		// Check to see if the message has already been sent
+		// If so, nothing else needs to be done
+		if (messageDAO.hasMessageBeenSent(messageId)) {
+			return errors;
+		}
+		
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
 		for (String principalId : dto.getRecipients()) {
@@ -194,14 +200,19 @@ public class MessageManagerImpl implements MessageManager {
 		
 		// Mark each message as sent
 		for (String user : recipients) {
-			//TODO check the recipient's settings
-			//TODO send emails if necessary
-			messageDAO.createMessageStatus(messageId, user);
+			// Try to send messages to each user individually
+			try {
+				//TODO check the recipient's settings
+				
+				//TODO send emails if necessary
+				
+				// This marks a user as a recipient of the message
+				// which is equivalent to marking the message as sent
+				messageDAO.createMessageStatus(messageId, user);
+			} catch (Exception e) {
+				errors.add(e.getMessage());
+			}
 		}
-		
-		//TODO Remove the now-sent message from the queue
-		// Note: the queue's implementation is still up in the air
-		// Note: this may be the job of this method's caller, which is not implemented yet 
 		
 		return errors;
 	}
