@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -32,6 +33,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
+	private static SynapseClient synapseAdmin;
 
 	private static String oneId;
 	private static String twoId;
@@ -40,6 +42,8 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	private MessageToUser oneToTwo;
 	private MessageToUser twoToOne;
+	
+	private List<String> cleanup;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -49,6 +53,9 @@ public class IT501SynapseJavaClientMessagingTest {
 		synapseTwo = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
+		synapseAdmin = SynapseClientHelper.createSynapseClient(
+				StackConfiguration.getIntegrationTestUserAdminName(),
+				StackConfiguration.getIntegrationTestUserAdminPassword());
 
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
@@ -57,6 +64,8 @@ public class IT501SynapseJavaClientMessagingTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
+		cleanup = new ArrayList<String>();
+		
 		// Create a file handle to use with all the messages
 		PrintWriter pw = null;
 		File file = File.createTempFile("testEmailBody", ".txt");
@@ -81,6 +90,7 @@ public class IT501SynapseJavaClientMessagingTest {
 			}
 		});
 		oneToTwo = synapseOne.sendMessage(oneToTwo);
+		cleanup.add(oneToTwo.getId());
 
 		twoToOne = new MessageToUser();
 		twoToOne.setFileHandleId(oneToRuleThemAll.getId());
@@ -91,10 +101,14 @@ public class IT501SynapseJavaClientMessagingTest {
 		});
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
+		cleanup.add(twoToOne.getId());
 	}
 
 	@After
 	public void after() throws Exception {
+		for (String id : cleanup) {
+			synapseAdmin.deleteMessage(id);
+		}
 		synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
 	}
 
@@ -137,6 +151,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		MessageRecipientSet recipients = new MessageRecipientSet();
 		recipients.setRecipients(twoToOne.getRecipients());
 		MessageToUser forwarded = synapseOne.forwardMessage(oneToTwo.getId(), recipients);
+		cleanup.add(forwarded.getId());
 		
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				null, null, LIMIT, OFFSET);

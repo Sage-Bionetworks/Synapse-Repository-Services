@@ -362,4 +362,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		}
 		return success;
 	}
+
+	@Override
+	public void deleteMessage(String messageId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		basicDAO.deleteObjectByPrimaryKey(DBOMessageContent.class, params);
+	}
 }

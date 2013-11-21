@@ -76,4 +76,9 @@ public interface MessageDAO {
 	 * @return Did the update succeed?
 	 */
 	public boolean updateMessageStatus(MessageStatus status);
+	
+	/**
+	 * Deletes a message.  Only used for test cleanup.
+	 */
+	public void deleteMessage(String messageId);
 }

@@ -186,4 +186,15 @@ public class MessageController extends BaseController {
 			@RequestBody MessageStatus status) throws NotFoundException {
 		serviceProvider.getMessageService().updateMessageStatus(username, status);
 	}
+	
+	/**
+	 * Deletes a message.  Only accessible to administrators.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
+	public void deleteMessage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@PathVariable String messageId) throws NotFoundException {
+		serviceProvider.getMessageService().deleteMessage(username, messageId);
+	}
 }

@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.web.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -43,6 +44,9 @@ public class MessageControllerAutowiredTest {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private MessageService messageService;
 	
 	@Autowired
 	private FileHandleDao fileDAO;
@@ -64,12 +68,15 @@ public class MessageControllerAutowiredTest {
 	private Set<String> toBob;
 	private Set<String> toEve;
 	
+	private List<String> cleanup;
+	
 	@SuppressWarnings("serial")
 	private static List<MessageStatusType> inboxFilter = new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}};
 
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
+		cleanup = new ArrayList<String>();
 		testHelper.setUp();
 		
 		aliceId = userManager.getUserInfo(alice).getIndividualGroup().getId();
@@ -101,7 +108,10 @@ public class MessageControllerAutowiredTest {
 	}
 	
 	@After
-	public void after() throws UnauthorizedException {
+	public void after() throws Exception {
+		for (String id : cleanup) {
+			messageService.deleteMessage(AuthorizationConstants.ADMIN_USER_NAME, id);
+		}
 		fileDAO.delete(fileHandleId);
 	}
 	
@@ -120,6 +130,7 @@ public class MessageControllerAutowiredTest {
 	public void testCreateMessage() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
 		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		cleanup.add(messageToBob.getId());
 		assertNotNull(messageToBob.getId());
 		assertEquals(aliceId, messageToBob.getCreatedBy());
 		assertNotNull(messageToBob.getCreatedOn());
@@ -132,6 +143,7 @@ public class MessageControllerAutowiredTest {
 		aliceToBob.setFileHandleId(null);
 		try {
 			aliceToBob = ServletTestHelper.sendMessage(alice, aliceToBob);
+			cleanup.add(aliceToBob.getId());
 			fail();
 		} catch (IllegalArgumentException e) { }
 	}
@@ -140,6 +152,7 @@ public class MessageControllerAutowiredTest {
 	public void testGetBoxes() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
 		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		cleanup.add(messageToBob.getId());
 		
 		PaginatedResults<MessageToUser> outboxOfAlice = ServletTestHelper.getOutbox(alice, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, outboxOfAlice.getTotalNumberOfResults());
@@ -168,6 +181,7 @@ public class MessageControllerAutowiredTest {
 	public void testGetMessage() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
 		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		cleanup.add(messageToBob.getId());
 		
 		MessageToUser message = ServletTestHelper.getMessage(alice, messageToBob.getId());
 		assertEquals(messageToBob, message);
@@ -193,11 +207,13 @@ public class MessageControllerAutowiredTest {
 	public void testForwardMessage() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
 		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		cleanup.add(messageToBob.getId());
 		
 		// Bob forwards the message back to Alice
 		MessageRecipientSet bouncy = new MessageRecipientSet();
 		bouncy.setRecipients(toAlice);
 		MessageToUser messageToAlice = ServletTestHelper.forwardMessage(bob, messageToBob.getId(), bouncy);
+		cleanup.add(messageToAlice.getId());
 		
 		PaginatedResults<MessageBundle> inboxOfAlice = ServletTestHelper.getInbox(alice, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfAlice.getTotalNumberOfResults());
@@ -208,7 +224,9 @@ public class MessageControllerAutowiredTest {
 	@Test
 	public void testGetConversation() throws Exception {
 		MessageToUser aliceToBob = ServletTestHelper.sendMessage(alice, getMessageDTO(toBob, null));
+		cleanup.add(aliceToBob.getId());
 		MessageToUser bobToAlice = ServletTestHelper.sendMessage(alice, getMessageDTO(toAlice, aliceToBob.getId()));
+		cleanup.add(bobToAlice.getId());
 		
 		PaginatedResults<MessageToUser> conversation_alice = ServletTestHelper.getConversation(alice, aliceToBob.getId(), SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(2L, conversation_alice.getTotalNumberOfResults());
@@ -229,6 +247,7 @@ public class MessageControllerAutowiredTest {
 	public void testUpdateStatus() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
 		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		cleanup.add(messageToBob.getId());
 		
 		PaginatedResults<MessageBundle> inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());
@@ -247,7 +266,10 @@ public class MessageControllerAutowiredTest {
 		
 		// Eve can't interfere (does nothing)
 		status.setStatus(MessageStatusType.UNREAD);
-		ServletTestHelper.updateMessageStatus(eve, status);
+		try {
+			ServletTestHelper.updateMessageStatus(eve, status);
+			fail();
+		} catch (UnauthorizedException e) { }
 		
 		inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());

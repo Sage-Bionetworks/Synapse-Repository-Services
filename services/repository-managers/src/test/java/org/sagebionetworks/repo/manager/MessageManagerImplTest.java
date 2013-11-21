@@ -84,12 +84,18 @@ public class MessageManagerImplTest {
 	private MessageToUser userToSelfAndGroup;
 	private MessageToUser otherToSelfAndGroup;
 	
+	private UserInfo adminUserInfo;
+	private List<String> cleanup;
+	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
 	 */
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		cleanup = new ArrayList<String>();
+		
 		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		otherTestUser = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		final String testUserId = testUser.getIndividualGroup().getId();
@@ -148,6 +154,7 @@ public class MessageManagerImplTest {
 		// Insert the message
 		dto = messageManager.createMessage(userInfo, dto);
 		assertNotNull(dto.getId());
+		cleanup.add(dto.getId());
 		assertEquals(userInfo.getIndividualGroup().getId(), dto.getCreatedBy());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
@@ -175,9 +182,12 @@ public class MessageManagerImplTest {
 	
 	@After
 	public void cleanup() throws Exception {
-		// This will cascade delete all the messages generated for this test
-		fileDAO.delete(fileHandleId);
+		for (String id : cleanup) {
+			messageManager.deleteMessage(adminUserInfo, id);
+		}
 		
+		fileDAO.delete(fileHandleId);
+
 		// Cleanup the team
 		teamManager.delete(testUser, testTeam.getId());
 	}
@@ -213,6 +223,7 @@ public class MessageManagerImplTest {
 		MessageRecipientSet recipients = new MessageRecipientSet();
 		recipients.setRecipients(new HashSet<String>() {{add(testUserId);}});
 		MessageToUser forwarded = messageManager.forwardMessage(testUser, userToOther.getId(), recipients);
+		cleanup.add(forwarded.getId());
 		
 		// It should appear in the test user's inbox immediately
 		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 

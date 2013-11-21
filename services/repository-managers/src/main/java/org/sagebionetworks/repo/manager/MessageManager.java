@@ -75,4 +75,9 @@ public interface MessageManager {
 	 * It is the caller's responsibility to send a bounce message to the user.
 	 */
 	public List<String> sendMessage(String messageId) throws NotFoundException;
+	
+	/**
+	 * Deletes a message, only accessible to admins
+	 */
+	public void deleteMessage(UserInfo userInfo, String messageId);
 }

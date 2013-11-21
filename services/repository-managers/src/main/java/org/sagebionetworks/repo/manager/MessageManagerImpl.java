@@ -205,5 +205,14 @@ public class MessageManagerImpl implements MessageManager {
 		
 		return errors;
 	}
+
+	@Override
+	public void deleteMessage(UserInfo userInfo, String messageId) {
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only admins may delete messages");
+		}
+		
+		messageDAO.deleteMessage(messageId);
+	}
 	
 }

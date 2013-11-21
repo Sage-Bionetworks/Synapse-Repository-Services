@@ -38,5 +38,8 @@ public interface MessageService {
 
 	public void updateMessageStatus(String username, MessageStatus status)
 			throws NotFoundException;
+	
+	public void deleteMessage(String username, String messageId)
+			throws NotFoundException;
 
 }
