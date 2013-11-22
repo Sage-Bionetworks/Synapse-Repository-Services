@@ -314,4 +314,19 @@ public class MessageUtils {
 			throw new IllegalArgumentException("Message recipient must have an user ID");
 		}
 	}
+
+	/**
+	 * Checks for all required fields
+	 */
+	public static void validateDBO(DBOMessageStatus dbo) {
+		if (dbo.getMessageId() == null) {
+			throw new IllegalArgumentException("Message status must have a message ID");
+		}
+		if (dbo.getRecipientId() == null) {
+			throw new IllegalArgumentException("Message status must have a recipient ID");
+		}
+		if (dbo.getStatus() == null) {
+			throw new IllegalArgumentException("Message status must have a status");
+		}
+	}
 }

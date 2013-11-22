@@ -8,8 +8,8 @@ import static org.junit.Assert.fail;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT070SynapseJavaClientTrashCanTest {
 
@@ -38,9 +38,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		String user = StackConfiguration.getIntegrationTestUserOneName();
 		String pw = StackConfiguration.getIntegrationTestUserOnePassword();
 
-		UserSessionData session = synapse.login(user, pw);
+		Session session = synapse.login(user, pw);
 		assertNotNull(session);
-		assertNotNull(session.getProfile().getUserName());
 		assertNotNull(session.getSessionToken());
 
 		synapseAdmin = new SynapseAdminClientImpl();
@@ -52,9 +51,8 @@ public class IT070SynapseJavaClientTrashCanTest {
 		String adminUsr = StackConfiguration.getIntegrationTestUserAdminName();
 		String adminPwd = StackConfiguration.getIntegrationTestUserAdminPassword();
 
-		UserSessionData adminSession = synapseAdmin.login(adminUsr, adminPwd);
+		Session adminSession = synapseAdmin.login(adminUsr, adminPwd);
 		assertNotNull(adminSession);
-		assertNotNull(adminSession.getProfile().getUserName());
 		assertNotNull(adminSession.getSessionToken());
 
 		parent = new Project();
