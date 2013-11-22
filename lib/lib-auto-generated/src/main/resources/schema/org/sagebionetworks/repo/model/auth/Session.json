@@ -1,9 +1,14 @@
 {
-	"description": "Needs a description",
+	"title": "Session", 
+	"description": "Holds a session token used for short-term authentication with Synapse",
 	"properties": {
 		"sessionToken": {
 			"type": "string",
-			"description": "??"
+			"description": "A token that identifies the user"
+		}, 
+		"acceptsTermsOfUse": {
+			"type": "boolean",
+			"description": "Does the user accept the terms of use?"
 		}
 	}
 }

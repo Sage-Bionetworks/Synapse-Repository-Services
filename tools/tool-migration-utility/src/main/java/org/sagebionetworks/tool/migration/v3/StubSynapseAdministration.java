@@ -633,26 +633,10 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public UserSessionData login(String username, String password)
+	public Session login(String username, String password)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-
-	@Override
-	public UserSessionData login(String username, String password,
-			boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void loginWithNoProfile(String userName, String password)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		
 	}
 
 
@@ -2418,19 +2402,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 	}
 
-	@Override
-	public NewUser getAuthUserInfo() throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void changePassword(String newPassword) throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
 
 	@Override
 	public void changePassword(String sessionToken, String newPassword)
@@ -2439,23 +2410,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		
 	}
 
-
 	@Override
-	public void changeEmail(String sessionToken, String newPassword)
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		
-	}
-
-
-	@Override
-	public void sendPasswordResetEmail() throws SynapseException {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
@@ -2484,26 +2443,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	}
 
 	@Override
-	public void resendPasswordEmail(String email) throws SynapseException {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public Session passThroughOpenIDParameters(String queryString)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean acceptsTermsOfUse, Boolean createUserIfNecessary)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2552,9 +2492,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
-			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary, OriginatingClient originClient)
+			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}

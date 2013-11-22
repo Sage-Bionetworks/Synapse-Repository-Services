@@ -177,38 +177,12 @@ public class SharedClientConnection {
 	 * 
 	 * @return A session token
 	 */
-	public String login(String username, String password, boolean explicitlyAcceptsTermsOfUse, String userAgent) throws SynapseException {
+	public Session login(String username, String password, String userAgent) 
+			throws SynapseException {
 		LoginCredentials loginRequest = new LoginCredentials();
 		loginRequest.setEmail(username);
 		loginRequest.setPassword(password);
-		if (explicitlyAcceptsTermsOfUse) {
-			loginRequest.setAcceptsTermsOfUse(true);
-		}
 
-		boolean reqPr = requestProfile;
-		requestProfile = false;
-
-		try {
-			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
-			Session session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
-			requestProfile = reqPr;
-			return session.getSessionToken();
-		} catch (SynapseForbiddenException e) {
-			throw new SynapseTermsOfUseException(e.getMessage());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-	
-	/**
-	 * Log into Synapse, do not return UserSessionData, do not request user profile, do not explicitly accept terms of use
-	 */
-	public void loginWithNoProfile(String userName, String password, String userAgent) throws SynapseException {
-		LoginCredentials loginRequest = new LoginCredentials();
-		loginRequest.setEmail(userName);
-		loginRequest.setPassword(password);
 		Session session;
 		try {
 			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
@@ -219,6 +193,8 @@ public class SharedClientConnection {
 		
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
+		
+		return session;
 	}
 
 	public void logout(String userAgent) throws SynapseException {
