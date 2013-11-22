@@ -19,9 +19,8 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 
  */
-@ControllerInfo(displayName = "Community Services", path = BridgeUrlHelpers.BASE_V1)
+// @ControllerInfo(displayName = "Community Services", path = BridgeUrlHelpers.BASE_V1)
 @Controller
-@Deprecated
 public class CommunityController extends BridgeBaseController {
 
 	@Autowired
