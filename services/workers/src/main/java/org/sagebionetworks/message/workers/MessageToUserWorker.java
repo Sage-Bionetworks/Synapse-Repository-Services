@@ -59,7 +59,7 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 					
 					//TODO How should we handle error messages?  Relay them to the user?
 					if (errors.size() > 0) {
-						log.trace("Errors while processing message ("
+						log.info("Errors while processing message ("
 								+ change.getObjectId() + ")\n"
 								+ StringUtils.join(errors, "\n"));
 					}

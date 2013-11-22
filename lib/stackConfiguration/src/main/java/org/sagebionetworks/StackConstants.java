@@ -54,7 +54,7 @@ public class StackConstants {
 	/**
 	 * Template used for the name of the AWS SQS where message (to user) updates are pushed.
 	 */
-	public static final String MESSAGE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-rds-update-queue";
+	public static final String MESSAGE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-message-send-queue";
 	
 	/**
 	 * Template used for the name of the AWS SQS where file updates are pushed.

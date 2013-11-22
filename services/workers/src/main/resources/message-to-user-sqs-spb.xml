@@ -41,12 +41,12 @@
 
 	<!-- Pull messages off the search queue, create works, deletes successfully 
 		processed messages -->
-	<bean id="messageToUserQueueMessageReveiver"
+	<bean id="messageToUserQueueMessageReceiver"
 		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
 		scope="singleton">
 		<property name="messageQueue" ref="messageToUserMessageQueue" />
 		<property name="workerFactory" ref="messageToUserQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="stackConfiguration.semaphoreGatedMaxRunnersMessageToUser" />
+		<property name="maxNumberOfWorkerThreads" value="2" />
 		<property name="maxMessagePerWorker" value="5" />
 		<property name="visibilityTimeoutSec" value="600" />
 	</bean>
@@ -57,11 +57,11 @@
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
 		<property name="maxNumberRunners" ref="stackConfiguration.semaphoreGatedMaxRunnersMessageToUser" />
 		<property name="semaphoreKey" value="messageSenderWorker" />		
-		<property name="runner" ref="messageToUserQueueMessageReveiver" />
+		<property name="runner" ref="messageToUserQueueMessageReceiver" />
 	</bean>
 
 	<!-- This trigger is used to process messages from the search queue. -->
-	<bean id="messageToUserQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="messageToUserQueueMessageReceiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean

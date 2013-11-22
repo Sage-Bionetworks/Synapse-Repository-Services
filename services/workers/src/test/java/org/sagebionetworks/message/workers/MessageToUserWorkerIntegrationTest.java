@@ -46,7 +46,7 @@ public class MessageToUserWorkerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private MessageReceiver messageToUserQueueMessageReveiver;
+	private MessageReceiver messageToUserQueueMessageReceiver;
 	
 	private UserInfo userInfo;
 	private String fileHandleId;
@@ -90,7 +90,7 @@ public class MessageToUserWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		int count = 0;
 		do {
-			count = messageToUserQueueMessageReveiver.triggerFired();
+			count = messageToUserQueueMessageReceiver.triggerFired();
 			System.out.println("Emptying the message (to user) queue, there were at least: "
 							+ count + " messages on the queue");
 			Thread.yield();
@@ -103,8 +103,8 @@ public class MessageToUserWorkerIntegrationTest {
 
 	@After
 	public void after() throws Exception {
-		// UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		// messageManager.deleteMessage(adminUserInfo, message.getId());
+		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		messageManager.deleteMessage(adminUserInfo, message.getId());
 		
 		fileDAO.delete(fileHandleId);
 	}
@@ -123,7 +123,6 @@ public class MessageToUserWorkerIntegrationTest {
 				}
 			}, MessageSortBy.SEND_DATE, true, 100, 0);
 			
-			System.out.println("Waiting for message to be sent...");
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);

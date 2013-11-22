@@ -370,7 +370,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateMessageStatus(MessageStatus status) {
+	public boolean updateMessageStatus(MessageStatus status) {
 		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
 		MessageUtils.validateDBO(toUpdate);
 		boolean success = basicDAO.update(toUpdate);

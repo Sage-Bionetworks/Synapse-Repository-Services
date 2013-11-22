@@ -42,7 +42,7 @@
 				<ref bean="workersLogSweeperTrigger" />
 				<ref bean="unsentMessageQueuerTrigger" />
 				<ref bean="unsentMessagePopperTrigger" />
-				<ref bean="messageToUserQueueMessageReveiverTrigger" />
+				<ref bean="messageToUserQueueMessageReceiverTrigger" />
 			</list>
 		</property>
 	</bean>
