@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao.semaphore;
 
+import java.util.List;
+
 /**
  * An abstraction for a job runner that is gated by a semaphore.
  * The basic idea is to run if a lock can be acquired from a semaphore.
@@ -22,4 +24,10 @@ public interface SemaphoreGatedRunner {
 	 * acquired.  Instead, the caller should continue to attempt to run at a regular interval.
 	 */
 	public void attemptToRun();
+	
+	/**
+	 * Returns all keys needed to prevent this runner from starting any workers
+	 * (For testing purposes)
+	 */
+	public List<String> getAllLockKeys();
 }
