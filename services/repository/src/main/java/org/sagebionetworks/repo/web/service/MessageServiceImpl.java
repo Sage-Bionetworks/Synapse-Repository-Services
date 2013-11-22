@@ -89,4 +89,11 @@ public class MessageServiceImpl implements MessageService {
 		messageManager.markMessageStatus(userInfo, status);
 	}
 
+	@Override
+	public void deleteMessage(String username, String messageId)
+			throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		messageManager.deleteMessage(userInfo, messageId);
+	}
+
 }

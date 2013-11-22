@@ -141,10 +141,17 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	public void markMessageStatus(UserInfo userInfo, MessageStatus status) {
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException {
+		// Check to see if the user can see the message being updated
+		getMessage(userInfo, status.getMessageId());
+		
+		// Update the message
 		status.setRecipientId(userInfo.getIndividualGroup().getId());
-
-		messageDAO.updateMessageStatus(status);
+		boolean succeeded = messageDAO.updateMessageStatus(status);
+		
+		if (!succeeded) {
+			throw new UnauthorizedException("Cannot change status of message (" + status.getMessageId() + ")");
+		}
 	}
 
 	@Override
@@ -197,6 +204,15 @@ public class MessageManagerImpl implements MessageManager {
 		// Note: this may be the job of this method's caller, which is not implemented yet 
 		
 		return errors;
+	}
+
+	@Override
+	public void deleteMessage(UserInfo userInfo, String messageId) {
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only admins may delete messages");
+		}
+		
+		messageDAO.deleteMessage(messageId);
 	}
 	
 }

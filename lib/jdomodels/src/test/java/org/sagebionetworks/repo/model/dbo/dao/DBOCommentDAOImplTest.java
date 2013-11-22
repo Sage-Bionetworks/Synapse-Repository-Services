@@ -2,12 +2,16 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static junit.framework.Assert.assertNotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.CommentDAO;
+import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -24,6 +28,9 @@ public class DBOCommentDAOImplTest {
 	
 	@Autowired
 	private CommentDAO commentDAO;
+
+	@Autowired
+	private MessageDAO messageDAO;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -34,8 +41,12 @@ public class DBOCommentDAOImplTest {
 	private String fileHandleId;	
 	private UserGroup maliciousUser;
 	
+	private List<String> cleanup;
+	
 	@Before
 	public void setup() throws Exception {
+		cleanup = new ArrayList<String>();
+		
 		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
 		
 		// We need a file handle to satisfy a foreign key constraint
@@ -48,7 +59,9 @@ public class DBOCommentDAOImplTest {
 	
 	@After
 	public void cleanup() throws Exception {
-		// This will cascade delete all the messages generated for this test
+		for (String id : cleanup) {
+			messageDAO.deleteMessage(id);
+		}
 		fileDAO.delete(fileHandleId);
 	}
 	
@@ -64,6 +77,7 @@ public class DBOCommentDAOImplTest {
 		
 		dto = commentDAO.createComment(dto);
 		assertNotNull(dto.getId());
+		cleanup.add(dto.getId());
 		assertNotNull(dto.getCreatedOn());
 	}
 }

@@ -72,6 +72,13 @@ public interface MessageDAO {
 	
 	/**
 	 * Marks a message within the user's inbox with the given status
+	 * 
+	 * @return Did the update succeed?
 	 */
-	public void updateMessageStatus(MessageStatus status);
+	public boolean updateMessageStatus(MessageStatus status);
+	
+	/**
+	 * Deletes a message.  Only used for test cleanup.
+	 */
+	public void deleteMessage(String messageId);
 }

@@ -65,7 +65,7 @@ public interface MessageManager {
 	/**
 	 * Changes the status of the user's message 
 	 */
-	public void markMessageStatus(UserInfo userInfo, MessageStatus status);
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException;
 	
 	/**
 	 * Takes an existing message and processes it, 
@@ -75,4 +75,9 @@ public interface MessageManager {
 	 * It is the caller's responsibility to send a bounce message to the user.
 	 */
 	public List<String> sendMessage(String messageId) throws NotFoundException;
+	
+	/**
+	 * Deletes a message, only accessible to admins
+	 */
+	public void deleteMessage(UserInfo userInfo, String messageId);
 }
