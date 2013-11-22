@@ -346,6 +346,19 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
+		createMessageStatus(messageId, userId, status);
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
+		createMessageStatus(messageId, userId, status);
+	}
+	
+	/**
+	 * Helper method for both the exposed methods that create a message status
+	 */
+	private void createMessageStatus(String messageId, String userId, MessageStatusType status) {
 		if (status == null) {
 			status = MessageStatusType.UNREAD;
 		}
@@ -358,14 +371,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		basicDAO.createNew(dbo);
 		
 		touch(messageId);
-	}
-
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
-		// Transactional boundaries do not apply within the same bean
-		// Hence, no code needs to be duplicated to get different transactional behavior
-		createMessageStatus_NewTransaction(messageId, userId, status);
 	}
 
 	@Override
