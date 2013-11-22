@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_COLUMN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_COLUMN_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_ORDINAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_ORDINAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN_MODEL;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,7 +25,6 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
@@ -29,12 +33,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,15 +48,15 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
+	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO, "+TABLE_COLUMN_MODEL+" CM WHERE BO."+COL_BOUND_CM_ORD_COLUMN_ID+" = CM."+COL_CM_ID+" AND BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
+	private static final String SQL_DELETE_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ORDER BY "+COL_CM_NAME+" LIMIT ? OFFSET ?";
 	private static final String SQL_TRUNCATE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" >= 0";
 	private static final String SQL_TRUNCATE_BOUND_COLUMN_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_ORDINAL+" >= 0";
 	private static final String SQL_TRUNCATE_COLUMN_MODEL= "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" >= 0";
-	private static final String SQL_SELECT_EXISTING_BOUND_FOR_OBJECT_ID = "SELECT * FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ? ";
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
 	private static final String SQL_SELECT_ID_WHERE_HASH_EQUALS = "SELECT "+COL_CM_ID+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_HASH+" = ?";
-	private static final String SQL_CREATE_OR_UPDATE_BOUND_COLUMN_BATCH = DMLUtils.getBatchInsertOrUdpate(new DBOBoundColumn().getTableMapping());
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -79,13 +80,17 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		String likeString = preparePrefix(namePrefix);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
 		// Convert to DTOs
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(DBOColumnModel dbo: dbos){
-			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
-		}
-		return results;
+		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
-
+	@Override
+	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
+			throws DatastoreException, NotFoundException {
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
+		if(dbos.size() < 1) throw new NotFoundException("No columns were found for "+tableIdString);
+		// Convert to DTOs
+		return ColumnModelUtlis.createDTOFromDBO(dbos);
+	}
 	/**
 	 * @param namePrefix
 	 * @return
@@ -143,7 +148,10 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
 		if(newCurrentColumnIds == null) throw new IllegalArgumentException("columnIds cannot be null");
+		if(newCurrentColumnIds.size() < 1) throw new IllegalArgumentException("Must include at least one column to bind to an object");
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
+		// Get each model to valid they exist.
+		List<ColumnModel> models = getColumnModel(newCurrentColumnIds);
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
 			// first bind these columns to the object. This binding is permanent and can only grow over time.
@@ -153,7 +161,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			// Insert or update the batch
 			basicDao.createOrUpdateBatch(permanent);
 			// Now replace the current current ordinal binding for this object.
-			simpleJdbcTemplate.update("DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?", objectId);
+			simpleJdbcTemplate.update(SQL_DELETE_ORDINAL, objectId);
 			// Now insert the ordinal values
 			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtlis.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
 			// this is just an insert
@@ -181,13 +189,14 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Override
 	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
+		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("ids", ids);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_FOR_IDS, ROW_MAPPER, parameters);
 		// Convert to DTOs
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(DBOColumnModel dbo: dbos){
-			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
+		List<ColumnModel> results = ColumnModelUtlis.createDTOFromDBO(dbos);
+		if(results.size() < ids.size()){
+			throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+ids.toString());
 		}
 		return results;
 	}
@@ -216,7 +225,6 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, -1, -1, parameters, true);
-		System.out.println(sql);
 		return simpleJdbcTemplate.queryForLong(sql, parameters);
 	}
 
@@ -282,4 +290,5 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		}
 		return builder.toString();
 	}
+
 }

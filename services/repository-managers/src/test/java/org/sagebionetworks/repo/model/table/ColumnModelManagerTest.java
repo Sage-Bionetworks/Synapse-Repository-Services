@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -191,5 +192,24 @@ public class ColumnModelManagerTest {
 		UserInfo user = new UserInfo(true);
 		when(mockColumnModelDAO.truncateAllColumnData()).thenReturn(true);
 		assertTrue(columnModelManager.truncateAllColumnData(user));
+	}
+	
+	@Test
+	public void testGetColumnModelsForTableAuthorized() throws DatastoreException, NotFoundException{
+		String objectId = "syn123";
+		List<ColumnModel> expected = TableModelUtils.createOneOfEachType();
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
+		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
+		assertEquals(expected, resutls);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
+		String objectId = "syn123";
+		List<ColumnModel> expected = TableModelUtils.createOneOfEachType();
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
+		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}
 }

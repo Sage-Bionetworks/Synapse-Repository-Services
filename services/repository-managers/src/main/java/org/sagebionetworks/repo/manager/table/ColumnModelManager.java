@@ -45,6 +45,16 @@ public interface ColumnModelManager {
 	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the columns models bound to a Table.
+	 * @param user
+	 * @param tableId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<ColumnModel> getColumnModelsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Get a single ColumnModel
 	 * @param user
 	 * @return

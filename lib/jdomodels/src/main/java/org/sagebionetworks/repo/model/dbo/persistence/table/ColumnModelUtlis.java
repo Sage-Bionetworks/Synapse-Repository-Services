@@ -83,6 +83,20 @@ public class ColumnModelUtlis {
 		}
 	}
 	
+	/**
+	 * Translate from the DBO to the DTO.
+	 * @param dbo
+	 * @return
+	 */
+	public static List<ColumnModel> createDTOFromDBO(List<DBOColumnModel> dbos){
+		if(dbos == null) throw new IllegalArgumentException("DBOColumnModel cannot be null");
+		List<ColumnModel> results = new LinkedList<ColumnModel>();
+		for(DBOColumnModel dbo: dbos){
+			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
+		}
+		return results;
+	}
+	
 	
 	/**
 	 * Calculate the hash from an object

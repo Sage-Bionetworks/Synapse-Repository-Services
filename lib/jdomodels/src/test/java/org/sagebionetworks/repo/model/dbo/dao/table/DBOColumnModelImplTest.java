@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -264,6 +265,37 @@ public class DBOColumnModelImplTest {
 		assertEquals(2, results.size());
 		assertEquals(2, count);
 		assertEquals(cols.get(4).getId(), results.get(1).getId());
+	}
+	
+	@Test
+	public void testGetColumnModelsForObject() throws NotFoundException{
+		// Start with all types
+		List<ColumnModel> raw = TableModelUtils.createOneOfEachType();
+		// Create each one
+		List<ColumnModel> models = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: raw){
+			models.add(columnModelDao.createColumnModel(cm));
+		}
+		// Shuffle the results so the order they are bound to does not match the natural order
+		Collections.shuffle(models);
+		List<String> headers = TableModelUtils.getHeaders(models);
+		// Now bind them to the table in this shuffled order
+		String tableId = "syn123";
+		columnModelDao.bindColumnToObject(headers, tableId);
+		// Now make sure we can fetch this back in the same order that we bound the columns
+		List<ColumnModel> fetched = columnModelDao.getColumnModelsForObject(tableId);
+		assertNotNull(fetched);
+		assertEquals(models, fetched);
+		// Now if we update the columns bound to the object the order should change
+		models.remove(0);
+		Collections.shuffle(models);
+		headers = TableModelUtils.getHeaders(models);
+		// Bind the new columns in a new order
+		columnModelDao.bindColumnToObject(headers, tableId);
+		// Get them back in the same order with the same columns
+		fetched = columnModelDao.getColumnModelsForObject(tableId);
+		assertNotNull(fetched);
+		assertEquals(models, fetched);
 	}
 	
 	/**
