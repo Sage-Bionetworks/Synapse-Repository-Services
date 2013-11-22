@@ -186,9 +186,27 @@ public class IT600BridgeCommunities {
 	 */
 	@Test
 	public void testAddRemoveUsers() throws Exception {
+		int beforeCount = bridge.getAllCommunities().size();
+
 		Community community = createCommunity();
+
+		List<Community> allCommunities = bridge.getAllCommunities();
+		assertEquals(beforeCount + 1, allCommunities.size());
+
+		assertEquals(1, bridge.getCommunities().size());
+		assertEquals(community, bridge.getCommunities().get(0));
+		assertEquals(0, bridgeTwo.getCommunities().size());
+
 		bridgeTwo.joinCommunity(community.getId());
+
+		assertEquals(1, bridge.getCommunities().size());
+		assertEquals(1, bridgeTwo.getCommunities().size());
+		assertEquals(community, bridgeTwo.getCommunities().get(0));
+
 		bridgeTwo.leaveCommunity(community.getId());
+
+		assertEquals(1, bridge.getCommunities().size());
+		assertEquals(0, bridgeTwo.getCommunities().size());
 	}
 
 	private Community createCommunity() throws SynapseException {

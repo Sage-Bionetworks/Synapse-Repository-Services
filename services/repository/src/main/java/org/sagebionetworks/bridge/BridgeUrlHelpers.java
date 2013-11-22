@@ -23,7 +23,7 @@ public class BridgeUrlHelpers extends UrlHelpers {
 	public static final String COMMUNITY = BridgePrefixConst.COMMUNITY;
 	public static final String COMMUNITY_ID = COMMUNITY + ID;
 	public static final String USER_COMMUNITIES = COMMUNITY + "/joined";
-	public static final String COMMUNITY_USERS = COMMUNITY + ID + "/members";
+	public static final String COMMUNITY_MEMBERS = COMMUNITY + ID + "/members";
 
 	public static final String JOIN_COMMUNITY = COMMUNITY + ID + "/join";
 	public static final String LEAVE_COMMUNITY = COMMUNITY + ID + "/leave";

@@ -155,7 +155,7 @@ public class CommunityController extends BridgeBaseController {
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = BridgeUrlHelpers.USER_COMMUNITIES, method = RequestMethod.GET)
+	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY_MEMBERS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<UserGroupHeader> getCommunityMembers(
 			@PathVariable String id,
