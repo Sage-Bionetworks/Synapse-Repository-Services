@@ -182,6 +182,11 @@ public class WikiControllerTest {
 		WikiPage root = entityServletHelper.getRootWikiPage(ownerId, ownerType, userName);
 		// The root should match the clone
 		assertEquals(clone, root);
+		
+		// Save the current file handle of the mirror wiki which will be lost when updating
+		V2WikiPage v2Mirror = v2WikiPageDao.get(key);
+		String abandonedFileHandleId = v2Mirror.getMarkdownFileHandleId();
+		
 		// Update the wiki
 		clone.setTitle("updated title");
 		String currentEtag = clone.getEtag();
@@ -258,8 +263,11 @@ public class WikiControllerTest {
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);
 		
-		// Delete file handles etc made when creating V2 wikis
+		// Delete file handles etc made when creating V2 wikis, starting with abandoned handles
 		// Start with child so resources aren't lost when deleting the parent first
+		S3FileHandle abandonedHandle = (S3FileHandle) fileMetadataDao.get(abandonedFileHandleId);
+		s3Client.deleteObject(abandonedHandle.getBucketName(), abandonedHandle.getKey());
+		fileMetadataDao.delete(abandonedFileHandleId);
 		for(int i = toDelete.size() - 1; i >= 0; i--) {
 			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i));
 			String markdownHandleId = wikiPage.getMarkdownFileHandleId();
