@@ -594,7 +594,7 @@ public class MigrationIntegrationAutowireTest {
 
 		dto = messageDAO.createMessage(dto);
 		
-		messageDAO.createMessageStatus(dto.getId(), group.getId());
+		messageDAO.createMessageStatus_NewTransaction(dto.getId(), group.getId(), null);
 		
 		Comment dto2 = new Comment();
 		dto2.setCreatedBy(group.getId());

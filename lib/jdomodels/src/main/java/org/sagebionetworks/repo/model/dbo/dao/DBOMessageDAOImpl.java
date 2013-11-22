@@ -345,17 +345,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	public void createMessageStatus(String messageId, String userId) {
-		createMessageStatus(messageId, userId, MessageStatusType.UNREAD);
-	}
-
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	public void createMessageStatus(String messageId, String userId, MessageStatusType status) {
+	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
+		if (status == null) {
+			status = MessageStatusType.UNREAD;
+		}
+		
 		DBOMessageStatus dbo = new DBOMessageStatus();
 		dbo.setMessageId(Long.parseLong(messageId));
 		dbo.setRecipientId(Long.parseLong(userId));
-		dbo.setStatus(MessageStatusType.UNREAD);
+		dbo.setStatus(status);
 		MessageUtils.validateDBO(dbo);
 		basicDAO.createNew(dbo);
 		
@@ -364,14 +362,22 @@ public class DBOMessageDAOImpl implements MessageDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public boolean updateMessageStatus(MessageStatus status) {
+	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
+		// Transactional boundaries do not apply within the same bean
+		// Hence, no code needs to be duplicated to get different transactional behavior
+		createMessageStatus_NewTransaction(messageId, userId, status);
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateMessageStatus(MessageStatus status) {
 		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
 		MessageUtils.validateDBO(toUpdate);
 		boolean success = basicDAO.update(toUpdate);
 		
 		if (success) {
-			touch(status.getMessageId());
-		}
+		touch(status.getMessageId());
+	}
 		return success;
 	}
 

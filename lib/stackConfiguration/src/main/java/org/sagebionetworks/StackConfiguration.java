@@ -1020,9 +1020,11 @@ public class StackConfiguration {
 	 * The maximum number of workers in the cluster that will send messages to users
 	 */
 	public Integer getSemaphoreGatedMaxRunnersMessageToUser() {
+		System.out.println(configuration
+		.getProperty("org.sagebionetworks.semaphore.gated.max.runners.message.to.user"));
 		return Integer
 				.parseInt(configuration
-						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.message.to.users"));
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.message.to.user"));
 	}
 
 	/**

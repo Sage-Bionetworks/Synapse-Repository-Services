@@ -102,12 +102,12 @@ public class DBOMessageDAOImplTest {
 				new HashSet<String>() {{add(maliciousGroup.getId());}}, groupReplyToUser.getId());
 		
 		// Send all the messages
-		messageDAO.createMessageStatus(userToUser.getId(), maliciousUser.getId());
-		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousUser.getId());
-		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousGroup.getId());
-		messageDAO.createMessageStatus(userToGroup.getId(), maliciousGroup.getId());
-		messageDAO.createMessageStatus(groupReplyToUser.getId(), maliciousUser.getId());
-		messageDAO.createMessageStatus(userReplyToGroup.getId(), maliciousGroup.getId());
+		messageDAO.createMessageStatus_SameTransaction(userToUser.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus_NewTransaction(userToUserAndGroup.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus_SameTransaction(userToUserAndGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus_NewTransaction(userToGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus_SameTransaction(groupReplyToUser.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus_NewTransaction(userReplyToGroup.getId(), maliciousGroup.getId(), null);
 	}
 	
 	/**

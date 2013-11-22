@@ -51,7 +51,7 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 					List<String> errors = null;
 					switch (change.getChangeType()) {
 					case CREATE:
-						errors = messageManager.sendMessage(change.getObjectId());
+						errors = messageManager.sendMessage(change.getObjectId(), false);
 						break;
 					default:
 						throw new IllegalArgumentException("Unknown change type: " + change.getChangeType());

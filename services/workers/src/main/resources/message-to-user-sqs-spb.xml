@@ -36,7 +36,7 @@
 
 	<!-- provides search message queue workers -->
 	<bean id="messageToUserQueueWorkerFactory"
-		class="org.sagebionetworks.rds.workers.MessageToUserWorkerFactory"
+		class="org.sagebionetworks.message.workers.MessageToUserWorkerFactory"
 		scope="singleton" />
 
 	<!-- Pull messages off the search queue, create works, deletes successfully 
