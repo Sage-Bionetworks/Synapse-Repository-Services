@@ -137,12 +137,33 @@ public class CommunityController extends BridgeBaseController {
 	@RequestMapping(value = BridgeUrlHelpers.USER_COMMUNITIES, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Community> getCommunitiesByMember(
-			@PathVariable String id,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
 			throws DatastoreException, NotFoundException {
-		return serviceProvider.getCommunityService().getByMember(userId, id, limit, offset);
+		return serviceProvider.getCommunityService().getForMember(userId, limit, offset);
+	}
+
+	/**
+	 * Retrieve a paginated list of Communities to which the given user belongs.
+	 * 
+	 * @param id the principal ID of the user of interest.
+	 * @param limit the maximum number of Communities to return (default 10)
+	 * @param offset the starting index of the returned results (default 0)
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.USER_COMMUNITIES, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<UserGroupHeader> getCommunityMembers(
+			@PathVariable String id,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			NotFoundException {
+		return serviceProvider.getCommunityService().getMembers(userId, id, limit, offset);
 	}
 
 	/**

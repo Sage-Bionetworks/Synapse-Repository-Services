@@ -33,10 +33,10 @@ public class CommunityServiceImpl implements CommunityService {
 	}
 
 	@Override
-	public PaginatedResults<Community> getByMember(String userId, String principalId, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<Community> getForMember(String userId, int limit, int offset) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return communityManager.getByMember(userInfo, principalId, limit, offset);
+		return communityManager.getForMember(userInfo, limit, offset);
 	}
 
 	@Override
@@ -56,6 +56,13 @@ public class CommunityServiceImpl implements CommunityService {
 	public void delete(String userId, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		communityManager.delete(userInfo, communityId);
+	}
+
+	@Override
+	public PaginatedResults<UserGroupHeader> getMembers(String userId, String communityId, Integer limit, Integer offset)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return communityManager.getMembers(userInfo, communityId, limit, offset);
 	}
 
 	@Override

@@ -88,6 +88,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
+				<!-- bridge -->
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 			</list>
 		</property>
 	</bean>
@@ -121,6 +123,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />

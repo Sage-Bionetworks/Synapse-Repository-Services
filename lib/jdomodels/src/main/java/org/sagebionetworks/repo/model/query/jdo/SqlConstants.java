@@ -517,6 +517,12 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
 
+	// The group members table
+	public static final String TABLE_COMMUNITY_TEAM = "COMMUNITY_TEAM";
+	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
+	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
+	public static final String DDL_FILE_COMMUNITY_TEAM = "schema/CommunityTeam-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

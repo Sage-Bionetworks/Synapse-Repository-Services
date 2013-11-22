@@ -6,6 +6,7 @@ import java.util.*;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.util.StringInputStream;
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -40,6 +43,8 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Autowired
 	private EntityManager entityManager;
 	@Autowired
+	private CommunityTeamDAO communityTeamDAO;
+	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 
 	public CommunityManagerImpl() {
@@ -47,7 +52,8 @@ public class CommunityManagerImpl implements CommunityManager {
 
 	// for testing
 	CommunityManagerImpl(AuthorizationManager authorizationManager, FileHandleManager fileHandleManager, UserManager userManager,
-			TeamManager teamManager, EntityManager entityManager, EntityPermissionsManager entityPermissionsManager, V2WikiManager wikiManager) {
+			TeamManager teamManager, EntityManager entityManager, EntityPermissionsManager entityPermissionsManager,
+			V2WikiManager wikiManager, CommunityTeamDAO communityTeamDAO) {
 		this.authorizationManager = authorizationManager;
 		this.fileHandleManager = fileHandleManager;
 		this.userManager = userManager;
@@ -55,6 +61,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		this.entityManager = entityManager;
 		this.entityPermissionsManager = entityPermissionsManager;
 		this.wikiManager = wikiManager;
+		this.communityTeamDAO = communityTeamDAO;
 	}
 
 	public static void validateForCreate(Community community) {
@@ -102,7 +109,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	private static final ACCESS_TYPE[] SIGNEDIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.PARTICIPATE };
 	private static final ACCESS_TYPE[] COMMUNITY_MEMBER_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.PARTICIPATE };
 	private static final ACCESS_TYPE[] COMMUNITY_ADMIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE,
-			ACCESS_TYPE.DELETE, ACCESS_TYPE.SEND_MESSAGE };
+			ACCESS_TYPE.DELETE, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE };
 
 	public static ResourceAccess createResourceAccess(long principalId, ACCESS_TYPE[] accessTypes) {
 		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(accessTypes));
@@ -159,6 +166,9 @@ public class CommunityManagerImpl implements CommunityManager {
 
 		String communityId = entityManager.createEntity(userInfo, community, null);
 		community = entityManager.getEntity(userInfo, communityId, Community.class);
+
+		// add the association of team and community
+		communityTeamDAO.create(KeyFactory.stringToKey(community.getId()), Long.parseLong(team.getId()));
 
 		// adding the current user to the community as an admin, and the team as a non-admin
 		AccessControlList acl = entityPermissionsManager.getACL(communityId, userInfo);
@@ -228,25 +238,10 @@ public class CommunityManagerImpl implements CommunityManager {
 	 * @see org.sagebionetworks.repo.manager.community.CommunityManager#getByMember(java.lang.String, int, int)
 	 */
 	@Override
-	public PaginatedResults<Community> getByMember(UserInfo userInfo, String principalId, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<Community> getForMember(UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			NotFoundException {
-		// temp code. Will add new table to connect community to teams and visa versa.
-		List<Community> communities = Lists.newArrayList();
-
-		for (Team team : teamManager.getByMember(principalId, 0, Long.MAX_VALUE).getResults()) {
-			try {
-				Community community = entityManager.getEntity(userInfo, team.getName(), Community.class);
-				communities.add(community);
-			} catch (NotFoundException e) {
-			}
-		}
-
-		PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
-		int start = Math.min(offset, communities.size());
-		int end = Math.min(start + limit, communities.size());
-		queryResults.setResults(communities.subList(start, end));
-		queryResults.setTotalNumberOfResults(communities.size());
-		return queryResults;
+		List<Long> communityIds = communityTeamDAO.getCommunityIdsByMember(userInfo.getIndividualGroup().getId());
+		return createPaginatedResult(userInfo, limit, offset, communityIds);
 	}
 
 	/*
@@ -256,23 +251,18 @@ public class CommunityManagerImpl implements CommunityManager {
 	 */
 	@Override
 	public PaginatedResults<Community> getAll(UserInfo userInfo, int limit, int offset) throws DatastoreException, NotFoundException {
-		// temp code. Will add new table to connect community to teams and visa versa.
-		List<Community> communities = Lists.newArrayList();
+		List<Long> communityIds = communityTeamDAO.getCommunityIds();
+		return createPaginatedResult(userInfo, limit, offset, communityIds);
+	}
 
-		for (Team team : teamManager.getAllTeamsAndMembers().keySet()) {
-			try {
-				Community community = entityManager.getEntity(userInfo, team.getName(), Community.class);
-				communities.add(community);
-			} catch (NotFoundException e) {
-			}
+	private PaginatedResults<Community> createPaginatedResult(UserInfo userInfo, int limit, int offset, List<Long> communityIds)
+			throws NotFoundException {
+		List<Long> paginatedCommunityIds = PaginatedResultsUtil.prePaginate(communityIds, limit, offset);
+		List<Community> paginatedCommunities = Lists.newArrayListWithCapacity(paginatedCommunityIds.size());
+		for (Long communityId : paginatedCommunityIds) {
+			paginatedCommunities.add(entityManager.getEntity(userInfo, KeyFactory.keyToString(communityId), Community.class));
 		}
-
-		PaginatedResults<Community> queryResults = new PaginatedResults<Community>();
-		int start = Math.min(offset, communities.size());
-		int end = Math.min(start + limit, communities.size());
-		queryResults.setResults(communities.subList(start, end));
-		queryResults.setTotalNumberOfResults(communities.size());
-		return queryResults;
+		return PaginatedResultsUtil.createPrePaginatedResults(paginatedCommunities, communityIds.size());
 	}
 
 	/*
@@ -327,6 +317,24 @@ public class CommunityManagerImpl implements CommunityManager {
 		entityManager.deleteEntity(userInfo, communityId);
 	}
 
+	@Override
+	public PaginatedResults<UserGroupHeader> getMembers(UserInfo userInfo, String communityId, Integer limit, Integer offset)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+			throw new UnauthorizedException("Cannot access Community members data.");
+		}
+
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+		PaginatedResults<TeamMember> teamMembers = teamManager.getMembers(community.getTeamId(), limit, offset);
+		List<UserGroupHeader> communityMembers = Lists.transform(teamMembers.getResults(), new Function<TeamMember, UserGroupHeader>() {
+			@Override
+			public UserGroupHeader apply(TeamMember input) {
+				return input.getMember();
+			}
+		});
+		return PaginatedResultsUtil.createPrePaginatedResults(communityMembers, teamMembers.getTotalNumberOfResults());
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -356,3 +364,4 @@ public class CommunityManagerImpl implements CommunityManager {
 		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getIndividualGroup().getId());
 	}
 }
+
