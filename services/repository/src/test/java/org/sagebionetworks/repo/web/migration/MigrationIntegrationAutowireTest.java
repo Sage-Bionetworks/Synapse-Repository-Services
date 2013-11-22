@@ -647,6 +647,7 @@ public class MigrationIntegrationAutowireTest {
 		community.setName("MigrationIntegrationAutowireTest.Community");
 		community.setEntityType(Community.class.getName());
 		community.setTeamId(team.getId());
+		community = serviceProvider.getEntityService().createEntity(userName, community, null, mockRequest);
 
 		communityTeamDAO.create(KeyFactory.stringToKey(community.getId()), Long.parseLong(team.getId()));
 	}
