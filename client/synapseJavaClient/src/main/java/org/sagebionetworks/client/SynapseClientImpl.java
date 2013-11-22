@@ -3244,6 +3244,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public void deleteMessage(String messageId) throws SynapseException {
+		String uri = MESSAGE + "/" + messageId;
+		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
+	}
 
 	/**
 	 * Get the child count for this entity

@@ -4,6 +4,7 @@ import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -59,11 +60,15 @@ public class DBOMessageDAOImplTest {
 	private MessageToUser groupReplyToUser;
 	private MessageToUser userReplyToGroup;
 	
+	private List<String> cleanup;
+	
 	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD });
 	
 	@SuppressWarnings("serial")
 	@Before
 	public void spamMessages() throws Exception {
+		cleanup = new ArrayList<String>();
+		
 		// These two principals will act as mutual spammers
 		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
 		maliciousGroup = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false);
@@ -115,6 +120,7 @@ public class DBOMessageDAOImplTest {
 		// Insert the message
 		dto = messageDAO.createMessage(dto);
 		assertNotNull(dto.getId());
+		cleanup.add(dto.getId());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
 		
@@ -126,7 +132,9 @@ public class DBOMessageDAOImplTest {
 	
 	@After
 	public void cleanup() throws Exception {
-		// This will cascade delete all the messages generated for this test
+		for (String id : cleanup) {
+			messageDAO.deleteMessage(id);
+		}
 		fileDAO.delete(fileHandleId);
 	}
 	

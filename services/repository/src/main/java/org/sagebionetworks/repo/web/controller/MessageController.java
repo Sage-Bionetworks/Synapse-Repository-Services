@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,7 +33,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Provides REST APIs for sending messages to other Synapse users and for commenting on Synapse entities.
  * </p>
  */
-@ControllerInfo(displayName = "Message Services", path = "repo/v1")
+// No javadocs since the implementation is not complete yet
+// @ControllerInfo(displayName = "Message Services", path = "repo/v1")
 @Controller
 public class MessageController extends BaseController {
 
@@ -185,5 +185,16 @@ public class MessageController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@RequestBody MessageStatus status) throws NotFoundException {
 		serviceProvider.getMessageService().updateMessageStatus(username, status);
+	}
+	
+	/**
+	 * Deletes a message.  Only accessible to administrators.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
+	public void deleteMessage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@PathVariable String messageId) throws NotFoundException {
+		serviceProvider.getMessageService().deleteMessage(username, messageId);
 	}
 }

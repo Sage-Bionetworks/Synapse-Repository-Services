@@ -5,7 +5,9 @@ import static junit.framework.Assert.assertEquals;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -30,6 +33,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
+	private static SynapseClient synapseAdmin;
 
 	private static String oneId;
 	private static String twoId;
@@ -38,6 +42,8 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	private MessageToUser oneToTwo;
 	private MessageToUser twoToOne;
+	
+	private List<String> cleanup;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -47,6 +53,9 @@ public class IT501SynapseJavaClientMessagingTest {
 		synapseTwo = SynapseClientHelper.createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
+		synapseAdmin = SynapseClientHelper.createSynapseClient(
+				StackConfiguration.getIntegrationTestUserAdminName(),
+				StackConfiguration.getIntegrationTestUserAdminPassword());
 
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
@@ -55,6 +64,8 @@ public class IT501SynapseJavaClientMessagingTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
+		cleanup = new ArrayList<String>();
+		
 		// Create a file handle to use with all the messages
 		PrintWriter pw = null;
 		File file = File.createTempFile("testEmailBody", ".txt");
@@ -79,6 +90,7 @@ public class IT501SynapseJavaClientMessagingTest {
 			}
 		});
 		oneToTwo = synapseOne.sendMessage(oneToTwo);
+		cleanup.add(oneToTwo.getId());
 
 		twoToOne = new MessageToUser();
 		twoToOne.setFileHandleId(oneToRuleThemAll.getId());
@@ -89,13 +101,18 @@ public class IT501SynapseJavaClientMessagingTest {
 		});
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
+		cleanup.add(twoToOne.getId());
 	}
 
 	@After
 	public void after() throws Exception {
+		for (String id : cleanup) {
+			synapseAdmin.deleteMessage(id);
+		}
 		synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
 	}
 
+	@SuppressWarnings("serial")
 	@Test
 	public void testGetInbox() throws Exception {
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
@@ -103,7 +120,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		assertEquals(1, messages.getResults().size());
 		assertEquals(twoToOne, messages.getResults().get(0).getMessage());
 
-		messages = synapseTwo.getInbox(null, null, null, LIMIT, OFFSET);
+		messages = synapseTwo.getInbox(new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}}, null, null, LIMIT, OFFSET);
 		assertEquals(1, messages.getResults().size());
 		assertEquals(oneToTwo, messages.getResults().get(0).getMessage());
 	}
@@ -115,7 +132,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		assertEquals(1, messages.getResults().size());
 		assertEquals(oneToTwo, messages.getResults().get(0));
 
-		messages = synapseTwo.getOutbox(null, null, LIMIT, OFFSET);
+		messages = synapseTwo.getOutbox(null, true, LIMIT, OFFSET);
 		assertEquals(1, messages.getResults().size());
 		assertEquals(twoToOne, messages.getResults().get(0));
 	}
@@ -134,6 +151,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		MessageRecipientSet recipients = new MessageRecipientSet();
 		recipients.setRecipients(twoToOne.getRecipients());
 		MessageToUser forwarded = synapseOne.forwardMessage(oneToTwo.getId(), recipients);
+		cleanup.add(forwarded.getId());
 		
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				null, null, LIMIT, OFFSET);
@@ -144,7 +162,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	@Test
 	public void testGetConversation() throws Exception {
-		PaginatedResults<MessageToUser> ones = synapseOne.getConversation(oneToTwo.getId(), null, null, LIMIT, OFFSET);
+		PaginatedResults<MessageToUser> ones = synapseOne.getConversation(oneToTwo.getId(), MessageSortBy.SEND_DATE, null, LIMIT, OFFSET);
 		assertEquals(2, ones.getResults().size());
 		assertEquals(twoToOne, ones.getResults().get(0));
 		assertEquals(oneToTwo, ones.getResults().get(1));

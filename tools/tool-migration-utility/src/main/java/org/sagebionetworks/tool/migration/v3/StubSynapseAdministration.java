@@ -1702,7 +1702,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
+	@Override
+	public void deleteMessage(String messageId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public Long getChildCount(String entityId) throws SynapseException {
