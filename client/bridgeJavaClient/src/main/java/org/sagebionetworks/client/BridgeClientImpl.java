@@ -93,7 +93,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Override
-	public BridgeVersionInfo getVersionInfo() throws SynapseException {
+	public BridgeVersionInfo getBridgeVersionInfo() throws SynapseException {
 		return get(VERSION_INFO, BridgeVersionInfo.class);
 	}
 
