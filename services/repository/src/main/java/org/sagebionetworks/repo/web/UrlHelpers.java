@@ -497,9 +497,27 @@ public class UrlHelpers {
 	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
 	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
 	
+	// Messaging URLs
+	public static final String MESSAGE                    = "/message";
+	public static final String FORWARD                    = "/forward";
+	public static final String CONVERSATION               = "/conversation";
+	public static final String STATUS                     = "status";
+	public static final String MESSAGE_STATUS             = MESSAGE + "/status";
+	public static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
+	public static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
+	public static final String MESSAGE_INBOX_FILTER_PARAM = "inboxFilter";
+	public static final String MESSAGE_ORDER_BY_PARAM     = "orderBy";
+	public static final String MESSAGE_DESCENDING_PARAM   = "descending";
+	public static final String MESSAGE_ID_PATH_VAR        = "messageId";
+	public static final String MESSAGE_ID                 = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
+	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + FORWARD;
+	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + CONVERSATION;
+	public static final String MESSAGE_ID_STATUS          = MESSAGE_ID + STATUS;
+	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */
+	@SuppressWarnings("rawtypes")
 	private static final Map<Class, String> PROPERTY2URLSUFFIX;
 
 	/**
@@ -538,7 +556,6 @@ public class UrlHelpers {
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
 	
-	public static final String STATUS = "status";
 	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
@@ -672,14 +689,10 @@ public class UrlHelpers {
 	
 	// Authentication
 	public static final String AUTH_SESSION = "/session";
-	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
 	public static final String AUTH_USER = "/user";
-	public static final String AUTH_REGISTERING_USER_EMAIL = "/registeringUserEmail";
-	public static final String AUTH_USER_PASSWORD_EMAIL = "/userPasswordEmail";
-	public static final String AUTH_API_PASSWORD_EMAIL = "/apiPasswordEmail";
-	public static final String AUTH_USER_PASSWORD = "/userPassword";
-	public static final String AUTH_CHANGE_EMAIL = "/changeEmail";
-	public static final String AUTH_REGISTERING_USER_PASSWORD = "/registeringUserPassword";
+	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
+	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
+	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
 

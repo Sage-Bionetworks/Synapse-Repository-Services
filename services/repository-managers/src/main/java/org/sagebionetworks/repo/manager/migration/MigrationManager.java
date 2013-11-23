@@ -93,4 +93,14 @@ public interface MigrationManager {
 	 */
 	public void deleteAllData(UserInfo user) throws Exception;
 	
+	/**
+	 * Returns true if mt is a primary or secondary migration type, false otherwise
+	 * 
+	 * @param user
+	 * @param mt
+	 * @return
+	 */
+	public boolean isMigrationTypeUsed(UserInfo user, MigrationType mt);
+	
+	
 }

@@ -45,7 +45,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	public Long getPrincipalId(String sessionToken) throws UnauthorizedException {
+	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
 		if (principalId == null) {
 			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
@@ -54,8 +54,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	public Long checkSessionToken(String sessionToken) throws UnauthorizedException, TermsOfUseException {
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Long checkSessionToken(String sessionToken, boolean checkToU) {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
 			// Check to see why the token is invalid
@@ -63,10 +63,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			if (userId == null) {
 				throw new UnauthorizedException("The session token (" + sessionToken + ") is invalid");
 			}
-			if (!authDAO.hasUserAcceptedToU(userId.toString())) {
-				throw new TermsOfUseException();
-			}
 			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
+		}
+		
+		// Check the terms of use
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId.toString())) {
+			throw new TermsOfUseException();
 		}
 		
 		authDAO.revalidateSessionToken(principalId.toString());
@@ -107,6 +109,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if (session == null) {
 			session = new Session();
 		}
+		
+		// Set a new session token if necessary
 		if (session.getSessionToken() == null) {
 			UserGroup ug = userGroupDAO.findGroup(username, true);
 			if (ug == null) {
@@ -114,7 +118,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			}
 			String principalId = ug.getId();
 			String token = authDAO.changeSessionToken(principalId, null);
+			boolean toU = authDAO.hasUserAcceptedToU(principalId);
 			session.setSessionToken(token);
+			
+			// Make sure to fetch the ToU state
+			session.setAcceptsTermsOfUse(toU);
 		}
 		
 		return session;

@@ -199,6 +199,10 @@ public class StackConfiguration {
 		return configuration.getFileServiceEndpoint();
 	}
 
+	public static String getBridgeServiceEndpoint() {
+		return configuration.getBridgeServiceEndpoint();
+	}
+
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own

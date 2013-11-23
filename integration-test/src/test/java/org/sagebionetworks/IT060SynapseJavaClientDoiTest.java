@@ -9,18 +9,18 @@ import static org.junit.Assert.assertTrue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
 import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
 public class IT060SynapseJavaClientDoiTest {
@@ -44,9 +44,8 @@ public class IT060SynapseJavaClientDoiTest {
 		String user = StackConfiguration.getIntegrationTestUserOneName();
 		String pw = StackConfiguration.getIntegrationTestUserOnePassword();
 
-		UserSessionData session = synapse.login(user, pw);
+		Session session = synapse.login(user, pw);
 		assertNotNull(session);
-		assertNotNull(session.getProfile().getUserName());
 		assertNotNull(session.getSessionToken());
 
 		synapseAdmin = new SynapseAdminClientImpl();
@@ -58,9 +57,8 @@ public class IT060SynapseJavaClientDoiTest {
 		String adminUsr = StackConfiguration.getIntegrationTestUserAdminName();
 		String adminPwd = StackConfiguration.getIntegrationTestUserAdminPassword();
 
-		UserSessionData adminSession = synapseAdmin.login(adminUsr, adminPwd);
+		Session adminSession = synapseAdmin.login(adminUsr, adminPwd);
 		assertNotNull(adminSession);
-		assertNotNull(adminSession.getProfile().getUserName());
 		assertNotNull(adminSession.getSessionToken());
 
 		entity = new Project();

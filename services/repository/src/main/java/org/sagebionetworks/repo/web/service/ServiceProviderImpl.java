@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -38,6 +37,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	SearchService searchService;
 	@Autowired
 	private ActivityService activityService;
+	@Autowired
+	private MessageService messageService;
 	@Autowired
 	private NodeTreeQueryService nodeLineageQueryService;
 	@Autowired
@@ -101,6 +102,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public ActivityService getActivityService() {
 		return activityService;
+	}
+	@Override
+	public MessageService getMessageService() {
+		return messageService;
 	}
 	@Override
 	public NodeTreeQueryService getNodeTreeQueryService() {

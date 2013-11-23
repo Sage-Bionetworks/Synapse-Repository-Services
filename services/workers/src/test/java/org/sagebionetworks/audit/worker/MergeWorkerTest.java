@@ -6,15 +6,20 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
+import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -23,7 +28,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:audit-dao.spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MergeWorkerTest {
 	
 	private long MAX_WAIT = 1000*208;
@@ -31,10 +36,38 @@ public class MergeWorkerTest {
 	@Autowired
 	private AccessRecordDAO accessRecordDAO;
 	
+	@Autowired
+	private SemaphoreGatedRunner auditMergeWorkerSemaphoreGatedRunner;
+	
+	@Autowired
+	private SemaphoreDao semaphoreDAO;
+	
+	private Map<String, String> lockTokens;
+	
+	@Before
+	public void before() {
+		// Prevent the main scheduler from running another instance of the MergeWorker
+		lockTokens = new HashMap<String, String>();
+		
+		long start = System.currentTimeMillis();
+		for (String key : auditMergeWorkerSemaphoreGatedRunner.getAllLockKeys()) {
+			lockTokens.put(key, null);
+			while (lockTokens.get(key) == null) {
+				lockTokens.put(key, semaphoreDAO.attemptToAcquireLock(key, MAX_WAIT));
+				long elapse = System.currentTimeMillis() - start;
+				assertTrue("Timed out waiting for merge worker to acquire lock", elapse < MAX_WAIT);
+			}
+		}
+	}
+	
 	@After
 	public void after(){
 		// Delete all data created by this test.
 		accessRecordDAO.deleteAllStackInstanceBatches();
+		
+		for (String key : lockTokens.keySet()) {
+			semaphoreDAO.releaseLock(key, lockTokens.get(key));
+		}
 	}
 	
 	@Test

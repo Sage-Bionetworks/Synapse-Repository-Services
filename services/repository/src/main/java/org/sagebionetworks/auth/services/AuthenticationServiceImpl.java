@@ -9,17 +9,14 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
-import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -46,39 +43,27 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (credential.getEmail() == null) {
 			throw new UnauthorizedException("Username may not be null");
 		}
-		
-		// Fetch the user's session token
 		if (credential.getPassword() == null) {
 			throw new UnauthorizedException("Password may not be null");
 		}
-		Session session = authManager.authenticate(credential.getEmail(), credential.getPassword());
 		
-		// Only hand back the session token if ToU has been accepted
-		handleTermsOfUse(credential.getEmail(), credential.getAcceptsTermsOfUse());
-		return session;
+		// Fetch the user's session token
+		return authManager.authenticate(credential.getEmail(), credential.getPassword());
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken) 
-			throws NotFoundException, UnauthorizedException, TermsOfUseException {
+	public String revalidate(String sessionToken) {
 		return revalidate(sessionToken, true);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken, boolean checkToU) 
-			throws NotFoundException, UnauthorizedException, TermsOfUseException {
-		Long userId;
-		try {
-			userId = authManager.checkSessionToken(sessionToken);
-		} catch (TermsOfUseException e) {
-			if (checkToU) {
-				throw e;
-			}
-			userId = authManager.getPrincipalId(sessionToken);
+	public String revalidate(String sessionToken, boolean checkToU) {
+		if (sessionToken == null) {
+			throw new IllegalArgumentException("Session token may not be null");
 		}
-		return userId.toString();
+		return authManager.checkSessionToken(sessionToken, checkToU).toString();
 	}
 
 	@Override
@@ -89,122 +74,35 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		authManager.invalidateSessionToken(sessionToken);
 	}
-
-	@Override
-	public boolean hasUserAcceptedTermsOfUse(String id)
-			throws NotFoundException {
-		String username = userManager.getGroupName(id);
-		UserInfo user = userManager.getUserInfo(username);
-		return user.getUser().isAgreesToTermsOfUse();
-	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user) throws UnauthorizedException, NameConflictException {
+	public void createUser(NewUser user, OriginatingClient originClient) {
 		if (user == null || user.getEmail() == null) {
-			throw new IllegalArgumentException("Required fields are missing for user creation");
+			throw new IllegalArgumentException("Email must be specified");
 		}
 		
 		userManager.createUser(user);
+		try {
+			sendPasswordEmail(user.getEmail(), originClient);
+		} catch (NotFoundException e) {
+			throw new DatastoreException("Could not find user that was just created", e);
+		}
 		
 		// For integration test to confirm that a user can be created
 		if (!StackConfiguration.isProductionStack()) {
 			try {
 				UserInfo userInfo = userManager.getUserInfo(user.getEmail());
 				authManager.changePassword(userInfo.getIndividualGroup().getId(), user.getPassword());
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+			} catch (NotFoundException e) {
+				throw new DatastoreException(e);
 			}
 		}
 	}
 	
 	@Override
-	public UserInfo getUserInfo(String username) throws NotFoundException {
-		if (AuthorizationUtils.isUserAnonymous(username)) {
-			throw new NotFoundException("No user info for " + AuthorizationConstants.ANONYMOUS_USER_ID);
-		}
-		return userManager.getUserInfo(username);
-	}
-	
-	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String username, String newPassword) throws NotFoundException {
-		if (username == null) {
-			throw new IllegalArgumentException("Username may not be null");
-		}
-		if (newPassword == null) { 			
-			throw new IllegalArgumentException("Password may not be null");
-		}
-		
-		UserInfo user = userManager.getUserInfo(username);
-		authManager.changePassword(user.getIndividualGroup().getId(), newPassword);
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateEmail(String oldEmail, RegistrationInfo registrationInfo) throws NotFoundException {
-		// User must be logged in to make this request
-		if (oldEmail == null) {
-			throw new UnauthorizedException("Not authorized");
-		}
-		String registrationToken = registrationInfo.getRegistrationToken();
-		if (registrationToken == null) { 
-			throw new UnauthorizedException("Missing registration token");
-		}
-		
-		String sessionToken = registrationToken.substring(AuthorizationConstants.CHANGE_EMAIL_TOKEN_PREFIX.length());
-		String realUserId = revalidate(sessionToken);
-		String realUsername = getUsername(realUserId);
-		
-		// Set the password
-		if (registrationInfo.getPassword() != null) {
-			changePassword(realUsername, registrationInfo.getPassword());
-		}
-		
-		// Update the pre-existing user to the new email address
-		UserInfo userInfo = userManager.getUserInfo(oldEmail);
-		userManager.updateEmail(userInfo, realUsername);
-		
-		invalidateSessionToken(sessionToken);
-	}
-	
-	@Override
-	public String getSecretKey(String username) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		return authManager.getSecretKey(userInfo.getIndividualGroup().getId());
-	}
-	
-	@Override
-	public void deleteSecretKey(String username) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		authManager.changeSecretKey(userInfo.getIndividualGroup().getId());
-	}
-
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String getSessionTokenFromUserName(String userName) throws NotFoundException {
-		Session session = authManager.getSessionToken(userName);
-		return session.getSessionToken();
-	}
-	
-	@Override
-	public boolean isAdmin(String username) throws NotFoundException {
-		UserInfo user = userManager.getUserInfo(username);
-		return user.isAdmin();
-	}
-	
-	@Override
-	public String getUsername(String principalId) throws NotFoundException {
-		return userManager.getGroupName(principalId);
-	}
-
-	@Override
-	public void sendUserPasswordEmail(String username, PW_MODE mode) throws NotFoundException {
-		sendUserPasswordEmail(username, mode, OriginatingClient.SYNAPSE);
-	}
-	
-	@Override
-	public void sendUserPasswordEmail(String username, PW_MODE mode, OriginatingClient originClient) throws NotFoundException {
+	public void sendPasswordEmail(String username, OriginatingClient originClient) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
@@ -217,57 +115,72 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		username = user.getIndividualGroup().getName();
 		String sessionToken = authManager.authenticate(username, null).getSessionToken();
 
-		// Send the password email with username and session token info
+		// Pass along some basic info to the email sender
 		NewUser mailTarget = new NewUser();
 		mailTarget.setDisplayName(user.getUser().getDisplayName());
 		mailTarget.setEmail(user.getIndividualGroup().getName());
 		mailTarget.setFirstName(user.getUser().getFname());
 		mailTarget.setLastName(user.getUser().getLname());
 		
+		// Send the email
 		SendMail sendMail = new SendMail(originClient);
-		switch (mode) {
-			case SET_PW:
-				sendMail.sendSetPasswordMail(mailTarget, AuthorizationConstants.REGISTRATION_TOKEN_PREFIX + sessionToken);
-				break;
-			case RESET_PW:
-				sendMail.sendResetPasswordMail(mailTarget, sessionToken);
-				break;
-			case SET_API_PW:
-				sendMail.sendSetAPIPasswordMail(mailTarget, sessionToken);
-				break;
-		}
+		sendMail.sendSetPasswordMail(mailTarget, sessionToken);
 	}
 	
-	/**
-	 * Checks to see if the given user has accepted the terms of use
-	 * 
-	 * Note: Could be made into a public service sometime in the future
-	 * @param acceptsTermsOfUse Will check stored data on user if set to null or false
-	 */
-	private void handleTermsOfUse(String username, Boolean acceptsTermsOfUse) 
-			throws NotFoundException, TermsOfUseException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		
-		// The ToU field might not be explicitly specified or false
-		if (acceptsTermsOfUse == null || !acceptsTermsOfUse) {
-			acceptsTermsOfUse = userInfo.getUser().isAgreesToTermsOfUse();
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void changePassword(ChangePasswordRequest request) {
+		if (request.getSessionToken() == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
+		if (request.getPassword() == null) { 			
+			throw new IllegalArgumentException("Password may not be null");
 		}
 		
-		// Check for ToU acceptance
-		if (!acceptsTermsOfUse) {
-			throw new TermsOfUseException();
+		Long principalId = authManager.checkSessionToken(request.getSessionToken(), false);
+		authManager.changePassword(principalId.toString(), request.getPassword());
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void signTermsOfUse(Session session) throws NotFoundException {
+		if (session.getSessionToken() == null) {
+			throw new IllegalArgumentException("Session token may not be null");
+		}
+		if (session.getAcceptsTermsOfUse() == null) {
+			throw new IllegalArgumentException("Terms of use acceptance may not be null");
 		}
 		
-		// If the user is accepting the terms in this request, save the time of acceptance
-		if (acceptsTermsOfUse) {
-			if (!userInfo.getUser().isAgreesToTermsOfUse()) {
-				authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), acceptsTermsOfUse);
-			}
+		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+		
+		// Save the state of acceptance
+		if (session.getAcceptsTermsOfUse() != userInfo.getUser().isAgreesToTermsOfUse()) {
+			authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), session.getAcceptsTermsOfUse());
 		}
 	}
 	
 	@Override
-	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException, UnauthorizedException {
+	public String getSecretKey(String username) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		return authManager.getSecretKey(userInfo.getIndividualGroup().getId());
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void deleteSecretKey(String username) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		authManager.changeSecretKey(userInfo.getIndividualGroup().getId());
+	}
+	
+	@Override
+	public String getUsername(String principalId) throws NotFoundException {
+		return userManager.getGroupName(principalId);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException {
 		// Verify that the OpenID request is valid
 		OpenIDInfo openIDInfo;
 		try {
@@ -279,30 +192,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new UnauthorizedException("OpenID is not valid");
 		}
 		
-		// Dig out a ToU boolean from the request
-		// Defaults to false
-		String toUParam = parameters.getParameterValue(OpenIDInfo.ACCEPTS_TERMS_OF_USE_PARAM_NAME);
-		boolean acceptsTermsOfUse = new Boolean(toUParam);
-		
 		// Dig out a createUser boolean from the request
-		// Defaults to false
+		// Defaults to null (different from false)
 		String createParam = parameters.getParameterValue(OpenIDInfo.CREATE_USER_IF_NECESSARY_PARAM_NAME);
-		boolean shouldCreateUser = new Boolean(createParam);
+		Boolean shouldCreateUser = createParam == null ? null : new Boolean(createParam);
 		
 		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(originClientParam);
 		
-		return processOpenIDInfo(openIDInfo, acceptsTermsOfUse, shouldCreateUser, originClient);
-	}
-	
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary) throws NotFoundException {
-		return processOpenIDInfo(info, acceptsTermsOfUse, createUserIffNecessary, OriginatingClient.SYNAPSE);
+		return processOpenIDInfo(openIDInfo, shouldCreateUser, originClient);
 	}
 	
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	protected Session processOpenIDInfo(OpenIDInfo info, Boolean acceptsTermsOfUse, Boolean createUserIffNecessary,
+	protected Session processOpenIDInfo(OpenIDInfo info, boolean createUserIffNecessary,
 			OriginatingClient originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
@@ -332,12 +236,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				throw new NotFoundException(email);
 			}
 		}
-		
-		// The user does not need to accept the terms of use to get a session token via OpenID
-		//TODO This should not be the case
-		try {
-			handleTermsOfUse(email, acceptsTermsOfUse);
-		} catch (TermsOfUseException e) { }
 		
 		// Open ID is successful
 		return authManager.authenticate(email, null);

@@ -33,6 +33,8 @@ public interface ServiceProvider {
 	public SearchService getSearchService();
 
 	public ActivityService getActivityService();
+	
+	public MessageService getMessageService();
 
 	public NodeTreeQueryService getNodeTreeQueryService();
 

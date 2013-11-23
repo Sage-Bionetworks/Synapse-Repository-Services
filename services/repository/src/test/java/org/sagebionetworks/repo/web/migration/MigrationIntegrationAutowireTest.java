@@ -738,7 +738,13 @@ public class MigrationIntegrationAutowireTest {
 	private void validateStartingCount(MigrationTypeCounts startCounts) {
 		assertNotNull(startCounts);
 		assertNotNull(startCounts.getList());
-		assertEquals("This test requires at least one object to exist for each MigrationType.  Please create a new object of the new MigrationType in the before() method of this test.",MigrationType.values().length, startCounts.getList().size());
+		List<MigrationType> typesToMigrate = new LinkedList<MigrationType>();
+		for (MigrationType tm: MigrationType.values()) {
+			if (migrationManager.isMigrationTypeUsed(userInfo, tm)) {
+				typesToMigrate.add(tm);
+			}
+		}
+		assertEquals("This test requires at least one object to exist for each MigrationType.  Please create a new object of the new MigrationType in the before() method of this test.",typesToMigrate.size(), startCounts.getList().size());
 		for(MigrationTypeCount count: startCounts.getList()){
 			assertTrue("This test requires at least one object to exist for each MigrationType.  Please create a new object of type: "+count.getType()+" in the before() method of this test.", count.getCount() > 0);
 		}
