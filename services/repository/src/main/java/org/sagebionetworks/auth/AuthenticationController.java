@@ -95,7 +95,8 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client)
+			throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.createUser(user, originClient);
 	}
@@ -108,15 +109,67 @@ public class AuthenticationController extends BaseController {
 	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */
 	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
+	public void resendRegisteringUserPasswordEmail(@RequestBody Username user,
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, originClient);
+	}
+	
+	/**
+	 * Retrieve basic information about the current authenticated user.  
+	 * Information includes the user's display name and email.
+	 * <br/>
+	 * Consider using <a href="${GET.userProfile}">GET /userProfile</a> instead.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
+	public @ResponseBody
+	NewUser getUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			throws NotFoundException {
+		UserInfo userInfo = authenticationService.getUserInfo(username);
+		NewUser user = new NewUser();
+		user.setDisplayName(userInfo.getUser().getDisplayName());
+		user.setEmail(userInfo.getIndividualGroup().getName());
+		user.setFirstName(userInfo.getUser().getFname());
+		user.setLastName(userInfo.getUser().getLname());
+		return user;
+	}
+	
+	/**
+	 * Request a password change email.
+	 * <br/>
+	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * set to "synapse", the service will send email specific to the Synapse application; if set 
+	 * to "bridge", the application will send email appropriate to the Bridge application.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendPasswordEmail(@RequestBody Username user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+	public void sendChangePasswordEmail(@RequestBody Username credential,
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.sendPasswordEmail(user.getEmail(), originClient);
 	}
 	
 	/**
-	 * Change a user's password by supplying their session token
+	 * Request a password change email via an API key.
+	 * <br/>
+	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * set to "synapse", the service will send email specific to the Synapse application; if set 
+	 * to "bridge", the application will send email appropriate to the Bridge application.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
+	public void sendSetAPIPasswordEmail(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username,
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
+		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW, originClient);
+	}
+	
+	/**
+	 * Change the current authenticated user's password.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)

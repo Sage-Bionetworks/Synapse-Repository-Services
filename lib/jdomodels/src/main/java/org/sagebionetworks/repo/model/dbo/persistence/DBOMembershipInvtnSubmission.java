@@ -196,7 +196,11 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 				mis.setCreatedBy(mist.getCreatedBy());
 				mis.setCreatedOn(mist.getCreatedOn());
 				mis.setExpiresOn(mist.getExpiresOn());
-				mis.setId(mist.getId());
+				if (mist.getId()==null) {
+					mis.setId(backup.getId().toString());
+				} else {
+					mis.setId(mist.getId());
+				}
 				mis.setMessage(mist.getMessage());
 				mis.setTeamId(mist.getTeamId());
 				

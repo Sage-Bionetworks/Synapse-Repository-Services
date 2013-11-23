@@ -123,16 +123,23 @@ public class BackupDriverImpl implements BackupDriver {
 				checkForTermination(progress);
 
 				MigrationType type = getTypeFromFileName(entry.getName());
-				// This is a backup file.
-				List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
-				// If this is a primary type then we must clear all data for secondary types
-				// that have these backup ids.
-				List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
-				if(secondaryTypes != null){
-					for(MigrationType secondary: secondaryTypes){
-						migrationManager.deleteObjectsById(user, secondary, primaryIds);
+				
+				if (! migrationManager.isMigrationTypeUsed(user, type)) {
+					// This is a entry for a type at the source that does not exist at destination, skip
+					progress.appendLog("Skipping entry " + entry.getName() + ", unused migration type.");
+				} else {
+					// This is a backup file.
+					List<Long> primaryIds = migrationManager.createOrUpdateBatch(user, type, zin);
+					// If this is a primary type then we must clear all data for secondary types
+					// that have these backup ids.
+					List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
+					if(secondaryTypes != null){
+						for(MigrationType secondary: secondaryTypes){
+							migrationManager.deleteObjectsById(user, secondary, primaryIds);
+						}
 					}
 				}
+
 				progress.incrementProgressBy(entry.getCompressedSize());
 				if (log.isTraceEnabled()) {
 					log.trace(progress.toString());
@@ -156,7 +163,8 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @return
 	 */
 	public static MigrationType getTypeFromFileName(String name){
-		return MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
+		MigrationType t = MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
+		return t;
 	}
 	
 	/**
