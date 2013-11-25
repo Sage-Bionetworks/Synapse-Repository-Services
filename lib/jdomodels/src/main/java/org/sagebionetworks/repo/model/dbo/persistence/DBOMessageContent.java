@@ -5,9 +5,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -18,14 +15,14 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 /**
  * Holds common fields of messages between users and comments on arbitrary objects
  */
-public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageContent, DBOMessageContent>, ObservableEntity, TaggableEntity {
+public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageContent, DBOMessageContent> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_CONTENT_ID, true).withIsBackupId(true),
 		new FieldColumn("createdBy", SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY),
 		new FieldColumn("fileHandleId", SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID),
 		new FieldColumn("createdOn", SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON),
-		new FieldColumn("eTag", SqlConstants.COL_MESSAGE_CONTENT_ETAG).withIsEtag(true)
+		new FieldColumn("etag", SqlConstants.COL_MESSAGE_CONTENT_ETAG)
 	};
 	
 	private Long messageId;
@@ -45,7 +42,7 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 				result.setCreatedBy(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY));
 				result.setFileHandleId(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID));
 				result.setCreatedOn(rs.getLong(SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON));
-				result.seteTag(rs.getString(SqlConstants.COL_MESSAGE_CONTENT_ETAG));
+				result.setEtag(rs.getString(SqlConstants.COL_MESSAGE_CONTENT_ETAG));
 				return result;
 			}
 			
@@ -111,33 +108,13 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 	}
 
 
-	@Override
-	public String getIdString() {
-		return messageId.toString();
-	}
-
-
-	@Override
-	public String getParentIdString() {
-		return null;
-	}
-
-
-	@Override
-	public void seteTag(String newEtag) {
-		this.etag = newEtag;
-	}
-
-
-	@Override
-	public String geteTag() {
+	public String getEtag() {
 		return etag;
 	}
 
 
-	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.MESSAGE;
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 
@@ -244,4 +221,5 @@ public class DBOMessageContent implements MigratableDatabaseObject<DBOMessageCon
 				+ createdBy + ", fileHandleId=" + fileHandleId + ", createdOn="
 				+ createdOn + ", etag=" + etag + "]";
 	}
+
 }

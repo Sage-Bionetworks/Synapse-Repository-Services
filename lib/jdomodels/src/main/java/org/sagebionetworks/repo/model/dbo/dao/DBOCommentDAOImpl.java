@@ -36,7 +36,7 @@ public class DBOCommentDAOImpl implements CommentDAO {
 		// Insert the message content
 		content.setMessageId(messageId);
 		content.setCreatedOn(new Date().getTime());
-		content.seteTag(UUID.randomUUID().toString());
+		content.setEtag(UUID.randomUUID().toString());
 		MessageUtils.validateDBO(content);
 		basicDAO.createNew(content);
 		

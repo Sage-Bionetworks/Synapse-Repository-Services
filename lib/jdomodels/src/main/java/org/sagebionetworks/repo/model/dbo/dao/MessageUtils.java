@@ -268,7 +268,7 @@ public class MessageUtils {
 		if (dbo.getFileHandleId() == null) {
 			throw new IllegalArgumentException("Message content must have a file handle");
 		}
-		if (dbo.geteTag() == null) {
+		if (dbo.getEtag() == null) {
 			throw new IllegalArgumentException("Message content must have an etag");
 		}
 		if (dbo.getCreatedOn() == null) {

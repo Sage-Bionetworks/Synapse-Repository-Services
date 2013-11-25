@@ -262,7 +262,7 @@ public class DBOMessageDAOImplTest {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("messageId", userToUser.getId());
 		DBOMessageContent content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
-		String etag = content.geteTag();
+		String etag = content.getEtag();
 		
 		// Change one message to READ
 		MessageStatus status = new MessageStatus();
@@ -273,7 +273,7 @@ public class DBOMessageDAOImplTest {
 		
 		// Etag should have changed
 		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
-		assertFalse(etag.equals(content.geteTag()));
+		assertFalse(etag.equals(content.getEtag()));
 		
 		List<MessageBundle> messages = messageDAO.getReceivedMessages(maliciousUser.getId(), 
 				unreadMessageInboxFilter, MessageSortBy.SEND_DATE, false, 100, 0);
