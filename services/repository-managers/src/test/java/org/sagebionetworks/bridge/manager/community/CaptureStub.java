@@ -4,15 +4,23 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import com.google.common.base.Function;
+
 public class CaptureStub<T> {
-	final ArgumentCaptor<T> value;
+	private final ArgumentCaptor<T> value;
+	private final Function<T, T> convertor;
 
 	public static <T> CaptureStub<T> forClass(Class<T> klass) {
-		return new CaptureStub<T>(klass);
+		return forClass(klass, null);
 	}
 
-	private CaptureStub(Class<T> klass) {
+	public static <T> CaptureStub<T> forClass(Class<T> klass, Function<T, T> convertor) {
+		return new CaptureStub<T>(klass, convertor);
+	}
+
+	private CaptureStub(Class<T> klass, Function<T, T> convertor) {
 		value = ArgumentCaptor.forClass(klass);
+		this.convertor = convertor;
 	}
 
 	public T capture() {
@@ -23,8 +31,15 @@ public class CaptureStub<T> {
 		return new Answer<T>() {
 			@Override
 			public T answer(InvocationOnMock invocation) throws Throwable {
-				return value.getValue();
+				return convert(value.getValue());
 			}
 		};
+	}
+
+	private T convert(T t) {
+		if (convertor != null) {
+			t = convertor.apply(t);
+		}
+		return t;
 	}
 }
