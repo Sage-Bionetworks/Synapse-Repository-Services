@@ -71,7 +71,7 @@ public class SubmissionDBOTest {
         // Initialize a new Evaluation
         EvaluationDBO evaluation = new EvaluationDBO();
         evaluation.setId(evalId);
-        evaluation.seteTag("etag");
+        evaluation.setEtag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
         evaluation.setContentSource(KeyFactory.ROOT_ID);

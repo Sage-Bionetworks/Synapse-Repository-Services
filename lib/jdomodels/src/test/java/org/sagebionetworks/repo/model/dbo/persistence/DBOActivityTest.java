@@ -63,7 +63,7 @@ public class DBOActivityTest {
 		activity.setCreatedOn(System.currentTimeMillis());
 		activity.setModifiedBy(createdById);
 		activity.setModifiedOn(System.currentTimeMillis());
-		activity.seteTag("1");
+		activity.setEtag("1");
 		// Make sure we can create it
 		DBOActivity clone = dboBasicDao.createNew(activity);
 		toDelete.add(activity.getId());
@@ -78,7 +78,7 @@ public class DBOActivityTest {
 		
 		// Make sure we can update it.
 		clone.setSerializedObject(new byte[] { (byte)1 });
-		clone.seteTag("2");
+		clone.setEtag("2");
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		

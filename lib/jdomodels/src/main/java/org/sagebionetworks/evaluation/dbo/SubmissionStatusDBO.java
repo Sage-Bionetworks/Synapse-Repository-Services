@@ -24,7 +24,6 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -36,7 +35,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO>, TaggableEntity, ObservableEntity {
+public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO>, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),
@@ -53,7 +52,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			public SubmissionStatusDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				SubmissionStatusDBO sub = new SubmissionStatusDBO();
 				sub.setId(rs.getLong(COL_SUBMISSION_ID));
-				sub.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
+				sub.setEtag(rs.getString(COL_SUBSTATUS_ETAG));
 				sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
 				sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
 				sub.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
@@ -83,7 +82,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	
 	private Long id;
-	private String eTag;
+	private String etag;
 	private Long modifiedOn;
 	private int status;
 	private Double score;
@@ -94,13 +93,6 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	public void setId(Long id) {
 		this.id = id;
-	}
-	
-	public String geteTag() {
-		return eTag;
-	}
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
 	}
 	public Long getModifiedOn() {
 		return modifiedOn;
@@ -142,6 +134,15 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public ObjectType getObjectType() {
 		return ObjectType.SUBMISSION;
 	}
+
+	@Override
+	public String getEtag() {
+		return etag;
+	}
+	public void setEtag(String newEtag) {
+		this.etag = newEtag;
+	}
+	
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
 	}
@@ -152,7 +153,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
@@ -170,10 +171,10 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 		if (getClass() != obj.getClass())
 			return false;
 		SubmissionStatusDBO other = (SubmissionStatusDBO) obj;
-		if (eTag == null) {
-			if (other.eTag != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!eTag.equals(other.eTag))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -198,7 +199,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	@Override
 	public String toString() {
-		return "SubmissionStatusDBO [id=" + id + ", eTag=" + eTag
+		return "SubmissionStatusDBO [id=" + id + ", etag=" + etag
 				+ ", modifiedOn=" + modifiedOn + ", status=" + status
 				+ ", score=" + score + ", serializedEntity="
 				+ Arrays.toString(serializedEntity) + "]";

@@ -41,7 +41,7 @@ public class EvaluationDBOTest {
         // Initialize a new competition
         EvaluationDBO eval = new EvaluationDBO();
         eval.setId(id);
-        eval.seteTag(eTag);
+        eval.setEtag(eTag);
         eval.setName(name);
         eval.setOwnerId(ownerId);
         eval.setCreatedOn(System.currentTimeMillis());
@@ -86,7 +86,7 @@ public class EvaluationDBOTest {
         // Initialize a new competition
         EvaluationDBO competition = new EvaluationDBO();
         competition.setId(id);
-        competition.seteTag(eTag);
+        competition.setEtag(eTag);
         competition.setName(name);
         competition.setOwnerId(ownerId);
         competition.setCreatedOn(System.currentTimeMillis());

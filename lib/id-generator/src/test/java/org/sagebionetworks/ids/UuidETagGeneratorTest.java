@@ -14,7 +14,7 @@ public class UuidETagGeneratorTest {
 	public void test() {
 		Set<String> set = new HashSet<String>();
 		for (int i = 0; i < 100; i++) {
-			String eTag = eTagGenerator.generateETag(null);
+			String eTag = eTagGenerator.generateETag();
 			Assert.assertTrue(set.add(eTag));
 			eTag = eTagGenerator.generateETag();
 			Assert.assertTrue(set.add(eTag));

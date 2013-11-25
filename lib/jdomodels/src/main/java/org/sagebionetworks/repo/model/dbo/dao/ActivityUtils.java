@@ -14,7 +14,7 @@ public class ActivityUtils {
 	public static void copyDtoToDbo(Activity dto, DBOActivity dbo) throws DatastoreException {
 		if(dto.getId() == null) throw new IllegalArgumentException("id can not be null");
 		dbo.setId(Long.parseLong(dto.getId()));
-		dbo.seteTag(dto.getEtag());
+		dbo.setEtag(dto.getEtag());
 		if (dto.getCreatedBy() != null)
 			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));		
 		if(dto.getCreatedOn() != null)
@@ -30,7 +30,7 @@ public class ActivityUtils {
 		if(dbo.getId() == null) throw new IllegalArgumentException("id can not be null");
 		Activity dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
-		dto.setEtag(dbo.geteTag());
+		dto.setEtag(dbo.getEtag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());

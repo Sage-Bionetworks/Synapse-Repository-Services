@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOActivity>, ObservableEntity {
 	private Long id;
-	private String eTag;
+	private String etag;
 	private Long createdBy;
 	private Long createdOn;
 	private Long modifiedBy;
@@ -38,7 +38,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACTIVITY_ID, true).withIsBackupId(true),
-		new FieldColumn("eTag", COL_ACTIVITY_ETAG).withIsEtag(true),
+		new FieldColumn("etag", COL_ACTIVITY_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_ACTIVITY_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACTIVITY_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACTIVITY_MODIFIED_BY),
@@ -54,7 +54,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 			public DBOActivity mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOActivity act = new DBOActivity();
 				act.setId(rs.getLong(COL_ACTIVITY_ID));
-				act.seteTag(rs.getString(COL_ACTIVITY_ETAG));
+				act.setEtag(rs.getString(COL_ACTIVITY_ETAG));
 				act.setCreatedBy(rs.getLong(COL_ACTIVITY_CREATED_BY));
 				act.setCreatedOn(rs.getLong(COL_ACTIVITY_CREATED_ON));
 				act.setModifiedBy(rs.getLong(COL_ACTIVITY_MODIFIED_BY));
@@ -94,14 +94,6 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public String geteTag() {
-		return eTag;
-	}
-
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
 	}
 
 	public Long getCreatedBy() {
@@ -154,6 +146,15 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	}
 
 	@Override
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String newEtag) {
+		this.etag = newEtag;
+	}
+
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -161,7 +162,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -190,10 +191,10 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!eTag.equals(other.eTag))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -217,7 +218,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 
 	@Override
 	public String toString() {
-		return "DBOActivity [id=" + id + ", eTag=" + eTag + ", createdBy="
+		return "DBOActivity [id=" + id + ", etag=" + etag + ", createdBy="
 				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
 				+ modifiedBy + ", modifiedOn=" + modifiedOn
 				+ ", serializedObject=" + Arrays.toString(serializedObject)

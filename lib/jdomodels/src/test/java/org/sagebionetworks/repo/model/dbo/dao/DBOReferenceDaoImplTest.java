@@ -119,7 +119,7 @@ public class DBOReferenceDaoImplTest {
 			node.setCreatedOn(System.currentTimeMillis());
 			node.setCurrentRevNumber(null);
 			node.setDescription("A basic description".getBytes("UTF-8"));
-			node.seteTag(eTagGenerator.generateETag());
+			node.setEtag(eTagGenerator.generateETag());
 			node.setName("DBOAnnotationsDaoImplTest.baseNode "+i);
 			node.setParentId(null);
 			node.setNodeType(EntityType.project.getId());

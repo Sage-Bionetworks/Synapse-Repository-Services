@@ -4,16 +4,16 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
@@ -25,11 +25,11 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -119,8 +119,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		copyDtoToDbo(dto, dbo);
 		
 		// generate a new eTag, unless restoring from backup
-		if (!fromBackup) {			
-			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		if (!fromBackup) {
+			dbo.setEtag(UUID.randomUUID().toString());
+			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
 				
 		// ensure DBO has required information
@@ -232,8 +233,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
 		} else {
 			// update eTag
-			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);	
-			dbo.seteTag(newEtag);
+			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
+			dbo.setEtag(newEtag);
 		}
 		
 		// TODO: detect and log NO-OP update
@@ -273,7 +274,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Evaluation ID: " + dto.getId());
 		}
-		dbo.seteTag(dto.getEtag());
+		dbo.setEtag(dto.getEtag());
 		dbo.setName(dto.getName());
 		dbo.setDescription(dto.getDescription() == null ? null : dto.getDescription().getBytes());
 		try {
@@ -301,7 +302,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 */
 	protected static void copyDboToDto(EvaluationDBO dbo, Evaluation dto) throws DatastoreException {	
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
-		dto.setEtag(dbo.geteTag());
+		dto.setEtag(dbo.getEtag());
 		dto.setName(dbo.getName());
 		if (dbo.getDescription() != null) {
 			try {
@@ -347,7 +348,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 */
 	private void verifyEvaluationDBO(EvaluationDBO dbo) {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "ID");
-		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
+		EvaluationUtils.ensureNotNull(dbo.getEtag(), "etag");
 		EvaluationUtils.ensureNotNull(dbo.getName(), "name");
 		EvaluationUtils.ensureNotNull(dbo.getOwnerId(), "ownerID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "creation date");
@@ -365,8 +366,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		// Get a new e-tag
 		EvaluationDBO dbo = getDBO(id);
-		tagMessenger.generateEtagAndSendMessage(dbo, changeType);
-		return dbo.geteTag();
+		dbo.setEtag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
+		return dbo.getEtag();
 	}
 	
 	private EvaluationDBO getDBO(String id) throws NotFoundException {
@@ -388,7 +390,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private void lockAndSendTagMessage(EvaluationDBO dbo, ChangeType changeType) {
 		lockForUpdate(dbo.getIdString());
-		tagMessenger.sendMessage(dbo, changeType);		
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 	}
 	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =

@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -23,11 +24,11 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,9 +47,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOActivityDAOImpl implements ActivityDAO {
 	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
+	
 	@Autowired
-	private DBOBasicDao basicDao;	
+	private DBOBasicDao basicDao;
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
 
@@ -70,10 +73,10 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	
 	public DBOActivityDAOImpl() { }
 	
-	public DBOActivityDAOImpl(TagMessenger tagMessenger, DBOBasicDao basicDao,
+	public DBOActivityDAOImpl(TransactionalMessenger transactionalMessenger, DBOBasicDao basicDao,
 			SimpleJdbcTemplate simpleJdbcTemplate) {
 		super();
-		this.tagMessenger = tagMessenger;
+		this.transactionalMessenger = transactionalMessenger;
 		this.basicDao = basicDao;
 		this.simpleJdbcTemplate = simpleJdbcTemplate;
 	}
@@ -104,15 +107,18 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		DBOActivity dbo = new DBOActivity();
 		ActivityUtils.copyDtoToDbo(dto, dbo);
 
-		if(forceEtag){
-			if(dto.getEtag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			dbo.seteTag(KeyFactory.urlDecode(dto.getEtag()));
+		if (forceEtag) {
+			if (dto.getEtag() == null) {
+				throw new IllegalArgumentException("Cannot force the use of an Etag when the Etag is null");
+			}
+			
 			// Send a message without changing the etag;
-			tagMessenger.sendMessage(dbo, ChangeType.CREATE);
-		}else{
-			// add eTag
-			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+			dbo.setEtag(KeyFactory.urlDecode(dto.getEtag()));
+		} else {
+			// Change the etag
+			dbo.setEtag(UUID.randomUUID().toString());
 		}
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		basicDao.createNew(dbo);				
 		return dbo.getIdString();		
@@ -182,16 +188,17 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		if(!currentTag.equals(eTag)){
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
-		// Get a new e-tag
+		// Get a new etag
 		DBOActivity dbo = getDBO(id);
-		tagMessenger.generateEtagAndSendMessage(dbo, changeType);
-		return dbo.geteTag();
+		dbo.setEtag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
+		return dbo.getEtag();
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
 	@Override
 	public void sendDeleteMessage(String id) {
-		tagMessenger.sendDeleteMessage(id, ObjectType.ACTIVITY);		
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ACTIVITY, ChangeType.DELETE);
 	}
 		
 	@Override
@@ -269,7 +276,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	
 	private void lockAndSendTagMessage(DBOActivity dbo, ChangeType changeType) {
 		lockActivity(dbo.getIdString());
-		tagMessenger.sendMessage(dbo, changeType);		
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);	
 	}
 
 

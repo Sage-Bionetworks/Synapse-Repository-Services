@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ET
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
@@ -13,10 +14,10 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	
@@ -62,8 +63,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
 		
 		// generate a new eTag, unless restoring from backup
-		if (!fromBackup) {			
-			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		if (!fromBackup) {
+			dbo.setEtag(UUID.randomUUID().toString());
+			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		}
 		
 		// Ensure DBO has required information
@@ -110,8 +112,8 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
 		} else {
 			// update eTag and send message of update
-			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);
-			dbo.seteTag(newEtag);
+			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
+			dbo.setEtag(newEtag);
 		}
 		
 		basicDao.update(dbo);
@@ -123,8 +125,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
+		
 		// Send a delete message
-		tagMessenger.sendDeleteMessage(id, ObjectType.SUBMISSION);
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.SUBMISSION, ChangeType.DELETE);
 	}
 
 	/**
@@ -134,7 +137,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 */
 	private void verifySubmissionStatusDBO(SubmissionStatusDBO dbo) {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
+		EvaluationUtils.ensureNotNull(dbo.getEtag(), "eTag");
 		EvaluationUtils.ensureNotNull(dbo.getModifiedOn(), "Modified date");
 		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "Submission status");
 	}
@@ -148,8 +151,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		}
 		// Get a new e-tag
 		SubmissionStatusDBO dbo = getDBO(id);
-		tagMessenger.generateEtagAndSendMessage(dbo, changeType);
-		return dbo.geteTag();
+		dbo.setEtag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
+		return dbo.getEtag();
 	}
 	
 	private SubmissionStatusDBO getDBO(String id) throws NotFoundException {
@@ -171,7 +175,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
 	private void lockAndSendTagMessage(SubmissionStatusDBO dbo, ChangeType changeType) {
 		lockForUpdate(dbo.getIdString());
-		tagMessenger.sendMessage(dbo, changeType);		
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 	}
 
 	@Override
@@ -192,7 +196,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
 		}
-		dbo.seteTag(dto.getEtag());
+		dbo.setEtag(dto.getEtag());
 		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
 		dbo.setScore(dto.getScore());
 		dbo.setStatusEnum(dto.getStatus());
@@ -213,7 +217,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		SubmissionStatus dto = copyFromSerializedField(dbo);
 		
 		// use non-serialized eTag and modified date as the "true" values
-		dto.setEtag(dbo.geteTag());
+		dto.setEtag(dbo.getEtag());
 		dto.setModifiedOn(dbo.getModifiedOn() == null ? null : new Date(dbo.getModifiedOn()));
 		
 		// populate from secondary columns if necessary (to support legacy non-serialized objects)

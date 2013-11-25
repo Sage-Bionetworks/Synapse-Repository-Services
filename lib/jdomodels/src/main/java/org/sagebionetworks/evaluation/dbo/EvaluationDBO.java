@@ -32,7 +32,6 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -44,7 +43,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, TaggableEntity, ObservableEntity {
+public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_EVALUATION_ID, COL_EVALUATION_ID, true).withIsBackupId(true),
@@ -65,7 +64,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			public EvaluationDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				EvaluationDBO eval = new EvaluationDBO();
 				eval.setId(rs.getLong(COL_EVALUATION_ID));
-				eval.seteTag(rs.getString(COL_EVALUATION_ETAG));
+				eval.setEtag(rs.getString(COL_EVALUATION_ETAG));
 				eval.setName(rs.getString(COL_EVALUATION_NAME));
 				Blob blob = rs.getBlob(COL_EVALUATION_DESCRIPTION);
 				if(blob != null){
@@ -105,7 +104,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	
 	private Long id;
-	private String eTag;
+	private String etag;
 	private String name;
 	private byte[] description;
 	private Long ownerId;
@@ -120,13 +119,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public String geteTag() {
-		return eTag;
-	}
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
 	}
 	
 	public String getName() {
@@ -203,6 +195,16 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public ObjectType getObjectType() {
 		return ObjectType.EVALUATION;
 	}
+
+	public void setEtag(String newEtag) {
+		etag = newEtag;
+	}
+	
+	@Override
+	public String getEtag() {
+		return etag;
+	}
+	
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.EVALUATION;
@@ -222,11 +224,11 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public String toString() {
-		return "EvaluationDBO [id=" + id + ", eTag=" + eTag + ", name=" + name
+		return "EvaluationDBO [id=" + id + ", etag=" + etag + ", name=" + name
 				+ ", description=" + Arrays.toString(description)
 				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
 				+ ", contentSource=" + contentSource + ", status=" + status
-				+ ", submissionInstructions="
+				+ ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage)
 				+ ", submissionReceiptMessage="
 				+ Arrays.toString(submissionReceiptMessage) + "]";
@@ -240,12 +242,13 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + status;
-		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
+		result = prime * result
+				+ Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
 	}
@@ -270,10 +273,10 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (!Arrays.equals(description, other.description))
 			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!eTag.equals(other.eTag))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -292,8 +295,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (status != other.status)
 			return false;
-		if (!Arrays
-				.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
+		if (!Arrays.equals(submissionInstructionsMessage,
+				other.submissionInstructionsMessage))
 			return false;
 		if (!Arrays.equals(submissionReceiptMessage,
 				other.submissionReceiptMessage))
@@ -302,7 +305,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {
-		// TODO Auto-generated method stub
 		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
 
 			@Override

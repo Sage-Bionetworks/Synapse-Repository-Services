@@ -21,7 +21,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -35,7 +34,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author jmhill
  *
  */
-public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, TaggableEntity, ObservableEntity {
+public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_NODE_ID, true).withIsBackupId(true),
@@ -43,7 +42,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 			new FieldColumn("name", COL_NODE_NAME),
 			new FieldColumn("currentRevNumber", COL_CURRENT_REV),
 			new FieldColumn("description", COL_NODE_DESCRIPTION),
-			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
+			new FieldColumn("etag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
 			new FieldColumn("nodeType", COL_NODE_TYPE),
@@ -71,7 +70,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 				if(blob != null){
 					node.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
-				node.seteTag(rs.getString(COL_NODE_ETAG));
+				node.setEtag(rs.getString(COL_NODE_ETAG));
 				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
 				node.setNodeType(rs.getShort(COL_NODE_TYPE));
@@ -110,7 +109,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 	private String name;
 	private Long currentRevNumber;
 	private byte[] description;
-	private String eTag;
+	private String etag;
 	private Long createdBy;
 	private Long createdOn;
 	private Short nodeType;	
@@ -145,12 +144,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 	}
 	public void setDescription(byte[] description) {
 		this.description = description;
-	}
-	public String geteTag() {
-		return eTag;
-	}
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
 	}
 	public Long getCreatedBy() {
 		return createdBy;
@@ -227,7 +220,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 				* result
 				+ ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
@@ -267,10 +260,10 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 			return false;
 		if (!Arrays.equals(description, other.description))
 			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
+		if (etag == null) {
+			if (other.etag != null)
 				return false;
-		} else if (!eTag.equals(other.eTag))
+		} else if (!etag.equals(other.etag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -299,10 +292,10 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 	public String toString() {
 		return "DBONode [id=" + id + ", parentId=" + parentId + ", name="
 				+ name + ", currentRevNumber=" + currentRevNumber
-				+ ", description=" + description + ", eTag=" + eTag
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", nodeType=" + nodeType + ", benefactorId=" + benefactorId
-				+ "]";
+				+ ", description=" + Arrays.toString(description) + ", etag="
+				+ etag + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", nodeType=" + nodeType + ", benefactorId="
+				+ benefactorId + "]";
 	}
 	@Override
 	public ObjectType getObjectType() {
@@ -315,6 +308,13 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Tagg
 	@Override
 	public String getParentIdString() {
 		return KeyFactory.keyToString(parentId);
+	}
+	@Override
+	public String getEtag() {
+		return etag;
+	}
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 
 }

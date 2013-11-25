@@ -25,7 +25,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -73,8 +73,9 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	private static final String SQL_GET_ALL_WIKI_ATTACHMENTS = "SELECT * FROM "+TABLE_WIKI_ATTACHMENT+" WHERE "+COL_WIKI_ATTACHMENT_ID+" = ? ORDER BY "+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
 	@Autowired
 	private IdGenerator idGenerator;
+	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 		
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -137,7 +138,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			basicDao.createBatch(attachments);
 		}
 		// Send the create message
-		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		try {
 			return get(new WikiPageKey(ownerId, ownerType, dbo.getId().toString()));
 		} catch (NotFoundException e) {
@@ -263,8 +264,10 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		// Set the modified on to current.
 		newDBO.setModifiedOn(System.currentTimeMillis());
 		update(ownerType, ownerIdLong, newDBO);
+		
 		// Send the change message
-		tagMessenger.sendMessage(newDBO.getId().toString(), newDBO.getEtag(), ObjectType.WIKI, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(newDBO, ChangeType.UPDATE);
+		
 		// Return the results.
 		return get(new WikiPageKey(ownerId, ownerType, wikiPage.getId().toString()));
 	}
@@ -428,8 +431,9 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			}
 			changeType = ChangeType.CREATE;
 		}
+		
 		// Send a message
-		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, changeType);
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return key;
 	}
 

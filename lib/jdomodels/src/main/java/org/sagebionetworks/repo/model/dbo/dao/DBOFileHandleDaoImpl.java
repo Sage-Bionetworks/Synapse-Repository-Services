@@ -17,7 +17,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -60,8 +60,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 		
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -89,8 +90,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
+		
 		// Send the delete message
-		tagMessenger.sendDeleteMessage(id, ObjectType.FILE);
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.FILE, ChangeType.DELETE);
+		
 		// Delete this object
 		try{
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
@@ -122,8 +125,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 		// Save it to the DB
 		dbo = basicDao.createNew(dbo);
+		
 		// Send the create message
-		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+		
 		try {
 			return (T) get(dbo.getId().toString());
 		} catch (NotFoundException e) {
@@ -147,8 +152,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			// Change the etag
 			String newEtag = UUID.randomUUID().toString();
 			simpleJdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
+			
 			// Send the update message
-			tagMessenger.sendMessage(fileId, newEtag, ObjectType.FILE, ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
+			
 		} catch (DataIntegrityViolationException e){
 			throw new NotFoundException(e.getMessage());
 		}
@@ -256,7 +263,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			changeType = ChangeType.CREATE;
 		}
 		// Send a message
-		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, changeType);
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return changeType == ChangeType.CREATE;
 	}
 

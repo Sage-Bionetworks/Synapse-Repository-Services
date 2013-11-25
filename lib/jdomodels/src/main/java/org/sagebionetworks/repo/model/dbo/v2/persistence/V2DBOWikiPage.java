@@ -1,24 +1,25 @@
 package org.sagebionetworks.repo.model.dbo.v2.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_TITLE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ROOT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_TITLE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_DDL_FILE_WIKI_PAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -32,7 +33,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author hso
  *
  */
-public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2DBOWikiPage> {
+public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2DBOWikiPage>, ObservableEntity {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", V2_COL_WIKI_ID, true).withIsBackupId(true),
@@ -109,10 +110,6 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public String getEtag() {
-		return etag;
 	}
 
 	public void setEtag(String etag) {
@@ -311,5 +308,25 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 		list.add(new V2DBOWikiAttachmentReservation());
 		list.add(new V2DBOWikiMarkdown());
 		return list;
+	}
+
+	@Override
+	public String getIdString() {
+		return id.toString();
+	}
+
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
+
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.WIKI;
+	}
+
+	@Override
+	public String getEtag() {
+		return etag;
 	}
 }
