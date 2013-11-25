@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -76,7 +78,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 
 	@Override
-	public boolean bindColumnToObject(UserInfo user, Set<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.
@@ -102,6 +104,16 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an Administrator can call this method");
 		return this.columnModelDao.truncateAllColumnData();
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
+			String tableId) throws DatastoreException, NotFoundException {
+		// The user must be granted read permission on the table to get the columns.
+		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
+			throw new UnauthorizedException("You must have "+ACCESS_TYPE.READ+" permission on "+tableId+" to perform that operation.");
+		}
+		return columnModelDao.getColumnModelsForObject(tableId);
 	}
 	
 	

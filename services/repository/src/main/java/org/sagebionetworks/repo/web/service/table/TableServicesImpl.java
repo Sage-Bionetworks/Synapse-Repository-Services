@@ -78,8 +78,7 @@ public class TableServicesImpl implements TableServices {
 
 	
 	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException{
-		TableEntity entity = entityManager.getEntity(user, tableId, TableEntity.class);
-		return columnModelManager.getColumnModel(user, entity.getColumnIds());
+		return columnModelManager.getColumnModelsForTable(user, tableId);
 	}
 	
 }
