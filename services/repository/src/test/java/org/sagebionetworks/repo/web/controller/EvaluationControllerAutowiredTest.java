@@ -344,7 +344,7 @@ public class EvaluationControllerAutowiredTest {
 		SubmissionStatus status = entityServletHelper.getSubmissionStatus(ownerName, sub1.getId());
 		assertNotNull(status);
 		assertEquals(sub1.getId(), status.getId());
-		assertEquals(SubmissionStatusEnum.OPEN, status.getStatus());
+		assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
 		
 		// update
 		Thread.sleep(1L);
@@ -481,7 +481,7 @@ public class EvaluationControllerAutowiredTest {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		}
 		
-		subs = entityServletHelper.getAllSubmissions(ownerName, eval1.getId(), SubmissionStatusEnum.CLOSED);
+		subs = entityServletHelper.getAllSubmissions(ownerName, eval1.getId(), SubmissionStatusEnum.SCORED);
 		assertEquals(0, subs.getTotalNumberOfResults());
 		
 		subs = entityServletHelper.getAllSubmissions(ownerName, eval2.getId(), null);

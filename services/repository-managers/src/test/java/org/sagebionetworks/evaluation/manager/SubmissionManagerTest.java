@@ -171,7 +171,7 @@ public class SubmissionManagerTest {
         subStatus.setId(SUB_ID);
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
-        subStatus.setStatus(SubmissionStatusEnum.OPEN);
+        subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
         subStatus.setAnnotations(createDummyAnnotations());
         
         folder = new Folder();
@@ -303,7 +303,7 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetAllSubmissions() throws DatastoreException, UnauthorizedException, NotFoundException {
-		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.CLOSED;
+		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
 		submissionManager.getAllSubmissions(ownerInfo, EVAL_ID, null, 10, 0);
 		submissionManager.getAllSubmissions(ownerInfo, EVAL_ID, statusEnum, 10, 0);
 		verify(mockSubmissionDAO).getAllByEvaluation(eq(EVAL_ID), anyLong(), anyLong());
