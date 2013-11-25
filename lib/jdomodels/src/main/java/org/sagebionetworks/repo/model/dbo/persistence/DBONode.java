@@ -42,7 +42,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			new FieldColumn("name", COL_NODE_NAME),
 			new FieldColumn("currentRevNumber", COL_CURRENT_REV),
 			new FieldColumn("description", COL_NODE_DESCRIPTION),
-			new FieldColumn("etag", COL_NODE_ETAG).withIsEtag(true),
+			new FieldColumn("eTag", COL_NODE_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_NODE_CREATED_BY),
 			new FieldColumn("createdOn", COL_NODE_CREATED_ON),
 			new FieldColumn("nodeType", COL_NODE_TYPE),
@@ -109,7 +109,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	private String name;
 	private Long currentRevNumber;
 	private byte[] description;
-	private String etag;
+	private String eTag;
 	private Long createdBy;
 	private Long createdOn;
 	private Short nodeType;	
@@ -220,7 +220,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				* result
 				+ ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
@@ -260,10 +260,10 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 			return false;
 		if (!Arrays.equals(description, other.description))
 			return false;
-		if (etag == null) {
-			if (other.etag != null)
+		if (eTag == null) {
+			if (other.eTag != null)
 				return false;
-		} else if (!etag.equals(other.etag))
+		} else if (!eTag.equals(other.eTag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -292,8 +292,8 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	public String toString() {
 		return "DBONode [id=" + id + ", parentId=" + parentId + ", name="
 				+ name + ", currentRevNumber=" + currentRevNumber
-				+ ", description=" + Arrays.toString(description) + ", etag="
-				+ etag + ", createdBy=" + createdBy + ", createdOn="
+				+ ", description=" + Arrays.toString(description) + ", eTag="
+				+ eTag + ", createdBy=" + createdBy + ", createdOn="
 				+ createdOn + ", nodeType=" + nodeType + ", benefactorId="
 				+ benefactorId + "]";
 	}
@@ -311,10 +311,10 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	}
 	@Override
 	public String getEtag() {
-		return etag;
+		return eTag;
 	}
 	public void setEtag(String etag) {
-		this.etag = etag;
+		this.eTag = etag;
 	}
 
 }

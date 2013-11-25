@@ -49,25 +49,13 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(SubmissionStatus dto) throws DatastoreException {
-		return create(dto, false);
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String createFromBackup(SubmissionStatus dto) throws DatastoreException {
-		return create(dto, true);
-	}	
-	
-	private String create(SubmissionStatus dto, boolean fromBackup) throws DatastoreException {
 		// Convert to DBO
 		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
 		
-		// generate a new eTag, unless restoring from backup
-		if (!fromBackup) {
-			dbo.setEtag(UUID.randomUUID().toString());
-			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
-		}
-		
+		// Generate a new eTag and CREATE message
+		dbo.setEtag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+
 		// Ensure DBO has required information
 		verifySubmissionStatusDBO(dbo);
 		
@@ -92,29 +80,13 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(SubmissionStatus dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		update(dto, false);
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateFromBackup(SubmissionStatus dto) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		update(dto, true);
-	}
-	
-	private void update(SubmissionStatus dto, boolean fromBackup) throws ConflictingUpdateException, DatastoreException, NotFoundException {
 		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
 		dbo.setModifiedOn(System.currentTimeMillis());
 		verifySubmissionStatusDBO(dbo);
-				
-		if (fromBackup) {
-			// keep same eTag but send message of update
-			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
-		} else {
-			// update eTag and send message of update
-			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
-			dbo.setEtag(newEtag);
-		}
+
+		// update eTag and send message of update
+		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
+		dbo.setEtag(newEtag);
 		
 		basicDao.update(dbo);
 	}
@@ -171,11 +143,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	private String lockForUpdate(String id) {
 		// Create a Select for update query
 		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
-	}
-	
-	private void lockAndSendTagMessage(SubmissionStatusDBO dbo, ChangeType changeType) {
-		lockForUpdate(dbo.getIdString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 	}
 
 	@Override

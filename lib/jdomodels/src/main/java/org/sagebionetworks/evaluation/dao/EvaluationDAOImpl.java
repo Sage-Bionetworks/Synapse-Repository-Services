@@ -95,16 +95,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
-		return create(dto, ownerId, false);
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String createFromBackup(Evaluation dto, Long ownerId) throws DatastoreException {
-		return create(dto, ownerId, true);
-	}
-		
-	private String create(Evaluation dto, Long ownerId, boolean fromBackup) {
 		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
 		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
 		EvaluationUtils.ensureNotNull(dto.getId(), "Evaluation ID");
@@ -118,11 +108,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// serialize
 		copyDtoToDbo(dto, dbo);
 		
-		// generate a new eTag, unless restoring from backup
-		if (!fromBackup) {
-			dbo.setEtag(UUID.randomUUID().toString());
-			transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
-		}
+		// Generate a new eTag and CREATE message
+		dbo.setEtag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 				
 		// ensure DBO has required information
 		verifyEvaluationDBO(dbo);
@@ -212,30 +200,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public void update(Evaluation dto)
 			throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException {
-		update(dto, false);		
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateFromBackup(Evaluation dto)
-			throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException {
-		update(dto, true);
-	}
-
-	private void update(Evaluation dto, boolean fromBackup) throws ConflictingUpdateException, DatastoreException, NotFoundException {
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
 		verifyEvaluationDBO(dbo);
 		
-		if (fromBackup) {
-			// keep same eTag
-			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
-		} else {
-			// update eTag
-			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
-			dbo.setEtag(newEtag);
-		}
+		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
+		dbo.setEtag(newEtag);
 		
 		// TODO: detect and log NO-OP update
 		basicDao.update(dbo);
@@ -386,11 +356,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private String lockForUpdate(String id) {
 		// Create a Select for update query
 		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
-	}
-	
-	private void lockAndSendTagMessage(EvaluationDBO dbo, ChangeType changeType) {
-		lockForUpdate(dbo.getIdString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 	}
 	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =

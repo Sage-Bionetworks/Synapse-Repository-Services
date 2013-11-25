@@ -82,7 +82,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	
 	private Long id;
-	private String etag;
+	private String eTag;
 	private Long modifiedOn;
 	private int status;
 	private Double score;
@@ -137,10 +137,10 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 
 	@Override
 	public String getEtag() {
-		return etag;
+		return eTag;
 	}
 	public void setEtag(String newEtag) {
-		this.etag = newEtag;
+		this.eTag = newEtag;
 	}
 	
 	public byte[] getSerializedEntity() {
@@ -153,7 +153,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
@@ -171,10 +171,10 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 		if (getClass() != obj.getClass())
 			return false;
 		SubmissionStatusDBO other = (SubmissionStatusDBO) obj;
-		if (etag == null) {
-			if (other.etag != null)
+		if (eTag == null) {
+			if (other.eTag != null)
 				return false;
-		} else if (!etag.equals(other.etag))
+		} else if (!eTag.equals(other.eTag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -199,7 +199,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	@Override
 	public String toString() {
-		return "SubmissionStatusDBO [id=" + id + ", etag=" + etag
+		return "SubmissionStatusDBO [id=" + id + ", eTag=" + eTag
 				+ ", modifiedOn=" + modifiedOn + ", status=" + status
 				+ ", score=" + score + ", serializedEntity="
 				+ Arrays.toString(serializedEntity) + "]";

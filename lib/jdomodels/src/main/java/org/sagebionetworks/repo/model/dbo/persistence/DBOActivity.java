@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOActivity>, ObservableEntity {
 	private Long id;
-	private String etag;
+	private String eTag;
 	private Long createdBy;
 	private Long createdOn;
 	private Long modifiedBy;
@@ -38,7 +38,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACTIVITY_ID, true).withIsBackupId(true),
-		new FieldColumn("etag", COL_ACTIVITY_ETAG).withIsEtag(true),
+		new FieldColumn("eTag", COL_ACTIVITY_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_ACTIVITY_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACTIVITY_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACTIVITY_MODIFIED_BY),
@@ -147,11 +147,11 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 
 	@Override
 	public String getEtag() {
-		return etag;
+		return eTag;
 	}
 
 	public void setEtag(String newEtag) {
-		this.etag = newEtag;
+		this.eTag = newEtag;
 	}
 
 	@Override
@@ -162,7 +162,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -191,10 +191,10 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
-		if (etag == null) {
-			if (other.etag != null)
+		if (eTag == null) {
+			if (other.eTag != null)
 				return false;
-		} else if (!etag.equals(other.etag))
+		} else if (!eTag.equals(other.eTag))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -218,7 +218,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 
 	@Override
 	public String toString() {
-		return "DBOActivity [id=" + id + ", etag=" + etag + ", createdBy="
+		return "DBOActivity [id=" + id + ", eTag=" + eTag + ", createdBy="
 				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
 				+ modifiedBy + ", modifiedOn=" + modifiedOn
 				+ ", serializedObject=" + Arrays.toString(serializedObject)

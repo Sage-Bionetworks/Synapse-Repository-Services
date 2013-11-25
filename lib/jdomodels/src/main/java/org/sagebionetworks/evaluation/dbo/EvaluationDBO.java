@@ -104,7 +104,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	
 	private Long id;
-	private String etag;
+	private String eTag;
 	private String name;
 	private byte[] description;
 	private Long ownerId;
@@ -197,12 +197,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 
 	public void setEtag(String newEtag) {
-		etag = newEtag;
+		this.eTag = newEtag;
 	}
 	
 	@Override
 	public String getEtag() {
-		return etag;
+		return eTag;
 	}
 	
 	@Override
@@ -224,7 +224,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public String toString() {
-		return "EvaluationDBO [id=" + id + ", etag=" + etag + ", name=" + name
+		return "EvaluationDBO [id=" + id + ", eTag=" + eTag + ", name=" + name
 				+ ", description=" + Arrays.toString(description)
 				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
 				+ ", contentSource=" + contentSource + ", status=" + status
@@ -242,7 +242,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
@@ -273,10 +273,10 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (!Arrays.equals(description, other.description))
 			return false;
-		if (etag == null) {
-			if (other.etag != null)
+		if (eTag == null) {
+			if (other.eTag != null)
 				return false;
-		} else if (!etag.equals(other.etag))
+		} else if (!eTag.equals(other.eTag))
 			return false;
 		if (id == null) {
 			if (other.id != null)

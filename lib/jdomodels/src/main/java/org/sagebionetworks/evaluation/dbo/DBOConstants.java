@@ -4,7 +4,7 @@ public class DBOConstants {
 	
 	// Evaluation
 	public static final String PARAM_EVALUATION_ID 					= "id";
-	public static final String PARAM_EVALUATION_ETAG 				= "etag";
+	public static final String PARAM_EVALUATION_ETAG 				= "eTag";
 	public static final String PARAM_EVALUATION_NAME 				= "name";
 	public static final String PARAM_EVALUATION_DESCRIPTION 		= "description";
 	public static final String PARAM_EVALUATION_OWNER_ID 			= "ownerId";
@@ -33,7 +33,7 @@ public class DBOConstants {
 		
 	// SubmissionStatus
 	public static final String PARAM_SUBSTATUS_ID 					= "id";
-	public static final String PARAM_SUBSTATUS_ETAG 				= "etag";
+	public static final String PARAM_SUBSTATUS_ETAG 				= "eTag";
 	public static final String PARAM_SUBSTATUS_STATUS 				= "status";
 	public static final String PARAM_SUBSTATUS_SCORE 				= "score";
 	public static final String PARAM_SUBSTATUS_MODIFIED_ON 			= "modifiedOn";
