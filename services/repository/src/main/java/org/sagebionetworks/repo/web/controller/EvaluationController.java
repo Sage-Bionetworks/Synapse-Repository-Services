@@ -561,7 +561,9 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Creates a Submission. The passed request body should contain the following fields:
+	 * Creates a Submission. 
+	 * 
+	 * The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>evaluationId - The ID of the Evaluation to which this Submission belongs.</li>
 	 * <li>entityId - The ID of the Entity being submitted.</li>
@@ -570,7 +572,11 @@ public class EvaluationController extends BaseController {
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.SUBMIT</a>.
+	 * >ACCESS_TYPE.SUBMIT</a>.  
+	 * </p>
+	 * <p>
+	 * This call also creates an associated <a href="${org.sagebionetworks.evaluation.model.SubmissionStatus}">SubmissionStatus</a>, 
+	 * initialized with a SubmissionStatusEnum value of RECEIVED.
 	 * </p>
 	 * 
 	 * @param userId
