@@ -94,6 +94,12 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -627,26 +633,10 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public UserSessionData login(String username, String password)
+	public Session login(String username, String password)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-
-	@Override
-	public UserSessionData login(String username, String password,
-			boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void loginWithNoProfile(String userName, String password)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		
 	}
 
 
@@ -1660,6 +1650,66 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public MessageToUser sendMessage(MessageToUser message) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MessageBundle> getInbox(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MessageToUser> getOutbox(MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MessageToUser getMessage(String messageId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MessageToUser forwardMessage(String messageId,
+			MessageRecipientSet recipients) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MessageToUser> getConversation(
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void updateMessageStatus(MessageStatus status) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	@Override
+	public void deleteMessage(String messageId) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
 	public Long getChildCount(String entityId) throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2357,19 +2407,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 	}
 
-	@Override
-	public NewUser getAuthUserInfo() throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public void changePassword(String newPassword) throws SynapseException {
-		// TODO Auto-generated method stub
-		
-	}
-
 
 	@Override
 	public void changePassword(String sessionToken, String newPassword)
@@ -2378,23 +2415,11 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		
 	}
 
-
 	@Override
-	public void changeEmail(String sessionToken, String newPassword)
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		
-	}
-
-
-	@Override
-	public void sendPasswordResetEmail() throws SynapseException {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException {
-		// TODO Auto-generated method stub
 	}
 
 	@Override
@@ -2423,26 +2448,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	}
 
 	@Override
-	public void resendPasswordEmail(String email) throws SynapseException {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public Session passThroughOpenIDParameters(String queryString)
-			throws SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public Session passThroughOpenIDParameters(String queryString,
-			Boolean acceptsTermsOfUse, Boolean createUserIfNecessary)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2491,11 +2497,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
-			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary, OriginatingClient originClient)
+			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 }

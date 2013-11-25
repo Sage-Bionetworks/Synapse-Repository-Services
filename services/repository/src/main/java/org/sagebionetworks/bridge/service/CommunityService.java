@@ -1,8 +1,11 @@
 package org.sagebionetworks.bridge.service;
 
+import java.io.IOException;
+
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 public interface CommunityService {
 	/**
@@ -17,9 +20,11 @@ public interface CommunityService {
 	 * @throws NotFoundException
 	 * @throws ACLInheritanceException
 	 * @throws NameConflictException
+	 * @throws IOException
+	 * @throws ServiceUnavailableException
 	 */
 	public Community create(String userId, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
-			NotFoundException, NameConflictException, ACLInheritanceException;
+			NotFoundException, NameConflictException, ACLInheritanceException, ServiceUnavailableException, IOException;
 
 	/**
 	 * Retrieve the Communities to which the given user belongs, paginated

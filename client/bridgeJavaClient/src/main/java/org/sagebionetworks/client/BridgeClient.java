@@ -34,7 +34,7 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public BridgeVersionInfo getVersionInfo() throws SynapseException;
+	public BridgeVersionInfo getBridgeVersionInfo() throws SynapseException;
 
 	/****** communities ******/
 

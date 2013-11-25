@@ -1,22 +1,16 @@
 package org.sagebionetworks.auth;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.auth.services.AuthenticationService;
-import org.sagebionetworks.auth.services.AuthenticationService.PW_MODE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.OriginatingClient;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -73,7 +67,7 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
-	public void revalidate(@RequestBody Session session) throws NotFoundException {
+	public void revalidate(@RequestBody Session session) {
 		authenticationService.revalidate(session.getSessionToken());
 	}
 
@@ -101,78 +95,24 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client)
-			throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
-		authenticationService.createUser(user);
-		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, originClient);
+		authenticationService.createUser(user, originClient);
 	}
 	
 	/**
-	 * Resends the email for setting a new user's password.
+	 * Sends an email for setting a user's password.
 	 * <br/>
 	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
 	 * set to "synapse", the service will send email specific to the Synapse application; if set 
 	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_EMAIL, method = RequestMethod.POST)
-	public void resendRegisteringUserPasswordEmail(@RequestBody Username user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
-		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
-		authenticationService.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, originClient);
-	}
-	
-	/**
-	 * Retrieve basic information about the current authenticated user.  
-	 * Information includes the user's display name and email.
-	 * <br/>
-	 * Consider using <a href="${GET.userProfile}">GET /userProfile</a> instead.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.GET)
-	public @ResponseBody
-	NewUser getUser(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException {
-		UserInfo userInfo = authenticationService.getUserInfo(username);
-		NewUser user = new NewUser();
-		user.setDisplayName(userInfo.getUser().getDisplayName());
-		user.setEmail(userInfo.getIndividualGroup().getName());
-		user.setFirstName(userInfo.getUser().getFname());
-		user.setLastName(userInfo.getUser().getLname());
-		return user;
-	}
-	
-	/**
-	 * Request a password change email.
-	 * <br/>
-	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
-	 * set to "synapse", the service will send email specific to the Synapse application; if set 
-	 * to "bridge", the application will send email appropriate to the Bridge application.
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendChangePasswordEmail(@RequestBody Username credential,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+	public void sendPasswordEmail(@RequestBody Username user,
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
-		authenticationService.sendUserPasswordEmail(credential.getEmail(), PW_MODE.RESET_PW, originClient);
-	}
-	
-	/**
-	 * Request a password change email via an API key.
-	 * <br/>
-	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
-	 * set to "synapse", the service will send email specific to the Synapse application; if set 
-	 * to "bridge", the application will send email appropriate to the Bridge application.
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_API_PASSWORD_EMAIL, method = RequestMethod.POST)
-	public void sendSetAPIPasswordEmail(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
-		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
-		authenticationService.sendUserPasswordEmail(username, PW_MODE.SET_API_PW, originClient);
+		authenticationService.sendPasswordEmail(user.getEmail(), originClient);
 	}
 	
 	/**
@@ -180,47 +120,19 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
-	public void setPassword(
-			@RequestBody ChangeUserPassword changeUserPassword,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
-		authenticationService.changePassword(username, changeUserPassword.getNewPassword());
+	public void changePassword(@RequestBody ChangePasswordRequest request) {
+		authenticationService.changePassword(request);
 	}
 	
 	/**
-	 * Change the current authenticated user's email.  
-	 * Note: this service is temporarily disabled.
+	 * Identifies a user by a session token and signs that user's terms of use
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_CHANGE_EMAIL, method = RequestMethod.POST)
-	public void changeEmail(
-			@RequestBody RegistrationInfo registrationInfo,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
-		authenticationService.updateEmail(username, registrationInfo);
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
+	public void signTermsOfUse(@RequestBody Session session) throws NotFoundException {
+		authenticationService.signTermsOfUse(session);
 	}
-
-	/**
-	 * Used by password reset emails to reset a user's password.
-	 * Must be used within 24 hours of sending the email.
-	 */
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_REGISTERING_USER_PASSWORD, method = RequestMethod.POST)
-	public void setRegisteringUserPassword(
-			@RequestBody RegistrationInfo registrationInfo)
-			throws NotFoundException, NoSuchAlgorithmException, InvalidKeySpecException {
-		String registrationToken = registrationInfo.getRegistrationToken();
-		String sessionToken = registrationToken.substring(AuthorizationConstants.REGISTRATION_TOKEN_PREFIX.length());
 		
-		// A registering user has not had a chance to accept the terms yet
-		String realUserId = authenticationService.revalidate(sessionToken, false);
-		String realUsername = authenticationService.getUsername(realUserId);
-
-		// Set the password
-		authenticationService.changePassword(realUsername, registrationInfo.getPassword());
-		authenticationService.invalidateSessionToken(sessionToken);
-	}
-	
 	/**
 	 * Retrieves the API key associated with the current authenticated user.
 	 */

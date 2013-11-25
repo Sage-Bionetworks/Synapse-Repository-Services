@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 
 /**
@@ -27,7 +27,7 @@ import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 public class IT045CookieAuthentication {
 	
 	private static SynapseClientImpl synapse = null;
-	private static UserSessionData session;
+	private static Session session;
 	private static Cookie cookie;
 	File imageFile;
 	
@@ -38,7 +38,7 @@ public class IT045CookieAuthentication {
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
 		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		session =synapse.login(user, pw);
+		session = synapse.login(user, pw);
 		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, session.getSessionToken());
 		return synapse;
 	}

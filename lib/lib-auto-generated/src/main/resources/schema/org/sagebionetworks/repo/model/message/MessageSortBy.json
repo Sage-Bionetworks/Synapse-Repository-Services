@@ -1,7 +1,8 @@
 {
-	"title": "MessageSortBy",
-	"description": "JSON enum dictating how messages should be sorted",
+	"description":"JSON enum dictating how messages should be sorted",
+	"name":"MessageSortBy",
     "type":"string",
+    "id":"org.sagebionetworks.repo.model.message.MessageSortBy", 
 	"enum": [
 		"SEND_DATE",
 		"SUBJECT"

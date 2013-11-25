@@ -4,6 +4,7 @@ import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,11 +60,15 @@ public class DBOMessageDAOImplTest {
 	private MessageToUser groupReplyToUser;
 	private MessageToUser userReplyToGroup;
 	
+	private List<String> cleanup;
+	
 	private List<MessageStatusType> unreadMessageInboxFilter = Arrays.asList(new MessageStatusType[] {  MessageStatusType.UNREAD });
 	
 	@SuppressWarnings("serial")
 	@Before
 	public void spamMessages() throws Exception {
+		cleanup = new ArrayList<String>();
+		
 		// These two principals will act as mutual spammers
 		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
 		maliciousGroup = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false);
@@ -114,6 +120,7 @@ public class DBOMessageDAOImplTest {
 		// Insert the message
 		dto = messageDAO.createMessage(dto);
 		assertNotNull(dto.getId());
+		cleanup.add(dto.getId());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
 		
@@ -125,7 +132,9 @@ public class DBOMessageDAOImplTest {
 	
 	@After
 	public void cleanup() throws Exception {
-		// This will cascade delete all the messages generated for this test
+		for (String id : cleanup) {
+			messageDAO.deleteMessage(id);
+		}
 		fileDAO.delete(fileHandleId);
 	}
 	
@@ -212,6 +221,15 @@ public class DBOMessageDAOImplTest {
 		assertEquals(groupReplyToUser, messages.get(1));
 		assertEquals(userReplyToGroup, messages.get(2));
 	}
+	
+	@Test
+	public void testGetConversation_Empty() throws Exception {
+		assertEquals(0L, messageDAO.getConversationSize(userToUser.getId(), maliciousGroup.getId()));
+		
+		List<MessageToUser> messages = messageDAO.getConversation(userToUser.getId(), maliciousGroup.getId(), 
+				MessageSortBy.SEND_DATE, true, 100, 0);
+		assertEquals(0, messages.size());
+	}
 
 	
 	@Test
@@ -225,7 +243,11 @@ public class DBOMessageDAOImplTest {
 		String etag = content.getEtag();
 		
 		// Change one message to READ
-		messageDAO.updateMessageStatus(userToUser.getId(), maliciousUser.getId(), MessageStatusType.READ);
+		MessageStatus status = new MessageStatus();
+		status.setMessageId(userToUser.getId());
+		status.setRecipientId(maliciousUser.getId());
+		status.setStatus(MessageStatusType.READ);
+		messageDAO.updateMessageStatus(status);
 		
 		// Etag should have changed
 		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
