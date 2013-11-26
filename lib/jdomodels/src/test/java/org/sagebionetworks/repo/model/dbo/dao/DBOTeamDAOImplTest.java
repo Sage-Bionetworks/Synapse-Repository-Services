@@ -11,14 +11,20 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
@@ -38,6 +44,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOTeamDAOImplTest {
 	
 	private long teamToDelete = -1L;
+	private String aclToDelete = null;
 
 	private String[] teamMemberPairToDelete = null;
 	
@@ -48,14 +55,20 @@ public class DBOTeamDAOImplTest {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	private GroupMembersDAO groupMembersDAO;
-	
+	private GroupMembersDAO groupMembersDAO;	
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	
+	@Autowired
+	private AccessControlListDAO aclDAO;
+	
 	@After
 	public void tearDown() throws Exception {
+		if (aclDAO!=null && aclToDelete!=null) {
+			aclDAO.delete(aclToDelete);
+			aclToDelete = null;
+		}
 		if (teamDAO!=null && teamToDelete!=-1L) {
 			teamDAO.delete(""+teamToDelete);
 			teamToDelete=-1L;
@@ -160,7 +173,7 @@ public class DBOTeamDAOImplTest {
 			}
 		}
 		
-		// the team has two members, the creator plus 'pg'
+		// the team has one member,  'pg'
 		assertEquals(1L, teamDAO.getMembersCount(updated.getId()));
 		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
 		assertEquals(1, members.size());
@@ -175,6 +188,12 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0L, teamDAO.getMembersInRange("-999", 10, 0).size());
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
 		
+		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
+		// now make the member an admin
+		AccessControlList acl = createAcl(pg.getId(), updated.getId(), new Date());
+		aclToDelete = aclDAO.create(acl);
+		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
+		
 		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
 		teamMemberPairToDelete = null; // no longer need to schedule for deletion
 		
@@ -188,5 +207,26 @@ public class DBOTeamDAOImplTest {
 		}
 		teamToDelete=-1L; // no need to delete in 'tear down'
 	}
+	
+	public static AccessControlList createAcl(
+			final String pid, 
+			final String teamId, 
+			final Date creationDate) {
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		ra.setPrincipalId(Long.parseLong(pid));
+		raSet.add(ra);
+		AccessControlList acl = new AccessControlList();
+		acl.setId(teamId);
+		acl.setCreatedBy(pid);
+		acl.setCreationDate(creationDate);
+		acl.setModifiedBy(pid);
+		acl.setModifiedOn(creationDate);
+		acl.setResourceAccess(raSet);
+		return acl;
+	}
+
 
 }
