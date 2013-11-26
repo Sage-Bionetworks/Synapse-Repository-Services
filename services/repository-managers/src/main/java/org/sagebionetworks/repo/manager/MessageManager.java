@@ -5,13 +5,22 @@ import java.util.List;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
+	
+	/**
+	 * Retrieves a single message by ID.  
+	 * The user must be either the sender or *intended* recipient of the message.  
+	 * Otherwise, an UnauthorizedException is thrown.  
+	 */
+	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
 	 * Saves the message so that it can be processed by other queries.
@@ -22,6 +31,12 @@ public interface MessageManager {
 	 * In case of failure, the user will be notified via bounce message.  
 	 */
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto);
+
+	/**
+	 * Saves an existing message so that it can be delivered to the given set of recipients
+	 */
+	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
+			MessageRecipientSet recipients) throws NotFoundException;
 	
 	/**
 	 * Retrieves all messages within the same conversation as the associated message.
@@ -50,7 +65,7 @@ public interface MessageManager {
 	/**
 	 * Changes the status of the user's message 
 	 */
-	public void markMessageStatus(UserInfo userInfo, String messageId, MessageStatusType status);
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException;
 	
 	/**
 	 * Takes an existing message and processes it, 
@@ -58,6 +73,15 @@ public interface MessageManager {
 	 * </br>
 	 * Non-fatal errors will be caught and their error messages will be returned in a list.
 	 * It is the caller's responsibility to send a bounce message to the user.
+	 * 
+	 * @param oneTransaction Should the sending be done in one transaction or one transaction per recipient?
+	 *    This allows the sending of messages during creation to complete without deadlock. 
+	 *    Should generally be false.
 	 */
-	public List<String> sendMessage(String messageId) throws NotFoundException;
+	public List<String> sendMessage(String messageId, boolean oneTransaction) throws NotFoundException;
+	
+	/**
+	 * Deletes a message, only accessible to admins
+	 */
+	public void deleteMessage(UserInfo userInfo, String messageId);
 }

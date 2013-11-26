@@ -117,11 +117,11 @@ public class DBOMembershipInvtnSubmissionTest {
 		assertEquals(clone, clone2);
 	}
 	
-	private static MembershipInvtnSubmission createMembershipInvtnSubmission() {
+	private static MembershipInvtnSubmission createMembershipInvtnSubmission(Date createdOn) {
 		//It's easiest to create a DBO object by first creating a DTO object and then converting it
 		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
 		dto.setId("101");
-		dto.setCreatedOn(new Date());
+		dto.setCreatedOn(createdOn);
 		dto.setExpiresOn(null);
 		dto.setInviteeId("987");
 		dto.setTeamId("456");
@@ -132,7 +132,7 @@ public class DBOMembershipInvtnSubmissionTest {
 
 	@Test
 	public void testTranslator() throws Exception {
-		MembershipInvtnSubmission dto = createMembershipInvtnSubmission();
+		MembershipInvtnSubmission dto = createMembershipInvtnSubmission(new Date());
 		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
 		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
 		// now do the round trip
@@ -142,8 +142,33 @@ public class DBOMembershipInvtnSubmissionTest {
 	}
 
 	@Test
+	public void testPLFM2354() throws Exception {
+		Date createdOn = new Date();
+		MembershipInvtnSubmission dto = createMembershipInvtnSubmission(createdOn);
+		String id = dto.getId();
+		dto.setId(null);
+		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
+		// id will be missing from serialized 'properties'
+		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
+		// now put it in the dbo ID slot
+		dbo.setId(Long.parseLong(id));
+		
+		// this is actually a 'no-op', backup=dbo
+		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
+		
+		MembershipInvtnSubmission expectedDto = createMembershipInvtnSubmission(createdOn);
+		DBOMembershipInvtnSubmission expectedDbo = new DBOMembershipInvtnSubmission();
+		MembershipInvtnSubmissionUtils.copyDtoToDbo(expectedDto, expectedDbo);
+		
+		// translator should be robust enough to handle the case in which ID is missing from 
+		// serialized 'properties'
+		assertEquals(expectedDbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
+		assertEquals(expectedDto, MembershipInvtnSubmissionUtils.copyDboToDto(expectedDbo));
+	}
+
+	@Test
 	public void testTranslatorWithLegacyInput() throws Exception {
-		MembershipInvtnSubmission dto = createMembershipInvtnSubmission();
+		MembershipInvtnSubmission dto = createMembershipInvtnSubmission(new Date());
 		//It's easiest to create a DBO object by first creating a DTO object and then converting it
 		LegacyMembershipInvtnSubmission legacyDto = new LegacyMembershipInvtnSubmission();
 		legacyDto.setId(dto.getId());

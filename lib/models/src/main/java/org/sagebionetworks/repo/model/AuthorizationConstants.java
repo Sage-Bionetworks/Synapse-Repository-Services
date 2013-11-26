@@ -124,16 +124,6 @@ public class AuthorizationConstants {
 	 */
 	@Deprecated
 	public static final String ETAG_PARAM = "etag";
-	
-	/**
-	 * Identifies a token as related to registering a new user
-	 */
-	public static final String REGISTRATION_TOKEN_PREFIX = "register_";
-	
-	/**
-	 * Identifies a token as related to changing a user's email
-	 */
-	public static final String CHANGE_EMAIL_TOKEN_PREFIX = "change_email_";
 
 	/**
 	 * A test user that is bootstrapped for testing on non-production stacks

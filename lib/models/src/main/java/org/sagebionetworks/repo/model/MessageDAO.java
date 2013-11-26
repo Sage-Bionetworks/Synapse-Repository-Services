@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,18 +60,35 @@ public interface MessageDAO {
 	public long getNumSentMessages(String userId);
 	
 	/**
-	 * See {@link #createMessageStatus(String, String, MessageStatusType)}
+	 * Marks a user as a recipient of a message
 	 * The status of the message defaults to UNREAD
+	 * 
+	 * Note: This operation occurs in a separate transaction (REQUIRES_NEW)
 	 */
-	public void createMessageStatus(String messageId, String userId);
+	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status);
 	
 	/**
 	 * Marks a user as a recipient of a message
+	 * The status of the message defaults to UNREAD
+	 * 
+	 * Note: This operation occurs in the same transaction (REQUIRED)
 	 */
-	public void createMessageStatus(String messageId, String userId, MessageStatusType status);
+	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status);
 	
 	/**
 	 * Marks a message within the user's inbox with the given status
+	 * 
+	 * @return Did the update succeed?
 	 */
-	public void updateMessageStatus(String messageId, String userId, MessageStatusType status);
+	public boolean updateMessageStatus(MessageStatus status);
+	
+	/**
+	 * Deletes a message.  Only used for test cleanup.
+	 */
+	public void deleteMessage(String messageId);
+
+	/**
+	 * Returns true if there is at least one recipient of the message
+	 */
+	public boolean hasMessageBeenSent(String messageId);
 }

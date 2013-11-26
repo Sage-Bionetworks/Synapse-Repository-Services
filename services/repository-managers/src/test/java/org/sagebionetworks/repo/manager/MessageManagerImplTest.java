@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.manager;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,13 +20,17 @@ import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -77,7 +83,10 @@ public class MessageManagerImplTest {
 	private MessageToUser userReplyToOtherAndSelf;
 	private MessageToUser otherReplyToUserAndSelf;
 	private MessageToUser userToSelfAndGroup;
-	private MessageToUser otherToSelfAndGroup;
+	private MessageToUser otherToGroup;
+	
+	private UserInfo adminUserInfo;
+	private List<String> cleanup;
 	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
@@ -85,6 +94,9 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
+		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		cleanup = new ArrayList<String>();
+		
 		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		otherTestUser = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		final String testUserId = testUser.getIndividualGroup().getId();
@@ -95,6 +107,9 @@ public class MessageManagerImplTest {
 		testTeam.setName("MessageManagerImplTest");
 		testTeam = teamManager.create(testUser, testTeam);
 		final String testTeamId = testTeam.getId();
+		
+		// This user info needs to be updated to contain the team
+		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -117,7 +132,7 @@ public class MessageManagerImplTest {
 				new HashSet<String>() {{add(testUserId); add(otherTestUserId);}}, userReplyToOtherAndSelf.getId());
 		userToSelfAndGroup = createMessage(testUser, "userToSelfAndGroup", 
 				new HashSet<String>() {{add(testUserId); add(testTeamId);}}, null);
-		otherToSelfAndGroup = createMessage(otherTestUser, "otherToSelfAndGroup", 
+		otherToGroup = createMessage(otherTestUser, "otherToGroup", 
 				new HashSet<String>() {{add(otherTestUserId); add(testTeamId);}}, null);
 	}
 	
@@ -140,6 +155,7 @@ public class MessageManagerImplTest {
 		// Insert the message
 		dto = messageManager.createMessage(userInfo, dto);
 		assertNotNull(dto.getId());
+		cleanup.add(dto.getId());
 		assertEquals(userInfo.getIndividualGroup().getId(), dto.getCreatedBy());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
@@ -155,23 +171,81 @@ public class MessageManagerImplTest {
 	 * 
 	 * @param send_otherToSelfAndGroup This message may or may not have the proper permissions associated with it
 	 */
-	private List<String> sendUnsentMessages(boolean send_otherToSelfAndGroup) throws Exception {
-		assertEquals(0, messageManager.sendMessage(userReplyToOtherAndSelf.getId()).size());
-		assertEquals(0, messageManager.sendMessage(otherReplyToUserAndSelf.getId()).size());
-		assertEquals(0, messageManager.sendMessage(userToSelfAndGroup.getId()).size());
-		if (send_otherToSelfAndGroup) {
-			return messageManager.sendMessage(otherToSelfAndGroup.getId());
+	private List<String> sendUnsentMessages(boolean send_otherToGroup) throws Exception {
+		assertEquals(0, messageManager.sendMessage(userReplyToOtherAndSelf.getId(), false).size());
+		assertEquals(0, messageManager.sendMessage(otherReplyToUserAndSelf.getId(), false).size());
+		assertEquals(0, messageManager.sendMessage(userToSelfAndGroup.getId(), false).size());
+		if (send_otherToGroup) {
+			return messageManager.sendMessage(otherToGroup.getId(), false);
 		}
 		return new ArrayList<String>();
 	}
 	
 	@After
 	public void cleanup() throws Exception {
-		// This will cascade delete all the messages generated for this test
-		fileDAO.delete(fileHandleId);
+		for (String id : cleanup) {
+			messageManager.deleteMessage(adminUserInfo, id);
+		}
 		
+		fileDAO.delete(fileHandleId);
+
 		// Cleanup the team
 		teamManager.delete(testUser, testTeam.getId());
+	}
+	
+	@SuppressWarnings("serial")
+	@Test(expected = IllegalArgumentException.class) 
+	public void testSendMessageToMultipleRecipientsInOneTransaction() throws Exception {
+		MessageToUser multipleRecipients = createMessage(testUser,
+				"multipleRecipients", new HashSet<String>() {
+					{
+						add(testUser.getIndividualGroup().getId());
+						add(otherTestUser.getIndividualGroup().getId());
+					}
+				}, null);
+		messageManager.sendMessage(multipleRecipients.getId(), true);
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testGetMessagePermissions() throws Exception {
+		// User should be able to see both messages that have been delivered
+		assertEquals(userToOther, messageManager.getMessage(testUser, userToOther.getId()));
+		assertEquals(otherReplyToUser, messageManager.getMessage(testUser, otherReplyToUser.getId()));
+		
+		// User should be able to get a message directed at it, but that hasn't been sent yet
+		assertEquals(otherReplyToUserAndSelf, messageManager.getMessage(testUser, otherReplyToUserAndSelf.getId()));
+		
+		// User should be able to see a message that cannot be sent, but is directed at a group the user is in
+		assertEquals(otherToGroup, messageManager.getMessage(testUser, otherToGroup.getId()));
+		
+		// User should not be able to see a message that the other user sends to itself
+		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getIndividualGroup().getId());}}, null);
+		try {
+			messageManager.getMessage(testUser, invisible.getId());
+			fail();
+		} catch (UnauthorizedException e) {
+			assertTrue(e.getMessage().contains("not the sender or receiver"));
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testForwardMessage() throws Exception {
+		// Forward a message
+		final String testUserId = testUser.getIndividualGroup().getId();
+		MessageRecipientSet recipients = new MessageRecipientSet();
+		recipients.setRecipients(new HashSet<String>() {{add(testUserId);}});
+		MessageToUser forwarded = messageManager.forwardMessage(testUser, userToOther.getId(), recipients);
+		cleanup.add(forwarded.getId());
+		
+		// It should appear in the test user's inbox immediately
+		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(2L, messages.getTotalNumberOfResults());
+		assertEquals(2, messages.getResults().size());
+		assertEquals(forwarded, messages.getResults().get(0).getMessage());
+		assertEquals(otherReplyToUser, messages.getResults().get(1).getMessage());
 	}
 	
 	@Test
@@ -265,9 +339,22 @@ public class MessageManagerImplTest {
 		assertEquals(messages, afterSending);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testSendMessage_NotIdempotent() throws Exception {
-		messageManager.sendMessage(userToOther.getId());
+	@Test
+	public void testSendMessage_DoesntFailOnResend() throws Exception {
+		QueryResults<MessageBundle> messages = messageManager.getInbox(otherTestUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(1L, messages.getTotalNumberOfResults());
+		assertEquals(1, messages.getResults().size());
+		
+		messageManager.sendMessage(userToOther.getId(), false);
+		messageManager.sendMessage(userToOther.getId(), false);
+		messageManager.sendMessage(userToOther.getId(), false);
+		
+		// Multiple calls to sendMessage do nothing
+		messages = messageManager.getInbox(otherTestUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(1L, messages.getTotalNumberOfResults());
+		assertEquals(1, messages.getResults().size());
 	}
 	
 	@Test
@@ -296,6 +383,27 @@ public class MessageManagerImplTest {
 		// The last message should show up in the testUser's inbox, even though the testUser was not in the recipient list
 		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(otherToSelfAndGroup, messages.getResults().get(0).getMessage());
+		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testSendMessageTo_AUTH_USERS() throws Exception {
+		// Find the ID of the AUTHENTICATED_USERS group
+		String findingAuthUsers = null;
+		for (UserGroup ug : testUser.getGroups()) {
+			if (ug.getName().equals(DEFAULT_GROUPS.AUTHENTICATED_USERS.toString())) {
+				findingAuthUsers = ug.getId();
+			}
+		}
+		assertNotNull(findingAuthUsers);
+		final String authUsersId = findingAuthUsers;
+		
+		// This should fail since no one has permission to send to this public group
+		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
+		List<String> errors = messageManager.sendMessage(notAllowedToSend.getId(), false);
+		String joinedErrors = StringUtils.join(errors, "\n");
+		System.out.println(joinedErrors);
+		assertTrue(joinedErrors.contains("may not send"));
 	}
 }

@@ -2,10 +2,11 @@
 	"title": "User Session Data",
 	"description": "JSON schema for UserSessionData POJO",
 	"properties": {
-		"sessionToken": {
-			"type": "string",
-			"description": "Session token"
-		},
+		"session": {
+			"type": "object",
+			"description": "The associated user session token",
+			"$ref": "org.sagebionetworks.repo.model.auth.Session"
+		}, 
 		"isSSO": {
 			"type": "boolean",
 			"description": "Is this a SSO session?"

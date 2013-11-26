@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -34,7 +35,7 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public BridgeVersionInfo getVersionInfo() throws SynapseException;
+	public BridgeVersionInfo getBridgeVersionInfo() throws SynapseException;
 
 	/****** communities ******/
 
@@ -53,6 +54,13 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public List<Community> getCommunities() throws SynapseException;
+
+	/**
+	 * Get all the available communities
+	 * 
+	 * @throws SynapseException
+	 */
+	public List<Community> getAllCommunities() throws SynapseException;
 
 	/**
 	 * Get community by id
@@ -78,6 +86,14 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void deleteCommunity(String communityId) throws SynapseException;
+
+	/**
+	 * Get all the members of a community (admins only)
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	public List<UserGroupHeader> getCommunityMembers(String communityId) throws SynapseException;
 
 	/**
 	 * Join a community

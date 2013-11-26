@@ -12,11 +12,14 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,6 +44,37 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	
+	@Override
+	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException {
+		MessageToUser message = messageDAO.getMessage(messageId);
+		
+		// Get the user's ID and the user's groups' IDs
+		String userId = userInfo.getIndividualGroup().getId();
+		Set<String> userGroups = new HashSet<String>();
+		for (UserGroup ug : userInfo.getGroups()) {
+			userGroups.add(ug.getId());
+		}
+		userGroups.add(userId);
+		
+		// Is the user the sender?
+		if (!message.getCreatedBy().equals(userId)) {
+			// Is the user an intended recipient?
+			boolean isRecipient = false;
+			for (String recipient : message.getRecipients()) {
+				if (userGroups.contains(recipient)) {
+					isRecipient = true;
+					break;
+				}
+			}
+			
+			// Not allowed to get the message
+			if (!isRecipient) {
+				throw new UnauthorizedException("You are not the sender or receiver of this message (" + messageId + ")");
+			}
+		}
+		return message;
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -53,17 +87,38 @@ public class MessageManagerImpl implements MessageManager {
 		// If the recipient list is only one element long, 
 		// process and send the message in this transaction 
 		if (dto.getRecipients().size() == 1) {
-			List<String> errors;
+			UserGroup ug;
 			try {
-				errors = sendMessage(dto.getId());
+				ug = userGroupDAO.get(dto.getRecipients().iterator().next());
 			} catch (NotFoundException e) {
-				throw new DatastoreException("Could not find a message that was created in the same transaction");
+				throw new DatastoreException("Could not get a user group that satisfied message creation constraints");
 			}
-			if (errors.size() > 0) {
-				throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
+			
+			// Defer the sending of messages to non-individuals 
+			// since there could be more than one actual recipient after finding the members
+			if (ug.getIsIndividual()) {
+				List<String> errors;
+				try {
+					errors = sendMessage(dto.getId(), true);
+				} catch (NotFoundException e) {
+					throw new DatastoreException("Could not find a message that was created in the same transaction");
+				}
+				if (errors.size() > 0) {
+					throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
+				}
 			}
 		}
 		return dto;
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,
+			MessageRecipientSet recipients) throws NotFoundException {
+		MessageToUser message = getMessage(userInfo, messageId);
+		message.setRecipients(recipients.getRecipients());
+		message.setInReplyTo(messageId);
+		return createMessage(userInfo, message);
 	}
 
 	@Override
@@ -97,17 +152,32 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	public void markMessageStatus(UserInfo userInfo, String messageId, MessageStatusType status) {
-		messageDAO.updateMessageStatus(messageId, userInfo.getIndividualGroup().getId(), status);
+	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException {
+		// Check to see if the user can see the message being updated
+		getMessage(userInfo, status.getMessageId());
+		
+		// Update the message
+		status.setRecipientId(userInfo.getIndividualGroup().getId());
+		boolean succeeded = messageDAO.updateMessageStatus(status);
+		
+		if (!succeeded) {
+			throw new UnauthorizedException("Cannot change status of message (" + status.getMessageId() + ")");
+		}
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public List<String> sendMessage(String messageId) throws NotFoundException {
+	public List<String> sendMessage(String messageId, boolean oneTransaction) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		
+		// Check to see if the message has already been sent
+		// If so, nothing else needs to be done
+		if (messageDAO.hasMessageBeenSent(messageId)) {
+			return errors;
+		}
 		
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
@@ -139,18 +209,41 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		// Mark each message as sent
-		for (String user : recipients) {
-			//TODO check the recipient's settings
-			//TODO send emails if necessary
-			messageDAO.createMessageStatus(messageId, user);
+		// Make sure the caller set the boolean correctly
+		if (recipients.size() > 1 && oneTransaction) {
+			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
 		}
 		
-		//TODO Remove the now-sent message from the queue
-		// Note: the queue's implementation is still up in the air
-		// Note: this may be the job of this method's caller, which is not implemented yet 
+		// Mark each message as sent
+		for (String user : recipients) {
+			// Try to send messages to each user individually
+			try {
+				//TODO check the recipient's settings
+				
+				//TODO send emails if necessary
+				
+				// This marks a user as a recipient of the message
+				// which is equivalent to marking the message as sent
+				if (oneTransaction) {
+					messageDAO.createMessageStatus_SameTransaction(messageId, user, null);
+				} else {
+					messageDAO.createMessageStatus_NewTransaction(messageId, user, null);
+				}
+			} catch (Exception e) {
+				errors.add(e.getMessage());
+			}
+		}
 		
 		return errors;
+	}
+
+	@Override
+	public void deleteMessage(UserInfo userInfo, String messageId) {
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only admins may delete messages");
+		}
+		
+		messageDAO.deleteMessage(messageId);
 	}
 	
 }

@@ -79,8 +79,8 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + groupId.hashCode();
-		result = prime * result + memberId.hashCode();
+		result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
+		result = prime * result + ((memberId == null) ? 0 : memberId.hashCode());
 		return result;
 	}
 
@@ -93,11 +93,16 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 		if (getClass() != obj.getClass())
 			return false;
 		DBOGroupMembers other = (DBOGroupMembers) obj;
-		if (groupId != other.groupId) {
+		if (groupId == null) {
+			if (other.groupId != null)
+				return false;
+		} else if (!groupId.equals(other.groupId))
 			return false;
-		} else if (memberId != other.memberId){
+		if (memberId == null) {
+			if (other.memberId != null)
+				return false;
+		} else if (!memberId.equals(other.memberId))
 			return false;
-		}
 		return true;
 	}
 

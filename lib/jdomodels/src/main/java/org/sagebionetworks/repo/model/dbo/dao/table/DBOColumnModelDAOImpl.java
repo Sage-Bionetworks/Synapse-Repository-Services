@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_COLUMN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_COLUMN_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_ORDINAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_ORDINAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN_MODEL;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,20 +25,17 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,14 +48,15 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
+	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO, "+TABLE_COLUMN_MODEL+" CM WHERE BO."+COL_BOUND_CM_ORD_COLUMN_ID+" = CM."+COL_CM_ID+" AND BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
+	private static final String SQL_DELETE_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ORDER BY "+COL_CM_NAME+" LIMIT ? OFFSET ?";
 	private static final String SQL_TRUNCATE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" >= 0";
+	private static final String SQL_TRUNCATE_BOUND_COLUMN_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_ORDINAL+" >= 0";
 	private static final String SQL_TRUNCATE_COLUMN_MODEL= "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" >= 0";
-	private static final String SQL_SELECT_EXISTING_BOUND_FOR_OBJECT_ID = "SELECT * FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ? ";
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
 	private static final String SQL_SELECT_ID_WHERE_HASH_EQUALS = "SELECT "+COL_CM_ID+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_HASH+" = ?";
-	private static final String SQL_CREATE_OR_UPDATE_BOUND_COLUMN_BATCH = DMLUtils.getBatchInsertOrUdpate(new DBOBoundColumn().getTableMapping());
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -77,13 +80,17 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		String likeString = preparePrefix(namePrefix);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
 		// Convert to DTOs
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(DBOColumnModel dbo: dbos){
-			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
-		}
-		return results;
+		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
-
+	@Override
+	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
+			throws DatastoreException, NotFoundException {
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
+		if(dbos.size() < 1) throw new NotFoundException("No columns were found for "+tableIdString);
+		// Convert to DTOs
+		return ColumnModelUtlis.createDTOFromDBO(dbos);
+	}
 	/**
 	 * @param namePrefix
 	 * @return
@@ -139,30 +146,28 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public int bindColumnToObject(Set<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
+	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
 		if(newCurrentColumnIds == null) throw new IllegalArgumentException("columnIds cannot be null");
+		if(newCurrentColumnIds.size() < 1) throw new IllegalArgumentException("Must include at least one column to bind to an object");
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
+		// Get each model to valid they exist.
+		List<ColumnModel> models = getColumnModel(newCurrentColumnIds);
 		Long objectId = KeyFactory.stringToKey(objectIdString);
-		// first get all of the existing rows bound to this object
-		List<DBOBoundColumn> existing = simpleJdbcTemplate.query(SQL_SELECT_EXISTING_BOUND_FOR_OBJECT_ID, BOUND_ROW_MAPPER, objectId);
-		// This utility will prepare the new values to insert/update into the database.
-		List<DBOBoundColumn> newRows = ColumnModelUtlis.prepareNewBoundColumns(objectId, existing, newCurrentColumnIds);
-		// Build up the batch
-		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[newRows.size()];
-		for(int i=0; i<newRows.size(); i++){
-			namedParameters[i] = new BeanPropertySqlParameterSource(newRows.get(i));
-		}
-		// execute the batch
-		int[] results;
 		try {
-			results = simpleJdbcTemplate.batchUpdate(SQL_CREATE_OR_UPDATE_BOUND_COLUMN_BATCH, namedParameters);
-			// How many rows changed
-			int count = 0;
-			for(int rowcount: results){
-				count+=rowcount;
-			}
-			return count;
-		} catch (DataIntegrityViolationException e) {
+			// first bind these columns to the object. This binding is permanent and can only grow over time.
+			List<DBOBoundColumn> permanent = ColumnModelUtlis.createDBOBoundColumnList(objectId, newCurrentColumnIds);
+			// Sort by columnId to prevent deadlock
+			ColumnModelUtlis.sortByColumnId(permanent);
+			// Insert or update the batch
+			basicDao.createOrUpdateBatch(permanent);
+			// Now replace the current current ordinal binding for this object.
+			simpleJdbcTemplate.update(SQL_DELETE_ORDINAL, objectId);
+			// Now insert the ordinal values
+			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtlis.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
+			// this is just an insert
+			basicDao.createBatch(ordinal);
+			return newCurrentColumnIds.size();
+		} catch (IllegalArgumentException e) {
 			// Check to see if the COL_MODEL_FK constraint was triggered.
 			if(e.getMessage().contains("COL_MODEL_FK")){
 				throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+newCurrentColumnIds.toString());
@@ -184,13 +189,14 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Override
 	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
+		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("ids", ids);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_FOR_IDS, ROW_MAPPER, parameters);
 		// Convert to DTOs
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(DBOColumnModel dbo: dbos){
-			results.add(ColumnModelUtlis.createDTOFromDBO(dbo));
+		List<ColumnModel> results = ColumnModelUtlis.createDTOFromDBO(dbos);
+		if(results.size() < ids.size()){
+			throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+ids.toString());
 		}
 		return results;
 	}
@@ -199,7 +205,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean truncateAllColumnData() {
-		int count = simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMNS);
+		int count = simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMN_ORDINAL);
+		count = simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMNS);
 		count += simpleJdbcTemplate.update(SQL_TRUNCATE_COLUMN_MODEL);
 		return count >0;
 	}
@@ -231,8 +238,22 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	 * @param parameters
 	 * @return
 	 */
-	private static String builderListObjectsSql(Set<String> columnIds,	boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters, boolean count){
+	private static String builderListObjectsSql(Set<String> columnIds, boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters, boolean count){
 		// We build the from, where, and join at the same time with a single loop.
+		String tableName;
+		String idColumnName;
+		String objectIdColumnName;
+		if(currentOnly){
+			// Look in the ordinal table
+			tableName = TABLE_BOUND_COLUMN_ORDINAL;
+			idColumnName = COL_BOUND_CM_ORD_COLUMN_ID;
+			objectIdColumnName = COL_BOUND_CM_ORD_OBJECT_ID;
+		}else{
+			// Look in the full history table
+			tableName = TABLE_BOUND_COLUMN;
+			idColumnName = COL_BOUND_CM_COLUMN_ID;
+			objectIdColumnName = COL_BOUND_CM_OBJECT_ID;
+		}
 		StringBuilder from = new StringBuilder();
 		from.append(" FROM");
 		StringBuilder join = new StringBuilder();
@@ -243,33 +264,31 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			String tableAlias = "A"+i;
 			if(i > 0){
 				from.append(",");
-				join.append(" AND A"+(i-1)+"."+COL_BOUND_CM_OBJECT_ID+" = "+tableAlias+"."+COL_BOUND_CM_OBJECT_ID);
+				join.append(" AND A"+(i-1)+"."+objectIdColumnName+" = "+tableAlias+"."+objectIdColumnName);
 				where.append(" AND");
 			}
-			from.append(" "+TABLE_BOUND_COLUMN+" "+tableAlias);
-			where.append(" "+tableAlias+"."+COL_BOUND_CM_COLUMN_ID+" = :c"+i);
+			from.append(" "+tableName+" "+tableAlias);
+			where.append(" "+tableAlias+"."+idColumnName+" = :c"+i);
 			long colId = Long.parseLong(it.next());
 			parameters.addValue("c"+i, colId);
-			if(currentOnly){
-				where.append(" AND "+tableAlias+"."+COL_BOUND_CM_IS_CURRENT+" = TRUE");
-			}
 		}
 		// put all of the parts together.
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT");
 		if(count){
-			builder.append(" COUNT(DISTINCT A0."+COL_BOUND_CM_OBJECT_ID+")");
+			builder.append(" COUNT(DISTINCT A0."+objectIdColumnName+")");
 		}else{
-			builder.append(" DISTINCT A0."+COL_BOUND_CM_OBJECT_ID);
+			builder.append(" DISTINCT A0."+objectIdColumnName);
 		}
 		builder.append(from.toString());
 		builder.append(where.toString());
 		builder.append(join.toString());
 		if(!count){
-			builder.append(" ORDER BY A0."+COL_BOUND_CM_OBJECT_ID+" LIMIT :limit OFFSET :offset");
+			builder.append(" ORDER BY A0."+objectIdColumnName+" LIMIT :limit OFFSET :offset");
 			parameters.addValue("limit", limit);
 			parameters.addValue("offset", offset);
 		}
 		return builder.toString();
 	}
+
 }

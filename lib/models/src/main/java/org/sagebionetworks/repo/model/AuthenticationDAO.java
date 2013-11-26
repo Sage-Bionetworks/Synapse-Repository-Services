@@ -16,7 +16,7 @@ public interface AuthenticationDAO {
 	 * @return The UserID of corresponding to the credentials
 	 * @throws UnauthorizedException If the username or password are incorrect
 	 */
-	public Long checkEmailAndPassword(String email, String passHash) throws UnauthorizedException;
+	public Long checkEmailAndPassword(String email, String passHash);
 	
 	/**
 	 * Updates the timestamp associated with the user's session token
@@ -100,5 +100,5 @@ public interface AuthenticationDAO {
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate
 	 */
-	public void bootstrapCredentials() throws Exception;
+	public void bootstrapCredentials() throws NotFoundException;
 }

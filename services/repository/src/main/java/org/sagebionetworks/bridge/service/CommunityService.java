@@ -37,7 +37,7 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Community> getByMember(String userId, String principalId, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<Community> getForMember(String userId, int limit, int offset) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -88,6 +88,21 @@ public interface CommunityService {
 	public void delete(String userId, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Get all members of a community
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public PaginatedResults<UserGroupHeader> getMembers(String userId, String id, Integer limit, Integer offset) throws DatastoreException,
+			UnauthorizedException, NotFoundException;
+
+	/**
 	 * Join a community
 	 * 
 	 * @param userId
@@ -106,45 +121,4 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 */
 	public void leaveCommunity(String userId, String communityId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the ACL for a Community
-	 * 
-	 * @param userInfo
-	 * @param communityId
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	// public AccessControlList getACL(String userId, String communityId) throws DatastoreException,
-	// UnauthorizedException,
-	// NotFoundException;
-
-	/**
-	 * Update the ACL for a Community
-	 * 
-	 * @param userInfo
-	 * @param acl
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	// public void updateACL(String userId, AccessControlList acl) throws DatastoreException, UnauthorizedException,
-	// NotFoundException;
-
-	/**
-	 * 
-	 * @param userInfo
-	 * @param communityId
-	 * @param principalId
-	 * @param isAdmin
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	// public void setPermissions(String userId, String communityId, String principalId, boolean isAdmin) throws
-	// DatastoreException,
-	// UnauthorizedException, NotFoundException;
 }

@@ -74,6 +74,12 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -166,22 +172,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Log into Synapse
 	 */
-	public UserSessionData login(String username, String password)
-			throws SynapseException;
-
-	/**
-	 * Log into Synapse and specify whether you agree to the terms of use
-	 */
-	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) 
-			throws SynapseException;
-
-	/**
-	 * Log into Synapse, 
-	 *   do not return UserSessionData, 
-	 *   do not request a user profile, 
-	 *   and do not explicitly accept the terms of use
-	 */
-	public void loginWithNoProfile(String userName, String password)
+	public Session login(String username, String password)
 			throws SynapseException;
 	
 	/**
@@ -189,6 +180,11 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public void logout() throws SynapseException;
 
+	/**
+	 * Returns a Session and UserProfile object
+	 * 
+	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
+	 */
 	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
@@ -593,6 +589,57 @@ public interface SynapseClient extends BaseClient {
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
 
+	/**
+	 * Sends a message to another user
+	 */
+	public MessageToUser sendMessage(MessageToUser message)
+			throws SynapseException;
+
+	/**
+	 * Gets the current authenticated user's received messages
+	 */
+	public PaginatedResults<MessageBundle> getInbox(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Gets the current authenticated user's outbound messages
+	 */
+	public PaginatedResults<MessageToUser> getOutbox(MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Gets a specific message
+	 */
+	public MessageToUser getMessage(String messageId) throws SynapseException;
+
+	/**
+	 * Sends an existing message to another set of users
+	 */
+	public MessageToUser forwardMessage(String messageId,
+			MessageRecipientSet recipients) throws SynapseException;
+
+	/**
+	 * Gets messages associated with the specified message
+	 */
+	public PaginatedResults<MessageToUser> getConversation(
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Changes the status of a message in a user's inbox
+	 */
+	public void updateMessageStatus(MessageStatus status)
+			throws SynapseException;
+	
+	/**
+	 * Deletes a message.  Used for test cleanup only.  Admin only.
+	 */
+	public void deleteMessage(String messageId) throws SynapseException;
+
 	public Long getChildCount(String entityId) throws SynapseException;
 
 	public SynapseVersionInfo getVersionInfo() throws SynapseException,
@@ -992,28 +1039,6 @@ public interface SynapseClient extends BaseClient {
 	 * Creates a user
 	 */
 	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException;
-	
-	/**
-	 * Prompts Synapse to resent the email used to set a new user's password, as if request 
-	 * was sent from Synapse.
-	 */
-	public void resendPasswordEmail(String email) throws SynapseException;
-
-	/**
-	 * Prompts Synapse to resent the email used to set a new user's password
-	 */
-	public void resendPasswordEmail(String email, OriginatingClient originClient) throws SynapseException;
-	
-	/**
-	 * Retrieves the bare-minimum amount of information about the current user
-	 * i.e. email and name
-	 */
-	public NewUser getAuthUserInfo() throws SynapseException;
-	
-	/**
-	 * Changes the current user's password
-	 */
-	public void changePassword(String newPassword) throws SynapseException;
 
 	/**
 	 * Changes the registering user's password
@@ -1021,19 +1046,9 @@ public interface SynapseClient extends BaseClient {
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
 	
 	/**
-	 * Changes the current user's email to the email corresponding to the supplied session token
+	 * Signs the terms of use of a user, as identified by a session token
 	 */
-	public void changeEmail(String sessionToken, String newPassword) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the current user as if request came from Synapse.
-	 */
-	public void sendPasswordResetEmail() throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the current user 
-	 */
-	public void sendPasswordResetEmail(OriginatingClient originClient) throws SynapseException;
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
 	
 	/**
 	 * Sends a password reset email to the given user as if request came from Synapse.
@@ -1053,24 +1068,20 @@ public interface SynapseClient extends BaseClient {
 	
 	/**
 	 * See {@link #passThroughOpenIDParameters(String)}
-	 * @param acceptsTermsOfUse Whether this request should also mark the user as having accepted the terms of use
-	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
-	
-	/**
-	 * See {@link #passThroughOpenIDParameters(String)}
 	 * 
 	 * @param createUserIfNecessary
 	 *            Whether a user should be created if the user does not already
 	 *            exist
 	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
+	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary) throws SynapseException;
-	
+
 	/**
 	 * @param originClient
-	 * 		Which client did the user access to authenticate via a third party provider (Synapse or Bridge)?
+	 *            Which client did the user access to authenticate via a third
+	 *            party provider (Synapse or Bridge)?
 	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse,
-			Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException;
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary, OriginatingClient originClient)
+			throws SynapseException;
 }

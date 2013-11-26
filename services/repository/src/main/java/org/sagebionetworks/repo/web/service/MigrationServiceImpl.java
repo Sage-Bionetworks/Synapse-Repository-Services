@@ -27,7 +27,7 @@ public class MigrationServiceImpl implements MigrationService {
 	BackupDaemonLauncher backupDaemonLauncher;	
 
 	/**
-	 * Get the counts for each migration type.
+	 * Get the counts for each migration type in use.
 	 */
 	@Override
 	public MigrationTypeCounts getTypeCounts(String userId) throws DatastoreException, NotFoundException {
@@ -36,13 +36,15 @@ public class MigrationServiceImpl implements MigrationService {
 		// Get the counts for each.
 		List<MigrationTypeCount> list = new LinkedList<MigrationTypeCount>();
 		for(MigrationType type: MigrationType.values()){
-			long count = migrationManager.getCount(user, type);
-			long maxId = migrationManager.getMaxId(user, type);
-			MigrationTypeCount tc = new MigrationTypeCount();
-			tc.setCount(count);
-			tc.setMaxid(maxId);
-			tc.setType(type);
-			list.add(tc);
+			if (migrationManager.isMigrationTypeUsed(user, type)) {
+				long count = migrationManager.getCount(user, type);
+				long maxId = migrationManager.getMaxId(user, type);
+				MigrationTypeCount tc = new MigrationTypeCount();
+				tc.setCount(count);
+				tc.setMaxid(maxId);
+				tc.setType(type);
+				list.add(tc);
+			}
 		}
 		MigrationTypeCounts counts = new MigrationTypeCounts();
 		counts.setList(list);

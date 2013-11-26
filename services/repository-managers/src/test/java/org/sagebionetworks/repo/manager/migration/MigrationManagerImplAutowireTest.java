@@ -186,11 +186,11 @@ public class MigrationManagerImplAutowireTest {
 					|| type == MigrationType.GROUP_MEMBERS) {
 				assertEquals("All non-essential " + type + " should have been deleted", 
 						1L, migrationManager.getCount(adminUser, type));
-			} else {
+			} else if (migrationManager.isMigrationTypeUsed(adminUser, type)) {
 				assertEquals("All data of type " + type + " should have been deleted", 
 						0L, migrationManager.getCount(adminUser, type));
 			}
 		}
 	}
-
+	
 }
