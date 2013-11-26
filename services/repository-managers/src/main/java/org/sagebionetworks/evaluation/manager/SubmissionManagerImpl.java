@@ -237,10 +237,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public QueryResults<Submission> getAllSubmissionsByEvaluationAndUser(UserInfo userInfo,
+	public QueryResults<Submission> getMyOwnSubmissionsByEvaluation(UserInfo userInfo,
 			String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		String principalId = userInfo.getIndividualGroup().getId();
 		List<Submission> submissions = submissionDAO.getAllByEvaluationAndUser(evalId, principalId, limit, offset);
 		long totalNumberOfResults = submissionDAO.getCountByEvaluationAndUser(evalId, principalId);
@@ -249,12 +248,12 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(
+	public QueryResults<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		QueryResults<Submission> submissions = getAllSubmissionsByEvaluationAndUser(userInfo, evalId, limit, offset);
-		return submissionsToSubmissionBundles(submissions, true);
+		QueryResults<Submission> submissions = getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
+		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		return submissionsToSubmissionBundles(submissions, haveReadPrivateAccess);
 	}
 		
 	@Override

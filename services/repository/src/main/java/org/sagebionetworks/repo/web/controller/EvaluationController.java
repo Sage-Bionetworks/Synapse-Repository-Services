@@ -916,7 +916,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getAllSubmissionsByEvaluationAndUser(evalId, userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset, request);
 	}
 	
 	/**
@@ -955,7 +955,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getAllSubmissionBundlesByEvaluationAndUser(evalId, userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset, request);
 	}
 	
 	/**
