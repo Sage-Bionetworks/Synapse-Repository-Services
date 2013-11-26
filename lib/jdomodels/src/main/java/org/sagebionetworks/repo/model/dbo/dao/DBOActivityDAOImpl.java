@@ -113,10 +113,10 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 			}
 			
 			// Send a message without changing the etag;
-			dbo.setEtag(KeyFactory.urlDecode(dto.getEtag()));
+			dbo.seteTag(KeyFactory.urlDecode(dto.getEtag()));
 		} else {
 			// Change the etag
-			dbo.setEtag(UUID.randomUUID().toString());
+			dbo.seteTag(UUID.randomUUID().toString());
 		}
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
@@ -190,7 +190,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		}
 		// Get a new etag
 		DBOActivity dbo = getDBO(id);
-		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}

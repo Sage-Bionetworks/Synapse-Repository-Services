@@ -52,7 +52,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			public SubmissionStatusDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				SubmissionStatusDBO sub = new SubmissionStatusDBO();
 				sub.setId(rs.getLong(COL_SUBMISSION_ID));
-				sub.setEtag(rs.getString(COL_SUBSTATUS_ETAG));
+				sub.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
 				sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
 				sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
 				sub.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
@@ -122,6 +122,13 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public void setScore(Double score) {
 		this.score = score;
 	}
+	
+	public String geteTag() {
+		return eTag;
+	}
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
 	@Override
 	public String getIdString() {
 		return id.toString();
@@ -138,9 +145,6 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	@Override
 	public String getEtag() {
 		return eTag;
-	}
-	public void setEtag(String newEtag) {
-		this.eTag = newEtag;
 	}
 	
 	public byte[] getSerializedEntity() {

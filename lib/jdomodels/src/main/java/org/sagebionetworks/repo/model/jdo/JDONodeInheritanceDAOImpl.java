@@ -92,7 +92,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		// Make sure the etag changes. See PLFM-1467 and PLFM-1517.
 		if (!keepOldEtag) {
 			// Update the etag
-			beneficiary.setEtag(UUID.randomUUID().toString());
+			beneficiary.seteTag(UUID.randomUUID().toString());
 		}
 		transactionalMessenger.sendMessageAfterCommit(beneficiary, ChangeType.UPDATE);
 		dboBasicDao.update(beneficiary);

@@ -19,7 +19,7 @@ public class EvaluationTranslationUtil {
 		dbo.setContentSource(getContentSource(backup.getContentSource()));
 		dbo.setCreatedOn(backup.getCreatedOn());
 		dbo.setDescription(backup.getDescription());
-		dbo.setEtag(backup.geteTag());
+		dbo.seteTag(backup.geteTag());
 		dbo.setId(backup.getId());
 		dbo.setName(backup.getName());
 		dbo.setOwnerId(backup.getOwnerId());

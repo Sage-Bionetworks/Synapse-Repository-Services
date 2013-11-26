@@ -54,7 +54,7 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 			public DBOActivity mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOActivity act = new DBOActivity();
 				act.setId(rs.getLong(COL_ACTIVITY_ID));
-				act.setEtag(rs.getString(COL_ACTIVITY_ETAG));
+				act.seteTag(rs.getString(COL_ACTIVITY_ETAG));
 				act.setCreatedBy(rs.getLong(COL_ACTIVITY_CREATED_BY));
 				act.setCreatedOn(rs.getLong(COL_ACTIVITY_CREATED_ON));
 				act.setModifiedBy(rs.getLong(COL_ACTIVITY_MODIFIED_BY));
@@ -150,8 +150,12 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 		return eTag;
 	}
 
-	public void setEtag(String newEtag) {
-		this.eTag = newEtag;
+	public String geteTag() {
+		return eTag;
+	}
+
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
 	}
 
 	@Override

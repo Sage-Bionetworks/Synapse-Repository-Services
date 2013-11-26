@@ -48,7 +48,6 @@ import java.util.UUID;
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -241,10 +240,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			}
 			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
 			// Send a message without changing the etag;
-			node.setEtag(KeyFactory.urlDecode(dto.getETag()));
+			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
 		} else {
 			// Start it with a new e-tag
-			node.setEtag(UUID.randomUUID().toString());
+			node.seteTag(UUID.randomUUID().toString());
 		}
 		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
 
@@ -332,7 +331,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long nodeID = KeyFactory.stringToKey(id);
 		DBONode jdo =  getNodeById(nodeID);
 		// Remove the eTags (See PLFM-1420)
-		jdo.setEtag(UuidETagGenerator.ZERO_E_TAG);
+		jdo.seteTag(NodeConstants.ZERO_E_TAG);
 		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
 		return NodeUtils.copyFromJDO(jdo, rev);
 	}
@@ -437,15 +436,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
 			// Remove the eTags (See PLFM-1420)
 			if (namedAnnos != null) {
-				namedAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+				namedAnnos.setEtag(NodeConstants.ZERO_E_TAG);
 			}
 			Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
 			if (primaryAnnos != null) {
-				primaryAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+				primaryAnnos.setEtag(NodeConstants.ZERO_E_TAG);
 			}
 			Annotations additionalAnnos = namedAnnos.getAdditionalAnnotations();
 			if (additionalAnnos != null) {
-				additionalAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+				additionalAnnos.setEtag(NodeConstants.ZERO_E_TAG);
 			}
 			return namedAnnos;
 		}catch (EmptyResultDataAccessException e){
@@ -584,7 +583,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		// Get a new e-tag
 		DBONode node = getNodeById(longId);
-		node.setEtag(UUID.randomUUID().toString());
+		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, changeType);
 		currentTag = node.getEtag();
 		// Update the e-tag

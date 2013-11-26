@@ -17,12 +17,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -41,7 +42,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -53,16 +53,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOReferenceDaoImplTest {
 
 	@Autowired
-	DBOReferenceDao dboReferenceDao;
+	private DBOReferenceDao dboReferenceDao;
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
-
-	@Autowired
-	private ETagGenerator eTagGenerator;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -71,7 +68,7 @@ public class DBOReferenceDaoImplTest {
 	private AccessControlListDAO aclDAO;
 	
 	@Autowired
-	NodeInheritanceDAO nodeInheritanceDao;
+	private NodeInheritanceDAO nodeInheritanceDao;
 	
 	private List<String> groupsToDelete;
 
@@ -119,7 +116,7 @@ public class DBOReferenceDaoImplTest {
 			node.setCreatedOn(System.currentTimeMillis());
 			node.setCurrentRevNumber(null);
 			node.setDescription("A basic description".getBytes("UTF-8"));
-			node.setEtag(eTagGenerator.generateETag());
+			node.seteTag(UUID.randomUUID().toString());
 			node.setName("DBOAnnotationsDaoImplTest.baseNode "+i);
 			node.setParentId(null);
 			node.setNodeType(EntityType.project.getId());

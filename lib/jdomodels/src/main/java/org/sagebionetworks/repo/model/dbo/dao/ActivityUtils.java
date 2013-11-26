@@ -14,7 +14,7 @@ public class ActivityUtils {
 	public static void copyDtoToDbo(Activity dto, DBOActivity dbo) throws DatastoreException {
 		if(dto.getId() == null) throw new IllegalArgumentException("id can not be null");
 		dbo.setId(Long.parseLong(dto.getId()));
-		dbo.setEtag(dto.getEtag());
+		dbo.seteTag(dto.getEtag());
 		if (dto.getCreatedBy() != null)
 			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));		
 		if(dto.getCreatedOn() != null)

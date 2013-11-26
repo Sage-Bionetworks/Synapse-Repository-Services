@@ -56,7 +56,7 @@ public class SubmissionStatusDBOTest {
         // Initialize a new Evaluation
         EvaluationDBO evaluation = new EvaluationDBO();
         evaluation.setId(evalId);
-        evaluation.setEtag("etag");
+        evaluation.seteTag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
         evaluation.setContentSource(KeyFactory.ROOT_ID);
@@ -112,7 +112,7 @@ public class SubmissionStatusDBOTest {
         // Initialize a new SubmissionStatus object for submissionId
         SubmissionStatusDBO status = new SubmissionStatusDBO();
         status.setId(submissionId);
-        status.setEtag(eTag);
+        status.seteTag(eTag);
         status.setModifiedOn(System.currentTimeMillis());
         status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.0);

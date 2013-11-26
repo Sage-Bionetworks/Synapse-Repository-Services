@@ -64,7 +64,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			public EvaluationDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				EvaluationDBO eval = new EvaluationDBO();
 				eval.setId(rs.getLong(COL_EVALUATION_ID));
-				eval.setEtag(rs.getString(COL_EVALUATION_ETAG));
+				eval.seteTag(rs.getString(COL_EVALUATION_ETAG));
 				eval.setName(rs.getString(COL_EVALUATION_NAME));
 				Blob blob = rs.getBlob(COL_EVALUATION_DESCRIPTION);
 				if(blob != null){
@@ -171,6 +171,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		setStatus(es.ordinal());
 	}
 
+	public String geteTag() {
+		return eTag;
+	}
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
 	public byte[] getSubmissionInstructionsMessage() {
 		return submissionInstructionsMessage;
 	}
@@ -194,10 +200,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	@Override
 	public ObjectType getObjectType() {
 		return ObjectType.EVALUATION;
-	}
-
-	public void setEtag(String newEtag) {
-		this.eTag = newEtag;
 	}
 	
 	@Override

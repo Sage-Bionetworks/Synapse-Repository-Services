@@ -158,7 +158,7 @@ class NodeUtils {
 			jdo.setCreatedOn(dto.getCreatedOn().getTime());
 		}
 		jdo.setCreatedBy(dto.getCreatedByPrincipalId());
-		jdo.setEtag(KeyFactory.urlDecode(dto.getETag()));
+		jdo.seteTag(KeyFactory.urlDecode(dto.getETag()));
 		jdo.setCurrentRevNumber(dto.getVersionNumber());
 		jdo.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 		if(dto.getParentId() != null){

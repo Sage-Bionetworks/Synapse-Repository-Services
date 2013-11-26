@@ -53,7 +53,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
 		
 		// Generate a new eTag and CREATE message
-		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		// Ensure DBO has required information
@@ -86,7 +86,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 
 		// update eTag and send message of update
 		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
-		dbo.setEtag(newEtag);
+		dbo.seteTag(newEtag);
 		
 		basicDao.update(dbo);
 	}
@@ -123,7 +123,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		}
 		// Get a new e-tag
 		SubmissionStatusDBO dbo = getDBO(id);
-		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}
@@ -163,7 +163,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
 		}
-		dbo.setEtag(dto.getEtag());
+		dbo.seteTag(dto.getEtag());
 		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
 		dbo.setScore(dto.getScore());
 		dbo.setStatusEnum(dto.getStatus());

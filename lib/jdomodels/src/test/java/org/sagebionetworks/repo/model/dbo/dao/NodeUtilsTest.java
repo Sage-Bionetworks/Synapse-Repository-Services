@@ -68,7 +68,7 @@ public class NodeUtilsTest {
 		NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
 		assertEquals("The user cannot change an eTag.", null, jdoNode.getEtag());
 		// Set it to make sure the copy works
-		jdoNode.setEtag("1013");
+		jdoNode.seteTag("1013");
 		
 		// Make a copy form the jdo
 		Node copy = NodeUtils.copyFromJDO(jdoNode, jdoRev);

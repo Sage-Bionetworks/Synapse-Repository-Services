@@ -123,7 +123,7 @@ public class DBOFavoriteTest {
 		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
-		node.setEtag("1");
+		node.seteTag("1");
 		node.setNodeType(EntityType.project.getId());
 		// Make sure we can create it
 		DBONode clone = dboBasicDao.createNew(node);

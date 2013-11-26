@@ -65,7 +65,7 @@ public class DBONodeTest {
 		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
-		node.setEtag("1");
+		node.seteTag("1");
 		node.setNodeType(EntityType.project.getId());
 		// Make sure we can create it
 		DBONode clone = dboBasicDao.createNew(node);
@@ -87,7 +87,7 @@ public class DBONodeTest {
 		child.setCreatedBy(createdById);
 		child.setCreatedOn(System.currentTimeMillis());
 		child.setCurrentRevNumber(new Long(0));
-		child.setEtag("1");
+		child.seteTag("1");
 		child.setNodeType(EntityType.folder.getId());
 		child.setParentId(node.getId());
 		child.setDescription("I have a description".getBytes("UTF-8"));
@@ -100,7 +100,7 @@ public class DBONodeTest {
 		
 		// Make sure we can update it.
 		clone.setDescription("This is a new description".getBytes("UTF-8"));
-		clone.setEtag("2");
+		clone.seteTag("2");
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		

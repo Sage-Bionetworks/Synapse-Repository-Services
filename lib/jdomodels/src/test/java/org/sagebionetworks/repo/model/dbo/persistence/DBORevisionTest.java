@@ -63,7 +63,7 @@ public class DBORevisionTest {
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.setDescription("A basic description".getBytes("UTF-8"));
-		node.setEtag("0");
+		node.seteTag("0");
 		node.setName("DBORevisionTest.baseNode");
 		node.setParentId(null);
 		node.setNodeType(EntityType.project.getId());

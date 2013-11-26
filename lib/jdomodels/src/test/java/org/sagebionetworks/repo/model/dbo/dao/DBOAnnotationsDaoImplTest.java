@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -21,7 +22,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -41,18 +41,16 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOAnnotationsDaoImplTest {
 
 	@Autowired
-	DBOAnnotationsDao dboAnnotationsDao;
+	private DBOAnnotationsDao dboAnnotationsDao;
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
 	
 	List<Long> toDelete = null;
 	
@@ -83,7 +81,7 @@ public class DBOAnnotationsDaoImplTest {
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.setDescription("A basic description".getBytes("UTF-8"));
-		node.setEtag(eTagGenerator.generateETag());
+		node.seteTag(UUID.randomUUID().toString());
 		node.setName("DBOAnnotationsDaoImplTest.baseNode");
 		node.setParentId(null);
 		node.setNodeType(EntityType.project.getId());

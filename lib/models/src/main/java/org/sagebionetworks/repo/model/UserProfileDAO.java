@@ -63,18 +63,6 @@ public interface UserProfileDAO {
 			NotFoundException, ConflictingUpdateException;
 
 	/**
-	 * Updates the 'shallow' properties of an object from backup.
-	 *
-	 * @param dto
-	 *            non-null id is required
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	public UserProfile updateFromBackup(UserProfile dto) throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException;
-
-	/**
 	 * delete the object given by the given ID
 	 * 
 	 * @param id

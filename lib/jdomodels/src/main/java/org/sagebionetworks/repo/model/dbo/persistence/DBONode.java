@@ -70,7 +70,7 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 				if(blob != null){
 					node.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
-				node.setEtag(rs.getString(COL_NODE_ETAG));
+				node.seteTag(rs.getString(COL_NODE_ETAG));
 				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
 				node.setNodeType(rs.getShort(COL_NODE_TYPE));
@@ -170,6 +170,12 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 		this.benefactorId = benefactorId;
 	}
 	
+	public String geteTag() {
+		return eTag;
+	}
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.NODE;
@@ -312,9 +318,6 @@ public class DBONode implements MigratableDatabaseObject<DBONode, DBONode>, Obse
 	@Override
 	public String getEtag() {
 		return eTag;
-	}
-	public void setEtag(String etag) {
-		this.eTag = etag;
 	}
 
 }

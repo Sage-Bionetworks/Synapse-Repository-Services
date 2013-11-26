@@ -109,7 +109,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		copyDtoToDbo(dto, dbo);
 		
 		// Generate a new eTag and CREATE message
-		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 				
 		// ensure DBO has required information
@@ -205,7 +205,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		verifyEvaluationDBO(dbo);
 		
 		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
-		dbo.setEtag(newEtag);
+		dbo.seteTag(newEtag);
 		
 		// TODO: detect and log NO-OP update
 		basicDao.update(dbo);
@@ -244,7 +244,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Evaluation ID: " + dto.getId());
 		}
-		dbo.setEtag(dto.getEtag());
+		dbo.seteTag(dto.getEtag());
 		dbo.setName(dto.getName());
 		dbo.setDescription(dto.getDescription() == null ? null : dto.getDescription().getBytes());
 		try {
@@ -336,7 +336,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		// Get a new e-tag
 		EvaluationDBO dbo = getDBO(id);
-		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
 		return dbo.getEtag();
 	}
