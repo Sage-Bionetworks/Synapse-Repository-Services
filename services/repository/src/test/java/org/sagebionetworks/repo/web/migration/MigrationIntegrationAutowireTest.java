@@ -25,6 +25,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -76,6 +78,7 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.migration.IdList;
@@ -163,6 +166,9 @@ public class MigrationIntegrationAutowireTest {
 	private TeamDAO teamDAO;
 
 	@Autowired
+	private CommunityTeamDAO communityTeamDAO;
+
+	@Autowired
 	private AuthenticationDAO authDAO;
 	
 	@Autowired
@@ -193,17 +199,13 @@ public class MigrationIntegrationAutowireTest {
 	private String userName;
 	private String adminId;
 	
-	// To delete
-	List<String> entityToDelete;
-	List<WikiPageKey> wikiToDelete;
-	List<WikiPageKey> v2WikiToDelete;
-	List<String> fileHandlesToDelete;
 	// Activity
 	Activity activity;
 	
 	// Entities
 	Project project;
 	FileEntity fileEntity;
+	Community community;
 	Folder folderToTrash;
 	// requirement
 	AccessRequirement accessRequirement;
@@ -238,6 +240,7 @@ public class MigrationIntegrationAutowireTest {
 	Favorite favorite;
 	
 	HttpServletRequest mockRequest;
+
 	
 	@Before
 	public void before() throws Exception{
@@ -259,11 +262,13 @@ public class MigrationIntegrationAutowireTest {
 		createV2WikiPages();
 		createDoi();
 		createStorageQuota();
-		UserGroup sampleGroup = createUserGroups();
+		UserGroup sampleGroup = createUserGroups(1);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
 		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
+		UserGroup sampleGroup2 = createUserGroups(2);
+		createCommunity(sampleGroup2);
 	}
 
 
@@ -279,8 +284,7 @@ public class MigrationIntegrationAutowireTest {
 
 		List<String> header = TableModelUtils.getHeaders(models);
 		// bind the columns to the entity
-		Set<String> toBind = new HashSet<String>(header);
-		columnModelDao.bindColumnToObject(toBind, tableId);
+		columnModelDao.bindColumnToObject(header, tableId);
 
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
@@ -396,7 +400,6 @@ public class MigrationIntegrationAutowireTest {
 		// Using the DAO to bypass the bridge that translates wiki pages
 		// to V2 wiki pages from the service.
 		
-		wikiToDelete = new LinkedList<WikiPageKey>();
 		// Create a wiki page
 		rootWiki = new WikiPage();
 		rootWiki.setAttachmentFileHandleIds(new LinkedList<String>());
@@ -409,7 +412,6 @@ public class MigrationIntegrationAutowireTest {
 		map.put(handleOne.getFileName(), handleOne);
 		rootWiki = wikiPageDAO.create(rootWiki, map, fileEntity.getId(), ObjectType.ENTITY);
 		rootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, rootWiki.getId());
-		wikiToDelete.add(rootWikiKey);
 		
 		subWiki = new WikiPage();
 		subWiki.setParentWikiId(rootWiki.getId());
@@ -424,7 +426,6 @@ public class MigrationIntegrationAutowireTest {
 	public void createV2WikiPages() throws NotFoundException {
 		// Using wikiPageDao until wiki service is created
 		
-		v2WikiToDelete = new LinkedList<WikiPageKey>();
 		// Create a V2 Wiki page
 		v2RootWiki = new V2WikiPage();
 		v2RootWiki.setCreatedBy(adminId);
@@ -440,7 +441,6 @@ public class MigrationIntegrationAutowireTest {
 		newIds.add(handleOne.getId());
 		v2RootWiki = v2wikiPageDAO.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY, newIds);
 		v2RootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2RootWiki.getId());
-		wikiToDelete.add(v2RootWikiKey);
 		
 		// Create a child
 		v2SubWiki = new V2WikiPage();
@@ -463,13 +463,11 @@ public class MigrationIntegrationAutowireTest {
 	 */
 	public void createEntities() throws JSONObjectAdapterException,
 			ServletException, IOException, NotFoundException {
-		entityToDelete = new LinkedList<String>();
 		// Create a project
 		project = new Project();
 		project.setName("MigrationIntegrationAutowireTest.Project");
 		project.setEntityType(Project.class.getName());
 		project = serviceProvider.getEntityService().createEntity(userName, project, null, mockRequest);
-		entityToDelete.add(project.getId());
 		
 		// Create a file entity
 		fileEntity = new FileEntity();
@@ -478,7 +476,7 @@ public class MigrationIntegrationAutowireTest {
 		fileEntity.setParentId(project.getId());
 		fileEntity.setDataFileHandleId(handleOne.getId());
 		fileEntity = serviceProvider.getEntityService().createEntity(userName, fileEntity, activity.getId(),mockRequest);
-		
+
 		// Create a folder to trash
 		folderToTrash = new Folder();
 		folderToTrash.setName("boundForTheTrashCan");
@@ -502,7 +500,6 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws NotFoundException
 	 */
 	public String createFileHandles() throws NotFoundException {
-		fileHandlesToDelete = new LinkedList<String>();
 		// Create a file handle
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(adminId);
@@ -530,10 +527,8 @@ public class MigrationIntegrationAutowireTest {
 		preview.setEtag("etag");
 		preview.setFileName("bar.txt");
 		preview = fileMetadataDao.createFile(preview);
-		fileHandlesToDelete.add(preview.getId());
 		// Set two as the preview of one
 		fileMetadataDao.setPreviewId(handleOne.getId(), preview.getId());
-		fileHandlesToDelete.add(handleOne.getId());
 		
 		return handleOne.getId();
 	}
@@ -543,9 +538,9 @@ public class MigrationIntegrationAutowireTest {
 	}
 	
 	// returns a group for use in a team
-	private UserGroup createUserGroups() throws NotFoundException {
-		String groupNamePrefix = "Caravan-";
-		String userNamePrefix = "GoinOnTheOregonTrail@";
+	private UserGroup createUserGroups(int index) throws NotFoundException {
+		String groupNamePrefix = "Caravan-" + index;
+		String userNamePrefix = "GoinOnTheOregonTrail" + index + "@";
 		List<String> adder = new ArrayList<String>();
 		
 		// Make one group
@@ -594,7 +589,7 @@ public class MigrationIntegrationAutowireTest {
 
 		dto = messageDAO.createMessage(dto);
 		
-		messageDAO.createMessageStatus(dto.getId(), group.getId());
+		messageDAO.createMessageStatus_NewTransaction(dto.getId(), group.getId(), null);
 		
 		Comment dto2 = new Comment();
 		dto2.setCreatedBy(group.getId());
@@ -637,6 +632,23 @@ public class MigrationIntegrationAutowireTest {
 		Long.parseLong(individUser.getId());
 		
 		membershipInvtnSubmissionDAO.create(mis);
+	}
+
+	private void createCommunity(UserGroup group) throws Exception {
+		Team team = new Team();
+		team.setId(group.getId());
+		team.setName(group.getName());
+		team.setDescription("test team");
+		team = teamDAO.create(team);
+
+		// Create a community
+		community = new Community();
+		community.setName("MigrationIntegrationAutowireTest.Community");
+		community.setEntityType(Community.class.getName());
+		community.setTeamId(team.getId());
+		community = serviceProvider.getEntityService().createEntity(userName, community, null, mockRequest);
+
+		communityTeamDAO.create(KeyFactory.stringToKey(community.getId()), Long.parseLong(team.getId()));
 	}
 
 	@After

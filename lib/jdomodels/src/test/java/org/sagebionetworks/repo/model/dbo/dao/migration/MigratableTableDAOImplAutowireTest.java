@@ -249,6 +249,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.TEAM);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.COMMUNITY_TEAM);
 		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
 		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);

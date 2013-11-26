@@ -10,16 +10,20 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +42,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -111,6 +118,10 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
+	
+	private static final String COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE =
+			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_STATUS + 
+			" WHERE " +SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
 	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
@@ -195,6 +206,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		content.setEtag(UUID.randomUUID().toString());
 		MessageUtils.validateDBO(content);
 		basicDAO.createNew(content);
+		
+		// Send a CREATE message
+		ChangeMessage change = new ChangeMessage();
+		change.setChangeType(ChangeType.CREATE);
+		change.setObjectType(ObjectType.MESSAGE);
+		change.setObjectId(messageId.toString());
+		change.setObjectEtag(content.getEtag());
+		transactionalMessenger.sendMessageAfterCommit(change);
 		
 		// Insert the message info
 		info.setMessageId(messageId);
@@ -332,18 +351,29 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createMessageStatus(String messageId, String userId) {
-		createMessageStatus(messageId, userId, MessageStatusType.UNREAD);
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status) {
+		createMessageStatus(messageId, userId, status);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createMessageStatus(String messageId, String userId, MessageStatusType status) {
+	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status) {
+		createMessageStatus(messageId, userId, status);
+	}
+	
+	/**
+	 * Helper method for both the exposed methods that create a message status
+	 */
+	private void createMessageStatus(String messageId, String userId, MessageStatusType status) {
+		if (status == null) {
+			status = MessageStatusType.UNREAD;
+		}
+		
 		DBOMessageStatus dbo = new DBOMessageStatus();
 		dbo.setMessageId(Long.parseLong(messageId));
 		dbo.setRecipientId(Long.parseLong(userId));
-		dbo.setStatus(MessageStatusType.UNREAD);
+		dbo.setStatus(status);
 		MessageUtils.validateDBO(dbo);
 		basicDAO.createNew(dbo);
 		
@@ -358,8 +388,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		boolean success = basicDAO.update(toUpdate);
 		
 		if (success) {
-			touch(status.getMessageId());
-		}
+		touch(status.getMessageId());
+	}
 		return success;
 	}
 
@@ -368,5 +398,13 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		basicDAO.deleteObjectByPrimaryKey(DBOMessageContent.class, params);
+	}
+
+	@Override
+	public boolean hasMessageBeenSent(String messageId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		long recipients = simpleJdbcTemplate.queryForLong(COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE, params);
+		return recipients > 0;
 	}
 }

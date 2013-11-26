@@ -85,7 +85,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 			return token;
 		}catch(Exception e){
 			// if we fail to get the lock return null
-			log.warn("Failed to acquire lock: "+e.getMessage());
+			log.warn("Failed to acquire lock: " + key + " " + e.getMessage());
 			return null;
 		}
 	}

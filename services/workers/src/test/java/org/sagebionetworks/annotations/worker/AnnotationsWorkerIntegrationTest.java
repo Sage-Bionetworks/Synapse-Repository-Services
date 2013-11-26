@@ -125,7 +125,7 @@ public class AnnotationsWorkerIntegrationTest {
         status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag(null);
-        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setStatus(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.1);
         status.setAnnotations(createDummyAnnotations());
         submissionStatusDAO.create(status);

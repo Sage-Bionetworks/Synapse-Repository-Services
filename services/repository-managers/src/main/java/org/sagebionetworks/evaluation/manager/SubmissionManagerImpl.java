@@ -129,7 +129,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(submissionId);
-		status.setStatus(SubmissionStatusEnum.OPEN);
+		status.setStatus(SubmissionStatusEnum.RECEIVED);
 		status.setModifiedOn(new Date());
 		submissionStatusDAO.create(status);
 		

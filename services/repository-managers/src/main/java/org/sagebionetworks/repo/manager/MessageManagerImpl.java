@@ -87,14 +87,25 @@ public class MessageManagerImpl implements MessageManager {
 		// If the recipient list is only one element long, 
 		// process and send the message in this transaction 
 		if (dto.getRecipients().size() == 1) {
-			List<String> errors;
+			UserGroup ug;
 			try {
-				errors = sendMessage(dto.getId());
+				ug = userGroupDAO.get(dto.getRecipients().iterator().next());
 			} catch (NotFoundException e) {
-				throw new DatastoreException("Could not find a message that was created in the same transaction");
+				throw new DatastoreException("Could not get a user group that satisfied message creation constraints");
 			}
-			if (errors.size() > 0) {
-				throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
+			
+			// Defer the sending of messages to non-individuals 
+			// since there could be more than one actual recipient after finding the members
+			if (ug.getIsIndividual()) {
+				List<String> errors;
+				try {
+					errors = sendMessage(dto.getId(), true);
+				} catch (NotFoundException e) {
+					throw new DatastoreException("Could not find a message that was created in the same transaction");
+				}
+				if (errors.size() > 0) {
+					throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
+				}
 			}
 		}
 		return dto;
@@ -156,11 +167,17 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public List<String> sendMessage(String messageId) throws NotFoundException {
+	public List<String> sendMessage(String messageId, boolean oneTransaction) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		
+		// Check to see if the message has already been sent
+		// If so, nothing else needs to be done
+		if (messageDAO.hasMessageBeenSent(messageId)) {
+			return errors;
+		}
 		
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
@@ -192,16 +209,30 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		// Mark each message as sent
-		for (String user : recipients) {
-			//TODO check the recipient's settings
-			//TODO send emails if necessary
-			messageDAO.createMessageStatus(messageId, user);
+		// Make sure the caller set the boolean correctly
+		if (recipients.size() > 1 && oneTransaction) {
+			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
 		}
 		
-		//TODO Remove the now-sent message from the queue
-		// Note: the queue's implementation is still up in the air
-		// Note: this may be the job of this method's caller, which is not implemented yet 
+		// Mark each message as sent
+		for (String user : recipients) {
+			// Try to send messages to each user individually
+			try {
+				//TODO check the recipient's settings
+				
+				//TODO send emails if necessary
+				
+				// This marks a user as a recipient of the message
+				// which is equivalent to marking the message as sent
+				if (oneTransaction) {
+					messageDAO.createMessageStatus_SameTransaction(messageId, user, null);
+				} else {
+					messageDAO.createMessageStatus_NewTransaction(messageId, user, null);
+				}
+			} catch (Exception e) {
+				errors.add(e.getMessage());
+			}
+		}
 		
 		return errors;
 	}

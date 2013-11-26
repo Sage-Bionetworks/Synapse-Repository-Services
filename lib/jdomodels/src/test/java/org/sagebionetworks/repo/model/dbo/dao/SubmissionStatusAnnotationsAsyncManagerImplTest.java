@@ -61,7 +61,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		subStatus = new SubmissionStatus();
 		subStatus.setId(submission.getId());
 		subStatus.setModifiedOn(new Date());
-		subStatus.setStatus(SubmissionStatusEnum.CLOSED);
+		subStatus.setStatus(SubmissionStatusEnum.SCORED);
 		
 		// provided input Annotations
 		annosIn = new Annotations();
