@@ -199,9 +199,8 @@ public class EvaluationController extends BaseController {
 	 * 
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -761,9 +760,8 @@ public class EvaluationController extends BaseController {
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -810,9 +808,8 @@ public class EvaluationController extends BaseController {
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -854,9 +851,8 @@ public class EvaluationController extends BaseController {
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -889,18 +885,13 @@ public class EvaluationController extends BaseController {
 	
 	/**
 	 * Gets the requesting user's Submissions to a specified Evaluation.
-	 * 
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
 	 * </p>
 	 * 
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -929,17 +920,13 @@ public class EvaluationController extends BaseController {
 	 * Gets the requesting user's bundled Submissions and SubmissionStatuses to a specified
 	 * Evaluation.
 	 * 
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
 	 * </p>
 	 * 
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
