@@ -148,7 +148,7 @@ public class V2WikiManagerTest {
 		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.getWikiPage(new UserInfo(false),key);
-		verify(mockWikiDao, times(1)).get(key);
+		verify(mockWikiDao, times(1)).get(key, null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -163,7 +163,7 @@ public class V2WikiManagerTest {
 		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.getVersionOfWikiPage(new UserInfo(false),key, version);
-		verify(mockWikiDao, times(1)).getVersion(key, version);
+		verify(mockWikiDao, times(1)).get(key, version);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -180,6 +180,22 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.getFileHandleIdForFileName(new UserInfo(false),key,"fileName");
 		verify(mockWikiDao, times(1)).getWikiAttachmentFileHandleForFileName(key, "fileName");
+	}
+	
+	// Same test for getMarkdownFileHandleId()
+	@Test (expected=UnauthorizedException.class)
+	public void testMarkdownFileHandleIdForVersionUnauthorized() throws DatastoreException, NotFoundException {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		wikiManager.getMarkdownFileHandleIdForVersion(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+	}
+	
+	// Same test for getMarkdownFileHandleId()
+	@Test
+	public void testMarkdownFileHandleIdForVersion() throws UnauthorizedException, NotFoundException {
+		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		wikiManager.getMarkdownFileHandleIdForVersion(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+		verify(mockWikiDao, times(1)).getMarkdownHandleIdForVersion(key, new Long(0));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -244,7 +260,7 @@ public class V2WikiManagerTest {
 		// The list only contains the S3 handles and not the previews
 		wikiHandleIds.add("2");
 		wikiHandleIds.add("1");
-		when(mockWikiDao.getWikiFileHandleIds(key)).thenReturn(wikiHandleIds);
+		when(mockWikiDao.getWikiFileHandleIdsForVersion(key, null)).thenReturn(wikiHandleIds);
 		
 		// Allow
 		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(true);
@@ -264,6 +280,28 @@ public class V2WikiManagerTest {
 		assertNotNull(handle);
 		assertEquals("1", handle.getId());
 		assertTrue(handle instanceof S3FileHandle);
+		
+		// Test getting the attachments for another version
+		List<String> versionIds = new LinkedList<String>();
+		wikiHandleIds.add("1");
+		
+		FileHandleResults expectedVersionResults = new FileHandleResults();
+		expectedVersionResults.setList(new LinkedList<FileHandle>());
+		expectedVersionResults.getList().add(handleOne);
+		
+		when(mockWikiDao.getWikiFileHandleIdsForVersion(key, new Long(1))).thenReturn(versionIds);
+		when(mockFileDao.getAllFileHandles(versionIds, true)).thenReturn(expectedVersionResults);
+		FileHandleResults versionResults = wikiManager.getAttachmentFileHandlesForVersion(user, key, new Long(1));
+		assertNotNull(versionResults);
+		assertEquals("1", versionResults.getList().get(0).getId());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetAttachmentFileHandlesForVersionUnauthroized() throws DatastoreException, NotFoundException{
+		// deny
+		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(false);
+		// Ready to make the call
+		wikiManager.getAttachmentFileHandlesForVersion(user, key, new Long(0));
 	}
 	
 	@Test
@@ -560,8 +598,8 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), current);
-		verify(mockWikiDao, times(1)).getMarkdownHandleIdFromHistory(key, new Long(0));
-		verify(mockWikiDao, times(1)).getWikiFileHandleIdsFromHistory(key, new Long(0));
+		verify(mockWikiDao, times(1)).getMarkdownHandleIdForVersion(key, new Long(0));
+		verify(mockWikiDao, times(1)).getWikiFileHandleIdsForVersion(key, new Long(0));
 		verify(mockWikiDao, times(1)).updateWikiPage(current, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
 	}
 	
@@ -627,8 +665,8 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
-		when(mockWikiDao.getWikiFileHandleIdsFromHistory(key, new Long(0))).thenReturn(fileHandleIdsToRestore);
-		when(mockWikiDao.getMarkdownHandleIdFromHistory(key, new Long(0))).thenReturn(markdown.getId());
+		when(mockWikiDao.getWikiFileHandleIdsForVersion(key, new Long(0))).thenReturn(fileHandleIdsToRestore);
+		when(mockWikiDao.getMarkdownHandleIdForVersion(key, new Long(0))).thenReturn(markdown.getId());
 		
 		// Old wiki we're passing into restoration for update
 		// This will be assigned content (received by getWikiFilHandleIdsFromHistory etc)
@@ -642,8 +680,8 @@ public class V2WikiManagerTest {
 		wiki.setMarkdownFileHandleId(markdown2.getId());
 		
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wiki);
-		verify(mockWikiDao, times(1)).getMarkdownHandleIdFromHistory(key, new Long(0));
-		verify(mockWikiDao, times(1)).getWikiFileHandleIdsFromHistory(key, new Long(0));
+		verify(mockWikiDao, times(1)).getMarkdownHandleIdForVersion(key, new Long(0));
+		verify(mockWikiDao, times(1)).getWikiFileHandleIdsForVersion(key, new Long(0));
 		
 		verify(mockWikiDao, times(1)).getFileHandleReservationForWiki(key);
 		// File name map of new/restored content that should be passed to the dao
