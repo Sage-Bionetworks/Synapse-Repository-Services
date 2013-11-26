@@ -139,7 +139,7 @@ public class MessageManagerImplTest {
 		userToSelfAndGroup = createMessage(testUser, "userToSelfAndGroup", 
 				new HashSet<String>() {{add(testUserId); add(testTeamId);}}, null);
 		otherToGroup = createMessage(otherTestUser, "otherToGroup", 
-				new HashSet<String>() {{add(otherTestUserId); add(testTeamId);}}, null);
+				new HashSet<String>() {{add(testTeamId);}}, null);
 	}
 	
 	/**
@@ -178,11 +178,11 @@ public class MessageManagerImplTest {
 	 * @param send_otherToSelfAndGroup This message may or may not have the proper permissions associated with it
 	 */
 	private List<String> sendUnsentMessages(boolean send_otherToGroup) throws Exception {
-		assertEquals(0, messageManager.sendMessage(userReplyToOtherAndSelf.getId(), false).size());
-		assertEquals(0, messageManager.sendMessage(otherReplyToUserAndSelf.getId(), false).size());
-		assertEquals(0, messageManager.sendMessage(userToSelfAndGroup.getId(), false).size());
+		assertEquals(0, messageManager.sendMessage(userReplyToOtherAndSelf.getId()).size());
+		assertEquals(0, messageManager.sendMessage(otherReplyToUserAndSelf.getId()).size());
+		assertEquals(0, messageManager.sendMessage(userToSelfAndGroup.getId()).size());
 		if (send_otherToGroup) {
-			return messageManager.sendMessage(otherToGroup.getId(), false);
+			return messageManager.sendMessage(otherToGroup.getId());
 		}
 		return new ArrayList<String>();
 	}
@@ -202,19 +202,6 @@ public class MessageManagerImplTest {
 		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
 		profile.setNotificationSettings(new Settings());
 		userProfileDAO.update(profile);
-	}
-	
-	@SuppressWarnings("serial")
-	@Test(expected = IllegalArgumentException.class) 
-	public void testSendMessageToMultipleRecipientsInOneTransaction() throws Exception {
-		MessageToUser multipleRecipients = createMessage(testUser,
-				"multipleRecipients", new HashSet<String>() {
-					{
-						add(testUser.getIndividualGroup().getId());
-						add(otherTestUser.getIndividualGroup().getId());
-					}
-				}, null);
-		messageManager.sendMessage(multipleRecipients.getId(), true);
 	}
 	
 	@SuppressWarnings("serial")
@@ -357,9 +344,9 @@ public class MessageManagerImplTest {
 		assertEquals(1L, messages.getTotalNumberOfResults());
 		assertEquals(1, messages.getResults().size());
 		
-		messageManager.sendMessage(userToOther.getId(), false);
-		messageManager.sendMessage(userToOther.getId(), false);
-		messageManager.sendMessage(userToOther.getId(), false);
+		messageManager.sendMessage(userToOther.getId());
+		messageManager.sendMessage(userToOther.getId());
+		messageManager.sendMessage(userToOther.getId());
 		
 		// Multiple calls to sendMessage do nothing
 		messages = messageManager.getInbox(otherTestUser, 
@@ -412,9 +399,27 @@ public class MessageManagerImplTest {
 		
 		// This should fail since no one has permission to send to this public group
 		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
-		List<String> errors = messageManager.sendMessage(notAllowedToSend.getId(), false);
+		List<String> errors = messageManager.sendMessage(notAllowedToSend.getId());
 		String joinedErrors = StringUtils.join(errors, "\n");
 		assertTrue(joinedErrors.contains("may not send"));
+		
+		// But an admin can do it
+		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", new HashSet<String>() {{add(authUsersId);}}, null);
+		errors = messageManager.sendMessage(spam.getId());
+		assertEquals(0, errors.size());
+		
+		// Now everyone has been spammed
+		QueryResults<MessageBundle> messages = messageManager.getInbox(adminUserInfo, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(spam, messages.getResults().get(0).getMessage());
+		
+		messages = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(spam, messages.getResults().get(0).getMessage());
+		
+		messages = messageManager.getInbox(otherTestUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(spam, messages.getResults().get(0).getMessage());
 	}
 	
 	@Test

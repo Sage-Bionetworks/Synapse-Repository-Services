@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
@@ -211,11 +212,28 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public List<String> sendMessage(String messageId, boolean oneTransaction) throws NotFoundException {
+	public List<String> sendMessage(String messageId) throws NotFoundException {
+		return sendMessage(messageId, false);
+	}
+	
+	/**
+	 * See {@link #sendMessage(String)}
+	 * 
+	 * @param singleTransaction Should the sending be done in one transaction or one transaction per recipient?
+	 *    This allows the sending of messages during creation to complete without deadlock. 
+	 *    Note: It is crucial to pass in "true" when creating *and* sending a message in the same operation together. 
+	 *      Otherwise the 'sending step' waits forever for the lock obtained by the 'creation step' to be released.
+	 * General usage of this method sets this parameter to false.
+	 */
+	private List<String> sendMessage(String messageId, boolean singleTransaction) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
 		MessageToUser dto = messageDAO.getMessage(messageId);
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		UserGroup authUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
+		if (authUsers == null) {
+			throw new DatastoreException("Could not find the default group for all authenticated users");
+		}
 		
 		// Check to see if the message has already been sent
 		// If so, nothing else needs to be done
@@ -246,6 +264,14 @@ public class MessageManagerImpl implements MessageManager {
 			if (ug.getIsIndividual()) {
 				recipients.add(principalId);
 			} else {
+				// Handle the implicit group that contains all users
+				// Note: only admins can pass the authorization check to reach this
+				if (authUsers.getId().equals(principalId)) {
+					for (UserGroup member : userGroupDAO.getAll()) {
+						recipients.add(member.getId());
+					}
+				}
+				
 				// Expand non-individuals into individuals
 				for (UserGroup member : groupMembersDAO.getMembers(principalId)) {
 					recipients.add(member.getId());
@@ -254,7 +280,7 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		// Make sure the caller set the boolean correctly
-		if (recipients.size() > 1 && oneTransaction) {
+		if (recipients.size() > 1 && singleTransaction) {
 			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
 		}
 		
@@ -282,7 +308,7 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// This marks a user as a recipient of the message
 				// which is equivalent to marking the message as sent
-				if (oneTransaction) {
+				if (singleTransaction) {
 					messageDAO.createMessageStatus_SameTransaction(messageId, user, defaultStatus);
 				} else {
 					messageDAO.createMessageStatus_NewTransaction(messageId, user, defaultStatus);
