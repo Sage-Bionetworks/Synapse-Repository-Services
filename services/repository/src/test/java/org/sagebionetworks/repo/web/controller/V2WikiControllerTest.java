@@ -178,6 +178,11 @@ public class V2WikiControllerTest {
 		assertNotNull(wiki.getEtag());
 		assertNotNull(ownerId, wiki.getModifiedBy());
 		assertNotNull(ownerId, wiki.getCreatedBy());
+		
+		URL markdownPresigned = entityServletHelper.getV2WikiMarkdownFileURL(userName, key, null, null);
+		assertNotNull(markdownPresigned);
+		assertTrue(markdownPresigned.toString().indexOf("markdownKey") > 0);
+		
 		PaginatedResults<V2WikiHistorySnapshot> startHistory = entityServletHelper.getV2WikiHistory(key, userName, new Long(0), new Long(10));
 		assertNotNull(startHistory);
 		List<V2WikiHistorySnapshot> firstSnapshot = startHistory.getResults();
@@ -224,6 +229,14 @@ public class V2WikiControllerTest {
 		assertEquals(cloneUpdated2.getTitle(), "Version 2 title");
 		assertFalse("The etag should have changed from the update", currentEtag2.equals(cloneUpdated2.getEtag()));
 		
+		URL markdownPresignedUpdated = entityServletHelper.getV2WikiMarkdownFileURL(userName, key, new Long(0), null);
+		assertNotNull(markdownPresignedUpdated);
+		assertTrue(markdownPresignedUpdated.toString().indexOf("markdownKey") > 0);
+		Boolean redirectMarkdown = Boolean.FALSE;
+		markdownPresignedUpdated  = entityServletHelper.getV2WikiMarkdownFileURL(userName, key, new Long(0), redirectMarkdown);
+		assertNotNull(markdownPresignedUpdated);
+		assertTrue(markdownPresignedUpdated.toString().indexOf("markdownKey") > 0);
+		
 		// Get history (there should be three snapshots returned)
 		PaginatedResults<V2WikiHistorySnapshot> historyResults = entityServletHelper.getV2WikiHistory(key, userName, new Long(0), new Long(10));
 		assertNotNull(historyResults);
@@ -235,6 +248,12 @@ public class V2WikiControllerTest {
 		assertEquals("2", snapshots.get(0).getVersion());
 		assertEquals("1", snapshots.get(1).getVersion());
 		assertEquals("0", snapshots.get(2).getVersion());
+		
+		// First version should have no file handles
+		FileHandleResults oldHandles = entityServletHelper.getV2WikiFileHandles(userName, key, new Long(0));
+		assertNotNull(oldHandles);
+		assertNotNull(oldHandles.getList());
+		assertEquals(0, oldHandles.getList().size());
 		
 		Long versionToRestore = new Long(1);
 		// Get an older version
@@ -288,7 +307,7 @@ public class V2WikiControllerTest {
 		assertEquals(wiki.getId(), childHeader.getParentId());
 		
 		// Check that we can get the FileHandles	
-		FileHandleResults handles = entityServletHelper.getV2WikiFileHandles(userName, childKey);
+		FileHandleResults handles = entityServletHelper.getV2WikiFileHandles(userName, childKey, null);
 		assertNotNull(handles);
 		assertNotNull(handles.getList());
 		assertEquals(2, handles.getList().size());

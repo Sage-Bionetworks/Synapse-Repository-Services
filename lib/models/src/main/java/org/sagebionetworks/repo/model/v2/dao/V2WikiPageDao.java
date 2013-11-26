@@ -101,12 +101,13 @@ public interface V2WikiPageDao {
 	
 	/**
 	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
+	 * If version is null, the current attachments of the wiki are returned.
 	 * @param key
 	 * @param version
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	List<String> getWikiFileHandleIdsForVersion(WikiPageKey key, Long version) throws NotFoundException;
+	List<String> getWikiFileHandleIds(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
 	 * Lookup the FileHandleId for an attachment, for a given WikiPage with the given name.
@@ -120,12 +121,13 @@ public interface V2WikiPageDao {
 
 	/**
 	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
+	 * If version is null, then the current markdown handle id is returned.
 	 * @param key
 	 * @param version
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	String getMarkdownHandleIdForVersion(WikiPageKey key, Long version) throws NotFoundException;
+	String getMarkdownHandleId(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
 	 * Given a wiki id, lookup the key
