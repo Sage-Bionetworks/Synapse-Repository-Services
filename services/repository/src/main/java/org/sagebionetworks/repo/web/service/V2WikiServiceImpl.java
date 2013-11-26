@@ -129,4 +129,29 @@ public class V2WikiServiceImpl implements V2WikiService {
 		return wikiManager.getRootWikiPage(user, ownerId, type);
 	}
 
+	@Override
+	public FileHandleResults getAttachmentFileHandlesForVersion(String userId,
+			WikiPageKey wikiPageKey, Long version) throws DatastoreException,
+			NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getAttachmentFileHandlesForVersion(user, wikiPageKey, version);
+	}
+
+	@Override
+	public URL getMarkdownRedirectURL(String userId, WikiPageKey wikiPageKey)
+			throws DatastoreException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		String id = wikiManager.getMarkdownFileHandleId(user, wikiPageKey);
+		return fileHandleManager.getRedirectURLForFileHandle(id);
+	}
+
+	@Override
+	public URL getMarkdownRedirectURLForVersion(String userId,
+			WikiPageKey wikiPageKey, Long version) throws DatastoreException,
+			NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		String id = wikiManager.getMarkdownFileHandleIdForVersion(user, wikiPageKey, version);
+		return fileHandleManager.getRedirectURLForFileHandle(id);
+	}
+
 }

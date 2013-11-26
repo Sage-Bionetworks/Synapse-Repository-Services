@@ -91,6 +91,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_DOES_EXIST = "SELECT "+V2_COL_WIKI_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+V2_COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
 	private static final String SQL_SELECT_WIKI_USING_ID_AND_ROOT = "SELECT * FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
+	private static final String SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT = "SELECT "+V2_COL_WIKI_MARKDOWN_VERSION+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_ATTACHMENT = "SELECT * FROM "+V2_TABLE_WIKI_ATTACHMENT_RESERVATION+" WHERE "+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+" = ? AND "+V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID+" = ?";
 	private static final String SQL_GET_WIKI_MARKDOWN_ATTACHMENT_ID_LIST = "SELECT WM."+V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST+" FROM "+V2_TABLE_WIKI_MARKDOWN+" WM, "+V2_TABLE_WIKI_PAGE+" WP WHERE WP."+V2_COL_WIKI_ID+" = ? AND WM."+V2_COL_WIKI_MARKDOWN_ID+" = WP."+V2_COL_WIKI_ID+" AND WP."+V2_COL_WIKI_MARKDOWN_VERSION+" = WM."+V2_COL_WIKI_MARKDOWN_VERSION_NUM;
 	private static final String SQL_DELETE_USING_ID_AND_ROOT = "DELETE FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
@@ -196,7 +197,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, ChangeType.CREATE);
 		
 		try {
-			return get(new WikiPageKey(ownerId, ownerType, dbo.getId().toString()));
+			return get(new WikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
 		} catch (NotFoundException e) {
 			// This should not occur.
 			throw new RuntimeException(e);
@@ -274,7 +275,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Send the change message
 		tagMessenger.sendMessage(newDbo.getId().toString(), newDbo.getEtag(), ObjectType.WIKI, ChangeType.UPDATE);
 		// Return the results.
-		return get(new WikiPageKey(ownerId, ownerType, wikiPage.getId().toString()));
+		return get(new WikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
 
 	private void update(ObjectType ownerType, Long ownerIdLong,
@@ -291,7 +292,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		} else if(parentKey.getWikiPageId().equals(childId)) {
 			return true;
 		} else {
-			V2WikiPage parent = get(parentKey);
+			V2WikiPage parent = get(parentKey, null);
 			WikiPageKey nextParentKey;
 			if(parent.getParentWikiId() == null) {
 				nextParentKey = null;
@@ -370,41 +371,48 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 	
 	@Override
-	public V2WikiPage get(WikiPageKey key) throws NotFoundException {
+	public V2WikiPage get(WikiPageKey key, Long version) throws NotFoundException {
 		// Get the Wikipage DBO.
 		V2DBOWikiPage dbo = getWikiPageDBO(key);	
 		// Now get the markdown
-		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), dbo.getMarkdownVersion()); 
+		V2DBOWikiMarkdown markdownDbo;
+		if(version == null) {
+			markdownDbo = getWikiMarkdownDBO(dbo.getId(), dbo.getMarkdownVersion()); 
+		} else {
+			markdownDbo = getWikiMarkdownDBO(dbo.getId(), version); 
+		}
 		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
 		List<String> fileHandleIds = createFileHandleIdsList(listToString);
 		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
 	}
 	
 	@Override
-	public V2WikiPage getVersion(WikiPageKey key, Long version) throws NotFoundException {
-		// Get the Wikipage DBO.
-		V2DBOWikiPage dbo = getWikiPageDBO(key);	
-		// Now get the markdown
-		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), version); 
-		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
-		List<String> fileHandleIds = createFileHandleIdsList(listToString);
-		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
-	}
-	
-	@Override
-	public String getMarkdownHandleIdFromHistory(WikiPageKey key, Long version) throws NotFoundException {
+	public String getMarkdownHandleIdForVersion(WikiPageKey key, Long version) throws NotFoundException {
+		if(version == null) {
+			// Get the markdown file handle id of the wiki's current version
+			version = getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());
+		}
+		// Lookup the version of the markdown
 		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
 		return String.valueOf(markdownDbo.getFileHandleId());
 	}
 	
-	@Override
-	public List<String> getWikiFileHandleIdsFromHistory(WikiPageKey key, Long version) throws NotFoundException {
-		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
-		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
-		// Now get the attachments ids
-		return createFileHandleIdsList(listToString);
+	/**
+	 * Return the current version of the wiki's markdown/attachments with the given id
+	 * @param ownerId
+	 * @param ownerType
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	private Long getCurrentWikiVersion(String ownerId, ObjectType ownerType, String wikiId) throws NotFoundException {
+		Long root = getRootWiki(ownerId, ownerType);
+		try{
+			return simpleJdbcTemplate.queryForLong(SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT, new Long(wikiId), root);
+		}catch(DataAccessException e){
+			throw new NotFoundException("A wiki does not exist for id: "+wikiId);
+		}
 	}
-	
 	
 	/**
 	 * Get the DBOWikiPage using its key.
@@ -541,11 +549,18 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	}
 	
 	@Override
-	public List<String> getWikiFileHandleIds(WikiPageKey key)
-			throws NotFoundException {
+	public List<String> getWikiFileHandleIdsForVersion(WikiPageKey key, Long version) throws NotFoundException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		String attachmentsList = getAttachmentsListFromMarkdownTable(key);
-		return createFileHandleIdsList(attachmentsList);
+		String listToString;
+		if(version == null) {
+			// Get the attachments for the current wiki
+			listToString = getAttachmentsListFromMarkdownTable(key);
+		} else {
+			// Lookup the attachments for another version of the wiki
+			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
+			listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
+		}
+		return createFileHandleIdsList(listToString);
 	}
 
 	@Override
