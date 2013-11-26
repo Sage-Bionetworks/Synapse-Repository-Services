@@ -114,6 +114,7 @@ public interface V2WikiService {
 	
 	/**
 	 * Get all of the file handles of all attachments on the given wiki page.
+	 * @param version TODO
 	 * @param ownerId
 	 * @param type
 	 * @param wikiId
@@ -121,40 +122,19 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the file handles of the attachments of a specific version.
-	 * @param userId
-	 * @param wikiPageKey
-	 * @param version
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	FileHandleResults getAttachmentFileHandlesForVersion(String userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
-	
+	FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
+
 	/**
 	 * Get the redirect URL for the wiki's markdown.
 	 * @param userId
 	 * @param wikiPageKey
+	 * @param version TODO
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getMarkdownRedirectURL(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the redirect URL for a version of the wiki's markdown.
-	 * @param userId
-	 * @param wikiPageKey
-	 * @param version
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	URL getMarkdownRedirectURLForVersion(String userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
-	
+	URL getMarkdownRedirectURL(String userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
+
 	/**
 	 * Get the Redirect URL for a given attachment.
 	 * @param userId

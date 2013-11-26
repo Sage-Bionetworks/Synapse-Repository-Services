@@ -267,10 +267,10 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	}
 
 	@Override
-	public FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey key) throws NotFoundException {
+	public FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey key, Long version) throws NotFoundException {
 		// Validate that the user has read access
 		validateReadAccess(user, key);
-		List<String> handleIds = wikiPageDao.getWikiFileHandleIdsForVersion(key, null);
+		List<String> handleIds = wikiPageDao.getWikiFileHandleIds(key, version);
 		return fileMetadataDao.getAllFileHandles(handleIds, true);
 	}
 
@@ -297,8 +297,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		}
 		
 		WikiPageKey key = new WikiPageKey(objectId, objectType, current.getId());
-		String markdownFileHandleId = wikiPageDao.getMarkdownHandleIdForVersion(key, version);
-		List<String> attachmentFileHandleIds = wikiPageDao.getWikiFileHandleIdsForVersion(key, version);
+		String markdownFileHandleId = wikiPageDao.getMarkdownHandleId(key, version);
+		List<String> attachmentFileHandleIds = wikiPageDao.getWikiFileHandleIds(key, version);
 		// Assign restored content to the wiki page
 		current.setMarkdownFileHandleId(markdownFileHandleId);
 		current.setAttachmentFileHandleIds(attachmentFileHandleIds);
@@ -322,33 +322,15 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		List<V2WikiHistorySnapshot> snapshots = wikiPageDao.getWikiHistory(wikiPageKey, limit, offset);
 		return new PaginatedResults<V2WikiHistorySnapshot>(snapshots, snapshots.size());
 	}
-
+	
 	@Override
-	public FileHandleResults getAttachmentFileHandlesForVersion(UserInfo user,
-			WikiPageKey wikiPageKey, Long version) throws NotFoundException {
-		validateReadAccess(user, wikiPageKey);
-		List<String> handleIds = wikiPageDao.getWikiFileHandleIdsForVersion(wikiPageKey, version);
-		return fileMetadataDao.getAllFileHandles(handleIds, true);
-	}
-
-	@Override
-	public String getMarkdownFileHandleIdForVersion(UserInfo user,
+	public String getMarkdownFileHandleId(UserInfo user,
 			WikiPageKey wikiPageKey, Long version) throws NotFoundException,
 			UnauthorizedException {
 		// Validate that the user has read access
 		validateReadAccess(user, wikiPageKey);
 		// Look-up the fileHandle ID
-		return wikiPageDao.getMarkdownHandleIdForVersion(wikiPageKey, version);
-	}
-	
-	@Override
-	public String getMarkdownFileHandleId(UserInfo user,
-			WikiPageKey wikiPageKey) throws NotFoundException,
-			UnauthorizedException {
-		// Validate that the user has read access
-		validateReadAccess(user, wikiPageKey);
-		// Look-up the fileHandle ID
-		return wikiPageDao.getMarkdownHandleIdForVersion(wikiPageKey, null);
+		return wikiPageDao.getMarkdownHandleId(wikiPageKey, version);
 	}
 
 }

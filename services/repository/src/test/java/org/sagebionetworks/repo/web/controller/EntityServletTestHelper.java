@@ -1170,12 +1170,16 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public FileHandleResults getV2WikiFileHandles(String username, WikiPageKey key)
+	public FileHandleResults getV2WikiFileHandles(String username, WikiPageKey key,
+			Long wikiVersion)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
 						+ "/attachmenthandles", username, null);
 
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
@@ -1221,6 +1225,28 @@ public class EntityServletTestHelper {
 
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki's markdown
+	 */
+	public URL getV2WikiMarkdownFileURL(String username, WikiPageKey key,
+			Long wikiVersion, Boolean redirect) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
+						+ "/markdown", username, null);
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
+		if (redirect != null) {
+			request.setParameter("redirect", redirect.toString());
+		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, null);
+
+		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
+	}
+
 	
 	/**
 	 * Delete a wikipage
