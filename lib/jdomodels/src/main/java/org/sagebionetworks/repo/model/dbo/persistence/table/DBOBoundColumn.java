@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_IS_CURRENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_COLUMN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_BOUND_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -24,12 +26,12 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("columnId", COL_BOUND_CM_COLUMN_ID, true).withIsBackupId(true),
 		new FieldColumn("objectId", COL_BOUND_CM_OBJECT_ID, true),
-		new FieldColumn("isCurrent", COL_BOUND_CM_IS_CURRENT),
+		new FieldColumn("updatedOn", COL_BOUND_CM_UPDATED_ON),
 	};
 	
 	Long columnId;
 	Long objectId;
-	Boolean isCurrent;
+	Long updatedOn;
 
 	@Override
 	public TableMapping<DBOBoundColumn> getTableMapping() {
@@ -39,7 +41,7 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 				DBOBoundColumn dbo = new DBOBoundColumn();
 				dbo.setColumnId(rs.getLong(COL_BOUND_CM_COLUMN_ID));
 				dbo.setObjectId(rs.getLong(COL_BOUND_CM_OBJECT_ID));
-				dbo.setIsCurrent(rs.getBoolean(COL_BOUND_CM_IS_CURRENT));
+				dbo.setUpdatedOn(rs.getLong(COL_BOUND_CM_UPDATED_ON));
 				return dbo;
 			}
 			
@@ -81,14 +83,6 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 		this.objectId = objectId;
 	}
 
-	public Boolean getIsCurrent() {
-		return isCurrent;
-	}
-
-	public void setIsCurrent(Boolean isCurrent) {
-		this.isCurrent = isCurrent;
-	}
-
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.BOUND_COLUMN;
@@ -128,6 +122,14 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 		return null;
 	}
 
+	public Long getUpdatedOn() {
+		return updatedOn;
+	}
+
+	public void setUpdatedOn(Long updatedOn) {
+		this.updatedOn = updatedOn;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -135,9 +137,9 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 		result = prime * result
 				+ ((columnId == null) ? 0 : columnId.hashCode());
 		result = prime * result
-				+ ((isCurrent == null) ? 0 : isCurrent.hashCode());
-		result = prime * result
 				+ ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result
+				+ ((updatedOn == null) ? 0 : updatedOn.hashCode());
 		return result;
 	}
 
@@ -155,17 +157,18 @@ public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, 
 				return false;
 		} else if (!columnId.equals(other.columnId))
 			return false;
-		if (isCurrent == null) {
-			if (other.isCurrent != null)
-				return false;
-		} else if (!isCurrent.equals(other.isCurrent))
-			return false;
 		if (objectId == null) {
 			if (other.objectId != null)
 				return false;
 		} else if (!objectId.equals(other.objectId))
 			return false;
+		if (updatedOn == null) {
+			if (other.updatedOn != null)
+				return false;
+		} else if (!updatedOn.equals(other.updatedOn))
+			return false;
 		return true;
 	}
+
 
 }

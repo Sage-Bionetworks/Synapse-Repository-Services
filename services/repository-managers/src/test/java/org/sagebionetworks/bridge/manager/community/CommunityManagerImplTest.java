@@ -11,6 +11,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.repo.manager.*;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -18,15 +19,16 @@ import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.base.Function;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-
 import static org.mockito.Mockito.*;
-
 import static org.junit.Assert.*;
 
 public class CommunityManagerImplTest extends MockitoTestBase {
@@ -58,6 +60,8 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	private V2WikiManager wikiManager;
 	@Mock
 	private FileHandleManager fileHandleManager;
+	@Mock
+	private CommunityTeamDAO communityTeamDAO;
 
 	private CommunityManager communityManager;
 	private UserInfo validUser;
@@ -88,15 +92,21 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		testTeam.setId(TEAM_ID);
 		testTeam.setName(COMMUNITY_ID);
 
-		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager, entityManager, entityPermissionsManager,
-				wikiManager);
+		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager, entityManager,
+				entityPermissionsManager, wikiManager, communityTeamDAO);
 	}
 
 	@Test
 	public void testCreate() throws Exception {
 		when(teamManager.create(eq(validUser), any(Team.class))).thenReturn(testTeam);
 
-		final CaptureStub<Community> newCommunity = CaptureStub.forClass(Community.class);
+		final CaptureStub<Community> newCommunity = CaptureStub.forClass(Community.class, new Function<Community, Community>() {
+			@Override
+			public Community apply(Community input) {
+				input.setId(COMMUNITY_ID);
+				return input;
+			}
+		});
 		when(entityManager.createEntity(eq(validUser), newCommunity.capture(), (String) isNull())).thenReturn(COMMUNITY_ID);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenAnswer(newCommunity.answer()).thenAnswer(
 				newCommunity.answer());
@@ -138,7 +148,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		fileHandle2.setId("f2");
 		fileHandle3.setId("f3");
 		when(fileHandleManager.uploadFile(eq(USER_ID), any(FileItemStream.class))).thenReturn(fileHandle1, fileHandle2, fileHandle3);
-		
+
 		Community community = new Community();
 		community.setName(USER_ID);
 		community.setDescription("hi");
@@ -148,6 +158,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 		verify(entityManager).createEntity(eq(validUser), newCommunity.capture(), (String) isNull());
 		verify(entityManager, times(2)).getEntity(validUser, COMMUNITY_ID, Community.class);
+		verify(communityTeamDAO).create(Long.parseLong(COMMUNITY_ID), Long.parseLong(TEAM_ID));
 
 		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
 		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC);

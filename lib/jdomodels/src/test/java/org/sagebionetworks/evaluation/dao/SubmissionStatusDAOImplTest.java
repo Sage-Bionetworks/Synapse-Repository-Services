@@ -115,7 +115,7 @@ public class SubmissionStatusDAOImplTest {
         status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag(null);
-        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setStatus(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.1);
         status.setAnnotations(TestUtils.createDummyAnnotations());
         long initialCount = submissionStatusDAO.getCount();
@@ -164,7 +164,7 @@ public class SubmissionStatusDAOImplTest {
         status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag("original-eTag");
-        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setStatus(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.1);
         
         // Create it
@@ -184,7 +184,7 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setId("123");
     	subStatusDTO.setModifiedOn(new Date());
     	subStatusDTO.setScore(0.42);
-    	subStatusDTO.setStatus(SubmissionStatusEnum.CLOSED);
+    	subStatusDTO.setStatus(SubmissionStatusEnum.SCORED);
     	subStatusDTO.setReport("lorem ipsum");
     	    	
     	subStatusDBO = SubmissionStatusDAOImpl.convertDtoToDbo(subStatusDTO);
