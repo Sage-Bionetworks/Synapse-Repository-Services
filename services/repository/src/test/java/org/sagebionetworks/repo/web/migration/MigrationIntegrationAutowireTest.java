@@ -284,8 +284,7 @@ public class MigrationIntegrationAutowireTest {
 
 		List<String> header = TableModelUtils.getHeaders(models);
 		// bind the columns to the entity
-		Set<String> toBind = new HashSet<String>(header);
-		columnModelDao.bindColumnToObject(toBind, tableId);
+		columnModelDao.bindColumnToObject(header, tableId);
 
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
@@ -590,7 +589,7 @@ public class MigrationIntegrationAutowireTest {
 
 		dto = messageDAO.createMessage(dto);
 		
-		messageDAO.createMessageStatus(dto.getId(), group.getId());
+		messageDAO.createMessageStatus_NewTransaction(dto.getId(), group.getId(), null);
 		
 		Comment dto2 = new Comment();
 		dto2.setCreatedBy(group.getId());
