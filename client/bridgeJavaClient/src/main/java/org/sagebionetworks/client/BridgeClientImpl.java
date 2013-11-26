@@ -1,14 +1,13 @@
 package org.sagebionetworks.client;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.schema.adapter.*;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -28,10 +27,13 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String VERSION_INFO = "/version";
 
 	private static final String COMMUNITY = "/community";
+	private static final String MEMBER = "/member";
+
 	private static final String JOINED = "/joined";
-	private static final String MEMBERS = "/members";
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
+	private static final String ADD_ADMIN = "/addadmin";
+	private static final String REMOVE_ADMIN = "/removeadmin";
 
 	protected String bridgeEndpoint;
 
@@ -106,18 +108,18 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public List<Community> getCommunities() throws SynapseException {
-		return getList(COMMUNITY + JOINED, Community.class);
+	public PaginatedResults<Community> getCommunities(long limit, long offset) throws SynapseException {
+		return getList(COMMUNITY + JOINED, Community.class, limit, offset);
 	}
 
 	@Override
-	public List<Community> getAllCommunities() throws SynapseException {
-		return getList(COMMUNITY, Community.class);
+	public PaginatedResults<Community> getAllCommunities(long limit, long offset) throws SynapseException {
+		return getList(COMMUNITY, Community.class, limit, offset);
 	}
 
 	@Override
-	public List<UserGroupHeader> getCommunityMembers(String communityId) throws SynapseException {
-		return getList(COMMUNITY + "/" + communityId + MEMBERS, UserGroupHeader.class);
+	public PaginatedResults<UserGroupHeader> getCommunityMembers(String communityId, long limit, long offset) throws SynapseException {
+		return getList(COMMUNITY + "/" + communityId + MEMBER, UserGroupHeader.class, limit, offset);
 	}
 
 	@Override
@@ -153,6 +155,18 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		get(uri);
 	}
 
+	@Override
+	public void addCommunityAdmin(String communityId, String memberName) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + memberName + ADD_ADMIN;
+		get(uri);
+	}
+
+	@Override
+	public void removeCommunityAdmin(String communityId, String memberName) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + memberName + REMOVE_ADMIN;
+		get(uri);
+	}
+
 	private void get(String uri) throws SynapseException {
 		getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 	}
@@ -168,14 +182,17 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		}
 	}
 
-	private <T extends JSONEntity> List<T> getList(String uri, Class<T> klass) throws SynapseException {
+	private <T extends JSONEntity> PaginatedResults<T> getList(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
 		// Get the json for this entity
 		try {
 			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			BatchResults<T> results = new BatchResults<T>(klass);
+
+			uri = uri + "?limit=" + limit + "&offset=" + offset;
+
+			PaginatedResults<T> results = new PaginatedResults<T>(klass);
 			results.initializeFromJSONObject(adapter);
-			return results.getResults();
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
