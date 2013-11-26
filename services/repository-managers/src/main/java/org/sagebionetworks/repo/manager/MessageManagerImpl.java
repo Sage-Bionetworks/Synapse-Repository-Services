@@ -12,16 +12,20 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -29,6 +33,23 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 public class MessageManagerImpl implements MessageManager {
+	
+	/**
+	 * The maximum number of messages a user can create within a given interval
+	 * The interval is defined by {@link #MESSAGE_CREATION_INTERVAL}
+	 */
+	private static final long MAX_NUMBER_OF_NEW_MESSAGES = 10L;
+	
+	/**
+	 * The span of the interval, in milliseconds, in which created messages are counted
+	 * See {@link #MAX_NUMBER_OF_NEW_MESSAGES}  
+	 */
+	private static final long MESSAGE_CREATION_INTERVAL = 60000L;
+	
+	/**
+	 * The maximum number of targets of a message
+	 */
+	protected static final long MAX_NUMBER_OF_RECIPIENTS = 50L;
 	
 	@Autowired
 	private MessageDAO messageDAO;
@@ -41,6 +62,9 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -81,6 +105,26 @@ public class MessageManagerImpl implements MessageManager {
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getIndividualGroup().getId());
+		
+		if (!userInfo.isAdmin()) {
+			// Throttle message creation
+			if (!messageDAO.canCreateMessage(userInfo.getIndividualGroup().getId(), 
+						MAX_NUMBER_OF_NEW_MESSAGES,
+						MESSAGE_CREATION_INTERVAL)) {
+				throw new TooManyRequestsException(
+						"Please slow down.  You may send a maximum of "
+								+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
+								+ (MESSAGE_CREATION_INTERVAL / 1000) + " second(s)");
+			}
+			
+			// Limit the number of recipients
+			if (dto.getRecipients() != null && dto.getRecipients().size() > MAX_NUMBER_OF_RECIPIENTS) {
+				throw new IllegalArgumentException(
+						"May not message more than "
+								+ MAX_NUMBER_OF_RECIPIENTS
+								+ " at once.  Consider grouping the recipients in a Team if possible.");
+			}
+		}
 		
 		dto = messageDAO.createMessage(dto);
 		
@@ -218,16 +262,30 @@ public class MessageManagerImpl implements MessageManager {
 		for (String user : recipients) {
 			// Try to send messages to each user individually
 			try {
-				//TODO check the recipient's settings
+				// Get the user's settings
+				UserProfile profile = userProfileDAO.get(user);
+				Settings settings = profile.getNotificationSettings();
+				MessageStatusType defaultStatus = null;
+				if (settings == null) {
+					settings = new Settings();
+				}
 				
-				//TODO send emails if necessary
+				// Should emails be sent?
+				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
+					//TODO send email
+					
+					// Should the message be marked as READ?
+					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
+						defaultStatus = MessageStatusType.READ;
+					}
+				}
 				
 				// This marks a user as a recipient of the message
 				// which is equivalent to marking the message as sent
 				if (oneTransaction) {
-					messageDAO.createMessageStatus_SameTransaction(messageId, user, null);
+					messageDAO.createMessageStatus_SameTransaction(messageId, user, defaultStatus);
 				} else {
-					messageDAO.createMessageStatus_NewTransaction(messageId, user, null);
+					messageDAO.createMessageStatus_NewTransaction(messageId, user, defaultStatus);
 				}
 			} catch (Exception e) {
 				errors.add(e.getMessage());

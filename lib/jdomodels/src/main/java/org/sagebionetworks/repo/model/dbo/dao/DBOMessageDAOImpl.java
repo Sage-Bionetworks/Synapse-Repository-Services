@@ -54,6 +54,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String ETAG_PARAM_NAME = "etag";
 	private static final String ROOT_MESSAGE_ID_PARAM_NAME = "rootMessageId";
 	private static final String INBOX_FILTER_PARAM_NAME = "inboxFilter";
+	private static final String TIMESTAMP_PARAM_NAME = "timestamp";
 	
 	private static final String SELECT_MESSAGE_BY_ID = 
 			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," + SqlConstants.TABLE_MESSAGE_TO_USER +
@@ -121,7 +122,12 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE =
 			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_STATUS + 
-			" WHERE " +SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+			" WHERE " + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
+	private static final String COUNT_RECENTLY_CREATED_MESSAGES = 
+			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
+			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY + "=:" + USER_ID_PARAM_NAME +
+			" AND " + SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON + ">:" + TIMESTAMP_PARAM_NAME;
 	
 	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
 	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
@@ -406,5 +412,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		long recipients = simpleJdbcTemplate.queryForLong(COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE, params);
 		return recipients > 0;
+	}
+
+	@Override
+	public boolean canCreateMessage(String userId, long maxNumberOfNewMessages,
+			long messageCreationInterval) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(USER_ID_PARAM_NAME, userId);
+		params.addValue(TIMESTAMP_PARAM_NAME, new Date().getTime() - messageCreationInterval);
+		long messages = simpleJdbcTemplate.queryForLong(COUNT_RECENTLY_CREATED_MESSAGES, params);
+		return messages < maxNumberOfNewMessages;
 	}
 }

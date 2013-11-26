@@ -27,6 +27,8 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -62,6 +65,9 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private FileHandleDao fileDAO;
+	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
 	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
@@ -191,6 +197,11 @@ public class MessageManagerImplTest {
 
 		// Cleanup the team
 		teamManager.delete(testUser, testTeam.getId());
+		
+		// Reset the test user's notification settings to the default
+		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
+		profile.setNotificationSettings(new Settings());
+		userProfileDAO.update(profile);
 	}
 	
 	@SuppressWarnings("serial")
@@ -403,7 +414,72 @@ public class MessageManagerImplTest {
 		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
 		List<String> errors = messageManager.sendMessage(notAllowedToSend.getId(), false);
 		String joinedErrors = StringUtils.join(errors, "\n");
-		System.out.println(joinedErrors);
 		assertTrue(joinedErrors.contains("may not send"));
+	}
+	
+	@Test
+	public void testCreateMessage_TooManyRecipients() throws Exception {
+		Set<String> tooMany = new HashSet<String>();
+		for (int i = 0; i < MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS; i++) {
+			tooMany.add("" + i);
+		}
+		
+		// This gets past one of the checks, but not the DAO's check
+		try {
+			createMessage(testUser, null, tooMany, null);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("foreign key"));
+		}
+		
+		for (long i = MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS; i < MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS * 2; i++) {
+			tooMany.add("" + i);
+		}
+		
+		// This fails the manager's check
+		try {
+			createMessage(testUser, null, tooMany, null);
+			fail();
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("Consider grouping"));
+		}
+	}
+	
+	@SuppressWarnings("serial")
+	@Test
+	public void testSendMessageSettings() throws Exception {
+		Set<String> testUserId = new HashSet<String>() {{add(testUser.getIndividualGroup().getId());}};
+		
+		// With default settings, the message should appear in the user's inbox
+		MessageToUser message = createMessage(otherTestUser, "message1", testUserId, null);
+		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
+		// Emails are sent by default
+		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
+		profile.setNotificationSettings(new Settings());
+		profile.getNotificationSettings().setMarkEmailedMessagesAsRead(true);
+		profile = userProfileDAO.update(profile);
+		
+		// Now this second message will be marked as READ
+		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserId, null);
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		inbox = messageManager.getInbox(testUser, 
+				new ArrayList<MessageStatusType>() {{add(MessageStatusType.READ);}}, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message2, inbox.getResults().get(0).getMessage());
+		
+		// If you disable the sending of emails, the auto-READ-marking gets disabled too
+		profile.getNotificationSettings().setSendEmailNotifications(false);
+		profile = userProfileDAO.update(profile);
+		
+		// Now the third message appears UNREAD
+		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserId, null);
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message3, inbox.getResults().get(0).getMessage());
+		
 	}
 }

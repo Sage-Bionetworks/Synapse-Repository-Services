@@ -294,4 +294,27 @@ public class DBOMessageDAOImplTest {
 		assertTrue(messageDAO.hasMessageBeenSent(groupReplyToUser.getId()));
 		assertTrue(messageDAO.hasMessageBeenSent(userReplyToGroup.getId()));
 	}
+	
+	@Test
+	public void testCanCreateMessage() throws Exception {
+		// Note: The malicious user has already created at least 3 messages
+		
+		// Default settings
+		assertTrue(messageDAO.canCreateMessage(maliciousUser.getId(), 10, 60000));
+		
+		// Negative interval
+		assertTrue(messageDAO.canCreateMessage(maliciousUser.getId(), 1, -1));
+		
+		// Super long interval with low threshold (hopefully the test takes less than 1 hour :)
+		assertFalse(messageDAO.canCreateMessage(maliciousUser.getId(), 1, 3600000));
+		
+		// Super long interval with normal threshold
+		assertTrue(messageDAO.canCreateMessage(maliciousUser.getId(), 10, 3600000));
+		
+		// Negative threshold
+		assertFalse(messageDAO.canCreateMessage(maliciousUser.getId(), -1, 60000));
+		
+		// Negative threshold takes priority over negative interval
+		assertFalse(messageDAO.canCreateMessage(maliciousUser.getId(), -1, -1));
+	}
 }
