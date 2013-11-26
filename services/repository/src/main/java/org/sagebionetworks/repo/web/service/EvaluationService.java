@@ -289,7 +289,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	PaginatedResults<Submission> getAllSubmissionsByEvaluationAndUser(String evalId,
+	PaginatedResults<Submission> getMyOwnSubmissionsByEvaluation(String evalId,
 			String userName, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException;
 
@@ -316,7 +316,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(
+	public PaginatedResults<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			String evalId, String userName, long limit, long offset,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException;

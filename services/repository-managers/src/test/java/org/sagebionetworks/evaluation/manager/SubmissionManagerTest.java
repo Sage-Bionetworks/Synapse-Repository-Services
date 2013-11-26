@@ -316,6 +316,20 @@ public class SubmissionManagerTest {
 	}
 	
 	@Test
+	public void testGetMyOwnSubmissionBundles() throws Exception {
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10, 0);
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId(), 10, 0);
+		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId());
+	}
+	
+	@Test
+	public void testGetMyOwnSubmissions() throws Exception {
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, EVAL_ID, 10, 0);
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId(), 10, 0);
+		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId());
+	}
+	
+	@Test
 	public void testGetSubmissionCount() throws DatastoreException, NotFoundException {
 		submissionManager.getSubmissionCount(ownerInfo, EVAL_ID);
 		verify(mockSubmissionDAO).getCountByEvaluation(eq(EVAL_ID));
