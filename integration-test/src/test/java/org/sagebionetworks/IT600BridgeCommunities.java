@@ -134,7 +134,7 @@ public class IT600BridgeCommunities {
 
 	@Test
 	public void testGetVersion() throws Exception {
-		BridgeVersionInfo versionInfo = bridge.getVersionInfo();
+		BridgeVersionInfo versionInfo = bridge.getBridgeVersionInfo();
 		assertFalse(versionInfo.getVersion().isEmpty());
 	}
 
