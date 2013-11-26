@@ -32,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+
 
 public class MessageManagerImpl implements MessageManager {
 	
@@ -69,6 +71,24 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	
+	@Autowired
+	private AmazonSimpleEmailService amazonSESClient;
+	
+	/**
+	 * Used for testing
+	 */
+	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
+			GroupMembersDAO groupMembersDAO, UserManager userManager,
+			AuthorizationManager authorizationManager,
+			AmazonSimpleEmailService amazonSESClient) {
+		this.messageDAO = messageDAO;
+		this.userGroupDAO = userGroupDAO;
+		this.groupMembersDAO = groupMembersDAO;
+		this.userManager = userManager;
+		this.authorizationManager = authorizationManager;
+		this.amazonSESClient = amazonSESClient;
+	}
 	
 	@Override
 	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException {
