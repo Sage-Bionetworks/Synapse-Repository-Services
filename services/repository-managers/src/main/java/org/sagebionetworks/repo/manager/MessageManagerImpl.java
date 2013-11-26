@@ -289,12 +289,16 @@ public class MessageManagerImpl implements MessageManager {
 			// Try to send messages to each user individually
 			try {
 				// Get the user's settings
-				UserProfile profile = userProfileDAO.get(user);
-				Settings settings = profile.getNotificationSettings();
-				MessageStatusType defaultStatus = null;
+				Settings settings = null;
+				try {
+					UserProfile profile = userProfileDAO.get(user);
+					settings = profile.getNotificationSettings();
+				} catch (NotFoundException e) { }
 				if (settings == null) {
 					settings = new Settings();
 				}
+				
+				MessageStatusType defaultStatus = null;
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {

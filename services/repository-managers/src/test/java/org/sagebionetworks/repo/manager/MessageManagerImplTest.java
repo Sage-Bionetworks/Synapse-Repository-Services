@@ -406,7 +406,7 @@ public class MessageManagerImplTest {
 		// But an admin can do it
 		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", new HashSet<String>() {{add(authUsersId);}}, null);
 		errors = messageManager.sendMessage(spam.getId());
-		assertEquals(0, errors.size());
+		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 		
 		// Now everyone has been spammed
 		QueryResults<MessageBundle> messages = messageManager.getInbox(adminUserInfo, 

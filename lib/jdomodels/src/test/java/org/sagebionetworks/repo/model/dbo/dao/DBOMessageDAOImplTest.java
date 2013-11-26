@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -155,6 +156,11 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userToGroup, messageDAO.getMessage(userToGroup.getId()));
 		assertEquals(groupReplyToUser, messageDAO.getMessage(groupReplyToUser.getId()));
 		assertEquals(userReplyToGroup, messageDAO.getMessage(userReplyToGroup.getId()));
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testGetNonexistentMessage() throws Exception {
+		messageDAO.getMessage("-1");
 	}
 	
 	@Test

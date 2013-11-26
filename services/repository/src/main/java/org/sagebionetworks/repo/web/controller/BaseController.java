@@ -661,6 +661,6 @@ public abstract class BaseController {
 		// Therefore, the status must be set manually
 		//TODO Change this method to match the other exception handlers when Spring is updated 
 		response.setStatus(429);
-		return handleException(ex, request, true);
+		return handleException(ex, request, false);
 	}
 }

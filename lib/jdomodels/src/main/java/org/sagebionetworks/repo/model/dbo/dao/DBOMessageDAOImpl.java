@@ -187,7 +187,12 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		// Get the message content and info 
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		MessageToUser bundle = simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
+		MessageToUser bundle;
+		try {
+			bundle = simpleJdbcTemplate.queryForObject(SELECT_MESSAGE_BY_ID, messageRowMapper, params);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Message (" + messageId + ") not found", e);
+		}
 		
 		// Then get the recipients
 		List<DBOMessageRecipient> recipients = simpleJdbcTemplate.query(SELECT_MESSAGE_RECIPIENTS_BY_ID, messageRecipientRowMapper, params);
