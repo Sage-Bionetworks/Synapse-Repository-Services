@@ -95,7 +95,7 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.createUser(user, originClient);
 	}
@@ -110,13 +110,13 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendPasswordEmail(@RequestBody Username user,
-			@RequestParam(AuthorizationConstants.ORIGINATING_CLIENT_PARAM) String client) throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
 		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
 		authenticationService.sendPasswordEmail(user.getEmail(), originClient);
 	}
 	
 	/**
-	 * Change a user's password by supplying their session token
+	 * Change the current authenticated user's password.
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
@@ -132,7 +132,7 @@ public class AuthenticationController extends BaseController {
 	public void signTermsOfUse(@RequestBody Session session) throws NotFoundException {
 		authenticationService.signTermsOfUse(session);
 	}
-	
+		
 	/**
 	 * Retrieves the API key associated with the current authenticated user.
 	 */

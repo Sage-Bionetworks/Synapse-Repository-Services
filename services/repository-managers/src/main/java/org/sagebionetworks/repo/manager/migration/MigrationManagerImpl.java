@@ -263,7 +263,9 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		// Delete all types in their reverse order
 		for(int i=MigrationType.values().length-1; i>=0; i--){
-			deleteAllForType(user, MigrationType.values()[i]);
+			if (this.isMigrationTypeUsed(user, MigrationType.values()[i])) {
+				deleteAllForType(user, MigrationType.values()[i]);
+			}
 		}
 	}
 
@@ -281,5 +283,27 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 	}
 	
-
+	/**
+	 * 
+	 * @param user
+	 * @param mt
+	 * @return true if mt is a primary or secondary type, false otherwise
+	 */
+	public boolean isMigrationTypeUsed(UserInfo user, MigrationType mt) {
+		for (MigrationType t: this.getPrimaryMigrationTypes(user)) {
+			if (mt.equals(t)) {
+				return true;
+			}
+			// Check secondary types
+			List<MigrationType> stList = this.getSecondaryTypes(t);
+			if (stList != null) {
+				for (MigrationType st: stList) {
+					if (mt.equals(st)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
 }

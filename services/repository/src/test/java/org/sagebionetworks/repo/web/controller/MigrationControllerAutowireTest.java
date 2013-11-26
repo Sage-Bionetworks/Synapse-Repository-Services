@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 
@@ -97,7 +98,7 @@ public class MigrationControllerAutowireTest {
 		MigrationTypeCounts counts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertNotNull(counts);
 		assertNotNull(counts.getList());
-		assertEquals(MigrationType.values().length, counts.getList().size());
+		assertTrue(counts.getList().size() <= MigrationType.values().length);
 		System.out.println(counts);
 		long fileCount = 0;
 		long fileMaxId = 0;
