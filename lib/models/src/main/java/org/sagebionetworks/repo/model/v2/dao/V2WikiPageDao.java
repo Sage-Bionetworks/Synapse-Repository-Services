@@ -49,7 +49,14 @@ public interface V2WikiPageDao {
 	 * @throws NotFoundException 
 	 */
 	public V2WikiPage get(WikiPageKey key) throws NotFoundException;
-	
+	/**
+	 * Get a version of a wiki page.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public V2WikiPage getVersion(WikiPageKey key, Long version) throws NotFoundException;
 	/**
 	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
 	 * @param key

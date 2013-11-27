@@ -377,7 +377,18 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), dbo.getMarkdownVersion()); 
 		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
 		List<String> fileHandleIds = createFileHandleIdsList(listToString);
-		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo.getFileHandleId());
+		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
+	}
+	
+	@Override
+	public V2WikiPage getVersion(WikiPageKey key, Long version) throws NotFoundException {
+		// Get the Wikipage DBO.
+		V2DBOWikiPage dbo = getWikiPageDBO(key);	
+		// Now get the markdown
+		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), version); 
+		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
+		List<String> fileHandleIds = createFileHandleIdsList(listToString);
+		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
 	}
 	
 	@Override

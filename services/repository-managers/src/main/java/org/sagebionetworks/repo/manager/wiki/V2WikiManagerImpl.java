@@ -164,6 +164,14 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		return wikiPageDao.get(key);
 	}
 
+	@Override
+	public V2WikiPage getVersionOfWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException {
+		// Validate that the user has read access
+		validateReadAccess(user, key);
+		// Pass to the DAO
+		return wikiPageDao.getVersion(key, version);
+	}
+	
 	/**
 	 * Validate that the user has read access to the owner object.
 	 * @param user
