@@ -140,30 +140,4 @@ public class DBOMembershipInvtnSubmissionTest {
 		assertEquals(dbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
 		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
 	}
-
-	@Test
-	public void testPLFM2354() throws Exception {
-		Date createdOn = new Date();
-		MembershipInvtnSubmission dto = createMembershipInvtnSubmission(createdOn);
-		String id = dto.getId();
-		dto.setId(null);
-		DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
-		// id will be missing from serialized 'properties'
-		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, dbo);
-		// now put it in the dbo ID slot
-		dbo.setId(Long.parseLong(id));
-		
-		// this is actually a 'no-op', backup=dbo
-		DBOMembershipInvtnSubmission backup = dbo.getTranslator().createBackupFromDatabaseObject(dbo);
-		
-		MembershipInvtnSubmission expectedDto = createMembershipInvtnSubmission(createdOn);
-		DBOMembershipInvtnSubmission expectedDbo = new DBOMembershipInvtnSubmission();
-		MembershipInvtnSubmissionUtils.copyDtoToDbo(expectedDto, expectedDbo);
-		
-		// translator should be robust enough to handle the case in which ID is missing from 
-		// serialized 'properties'
-		assertEquals(expectedDbo, dbo.getTranslator().createDatabaseObjectFromBackup(backup));
-		assertEquals(expectedDto, MembershipInvtnSubmissionUtils.copyDboToDto(expectedDbo));
-	}
-
 }
