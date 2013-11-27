@@ -4,6 +4,7 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -15,11 +16,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -49,7 +51,8 @@ public class MessageControllerAutowiredTest {
 	private MessageService messageService;
 	
 	@Autowired
-	private FileHandleDao fileDAO;
+	private FileHandleManager fileHandleManager;
+	
 	private String fileHandleId;
 	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
@@ -79,7 +82,8 @@ public class MessageControllerAutowiredTest {
 		cleanup = new ArrayList<String>();
 		testHelper.setUp();
 		
-		aliceId = userManager.getUserInfo(alice).getIndividualGroup().getId();
+		UserInfo testUserInfo = userManager.getUserInfo(alice);
+		aliceId = testUserInfo.getIndividualGroup().getId();
 		bobId = userManager.getUserInfo(bob).getIndividualGroup().getId();
 		eveId = userManager.getUserInfo(eve).getIndividualGroup().getId();
 		toAlice = new HashSet<String>() {{
@@ -93,17 +97,13 @@ public class MessageControllerAutowiredTest {
 		}};
 		
 		// We need a file handle to satisfy a foreign key constraint
-		// But it doesn't need to point to an actual file
-		// Also, it doesn't matter who the handle is tied to
-		S3FileHandle handle = new S3FileHandle();
-		handle.setBucketName("bucketName");
-		handle.setKey("key");
-		handle.setContentType("content type");
-		handle.setContentSize(123l);
-		handle.setContentMd5("md5");
-		handle.setCreatedBy(aliceId);
-		handle.setFileName("foobar.txt");
-		handle = fileDAO.createFile(handle);
+		// And so that sent messages can be "downloaded"
+		ExternalFileHandle handle = new ExternalFileHandle();
+		handle.setContentType("text/plain");
+		handle.setFileName("foobar");
+		URL url = MessageControllerAutowiredTest.class.getClassLoader().getResource("images/notAnImage.txt");
+		handle.setExternalURL(url.toString());
+		handle = fileHandleManager.createExternalFileHandle(testUserInfo, handle);
 		fileHandleId = handle.getId();
 	}
 	
@@ -112,7 +112,8 @@ public class MessageControllerAutowiredTest {
 		for (String id : cleanup) {
 			messageService.deleteMessage(AuthorizationConstants.ADMIN_USER_NAME, id);
 		}
-		fileDAO.delete(fileHandleId);
+		
+		fileHandleManager.deleteFileHandle(userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME), fileHandleId);
 	}
 	
 	/**

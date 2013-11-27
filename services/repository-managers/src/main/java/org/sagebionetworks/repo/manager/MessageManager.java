@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
+import java.util.Map;
 
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -14,6 +16,32 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
+	
+	public enum EMAIL_TEMPLATE {
+		/**
+		 * Meant for new users that have created an account via OpenID
+		 * Replacement fields:
+		 *     #originclient#
+		 *     #displayname# 
+		 *     #username#
+		 */
+		WELCOME,
+		
+		/**
+		 * Contains a link used to reset a user's password
+		 * Replacement fields: 
+		 *     #originclient#
+		 *     #displayname#
+		 *     #username#
+		 *     #link#
+		 */
+		PASSWORD_RESET
+	};
+	
+	/**
+	 * For testing
+	 */
+	public void setFileHandleManager(FileHandleManager fileHandleManager);
 	
 	/**
 	 * Retrieves a single message by ID.  
@@ -74,10 +102,18 @@ public interface MessageManager {
 	 * Non-fatal errors will be caught and their error messages will be returned in a list.
 	 * It is the caller's responsibility to send a bounce message to the user.
 	 */
-	public List<String> sendMessage(String messageId) throws NotFoundException;
+	public List<String> processMessage(String messageId) throws NotFoundException;
 	
 	/**
 	 * Deletes a message, only accessible to admins
 	 */
 	public void deleteMessage(UserInfo userInfo, String messageId);
+
+	/**
+	 * Sends an email based on a template via Amazon SES
+	 * 
+	 * @param createRecord Should the message be saved within the messaging system?
+	 *   i.e. Transient emails like password resets do not and should not be saved
+	 */
+	public void sendEmail(EMAIL_TEMPLATE template, String recipient, Map<String, String> replacements, boolean createRecord);
 }

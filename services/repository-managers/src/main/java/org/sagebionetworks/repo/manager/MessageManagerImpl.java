@@ -1,11 +1,19 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -33,9 +41,17 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+import com.amazonaws.services.simpleemail.model.Body;
+import com.amazonaws.services.simpleemail.model.Content;
+import com.amazonaws.services.simpleemail.model.Destination;
+import com.amazonaws.services.simpleemail.model.Message;
+import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import com.amazonaws.services.simpleemail.model.SendEmailResult;
 
 
 public class MessageManagerImpl implements MessageManager {
+	
+	static private Logger log = LogManager.getLogger(MessageManagerImpl.class);
 	
 	/**
 	 * The maximum number of messages a user can create within a given interval
@@ -47,7 +63,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * The span of the interval, in milliseconds, in which created messages are counted
 	 * See {@link #MAX_NUMBER_OF_NEW_MESSAGES}  
 	 */
-	private static final long MESSAGE_CREATION_INTERVAL = 60000L;
+	private static final long MESSAGE_CREATION_INTERVAL_MILLISECONDS = 60000L;
 	
 	/**
 	 * The maximum number of targets of a message
@@ -75,16 +91,18 @@ public class MessageManagerImpl implements MessageManager {
 	@Autowired
 	private AmazonSimpleEmailService amazonSESClient;
 	
+	@Autowired
+	private FileHandleManager fileHandleManager;
+	
 	public MessageManagerImpl() { };
 	
 	/**
 	 * Used for testing
 	 */
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
-			GroupMembersDAO groupMembersDAO, UserManager userManager,
-			UserProfileDAO userProfileDAO,
+			GroupMembersDAO groupMembersDAO, UserManager userManager, UserProfileDAO userProfileDAO,
 			AuthorizationManager authorizationManager,
-			AmazonSimpleEmailService amazonSESClient) {
+			AmazonSimpleEmailService amazonSESClient, FileHandleManager fileHandleManager) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -92,6 +110,12 @@ public class MessageManagerImpl implements MessageManager {
 		this.userProfileDAO = userProfileDAO;
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
+		this.fileHandleManager = fileHandleManager;
+	}
+	
+	@Override
+	public void setFileHandleManager(FileHandleManager fileHandleManager) {
+		this.fileHandleManager = fileHandleManager;
 	}
 	
 	@Override
@@ -135,11 +159,11 @@ public class MessageManagerImpl implements MessageManager {
 			// Throttle message creation
 			if (!messageDAO.canCreateMessage(userInfo.getIndividualGroup().getId(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,
-						MESSAGE_CREATION_INTERVAL)) {
+						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
 				throw new TooManyRequestsException(
 						"Please slow down.  You may send a maximum of "
 								+ MAX_NUMBER_OF_NEW_MESSAGES + " message(s) every "
-								+ (MESSAGE_CREATION_INTERVAL / 1000) + " second(s)");
+								+ (MESSAGE_CREATION_INTERVAL_MILLISECONDS / 1000) + " second(s)");
 			}
 			
 			// Limit the number of recipients
@@ -203,7 +227,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	public QueryResults<MessageBundle> getInbox(UserInfo userInfo,  
+	public QueryResults<MessageBundle> getInbox(UserInfo userInfo, 
 			List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset) {
 		List<MessageBundle> dtos = messageDAO.getReceivedMessages(userInfo.getIndividualGroup().getId(), 
 				included, sortBy, descending, limit, offset);
@@ -236,12 +260,12 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public List<String> sendMessage(String messageId) throws NotFoundException {
+	public List<String> processMessage(String messageId) throws NotFoundException {
 		return sendMessage(messageId, false);
 	}
 	
 	/**
-	 * See {@link #sendMessage(String)}
+	 * See {@link #processMessage(String)}
 	 * 
 	 * @param singleTransaction Should the sending be done in one transaction or one transaction per recipient?
 	 *    This allows the sending of messages during creation to complete without deadlock. 
@@ -292,7 +316,9 @@ public class MessageManagerImpl implements MessageManager {
 				// Note: only admins can pass the authorization check to reach this
 				if (authUsers.getId().equals(principalId)) {
 					for (UserGroup member : userGroupDAO.getAll()) {
-						recipients.add(member.getId());
+						if (member.getIsIndividual()) {
+							recipients.add(member.getId());
+						}
 					}
 				}
 				
@@ -308,7 +334,7 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
 		}
 		
-		// Mark each message as sent
+		// Now that the recipients list has been expanded, begin processing the message
 		for (String user : recipients) {
 			// Try to send messages to each user individually
 			try {
@@ -326,7 +352,10 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					//TODO send email
+					sendEmail(userGroupDAO.get(user).getName(), 
+							userInfo.getIndividualGroup().getName(), 
+							dto.getSubject(),
+							downloadEmailContent(dto.getFileHandleId()));
 					
 					// Should the message be marked as READ?
 					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
@@ -342,6 +371,7 @@ public class MessageManagerImpl implements MessageManager {
 					messageDAO.createMessageStatus_NewTransaction(messageId, user, defaultStatus);
 				}
 			} catch (Exception e) {
+				log.info("Error caught while processing message", e);
 				errors.add(e.getMessage());
 			}
 		}
@@ -356,6 +386,62 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		messageDAO.deleteMessage(messageId);
+	}
+
+	@Override
+	public void sendEmail(EMAIL_TEMPLATE template, String recipient,
+			Map<String, String> replacements, boolean createRecord) {
+		//TODO 
+	}
+	
+	/**
+	 * Returns a string containing the body of a message
+	 */
+	private String downloadEmailContent(String fileHandleId) throws NotFoundException, IOException {
+		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		
+		// Read the file
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		InputStream in = null;
+		try {
+			byte[] buffer = new byte[1024];
+			in = url.openStream();
+			int length = 0;
+			while ((length = in.read(buffer)) > 0) {
+				out.write(buffer, 0, length);
+			}
+			return new String(out.toByteArray());
+		} finally {
+			if (in != null) {
+				in.close();
+			}
+			out.close();
+		}
+	}
+	
+	/**
+	 * Constructs a email to send via Amazon SES
+	 */
+	private SendEmailResult sendEmail(String recipient, String from, String subject, String body) {
+		// Construct an object to contain the recipient address
+        Destination destination = new Destination().withToAddresses(recipient);
+        
+        // Create the subject and body of the message
+        if (subject == null) {
+        	subject = "";
+        }
+        Content textSubject = new Content().withData(subject);
+        Body messageBody = new Body().withText(new Content().withData(body));
+        
+        // Create a message with the specified subject and body
+        Message message = new Message().withSubject(textSubject).withBody(messageBody);
+        
+        // Assemble the email
+        SendEmailRequest request = new SendEmailRequest().withSource(from).withDestination(destination).withMessage(message);
+        
+        // Send the email
+        System.out.println(request);
+        return amazonSESClient.sendEmail(request);  
 	}
 	
 }

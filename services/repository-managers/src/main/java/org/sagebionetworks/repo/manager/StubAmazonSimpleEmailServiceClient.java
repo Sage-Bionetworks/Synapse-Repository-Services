@@ -47,16 +47,12 @@ import com.amazonaws.services.simpleemail.model.VerifyEmailIdentityResult;
 public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailService {
 	
 	@Override
-	public void setEndpoint(String endpoint) throws IllegalArgumentException {
-		// TODO Auto-generated method stub
-		
-	}
+	public void setEndpoint(String endpoint) throws IllegalArgumentException { }
 
 	@Override
 	public DeleteIdentityResult deleteIdentity(
 			DeleteIdentityRequest deleteIdentityRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -64,7 +60,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public ListVerifiedEmailAddressesResult listVerifiedEmailAddresses(
 			ListVerifiedEmailAddressesRequest listVerifiedEmailAddressesRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -72,7 +67,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public GetSendStatisticsResult getSendStatistics(
 			GetSendStatisticsRequest getSendStatisticsRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -80,7 +74,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public VerifyEmailIdentityResult verifyEmailIdentity(
 			VerifyEmailIdentityRequest verifyEmailIdentityRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -88,7 +81,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public GetIdentityNotificationAttributesResult getIdentityNotificationAttributes(
 			GetIdentityNotificationAttributesRequest getIdentityNotificationAttributesRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -96,7 +88,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public VerifyDomainDkimResult verifyDomainDkim(
 			VerifyDomainDkimRequest verifyDomainDkimRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -104,7 +95,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public GetIdentityDkimAttributesResult getIdentityDkimAttributes(
 			GetIdentityDkimAttributesRequest getIdentityDkimAttributesRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -112,7 +102,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public void verifyEmailAddress(
 			VerifyEmailAddressRequest verifyEmailAddressRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -120,7 +109,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public SendRawEmailResult sendRawEmail(
 			SendRawEmailRequest sendRawEmailRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -128,7 +116,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public ListIdentitiesResult listIdentities(
 			ListIdentitiesRequest listIdentitiesRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -136,7 +123,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public GetIdentityVerificationAttributesResult getIdentityVerificationAttributes(
 			GetIdentityVerificationAttributesRequest getIdentityVerificationAttributesRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -144,7 +130,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public SetIdentityDkimEnabledResult setIdentityDkimEnabled(
 			SetIdentityDkimEnabledRequest setIdentityDkimEnabledRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -152,7 +137,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public GetSendQuotaResult getSendQuota(
 			GetSendQuotaRequest getSendQuotaRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -160,7 +144,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public SetIdentityFeedbackForwardingEnabledResult setIdentityFeedbackForwardingEnabled(
 			SetIdentityFeedbackForwardingEnabledRequest setIdentityFeedbackForwardingEnabledRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -168,14 +151,13 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public VerifyDomainIdentityResult verifyDomainIdentity(
 			VerifyDomainIdentityRequest verifyDomainIdentityRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public SendEmailResult sendEmail(SendEmailRequest sendEmailRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
+		System.out.println("Intercepted email: " + sendEmailRequest);
 		return null;
 	}
 
@@ -183,7 +165,6 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public void deleteVerifiedEmailAddress(
 			DeleteVerifiedEmailAddressRequest deleteVerifiedEmailAddressRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -191,48 +172,39 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 	public SetIdentityNotificationTopicResult setIdentityNotificationTopic(
 			SetIdentityNotificationTopicRequest setIdentityNotificationTopicRequest)
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public ListVerifiedEmailAddressesResult listVerifiedEmailAddresses()
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public GetSendStatisticsResult getSendStatistics()
 			throws AmazonServiceException, AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public ListIdentitiesResult listIdentities() throws AmazonServiceException,
 			AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public GetSendQuotaResult getSendQuota() throws AmazonServiceException,
 			AmazonClientException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void shutdown() {
-		// TODO Auto-generated method stub
-		
-	}
+	public void shutdown() { }
 
 	@Override
 	public ResponseMetadata getCachedResponseMetadata(
 			AmazonWebServiceRequest request) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 	
