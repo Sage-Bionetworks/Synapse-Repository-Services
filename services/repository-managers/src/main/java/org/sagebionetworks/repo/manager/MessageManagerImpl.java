@@ -75,17 +75,21 @@ public class MessageManagerImpl implements MessageManager {
 	@Autowired
 	private AmazonSimpleEmailService amazonSESClient;
 	
+	public MessageManagerImpl() { };
+	
 	/**
 	 * Used for testing
 	 */
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
+			UserProfileDAO userProfileDAO,
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
 		this.userManager = userManager;
+		this.userProfileDAO = userProfileDAO;
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 	}
