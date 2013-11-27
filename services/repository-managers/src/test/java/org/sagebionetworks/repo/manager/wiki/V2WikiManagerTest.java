@@ -131,7 +131,7 @@ public class V2WikiManagerTest {
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
-		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"));
+		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -147,14 +147,14 @@ public class V2WikiManagerTest {
 		// setup allow
 		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		wikiManager.getWikiPage(new UserInfo(false),key);
+		wikiManager.getWikiPage(new UserInfo(false),key, null);
 		verify(mockWikiDao, times(1)).get(key, null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetVersionUnauthorized() throws DatastoreException, NotFoundException {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
-		wikiManager.getVersionOfWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
 	}
 	
 	@Test
@@ -162,7 +162,7 @@ public class V2WikiManagerTest {
 		Long version = new Long(0);
 		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		wikiManager.getVersionOfWikiPage(new UserInfo(false),key, version);
+		wikiManager.getWikiPage(new UserInfo(false),key, version);
 		verify(mockWikiDao, times(1)).get(key, version);
 	}
 	
@@ -735,12 +735,12 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetNullUser() throws UnauthorizedException, NotFoundException{
-		wikiManager.getWikiPage(null, new WikiPageKey("123", ObjectType.EVALUATION, "345"));
+		wikiManager.getWikiPage(null, new WikiPageKey("123", ObjectType.EVALUATION, "345"), null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetNullKey() throws UnauthorizedException, NotFoundException{
-		wikiManager.getWikiPage(new UserInfo(true), null);
+		wikiManager.getWikiPage(new UserInfo(true), null, null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

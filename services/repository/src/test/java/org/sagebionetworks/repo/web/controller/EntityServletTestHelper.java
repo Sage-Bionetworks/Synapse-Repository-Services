@@ -1093,30 +1093,18 @@ public class EntityServletTestHelper {
 	/**
 	 * Get V2 wiki page
 	 */
-	public V2WikiPage getV2WikiPage(WikiPageKey key, String username) throws Exception {
+	public V2WikiPage getV2WikiPage(WikiPageKey key, String username, Long wikiVersion) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 			HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key),
 			username, null);
 
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
 		MockHttpServletResponse response = ServletTestHelperUtils
 			.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), V2WikiPage.class);
-	}
-	
-	/**
-	 * Get a version of a V2 wiki page
-	 */
-	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, String username, Long version)
-		throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key) + "/" + version,
-				username, null);
-
-			MockHttpServletResponse response = ServletTestHelperUtils
-				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
-
-			return EntityFactory.createEntityFromJSONString(response.getContentAsString(), V2WikiPage.class);
 	}
 	
 	/**

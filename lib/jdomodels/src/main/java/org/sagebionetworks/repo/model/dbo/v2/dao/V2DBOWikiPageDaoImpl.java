@@ -388,6 +388,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Override
 	public String getMarkdownHandleId(WikiPageKey key, Long version) throws NotFoundException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(version == null) {
 			// Get the markdown file handle id of the wiki's current version
 			version = getCurrentWikiVersion(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId());

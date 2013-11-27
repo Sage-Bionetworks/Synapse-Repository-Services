@@ -193,11 +193,11 @@ public class V2WikiControllerTest {
 		assertEquals("0", firstSnapshot.get(0).getVersion());
 		
 		// Get the wiki page.
-		V2WikiPage clone = entityServletHelper.getV2WikiPage(key, userName);
+		V2WikiPage clone = entityServletHelper.getV2WikiPage(key, userName, null);
 		assertNotNull(clone);
 		System.out.println(clone);
 		assertEquals(wiki, clone);
-		V2WikiPage getFirstVersion = entityServletHelper.getVersionOfV2WikiPage(key, userName, new Long(0));
+		V2WikiPage getFirstVersion = entityServletHelper.getV2WikiPage(key, userName, new Long(0));
 		assertEquals(wiki, getFirstVersion);
 		
 		// Get the root wiki
@@ -257,7 +257,7 @@ public class V2WikiControllerTest {
 		
 		Long versionToRestore = new Long(1);
 		// Get an older version
-		V2WikiPage versionOne = entityServletHelper.getVersionOfV2WikiPage(key, userName, versionToRestore);
+		V2WikiPage versionOne = entityServletHelper.getV2WikiPage(key, userName, versionToRestore);
 		assertEquals(markdownTwo.getId(), versionOne.getMarkdownFileHandleId());
 		assertEquals(1, versionOne.getAttachmentFileHandleIds().size());
 		assertEquals("Version 1 title", versionOne.getTitle());
@@ -341,14 +341,14 @@ public class V2WikiControllerTest {
 		// Now delete the wiki
 		entityServletHelper.deleteV2WikiPage(key, userName);
 		try {
-			entityServletHelper.getV2WikiPage(key, userName);
+			entityServletHelper.getV2WikiPage(key, userName, null);
 			fail("The wiki should have been deleted");
 		} catch (NotFoundException e) {
 			// this is expected
 		}
 		// the child should be delete as well
 		try {
-			entityServletHelper.getV2WikiPage(childKey, userName);
+			entityServletHelper.getV2WikiPage(childKey, userName, null);
 			fail("The wiki should have been deleted");
 		} catch (NotFoundException e) {
 			// this is expected
