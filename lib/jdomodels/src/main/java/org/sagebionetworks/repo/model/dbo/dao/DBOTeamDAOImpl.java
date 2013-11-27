@@ -101,8 +101,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			TABLE_USER_PROFILE+" up ON (gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+") "+
 			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID;
 	
-	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS =
-			"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+" FROM "+
+	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
+			" FROM "+
 				TABLE_TEAM+" t, "+
 				TABLE_RESOURCE_ACCESS+" ra, "+TABLE_RESOURCE_ACCESS_TYPE+" at, "+
 				TABLE_GROUP_MEMBERS+" gm "+
@@ -111,6 +111,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			" and ra."+COL_RESOURCE_ACCESS_OWNER+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='"+ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE+"'";
+			
+	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS =
+				"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+
+				SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
 	
 	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
 			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
@@ -127,6 +131,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	
 	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM =
 			SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS+" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+	
+	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT = 
+			"SELECT COUNT(gm."+COL_GROUP_MEMBERS_MEMBER_ID+") "+SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
@@ -422,6 +430,15 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		
 		return teamMembers;
+	}
+	
+	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	public long getAdminMemberCount(String teamId) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		return simpleJdbcTemplate.queryForLong(SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT, param);
+
 	}
 
 	@Override
