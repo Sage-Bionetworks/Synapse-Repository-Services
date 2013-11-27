@@ -30,7 +30,6 @@ public interface CommunityManager {
 	 * Retrieve the Communities to which the given user belongs, paginated
 	 * 
 	 * @param userInfo
-	 * @param principalId
 	 * @param offset
 	 * @param limit
 	 * @return
@@ -121,4 +120,30 @@ public interface CommunityManager {
 	 * @throws DatastoreException
 	 */
 	public void leave(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * make a member an admin of the community
+	 * 
+	 * @param userInfo
+	 * @param communityId
+	 * @param memberId
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws AuthenticationException
+	 */
+	public void addAdmin(UserInfo userInfo, String communityId, String memberId) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * remove a member as an admin of the community
+	 * 
+	 * @param userInfo
+	 * @param communityId
+	 * @param memberId
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws AuthenticationException
+	 */
+	public void removeAdmin(UserInfo userInfo, String communityId, String memberId) throws DatastoreException,
+			NotFoundException;
 }

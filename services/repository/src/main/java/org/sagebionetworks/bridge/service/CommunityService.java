@@ -121,4 +121,9 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 */
 	public void leaveCommunity(String userId, String communityId) throws DatastoreException, NotFoundException;
+
+	public void addCommunityAdmin(String userId, String communityId, String memberId) throws DatastoreException,
+			NotFoundException;
+
+	public void removeCommunityAdmin(String userId, String communityId, String memberId) throws DatastoreException, NotFoundException;
 }

@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.util.StringInputStream;
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -46,6 +47,8 @@ public class CommunityManagerImpl implements CommunityManager {
 	private CommunityTeamDAO communityTeamDAO;
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	@Autowired
+	private AccessControlListDAO aclDAO;
 
 	public CommunityManagerImpl() {
 	}
@@ -53,7 +56,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	// for testing
 	CommunityManagerImpl(AuthorizationManager authorizationManager, FileHandleManager fileHandleManager, UserManager userManager,
 			TeamManager teamManager, EntityManager entityManager, EntityPermissionsManager entityPermissionsManager,
-			V2WikiManager wikiManager, CommunityTeamDAO communityTeamDAO) {
+			V2WikiManager wikiManager, CommunityTeamDAO communityTeamDAO, AccessControlListDAO aclDAO) {
 		this.authorizationManager = authorizationManager;
 		this.fileHandleManager = fileHandleManager;
 		this.userManager = userManager;
@@ -62,6 +65,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		this.entityPermissionsManager = entityPermissionsManager;
 		this.wikiManager = wikiManager;
 		this.communityTeamDAO = communityTeamDAO;
+		this.aclDAO = aclDAO;
 	}
 
 	public static void validateForCreate(Community community) {
@@ -105,10 +109,11 @@ public class CommunityManagerImpl implements CommunityManager {
 		community.setModifiedOn(now);
 	}
 
-	private static final ACCESS_TYPE[] ANONYMOUS_PERMISSIONS = { ACCESS_TYPE.READ };
-	private static final ACCESS_TYPE[] SIGNEDIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.PARTICIPATE };
-	private static final ACCESS_TYPE[] COMMUNITY_MEMBER_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.PARTICIPATE };
-	private static final ACCESS_TYPE[] COMMUNITY_ADMIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE,
+	// package protected for unit tests only
+	static final ACCESS_TYPE[] ANONYMOUS_PERMISSIONS = { ACCESS_TYPE.READ };
+	static final ACCESS_TYPE[] SIGNEDIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.PARTICIPATE };
+	static final ACCESS_TYPE[] COMMUNITY_MEMBER_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.PARTICIPATE };
+	static final ACCESS_TYPE[] COMMUNITY_ADMIN_PERMISSIONS = { ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE,
 			ACCESS_TYPE.DELETE, ACCESS_TYPE.SEND_MESSAGE, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE };
 
 	public static ResourceAccess createResourceAccess(long principalId, ACCESS_TYPE[] accessTypes) {
@@ -120,21 +125,30 @@ public class CommunityManagerImpl implements CommunityManager {
 	}
 
 	public static void addToACL(AccessControlList acl, String principalId, ACCESS_TYPE[] accessTypes) {
-		ResourceAccess ra = new ResourceAccess();
-		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(accessTypes));
-		ra.setAccessType(accessSet);
-		ra.setPrincipalId(Long.parseLong(principalId));
-		acl.getResourceAccess().add(ra);
+		acl.getResourceAccess().add(createResourceAccess(Long.parseLong(principalId), accessTypes));
 	}
 
-	public static void removeFromACL(AccessControlList acl, String principalId) {
-		Set<ResourceAccess> origRA = acl.getResourceAccess();
-		Set<ResourceAccess> newRA = new HashSet<ResourceAccess>();
-		for (ResourceAccess ra : origRA) {
-			if (!principalId.equals(ra.getPrincipalId().toString()))
-				newRA.add(ra);
-		}
+	public static boolean removeFromACL(AccessControlList acl, final String principalId) {
+		Set<ResourceAccess> resourceAccessList = acl.getResourceAccess();
+		Set<ResourceAccess> newRA = Sets.newHashSet(Sets.filter(resourceAccessList, new Predicate<ResourceAccess>() {
+			@Override
+			public boolean apply(ResourceAccess ra) {
+				return !principalId.equals(ra.getPrincipalId().toString());
+			}
+		}));
+		boolean change = newRA.size() != resourceAccessList.size();
 		acl.setResourceAccess(newRA);
+		return change;
+	}
+
+	private static int countAdmins(AccessControlList acl) {
+		int count = 0;
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra.getAccessType().contains(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+				count++;
+			}
+		}
+		return count;
 	}
 
 	/*
@@ -361,7 +375,78 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void leave(UserInfo userInfo, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+
+		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
+		// only admins have individual acl entries, so this removes admin access only
+		if (removeFromACL(acl, userInfo.getIndividualGroup().getId())) {
+			// check for last admin leaving
+			if (countAdmins(acl) == 0) {
+				// special case, if for any reason there were zero admins to begin with, allow user to leave anyway
+				if (countAdmins(aclDAO.get(communityId, ObjectType.ENTITY)) > 0) {
+					throw new UnauthorizedException("Need at least one admin. Make someone else an admin before leaving this community");
+				}
+			}
+			aclDAO.update(acl);
+		}
 		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getIndividualGroup().getId());
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void addAdmin(UserInfo userInfo, String communityId, String memberId) throws UnauthorizedException, DatastoreException,
+			NotFoundException {
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+
+		UserInfo memberInfo = userManager.getUserInfo(memberId);
+		if (!memberInfo.getIndividualGroup().getIsIndividual()) {
+			throw new UnauthorizedException("Can only add individuals as admin");
+		}
+		if (!teamManager.getTeamMembershipStatus(userInfo, community.getTeamId(), memberInfo).getIsMember()) {
+			throw new NotFoundException("Not a community member");
+		}
+
+		if (!userInfo.isAdmin()
+				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+			throw new UnauthorizedException("Cannot add admin member");
+		}
+		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
+		// just in case
+		removeFromACL(acl, memberInfo.getIndividualGroup().getId());
+		addToACL(acl, memberInfo.getIndividualGroup().getId(), COMMUNITY_ADMIN_PERMISSIONS);
+		aclDAO.update(acl);
+
+		// set the team manage permission on the team
+		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getIndividualGroup().getId(), true);
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void removeAdmin(UserInfo userInfo, String communityId, String memberId) throws UnauthorizedException, DatastoreException,
+			NotFoundException {
+		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
+
+		UserInfo memberInfo = userManager.getUserInfo(memberId);
+		if (!memberInfo.getIndividualGroup().getIsIndividual()) {
+			throw new UnauthorizedException("Can only remove individuals as admin");
+		}
+
+		// user can always remove themselves, regardless of access (will be a no-op if the did not have membership
+		// update access, since they would not be admins)
+		if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(memberInfo.getIndividualGroup().getId())
+				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
+			throw new UnauthorizedException("Cannot remove admin member");
+		}
+		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
+		// only admins have individual acl entries, so this removes admin access only
+		if (removeFromACL(acl, memberInfo.getIndividualGroup().getId())) {
+			if (countAdmins(acl) == 0) {
+				throw new UnauthorizedException("Need at least one admin. Make someone else an admin before removing yourself as admin");
+			}
+			aclDAO.update(acl);
+		}
+
+		// set the team manage permission on the team
+		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getIndividualGroup().getId(), false);
 	}
 }
 

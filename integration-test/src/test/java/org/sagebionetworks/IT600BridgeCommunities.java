@@ -27,6 +27,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 
@@ -85,13 +86,13 @@ public class IT600BridgeCommunities {
 
 	@Before
 	public void before() throws SynapseException {
-		// toDelete = new ArrayList<String>();
-		//
-		// community = bridge.createCommunity(new Community());
-		//
-		// toDelete.add(community.getId());
-		//
-		// accessRequirementsToDelete = new ArrayList<Long>();
+		// Delete all communities that bridge and bridgeTwo are members of
+		for (Community community : bridge.getCommunities(1000, 0).getResults()) {
+			deleteCommunity(community.getId());
+		}
+		for (Community community : bridgeTwo.getCommunities(1000, 0).getResults()) {
+			deleteCommunity(community.getId());
+		}
 	}
 
 	/**
@@ -105,10 +106,19 @@ public class IT600BridgeCommunities {
 	@After
 	public void after() throws Exception {
 		for (String communityId : communitiesToDelete) {
+			deleteCommunity(communityId);
+		}
+	}
+
+	private void deleteCommunity(String communityId) {
+		try {
+			bridge.deleteCommunity(communityId);
+		} catch (Exception e) {
 			try {
-				bridge.deleteCommunity(communityId);
-			} catch (Exception e) {
-				System.err.println("Could not delete community: " + e.getMessage());
+				bridgeTwo.deleteCommunity(communityId);
+			} catch (Exception e2) {
+				System.err.println(e.getMessage());
+				System.err.println(e2.getMessage());
 			}
 		}
 	}
@@ -162,32 +172,77 @@ public class IT600BridgeCommunities {
 		}
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testAddRemoveUsers() throws Exception {
-		int beforeCount = bridge.getAllCommunities().size();
+		int beforeCount = (int) bridge.getAllCommunities(1000, 0).getTotalNumberOfResults();
 
 		Community community = createCommunity();
 
-		List<Community> allCommunities = bridge.getAllCommunities();
-		assertEquals(beforeCount + 1, allCommunities.size());
+		PaginatedResults<Community> allCommunities = bridge.getAllCommunities(1000, 0);
+		assertEquals(beforeCount + 1, allCommunities.getTotalNumberOfResults());
 
-		assertEquals(1, bridge.getCommunities().size());
-		assertEquals(community, bridge.getCommunities().get(0));
-		assertEquals(0, bridgeTwo.getCommunities().size());
+		assertEquals(1, bridge.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(community, bridge.getCommunities(1000, 0).getResults().get(0));
+		assertEquals(0, bridgeTwo.getCommunities(1000, 0).getTotalNumberOfResults());
 
 		bridgeTwo.joinCommunity(community.getId());
 
-		assertEquals(1, bridge.getCommunities().size());
-		assertEquals(1, bridgeTwo.getCommunities().size());
-		assertEquals(community, bridgeTwo.getCommunities().get(0));
+		assertEquals(1, bridge.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(1, bridgeTwo.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(community, bridgeTwo.getCommunities(1000, 0).getResults().get(0));
 
 		bridgeTwo.leaveCommunity(community.getId());
 
-		assertEquals(1, bridge.getCommunities().size());
-		assertEquals(0, bridgeTwo.getCommunities().size());
+		assertEquals(1, bridge.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(0, bridgeTwo.getCommunities(1000, 0).getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testAddRemoveAdmin() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	@Test
+	public void testAddRemoveAdminIdempotentcy() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	@Test
+	public void testAddAdminAndLeave() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	@Test
+	public void testAddOtherAdminAndLeave() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.leaveCommunity(community.getId());
+	}
+
+	@Test(expected = SynapseException.class)
+	public void testLeaveLastAdminNotAllowed() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.leaveCommunity(community.getId());
 	}
 
 	private Community createCommunity() throws SynapseException {
