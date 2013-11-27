@@ -202,33 +202,33 @@ public class CommunityController extends BridgeBaseController {
 	 * Add a member as a Community admin
 	 * 
 	 * @param id the ID of the Community to join
-	 * @param memberName the ID of the member to add as admin
+	 * @param memberId the ID of the member to add as admin
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.ADD_COMMUNITY_ADMIN, method = RequestMethod.GET)
-	public void addCommunityAdmin(@PathVariable String id, @PathVariable String memberName,
+	public void addCommunityAdmin(@PathVariable String id, @PathVariable String memberId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
 			NotFoundException {
-		serviceProvider.getCommunityService().addCommunityAdmin(userId, id, memberName);
+		serviceProvider.getCommunityService().addCommunityAdmin(userId, id, memberId);
 	}
 
 	/**
 	 * Remove a member as a Community admin
 	 * 
 	 * @param id the ID of the Community to join
-	 * @param memberName the ID of the member to remove as admin
+	 * @param memberId the ID of the member to remove as admin
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.REMOVE_COMMUNITY_ADMIN, method = RequestMethod.GET)
-	public void removeCommunityAdmin(@PathVariable String id, @PathVariable String memberName,
+	public void removeCommunityAdmin(@PathVariable String id, @PathVariable String memberId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
 			NotFoundException {
-		serviceProvider.getCommunityService().removeCommunityAdmin(userId, id, memberName);
+		serviceProvider.getCommunityService().removeCommunityAdmin(userId, id, memberId);
 	}
 }

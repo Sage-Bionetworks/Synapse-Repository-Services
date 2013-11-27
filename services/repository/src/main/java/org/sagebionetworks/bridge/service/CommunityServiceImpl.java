@@ -78,15 +78,15 @@ public class CommunityServiceImpl implements CommunityService {
 	}
 
 	@Override
-	public void addCommunityAdmin(String userId, String communityId, String memberName) throws DatastoreException,
+	public void addCommunityAdmin(String userId, String communityId, String memberId) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		communityManager.addAdmin(userInfo, communityId, memberName);
+		communityManager.addAdmin(userInfo, communityId, memberId);
 	}
 
 	@Override
-	public void removeCommunityAdmin(String userId, String communityId, String memberName) throws DatastoreException, NotFoundException {
+	public void removeCommunityAdmin(String userId, String communityId, String memberId) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		communityManager.removeAdmin(userInfo, communityId, memberName);
+		communityManager.removeAdmin(userInfo, communityId, memberId);
 	}
 }

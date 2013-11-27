@@ -126,12 +126,12 @@ public interface CommunityManager {
 	 * 
 	 * @param userInfo
 	 * @param communityId
-	 * @param memberName
+	 * @param memberId
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws AuthenticationException
 	 */
-	public void addAdmin(UserInfo userInfo, String communityId, String memberName) throws DatastoreException,
+	public void addAdmin(UserInfo userInfo, String communityId, String memberId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -139,11 +139,11 @@ public interface CommunityManager {
 	 * 
 	 * @param userInfo
 	 * @param communityId
-	 * @param memberName
+	 * @param memberId
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws AuthenticationException
 	 */
-	public void removeAdmin(UserInfo userInfo, String communityId, String memberName) throws DatastoreException,
+	public void removeAdmin(UserInfo userInfo, String communityId, String memberId) throws DatastoreException,
 			NotFoundException;
 }
