@@ -158,7 +158,7 @@ public class DBOWikiMigrationDAOTest {
 		toDeleteFromV2.add(key);
 		assertEquals(1, v2WikiPageDao.getCount());
 		
-		V2WikiPage retrieved = v2WikiPageDao.get(key);
+		V2WikiPage retrieved = v2WikiPageDao.get(key, null);
 		assertNotNull(retrieved);
 		String etag = wikiMigrationDao.getV2WikiPageEtag(retrieved.getId());
 		assertEquals("etag", etag);

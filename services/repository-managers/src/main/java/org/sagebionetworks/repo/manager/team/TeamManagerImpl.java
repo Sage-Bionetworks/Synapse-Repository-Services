@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -102,19 +103,19 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	public static void validateForCreate(Team team) {
-		if (team.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
-		if (team.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
-		if(team.getEtag()!=null) throw new InvalidModelException("'etag' field is not user specifiable.");
-		if(team.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if(team.getModifiedBy()!=null) throw new InvalidModelException("'modifiedBy' field is not user specifiable.");
-		if(team.getModifiedOn()!=null) throw new InvalidModelException("'modifiedOn' field is not user specifiable.");
-		if(team.getName()==null) throw new InvalidModelException("'name' field is required.");
+		Validate.notSpecifiable(team.getCreatedBy(), "createdBy");
+		Validate.notSpecifiable(team.getCreatedOn(), "createdOn");
+		Validate.notSpecifiable(team.getEtag(), "etag");
+		Validate.notSpecifiable(team.getId(), "id");
+		Validate.notSpecifiable(team.getModifiedBy(), "modifiedBy");
+		Validate.notSpecifiable(team.getModifiedOn(), "modifiedOn");
+		Validate.required(team.getName(), "name");
 	}
 	
 	public static void validateForUpdate(Team team) {
-		if(team.getEtag()==null) throw new InvalidModelException("'etag' field is missing.");
-		if(team.getId()==null) throw new InvalidModelException("'id' field is missing.");
-		if(team.getName()==null) throw new InvalidModelException("'name' field is required.");
+		Validate.missing(team.getEtag(), "etag");
+		Validate.missing(team.getId(), "id");
+		Validate.required(team.getName(), "name");
 	}
 	
 	public static void populateCreationFields(UserInfo userInfo, Team team, Date now) {

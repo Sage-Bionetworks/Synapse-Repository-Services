@@ -200,27 +200,27 @@ public class SubmissionDAOImplTest {
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
     	subStatus.setId(submissionId);
-    	subStatus.setStatus(SubmissionStatusEnum.OPEN);
+    	subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
     	subStatus.setModifiedOn(new Date());
     	submissionStatusDAO.create(subStatus);
     	
     	// hit evalId and hit status => should find 1 submission
-    	List<Submission> subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.OPEN, 10, 0);
+    	List<Submission> subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED, 10, 0);
     	assertEquals(1, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.OPEN));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED));
     	submission.setCreatedOn(subs.get(0).getCreatedOn());
     	submission.setId(subs.get(0).getId());
     	assertEquals(subs.get(0), submission);
     	
     	// miss evalId and hit status => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.OPEN, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.RECEIVED, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.OPEN));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.RECEIVED));
     	
     	// hit evalId and miss status => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.CLOSED, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.CLOSED));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED));
     }
     
     @Test

@@ -486,6 +486,11 @@
 				<scope>provided</scope>
 			</dependency>
 			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>${guavaVersion}</version>
+			</dependency>
+			<dependency>
 				<groupId>org.imgscalr</groupId>
 				<artifactId>imgscalr-lib</artifactId>
 				<version>4.2</version>
@@ -767,6 +772,7 @@
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.4.0</gwtVersion>
 		<guiceVersion>3.0-rc2</guiceVersion>
+		<guavaVersion>10.0.1</guavaVersion>
 		<org.springframework.version>3.0.5.RELEASE
 		</org.springframework.version>
 		<jackson.version>1.8.1</jackson.version>

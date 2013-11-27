@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,12 +18,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
@@ -48,6 +52,9 @@ public class DBOMessageDAOImplTest {
 	@Autowired
 	private DBOBasicDao basicDAO;
 	
+	@Autowired
+	private DBOChangeDAO changeDAO;
+	
 	private String fileHandleId;
 	
 	private UserGroup maliciousUser;
@@ -68,6 +75,8 @@ public class DBOMessageDAOImplTest {
 	@Before
 	public void spamMessages() throws Exception {
 		cleanup = new ArrayList<String>();
+		
+		changeDAO.deleteAllChanges();
 		
 		// These two principals will act as mutual spammers
 		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
@@ -93,12 +102,12 @@ public class DBOMessageDAOImplTest {
 				new HashSet<String>() {{add(maliciousGroup.getId());}}, groupReplyToUser.getId());
 		
 		// Send all the messages
-		messageDAO.createMessageStatus(userToUser.getId(), maliciousUser.getId());
-		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousUser.getId());
-		messageDAO.createMessageStatus(userToUserAndGroup.getId(), maliciousGroup.getId());
-		messageDAO.createMessageStatus(userToGroup.getId(), maliciousGroup.getId());
-		messageDAO.createMessageStatus(groupReplyToUser.getId(), maliciousUser.getId());
-		messageDAO.createMessageStatus(userReplyToGroup.getId(), maliciousGroup.getId());
+		messageDAO.createMessageStatus_SameTransaction(userToUser.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus_NewTransaction(userToUserAndGroup.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus_SameTransaction(userToUserAndGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus_NewTransaction(userToGroup.getId(), maliciousGroup.getId(), null);
+		messageDAO.createMessageStatus_SameTransaction(groupReplyToUser.getId(), maliciousUser.getId(), null);
+		messageDAO.createMessageStatus_NewTransaction(userReplyToGroup.getId(), maliciousGroup.getId(), null);
 	}
 	
 	/**
@@ -146,6 +155,19 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userToGroup, messageDAO.getMessage(userToGroup.getId()));
 		assertEquals(groupReplyToUser, messageDAO.getMessage(groupReplyToUser.getId()));
 		assertEquals(userReplyToGroup, messageDAO.getMessage(userReplyToGroup.getId()));
+	}
+	
+	@Test
+	public void testChangeMessageGenerated() throws Exception {
+		List<ChangeMessage> changes = changeDAO.listUnsentMessages(1000);
+		
+		// Look for one of the messages
+		for (ChangeMessage change : changes) {
+			if (ObjectType.MESSAGE == change.getObjectType() && userToUser.getId().equals(change.getObjectId())) {
+				return;
+			}
+		}
+		fail("Change message was not created for a message");
 	}
 	
 	@Test
@@ -262,5 +284,14 @@ public class DBOMessageDAOImplTest {
 		assertEquals(groupReplyToUser, messages.get(1).getMessage());
 		assertEquals(MessageStatusType.UNREAD, messages.get(0).getStatus().getStatus());
 		assertEquals(MessageStatusType.UNREAD, messages.get(1).getStatus().getStatus());
+	}
+	
+	@Test
+	public void testHasMessageBeenSent() throws Exception {
+		assertTrue(messageDAO.hasMessageBeenSent(userToUser.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(userToUserAndGroup.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(userToGroup.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(groupReplyToUser.getId()));
+		assertTrue(messageDAO.hasMessageBeenSent(userReplyToGroup.getId()));
 	}
 }

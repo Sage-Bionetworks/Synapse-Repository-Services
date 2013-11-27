@@ -103,7 +103,7 @@ public class AdministrationControllerTest {
 		for(int i = wikisToDelete.size() - 1; i >= 0; i--) {
 			try {
 				WikiPageKey key = wikisToDelete.get(i);
-				V2WikiPage wiki = v2wikiPageDAO.get(key);
+				V2WikiPage wiki = v2wikiPageDAO.get(key, null);
 				String markdownHandleId = wiki.getMarkdownFileHandleId();
 				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());

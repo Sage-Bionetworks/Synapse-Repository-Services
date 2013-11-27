@@ -114,7 +114,7 @@ public class SubmissionStatusDBOTest {
         status.setId(submissionId);
         status.seteTag(eTag);
         status.setModifiedOn(System.currentTimeMillis());
-        status.setStatusEnum(SubmissionStatusEnum.OPEN);
+        status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.0);
         status.setSerializedEntity("foo".getBytes());
         

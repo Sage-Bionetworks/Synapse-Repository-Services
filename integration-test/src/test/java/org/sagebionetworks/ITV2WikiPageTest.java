@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -140,6 +141,7 @@ public class ITV2WikiPageTest {
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
+		Date firstModifiedOn = wiki.getModifiedOn();
 		
 		// Add another file attachment and update the wiki
 		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
@@ -150,11 +152,18 @@ public class ITV2WikiPageTest {
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		assertEquals(fileHandleTwo.getId(), wiki.getAttachmentFileHandleIds().get(1));
 		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertTrue(!wiki.getModifiedOn().equals(firstModifiedOn));
 		
 		// test get
 		wiki = synapse.getV2WikiPage(key);
 		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY);
 		assertEquals(wiki, root);
+		
+		// get markdown file
+		File markdown = synapse.downloadV2WikiMarkdown(key);
+		assertNotNull(markdown);
+		File oldMarkdown = synapse.downloadVersionOfV2WikiMarkdown(key, new Long(0));
+		assertNotNull(oldMarkdown);
 		
 		// Get the tree
 		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
@@ -170,6 +179,12 @@ public class ITV2WikiPageTest {
 		assertTrue(history.getResults().size() == 2);
 		// First snapshot is most recent, so we want the last snapshot, version 0 (the first entry in history)
 		String versionToRestore = history.getResults().get(1).getVersion();
+		// Get the version first
+		V2WikiPage firstVersion = synapse.getVersionOfV2WikiPage(key, new Long(versionToRestore));
+		assertEquals(1, firstVersion.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), firstVersion.getAttachmentFileHandleIds().get(0));
+		assertEquals(firstModifiedOn, firstVersion.getModifiedOn());
+		
 		// Restore wiki to first state before update
 		wiki = synapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki, new Long(versionToRestore));
 		assertNotNull(wiki);
@@ -227,6 +242,19 @@ public class ITV2WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
+		
+		// Update wiki with another file handle
+		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
+		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
+		FileHandleResults resultsUpdated = synapse.getV2WikiAttachmentHandles(key);
+		assertEquals(4, resultsUpdated.getList().size());
+		// Getting first version file handles should return two.
+		FileHandleResults oldResults = synapse.getVersionOfV2WikiAttachmentHandles(key, new Long(0));
+		assertEquals(2, oldResults.getList().size());
+		
 		// Make sure we can download
 		File mainFile = null;
 		File previewFile = null;

@@ -8,7 +8,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.schema.adapter.*;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -17,6 +17,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  * Low-level Java Client API for Bridge REST APIs
  */
 public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
+
 
 	public static final String BRIDGE_JAVA_CLIENT = "Bridge-Java-Client/";
 
@@ -27,6 +28,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String VERSION_INFO = "/version";
 
 	private static final String COMMUNITY = "/community";
+	private static final String JOINED = "/joined";
+	private static final String MEMBERS = "/members";
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
 
@@ -89,7 +92,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	@Override
-	public BridgeVersionInfo getVersionInfo() throws SynapseException {
+	public BridgeVersionInfo getBridgeVersionInfo() throws SynapseException {
 		return get(VERSION_INFO, BridgeVersionInfo.class);
 	}
 
@@ -104,7 +107,17 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	@Override
 	public List<Community> getCommunities() throws SynapseException {
+		return getList(COMMUNITY + JOINED, Community.class);
+	}
+
+	@Override
+	public List<Community> getAllCommunities() throws SynapseException {
 		return getList(COMMUNITY, Community.class);
+	}
+
+	@Override
+	public List<UserGroupHeader> getCommunityMembers(String communityId) throws SynapseException {
+		return getList(COMMUNITY + "/" + communityId + MEMBERS, UserGroupHeader.class);
 	}
 
 	@Override

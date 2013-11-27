@@ -450,6 +450,9 @@ public interface SynapseClient extends BaseClient {
 	public V2WikiPage getV2WikiPage(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException;
+	
 	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
 			V2WikiPage toUpdate) throws JSONObjectAdapterException,
 			SynapseException;
@@ -464,6 +467,13 @@ public interface SynapseClient extends BaseClient {
 	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
 		throws JSONObjectAdapterException, SynapseException;
 
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException;
+	
+	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException;
+	
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException;
+	
 	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
 		throws ClientProtocolException, IOException;
 	

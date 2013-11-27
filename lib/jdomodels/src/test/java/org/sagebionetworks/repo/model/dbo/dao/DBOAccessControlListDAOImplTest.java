@@ -206,7 +206,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#get(java.lang.String)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#get(java.lang.String, Long)}.
 	 */
 	@Test
 	public void testGet() throws Exception {

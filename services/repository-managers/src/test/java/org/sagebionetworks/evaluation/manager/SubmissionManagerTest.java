@@ -171,7 +171,7 @@ public class SubmissionManagerTest {
         subStatus.setId(SUB_ID);
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
-        subStatus.setStatus(SubmissionStatusEnum.OPEN);
+        subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
         subStatus.setAnnotations(createDummyAnnotations());
         
         folder = new Folder();
@@ -303,7 +303,7 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetAllSubmissions() throws DatastoreException, UnauthorizedException, NotFoundException {
-		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.CLOSED;
+		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.SCORED;
 		submissionManager.getAllSubmissions(ownerInfo, EVAL_ID, null, 10, 0);
 		submissionManager.getAllSubmissions(ownerInfo, EVAL_ID, statusEnum, 10, 0);
 		verify(mockSubmissionDAO).getAllByEvaluation(eq(EVAL_ID), anyLong(), anyLong());
@@ -313,6 +313,20 @@ public class SubmissionManagerTest {
 	@Test(expected = UnauthorizedException.class)
 	public void testGetAllSubmissionsUnauthorized() throws DatastoreException, UnauthorizedException, NotFoundException {
 		submissionManager.getAllSubmissions(ownerInfo, USER_ID, null, 10, 0);
+	}
+	
+	@Test
+	public void testGetMyOwnSubmissionBundles() throws Exception {
+		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10, 0);
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId(), 10, 0);
+		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId());
+	}
+	
+	@Test
+	public void testGetMyOwnSubmissions() throws Exception {
+		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, EVAL_ID, 10, 0);
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId(), 10, 0);
+		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId());
 	}
 	
 	@Test

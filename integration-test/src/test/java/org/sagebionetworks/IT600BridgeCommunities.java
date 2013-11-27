@@ -4,50 +4,31 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import org.apache.http.HttpException;
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
-import org.sagebionetworks.client.*;
-import org.sagebionetworks.client.exceptions.*;
-import org.sagebionetworks.ids.UuidETagGenerator;
-import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.client.BridgeClient;
+import org.sagebionetworks.client.BridgeClientImpl;
+import org.sagebionetworks.client.BridgeProfileProxy;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
-import org.sagebionetworks.utils.HttpClientHelper;
 
 import com.google.common.collect.Lists;
 
@@ -134,7 +115,7 @@ public class IT600BridgeCommunities {
 
 	@Test
 	public void testGetVersion() throws Exception {
-		BridgeVersionInfo versionInfo = bridge.getVersionInfo();
+		BridgeVersionInfo versionInfo = bridge.getBridgeVersionInfo();
 		assertFalse(versionInfo.getVersion().isEmpty());
 	}
 
@@ -186,9 +167,27 @@ public class IT600BridgeCommunities {
 	 */
 	@Test
 	public void testAddRemoveUsers() throws Exception {
+		int beforeCount = bridge.getAllCommunities().size();
+
 		Community community = createCommunity();
+
+		List<Community> allCommunities = bridge.getAllCommunities();
+		assertEquals(beforeCount + 1, allCommunities.size());
+
+		assertEquals(1, bridge.getCommunities().size());
+		assertEquals(community, bridge.getCommunities().get(0));
+		assertEquals(0, bridgeTwo.getCommunities().size());
+
 		bridgeTwo.joinCommunity(community.getId());
+
+		assertEquals(1, bridge.getCommunities().size());
+		assertEquals(1, bridgeTwo.getCommunities().size());
+		assertEquals(community, bridgeTwo.getCommunities().get(0));
+
 		bridgeTwo.leaveCommunity(community.getId());
+
+		assertEquals(1, bridge.getCommunities().size());
+		assertEquals(0, bridgeTwo.getCommunities().size());
 	}
 
 	private Community createCommunity() throws SynapseException {

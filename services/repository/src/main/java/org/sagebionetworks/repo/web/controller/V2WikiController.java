@@ -208,7 +208,7 @@ public class V2WikiController extends BaseController {
 	}
 
 	/**
-	 * Get a specific WikiPage of of an Entity.
+	 * Get a specific WikiPage of an Entity.
 	 * <p>
 	 * Note: The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -229,14 +229,15 @@ public class V2WikiController extends BaseController {
 	public @ResponseBody
 	V2WikiPage getEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId, @PathVariable String wikiId)
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 	}
 
 	/**
-	 * Get a specific WikiPage of of an Evaluation.
+	 * Get a specific WikiPage of an Evaluation.
 	 * <p>
 	 * Note: The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
@@ -257,12 +258,13 @@ public class V2WikiController extends BaseController {
 	public @ResponseBody
 	V2WikiPage getCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId, @PathVariable String wikiId)
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 	}
-
+	
 	// Update methods.
 	/**
 	 * Update a specific WikiPage of an Entity. This adds a new entry 
@@ -707,11 +709,12 @@ public class V2WikiController extends BaseController {
 	public @ResponseBody
 	FileHandleResults getEntityWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId, @PathVariable String wikiId)
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
 		// Get the redirect url
 		return serviceProvider.getV2WikiService().getAttachmentFileHandles(
-				userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 	}
 
 	/**
@@ -739,13 +742,14 @@ public class V2WikiController extends BaseController {
 	public @ResponseBody
 	FileHandleResults getCompetitionWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String ownerId, @PathVariable String wikiId)
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
 		// Get the redirect url
 		return serviceProvider
 				.getV2WikiService()
 				.getAttachmentFileHandles(userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 	}
 
 	// Files
@@ -944,6 +948,84 @@ public class V2WikiController extends BaseController {
 						userId,
 						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
 						fileName);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Get a URL that can be used to download the markdown file for a given
+	 * WikiPage.
+	 * 
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @param redirect
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	void getEntityWikiMarkdownFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Boolean redirect,
+			@RequestParam(required = false) Long wikiVersion,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getV2WikiService()
+				.getMarkdownRedirectURL(userId,
+						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Get a URL that can be used to download the markdown file for a given
+	 * WikiPage.
+	 * 
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * <p>
+	 * Note: The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the owner.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @param redirect
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID_MARKDOWN_FILE_V2, method = RequestMethod.GET)
+	public @ResponseBody
+	void getEvaluationWikiMarkdownFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId, @PathVariable String wikiId,
+			@RequestParam(required = false) Boolean redirect,
+			@RequestParam(required = false) Long wikiVersion,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getV2WikiService()
+				.getMarkdownRedirectURL(userId,
+						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }

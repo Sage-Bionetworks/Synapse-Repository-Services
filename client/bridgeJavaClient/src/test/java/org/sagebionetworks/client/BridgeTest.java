@@ -51,7 +51,7 @@ public class BridgeTest {
 		BridgeStubHttpClientProvider stubProvider = new BridgeStubHttpClientProvider(mockResponse);
         bridge = new BridgeClientImpl(stubProvider);
 		// Make a call and ensure 
-        bridge.getVersionInfo();
+        bridge.getBridgeVersionInfo();
 		// Validate that the User-Agent was sent
 		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
 		String value = sentHeaders.get("User-Agent");
@@ -71,7 +71,7 @@ public class BridgeTest {
 		String appended = "Appended to the User-Agent";
         bridge.appendUserAgent(appended);
 		// Make a call and ensure 
-        bridge.getVersionInfo();
+        bridge.getBridgeVersionInfo();
 		// Validate that the User-Agent was sent
 		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
 		String value = sentHeaders.get("User-Agent");
