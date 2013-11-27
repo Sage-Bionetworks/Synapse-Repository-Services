@@ -166,31 +166,4 @@ public class DBOMembershipInvtnSubmissionTest {
 		assertEquals(expectedDto, MembershipInvtnSubmissionUtils.copyDboToDto(expectedDbo));
 	}
 
-	@Test
-	public void testTranslatorWithLegacyInput() throws Exception {
-		MembershipInvtnSubmission dto = createMembershipInvtnSubmission(new Date());
-		//It's easiest to create a DBO object by first creating a DTO object and then converting it
-		LegacyMembershipInvtnSubmission legacyDto = new LegacyMembershipInvtnSubmission();
-		legacyDto.setId(dto.getId());
-		legacyDto.setCreatedOn(dto.getCreatedOn());
-		legacyDto.setExpiresOn(dto.getExpiresOn());
-		legacyDto.setInvitees(Collections.singletonList(dto.getInviteeId()));
-		legacyDto.setTeamId(dto.getTeamId());
-		legacyDto.setCreatedBy(dto.getCreatedBy());
-		legacyDto.setMessage(dto.getMessage());
-		DBOMembershipInvtnSubmission backup = new DBOMembershipInvtnSubmission();
-		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, backup);
-		// now we overwrite the serialized blob with that of the legacy object
-		backup.setProperties(JDOSecondaryPropertyUtils.compressObject(legacyDto, "MembershipInvtnSubmission"));
-
-		// see if we can convert it
-		DBOMembershipInvtnSubmission dbo = backup.getTranslator().createDatabaseObjectFromBackup(backup);
-		// the result should be the same as if we turned the original DTO into a DBO
-		DBOMembershipInvtnSubmission expectedDBO = new DBOMembershipInvtnSubmission();
-		MembershipInvtnSubmissionUtils.copyDtoToDbo(dto, expectedDBO);
-		assertEquals(expectedDBO, dbo);
-		assertEquals(dto, MembershipInvtnSubmissionUtils.copyDboToDto(dbo));
-	}
-
-
 }
