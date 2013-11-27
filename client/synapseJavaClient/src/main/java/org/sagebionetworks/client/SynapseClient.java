@@ -467,6 +467,13 @@ public interface SynapseClient extends BaseClient {
 	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
 		throws JSONObjectAdapterException, SynapseException;
 
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException;
+	
+	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException;
+	
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException;
+	
 	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
 		throws ClientProtocolException, IOException;
 	

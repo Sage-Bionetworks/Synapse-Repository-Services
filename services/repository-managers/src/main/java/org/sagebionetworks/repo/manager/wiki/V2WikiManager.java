@@ -34,6 +34,7 @@ public interface V2WikiManager {
 	/**
 	 * Get a wiki page for a given object.
 	 * @param user
+	 * @param version TODO
 	 * @param objectId
 	 * @param objectType
 	 * @param wikiId
@@ -41,18 +42,7 @@ public interface V2WikiManager {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException;
-	
-	/**
-	 * Get a version of a wiki page.
-	 * @param user
-	 * @param key
-	 * @param version
-	 * @return
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	V2WikiPage getVersionOfWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException;
+	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Get the root wiki page for an object.

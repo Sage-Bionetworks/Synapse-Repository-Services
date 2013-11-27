@@ -2510,4 +2510,29 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(
+			WikiPageKey key, Long version) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiMarkdown(WikiPageKey key)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

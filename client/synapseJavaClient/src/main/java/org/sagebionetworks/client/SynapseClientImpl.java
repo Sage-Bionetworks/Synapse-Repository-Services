@@ -186,11 +186,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String WIKI_HISTORY_V2 = "/wikihistory";
 	private static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	private static final String ATTACHMENT_FILE = "/attachment";
+	private static final String MARKDOWN_FILE = "/markdown";
 	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	private static final String FILE_NAME_PARAMETER = "?fileName=";
 	private static final String REDIRECT_PARAMETER = "redirect=";
 	private static final String OFFSET_PARAMETER = "?offset=";
 	private static final String LIMIT_PARAMETER = "limit=";
+	private static final String VERSION_PARAMETER = "?wikiVersion=";
 	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
@@ -2227,8 +2229,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		throws JSONObjectAdapterException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(version == null) throw new IllegalArgumentException("Version cannot be null");
-		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), 
-				key.getOwnerObjectId(), key.getWikiPageId(), String.valueOf(version));
+		
+		String uri = createV2WikiURL(key) + VERSION_PARAMETER + version;
 		return getJSONEntity(uri, V2WikiPage.class);
 	}
 	
@@ -2310,6 +2312,29 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 
+	@Override
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(version == null) throw new IllegalArgumentException("Version cannot be null");
+		String uri = createV2WikiURL(key)+ATTACHMENT_HANDLES+VERSION_PARAMETER+version;
+		return getJSONEntity(uri, FileHandleResults.class);
+	}
+	@Override
+	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createV2WikiURL(key)+MARKDOWN_FILE;
+		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
+	}
+	
+	@Override
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(version == null) throw new IllegalArgumentException("Version cannot be null");
+		String uri = createV2WikiURL(key)+MARKDOWN_FILE+VERSION_PARAMETER+version;
+		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
+	}
+	
 	/**
 	 * 
 	 * @param key - Identifies a V2 wiki page.

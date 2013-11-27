@@ -153,25 +153,17 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		Long rootWikiId = wikiPageDao.getRootWiki(objectId, objectType);
 		WikiPageKey key = new WikiPageKey(objectId, objectType, rootWikiId.toString());
 		// The security check is done in the default method.
-		return getWikiPage(user, key);
+		return getWikiPage(user, key, null);
 	}
 
 	@Override
-	public V2WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException {
-		// Validate that the user has read access
-		validateReadAccess(user, key);
-		// Pass to the DAO
-		return wikiPageDao.get(key, null);
-	}
-
-	@Override
-	public V2WikiPage getVersionOfWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException {
+	public V2WikiPage getWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException {
 		// Validate that the user has read access
 		validateReadAccess(user, key);
 		// Pass to the DAO
 		return wikiPageDao.get(key, version);
 	}
-	
+
 	/**
 	 * Validate that the user has read access to the owner object.
 	 * @param user

@@ -30,6 +30,7 @@ public interface V2WikiService {
 	/**
 	 * Get a wiki page.
 	 * @param userId
+	 * @param version TODO
 	 * @param entityId
 	 * @param entity
 	 * @param wikiId
@@ -37,19 +38,8 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	V2WikiPage getWikiPage(String userId, WikiPageKey key) throws DatastoreException, NotFoundException;
+	V2WikiPage getWikiPage(String userId, WikiPageKey key, Long version) throws DatastoreException, NotFoundException;
 
-	/**
-	 * Get a version of a wiki page.
-	 * @param userId
-	 * @param key
-	 * @param version
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	V2WikiPage getVersionOfWikiPage(String userId, WikiPageKey key, Long version) throws DatastoreException, NotFoundException;
-	
 	/**
 	 * Update a wiki page.
 	 * @param userId

@@ -42,17 +42,10 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public V2WikiPage getWikiPage(String userId, WikiPageKey key)
+	public V2WikiPage getWikiPage(String userId, WikiPageKey key, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.getWikiPage(user, key);
-	}
-
-	@Override
-	public V2WikiPage getVersionOfWikiPage(String userId, WikiPageKey key, Long version) 
-		throws DatastoreException, NotFoundException {
-		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.getVersionOfWikiPage(user, key, version);
+		return wikiManager.getWikiPage(user, key, version);
 	}
 	
 	@Override

@@ -159,6 +159,12 @@ public class ITV2WikiPageTest {
 		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY);
 		assertEquals(wiki, root);
 		
+		// get markdown file
+		File markdown = synapse.downloadV2WikiMarkdown(key);
+		assertNotNull(markdown);
+		File oldMarkdown = synapse.downloadVersionOfV2WikiMarkdown(key, new Long(0));
+		assertNotNull(oldMarkdown);
+		
 		// Get the tree
 		PaginatedResults<V2WikiHeader> tree = synapse.getV2WikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
 		assertNotNull(tree);
@@ -236,6 +242,19 @@ public class ITV2WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
+		
+		// Update wiki with another file handle
+		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
+		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
+		FileHandleResults resultsUpdated = synapse.getV2WikiAttachmentHandles(key);
+		assertEquals(4, resultsUpdated.getList().size());
+		// Getting first version file handles should return two.
+		FileHandleResults oldResults = synapse.getVersionOfV2WikiAttachmentHandles(key, new Long(0));
+		assertEquals(2, oldResults.getList().size());
+		
 		// Make sure we can download
 		File mainFile = null;
 		File previewFile = null;
