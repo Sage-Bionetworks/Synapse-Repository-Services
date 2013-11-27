@@ -254,6 +254,12 @@ public class TeamManagerImpl implements TeamManager {
 		queryResults.setTotalNumberOfResults(count);
 		return queryResults;
 	}
+	
+	@Override
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
+		return teamDAO.getMember(teamId, principalId);
+	}
+
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)

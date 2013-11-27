@@ -116,14 +116,21 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 				SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
 	
-	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
+	private static final String SELECT_MEMBERS_OF_TEAM_CORE =
 			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
 			", up."+COL_USER_PROFILE_ID+
 			", gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_USER_PROFILE+" up "+
 			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+" "+
-			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+	
+	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
+			SELECT_MEMBERS_OF_TEAM_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_SINGLE_MEMBER_OF_TEAM =
+			SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
+			
 	
 	private static final String SELECT_MEMBERS_OF_TEAM_COUNT =
 			"SELECT COUNT(*) FROM "+TABLE_GROUP_MEMBERS+" gm "+
@@ -430,6 +437,19 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		
 		return teamMembers;
+	}
+	
+	
+	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, teamMemberRowMapper, param);
+		if (teamMembers.size()==0) throw new NotFoundException("Could not find member "+principalId+" in team "+teamId);
+		if (teamMembers.size()>1) throw new DatastoreException("Expected one result but found "+teamMembers.size());
+		return teamMembers.get(0);
 	}
 	
 	@Override

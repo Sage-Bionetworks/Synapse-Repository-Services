@@ -77,6 +77,12 @@ public class TeamServiceImpl implements TeamService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return teamManager.create(userInfo, team);
 	}
+	
+	@Override
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
+		return teamManager.getMember(teamId, principalId);
+	}
+
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.TeamService#get(long, long)

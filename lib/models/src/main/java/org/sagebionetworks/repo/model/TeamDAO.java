@@ -44,6 +44,16 @@ public interface TeamDAO {
 	/**
 	 * 
 	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
 	 * @param limit
 	 * @param offset
 	 * @return
