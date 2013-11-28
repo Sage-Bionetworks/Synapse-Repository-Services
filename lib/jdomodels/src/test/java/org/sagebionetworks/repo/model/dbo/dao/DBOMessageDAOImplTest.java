@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -155,6 +156,11 @@ public class DBOMessageDAOImplTest {
 		assertEquals(userToGroup, messageDAO.getMessage(userToGroup.getId()));
 		assertEquals(groupReplyToUser, messageDAO.getMessage(groupReplyToUser.getId()));
 		assertEquals(userReplyToGroup, messageDAO.getMessage(userReplyToGroup.getId()));
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testGetNonexistentMessage() throws Exception {
+		messageDAO.getMessage("-1");
 	}
 	
 	@Test
@@ -293,5 +299,28 @@ public class DBOMessageDAOImplTest {
 		assertTrue(messageDAO.hasMessageBeenSent(userToGroup.getId()));
 		assertTrue(messageDAO.hasMessageBeenSent(groupReplyToUser.getId()));
 		assertTrue(messageDAO.hasMessageBeenSent(userReplyToGroup.getId()));
+	}
+	
+	@Test
+	public void testCanCreateMessage() throws Exception {
+		// Note: The malicious user has already created at least 3 messages
+		
+		// Default settings
+		assertTrue(messageDAO.canCreateMessage(maliciousUser.getId(), 10, 60000));
+		
+		// Negative interval
+		assertTrue(messageDAO.canCreateMessage(maliciousUser.getId(), 1, -1));
+		
+		// Super long interval with low threshold (hopefully the test takes less than 1 hour :)
+		assertFalse(messageDAO.canCreateMessage(maliciousUser.getId(), 1, 3600000));
+		
+		// Super long interval with normal threshold
+		assertTrue(messageDAO.canCreateMessage(maliciousUser.getId(), 10, 3600000));
+		
+		// Negative threshold
+		assertFalse(messageDAO.canCreateMessage(maliciousUser.getId(), -1, 60000));
+		
+		// Negative threshold takes priority over negative interval
+		assertFalse(messageDAO.canCreateMessage(maliciousUser.getId(), -1, -1));
 	}
 }

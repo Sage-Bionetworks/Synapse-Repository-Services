@@ -73,12 +73,8 @@ public interface MessageManager {
 	 * </br>
 	 * Non-fatal errors will be caught and their error messages will be returned in a list.
 	 * It is the caller's responsibility to send a bounce message to the user.
-	 * 
-	 * @param oneTransaction Should the sending be done in one transaction or one transaction per recipient?
-	 *    This allows the sending of messages during creation to complete without deadlock. 
-	 *    Should generally be false.
 	 */
-	public List<String> sendMessage(String messageId, boolean oneTransaction) throws NotFoundException;
+	public List<String> sendMessage(String messageId) throws NotFoundException;
 	
 	/**
 	 * Deletes a message, only accessible to admins
