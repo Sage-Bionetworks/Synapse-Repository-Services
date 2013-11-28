@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -53,13 +54,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken) {
+	public String revalidate(String sessionToken) throws NotFoundException {
 		return revalidate(sessionToken, true);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken, boolean checkToU) {
+	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -129,7 +130,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(ChangePasswordRequest request) {
+	public void changePassword(ChangePasswordRequest request) throws NotFoundException {
 		if (request.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -163,6 +164,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public String getSecretKey(String username) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(username);
+		if (!userInfo.getUser().isAgreesToTermsOfUse()) {
+			throw new TermsOfUseException();
+		}
 		return authManager.getSecretKey(userInfo.getIndividualGroup().getId());
 	}
 	

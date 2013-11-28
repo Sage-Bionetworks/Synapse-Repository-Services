@@ -113,6 +113,11 @@ public class AuthenticationFilter implements Filter {
 			try {
 				String secretKey = authenticationService.getSecretKey(username);
 				matchHMACSHA1Signature(req, secretKey);
+			} catch (TermsOfUseException e) {
+				String reason = "Terms of use have not been signed";
+				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
+				log.warn("Secret key used without signing terms of use", e);
+				return;
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
 				log.warn("Invalid HMAC signature", e);
