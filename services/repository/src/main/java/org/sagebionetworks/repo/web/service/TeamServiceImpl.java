@@ -80,7 +80,9 @@ public class TeamServiceImpl implements TeamService {
 	
 	@Override
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
-		return teamManager.getMember(teamId, principalId);
+		TeamMember teamMember = teamManager.getMember(teamId, principalId);
+		UserProfileManagerUtils.clearPrivateFields(null, teamMember.getMember());
+		return teamMember;
 	}
 
 
