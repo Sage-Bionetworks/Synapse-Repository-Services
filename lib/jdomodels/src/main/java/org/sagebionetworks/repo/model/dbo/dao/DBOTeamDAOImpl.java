@@ -143,6 +143,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			"SELECT COUNT(gm."+COL_GROUP_MEMBERS_MEMBER_ID+") "+SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
 			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
+	private static final String IS_MEMBER_AN_ADMIN = 
+			SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT +
+			" and gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
+	
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
 
@@ -449,7 +453,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, teamMemberRowMapper, param);
 		if (teamMembers.size()==0) throw new NotFoundException("Could not find member "+principalId+" in team "+teamId);
 		if (teamMembers.size()>1) throw new DatastoreException("Expected one result but found "+teamMembers.size());
-		return teamMembers.get(0);
+		TeamMember theMember = teamMembers.get(0);
+		// now find if it's an admin
+		long adminCount = simpleJdbcTemplate.queryForLong(IS_MEMBER_AN_ADMIN, param);
+		if (adminCount==1) theMember.setIsAdmin(true);
+		if (adminCount>1) throw new DatastoreException("Expected 0-1 but found "+adminCount);
+		return theMember;
 	}
 	
 	@Override
