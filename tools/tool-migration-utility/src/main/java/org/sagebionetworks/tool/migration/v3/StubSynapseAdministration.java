@@ -1332,8 +1332,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-
+	
 	@Override
 	public V2WikiPage getV2WikiPage(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException {
@@ -1341,6 +1340,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+	@Override
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
@@ -2502,6 +2507,31 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary, OriginatingClient originClient)
 			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(
+			WikiPageKey key, Long version) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiMarkdown(WikiPageKey key)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version)
+			throws ClientProtocolException, FileNotFoundException, IOException {
 		// TODO Auto-generated method stub
 		return null;
 	}

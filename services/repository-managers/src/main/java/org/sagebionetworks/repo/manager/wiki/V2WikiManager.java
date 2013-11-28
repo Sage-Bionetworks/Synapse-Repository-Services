@@ -34,6 +34,7 @@ public interface V2WikiManager {
 	/**
 	 * Get a wiki page for a given object.
 	 * @param user
+	 * @param version TODO
 	 * @param objectId
 	 * @param objectType
 	 * @param wikiId
@@ -41,7 +42,7 @@ public interface V2WikiManager {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException;
+	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Get the root wiki page for an object.
@@ -103,10 +104,11 @@ public interface V2WikiManager {
 	 * Get the attachment file handles for a give wiki page.
 	 * @param user
 	 * @param wikiPageKey
+	 * @param version TODO
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey wikiPageKey) throws NotFoundException;
+	FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey wikiPageKey, Long version) throws NotFoundException;
 	
 	/**
 	 * Get the FileHandle ID for a given WikiPage and file name.
@@ -117,6 +119,16 @@ public interface V2WikiManager {
 	 */
 	String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName) throws NotFoundException, UnauthorizedException;
 
+	/**
+	 * Get the markdown file handle for a wiki page.
+	 * @param user
+	 * @param wikiPageKey
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	String getMarkdownFileHandleId(UserInfo user, WikiPageKey wikiPageKey, Long version) throws NotFoundException, UnauthorizedException;
+	
 	/**
 	 * @param user
 	 * @param ownerId
