@@ -131,7 +131,7 @@ public class V2WikiManagerTest {
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
-		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"));
+		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -147,8 +147,23 @@ public class V2WikiManagerTest {
 		// setup allow
 		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		wikiManager.getWikiPage(new UserInfo(false),key);
-		verify(mockWikiDao, times(1)).get(key);
+		wikiManager.getWikiPage(new UserInfo(false),key, null);
+		verify(mockWikiDao, times(1)).get(key, null);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetVersionUnauthorized() throws DatastoreException, NotFoundException {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+	}
+	
+	@Test
+	public void testGetVersionAuthorized() throws UnauthorizedException, NotFoundException {
+		Long version = new Long(0);
+		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		wikiManager.getWikiPage(new UserInfo(false),key, version);
+		verify(mockWikiDao, times(1)).get(key, version);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -165,6 +180,22 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.getFileHandleIdForFileName(new UserInfo(false),key,"fileName");
 		verify(mockWikiDao, times(1)).getWikiAttachmentFileHandleForFileName(key, "fileName");
+	}
+	
+	// Same test for getMarkdownFileHandleId()
+	@Test (expected=UnauthorizedException.class)
+	public void testMarkdownFileHandleIdForVersionUnauthorized() throws DatastoreException, NotFoundException {
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		wikiManager.getMarkdownFileHandleId(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+	}
+	
+	// Same test for getMarkdownFileHandleId()
+	@Test
+	public void testMarkdownFileHandleIdForVersion() throws UnauthorizedException, NotFoundException {
+		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		wikiManager.getMarkdownFileHandleId(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -203,7 +234,7 @@ public class V2WikiManagerTest {
 		// deny
 		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(false);
 		// Ready to make the call
-		wikiManager.getAttachmentFileHandles(user, key);
+		wikiManager.getAttachmentFileHandles(user, key, null);
 	}
 	
 	@Test
@@ -229,12 +260,12 @@ public class V2WikiManagerTest {
 		// The list only contains the S3 handles and not the previews
 		wikiHandleIds.add("2");
 		wikiHandleIds.add("1");
-		when(mockWikiDao.getWikiFileHandleIds(key)).thenReturn(wikiHandleIds);
+		when(mockWikiDao.getWikiFileHandleIds(key, null)).thenReturn(wikiHandleIds);
 		
 		// Allow
 		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(true);
 		// Ready to make the call
-		FileHandleResults results = wikiManager.getAttachmentFileHandles(user, key);
+		FileHandleResults results = wikiManager.getAttachmentFileHandles(user, key, null);
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals("There should be 2 file handles.",2, results.getList().size());
@@ -249,6 +280,28 @@ public class V2WikiManagerTest {
 		assertNotNull(handle);
 		assertEquals("1", handle.getId());
 		assertTrue(handle instanceof S3FileHandle);
+		
+		// Test getting the attachments for another version
+		List<String> versionIds = new LinkedList<String>();
+		wikiHandleIds.add("1");
+		
+		FileHandleResults expectedVersionResults = new FileHandleResults();
+		expectedVersionResults.setList(new LinkedList<FileHandle>());
+		expectedVersionResults.getList().add(handleOne);
+		
+		when(mockWikiDao.getWikiFileHandleIds(key, new Long(1))).thenReturn(versionIds);
+		when(mockFileDao.getAllFileHandles(versionIds, true)).thenReturn(expectedVersionResults);
+		FileHandleResults versionResults = wikiManager.getAttachmentFileHandles(user, key, new Long(1));
+		assertNotNull(versionResults);
+		assertEquals("1", versionResults.getList().get(0).getId());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetAttachmentFileHandlesForVersionUnauthroized() throws DatastoreException, NotFoundException{
+		// deny
+		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(false);
+		// Ready to make the call
+		wikiManager.getAttachmentFileHandles(user, key, new Long(0));
 	}
 	
 	@Test
@@ -545,8 +598,8 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), current);
-		verify(mockWikiDao, times(1)).getMarkdownHandleIdFromHistory(key, new Long(0));
-		verify(mockWikiDao, times(1)).getWikiFileHandleIdsFromHistory(key, new Long(0));
+		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
+		verify(mockWikiDao, times(1)).getWikiFileHandleIds(key, new Long(0));
 		verify(mockWikiDao, times(1)).updateWikiPage(current, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
 	}
 	
@@ -612,8 +665,8 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
-		when(mockWikiDao.getWikiFileHandleIdsFromHistory(key, new Long(0))).thenReturn(fileHandleIdsToRestore);
-		when(mockWikiDao.getMarkdownHandleIdFromHistory(key, new Long(0))).thenReturn(markdown.getId());
+		when(mockWikiDao.getWikiFileHandleIds(key, new Long(0))).thenReturn(fileHandleIdsToRestore);
+		when(mockWikiDao.getMarkdownHandleId(key, new Long(0))).thenReturn(markdown.getId());
 		
 		// Old wiki we're passing into restoration for update
 		// This will be assigned content (received by getWikiFilHandleIdsFromHistory etc)
@@ -627,8 +680,8 @@ public class V2WikiManagerTest {
 		wiki.setMarkdownFileHandleId(markdown2.getId());
 		
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wiki);
-		verify(mockWikiDao, times(1)).getMarkdownHandleIdFromHistory(key, new Long(0));
-		verify(mockWikiDao, times(1)).getWikiFileHandleIdsFromHistory(key, new Long(0));
+		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
+		verify(mockWikiDao, times(1)).getWikiFileHandleIds(key, new Long(0));
 		
 		verify(mockWikiDao, times(1)).getFileHandleReservationForWiki(key);
 		// File name map of new/restored content that should be passed to the dao
@@ -682,12 +735,12 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetNullUser() throws UnauthorizedException, NotFoundException{
-		wikiManager.getWikiPage(null, new WikiPageKey("123", ObjectType.EVALUATION, "345"));
+		wikiManager.getWikiPage(null, new WikiPageKey("123", ObjectType.EVALUATION, "345"), null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetNullKey() throws UnauthorizedException, NotFoundException{
-		wikiManager.getWikiPage(new UserInfo(true), null);
+		wikiManager.getWikiPage(new UserInfo(true), null, null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

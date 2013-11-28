@@ -130,23 +130,27 @@ public class V2WikiTranslationUtilsTest {
 		wikiDbo.setParentId(null);
 		wikiDbo.setRootId(id);
 		wikiDbo.setTitle("Title");
-		// Wiki's attachments
-		List<String> fileHandleIds = new ArrayList<String>();
-		fileHandleIds.add(String.valueOf(new Long(444)));
 
 		try {
-			V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, null);
+			V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, new ArrayList<String>(), null);
 			fail("Null Markdown file handle id should not be allowed");
 		} catch(IllegalArgumentException e) {
 			// expected
 		}
 		
-		V2WikiPage pageClone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, markdownFileHandleId);
+		V2DBOWikiMarkdown markdownDbo = new V2DBOWikiMarkdown();
+		markdownDbo.setFileHandleId(markdownFileHandleId);
+		markdownDbo.setMarkdownVersion(new Long(0));
+		markdownDbo.setModifiedBy(user);
+		markdownDbo.setModifiedOn(time);
+		markdownDbo.setTitle("Title");
+		markdownDbo.setWikiId(id);
+		markdownDbo.setAttachmentIdList(new byte[0]);
+		V2WikiPage pageClone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, new ArrayList<String>(), markdownDbo);
 		
 		// WikiPage
 		V2WikiPage page = new V2WikiPage();
 		page.setAttachmentFileHandleIds(new ArrayList<String>());
-		page.getAttachmentFileHandleIds().add(String.valueOf(new Long(444)));
 		page.setCreatedBy(String.valueOf(user));
 		page.setCreatedOn(new Date(time));
 		page.setEtag("etag");
@@ -234,10 +238,13 @@ public class V2WikiTranslationUtilsTest {
 		dto.setMarkdownFileHandleId(markdown.getId());
 		
 		V2DBOWikiPage wikiDbo = V2WikiTranslationUtils.createDBOFromDTO(dto);
+		V2DBOWikiMarkdown markdownDbo = V2WikiTranslationUtils.createDBOWikiMarkdownFromDTO(fileNameMap, wikiDbo.getId(), new Long(markdown.getId()), wikiDbo.getTitle());
+		markdownDbo.setModifiedBy(wikiDbo.getModifiedBy());
+		markdownDbo.setModifiedOn(wikiDbo.getModifiedOn());
 		List<String> fileHandleIds = new ArrayList<String>();
 		fileHandleIds.add(handleOne.getId());
 		fileHandleIds.add(handleTwo.getId());
-		V2WikiPage clone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, Long.valueOf(markdown.getId()));
+		V2WikiPage clone = V2WikiTranslationUtils.createDTOfromDBO(wikiDbo, fileHandleIds, markdownDbo);
 		Collections.sort(clone.getAttachmentFileHandleIds());
 		assertNotNull(clone);
 		assertEquals(dto, clone);

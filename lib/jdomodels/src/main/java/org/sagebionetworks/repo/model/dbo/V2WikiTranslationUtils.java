@@ -67,28 +67,28 @@ public class V2WikiTranslationUtils {
 	 * @param attachments
 	 * @return
 	 */
-	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<String> fileHandleIds, Long markdownFileHandleId){
+	public static V2WikiPage createDTOfromDBO(V2DBOWikiPage dtoPage, List<String> fileHandleIds, V2DBOWikiMarkdown dtoMarkdown){
 		if(dtoPage == null) throw new IllegalArgumentException("WikiPage dbo cannot be null");
 		if(fileHandleIds == null) throw new IllegalArgumentException("List of attachments cannot be null");
-		if(markdownFileHandleId == null) throw new IllegalArgumentException("Markdown file handle id cannot be null");
+		if(dtoMarkdown == null) throw new IllegalArgumentException("Markdown file handle id cannot be null");
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setAttachmentFileHandleIds(fileHandleIds);
 		page.setId(dtoPage.getId().toString());
 		page.setEtag(dtoPage.getEtag());
-		page.setTitle(dtoPage.getTitle());
+		page.setTitle(dtoMarkdown.getTitle());
 		page.setCreatedBy(dtoPage.getCreatedBy().toString());
 		if(dtoPage.getCreatedOn() != null){
 			page.setCreatedOn(new Date(dtoPage.getCreatedOn()));
 		}
-		page.setModifiedBy(dtoPage.getModifiedBy().toString());
+		page.setModifiedBy(dtoMarkdown.getModifiedBy().toString());
 		if(dtoPage.getModifiedOn() != null){
-			page.setModifiedOn(new Date(dtoPage.getModifiedOn()));
+			page.setModifiedOn(new Date(dtoMarkdown.getModifiedOn()));
 		}
 		if(dtoPage.getParentId() != null){
 			page.setParentWikiId(dtoPage.getParentId().toString());
 		}
-		page.setMarkdownFileHandleId(markdownFileHandleId.toString());
+		page.setMarkdownFileHandleId(dtoMarkdown.getFileHandleId().toString());
 		
 		return page;
 	}

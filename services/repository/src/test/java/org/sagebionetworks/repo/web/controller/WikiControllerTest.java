@@ -190,7 +190,7 @@ public class WikiControllerTest {
 		assertNotNull(cloneUpdated);
 		// Title should be updated. V2 should have mirrored it too.
 		assertEquals("updated title", cloneUpdated.getTitle());
-		assertEquals("updated title", v2WikiPageDao.get(key).getTitle());
+		assertEquals("updated title", v2WikiPageDao.get(key, null).getTitle());
 		assertFalse("The etag should have changed from the update", currentEtag.equals(cloneUpdated.getId()));
 		
 		// Add a child wiki
@@ -261,7 +261,7 @@ public class WikiControllerTest {
 		// Delete file handles etc made when creating V2 wikis
 		// Start with child so resources aren't lost when deleting the parent first
 		for(int i = toDelete.size() - 1; i >= 0; i--) {
-			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i));
+			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i), null);
 			String markdownHandleId = wikiPage.getMarkdownFileHandleId();
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
