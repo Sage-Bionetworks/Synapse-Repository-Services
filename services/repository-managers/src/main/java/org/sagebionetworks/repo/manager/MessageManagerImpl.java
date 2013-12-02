@@ -1,15 +1,20 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,6 +33,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -69,6 +75,11 @@ public class MessageManagerImpl implements MessageManager {
 	 * The maximum number of targets of a message
 	 */
 	protected static final long MAX_NUMBER_OF_RECIPIENTS = 50L;
+	
+	/**
+	 * Email address used as the sender of emails
+	 */
+	private static final String GENERIC_EMAIL_ADDRESS = "synapse@sagebase.org";
 	
 	@Autowired
 	private MessageDAO messageDAO;
@@ -192,7 +203,7 @@ public class MessageManagerImpl implements MessageManager {
 			if (ug.getIsIndividual()) {
 				List<String> errors;
 				try {
-					errors = sendMessage(dto.getId(), true);
+					errors = processMessage(dto.getId(), true);
 				} catch (NotFoundException e) {
 					throw new DatastoreException("Could not find a message that was created in the same transaction");
 				}
@@ -261,11 +272,12 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public List<String> processMessage(String messageId) throws NotFoundException {
-		return sendMessage(messageId, false);
+		return processMessage(messageId, false);
 	}
 	
 	/**
 	 * See {@link #processMessage(String)}
+	 * Also used by {@link #createMessage(UserInfo, MessageToUser)}
 	 * 
 	 * @param singleTransaction Should the sending be done in one transaction or one transaction per recipient?
 	 *    This allows the sending of messages during creation to complete without deadlock. 
@@ -273,25 +285,96 @@ public class MessageManagerImpl implements MessageManager {
 	 *      Otherwise the 'sending step' waits forever for the lock obtained by the 'creation step' to be released.
 	 * General usage of this method sets this parameter to false.
 	 */
-	private List<String> sendMessage(String messageId, boolean singleTransaction) throws NotFoundException {
+	private List<String> processMessage(String messageId, boolean singleTransaction) throws NotFoundException {
+		MessageToUser dto = messageDAO.getMessage(messageId);
+		String messageBody = downloadEmailContent(dto.getFileHandleId());
+		return processMessage(dto, singleTransaction, messageBody);
+	}
+	
+	/**
+	 * See {@link #processMessage(String, boolean)}
+	 * Also used by {@link #sendEmail(org.sagebionetworks.repo.manager.MessageManager.EMAIL_TEMPLATE, String, String, Map, boolean)}
+	 * 
+	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
+	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
+	 */
+	private List<String> processMessage(MessageToUser dto, boolean singleTransaction, String messageBody) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		
-		MessageToUser dto = messageDAO.getMessage(messageId);
-		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		// Check to see if the message has already been sent
+		// If so, nothing else needs to be done
+		if (messageDAO.hasMessageBeenSent(dto.getId())) {
+			return errors;
+		}
+		
+		// Get the individual recipients
+		Set<String> recipients = expandRecipientSet(Long.parseLong(dto.getCreatedBy()), dto.getRecipients(), errors);
+		
+		// Make sure the caller set the boolean correctly
+		if (recipients.size() > 1 && singleTransaction) {
+			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
+		}
+		
+		// Now that the recipients list has been expanded, begin processing the message
+		for (String user : recipients) {
+			// Try to send messages to each user individually
+			try {
+				// Get the user's settings
+				Settings settings = null;
+				try {
+					UserProfile profile = userProfileDAO.get(user);
+					settings = profile.getNotificationSettings();
+				} catch (NotFoundException e) { }
+				if (settings == null) {
+					settings = new Settings();
+				}
+				
+				MessageStatusType defaultStatus = null;
+				
+				// Should emails be sent?
+				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
+					sendEmail(userGroupDAO.get(user).getName(), 
+							dto.getSubject(),
+							messageBody);
+					
+					// Should the message be marked as READ?
+					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
+						defaultStatus = MessageStatusType.READ;
+					}
+				}
+				
+				// This marks a user as a recipient of the message
+				// which is equivalent to marking the message as sent
+				if (singleTransaction) {
+					messageDAO.createMessageStatus_SameTransaction(dto.getId(), user, defaultStatus);
+				} else {
+					messageDAO.createMessageStatus_NewTransaction(dto.getId(), user, defaultStatus);
+				}
+			} catch (Exception e) {
+				log.info("Error caught while processing message", e);
+				errors.add("Failed while processing message for recipient (" + user + "): " + e.getMessage());
+			}
+		}
+		
+		return errors;
+	}
+	
+	/**
+	 * Helper for {@link #processMessage(String, boolean)}
+	 * 
+	 * Takes a set of user IDs and expands it into a set of individuals that the user is permitted to message
+	 */
+	private Set<String> expandRecipientSet(long userId, Set<String> intendedRecipients, List<String> errors) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
 		UserGroup authUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
 		if (authUsers == null) {
 			throw new DatastoreException("Could not find the default group for all authenticated users");
 		}
 		
-		// Check to see if the message has already been sent
-		// If so, nothing else needs to be done
-		if (messageDAO.hasMessageBeenSent(messageId)) {
-			return errors;
-		}
-		
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
-		for (String principalId : dto.getRecipients()) {
+		for (String principalId : intendedRecipients) {
 			UserGroup ug;
 			try {
 				ug = userGroupDAO.get(principalId);
@@ -329,54 +412,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		// Make sure the caller set the boolean correctly
-		if (recipients.size() > 1 && singleTransaction) {
-			throw new IllegalArgumentException("A message sent to multiple recipients must be done in separate transactions");
-		}
-		
-		// Now that the recipients list has been expanded, begin processing the message
-		for (String user : recipients) {
-			// Try to send messages to each user individually
-			try {
-				// Get the user's settings
-				Settings settings = null;
-				try {
-					UserProfile profile = userProfileDAO.get(user);
-					settings = profile.getNotificationSettings();
-				} catch (NotFoundException e) { }
-				if (settings == null) {
-					settings = new Settings();
-				}
-				
-				MessageStatusType defaultStatus = null;
-				
-				// Should emails be sent?
-				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					sendEmail(userGroupDAO.get(user).getName(), 
-							userInfo.getIndividualGroup().getName(), 
-							dto.getSubject(),
-							downloadEmailContent(dto.getFileHandleId()));
-					
-					// Should the message be marked as READ?
-					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
-						defaultStatus = MessageStatusType.READ;
-					}
-				}
-				
-				// This marks a user as a recipient of the message
-				// which is equivalent to marking the message as sent
-				if (singleTransaction) {
-					messageDAO.createMessageStatus_SameTransaction(messageId, user, defaultStatus);
-				} else {
-					messageDAO.createMessageStatus_NewTransaction(messageId, user, defaultStatus);
-				}
-			} catch (Exception e) {
-				log.info("Error caught while processing message", e);
-				errors.add(e.getMessage());
-			}
-		}
-		
-		return errors;
+		return recipients;
 	}
 
 	@Override
@@ -389,40 +425,133 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
-	public void sendEmail(EMAIL_TEMPLATE template, String recipient,
-			Map<String, String> replacements, boolean createRecord) {
-		//TODO 
+	public void sendEmail(final EMAIL_TEMPLATE template, String recipientId, String subject,
+			Map<String, String> replacements, boolean createRecord) throws NotFoundException {
+		// Load the template text
+		String messageBody;
+		switch (template) {
+		case WELCOME:
+			messageBody = readMailTemplate("WelcomeTemplate.txt");
+			break;
+		case PASSWORD_RESET:
+			messageBody = readMailTemplate("PasswordResentTemplate.txt");
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown email template type: " + template);
+		}
+		
+		// Replace text within the template
+		for (String key : replacements.keySet()) {
+			messageBody = messageBody.replaceAll(key, replacements.get(key));
+		}
+		
+		// Send out the message
+		if (createRecord) {
+			// Upload the message body to S3
+			final String content = messageBody;
+			FileItemStream fis = new FileItemStream() {
+				@Override
+				public InputStream openStream() throws IOException {
+					return new ByteArrayInputStream(content.getBytes());
+				}
+
+				@Override
+				public boolean isFormField() {
+					return false;
+				}
+
+				@Override
+				public String getName() {
+					return template.name() + UUID.randomUUID() + ".txt";
+				}
+
+				@Override
+				public String getFieldName() {
+					return "none";
+				}
+
+				@Override
+				public String getContentType() {
+					return "application/text";
+				}
+			};
+			S3FileHandle handle = fileHandleManager.uploadFile(userId, fis);
+			
+			// Add an entry to the message tables
+			MessageToUser dto = new MessageToUser();
+			dto.setCreatedBy(createdBy);
+			dto.setFileHandleId(handle.getId());
+			dto.setSubject(subject);
+			dto.setRecipients(new HashSet<String>());
+			dto.getRecipients().add(recipientId);
+			
+			dto = messageDAO.createMessage(dto);
+			
+			// Now process the message like any other message
+			processMessage(dto, true, messageBody);
+		} else {
+			UserGroup recipient = userGroupDAO.get(recipientId);
+			sendEmail(recipient.getName(), subject, messageBody);
+		}
+	}
+	
+	/**
+	 * Reads a resource into a string
+	 */
+	private String readMailTemplate(String filename) {
+		try {
+			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(filename);
+			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			StringBuilder sb = new StringBuilder();
+			try {
+				String s = br.readLine();
+				while (s != null) {
+					sb.append(s + "\r\n");
+					s = br.readLine();
+				}
+				return sb.toString();
+			} finally {
+				br.close();
+				is.close();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**
 	 * Returns a string containing the body of a message
 	 */
-	private String downloadEmailContent(String fileHandleId) throws NotFoundException, IOException {
+	private String downloadEmailContent(String fileHandleId) throws NotFoundException {
 		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 		
 		// Read the file
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		InputStream in = null;
 		try {
-			byte[] buffer = new byte[1024];
-			in = url.openStream();
-			int length = 0;
-			while ((length = in.read(buffer)) > 0) {
-				out.write(buffer, 0, length);
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			InputStream in = null;
+			try {
+				byte[] buffer = new byte[1024];
+				in = url.openStream();
+				int length = 0;
+				while ((length = in.read(buffer)) > 0) {
+					out.write(buffer, 0, length);
+				}
+				return new String(out.toByteArray());
+			} finally {
+				if (in != null) {
+					in.close();
+				}
+				out.close();
 			}
-			return new String(out.toByteArray());
-		} finally {
-			if (in != null) {
-				in.close();
-			}
-			out.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	
 	/**
 	 * Constructs a email to send via Amazon SES
 	 */
-	private SendEmailResult sendEmail(String recipient, String from, String subject, String body) {
+	private SendEmailResult sendEmail(String recipient, String subject, String body) {
 		// Construct an object to contain the recipient address
         Destination destination = new Destination().withToAddresses(recipient);
         
@@ -437,7 +566,10 @@ public class MessageManagerImpl implements MessageManager {
         Message message = new Message().withSubject(textSubject).withBody(messageBody);
         
         // Assemble the email
-        SendEmailRequest request = new SendEmailRequest().withSource(from).withDestination(destination).withMessage(message);
+		SendEmailRequest request = new SendEmailRequest()
+				.withSource(GENERIC_EMAIL_ADDRESS)
+				.withDestination(destination)
+				.withMessage(message);
         
         // Send the email
         System.out.println(request);

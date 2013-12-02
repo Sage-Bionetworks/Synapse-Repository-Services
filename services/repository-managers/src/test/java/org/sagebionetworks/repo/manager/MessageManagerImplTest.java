@@ -4,22 +4,28 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.MessageManager.EMAIL_TEMPLATE;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
@@ -138,6 +144,8 @@ public class MessageManagerImplTest {
 		URL url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt");
 		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
 		messageManager.setFileHandleManager(mockFileHandleManager);
+		
+		when(mockFileHandleManager.uploadFile(anyString(), any(FileItemStream.class))).thenReturn(handle);
 		
 		// Create all the messages
 		// These will be send automatically since they have only one recipient
@@ -503,6 +511,24 @@ public class MessageManagerImplTest {
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message3, inbox.getResults().get(0).getMessage());
+	}
+	
+	@Test
+	public void testSendTemplateEmail() throws Exception {
+		// Send an email to the test user
+		messageManager.sendEmail(EMAIL_TEMPLATE.WELCOME, testUser
+				.getIndividualGroup().getId(), "This is a welcome email",
+				new HashMap<String, String>(), false);
+		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
 		
+		// Same thing, but this time, a message should be created
+		String subject = "This is a password reset email that appears in the user's inbox";
+		messageManager.sendEmail(EMAIL_TEMPLATE.PASSWORD_RESET, testUser
+				.getIndividualGroup().getId(), subject,
+				new HashMap<String, String>(), true);
+		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
+		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(subject, inbox.getResults().get(0).getMessage().getSubject());
 	}
 }

@@ -20,20 +20,26 @@ public interface MessageManager {
 	public enum EMAIL_TEMPLATE {
 		/**
 		 * Meant for new users that have created an account via OpenID
+		 * </br>
 		 * Replacement fields:
-		 *     #originclient#
-		 *     #displayname# 
-		 *     #username#
+		 * <ul>
+		 *     <li>#originclient#</li>
+		 *     <li>#displayname#</li> 
+		 *     <li>#username#</li>
+		 * </ul>
 		 */
 		WELCOME,
 		
 		/**
 		 * Contains a link used to reset a user's password
+		 * </br>
 		 * Replacement fields: 
-		 *     #originclient#
-		 *     #displayname#
-		 *     #username#
-		 *     #link#
+		 * <ul>
+		 *     <li>#originclient#</li>
+		 *     <li>#displayname#</li>
+		 *     <li>#username#</li>
+		 *     <li>#link#</li>
+		 * </ul>
 		 */
 		PASSWORD_RESET
 	};
@@ -101,6 +107,8 @@ public interface MessageManager {
 	 * </br>
 	 * Non-fatal errors will be caught and their error messages will be returned in a list.
 	 * It is the caller's responsibility to send a bounce message to the user.
+	 * </br>
+	 * Note: This method is to be used by the MessageToUserWorker and should not be exposed via the REST API.
 	 */
 	public List<String> processMessage(String messageId) throws NotFoundException;
 	
@@ -113,7 +121,11 @@ public interface MessageManager {
 	 * Sends an email based on a template via Amazon SES
 	 * 
 	 * @param createRecord Should the message be saved within the messaging system?
-	 *   i.e. Transient emails like password resets do not and should not be saved
+	 *   i.e. Transient emails like password resets do not need to be saved and should not be saved
+	 *   Note: If set to false, an email is sent regardless of the user's preferences for notifications 
+	 *   (because there would be no other way of retrieving the message).
 	 */
-	public void sendEmail(EMAIL_TEMPLATE template, String recipient, Map<String, String> replacements, boolean createRecord);
+	public void sendEmail(EMAIL_TEMPLATE template, String recipientId,
+			String subject, Map<String, String> replacements,
+			boolean createRecord) throws NotFoundException;
 }
