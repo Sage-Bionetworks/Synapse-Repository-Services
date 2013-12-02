@@ -202,6 +202,10 @@ public class StackConfiguration {
 	public static String getBridgeServiceEndpoint() {
 		return configuration.getBridgeServiceEndpoint();
 	}
+	
+	public static String getPortalEndpoint() {
+		return configuration.getPortalEndpoint();
+	}
 
 	/**
 	 * This is the bucket for workflow-related files such as configuration or

@@ -1,13 +1,16 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
-import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.MessageManager;
+import org.sagebionetworks.repo.manager.MessageManager.EMAIL_TEMPLATE;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
@@ -29,6 +32,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Autowired
 	private AuthenticationManager authManager;
+	
+	@Autowired
+	private MessageManager messageManager;
 	
 	public AuthenticationServiceImpl() {}
 	
@@ -114,17 +120,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		UserInfo user = userManager.getUserInfo(username);
 		username = user.getIndividualGroup().getName();
 		String sessionToken = authManager.authenticate(username, null).getSessionToken();
-
-		// Pass along some basic info to the email sender
-		NewUser mailTarget = new NewUser();
-		mailTarget.setDisplayName(user.getUser().getDisplayName());
-		mailTarget.setEmail(user.getIndividualGroup().getName());
-		mailTarget.setFirstName(user.getUser().getFname());
-		mailTarget.setLastName(user.getUser().getLname());
 		
 		// Send the email
-		SendMail sendMail = new SendMail(originClient);
-		sendMail.sendSetPasswordMail(mailTarget, sessionToken);
+		Map<String, String> replacements = new HashMap<String, String>();
+		replacements.put(MessageManager.TEMPLATE_KEY_DISPLAY_NAME, user.getUser().getDisplayName());
+		replacements.put(MessageManager.TEMPLATE_KEY_USERNAME, user.getIndividualGroup().getName());
+		String subject;
+		switch (originClient) {
+		case BRIDGE:
+			subject = "Set Bridge Password";
+			replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Bridge");
+			replacements.put(MessageManager.TEMPLATE_KEY_WEB_LINK, "https://bridge.synapse.org/webapp/resetPassword.html?token=" + sessionToken);
+			break;
+		case SYNAPSE:
+			subject = "Set Synapse Password";
+			replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+			replacements.put(MessageManager.TEMPLATE_KEY_WEB_LINK, StackConfiguration.getPortalEndpoint() + "/Portal.html#!PasswordReset:" + sessionToken);
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
+		}
+		messageManager.sendEmail(EMAIL_TEMPLATE.PASSWORD_RESET, 
+				user.getIndividualGroup().getId(), 
+				subject, 
+				replacements, 
+				false);
 	}
 	
 	@Override
@@ -229,9 +249,30 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setLastName(lname);
 				user.setDisplayName(fullName);
 				userManager.createUser(user);
+				UserInfo justCreated = userManager.getUserInfo(email);
 				
-				SendMail sendMail = new SendMail(originClient);
-				sendMail.sendWelcomeMail(user);
+				// Send a welcome message
+				Map<String, String> replacements = new HashMap<String, String>();
+				replacements.put(MessageManager.TEMPLATE_KEY_DISPLAY_NAME, fullName);
+				replacements.put(MessageManager.TEMPLATE_KEY_USERNAME, email);
+				String subject;
+				switch (originClient) {
+				case BRIDGE:
+					subject = "Set Bridge Password";
+					replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Bridge");
+					break;
+				case SYNAPSE:
+					subject = "Set Synapse Password";
+					replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
+					break;
+				default:
+					throw new IllegalArgumentException("Unknown origin client type: " + originClient);
+				}
+				messageManager.sendEmail(EMAIL_TEMPLATE.PASSWORD_RESET, 
+						justCreated.getIndividualGroup().getId(), 
+						subject, 
+						replacements, 
+						false);
 			} else {
 				throw new NotFoundException(email);
 			}

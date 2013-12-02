@@ -43,6 +43,11 @@ public interface MessageManager {
 		 */
 		PASSWORD_RESET
 	};
+
+	public static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#originclient#";
+	public static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
+	public static final String TEMPLATE_KEY_USERNAME = "#username#";
+	public static final String TEMPLATE_KEY_WEB_LINK = "#link#";
 	
 	/**
 	 * For testing
