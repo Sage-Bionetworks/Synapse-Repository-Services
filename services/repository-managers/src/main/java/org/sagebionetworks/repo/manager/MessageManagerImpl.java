@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
@@ -42,6 +43,8 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +58,7 @@ import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendEmailResult;
 
 
-public class MessageManagerImpl implements MessageManager {
+public class MessageManagerImpl implements MessageManager, InitializingBean {
 	
 	static private Logger log = LogManager.getLogger(MessageManagerImpl.class);
 	
@@ -75,11 +78,6 @@ public class MessageManagerImpl implements MessageManager {
 	 * The maximum number of targets of a message
 	 */
 	protected static final long MAX_NUMBER_OF_RECIPIENTS = 50L;
-	
-	/**
-	 * Email address used as the sender of emails
-	 */
-	private static final String GENERIC_EMAIL_ADDRESS = "synapse@sagebase.org";
 	
 	@Autowired
 	private MessageDAO messageDAO;
@@ -105,6 +103,16 @@ public class MessageManagerImpl implements MessageManager {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	
+	/**
+	 * The ID of the default group AUTHENTICATED_USERS
+	 */
+	private String authenticatedUsersId;
+	
+	/**
+	 * The ID of the user from which Synapse sends emails
+	 */
+	private String emailerId;
+	
 	public MessageManagerImpl() { };
 	
 	/**
@@ -127,6 +135,21 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	public void setFileHandleManager(FileHandleManager fileHandleManager) {
 		this.fileHandleManager = fileHandleManager;
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		UserGroup authUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
+		if (authUsers == null) {
+			throw new DatastoreException("Could not find the default group for all authenticated users");
+		}
+		authenticatedUsersId = authUsers.getId();
+		
+		UserGroup emailer = userGroupDAO.findGroup(AuthorizationConstants.SYNAPSE_USER_NAME, true);
+		if (emailer == null) {
+			throw new DatastoreException("Could not find the user that sends Synapse emails");
+		}
+		emailerId = emailer.getId();
 	}
 	
 	@Override
@@ -256,6 +279,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void markMessageStatus(UserInfo userInfo, MessageStatus status) throws NotFoundException {
 		// Check to see if the user can see the message being updated
 		getMessage(userInfo, status.getMessageId());
@@ -367,11 +391,6 @@ public class MessageManagerImpl implements MessageManager {
 	private Set<String> expandRecipientSet(long userId, Set<String> intendedRecipients, List<String> errors) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
-		UserGroup authUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
-		if (authUsers == null) {
-			throw new DatastoreException("Could not find the default group for all authenticated users");
-		}
-		
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
 		for (String principalId : intendedRecipients) {
@@ -397,7 +416,7 @@ public class MessageManagerImpl implements MessageManager {
 			} else {
 				// Handle the implicit group that contains all users
 				// Note: only admins can pass the authorization check to reach this
-				if (authUsers.getId().equals(principalId)) {
+				if (authenticatedUsersId.equals(principalId)) {
 					for (UserGroup member : userGroupDAO.getAll()) {
 						if (member.getIsIndividual()) {
 							recipients.add(member.getId());
@@ -416,6 +435,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteMessage(UserInfo userInfo, String messageId) {
 		if (!userInfo.isAdmin()) {
 			throw new UnauthorizedException("Only admins may delete messages");
@@ -425,16 +445,17 @@ public class MessageManagerImpl implements MessageManager {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void sendEmail(final EMAIL_TEMPLATE template, String recipientId, String subject,
 			Map<String, String> replacements, boolean createRecord) throws NotFoundException {
 		// Load the template text
 		String messageBody;
 		switch (template) {
 		case WELCOME:
-			messageBody = readMailTemplate("WelcomeTemplate.txt");
+			messageBody = readMailTemplate("message/WelcomeTemplate.txt");
 			break;
 		case PASSWORD_RESET:
-			messageBody = readMailTemplate("PasswordResentTemplate.txt");
+			messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown email template type: " + template);
@@ -475,16 +496,24 @@ public class MessageManagerImpl implements MessageManager {
 					return "application/text";
 				}
 			};
-			S3FileHandle handle = fileHandleManager.uploadFile(userId, fis);
+			S3FileHandle handle;
+			try {
+				handle = fileHandleManager.uploadFile(emailerId, fis);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			} catch (ServiceUnavailableException e) {
+				throw new RuntimeException(e);
+			}
 			
 			// Add an entry to the message tables
 			MessageToUser dto = new MessageToUser();
-			dto.setCreatedBy(createdBy);
+			dto.setCreatedBy(emailerId);
 			dto.setFileHandleId(handle.getId());
 			dto.setSubject(subject);
 			dto.setRecipients(new HashSet<String>());
 			dto.getRecipients().add(recipientId);
 			
+			// Skip the throttling and auto-sending logic that is part of the MessageManager's createMessage method
 			dto = messageDAO.createMessage(dto);
 			
 			// Now process the message like any other message
@@ -567,12 +596,11 @@ public class MessageManagerImpl implements MessageManager {
         
         // Assemble the email
 		SendEmailRequest request = new SendEmailRequest()
-				.withSource(GENERIC_EMAIL_ADDRESS)
+				.withSource(AuthorizationConstants.SYNAPSE_USER_NAME)
 				.withDestination(destination)
 				.withMessage(message);
         
         // Send the email
-        System.out.println(request);
         return amazonSESClient.sendEmail(request);  
 	}
 	

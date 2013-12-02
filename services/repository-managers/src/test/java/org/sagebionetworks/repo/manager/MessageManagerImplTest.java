@@ -529,6 +529,8 @@ public class MessageManagerImplTest {
 		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
 		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(subject, inbox.getResults().get(0).getMessage().getSubject());
+		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
+		assertEquals(subject, resetEmail.getSubject());
+		cleanup.add(resetEmail.getId());
 	}
 }

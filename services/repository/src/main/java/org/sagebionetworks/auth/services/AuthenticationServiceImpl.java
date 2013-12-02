@@ -38,9 +38,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
+		this.messageManager = messageManager;
 	}
 
 	@Override

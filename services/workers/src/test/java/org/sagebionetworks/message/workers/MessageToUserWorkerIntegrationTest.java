@@ -2,9 +2,13 @@ package org.sagebionetworks.message.workers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import org.apache.commons.fileupload.FileItemStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,10 +17,10 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -40,7 +44,7 @@ public class MessageToUserWorkerIntegrationTest {
 	private MessageManager messageManager;
 	
 	@Autowired
-	private FileHandleDao fileDAO;
+	private FileHandleManager fileHandleManager;
 	
 	@Autowired
 	private UserManager userManager;
@@ -61,15 +65,36 @@ public class MessageToUserWorkerIntegrationTest {
 		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		final UserInfo otherInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 
-		S3FileHandle handle = new S3FileHandle();
-		handle.setBucketName("bucketName");
-		handle.setKey("key");
-		handle.setContentType("content type");
-		handle.setContentSize(123l);
-		handle.setContentMd5("md5");
-		handle.setCreatedBy(userInfo.getIndividualGroup().getId());
-		handle.setFileName("foobar.txt");
-		handle = fileDAO.createFile(handle);
+		final URL url = MessageToUserWorkerIntegrationTest.class.getClassLoader().getResource("Message.txt");
+		FileItemStream fis = new FileItemStream() {
+
+			@Override
+			public InputStream openStream() throws IOException {
+				return url.openStream();
+			}
+
+			@Override
+			public String getContentType() {
+				return "application/text";
+			}
+
+			@Override
+			public String getName() {
+				return "Message.txt";
+			}
+
+			@Override
+			public String getFieldName() {
+				return "none";
+			}
+
+			@Override
+			public boolean isFormField() {
+				return false;
+			}
+			
+		};
+		S3FileHandle handle = fileHandleManager.uploadFile(userInfo.getIndividualGroup().getId(), fis);
 		fileHandleId = handle.getId();
 		
 		message = new MessageToUser();
@@ -106,7 +131,7 @@ public class MessageToUserWorkerIntegrationTest {
 		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		messageManager.deleteMessage(adminUserInfo, message.getId());
 		
-		fileDAO.delete(fileHandleId);
+		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
 	}
 	
 	

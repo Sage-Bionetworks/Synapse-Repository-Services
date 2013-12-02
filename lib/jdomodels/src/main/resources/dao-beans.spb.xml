@@ -83,6 +83,11 @@
 			<property name="name" value="anonymous@sagebase.org" />
 			<property name="isIndividual" value="true" />
 		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273951" />
+			<property name="name" value="synapse@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
 	</util:list>
 
 	<bean id="userGroupDAO"

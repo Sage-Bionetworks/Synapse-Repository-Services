@@ -138,34 +138,34 @@ public class MessageManagerImplSESTest {
 	public void testSuccess() throws Exception {
 		mockUserGroup.setName(SUCCESS_EMAIL);
 		List<String> errors = messageManager.processMessage("Blarg!");
-		assertEquals(0, errors.size());
+		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
 		mockUserGroup.setName(BOUNCE_EMAIL);
 		List<String> errors = messageManager.processMessage("Arrrr!");
-		assertEquals(0, errors.size());
+		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
 		mockUserGroup.setName(OOTO_EMAIL);
 		List<String> errors = messageManager.processMessage("Meh?!?");
-		assertEquals(0, errors.size());
+		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
 		mockUserGroup.setName(COMPLAINT_EMAIL);
 		List<String> errors = messageManager.processMessage("Grrrr!");
-		assertEquals(0, errors.size());
+		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
 		mockUserGroup.setName(SUPPRESSION_EMAIL);
 		List<String> errors = messageManager.processMessage("Oooof!");
-		assertEquals(0, errors.size());
+		assertEquals(errors.toString(), 0, errors.size());
 	}
 }
