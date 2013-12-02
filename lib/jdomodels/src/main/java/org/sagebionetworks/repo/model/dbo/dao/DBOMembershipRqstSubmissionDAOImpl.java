@@ -54,12 +54,19 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	@Autowired
 	GroupMembersDAO groupMembersDAO;
 	
-	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_CORE = 
+	private static final String SELECT_OPEN_REQUESTS_CORE = 
 			" FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+
-			" mrs WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+
-			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
+			" mrs WHERE mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+" NOT IN (SELECT "+COL_GROUP_MEMBERS_GROUP_ID+" FROM "+
 				TABLE_GROUP_MEMBERS+" WHERE "+COL_GROUP_MEMBERS_MEMBER_ID+"=mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+" ) "+
 			" AND ( mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" IS NULL OR mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+">:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON+" ) ";
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_CORE = 
+			SELECT_OPEN_REQUESTS_CORE+
+			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_REQUESTER_CORE = 
+			SELECT_OPEN_REQUESTS_CORE+
+			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
 	
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_PAGINATED = 
 			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_CORE+
@@ -69,17 +76,25 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_COUNT = 
 			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_CORE;
 	
-	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE = 
-			SELECT_OPEN_REQUESTS_BY_TEAM_CORE+
-			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
-	
-	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED = 
-			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE+
+	private static final String SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED = 
+			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_REQUESTER_CORE+
 			" ORDER BY "+COL_MEMBERSHIP_REQUEST_SUBMISSION_CREATED_ON+" DESC "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT = 
-			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_CORE;
+	private static final String SELECT_OPEN_REQUESTS_BY_REQUESTER_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_REQUESTER_CORE;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_CORE = 
+			SELECT_OPEN_REQUESTS_BY_TEAM_CORE+
+			" AND mrs."+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID+"=:"+COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_PAGINATED = 
+			"SELECT mrs.* "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_CORE+
+			" ORDER BY "+COL_MEMBERSHIP_REQUEST_SUBMISSION_CREATED_ON+" DESC "+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_COUNT = 
+			"SELECT COUNT(*) "+SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_CORE;
 	
 	private static final String DELETE_REQUESTS_BY_TEAM_AND_REQUESTER = 
 			"DELETE FROM "+TABLE_MEMBERSHIP_REQUEST_SUBMISSION+" WHERE "+
@@ -172,7 +187,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_PAGINATED, membershipRequestRowMapper, param);
+		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_PAGINATED, membershipRequestRowMapper, param);
 	}
 
 	@Override
@@ -183,7 +198,29 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requestorId);
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTOR_COUNT, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_COUNT, param);
+	}
+
+	@Override
+	public List<MembershipRequest> getOpenByRequesterInRange(
+			long requesterId, long now, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
+		param.addValue(OFFSET_PARAM_NAME, offset);
+		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED, membershipRequestRowMapper, param);
+	}
+
+	@Override
+	public long getOpenByRequesterCount(long requesterId, long now) throws DatastoreException,
+			NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_REQUESTER_COUNT, param);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

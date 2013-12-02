@@ -173,7 +173,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		// OK
 		miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, expiresOn.getTime()-1000L, 1, 0);
 		assertEquals(1, miList.size());
-		 mi = miList.get(0);
+		mi = miList.get(0);
 		assertEquals(mis.getMessage(), mi.getMessage());
 		assertEquals(mis.getExpiresOn(), mi.getExpiresOn());
 		assertEquals(""+pgLong, mi.getUserId());
@@ -192,9 +192,34 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		// wrong page
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId, pgLong, expiresOn.getTime()-1000L, 2, 1).size());
 		// already in team
-		groupMembersDAO.addMembers(""+teamId,     Arrays.asList(new String[]{individUser.getId()}));
+		groupMembersDAO.addMembers(""+teamId, Arrays.asList(new String[]{individUser.getId()}));
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamId,  pgLong, expiresOn.getTime()-1000L, 1, 0).size());
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
+		groupMembersDAO.removeMembers(""+teamId,  Arrays.asList(new String[]{individUser.getId()}));
+		
+		// now test the query 'getOpenByTeamInRange'
+		// OK
+		miList = membershipInvtnSubmissionDAO.getOpenByTeamInRange(teamId, expiresOn.getTime()-1000L, 1, 0);
+		assertEquals(1, miList.size());
+		mi = miList.get(0);
+		assertEquals(mis.getMessage(), mi.getMessage());
+		assertEquals(mis.getExpiresOn(), mi.getExpiresOn());
+		assertEquals(""+pgLong, mi.getUserId());
+		assertEquals(mis.getTeamId(), mi.getTeamId());
+		assertEquals(1, membershipInvtnSubmissionDAO.getOpenByTeamCount(teamId, expiresOn.getTime()-1000L));
+
+		// expired
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamInRange(teamId, expiresOn.getTime()+1000L, 1, 0).size());
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamCount(teamId, expiresOn.getTime()+1000L));
+		// wrong team
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamInRange(-10L, expiresOn.getTime()-1000L, 1, 0).size());
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamCount(-10L, expiresOn.getTime()-1000L));
+		// wrong page
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamInRange(teamId, expiresOn.getTime()-1000L, 2, 1).size());
+		// already in team
+		groupMembersDAO.addMembers(""+teamId, Arrays.asList(new String[]{individUser.getId()}));
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamInRange(teamId,  expiresOn.getTime()-1000L, 1, 0).size());
+		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamCount(teamId, expiresOn.getTime()-1000L));
 		groupMembersDAO.removeMembers(""+teamId,  Arrays.asList(new String[]{individUser.getId()}));
 		
 		// delete the mrs
