@@ -31,6 +31,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	private static final String TEAM_ID = "456";
 	private static final String COMMUNITY_ID = "789";
 	private static final String USER_ID2 = "1232";
+	
 
 	@Mock
 	private AuthorizationManager authorizationManager;
@@ -60,9 +61,10 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	private CommunityManager communityManager;
 	private UserInfo validUser;
-	private UserInfo otherUser;
 	private Team testTeam;
 	private Community testCommunity;
+	
+	private UserInfo otherUser;
 
 	@Before
 	public void doBefore() {
@@ -98,7 +100,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		testTeam = new Team();
 		testTeam.setId(TEAM_ID);
 		testTeam.setName(COMMUNITY_ID);
-
+		
 		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager, entityManager,
 				entityPermissionsManager, wikiManager, communityTeamDAO, aclDAO);
 	}

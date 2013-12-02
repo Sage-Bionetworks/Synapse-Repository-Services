@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CommunityServiceImpl implements CommunityService {
@@ -38,7 +39,7 @@ public class CommunityServiceImpl implements CommunityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return communityManager.getForMember(userInfo, limit, offset);
 	}
-
+	
 	@Override
 	public PaginatedResults<Community> getAll(String userId, int limit, int offset) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

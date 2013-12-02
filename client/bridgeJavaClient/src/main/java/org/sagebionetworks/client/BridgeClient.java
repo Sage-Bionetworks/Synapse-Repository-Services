@@ -1,5 +1,7 @@
 package org.sagebionetworks.client;
 
+import java.util.List;
+
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;

@@ -37,7 +37,7 @@ public interface CommunityManager {
 	 */
 	public PaginatedResults<Community> getForMember(UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			NotFoundException;
-
+	
 	/**
 	 * Retrieve the Communities to which the given user belongs, paginated
 	 * 

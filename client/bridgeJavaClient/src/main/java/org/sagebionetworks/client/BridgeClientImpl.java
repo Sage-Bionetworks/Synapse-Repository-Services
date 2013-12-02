@@ -30,6 +30,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String MEMBER = "/member";
 
 	private static final String JOINED = "/joined";
+	
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
 	private static final String ADD_ADMIN = "/addadmin";
@@ -148,7 +149,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = COMMUNITY + "/" + communityId + JOIN;
 		get(uri);
 	}
-
+	
 	@Override
 	public void leaveCommunity(String communityId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + LEAVE;
