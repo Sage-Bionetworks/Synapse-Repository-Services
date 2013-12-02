@@ -78,6 +78,13 @@ public interface V2WikiPageDao {
 	public List<Long> getFileHandleReservationForWiki(WikiPageKey key);
 	
 	/**
+	 * Get ALL file handle ids for a wiki's markdown
+	 * @param key
+	 * @return
+	 */
+	public List<Long> getMarkdownFileHandleIdsForWiki(WikiPageKey key);
+	
+	/**
 	 * Get the ID of the root wiki page for a given Object.
 	 * @param ownerId
 	 * @param ownerType
