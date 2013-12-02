@@ -1407,6 +1407,9 @@ public class IT500SynapseJavaClient {
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 		
+		// while we're at it, check the 'getTeamMember' service
+		assertEquals(tm, synapse.getTeamMember(updatedTeam.getId(), myPrincipalId));
+		
 		TeamMembershipStatus tms = synapse.getTeamMembershipStatus(updatedTeam.getId(), myPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
 		assertEquals(myPrincipalId, tms.getUserId());

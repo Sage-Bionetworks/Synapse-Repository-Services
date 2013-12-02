@@ -47,6 +47,16 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 */
 	public PaginatedResults<TeamMember> getMembers(String teamId, long limit, long offset) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * 

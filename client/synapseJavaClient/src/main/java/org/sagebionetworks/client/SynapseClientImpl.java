@@ -4522,6 +4522,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public TeamMember getTeamMember(String teamId, String memberId) throws SynapseException {
+		JSONObject jsonObj = getEntity(TEAM + "/" + teamId + MEMBER + "/" + memberId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		TeamMember result = new TeamMember();
+		try {
+			result.initializeFromJSONObject(adapter);
+			return result;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
+	}
+
 
 	@Override
 	public void removeTeamMember(String teamId, String memberId)
