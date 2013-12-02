@@ -2505,4 +2505,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	public TeamMember getTeamMember(String teamId, String memberId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

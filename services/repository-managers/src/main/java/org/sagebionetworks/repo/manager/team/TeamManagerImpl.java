@@ -195,7 +195,16 @@ public class TeamManagerImpl implements TeamManager {
 		acl.setResourceAccess(newRA);
 	}
 
-		/* (non-Javadoc)
+	// returns true iff the the ACL has an entry for a Team admin
+	public static boolean aclHasTeamAdmin(AccessControlList acl) {
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		for (ResourceAccess ra: ras) {
+			if (ra.getAccessType().contains(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) return true;
+		}
+		return false;
+	}
+	
+	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.Team)
 	 * 
 	 * Note:  This method must execute within a transaction, since it makes calls to two different DAOs
@@ -254,6 +263,12 @@ public class TeamManagerImpl implements TeamManager {
 		queryResults.setTotalNumberOfResults(count);
 		return queryResults;
 	}
+	
+	@Override
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
+		return teamDAO.getMember(teamId, principalId);
+	}
+
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
@@ -381,27 +396,21 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	/**
-	 * MEMBERSHIP permission on group OR user issuing request is the one being removed.  But can't
-	 * remove the last user or last admin UNLESS you're a Synapse admin.
+	 * MEMBERSHIP permission on group OR user issuing request is the one being removed.
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalId
 	 * @return
 	 */
-	public boolean canRemoveTeamMember(UserInfo userInfo, String teamId, String principalId, List<UserGroup> currentMembers, long teamAdminCount) throws NotFoundException {
+	public boolean canRemoveTeamMember(UserInfo userInfo, String teamId, String principalId) throws NotFoundException {
 		if (userInfo.isAdmin()) return true;
-		if (currentMembers.size()==1) {
-			UserGroup lastMember = currentMembers.get(0);
-			if (lastMember.getId().equals(principalId)) return false;
-		}
 		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
-		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
-		if (amTeamAdmin && teamAdminCount==1 && principalIsSelf) return false;
 		if (principalIsSelf) return true;
+		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		if (amTeamAdmin) return true;
 		return false;
 	}
-
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#removeMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)
 	 */
@@ -410,15 +419,15 @@ public class TeamManagerImpl implements TeamManager {
 	public void removeMember(UserInfo userInfo, String teamId,
 			String principalId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		List<UserGroup> currentMembers = groupMembersDAO.getMembers(teamId);
-		long teamAdminCount = teamDAO.getAdminMemberCount(teamId);
-		if (!canRemoveTeamMember(userInfo, teamId, principalId, currentMembers, teamAdminCount)) throw new UnauthorizedException("Cannot remove member from Team.");
+		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
 		// check that member is actually in Team
+		List<UserGroup> currentMembers = groupMembersDAO.getMembers(teamId);
 		if (userGroupsHasPrincipalId(currentMembers, principalId)) {
-			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);
+			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
+			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			aclDAO.update(acl);
 		}
 	}
@@ -463,10 +472,6 @@ public class TeamManagerImpl implements TeamManager {
 			String principalId, boolean isAdmin) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot change Team permissions.");
-		// can't remove your own admin access
-		if (!isAdmin && principalId.equals(userInfo.getIndividualGroup().getId())) {
-			throw new UnauthorizedException("Cannot remove your own administrative access to the Team.");
-		}
 		AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 		// first, remove the principal's entries from the ACL
 		removeFromACL(acl, principalId);
@@ -475,6 +480,7 @@ public class TeamManagerImpl implements TeamManager {
 			// if isAdmin is true, then we add the specified admin permissions
 			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
 		}
+		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
 		// finally, update the ACL
 		aclDAO.update(acl);
 	}

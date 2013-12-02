@@ -142,14 +142,14 @@ public class DBOTeamDAOImplTest {
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 
 		// need an arbitrary user to add to the group
-		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
-		teamMemberPairToDelete = new String[] {""+id, pg.getId()};
-		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 1, 0).size());
-		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 3, 1).size());
-		assertEquals(1, teamDAO.getCountForMember(pg.getId()));
+		UserGroup anon = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{anon.getId()}));
+		teamMemberPairToDelete = new String[] {""+id, anon.getId()};
+		assertEquals(1, teamDAO.getForMemberInRange(anon.getId(), 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(anon.getId(), 3, 1).size());
+		assertEquals(1, teamDAO.getCountForMember(anon.getId()));
 		
-		UserProfile up = userProfileDAO.get(pg.getId());
+		UserProfile up = userProfileDAO.get(anon.getId());
 		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
 		TeamMember tm = new TeamMember();
@@ -179,7 +179,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, members.size());
 		TeamMember m = members.get(0);
 		assertFalse(m.getIsAdmin());
-		assertEquals(pg.getId(), m.getMember().getOwnerId());
+		assertEquals(anon.getId(), m.getMember().getOwnerId());
 		assertEquals(updated.getId(), m.getTeamId());
 		
 		// check pagination
@@ -189,12 +189,30 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
 		
 		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
+		TeamMember member = teamDAO.getMember(updated.getId(), anon.getId());
+		assertEquals(updated.getId(), member.getTeamId());
+		assertFalse(member.getIsAdmin());
+		ugh = member.getMember();
+		assertTrue(ugh.getIsIndividual());
+		assertEquals(anon.getId(), ugh.getOwnerId());
+		assertEquals("First-anonymous@sagebase.org", ugh.getFirstName());
+		assertEquals("Last-anonymous@sagebase.org", ugh.getLastName());
+		assertEquals("anonymous@sagebase.org", ugh.getDisplayName());
 		// now make the member an admin
-		AccessControlList acl = createAcl(pg.getId(), updated.getId(), new Date());
+		AccessControlList acl = createAdminAcl(anon.getId(), updated.getId(), new Date());
 		aclToDelete = aclDAO.create(acl);
 		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
+		member = teamDAO.getMember(updated.getId(), anon.getId());
+		assertEquals(updated.getId(), member.getTeamId());
+		assertTrue(member.getIsAdmin());
+		ugh = member.getMember();
+		assertTrue(ugh.getIsIndividual());
+		assertEquals(anon.getId(), ugh.getOwnerId());
+		assertEquals("First-anonymous@sagebase.org", ugh.getFirstName());
+		assertEquals("Last-anonymous@sagebase.org", ugh.getLastName());
+		assertEquals("anonymous@sagebase.org", ugh.getDisplayName());
 		
-		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
+		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{anon.getId()}));
 		teamMemberPairToDelete = null; // no longer need to schedule for deletion
 		
 		// delete the team
@@ -208,7 +226,7 @@ public class DBOTeamDAOImplTest {
 		teamToDelete=-1L; // no need to delete in 'tear down'
 	}
 	
-	public static AccessControlList createAcl(
+	public static AccessControlList createAdminAcl(
 			final String pid, 
 			final String teamId, 
 			final Date creationDate) {
