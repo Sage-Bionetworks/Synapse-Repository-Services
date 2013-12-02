@@ -156,14 +156,14 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public void addCommunityAdmin(String communityId, String memberName) throws SynapseException {
-		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + memberName + ADD_ADMIN;
+	public void addCommunityAdmin(String communityId, String principalId) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + principalId + ADD_ADMIN;
 		get(uri);
 	}
 
 	@Override
-	public void removeCommunityAdmin(String communityId, String memberName) throws SynapseException {
-		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + memberName + REMOVE_ADMIN;
+	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + principalId + REMOVE_ADMIN;
 		get(uri);
 	}
 

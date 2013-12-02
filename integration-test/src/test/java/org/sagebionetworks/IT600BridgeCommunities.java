@@ -48,13 +48,10 @@ public class IT600BridgeCommunities {
 
 	private static BridgeClient bridge = null;
 	private static BridgeClient bridgeTwo = null;
+	private static String bridgeTwoUserId;
 
 	public static BridgeClient createBridgeClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-
+		SynapseClientImpl synapse = createSynapse();
 		synapse.login(user, pw);
 
 		BridgeClientImpl bridge = new BridgeClientImpl(synapse);
@@ -62,6 +59,14 @@ public class IT600BridgeCommunities {
 
 		// Return a proxy
 		return BridgeProfileProxy.createProfileProxy(bridge);
+	}
+	
+	public static SynapseClientImpl createSynapse() {
+		SynapseClientImpl synapse = new SynapseClientImpl();
+		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
+		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
+		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
+		return synapse;
 	}
 
 	public static SynapseClient createSynapse(BridgeClient bridge) {
@@ -82,6 +87,13 @@ public class IT600BridgeCommunities {
 
 		bridgeTwo = createBridgeClient(StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
+		
+		// Calling createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
+		// generates an "invalid session token" error. Do not know why.
+		SynapseClientImpl synapse = createSynapse();
+		synapse.login(StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+		bridgeTwoUserId = synapse.getUserSessionData().getProfile().getOwnerId();
 	}
 
 	@Before
@@ -202,8 +214,8 @@ public class IT600BridgeCommunities {
 		Community community = createCommunity();
 
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
-		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.removeCommunityAdmin(community.getId(), bridgeTwoUserId);
 		bridgeTwo.leaveCommunity(community.getId());
 	}
 
@@ -212,10 +224,10 @@ public class IT600BridgeCommunities {
 		Community community = createCommunity();
 
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
-		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
-		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
-		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.removeCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.removeCommunityAdmin(community.getId(), bridgeTwoUserId);
 		bridgeTwo.leaveCommunity(community.getId());
 	}
 
@@ -224,7 +236,7 @@ public class IT600BridgeCommunities {
 		Community community = createCommunity();
 
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
 		bridgeTwo.leaveCommunity(community.getId());
 	}
 
@@ -233,7 +245,7 @@ public class IT600BridgeCommunities {
 		Community community = createCommunity();
 
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
 		bridge.leaveCommunity(community.getId());
 	}
 
