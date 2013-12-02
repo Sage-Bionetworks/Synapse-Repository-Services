@@ -209,10 +209,10 @@ public class CommunityController extends BridgeBaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.ADD_COMMUNITY_ADMIN, method = RequestMethod.GET)
-	public void addCommunityAdmin(@PathVariable String id, @PathVariable String memberId,
+	public void addCommunityAdmin(@PathVariable String id, @PathVariable String member,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
 			NotFoundException {
-		serviceProvider.getCommunityService().addCommunityAdmin(userId, id, memberId);
+		serviceProvider.getCommunityService().addCommunityAdmin(userId, id, member);
 	}
 
 	/**
@@ -226,9 +226,9 @@ public class CommunityController extends BridgeBaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.REMOVE_COMMUNITY_ADMIN, method = RequestMethod.GET)
-	public void removeCommunityAdmin(@PathVariable String id, @PathVariable String memberId,
+	public void removeCommunityAdmin(@PathVariable String id, @PathVariable String member,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
 			NotFoundException {
-		serviceProvider.getCommunityService().removeCommunityAdmin(userId, id, memberId);
+		serviceProvider.getCommunityService().removeCommunityAdmin(userId, id, member);
 	}
 }
