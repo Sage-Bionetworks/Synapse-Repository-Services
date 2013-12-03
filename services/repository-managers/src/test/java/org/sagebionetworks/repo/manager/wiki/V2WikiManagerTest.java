@@ -695,8 +695,7 @@ public class V2WikiManagerTest {
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
 		markdown.setCreatedBy(user.getIndividualGroup().getId());
-		when(mockWikiDao.getMarkdownHandleId(key, new Long(0))).thenReturn(markdown.getId());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		when(mockFileDao.get(any(String.class))).thenReturn(markdown);
 		
 		List<Long> allFileHandleIds = new LinkedList<Long>();
 	    when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(allFileHandleIds);
