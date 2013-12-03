@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
-import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -164,9 +163,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public String getSecretKey(String username) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(username);
-		if (!userInfo.getUser().isAgreesToTermsOfUse()) {
-			throw new TermsOfUseException();
-		}
 		return authManager.getSecretKey(userInfo.getIndividualGroup().getId());
 	}
 	
@@ -180,6 +176,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public String getUsername(String principalId) throws NotFoundException {
 		return userManager.getGroupName(principalId);
+	}
+	
+	@Override
+	public boolean hasUserAcceptedTermsOfUse(String username) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		return authManager.hasUserAcceptedTermsOfUse(userInfo.getIndividualGroup().getId());
 	}
 	
 	@Override

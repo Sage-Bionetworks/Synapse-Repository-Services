@@ -66,8 +66,6 @@ public interface AuthenticationService {
 	
 	/**
 	 * Gets the current secret key of the user
-	 * Also double checks to see if the user has accepted the terms of use
-	 *   If not, a TermsOfUseException is thrown
 	 */
 	public String getSecretKey(String username)
 			throws NotFoundException;
@@ -82,6 +80,12 @@ public interface AuthenticationService {
 	 * Returns the username of the user
 	 */
 	public String getUsername(String principalId)
+			throws NotFoundException;
+	
+	/**
+	 * Has the user accepted the terms of use?
+	 */
+	public boolean hasUserAcceptedTermsOfUse(String username) 
 			throws NotFoundException;
 	
 	/**

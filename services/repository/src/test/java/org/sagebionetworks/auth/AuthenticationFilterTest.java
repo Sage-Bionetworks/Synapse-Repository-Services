@@ -44,9 +44,10 @@ public class AuthenticationFilterTest {
 	@Before
 	public void setupFilter() throws Exception {
 		mockAuthService = mock(AuthenticationService.class);
-		when(mockAuthService.revalidate(eq(sessionToken))).thenReturn(userId);
+		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
 		when(mockAuthService.getUsername(eq(userId))).thenReturn(username);
 		when(mockAuthService.getSecretKey(eq(username))).thenReturn(secretKey);
+		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(username))).thenReturn(true);
 		
 		final Map<String,String> filterParams = new HashMap<String, String>();
 		filterParams.put("allow-anonymous", "true");
@@ -107,7 +108,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Session token should be recognized
-		Mockito.verify(mockAuthService, times(1)).revalidate(eq(sessionToken));
+		Mockito.verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
@@ -125,7 +126,7 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		// Session token should be recognized
-		verify(mockAuthService, times(1)).revalidate(eq(sessionToken));
+		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(false));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
