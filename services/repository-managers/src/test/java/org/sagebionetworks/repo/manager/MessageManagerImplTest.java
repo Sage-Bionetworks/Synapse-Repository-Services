@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +24,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.MessageManager.EMAIL_TEMPLATE;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
@@ -33,6 +31,7 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -516,21 +515,16 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendEmail(EMAIL_TEMPLATE.WELCOME, testUser
-				.getIndividualGroup().getId(), "This is a welcome email",
-				new HashMap<String, String>(), false);
+		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE, "Blah?");
 		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
 		
-		// Same thing, but this time, a message should be created
-		String subject = "This is a password reset email that appears in the user's inbox";
-		messageManager.sendEmail(EMAIL_TEMPLATE.PASSWORD_RESET, testUser
-				.getIndividualGroup().getId(), subject,
-				new HashMap<String, String>(), true);
+		// Try the other one
+		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);
 		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
 		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
-		assertEquals(subject, resetEmail.getSubject());
+		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
 		cleanup.add(resetEmail.getId());
 	}
 }

@@ -16,16 +16,19 @@ import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.WordUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -384,7 +387,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	}
 	
 	/**
-	 * Helper for {@link #processMessage(String, boolean)}
+	 * Helper for {@link #processMessage(String, boolean, String)}
 	 * 
 	 * Takes a set of user IDs and expands it into a set of individuals that the user is permitted to message
 	 */
@@ -433,6 +436,67 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		
 		return recipients;
 	}
+	
+	/**
+	 * Helper for {@link #processMessage(String, boolean, String)}
+	 * 
+	 * Returns a string containing the body of a message
+	 */
+	private String downloadEmailContent(String fileHandleId) throws NotFoundException {
+		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		
+		// Read the file
+		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			InputStream in = null;
+			try {
+				byte[] buffer = new byte[1024];
+				in = url.openStream();
+				int length = 0;
+				while ((length = in.read(buffer)) > 0) {
+					out.write(buffer, 0, length);
+				}
+				return new String(out.toByteArray());
+			} finally {
+				if (in != null) {
+					in.close();
+				}
+				out.close();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Helper for {@link #processMessage(String, boolean, String)}
+	 * and for {@link #sendTemplateEmail(String, String, String, boolean)}
+	 * 
+	 * Constructs a email to send via Amazon SES
+	 */
+	private SendEmailResult sendEmail(String recipient, String subject, String body) {
+		// Construct an object to contain the recipient address
+        Destination destination = new Destination().withToAddresses(recipient);
+        
+        // Create the subject and body of the message
+        if (subject == null) {
+        	subject = "";
+        }
+        Content textSubject = new Content().withData(subject);
+        Body messageBody = new Body().withText(new Content().withData(body));
+        
+        // Create a message with the specified subject and body
+        Message message = new Message().withSubject(textSubject).withBody(messageBody);
+        
+        // Assemble the email
+		SendEmailRequest request = new SendEmailRequest()
+				.withSource(AuthorizationConstants.SYNAPSE_USER_NAME)
+				.withDestination(destination)
+				.withMessage(message);
+        
+        // Send the email
+        return amazonSESClient.sendEmail(request);  
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -443,29 +507,95 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		
 		messageDAO.deleteMessage(messageId);
 	}
+	
+	
+	//////////////////////////////////////////
+	// Email template constants and methods //
+	//////////////////////////////////////////
+	
+	private static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#originclient#";
+	private static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
+	private static final String TEMPLATE_KEY_USERNAME = "#username#";
+	private static final String TEMPLATE_KEY_WEB_LINK = "#link#";
 
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendEmail(final EMAIL_TEMPLATE template, String recipientId, String subject,
-			Map<String, String> replacements, boolean createRecord) throws NotFoundException {
-		// Load the template text
-		String messageBody;
-		switch (template) {
-		case WELCOME:
-			messageBody = readMailTemplate("message/WelcomeTemplate.txt");
+	public void sendPasswordResetEmail(String recipientId, OriginatingClient originClient, String sessionToken) throws NotFoundException {
+		// Build the subject and body of the message
+		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
+		String domain = WordUtils.capitalizeFully(originClient.name());
+		String subject = "Set " + domain + " Password";
+		String messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, recipient.getUser().getDisplayName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
+		String webLink;
+		switch (originClient) {
+		case BRIDGE:
+			webLink = "https://bridge.synapse.org/webapp/resetPassword.html?token=" + sessionToken;
 			break;
-		case PASSWORD_RESET:
-			messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
+		case SYNAPSE:
+			webLink = StackConfiguration.getPortalEndpoint() + "/Portal.html#!PasswordReset:" + sessionToken;
 			break;
 		default:
-			throw new IllegalArgumentException("Unknown email template type: " + template);
+			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
 		}
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
 		
-		// Replace text within the template
-		for (String key : replacements.keySet()) {
-			messageBody = messageBody.replaceAll(key, replacements.get(key));
+		sendTemplateEmail(recipientId, subject, messageBody, false);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void sendWelcomeEmail(String recipientId, OriginatingClient originClient) throws NotFoundException {
+		// Build the subject and body of the message
+		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
+		String domain = WordUtils.capitalizeFully(originClient.name());
+		String subject = "Welcome to " + domain + "!";
+		String messageBody = readMailTemplate("message/WelcomeTemplate.txt");
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, recipient.getUser().getDisplayName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
+		
+		sendTemplateEmail(recipientId, subject, messageBody, true);
+	}
+	
+	/**
+	 * Helper for sending templated emails
+	 * 
+	 * Reads a resource into a string
+	 */
+	private String readMailTemplate(String filename) {
+		try {
+			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(filename);
+			BufferedReader br = new BufferedReader(new InputStreamReader(is));
+			StringBuilder sb = new StringBuilder();
+			try {
+				String s = br.readLine();
+				while (s != null) {
+					sb.append(s + "\r\n");
+					s = br.readLine();
+				}
+				return sb.toString();
+			} finally {
+				br.close();
+				is.close();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
-		
+	}
+	
+	/**
+	 * Helper for sending templated emails
+	 * 
+	 * @param createRecord Should the message be saved within the messaging system?
+	 *   i.e. Transient emails like password resets do not need to be saved and should not be saved
+	 *   Note: If set to false, an email is sent regardless of the user's preferences for notifications 
+	 *   (because there would be no other way of retrieving the message).
+	 */
+	private void sendTemplateEmail(String recipientId, String subject, String messageBody, boolean createRecord) throws NotFoundException {
 		// Send out the message
 		if (createRecord) {
 			// Upload the message body to S3
@@ -483,7 +613,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 
 				@Override
 				public String getName() {
-					return template.name() + UUID.randomUUID() + ".txt";
+					return UUID.randomUUID() + ".txt";
 				}
 
 				@Override
@@ -523,85 +653,4 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			sendEmail(recipient.getName(), subject, messageBody);
 		}
 	}
-	
-	/**
-	 * Reads a resource into a string
-	 */
-	private String readMailTemplate(String filename) {
-		try {
-			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(filename);
-			BufferedReader br = new BufferedReader(new InputStreamReader(is));
-			StringBuilder sb = new StringBuilder();
-			try {
-				String s = br.readLine();
-				while (s != null) {
-					sb.append(s + "\r\n");
-					s = br.readLine();
-				}
-				return sb.toString();
-			} finally {
-				br.close();
-				is.close();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
-	 * Returns a string containing the body of a message
-	 */
-	private String downloadEmailContent(String fileHandleId) throws NotFoundException {
-		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
-		
-		// Read the file
-		try {
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			InputStream in = null;
-			try {
-				byte[] buffer = new byte[1024];
-				in = url.openStream();
-				int length = 0;
-				while ((length = in.read(buffer)) > 0) {
-					out.write(buffer, 0, length);
-				}
-				return new String(out.toByteArray());
-			} finally {
-				if (in != null) {
-					in.close();
-				}
-				out.close();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
-	 * Constructs a email to send via Amazon SES
-	 */
-	private SendEmailResult sendEmail(String recipient, String subject, String body) {
-		// Construct an object to contain the recipient address
-        Destination destination = new Destination().withToAddresses(recipient);
-        
-        // Create the subject and body of the message
-        if (subject == null) {
-        	subject = "";
-        }
-        Content textSubject = new Content().withData(subject);
-        Body messageBody = new Body().withText(new Content().withData(body));
-        
-        // Create a message with the specified subject and body
-        Message message = new Message().withSubject(textSubject).withBody(messageBody);
-        
-        // Assemble the email
-		SendEmailRequest request = new SendEmailRequest()
-				.withSource(AuthorizationConstants.SYNAPSE_USER_NAME)
-				.withDestination(destination)
-				.withMessage(message);
-        
-        // Send the email
-        return amazonSESClient.sendEmail(request);  
-	}
-	
 }

@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -16,38 +16,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
-	
-	public enum EMAIL_TEMPLATE {
-		/**
-		 * Meant for new users that have created an account via OpenID
-		 * </br>
-		 * Replacement fields:
-		 * <ul>
-		 *     <li>#originclient#</li>
-		 *     <li>#displayname#</li> 
-		 *     <li>#username#</li>
-		 * </ul>
-		 */
-		WELCOME,
-		
-		/**
-		 * Contains a link used to reset a user's password
-		 * </br>
-		 * Replacement fields: 
-		 * <ul>
-		 *     <li>#originclient#</li>
-		 *     <li>#displayname#</li>
-		 *     <li>#username#</li>
-		 *     <li>#link#</li>
-		 * </ul>
-		 */
-		PASSWORD_RESET
-	};
-
-	public static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#originclient#";
-	public static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
-	public static final String TEMPLATE_KEY_USERNAME = "#username#";
-	public static final String TEMPLATE_KEY_WEB_LINK = "#link#";
 	
 	/**
 	 * For testing
@@ -123,14 +91,12 @@ public interface MessageManager {
 	public void deleteMessage(UserInfo userInfo, String messageId);
 
 	/**
-	 * Sends an email based on a template via Amazon SES
-	 * 
-	 * @param createRecord Should the message be saved within the messaging system?
-	 *   i.e. Transient emails like password resets do not need to be saved and should not be saved
-	 *   Note: If set to false, an email is sent regardless of the user's preferences for notifications 
-	 *   (because there would be no other way of retrieving the message).
+	 * Sends a password reset email based on a template via Amazon SES
 	 */
-	public void sendEmail(EMAIL_TEMPLATE template, String recipientId,
-			String subject, Map<String, String> replacements,
-			boolean createRecord) throws NotFoundException;
+	public void sendPasswordResetEmail(String recipientId, OriginatingClient originClient, String sessionToken) throws NotFoundException;
+	
+	/**
+	 * Sends a welcome email based on a template via Amazon SES
+	 */
+	public void sendWelcomeEmail(String recipientId, OriginatingClient originClient) throws NotFoundException;
 }

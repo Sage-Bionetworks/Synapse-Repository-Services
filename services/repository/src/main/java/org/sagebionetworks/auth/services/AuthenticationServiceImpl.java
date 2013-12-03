@@ -1,8 +1,6 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
@@ -10,7 +8,6 @@ import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
-import org.sagebionetworks.repo.manager.MessageManager.EMAIL_TEMPLATE;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
@@ -123,29 +120,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		String sessionToken = authManager.authenticate(username, null).getSessionToken();
 		
 		// Send the email
-		Map<String, String> replacements = new HashMap<String, String>();
-		replacements.put(MessageManager.TEMPLATE_KEY_DISPLAY_NAME, user.getUser().getDisplayName());
-		replacements.put(MessageManager.TEMPLATE_KEY_USERNAME, user.getIndividualGroup().getName());
-		String subject;
-		switch (originClient) {
-		case BRIDGE:
-			subject = "Set Bridge Password";
-			replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Bridge");
-			replacements.put(MessageManager.TEMPLATE_KEY_WEB_LINK, "https://bridge.synapse.org/webapp/resetPassword.html?token=" + sessionToken);
-			break;
-		case SYNAPSE:
-			subject = "Set Synapse Password";
-			replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
-			replacements.put(MessageManager.TEMPLATE_KEY_WEB_LINK, StackConfiguration.getPortalEndpoint() + "/Portal.html#!PasswordReset:" + sessionToken);
-			break;
-		default:
-			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
-		}
-		messageManager.sendEmail(EMAIL_TEMPLATE.PASSWORD_RESET, 
-				user.getIndividualGroup().getId(), 
-				subject, 
-				replacements, 
-				false);
+		messageManager.sendPasswordResetEmail(user.getIndividualGroup().getId(), originClient, sessionToken);
 	}
 	
 	@Override
@@ -253,27 +228,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				UserInfo justCreated = userManager.getUserInfo(email);
 				
 				// Send a welcome message
-				Map<String, String> replacements = new HashMap<String, String>();
-				replacements.put(MessageManager.TEMPLATE_KEY_DISPLAY_NAME, fullName);
-				replacements.put(MessageManager.TEMPLATE_KEY_USERNAME, email);
-				String subject;
-				switch (originClient) {
-				case BRIDGE:
-					subject = "Set Bridge Password";
-					replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Bridge");
-					break;
-				case SYNAPSE:
-					subject = "Set Synapse Password";
-					replacements.put(MessageManager.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
-					break;
-				default:
-					throw new IllegalArgumentException("Unknown origin client type: " + originClient);
-				}
-				messageManager.sendEmail(EMAIL_TEMPLATE.PASSWORD_RESET, 
-						justCreated.getIndividualGroup().getId(), 
-						subject, 
-						replacements, 
-						false);
+				messageManager.sendWelcomeEmail(justCreated.getIndividualGroup().getId(), originClient);
 			} else {
 				throw new NotFoundException(email);
 			}

@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -40,7 +39,6 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
  * Note: This test requires us to verify the sagebase.org domain with Amazon
  * Once complete, the test can be fleshed out for each of the 5 cases
  */
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageManagerImplSESTest {
