@@ -84,40 +84,11 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String create(Activity dto) throws DatastoreException, InvalidModelException {
-		return createPrivate(dto, false);
-	}
-	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public String createFromBackup(Activity dto) throws DatastoreException, InvalidModelException {		
-		if(dto == null) throw new IllegalArgumentException("Activity cannot be null");
-		if(dto.getEtag() == null) throw new IllegalArgumentException("The backup Activity must have an etag");
-		if(dto.getId() == null) throw new IllegalArgumentException("The backup Activity must have an id");
-		// The ID must not change
-		Long startingId = KeyFactory.stringToKey(dto.getId());
-		// Create the node.
-		// We want to force the use of the current eTag. See PLFM-845
-		String id = createPrivate(dto, true);
-		// validate that the ID is unchanged.
-		if(!startingId.equals(KeyFactory.stringToKey(id))) throw new DatastoreException("Creating an activity from a backup changed the ID.");
-		return id;
-	}
-	
-	private String createPrivate(Activity dto, boolean forceEtag) throws DatastoreException, InvalidModelException {
 		DBOActivity dbo = new DBOActivity();
 		ActivityUtils.copyDtoToDbo(dto, dbo);
-
-		if (forceEtag) {
-			if (dto.getEtag() == null) {
-				throw new IllegalArgumentException("Cannot force the use of an Etag when the Etag is null");
-			}
-			
-			// Send a message without changing the etag;
-			dbo.seteTag(KeyFactory.urlDecode(dto.getEtag()));
-		} else {
-			// Change the etag
-			dbo.seteTag(UUID.randomUUID().toString());
-		}
+		
+		// Change the etag
+		dbo.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		basicDao.createNew(dbo);				
@@ -127,30 +98,9 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Activity update(Activity dto) throws DatastoreException,
-			InvalidModelException,NotFoundException, ConflictingUpdateException {
-		return update(dto, false);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public Activity updateFromBackup(Activity dto)
-			throws InvalidModelException, NotFoundException,
-			ConflictingUpdateException, DatastoreException {
-		return update(dto, true);
-	}
-
-	/**
-	 * @param fromBackup Whether we are updating from backup.
-	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
-	 */
-	private Activity update(Activity dto, boolean fromBackup) throws DatastoreException,
-			InvalidModelException,NotFoundException, ConflictingUpdateException {				
+			InvalidModelException,NotFoundException, ConflictingUpdateException {		
 		DBOActivity dbo = getDBO(dto.getId());
 		ActivityUtils.copyDtoToDbo(dto, dbo);
-		
-		if(fromBackup) {			
-			lockAndSendTagMessage(dbo, ChangeType.UPDATE); // keep same eTag but send message of update
-		}
 		
 		boolean success = basicDao.update(dbo);
 
@@ -273,11 +223,4 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		// Create a Select for update query
 		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
 	}
-	
-	private void lockAndSendTagMessage(DBOActivity dbo, ChangeType changeType) {
-		lockActivity(dbo.getIdString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);	
-	}
-
-
 }

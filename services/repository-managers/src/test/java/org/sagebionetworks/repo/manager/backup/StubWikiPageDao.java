@@ -88,21 +88,6 @@ public class StubWikiPageDao implements WikiPageDao {
 	}
 
 	@Override
-	public WikiPageBackup getWikiPageBackup(WikiPageKey key)
-			throws NotFoundException {
-		return backupMap.get(key);
-	}
-
-	@Override
-	public WikiPageKey createOrUpdateFromBackup(WikiPageBackup backup)
-			throws DatastoreException, NotFoundException {
-		// Extract a key
-		WikiPageKey key = WikiTranslationUtils.createWikiPageKeyFromBackup(backup);
-		backupMap.put(key, backup);
-		return key;
-	}
-
-	@Override
 	public WikiPageKey lookupWikiKey(String wikiId) throws NotFoundException {
 		// TODO Auto-generated method stub
 		return null;

@@ -175,21 +175,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
-		// By default we do not want to use any etag the user might provide
-		boolean forceUseEtag = false;
-		return createNodePrivate(dto, forceUseEtag);
-	}
-	
-	/**
-	 * The does the actual create.
-	 * @param dto
-	 * @param forceEtag When true, the Etag passed in the DTO will be used.
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	private String createNodePrivate(Node dto, boolean forceEtag) throws DatastoreException,
-			NotFoundException, InvalidModelException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		DBORevision rev = new DBORevision();
 		// Set the default label
@@ -234,17 +219,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			node.setBenefactorId(node.getId());
 		}
 
-		if (forceEtag) {
-			if (dto.getETag() == null) {
-				throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			}
-			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
-			// Send a message without changing the etag;
-			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
-		} else {
-			// Start it with a new e-tag
-			node.seteTag(UUID.randomUUID().toString());
-		}
+		// Start it with a new e-tag
+		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
 
 		// Now create the revision
@@ -257,22 +233,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		dboBasicDao.createNew(rev);		
 		return KeyFactory.keyToString(node.getId());
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException, InvalidModelException {
-		if(node == null) throw new IllegalArgumentException("Node cannot be null");
-		if(node.getETag() == null) throw new IllegalArgumentException("The backup node must have an etag");
-		if(node.getId() == null) throw new IllegalArgumentException("The backup node must have an id");
-		// The ID must not change
-		Long startingId = KeyFactory.stringToKey(node.getId());
-		// Create the node.
-		// We want to force the use of the current eTag. See PLFM-845
-		boolean forceUseEtag = true;
-		String id = this.createNodePrivate(node, forceUseEtag);
-		// validate that the ID is unchanged.
-		if(!startingId.equals(KeyFactory.stringToKey(id))) throw new DatastoreException("Creating a node from a backup changed the ID.");
 	}
 
 	/**
@@ -603,18 +563,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
-		updateNodePrivate(updatedNode);
-	}
-
-	/**
-	 * The will do the actual update.
-	 * @param updatedNode
-	 * @param forceUseEtag When true, the Etag of the passed node will be applied.  This exists to support restoration. Under normal conditions it will be false.
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	private void updateNodePrivate(Node updatedNode) throws NotFoundException,
-			DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());
@@ -632,29 +580,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		
 		dboBasicDao.update(revToUpdate);
-	}
-	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void updateNodeFromBackup(Node toReplace) throws NotFoundException, DatastoreException {
-		if(toReplace == null) throw new IllegalArgumentException("Node to update cannot be null");
-		Long nodeId = KeyFactory.stringToKey(toReplace.getId());
-		DBONode jdoToUpdate = getNodeById(nodeId);
-		final String currentEtag = jdoToUpdate.getEtag();
-		NodeUtils.replaceFromDto(toReplace, jdoToUpdate);
-		final String newEtag = jdoToUpdate.getEtag();
-		// Delete all revisions.
-		simpleJdbcTemplate.update("DELETE FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ?", nodeId);
-		// Update the node.
-		try{
-			if (!newEtag.equals(currentEtag)) {
-				transactionalMessenger.sendMessageAfterCommit(jdoToUpdate, ChangeType.UPDATE);
-			}
-			dboBasicDao.update(jdoToUpdate);
-		} catch (IllegalArgumentException e) {
-			// Check to see if this is a duplicate name exception.
-			checkExceptionDetails(toReplace.getName(), toReplace.getParentId(), e);
-		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

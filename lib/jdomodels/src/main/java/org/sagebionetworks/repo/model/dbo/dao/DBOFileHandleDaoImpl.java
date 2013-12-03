@@ -18,7 +18,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -46,7 +45,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
-	private static final String SQL_GET_MIGRATION_OBJECT_DATA_PAGE = "SELECT "+COL_FILES_ID+", "+COL_FILES_ETAG+", "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" ORDER BY "+COL_FILES_ID+" DESC LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
@@ -239,32 +237,6 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public long getMaxId() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
-	}
-
-	@Override
-	public FileHandleBackup getFileHandleBackup(String id) throws NotFoundException {
-		DBOFileHandle dbo = getDBO(id);
-		return FileMetadataUtils.createBackupFromDBO(dbo);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
-		if(backup == null) throw new IllegalArgumentException("Backup cannot be null");
-		// Convert to a DBO
-		DBOFileHandle dbo = FileMetadataUtils.createDBOFromBackup(backup);
-		ChangeType changeType = null;
-		// Does this already exist?
-		if(doesExist(dbo.getId().toString())){
-			basicDao.update(dbo);
-			changeType = ChangeType.UPDATE;
-		}else{
-			basicDao.createNew(dbo);
-			changeType = ChangeType.CREATE;
-		}
-		// Send a message
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
-		return changeType == ChangeType.CREATE;
 	}
 
 	@Override

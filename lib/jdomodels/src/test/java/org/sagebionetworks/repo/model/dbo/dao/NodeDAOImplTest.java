@@ -1499,32 +1499,6 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
-		// This will be our backup node.
-		Node backup = privateCreateNew("backMeUp");
-		backup.setNodeType(EntityType.project.name());
-		backup.setActivityId(testActivity.getId()); 
-		String id = nodeDao.createNew(backup);
-		toDelete.add(id);
-		assertNotNull(id);
-		// We will use this to do the backup.
-		backup = nodeDao.getNode(id);
-		// Delete the original node
-		nodeDao.delete(id);
-		// Change the etag (see: PLFM-845)
-		String newEtag = "45";
-		backup.setETag(newEtag);
-		// Now create the node from the backup
-		nodeDao.createNewNodeFromBackup(backup);
-		// Get a fresh copy
-		Node restored = nodeDao.getNode(id);
-		assertNotNull(restored);
-		assertEquals(id, restored.getId());
-		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
-		assertEquals(testActivity.getId(), restored.getActivityId());
-	}
-	
-	@Test
 	public void testGetCurrentRevNumber() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node backup = privateCreateNew("withReveNumber");
 		backup.setNodeType(EntityType.project.name());
