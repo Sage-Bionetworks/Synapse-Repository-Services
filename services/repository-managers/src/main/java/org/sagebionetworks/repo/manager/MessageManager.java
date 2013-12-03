@@ -99,4 +99,9 @@ public interface MessageManager {
 	 * Sends a welcome email based on a template via Amazon SES
 	 */
 	public void sendWelcomeEmail(String recipientId, OriginatingClient originClient) throws NotFoundException;
+	
+	/**
+	 * Sends a delivery failure notification based on a template
+	 */
+	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException;
 }

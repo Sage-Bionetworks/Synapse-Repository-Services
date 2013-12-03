@@ -532,6 +532,8 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	private static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
 	private static final String TEMPLATE_KEY_USERNAME = "#username#";
 	private static final String TEMPLATE_KEY_WEB_LINK = "#link#";
+	private static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
+	private static final String TEMPLATE_KEY_DETAILS = "#details#";
 
 	
 	@Override
@@ -574,6 +576,21 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
 		
 		sendTemplateEmail(recipientId, subject, messageBody, true);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException {
+		// Build the subject and body of the message
+		MessageToUser dto = messageDAO.getMessage(messageId);
+		UserInfo sender = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		String subject = "Message " + messageId + " Delivery Failure(s)";
+		String messageBody = readMailTemplate("message/DeliveryFailureTemplate.txt");
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, sender.getUser().getDisplayName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
+		
+		sendTemplateEmail(sender.getIndividualGroup().getId(), subject, messageBody, true);
 	}
 	
 	/**
@@ -662,7 +679,10 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			dto = messageDAO.createMessage(dto);
 			
 			// Now process the message like any other message
-			processMessage(dto, true, messageBody);
+			List<String> errors = processMessage(dto, true, messageBody);
+			if (errors.size() > 0) {
+				throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
+			}
 		} else {
 			UserGroup recipient = userGroupDAO.get(recipientId);
 			sendEmail(recipient.getName(), subject, messageBody);

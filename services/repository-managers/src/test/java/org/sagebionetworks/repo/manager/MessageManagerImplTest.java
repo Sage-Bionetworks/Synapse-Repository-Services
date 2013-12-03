@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
@@ -528,8 +529,19 @@ public class MessageManagerImplTest {
 		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
-		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
 		cleanup.add(resetEmail.getId());
+		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
+		
+		// Try the delivery failure email
+		List<String> mockErrors = new ArrayList<String>();
+		mockErrors.add(UUID.randomUUID().toString());
+		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
+		verify(mockFileHandleManager, times(2)).uploadFile(anyString(), any(FileItemStream.class));
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		MessageToUser failureEmail = inbox.getResults().get(0).getMessage();
+		cleanup.add(failureEmail.getId());
+		assertEquals("Message " + userToOther.getId() + " Delivery Failure(s)", failureEmail.getSubject());
 		
 		// Try another variation
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
@@ -537,7 +549,7 @@ public class MessageManagerImplTest {
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		resetEmail = inbox.getResults().get(0).getMessage();
-		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
 		cleanup.add(resetEmail.getId());
+		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
 	}
 }
