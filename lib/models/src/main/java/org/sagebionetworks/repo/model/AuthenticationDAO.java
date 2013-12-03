@@ -75,7 +75,7 @@ public interface AuthenticationDAO {
 	/**
 	 * Returns the user's secret key
 	 */
-	public String getSecretKey(String id);
+	public String getSecretKey(String id) throws NotFoundException;
 	
 	/**
 	 * Generates a new secret key for the user
@@ -90,7 +90,7 @@ public interface AuthenticationDAO {
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedToU(String id);
+	public boolean hasUserAcceptedToU(String id) throws NotFoundException;
 	
 	/**
 	 * Sets whether the user has accepted, rejected, or not seen the terms of use

@@ -53,13 +53,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken) {
+	public String revalidate(String sessionToken) throws NotFoundException {
 		return revalidate(sessionToken, true);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken, boolean checkToU) {
+	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -129,7 +129,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(ChangePasswordRequest request) {
+	public void changePassword(ChangePasswordRequest request) throws NotFoundException {
 		if (request.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -176,6 +176,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public String getUsername(String principalId) throws NotFoundException {
 		return userManager.getGroupName(principalId);
+	}
+	
+	@Override
+	public boolean hasUserAcceptedTermsOfUse(String username) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		return authManager.hasUserAcceptedTermsOfUse(userInfo.getIndividualGroup().getId());
 	}
 	
 	@Override

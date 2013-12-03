@@ -21,7 +21,6 @@ import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -87,48 +86,63 @@ public class AuthenticationFilter implements Filter {
 		
 		// A session token maps to a specific user
 		if (sessionToken != null) {
+			String failureReason = "Invalid session token";
 			try {
-				String userId = authenticationService.revalidate(sessionToken);
+				String userId = authenticationService.revalidate(sessionToken, false);
 				username = authenticationService.getUsername(userId);
-			} catch (TermsOfUseException e) {
-				String reason = "Terms of use have not been signed";
-				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
-				log.warn("Session token used without signing terms of use", e);
-				return;
 			} catch (UnauthorizedException e) {
-				String reason = "The session token is invalid";
-				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("Invalid session token", e);
+				reject(req, (HttpServletResponse) servletResponse, failureReason);
+				log.warn(failureReason, e);
 				return;
 			} catch (NotFoundException e) {
-				String reason = "The session token is invalid";
-				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("Invalid session token", e);
+				reject(req, (HttpServletResponse) servletResponse, failureReason);
+				log.warn(failureReason, e);
 				return;
 			}
 		
 		// If there is no session token, then check for a HMAC signature
-		} else if (isSigned(req)) {  
+		} else if (isSigned(req)) {
+			String failureReason = "Invalid HMAC signature";
 			username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {
 				String secretKey = authenticationService.getSecretKey(username);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
-				log.warn("Invalid HMAC signature", e);
+				log.warn(failureReason, e);
 				return;
 			} catch (NotFoundException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
-				log.warn("Invalid HMAC signature", e);
+				log.warn(failureReason, e);
 				return;
 			}
 		}
+		
 		if (username == null && !allowAnonymous) {
 			String reason = "The session token provided was missing, invalid or expired.";
 			reject(req, (HttpServletResponse) servletResponse, reason);
 			log.warn("Anonymous not allowed");
 			return;
 		}
+		
+		// If the user has been identified, check if they have accepted the terms of use
+		if (username != null) {
+			boolean toUCheck = false;
+			try {
+				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(username);
+			} catch (NotFoundException e) {
+				String reason = "User " + username + " does not exist";
+				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
+				log.error("This should be unreachable", e);
+				return;
+			}
+			if (!toUCheck) {
+				String reason = "Terms of use have not been signed";
+				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
+				return;
+			}	
+		}
+		
 		if (username == null) {
 			username = AuthorizationConstants.ANONYMOUS_USER_ID;
 		}

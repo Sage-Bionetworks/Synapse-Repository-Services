@@ -111,7 +111,10 @@ public class IT501SynapseJavaClientMessagingTest {
 		for (String id : cleanup) {
 			synapseAdmin.deleteMessage(id);
 		}
-		synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
+		
+		try {
+			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
+		} catch (Exception e) { }
 	}
 
 	@SuppressWarnings("serial")
