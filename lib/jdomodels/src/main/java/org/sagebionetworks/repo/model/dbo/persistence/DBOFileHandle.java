@@ -20,6 +20,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -34,7 +36,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author John
  *
  */
-public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, FileHandleBackup> {
+public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, FileHandleBackup>, ObservableEntity {
 	
 	/**
 	 * The type of metadata represented.
@@ -161,6 +163,29 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		return null;
 	}
 
+	@Override
+	public String getIdString() {
+		return id.toString();
+	}
+
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
+
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.FILE;
+	}
+
+	@Override
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
 
 	public Long getId() {
 		return id;
@@ -252,14 +277,6 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 
 	public void setName(String name) {
 		this.name = name;
-	}
-
-	public String getEtag() {
-		return etag;
-	}
-
-	public void setEtag(String etag) {
-		this.etag = etag;
 	}
 
 	@Override

@@ -19,16 +19,6 @@ public interface SubmissionStatusDAO {
 			throws DatastoreException;
 
 	/**
-	 * Create a SubmissionStatus object from backup. The passed eTag will be
-	 * preserved.
-	 * 
-	 * @param dto
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public String createFromBackup(SubmissionStatus dto) throws DatastoreException;
-
-	/**
 	 * Get a SubmissionStatus object, by Submission ID
 	 * 
 	 * @param id
@@ -51,19 +41,6 @@ public interface SubmissionStatusDAO {
 	public void update(SubmissionStatus dto) throws DatastoreException,
 			InvalidModelException, NotFoundException,
 			ConflictingUpdateException;
-
-	/**
-	 * Update a SubmissionStatus object from backup. The passed eTag will be
-	 * preserved.
-	 * 
-	 * @param dto
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 */
-	public void updateFromBackup(SubmissionStatus dto) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException;
 
 	/**
 	 * Delete a SubmissionStatus object.

@@ -33,8 +33,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -64,10 +64,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Autowired
 	private DBOBasicDao basicDao;	
+
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
@@ -160,7 +160,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required");
 		DBOTeam dbo = new DBOTeam();
 		TeamUtils.copyDtoToDbo(dto, dbo);
-		dbo.setEtag(eTagGenerator.generateETag());
+		dbo.setEtag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		Team result = TeamUtils.copyDboToDto(dbo);
 		return result;
@@ -254,7 +254,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		
 		// Update with a new e-tag
-		dto.setEtag(eTagGenerator.generateETag());
+		dto.setEtag(UUID.randomUUID().toString());
 		TeamUtils.copyDtoToDbo(dto, dbo);
 
 		boolean success = basicDao.update(dbo);

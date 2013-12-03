@@ -193,8 +193,8 @@ class NodeUtils {
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
 		}
-		if(jdo.geteTag() != null){
-			dto.setETag(jdo.geteTag());
+		if(jdo.getEtag() != null){
+			dto.setETag(jdo.getEtag());
 		}
 		if(jdo.getNodeType() != null){
 			dto.setNodeType(EntityType.getTypeForId(jdo.getNodeType()).name());

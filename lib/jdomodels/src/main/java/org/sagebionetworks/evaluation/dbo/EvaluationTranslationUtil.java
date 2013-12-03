@@ -34,7 +34,7 @@ public class EvaluationTranslationUtil {
 		backup.setContentSource(KeyFactory.keyToString(dbo.getContentSource()));
 		backup.setCreatedOn(dbo.getCreatedOn());
 		backup.setDescription(dbo.getDescription());
-		backup.seteTag(dbo.geteTag());
+		backup.seteTag(dbo.getEtag());
 		backup.setId(dbo.getId());
 		backup.setName(dbo.getName());
 		backup.setOwnerId(dbo.getOwnerId());

@@ -21,7 +21,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -32,7 +31,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author brucehoff
  *
  */
-public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessApproval, DBOAccessApproval>, TaggableEntity {
+public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessApproval, DBOAccessApproval> {
 	private Long id;
 	private String eTag;
 	private Long createdBy;

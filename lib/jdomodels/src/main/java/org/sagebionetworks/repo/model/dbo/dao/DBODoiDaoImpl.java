@@ -7,9 +7,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 import org.joda.time.DateTime;
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -44,10 +44,14 @@ public class DBODoiDaoImpl implements DoiDao {
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
-	@Autowired private IdGenerator idGenerator;
-	@Autowired private ETagGenerator eTagGenerator;
-	@Autowired private DBOBasicDao basicDao;
-	@Autowired private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private IdGenerator idGenerator;
+
+	@Autowired
+	private DBOBasicDao basicDao;
+	
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	/**
 	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
@@ -75,7 +79,7 @@ public class DBODoiDaoImpl implements DoiDao {
 
 		DBODoi dbo = new DBODoi();
 		dbo.setId(idGenerator.generateNewId());
-		dbo.setETag(eTagGenerator.generateETag());
+		dbo.setETag(UUID.randomUUID().toString());
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
 		dbo.setObjectType(objectType);
 		dbo.setObjectVersion(versionNumber);
