@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -67,7 +66,7 @@ public class NodeUtilsTest {
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
 		NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
-		assertEquals("The user cannot change an eTag.", null, jdoNode.geteTag());
+		assertEquals("The user cannot change an eTag.", null, jdoNode.getEtag());
 		// Set it to make sure the copy works
 		jdoNode.seteTag("1013");
 		
@@ -123,7 +122,7 @@ public class NodeUtilsTest {
 		assertEquals(createdById, dboNode.getCreatedBy());
 		assertEquals(10000l, (long)dboNode.getCreatedOn());
 		assertEquals(2l, (long)dboNode.getCurrentRevNumber());
-		assertEquals("1013", dboNode.geteTag());
+		assertEquals("1013", dboNode.getEtag());
 		assertEquals(EntityType.project.getId(), (short)dboNode.getNodeType());
 		assertEquals(456l, (long)dboNode.getParentId());
 		

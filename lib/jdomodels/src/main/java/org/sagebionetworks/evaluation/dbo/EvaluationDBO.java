@@ -32,7 +32,6 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -44,7 +43,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, TaggableEntity, ObservableEntity {
+public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_EVALUATION_ID, COL_EVALUATION_ID, true).withIsBackupId(true),
@@ -121,13 +120,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public void setId(Long id) {
 		this.id = id;
 	}
-
-	public String geteTag() {
-		return eTag;
-	}
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
-	}
 	
 	public String getName() {
 		return name;
@@ -179,6 +171,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		setStatus(es.ordinal());
 	}
 
+	public String geteTag() {
+		return eTag;
+	}
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
 	public byte[] getSubmissionInstructionsMessage() {
 		return submissionInstructionsMessage;
 	}
@@ -203,6 +201,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public ObjectType getObjectType() {
 		return ObjectType.EVALUATION;
 	}
+	
+	@Override
+	public String getEtag() {
+		return eTag;
+	}
+	
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.EVALUATION;
@@ -226,7 +230,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				+ ", description=" + Arrays.toString(description)
 				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
 				+ ", contentSource=" + contentSource + ", status=" + status
-				+ ", submissionInstructions="
+				+ ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage)
 				+ ", submissionReceiptMessage="
 				+ Arrays.toString(submissionReceiptMessage) + "]";
@@ -245,7 +249,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + status;
-		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
+		result = prime * result
+				+ Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
 	}
@@ -292,8 +297,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (status != other.status)
 			return false;
-		if (!Arrays
-				.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
+		if (!Arrays.equals(submissionInstructionsMessage,
+				other.submissionInstructionsMessage))
 			return false;
 		if (!Arrays.equals(submissionReceiptMessage,
 				other.submissionReceiptMessage))
@@ -302,7 +307,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {
-		// TODO Auto-generated method stub
 		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
 
 			@Override

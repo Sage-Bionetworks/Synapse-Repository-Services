@@ -26,12 +26,6 @@ public interface EvaluationDAO {
 			InvalidModelException;
 
 	/**
-	 * Creates a Evaluation from backup. The passed eTag is persisted.
-	 */
-	public String createFromBackup(Evaluation dto, Long ownerId)
-			throws DatastoreException;
-
-	/**
 	 * Retrieve the object given its id
 	 */
 	public Evaluation get(String id) throws DatastoreException, NotFoundException;
@@ -77,12 +71,6 @@ public interface EvaluationDAO {
 	 */
 	public void update(Evaluation dto) throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException;
-
-	/**
-	 * Updates a Evaluation from backup. The passed eTag is persisted.
-	 */
-	public void updateFromBackup(Evaluation dto) throws DatastoreException,
-				InvalidModelException, NotFoundException, ConflictingUpdateException;
 
 	/**
 	 * Delete the object given by the given ID

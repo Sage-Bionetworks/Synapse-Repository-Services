@@ -5,11 +5,10 @@ package org.sagebionetworks.repo.model;
  * @author jmhill
  *
  */
-public interface ObservableEntity  extends TaggableEntity {
+public interface ObservableEntity {
 	
 	/**
 	 * The id of the object.
-	 * @return
 	 */
 	public String getIdString();
 
@@ -17,22 +16,14 @@ public interface ObservableEntity  extends TaggableEntity {
 	 * The id of its parent.
 	 */
 	public String getParentIdString();
-
-	/**
-	 * The etag of this object.
-	 * @param newEtag
-	 */
-	public void seteTag(String newEtag);
 	
 	/**
 	 * Get the etag of this object
-	 * @return
 	 */
-	public String geteTag();
+	public String getEtag();
 	
 	/**
 	 * The object's type.
-	 * @return
 	 */
 	public ObjectType getObjectType();
 
