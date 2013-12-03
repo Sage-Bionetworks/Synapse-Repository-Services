@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,8 +34,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Provides REST APIs for sending messages to other Synapse users and for commenting on Synapse entities.
  * </p>
  */
-// No javadocs since the implementation is not complete yet
-// @ControllerInfo(displayName = "Message Services", path = "repo/v1")
+@ControllerInfo(displayName = "Message Services", path = "repo/v1")
 @Controller
 public class MessageController extends BaseController {
 
