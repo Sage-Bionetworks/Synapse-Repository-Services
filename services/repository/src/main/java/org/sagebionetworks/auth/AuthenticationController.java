@@ -67,7 +67,7 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
-	public void revalidate(@RequestBody Session session) {
+	public void revalidate(@RequestBody Session session) throws NotFoundException {
 		authenticationService.revalidate(session.getSessionToken());
 	}
 
@@ -120,7 +120,7 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
-	public void changePassword(@RequestBody ChangePasswordRequest request) {
+	public void changePassword(@RequestBody ChangePasswordRequest request) throws NotFoundException {
 		authenticationService.changePassword(request);
 	}
 	
