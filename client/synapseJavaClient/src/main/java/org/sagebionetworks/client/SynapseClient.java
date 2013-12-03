@@ -506,7 +506,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public WikiPage createV2WikiPageFromV1(String ownerId, ObjectType ownerType,
+	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException;
 	
 	/**
@@ -519,7 +519,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public WikiPage updateV2WikiPageFromV1(String ownerId, ObjectType ownerType,
+	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException;
 	
 	/**
@@ -530,7 +530,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws IOException
 	 */
-	public WikiPage getV2WikiWithMarkdownEmbedded(WikiPageKey key) 
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key) 
 		throws JSONObjectAdapterException, SynapseException, IOException;
 	
 	/**
@@ -542,7 +542,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws IOException
 	 */
-	public WikiPage getVersionOfV2WikiWithMarkdownEmbedded(WikiPageKey key, Long version) 
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) 
 		throws JSONObjectAdapterException, SynapseException, IOException;
 	
 	@Deprecated

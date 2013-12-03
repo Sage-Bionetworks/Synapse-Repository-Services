@@ -2551,7 +2551,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public WikiPage createV2WikiPageFromV1(String ownerId, ObjectType ownerType,
+	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException{
 		// Zip up markdown and create a V2 WikiPage
 		V2WikiPage converted = createV2WikiPageFromV1(toCreate);
@@ -2562,7 +2562,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public WikiPage updateV2WikiPageFromV1(String ownerId, ObjectType ownerType,
+	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
 			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException {
 		// Zip up markdown and create a V2 WikiPage
 		V2WikiPage converted = createV2WikiPageFromV1(toUpdate);
@@ -2573,7 +2573,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public WikiPage getV2WikiWithMarkdownEmbedded(WikiPageKey key) throws JSONObjectAdapterException, SynapseException, IOException {
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key) throws JSONObjectAdapterException, SynapseException, IOException {
 		// Get the V2 Wiki
 		V2WikiPage v2WikiPage = getV2WikiPage(key);
 		// Convert and return as a V1
@@ -2581,7 +2581,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public WikiPage getVersionOfV2WikiWithMarkdownEmbedded(WikiPageKey key, Long version) throws JSONObjectAdapterException, SynapseException, IOException {
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) throws JSONObjectAdapterException, SynapseException, IOException {
 		// Get a version of the V2 Wiki
 		V2WikiPage v2WikiPage = getVersionOfV2WikiPage(key, version);
 		// Convert and return as a V1
