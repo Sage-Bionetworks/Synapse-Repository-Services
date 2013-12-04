@@ -12,11 +12,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -36,8 +38,7 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
  * 
  * Mocks out all non SES-classes
  * 
- * Note: This test requires us to verify the sagebase.org domain with Amazon
- * Once complete, the test can be fleshed out for each of the 5 cases
+ * Note: This test, or something similar, may be used to test the automation of bound/complaint message processing
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -104,32 +105,48 @@ public class MessageManagerImplSESTest {
 		// and individual-ization checks within the MessageManager's sendMessage method.
 		// The tests can then freely change the email of that recipient to one of Amazon's mailbox simulator emails.
 		
+		// Mocks the first line of processMessage(String, boolean)
 		mockMessageToUser = new MessageToUser();
-		mockUserInfo = new UserInfo(false);
-		mockUserInfo.setIndividualGroup(new UserGroup());
-		mockUserInfo.getIndividualGroup().setName("test@sagebase.org");
 		mockMessageToUser.setCreatedBy(mockUserIdString);
 		mockMessageToUser.setRecipients(mockRecipients);
 		when(mockMessageDAO.getMessage(anyString())).thenReturn(mockMessageToUser);
-		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
-		when(mockUserGroupDAO.findGroup(anyString(), eq(false))).thenReturn(new UserGroup());
 		
+		// Mocks downloadEmailContent(...)
+		mockFileHandleManager = mock(FileHandleManager.class);
+		URL url = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt");
+		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
+		messageManager.setFileHandleManager(mockFileHandleManager);
+
+		// Proceed past this check
 		when(mockMessageDAO.hasMessageBeenSent(anyString())).thenReturn(false);
 		
+		// Mocks expandRecipientSet(...)
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setIsIndividual(true);
 		mockUserGroup.setId(mockRecipientId);
 		when(mockUserGroupDAO.get(eq(mockRecipientId))).thenReturn(mockUserGroup);
 		
+		// Mocks the getting of settings
 		mockUserProfile = new UserProfile();
 		mockUserProfile.setNotificationSettings(new Settings());
 		when(mockUserProfileDAO.get(eq(mockRecipientId))).thenReturn(mockUserProfile);
 		
-		// Copied from the mocking that is done in the MessageManagerImplTest
-		mockFileHandleManager = mock(FileHandleManager.class);
-		URL url = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt");
-		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
-		messageManager.setFileHandleManager(mockFileHandleManager);
+		// Mocks the username supplied to SES
+		mockUserInfo = new UserInfo(false);
+		mockUserInfo.setUser(new User());
+		mockUserInfo.getUser().setDisplayName("Foo Bar");
+		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
+	}
+	
+	/**
+	 * Use this test to visually check if messages are properly transmitted
+	 */
+	@Ignore
+	@Test
+	public void testToDeveloper() throws Exception {
+		mockUserGroup.setName("joseph.wu@sagebase.org");
+		List<String> errors = messageManager.processMessage("Hehe?");
+		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test

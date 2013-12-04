@@ -326,6 +326,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	 */
 	private List<String> processMessage(MessageToUser dto, boolean singleTransaction, String messageBody) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
+		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
 		// Check to see if the message has already been sent
 		// If so, nothing else needs to be done
@@ -334,7 +335,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		}
 		
 		// Get the individual recipients
-		Set<String> recipients = expandRecipientSet(Long.parseLong(dto.getCreatedBy()), dto.getRecipients(), errors);
+		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
 		
 		// Make sure the caller set the boolean correctly
 		if (recipients.size() > 1 && singleTransaction) {
@@ -361,7 +362,10 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
 					sendEmail(userGroupDAO.get(user).getName(), 
 							dto.getSubject(),
-							messageBody);
+							messageBody, 
+							//TODO change this to an alias
+							//TODO bootstrap a better name for the notification user
+							userInfo.getUser().getDisplayName());
 					
 					// Should the message be marked as READ?
 					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
@@ -390,9 +394,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	 * 
 	 * Takes a set of user IDs and expands it into a set of individuals that the user is permitted to message
 	 */
-	private Set<String> expandRecipientSet(long userId, Set<String> intendedRecipients, List<String> errors) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		
+	private Set<String> expandRecipientSet(UserInfo userInfo, Set<String> intendedRecipients, List<String> errors) throws NotFoundException {
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
 		for (String principalId : intendedRecipients) {
@@ -474,6 +476,21 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	 * Constructs a email to send via Amazon SES
 	 */
 	private SendEmailResult sendEmail(String recipient, String subject, String body) {
+		return sendEmail(recipient, subject, body, null);
+	}
+	
+	/**
+	 * See {@link #sendEmail(String, String, String)}
+	 * 
+	 * @param sender The username of the sender (null tolerant)
+	 */
+	private SendEmailResult sendEmail(String recipient, String subject, String body, String sender) {
+		// Construct whom the email is from 
+		String source = StackConfiguration.getNotificationEmailAddress();
+		if (sender != null) {
+			source = sender + " <" + source + ">";
+		}
+		
 		// Construct an object to contain the recipient address
         Destination destination = new Destination().withToAddresses(recipient);
         
@@ -489,7 +506,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
         
         // Assemble the email
 		SendEmailRequest request = new SendEmailRequest()
-				.withSource(StackConfiguration.getNotificationEmailAddress())
+				.withSource(source)
 				.withDestination(destination)
 				.withMessage(message);
         

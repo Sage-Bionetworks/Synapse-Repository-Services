@@ -115,7 +115,7 @@ public class IT990AuthenticationController {
 	
 	@Test
 	public void testCreateUser_AcceptToU() throws Exception {	
-		String username = "integration@test." + UUID.randomUUID();
+		String username = "integration.test" + UUID.randomUUID().toString() + "@sagebase.org";
 		String password = "password";
 		
 		NewUser user = new NewUser();
