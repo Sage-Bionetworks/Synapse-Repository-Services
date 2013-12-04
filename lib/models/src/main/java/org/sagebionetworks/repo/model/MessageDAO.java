@@ -91,4 +91,11 @@ public interface MessageDAO {
 	 * Returns true if there is at least one recipient of the message
 	 */
 	public boolean hasMessageBeenSent(String messageId);
+
+	/**
+	 * Checks how many messages a user has created over a given interval (from present time)
+	 * If the given threshold is met or exceeded, this returns false
+	 */
+	public boolean canCreateMessage(String userId, long maxNumberOfNewMessages,
+			long messageCreationInterval);
 }

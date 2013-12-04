@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -647,5 +648,19 @@ public abstract class BaseController {
 	ErrorResponse handleEntityInTrashCanException(EntityInTrashCanException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
+	}
+
+	/**
+	 * When the number of requests made to a particular service exceeds a threshold rate
+	 */
+	@ExceptionHandler(TooManyRequestsException.class)
+	public @ResponseBody
+	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
+			HttpServletRequest request, HttpServletResponse response) {
+		// Note: This older version of Spring lacks HttpStatus.TOO_MANY_REQUESTS
+		// Therefore, the status must be set manually
+		//TODO Change this method to match the other exception handlers when Spring is updated 
+		response.setStatus(429);
+		return handleException(ex, request, false);
 	}
 }

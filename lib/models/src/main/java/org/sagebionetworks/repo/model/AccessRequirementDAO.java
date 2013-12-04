@@ -45,15 +45,6 @@ public interface AccessRequirementDAO {
 			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
-	 * Updates the 'shallow' properties of an object from backup.
-	 *
-	 * @param dto
-	 * @throws DatastoreException
-	 */
-	public <T extends AccessRequirement> T updateFromBackup(T accessRequirement) throws InvalidModelException,
-			NotFoundException, ConflictingUpdateException, DatastoreException;
-
-	/**
 	 * delete the object given by the given ID
 	 * 
 	 * @param id

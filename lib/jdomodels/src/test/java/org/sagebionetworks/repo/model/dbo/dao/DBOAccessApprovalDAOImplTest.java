@@ -298,15 +298,6 @@ public class DBOAccessApprovalDAOImplTest {
 			// We expected this exception
 		}
 
-		try {
-			// Update from a backup.
-			updatedAA = accessApprovalDAO.updateFromBackup(clone);
-			assertEquals(clone.getEtag(), updatedAA.getEtag());
-		}
-		catch(ConflictingUpdateException e) {
-			fail("Update from backup should not generate exception even if the e-tag is different.");
-		}
-
 		// Delete it
 		accessApprovalDAO.delete(id);
 	}

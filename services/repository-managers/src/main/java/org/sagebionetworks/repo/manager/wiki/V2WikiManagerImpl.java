@@ -101,8 +101,20 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			newFileHandlesToInsert.add(handle.getId());
 		}
 		
+		FileHandle markdownFileHandle = fileMetadataDao.get(wikiPage.getMarkdownFileHandleId());
+		newFileHandlesToInsert.add(markdownFileHandle.getId());
+
+		// Create a list of file handles associated with this wiki page to check permissions
+		List<FileHandle> fileHandlesToCheck = new ArrayList<FileHandle>();
+		// Add markdown file handle
+		fileHandlesToCheck.add(markdownFileHandle);
+		// Add attachments
+		for(FileHandle handle: nameToHandleMap.values()) {
+			fileHandlesToCheck.add(handle);
+		}
+		
 		// Validate that the user can assign all file handles
-		for(FileHandle handle: nameToHandleMap.values()){
+		for(FileHandle handle: fileHandlesToCheck){
 			// the user must have access to the raw FileHandle to assign it to an object.
 			if(!authorizationManager.canAccessRawFileHandleByCreator(user, handle.getCreatedBy())){
 				throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE, handle.getId()));
@@ -220,16 +232,28 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// First build up the complete map of names to FileHandles of the wiki's attachments
 		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);
 		
-		// Determine which attachments are new to this wiki and need to be inserted. Keep track of the ids and pass them in.
+		// Get all the file handles used for this wiki in its history
 		List<Long> allFileHandles = wikiPageDao.getFileHandleReservationForWiki(new WikiPageKey(objectId, objectType, wikiPage.getId()));
-		Set<Long> fileHandleReservation = new HashSet<Long>(allFileHandles);
-		
+		Set<Long> existingFileHandleIds = new HashSet<Long>(allFileHandles);
+		List<Long> allMarkdownHandles = wikiPageDao.getMarkdownFileHandleIdsForWiki(new WikiPageKey(objectId, objectType, wikiPage.getId()));
+		for(Long markdownId: allMarkdownHandles) {
+			existingFileHandleIds.add(markdownId);
+		}
+
+		// Get all the file handles associated with this wiki that we have to check
+		FileHandle markdownFileHandle = fileMetadataDao.get(wikiPage.getMarkdownFileHandleId());
+		List<FileHandle> fileHandlesToCheck = new ArrayList<FileHandle>();
+		fileHandlesToCheck.add(markdownFileHandle);
+		for(FileHandle handle: nameToHandleMap.values()) {
+			fileHandlesToCheck.add(handle);
+		}
+
 		// Validate that the user can assign all file handles that are new.  
 		// Compare all stored attachments for a given wiki to the list of attachments for this updated version
 		List<String> newFileHandlesToInsert = new ArrayList<String>();
-		for(FileHandle handle: nameToHandleMap.values()){
+		for(FileHandle handle: fileHandlesToCheck) {
 			// If this file handle is not in the wiki's reservation of attachments, check permissions
-			if(!fileHandleReservation.contains(Long.valueOf(handle.getId()))){
+			if(!existingFileHandleIds.contains(Long.valueOf(handle.getId()))){
 				// the user must have access to the raw FileHandle to assign it to an object.
 				if(!authorizationManager.canAccessRawFileHandleByCreator(user, handle.getCreatedBy())){
 					throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE, handle.getId()));

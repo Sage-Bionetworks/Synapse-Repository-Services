@@ -133,6 +133,16 @@ public class TeamController extends BaseController {
 		return serviceProvider.getTeamService().getByMember(id, limit, offset);
 	}
 	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	TeamMember getTeamMember(
+			@PathVariable String id,
+			@PathVariable String principalId
+			) throws NotFoundException {
+		return  serviceProvider.getTeamService().getMember(id, principalId);
+	}
+	
 	/**
 	 * Retrieve the metadata for a specified Team.
 	 * 

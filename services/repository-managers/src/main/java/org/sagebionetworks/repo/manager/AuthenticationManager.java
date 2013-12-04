@@ -29,7 +29,7 @@ public interface AuthenticationManager {
 	 * @throws UnauthorizedException If the token is not valid
 	 * @throws TermsOfUseException If the user has not signed the terms of use
 	 */
-	public Long checkSessionToken(String sessionToken, boolean checkToU);
+	public Long checkSessionToken(String sessionToken, boolean checkToU) throws NotFoundException;
 	
 	/**
 	 * Deletes the given session token, thereby invalidating it
@@ -44,7 +44,7 @@ public interface AuthenticationManager {
 	/** 
 	 * Gets the user's secret key
 	 */
-	public String getSecretKey(String id);
+	public String getSecretKey(String id) throws NotFoundException;
 	
 	/**
 	 * Replaces the user's secret key with a new one
@@ -60,7 +60,7 @@ public interface AuthenticationManager {
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedTermsOfUse(String id);
+	public boolean hasUserAcceptedTermsOfUse(String id) throws NotFoundException;
 
 	/**
 	 * Sets whether the user has accepted or rejected the terms of use

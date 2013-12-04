@@ -907,6 +907,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * Return the TeamMember object for the given team and member
+	 * @param teamId
+	 * @param memberId
+	 * @return
+	 * @throws SynapseException
+	 */
+	TeamMember getTeamMember(String teamId, String memberId) throws SynapseException;
 
 	/**
 	 * 

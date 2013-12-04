@@ -171,56 +171,13 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
 	}
 
-	// note this is copied from MembershipInvtnSubmissionUtils
-	// to be removed after stack-22 goes live
-	private static final String MembershipInvtnSubmissionUtils_CLASS_ALIAS = "MembershipInvtnSubmission";
-
 	@Override
 	public MigratableTableTranslation<DBOMembershipInvtnSubmission, DBOMembershipInvtnSubmission> getTranslator() {
 		return new MigratableTableTranslation<DBOMembershipInvtnSubmission, DBOMembershipInvtnSubmission>(){
 
 			@Override
 			public DBOMembershipInvtnSubmission createDatabaseObjectFromBackup(DBOMembershipInvtnSubmission backup) {
-				byte[] b = backup.getProperties();
-				MembershipInvtnSubmissionTransfer mist = null;
-				try {
-					mist = 
-				
-						(MembershipInvtnSubmissionTransfer)JDOSecondaryPropertyUtils.
-							decompressedObject(b, MembershipInvtnSubmissionUtils_CLASS_ALIAS, MembershipInvtnSubmissionTransfer.class);
-				} catch (IOException ioe) {
-					throw new RuntimeException(ioe);
-				}
-
-				MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-				mis.setCreatedBy(mist.getCreatedBy());
-				mis.setCreatedOn(mist.getCreatedOn());
-				mis.setExpiresOn(mist.getExpiresOn());
-				if (mist.getId()==null) {
-					mis.setId(backup.getId().toString());
-				} else {
-					mis.setId(mist.getId());
-				}
-				mis.setMessage(mist.getMessage());
-				mis.setTeamId(mist.getTeamId());
-				
-				if (mist.getInvitees()==null || mist.getInvitees().isEmpty()) {
-					mis.setInviteeId(mist.getInviteeId());
-				} else {
-					// if the list is non-empty and the singleton is empty, we move
-					// the value (should be just one) from the list to the singleton
-					if (mist.getInvitees().size()>1) throw new 
-						IllegalStateException("Expected one invitee in "+mist.getId()+" but found "+mist.getInvitees());
-					String invitee = mist.getInvitees().get(0);
-					if (mist.getInviteeId()!=null && !mist.getInviteeId().equals(invitee))
-							throw new IllegalStateException("In "+mist.getId()+" getInvitee()="+mist.getInviteeId()+
-									" but getInvitees()="+mist.getInvitees());
-					mis.setInviteeId(invitee);
-				}
-				
-				DBOMembershipInvtnSubmission databaseObject = new DBOMembershipInvtnSubmission();
-				MembershipInvtnSubmissionUtils.copyDtoToDbo(mis, databaseObject);
-				return databaseObject;
+				return backup;
 			}
 
 			@Override

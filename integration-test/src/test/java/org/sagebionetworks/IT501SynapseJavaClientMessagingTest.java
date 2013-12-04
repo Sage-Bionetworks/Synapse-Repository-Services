@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,6 +15,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -109,7 +111,10 @@ public class IT501SynapseJavaClientMessagingTest {
 		for (String id : cleanup) {
 			synapseAdmin.deleteMessage(id);
 		}
-		synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
+		
+		try {
+			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
+		} catch (Exception e) { }
 	}
 
 	@SuppressWarnings("serial")
@@ -181,5 +186,30 @@ public class IT501SynapseJavaClientMessagingTest {
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				null, null, LIMIT, OFFSET);
 		assertEquals(0, messages.getResults().size());
+	}
+	
+	@Test
+	public void testTooManyMessages() throws Exception {
+		// DDOS the messaging service
+		long start = System.currentTimeMillis();
+		boolean gotNerfed = false;
+		int i;
+		for (i = 1; i <= 100; i++) {
+			try {
+				oneToTwo = synapseOne.sendMessage(oneToTwo);
+				cleanup.add(oneToTwo.getId());
+			} catch (SynapseUserException e) {
+				if (e.getMessage().contains("429")) {
+					gotNerfed = true;
+					break;
+				}
+			}
+		}
+		long end = System.currentTimeMillis();
+		
+		assertTrue(
+				"Assuming that a service calls takes less than 6 seconds to complete, we should have hit the rate limit.  A total of "
+						+ i + " messages were sent in " + (end - start) + " ms.  Average: " + ((end - start) / i) + " ms",
+				gotNerfed);
 	}
 }

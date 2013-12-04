@@ -44,6 +44,16 @@ public interface TeamDAO {
 	/**
 	 * 
 	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
 	 * @param limit
 	 * @param offset
 	 * @return
@@ -103,5 +113,13 @@ public interface TeamDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+
+	/**
+	 * returns the number of admin members in a Team
+	 * @param teamId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	long getAdminMemberCount(String teamId) throws DatastoreException;
 
 }
