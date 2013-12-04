@@ -2535,4 +2535,40 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	public WikiPage createV2WikiPageWithV1(String ownerId,
+			ObjectType ownerType, WikiPage toCreate) throws IOException,
+			SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage updateV2WikiPageWithV1(String ownerId,
+			ObjectType ownerType, WikiPage toUpdate) throws IOException,
+			SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	
 }

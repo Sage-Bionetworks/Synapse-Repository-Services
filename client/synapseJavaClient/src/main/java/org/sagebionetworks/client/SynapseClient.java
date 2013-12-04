@@ -495,6 +495,56 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
 	
+	/**
+	 * Creates a V2 WikiPage from a V1 model. This will zip up markdown
+	 * content and track it with a file handle.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toCreate
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Updates a V2 WikiPage from a V1 model.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toUpdate
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Gets a V2 WikiPage and returns as a V1 WikiPage.
+	 * @param key
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key) 
+		throws JSONObjectAdapterException, SynapseException, IOException;
+	
+	/**
+	 * Gets a version of a V2 WikiPage and returns it as a V1 WikiPage.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) 
+		throws JSONObjectAdapterException, SynapseException, IOException;
+	
 	@Deprecated
 	public File downloadLocationableFromSynapse(Locationable locationable)
 			throws SynapseException;
