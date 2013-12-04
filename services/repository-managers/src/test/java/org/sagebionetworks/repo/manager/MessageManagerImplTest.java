@@ -518,6 +518,10 @@ public class MessageManagerImplTest {
 		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE, "Blah?");
 		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
 		
+		// Try another variation
+		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE, "Blah?");
+		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
+		
 		// Try the other one
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);
 		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
@@ -525,6 +529,15 @@ public class MessageManagerImplTest {
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
 		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
+		cleanup.add(resetEmail.getId());
+		
+		// Try another variation
+		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
+		verify(mockFileHandleManager, times(2)).uploadFile(anyString(), any(FileItemStream.class));
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		resetEmail = inbox.getResults().get(0).getMessage();
+		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
 		cleanup.add(resetEmail.getId());
 	}
 }

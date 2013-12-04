@@ -10,7 +10,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -319,7 +318,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	
 	/**
 	 * See {@link #processMessage(String, boolean)}
-	 * Also used by {@link #sendEmail(org.sagebionetworks.repo.manager.MessageManager.EMAIL_TEMPLATE, String, String, Map, boolean)}
+	 * Also used by {@link #sendTemplateEmail(String, String, String, boolean)}
 	 * 
 	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
 	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
@@ -552,7 +551,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			webLink = "https://bridge.synapse.org/webapp/resetPassword.html?token=" + sessionToken;
 			break;
 		case SYNAPSE:
-			webLink = StackConfiguration.getPortalEndpoint() + "/Portal.html#!PasswordReset:" + sessionToken;
+			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
