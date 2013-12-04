@@ -137,9 +137,6 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
@@ -2526,7 +2523,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private WikiPage createWikiPageFromV2(V2WikiPage from, String ownerId, ObjectType ownerType) throws ClientProtocolException, FileNotFoundException, IOException {
+	private WikiPage createWikiPageFromV2(V2WikiPage from, String ownerId, ObjectType ownerType, Long version) throws ClientProtocolException, FileNotFoundException, IOException {
 		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
@@ -2542,8 +2539,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
 		
-		// Download markdown file
-		File markdownFile = downloadV2WikiMarkdown(key);
+		// We may be returning the most recent version of the V2 Wiki, or another version
+		// Download the correct markdown file
+		File markdownFile;
+		if(version == null) {
+			markdownFile = downloadV2WikiMarkdown(key);
+		} else {
+			markdownFile = downloadVersionOfV2WikiMarkdown(key, version);
+		}
 		String markdownString = org.apache.commons.io.FileUtils.readFileToString(markdownFile, "UTF-8");
 		// Store the markdown as a string
 		wiki.setMarkdown(markdownString);
@@ -2558,7 +2561,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Create the V2 WikiPage
 		V2WikiPage created = createV2WikiPage(ownerId, ownerType, converted);
 		// Return the result in V1 form
-		return createWikiPageFromV2(created, ownerId, ownerType);
+		return createWikiPageFromV2(created, ownerId, ownerType, null);
 	}
 	
 	@Override
@@ -2569,7 +2572,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Update the V2 WikiPage
 		V2WikiPage updated = updateV2WikiPage(ownerId, ownerType, converted);
 		// Return result in V1 form
-		return createWikiPageFromV2(updated, ownerId, ownerType);
+		return createWikiPageFromV2(updated, ownerId, ownerType, null);
 	}
 	
 	@Override
@@ -2577,7 +2580,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Get the V2 Wiki
 		V2WikiPage v2WikiPage = getV2WikiPage(key);
 		// Convert and return as a V1
-		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(), key.getOwnerObjectType());
+		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(), key.getOwnerObjectType(), null);
 	}
 	
 	@Override
@@ -2585,7 +2588,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Get a version of the V2 Wiki
 		V2WikiPage v2WikiPage = getVersionOfV2WikiPage(key, version);
 		// Convert and return as a V1
-		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(), key.getOwnerObjectType());
+		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(), key.getOwnerObjectType(), version);
 	}
 	
 	/**
