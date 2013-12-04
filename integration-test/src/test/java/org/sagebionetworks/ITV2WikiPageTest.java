@@ -129,7 +129,6 @@ public class ITV2WikiPageTest {
 			synapse.deleteFileHandle(id);
 		}
 		for(WikiPageKey key: toDelete){
-			//synapse.deleteWikiPage(key);
 			synapse.deleteV2WikiPage(key);
 		}
 	}
