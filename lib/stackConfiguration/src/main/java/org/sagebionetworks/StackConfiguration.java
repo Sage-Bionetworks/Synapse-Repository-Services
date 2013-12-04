@@ -536,6 +536,11 @@ public class StackConfiguration {
 				.parseBoolean(configuration
 						.getProperty("org.sagebionetworks.logging.sweeper.delete.enabled"));
 	}
+	
+	public static String getNotificationEmailAddress() {
+		return configuration
+				.getProperty("org.sagebionetworks.notification.email.address");
+	}
 
 	/**
 	 * @return the name of the S3 Bucket where logs are stored each stack (dev,

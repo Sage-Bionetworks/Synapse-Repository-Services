@@ -76,11 +76,6 @@ public class AuthorizationConstants {
 	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";
 	
 	/**
-	 * The reserved username that Synapse uses to send emails
-	 */
-	public static final String SYNAPSE_USER_NAME = "synapse@sagebase.org";
-	
-	/**
 	 * Per http://sagebionetworks.jira.com/browse/PLFM-192
 	 * authenticated requests made with an API key have the following
 	 * three header fields

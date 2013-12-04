@@ -22,7 +22,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -148,7 +147,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		}
 		authenticatedUsersId = authUsers.getId();
 		
-		UserGroup emailer = userGroupDAO.findGroup(AuthorizationConstants.SYNAPSE_USER_NAME, true);
+		UserGroup emailer = userGroupDAO.findGroup(StackConfiguration.getNotificationEmailAddress(), true);
 		if (emailer == null) {
 			throw new DatastoreException("Could not find the user that sends Synapse emails");
 		}
@@ -490,7 +489,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
         
         // Assemble the email
 		SendEmailRequest request = new SendEmailRequest()
-				.withSource(AuthorizationConstants.SYNAPSE_USER_NAME)
+				.withSource(StackConfiguration.getNotificationEmailAddress())
 				.withDestination(destination)
 				.withMessage(message);
         
