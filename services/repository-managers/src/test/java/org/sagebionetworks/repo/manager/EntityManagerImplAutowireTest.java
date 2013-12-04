@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
@@ -31,6 +30,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.GenotypeData;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -257,10 +257,10 @@ public class EntityManagerImplAutowireTest {
 		data = entityManager.getEntity(userInfo, id, Data.class);
 		assertNotNull(data);
 		assertNotNull(data.getEtag());
-		assertFalse(data.getEtag().equals(UuidETagGenerator.ZERO_E_TAG));
+		assertFalse(data.getEtag().equals(NodeConstants.ZERO_E_TAG));
 		data = entityManager.getEntityForVersion(userInfo, id, data.getVersionNumber(), Data.class);
 		assertNotNull(data.getEtag());
-		assertTrue(data.getEtag().equals(UuidETagGenerator.ZERO_E_TAG)); // PLFM-1420
+		assertTrue(data.getEtag().equals(NodeConstants.ZERO_E_TAG)); // PLFM-1420
 	}
 
 	private Data createLayerForTest(int i){

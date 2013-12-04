@@ -48,7 +48,6 @@ public class IT600BridgeCommunities {
 
 	private static BridgeClient bridge = null;
 	private static BridgeClient bridgeTwo = null;
-	private static String bridgeTwoUserId;
 
 	public static BridgeClient createBridgeClient(String user, String pw) throws SynapseException {
 		SynapseClientImpl synapse = createSynapse();
@@ -71,6 +70,7 @@ public class IT600BridgeCommunities {
 
 	public static SynapseClient createSynapse(BridgeClient bridge) {
 		SynapseClient synapse = new SynapseClientImpl(bridge);
+		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
 		return synapse;
@@ -87,13 +87,6 @@ public class IT600BridgeCommunities {
 
 		bridgeTwo = createBridgeClient(StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
-		
-		// Calling createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
-		// generates an "invalid session token" error. Do not know why.
-		SynapseClientImpl synapse = createSynapse();
-		synapse.login(StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-		bridgeTwoUserId = synapse.getUserSessionData().getProfile().getOwnerId();
 	}
 
 	@Before
@@ -213,10 +206,10 @@ public class IT600BridgeCommunities {
 	public void testAddRemoveAdmin() throws Exception {
 		Community community = createCommunity();
 
-		// String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
+		String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
-		bridge.removeCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.addCommunityAdmin(community.getId(), principalId);
+		bridge.removeCommunityAdmin(community.getId(), principalId);
 		bridgeTwo.leaveCommunity(community.getId());
 	}
 
@@ -224,12 +217,12 @@ public class IT600BridgeCommunities {
 	public void testAddRemoveAdminIdempotentcy() throws Exception {
 		Community community = createCommunity();
 
-		// String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
+		String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
-		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
-		bridge.removeCommunityAdmin(community.getId(), bridgeTwoUserId);
-		bridge.removeCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.addCommunityAdmin(community.getId(), principalId);
+		bridge.addCommunityAdmin(community.getId(), principalId);
+		bridge.removeCommunityAdmin(community.getId(), principalId);
+		bridge.removeCommunityAdmin(community.getId(), principalId);
 		bridgeTwo.leaveCommunity(community.getId());
 	}
 
@@ -237,9 +230,9 @@ public class IT600BridgeCommunities {
 	public void testAddAdminAndLeave() throws Exception {
 		Community community = createCommunity();
 
-		// String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
+		String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.addCommunityAdmin(community.getId(), principalId);
 		bridgeTwo.leaveCommunity(community.getId());
 	}
 
@@ -247,9 +240,9 @@ public class IT600BridgeCommunities {
 	public void testAddOtherAdminAndLeave() throws Exception {
 		Community community = createCommunity();
 
-		// String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
+		String principalId = createSynapse(bridgeTwo).getUserSessionData().getProfile().getOwnerId();
 		bridgeTwo.joinCommunity(community.getId());
-		bridge.addCommunityAdmin(community.getId(), bridgeTwoUserId);
+		bridge.addCommunityAdmin(community.getId(), principalId);
 		bridge.leaveCommunity(community.getId());
 	}
 

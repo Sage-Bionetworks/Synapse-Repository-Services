@@ -262,14 +262,6 @@ public class DBOAccessRequirementDAOImplTest {
 			// We expected this exception
 		}
 
-		try {
-			// Update from a backup.
-			updatedAR = accessRequirementDAO.updateFromBackup(clone);
-			assertEquals(clone.getEtag(), updatedAR.getEtag());
-		}
-		catch(ConflictingUpdateException e) {
-			fail("Update from backup should not generate exception even if the e-tag is different.");
-		}
 		// Delete it
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());

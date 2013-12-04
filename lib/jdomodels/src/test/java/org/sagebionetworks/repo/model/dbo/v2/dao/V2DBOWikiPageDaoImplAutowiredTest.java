@@ -238,6 +238,10 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
         // The archive should have one entry
         assertTrue(reservationIdsBeforeUpdate.size() == 1);
         
+        List<Long> markdownIds = wikiPageDao.getMarkdownFileHandleIdsForWiki(key);
+        assertTrue(markdownIds.size() == 1);
+        assertEquals(markdownOne.getId(), markdownIds.get(0).toString());
+        
         // Sleep to ensure the next date is higher.
         Thread.sleep(1000);
         
@@ -270,6 +274,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
         List<Long> reservationIds2 = wikiPageDao.getFileHandleReservationForWiki(key);                
         // the toInsert list of attachments should be 0 and the archive should still be size 2
         assertTrue(reservationIds2.size() == 2);
+        List<Long> markdownIdsAfterUpdate = wikiPageDao.getMarkdownFileHandleIdsForWiki(key);
+        assertTrue(markdownIdsAfterUpdate.size() == 2);
 	}
 	
 	@Test

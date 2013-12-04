@@ -7,8 +7,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -37,10 +37,10 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
+	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private ETagGenerator eTagGenerator;	
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
@@ -67,7 +67,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			InvalidModelException {
 		DBOUserProfile jdo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, jdo);
-		if (jdo.geteTag()==null) jdo.seteTag(eTagGenerator.generateETag());
+		if (jdo.geteTag() == null) {
+			jdo.seteTag(UUID.randomUUID().toString());
+		}
 		jdo = basicDao.createNew(jdo);
 		return jdo.getOwnerId().toString();
 	}
@@ -112,27 +114,6 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public UserProfile update(UserProfile dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		return update(dto, false);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.UserProfileDAO#update(UserProfile, ObjectSchema)
-	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public UserProfile updateFromBackup(UserProfile dto) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		return update(dto, true);
-	}
-
-	/**
-	 * @param fromBackup Whether we are updating from backup.
-	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
-	 */
-	private UserProfile update(UserProfile dto, boolean fromBackup) throws
-			DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
-
 		DBOUserProfile dbo = null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, dto.getOwnerId());
@@ -142,18 +123,14 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 
-		if (!fromBackup) {
-			// check dbo's etag against dto's etag
-			// if different rollback and throw a meaningful exception
-			if (!dbo.geteTag().equals(dto.getEtag())) {
-				throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
-			}
+		// Check dbo's etag against dto's etag
+		// if different rollback and throw a meaningful exception
+		if (!dbo.geteTag().equals(dto.getEtag())) {
+			throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
-		if (!fromBackup) {
-			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
-			dbo.seteTag(eTagGenerator.generateETag());
-		}
+		// Update with a new e-tag
+		dbo.seteTag(UUID.randomUUID().toString());
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");

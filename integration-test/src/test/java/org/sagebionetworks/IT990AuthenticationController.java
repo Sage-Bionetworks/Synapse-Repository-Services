@@ -206,6 +206,30 @@ public class IT990AuthenticationController {
 	public void testGetSecretKey() throws Exception {
 		String apikey = synapse.retrieveApiKey();
 		assertNotNull(apikey);
+		
+		// Use the API key
+		synapse.logout();
+		synapse.setUserName(username);
+		synapse.setApiKey(apikey);
+		
+		// Should work
+		synapse.getMyProfile();
+		
+		// This should make subsequent API key calls fail
+		synapse.login(username, password);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		
+		synapse.logout();
+		synapse.setUserName(username);
+		synapse.setApiKey(apikey);
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseForbiddenException e) { }
+
+		// Clean up
+		synapse.login(username, password);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
 	@Test
