@@ -24,11 +24,11 @@ public class DBOCommunityTeam implements MigratableDatabaseObject<DBOCommunityTe
 
 	public static final String TEAM_ID_FIELDNAME = "teamId";
 
-	@Field(name = COL_COMMUNITY_TEAM_COMMUNITY_ID)
+	@Field(name = COL_COMMUNITY_TEAM_COMMUNITY_ID, nullable = false)
 	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID)
 	private Long communityId;
 
-	@Field(name = COL_COMMUNITY_TEAM_TEAM_ID, primary = true, backupId = true)
+	@Field(name = COL_COMMUNITY_TEAM_TEAM_ID, primary = true, backupId = true, nullable = false)
 	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = true)
 	private Long teamId;
 
