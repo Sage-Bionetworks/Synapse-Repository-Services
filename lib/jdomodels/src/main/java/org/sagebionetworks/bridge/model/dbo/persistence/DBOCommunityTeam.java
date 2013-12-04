@@ -6,8 +6,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
+import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -15,51 +19,24 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 /**
  * Mapping between communities and teams
  */
+@Table(name = TABLE_COMMUNITY_TEAM)
 public class DBOCommunityTeam implements MigratableDatabaseObject<DBOCommunityTeam, DBOCommunityTeam> {
-	private Long communityId;
-	private Long teamId;
 
 	public static final String TEAM_ID_FIELDNAME = "teamId";
-	public static final String COMMUNITY_ID_FIELDNAME = "communityId";
-	
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn(COMMUNITY_ID_FIELDNAME, COL_COMMUNITY_TEAM_COMMUNITY_ID, false),
-			new FieldColumn(TEAM_ID_FIELDNAME, COL_COMMUNITY_TEAM_TEAM_ID, true).withIsBackupId(true)
-	};
+
+	@Field(name = COL_COMMUNITY_TEAM_COMMUNITY_ID)
+	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID)
+	private Long communityId;
+
+	@Field(name = COL_COMMUNITY_TEAM_TEAM_ID, primary = true, backupId = true)
+	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = true)
+	private Long teamId;
+
+	private static TableMapping<DBOCommunityTeam> tableMapping = AutoTableMapping.create(DBOCommunityTeam.class);
 
 	@Override
 	public TableMapping<DBOCommunityTeam> getTableMapping() {
-		return new TableMapping<DBOCommunityTeam>() {
-
-			@Override
-			public DBOCommunityTeam mapRow(ResultSet rs, int index)
-					throws SQLException {
-				DBOCommunityTeam change = new DBOCommunityTeam();
-				change.setCommunityId(rs.getLong(COL_COMMUNITY_TEAM_COMMUNITY_ID));
-				change.setTeamId(rs.getLong(COL_COMMUNITY_TEAM_TEAM_ID));
-				return change;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_COMMUNITY_TEAM;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_COMMUNITY_TEAM;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOCommunityTeam> getDBOClass() {
-				return DBOCommunityTeam.class;
-			}
-		};
+		return tableMapping;
 	}
 
 	public Long getCommunityId() {
@@ -117,18 +94,18 @@ public class DBOCommunityTeam implements MigratableDatabaseObject<DBOCommunityTe
 	@Override
 	public MigratableTableTranslation<DBOCommunityTeam, DBOCommunityTeam> getTranslator() {
 		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOCommunityTeam, DBOCommunityTeam>(){
+		return new MigratableTableTranslation<DBOCommunityTeam, DBOCommunityTeam>() {
 
 			@Override
-			public DBOCommunityTeam createDatabaseObjectFromBackup(
-					DBOCommunityTeam backup) {
+			public DBOCommunityTeam createDatabaseObjectFromBackup(DBOCommunityTeam backup) {
 				return backup;
 			}
 
 			@Override
 			public DBOCommunityTeam createBackupFromDatabaseObject(DBOCommunityTeam dbo) {
 				return dbo;
-			}};
+			}
+		};
 	}
 
 	@Override
