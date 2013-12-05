@@ -19,6 +19,7 @@
 		<property name="databaseObjectRegister">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.DBOExample" />
+				<bean class="org.sagebionetworks.repo.model.dbo.DBOAnnotatedExample" />
 			</list>
 		</property>
 	</bean>

@@ -84,6 +84,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	 * @return
 	 * @throws IOException
 	 */
+	@SuppressWarnings("rawtypes")
 	public static String loadSchemaSql(TableMapping mapping) throws IOException {
 		if (mapping instanceof AutoTableMapping) {
 			return ((AutoTableMapping) mapping).getDDL();
@@ -101,9 +102,6 @@ public class DDLUtilsImpl implements DDLUtils{
 	public static String loadSchemaSql(String fileName) throws IOException{
 		InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName);
 		if(in == null){
-			if (fileName.startsWith("CREATE TABLE")) {
-				return fileName;
-			}
 			throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
 		}
 		try{
