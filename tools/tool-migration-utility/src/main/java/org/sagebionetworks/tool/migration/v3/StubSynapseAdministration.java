@@ -2513,4 +2513,22 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	public PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(
+			String teamId, String inviteeId, long limit, long offset)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
+			String requesterId, String teamId, long limit, long offset)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
