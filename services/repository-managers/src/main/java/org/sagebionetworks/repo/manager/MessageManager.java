@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -28,6 +29,11 @@ public interface MessageManager {
 	 * Otherwise, an UnauthorizedException is thrown.  
 	 */
 	public MessageToUser getMessage(UserInfo userInfo, String messageId) throws NotFoundException;
+	
+	/**
+	 * Returns the redirect URL used to download the file containing the body of the message
+	 */
+	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException;
 	
 	/**
 	 * Saves the message so that it can be processed by other queries.

@@ -2513,4 +2513,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	public URL downloadMessage(String messageId) throws SynapseException,
+			MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

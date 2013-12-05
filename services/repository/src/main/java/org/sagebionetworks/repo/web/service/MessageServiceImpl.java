@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.MessageManager;
@@ -94,6 +95,12 @@ public class MessageServiceImpl implements MessageService {
 			throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		messageManager.deleteMessage(userInfo, messageId);
+	}
+
+	@Override
+	public URL getMessageFileRedirectURL(String username, String messageId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		return messageManager.getMessageFileRedirectURL(userInfo, messageId);
 	}
 
 }

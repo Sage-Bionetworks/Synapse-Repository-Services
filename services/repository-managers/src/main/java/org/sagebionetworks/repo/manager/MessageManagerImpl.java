@@ -183,6 +183,14 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		}
 		return message;
 	}
+	
+	@Override
+	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
+		// If the user can get the message metadata (permission checking by the manager)
+		// then the user can download the file
+		MessageToUser dto = getMessage(userInfo, messageId);
+		return fileHandleManager.getRedirectURLForFileHandle(dto.getFileHandleId());
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -196,5 +200,27 @@ public class MessageController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@PathVariable String messageId) throws NotFoundException {
 		serviceProvider.getMessageService().deleteMessage(username, messageId);
+	}
+	
+	/**
+	 * Get the actual URL of the file associated with the message
+	 * </br>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * 
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 */
+	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void fileRedirectForMessage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@PathVariable String messageId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws NotFoundException, IOException {
+		URL redirectUrl = serviceProvider.getMessageService()
+				.getMessageFileRedirectURL(username, messageId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }

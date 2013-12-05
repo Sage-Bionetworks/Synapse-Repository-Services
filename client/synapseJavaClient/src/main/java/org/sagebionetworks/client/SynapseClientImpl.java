@@ -3250,6 +3250,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = MESSAGE + "/" + messageId;
 		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
 	}
+	
+	@Override
+	public URL downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException {
+		String uri = MESSAGE + "/" + messageId + FILE;
+		return getUrl(uri);
+	}
 
 	/**
 	 * Get the child count for this entity

@@ -636,6 +636,11 @@ public interface SynapseClient extends BaseClient {
 	 * Deletes a message.  Used for test cleanup only.  Admin only.
 	 */
 	public void deleteMessage(String messageId) throws SynapseException;
+	
+	/**
+	 * Returns a temporary URL that can be used to download the body of a message
+	 */
+	public URL downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 

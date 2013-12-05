@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -41,5 +42,7 @@ public interface MessageService {
 	
 	public void deleteMessage(String username, String messageId)
 			throws NotFoundException;
+
+	public URL getMessageFileRedirectURL(String username, String messageId) throws NotFoundException;
 
 }

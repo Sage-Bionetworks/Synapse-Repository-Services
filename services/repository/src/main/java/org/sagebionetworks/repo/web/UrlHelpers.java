@@ -501,7 +501,6 @@ public class UrlHelpers {
 	public static final String MESSAGE                    = "/message";
 	public static final String FORWARD                    = "/forward";
 	public static final String CONVERSATION               = "/conversation";
-	public static final String STATUS                     = "status";
 	public static final String MESSAGE_STATUS             = MESSAGE + "/status";
 	public static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
 	public static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
@@ -512,7 +511,7 @@ public class UrlHelpers {
 	public static final String MESSAGE_ID                 = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
 	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + FORWARD;
 	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + CONVERSATION;
-	public static final String MESSAGE_ID_STATUS          = MESSAGE_ID + STATUS;
+	public static final String MESSAGE_ID_FILE            = MESSAGE_ID + FILE;
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
@@ -543,6 +542,7 @@ public class UrlHelpers {
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	
 	// Evaluation URLs
+	public static final String STATUS = "status";
 	public static final String EVALUATION = "/evaluation";
 	public static final String EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS = "evalId";
 	public static final String EVALUATION_ID_PATH_VAR = "{"+EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS+"}";
