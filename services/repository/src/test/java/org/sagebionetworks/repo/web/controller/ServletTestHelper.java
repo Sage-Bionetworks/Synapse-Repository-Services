@@ -25,11 +25,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -1400,4 +1402,72 @@ public class ServletTestHelper {
 		PaginatedColumnModels pcm =  ServletTestHelperUtils.readResponse(response, PaginatedColumnModels.class);
 		return pcm;
 	}
+	
+	public static Team createTeam(HttpServlet dispatchServlet, String username, Team team)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.TEAM, username, team);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				Team.class);
+	}
+
+	public static void deleteTeam(HttpServlet dispatchServlet, String username, Team team) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.TEAM + "/" + team.getId(),
+				username, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);		
+	}
+
+	public static MembershipInvtnSubmission createMembershipInvitation(HttpServlet dispatchServlet, String username, MembershipInvtnSubmission mis)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.MEMBERSHIP_INVITATION, username, mis);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				MembershipInvtnSubmission.class);
+	}
+	
+	public static MembershipInvtnSubmission getMembershipInvitation(HttpServlet dispatchServlet,
+			String username, String misId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MEMBERSHIP_INVITATION + "/" + misId, username,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return new MembershipInvtnSubmission(ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	public static PaginatedResults<MembershipInvtnSubmission> getMembershipInvitationSubmissions(HttpServlet dispatchServlet,
+			String username, String teamId) throws Exception {
+		
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.TEAM+"/"+teamId+"/openInvitation", username, null);
+		
+		MockHttpServletResponse response = ServletTestHelperUtils
+		.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MembershipInvtnSubmission.class);
+	}
+
+
+
+	public static void deleteMembershipInvitation(HttpServlet dispatchServlet, String username, MembershipInvtnSubmission mis) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.MEMBERSHIP_INVITATION + "/" + mis.getId(),
+				username, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);		
+	}
+
 }
