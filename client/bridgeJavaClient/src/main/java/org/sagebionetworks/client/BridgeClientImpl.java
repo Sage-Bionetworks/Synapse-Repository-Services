@@ -30,6 +30,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String MEMBER = "/member";
 
 	private static final String JOINED = "/joined";
+	
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
 	private static final String ADD_ADMIN = "/addadmin";
@@ -148,7 +149,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = COMMUNITY + "/" + communityId + JOIN;
 		get(uri);
 	}
-
+	
 	@Override
 	public void leaveCommunity(String communityId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + LEAVE;
@@ -156,14 +157,14 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public void addCommunityAdmin(String communityId, String memberName) throws SynapseException {
-		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + memberName + ADD_ADMIN;
+	public void addCommunityAdmin(String communityId, String principalId) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + principalId + ADD_ADMIN;
 		get(uri);
 	}
 
 	@Override
-	public void removeCommunityAdmin(String communityId, String memberName) throws SynapseException {
-		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + memberName + REMOVE_ADMIN;
+	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException {
+		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + principalId + REMOVE_ADMIN;
 		get(uri);
 	}
 
