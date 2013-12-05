@@ -2504,8 +2504,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());	
 		
 		// Zip up markdown
-		File markdownFile = zipUp(from.getMarkdown(), from.getId() + "_markdown");
-		String contentType = guessContentTypeFromStream(markdownFile);
+		File markdownFile;
+		String markdown = from.getMarkdown();
+		if(markdown != null) {
+			markdownFile = FileUtils.writeStringToCompressedFile(markdown);
+		} else {
+			markdownFile = FileUtils.writeStringToCompressedFile("");
+		}
+		String contentType = "application/x-gzip";
 		// Create file handle for markdown
 		S3FileHandle markdownS3Handle = createFileHandle(markdownFile, contentType);
 		wiki.setMarkdownFileHandleId(markdownS3Handle.getId());
@@ -2547,7 +2553,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} else {
 			markdownFile = downloadVersionOfV2WikiMarkdown(key, version);
 		}
-		String markdownString = org.apache.commons.io.FileUtils.readFileToString(markdownFile, "UTF-8");
+		String markdownString = FileUtils.readCompressedFileAsString(markdownFile);
 		// Store the markdown as a string
 		wiki.setMarkdown(markdownString);
 		return wiki;
