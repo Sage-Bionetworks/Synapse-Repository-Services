@@ -186,7 +186,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) {
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getIndividualGroup().getId());
 		
@@ -208,6 +208,11 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 								+ MAX_NUMBER_OF_RECIPIENTS
 								+ " at once.  Consider grouping the recipients in a Team if possible.");
 			}
+		}
+		
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId())
+				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
+			throw new UnauthorizedException("Invalid file handle given");
 		}
 		
 		dto = messageDAO.createMessage(dto);

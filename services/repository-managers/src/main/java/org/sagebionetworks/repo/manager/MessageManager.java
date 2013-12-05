@@ -36,8 +36,11 @@ public interface MessageManager {
 	 * </br> 
 	 * If the message is going to more than one recipient, a worker will asynchronously process the message.
 	 * In case of failure, the user will be notified via bounce message.  
+	 * </br>
+	 * This method also handles throttling of message creation 
+	 * and checks to see if file handles (message body) are accessible.  
 	 */
-	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto);
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
 
 	/**
 	 * Saves an existing message so that it can be delivered to the given set of recipients
