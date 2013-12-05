@@ -8,6 +8,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -234,7 +235,7 @@ public class MessageController extends BaseController {
 	MessageToUser sendMessageToEntityOwner(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@PathVariable String id, 
-			@RequestBody MessageToUser toCreate) throws NotFoundException {
+			@RequestBody MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
 		return serviceProvider.getMessageService().createMessageToEntityOwner(username, id, toCreate);
 	}
 }

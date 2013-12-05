@@ -3,12 +3,9 @@ package org.sagebionetworks;
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -36,7 +33,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	private static final Long LIMIT = 100L;
 	private static final Long OFFSET = 0L;
-	private static final String MESSAGE_BODY = "Blah blah blah";
+	private static final String MESSAGE_BODY = "Blah blah blah\n";
 
 	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
@@ -80,7 +77,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		try {
 			FileOutputStream fos = new FileOutputStream(file);
 			pw = new PrintWriter(fos);
-			pw.println(MESSAGE_BODY);
+			pw.print(MESSAGE_BODY);
 			pw.close();
 			pw = null;
 		} finally {
@@ -227,25 +224,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 	@Test
 	public void testDownloadMessage() throws Exception {
-		URL url = synapseTwo.downloadMessage(oneToTwo.getId());
-		
-		String message = null;
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		InputStream in = null;
-		try {
-			byte[] buffer = new byte[1024];
-			in = url.openStream();
-			int length = 0;
-			while ((length = in.read(buffer)) > 0) {
-				out.write(buffer, 0, length);
-			}
-			message = new String(out.toByteArray());
-		} finally {
-			if (in != null) {
-				in.close();
-			}
-			out.close();
-		}
+		String message = synapseTwo.downloadMessage(oneToTwo.getId());
 		
 		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
 	}

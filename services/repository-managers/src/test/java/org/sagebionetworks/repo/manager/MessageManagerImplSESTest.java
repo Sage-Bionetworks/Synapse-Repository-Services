@@ -61,6 +61,7 @@ public class MessageManagerImplSESTest {
 	private AuthorizationManager mockAuthorizationManager;
 	private FileHandleManager mockFileHandleManager;
 	private NodeDAO mockNodeDAO;
+	private EntityPermissionsManager mockEntityPermissionsManager;
 
 	@Autowired
 	private AWSCredentials awsCredentials;
@@ -95,6 +96,7 @@ public class MessageManagerImplSESTest {
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		mockFileHandleManager = mock(FileHandleManager.class);
 		mockNodeDAO = mock(NodeDAO.class);
+		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
 		
 		// Use a working client
 		amazonSESClient = new AmazonSimpleEmailServiceClient(awsCredentials);
@@ -102,7 +104,7 @@ public class MessageManagerImplSESTest {
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileDAO, mockAuthorizationManager, amazonSESClient,
-				mockFileHandleManager, mockNodeDAO);
+				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager);
 		
 		// The end goal of this mocking is to pass a single recipient through the authorization 
 		// and individual-ization checks within the MessageManager's sendMessage method.

@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,15 +29,17 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -91,7 +92,10 @@ public class MessageManagerImplTest {
 	private FileHandleManager mockFileHandleManager;
 	
 	@Autowired
-	private NodeDAO nodeDAO;
+	private NodeManager nodeManager;
+	
+	@Autowired
+	private EntityPermissionsManager entityPermissionsManager;
 	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
@@ -233,7 +237,7 @@ public class MessageManagerImplTest {
 		
 		if (nodeId != null) {
 			try {
-				nodeDAO.delete(nodeId);
+				nodeManager.delete(adminUserInfo, nodeId);
 			} catch (NotFoundException e) { }
 		}
 		
@@ -572,25 +576,68 @@ public class MessageManagerImplTest {
 		// Make an "entity"
 		Node node = new Node();
 		node.setName(UUID.randomUUID().toString());
-		node.setCreatedByPrincipalId(Long.parseLong(testUser.getIndividualGroup().getId()));
-		node.setModifiedByPrincipalId(node.getCreatedByPrincipalId());
-		node.setCreatedOn(new Date(System.currentTimeMillis()));
-		node.setModifiedOn(node.getCreatedOn());
 		node.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
-		nodeId = nodeDAO.createNew(node);
+		nodeId = nodeManager.createNewNode(node, testUser);
 		
-		// This is in effect sending a message from the other test user to itself and the test user
+		// Case #1 - Creator can share
+		// This is in effect sending a message from the other test user to the test user
+		userToOther.setRecipients(null);
 		MessageToUser message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
 		cleanup.add(message.getId());
-		messageManager.processMessage(message.getId());
 		
-		// Check both inboxes
+		// Check the test user's inbox
 		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
+		// Case #2 - Creator can't share
+		// Have the admin give transfer the sharing permission to the other user
+		AccessControlList acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(otherTestUser.getIndividualGroup().getId()));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>());
+		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl.getResourceAccess().add(ra);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// This is in effect sending a message from the other test user to itself
+		userToOther.setRecipients(null);
+		message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		cleanup.add(message.getId());
+		
+		// Check the test user's inbox
 		inbox = messageManager.getInbox(otherTestUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message, inbox.getResults().get(0).getMessage());
 		
+		// Case #3 - Creator and other can share
+		// Have the admin give sharing permission back to the creator
+		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(testUser.getIndividualGroup().getId()));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>());
+		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl.getResourceAccess().add(ra);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// This is in effect sending a message from the other test user to the test user
+		userToOther.setRecipients(null);
+		message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		cleanup.add(message.getId());
+		
+		// Check the test user's inbox
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
+		// Case #4 - Nobody can share
+		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+
+		try {
+			message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		} catch (UnauthorizedException e) { }
 	}
 }

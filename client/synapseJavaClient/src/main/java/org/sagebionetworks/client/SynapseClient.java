@@ -646,7 +646,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Returns a temporary URL that can be used to download the body of a message
 	 */
-	public URL downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
+	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 

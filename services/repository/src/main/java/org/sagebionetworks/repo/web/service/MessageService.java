@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.net.URL;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -46,6 +47,6 @@ public interface MessageService {
 	public URL getMessageFileRedirectURL(String username, String messageId) throws NotFoundException;
 
 	public MessageToUser createMessageToEntityOwner(String username, String entityId,
-			MessageToUser toCreate) throws NotFoundException;
+			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException;
 
 }

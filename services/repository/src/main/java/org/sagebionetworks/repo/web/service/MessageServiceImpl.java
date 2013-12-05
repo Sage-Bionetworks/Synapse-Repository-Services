@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -105,7 +106,7 @@ public class MessageServiceImpl implements MessageService {
 
 	@Override
 	public MessageToUser createMessageToEntityOwner(String username, String entityId,
-			MessageToUser toCreate) throws NotFoundException {
+			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		return messageManager.createMessageToEntityOwner(userInfo, entityId, toCreate);
 	}

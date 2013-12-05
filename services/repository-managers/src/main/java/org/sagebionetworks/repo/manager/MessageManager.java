@@ -4,6 +4,7 @@ import java.net.URL;
 import java.util.List;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -49,12 +50,15 @@ public interface MessageManager {
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
 
 	/**
-	 * Adds the creator of the given entity to the recipient list of the message.
+	 * Adds the creator of the given entity to the recipient list of the
+	 * message. If the creator is unable to share the entity, then users that
+	 * can share the entity will be messaged instead.
 	 * 
 	 * Afterwards, calls {@link #createMessage(UserInfo, MessageToUser)}
 	 */
 	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
-			String entityId, MessageToUser toCreate) throws NotFoundException;
+			String entityId, MessageToUser toCreate) throws NotFoundException,
+			ACLInheritanceException;
 
 	/**
 	 * Saves an existing message so that it can be delivered to the given set of recipients

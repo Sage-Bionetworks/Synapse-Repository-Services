@@ -3264,9 +3264,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public URL downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException {
+	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException {
 		String uri = MESSAGE + "/" + messageId + FILE;
-		return getUrl(uri);
+		return getSharedClientConnection().getDirect(repoEndpoint, uri, getUserAgent());
 	}
 
 	/**
