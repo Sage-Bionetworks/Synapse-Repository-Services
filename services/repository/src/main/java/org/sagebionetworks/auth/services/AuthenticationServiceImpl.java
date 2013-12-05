@@ -6,8 +6,8 @@ import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
-import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
@@ -30,11 +30,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private AuthenticationManager authManager;
 	
+	@Autowired
+	private MessageManager messageManager;
+	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
+		this.messageManager = messageManager;
 	}
 
 	@Override
@@ -53,13 +57,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken) {
+	public String revalidate(String sessionToken) throws NotFoundException {
 		return revalidate(sessionToken, true);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken, boolean checkToU) {
+	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -114,22 +118,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		UserInfo user = userManager.getUserInfo(username);
 		username = user.getIndividualGroup().getName();
 		String sessionToken = authManager.authenticate(username, null).getSessionToken();
-
-		// Pass along some basic info to the email sender
-		NewUser mailTarget = new NewUser();
-		mailTarget.setDisplayName(user.getUser().getDisplayName());
-		mailTarget.setEmail(user.getIndividualGroup().getName());
-		mailTarget.setFirstName(user.getUser().getFname());
-		mailTarget.setLastName(user.getUser().getLname());
 		
 		// Send the email
-		SendMail sendMail = new SendMail(originClient);
-		sendMail.sendSetPasswordMail(mailTarget, sessionToken);
+		messageManager.sendPasswordResetEmail(user.getIndividualGroup().getId(), originClient, sessionToken);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(ChangePasswordRequest request) {
+	public void changePassword(ChangePasswordRequest request) throws NotFoundException {
 		if (request.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -176,6 +172,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public String getUsername(String principalId) throws NotFoundException {
 		return userManager.getGroupName(principalId);
+	}
+	
+	@Override
+	public boolean hasUserAcceptedTermsOfUse(String username) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		return authManager.hasUserAcceptedTermsOfUse(userInfo.getIndividualGroup().getId());
 	}
 	
 	@Override
@@ -229,9 +231,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setLastName(lname);
 				user.setDisplayName(fullName);
 				userManager.createUser(user);
+				UserInfo justCreated = userManager.getUserInfo(email);
 				
-				SendMail sendMail = new SendMail(originClient);
-				sendMail.sendWelcomeMail(user);
+				// Send a welcome message
+				messageManager.sendWelcomeEmail(justCreated.getIndividualGroup().getId(), originClient);
 			} else {
 				throw new NotFoundException(email);
 			}

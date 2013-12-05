@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -14,6 +16,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 
 public interface MessageManager {
+	
+	/**
+	 * For testing
+	 */
+	public void setFileHandleManager(FileHandleManager fileHandleManager);
 	
 	/**
 	 * Retrieves a single message by ID.  
@@ -73,11 +80,23 @@ public interface MessageManager {
 	 * </br>
 	 * Non-fatal errors will be caught and their error messages will be returned in a list.
 	 * It is the caller's responsibility to send a bounce message to the user.
+	 * </br>
+	 * Note: This method is to be used by the MessageToUserWorker and should not be exposed via the REST API.
 	 */
-	public List<String> sendMessage(String messageId) throws NotFoundException;
+	public List<String> processMessage(String messageId) throws NotFoundException;
 	
 	/**
 	 * Deletes a message, only accessible to admins
 	 */
 	public void deleteMessage(UserInfo userInfo, String messageId);
+
+	/**
+	 * Sends a password reset email based on a template via Amazon SES
+	 */
+	public void sendPasswordResetEmail(String recipientId, OriginatingClient originClient, String sessionToken) throws NotFoundException;
+	
+	/**
+	 * Sends a welcome email based on a template via Amazon SES
+	 */
+	public void sendWelcomeEmail(String recipientId, OriginatingClient originClient) throws NotFoundException;
 }

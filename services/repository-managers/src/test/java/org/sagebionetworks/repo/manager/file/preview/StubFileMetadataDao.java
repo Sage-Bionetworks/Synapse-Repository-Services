@@ -92,18 +92,6 @@ public class StubFileMetadataDao implements FileHandleDao {
 	}
 
 	@Override
-	public FileHandleBackup getFileHandleBackup(String idToBackup)
-			throws NotFoundException {
-		return backupMap.get(idToBackup);
-	}
-
-	@Override
-	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
-		FileHandleBackup old = backupMap.put(backup.getId().toString(), backup);
-		return old != null;
-	}
-
-	@Override
 	public List<String> findFileHandleWithKeyAndMD5(String key, String md5) {
 		// TODO Auto-generated method stub
 		return null;

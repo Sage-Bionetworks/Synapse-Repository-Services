@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.model.message;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -13,9 +14,21 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface TransactionalMessenger {
 	
 	/**
+	 * Send a change message for the given object
+	 * after the current transaction commits.
+	 */
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType);
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType);
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType);
+	
+	/**
+	 * Send a change message fashioned after the passed entity
+	 * after the current transaction commits.
+	 */
+	public void sendMessageAfterCommit(ObservableEntity entity, ChangeType changeType);
+	
+	/**
 	 * Send the passed message after the current transaction commits.
-	 * 
-	 * @param message
 	 */
 	public void sendMessageAfterCommit(ChangeMessage message);
 	

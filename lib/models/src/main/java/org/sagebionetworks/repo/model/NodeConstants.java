@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.UUID;
+
 /**
  * Constants for nodes.
  * @author jmhill
@@ -55,4 +57,9 @@ public class NodeConstants {
 	 * The default versionLabel for nodes
 	 */
 	public static final String DEFAULT_VERSION_LABEL = DEFAULT_VERSION_NUMBER.toString();
+	
+	/**
+	 * A zero-ed etag
+	 */
+	public static final String ZERO_E_TAG = new UUID(0L, 0L).toString();
 }

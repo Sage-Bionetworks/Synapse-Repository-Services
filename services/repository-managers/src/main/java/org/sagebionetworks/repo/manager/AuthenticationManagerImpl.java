@@ -55,7 +55,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Long checkSessionToken(String sessionToken, boolean checkToU) {
+	public Long checkSessionToken(String sessionToken, boolean checkToU) throws NotFoundException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
 			// Check to see why the token is invalid
@@ -89,7 +89,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	public String getSecretKey(String id) {
+	public String getSecretKey(String id) throws NotFoundException {
 		return authDAO.getSecretKey(id);
 	}
 
@@ -129,7 +129,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(String id) {
+	public boolean hasUserAcceptedTermsOfUse(String id) throws NotFoundException {
 		return authDAO.hasUserAcceptedToU(id);
 	}
 	

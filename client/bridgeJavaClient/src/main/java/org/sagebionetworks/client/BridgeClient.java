@@ -6,8 +6,6 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Abstraction for Synapse.
@@ -115,17 +113,17 @@ public interface BridgeClient extends BaseClient {
 	 * Add a current member as an admin for the community
 	 * 
 	 * @param communityId
-	 * @param memberName
+	 * @param principalId
 	 * @throws SynapseException
 	 */
-	public void addCommunityAdmin(String communityId, String memberName) throws SynapseException;
+	public void addCommunityAdmin(String communityId, String principalId) throws SynapseException;
 
 	/**
 	 * Remove a current member as an admin for the community
 	 * 
 	 * @param communityId
-	 * @param memberName
+	 * @param principalId
 	 * @throws SynapseException
 	 */
-	public void removeCommunityAdmin(String communityId, String memberName) throws SynapseException;
+	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException;
 }

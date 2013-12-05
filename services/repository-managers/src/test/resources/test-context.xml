@@ -8,12 +8,16 @@
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
-  <context:annotation-config />
+	<context:annotation-config />
 
-  <import resource="classpath:managers-spb.xml" />
-    
-    <!--  We do not want to publish to the repository change topic while running test so we turn it off -->
+	<import resource="classpath:managers-spb.xml" />
+
+	<!-- We do not want to publish to the repository change topic while running tests so we turn it off -->
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">
-	    <constructor-arg value="false" />
+		<constructor-arg value="false" />
 	</bean>
+	
+	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
+	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
+	
 </beans>

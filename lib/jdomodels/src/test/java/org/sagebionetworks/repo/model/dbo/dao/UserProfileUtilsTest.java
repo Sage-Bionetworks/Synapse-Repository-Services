@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -49,6 +50,8 @@ public class UserProfileUtilsTest {
 		picData.setTokenId("Fake token ID");
 		picData.setMd5("Fake MD5");
 		dto.setPic(picData);
+		dto.setNotificationSettings(new Settings());
+		dto.getNotificationSettings().setSendEmailNotifications(false);
 		
 		DBOUserProfile dbo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, dbo);

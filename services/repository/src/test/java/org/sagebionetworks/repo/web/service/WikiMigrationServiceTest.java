@@ -62,12 +62,14 @@ public class WikiMigrationServiceTest {
 	String creatorUserGroupId;
 	List<WikiPageKey> toDelete;
 	List<WikiPageKey> toDeleteForParentCase;
+	List<String> abandonedFileHandleIds;
 	UserInfo adminUserInfo;
 	
 	@Before
 	public void before() throws NotFoundException {
 		toDelete = new ArrayList<WikiPageKey>(); 
 		toDeleteForParentCase = new ArrayList<WikiPageKey>();
+		abandonedFileHandleIds = new ArrayList<String>();
 		
 		UserGroup userGroup = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
 		assertNotNull(userGroup);
@@ -79,13 +81,21 @@ public class WikiMigrationServiceTest {
 	
 	@After
 	public void after() throws NotFoundException {
-		// Clean up wikis from both v1 and v2 tables
+		// No file handles to clean first. Clean up wikis from the V1 table
 		if(wikiPageDao != null && toDelete != null) {
 			for(WikiPageKey id: toDelete) {
 				wikiPageDao.delete(id);
 			}
 		}
-		// We only want to delete from V2 with the keys of toDelete when its not the special parent case
+		// Clean up file handles abandoned by V2 wikis during remigration
+		if(abandonedFileHandleIds != null) {
+			for(String id: abandonedFileHandleIds) {
+				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(id);
+				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+				fileMetadataDao.delete(id);
+			}
+		}
+		// If not the special parent case, we delete from "toDelete" which are wikis without hierarchy
 		if(v2wikiPageDAO != null && toDelete != null && toDeleteForParentCase.size() == 0) {
 			for(WikiPageKey id: toDelete) {
 				V2WikiPage wiki = v2wikiPageDAO.get(id);
@@ -96,6 +106,7 @@ public class WikiMigrationServiceTest {
 				v2wikiPageDAO.delete(id);
 			}
 		}
+		// Delete in order to avoid deleting a parent before children have been cleaned up
 		if(v2wikiPageDAO != null && toDeleteForParentCase != null) {
 			for(int i = 0; i < toDeleteForParentCase.size(); i++) {
 				WikiPageKey key = toDeleteForParentCase.get(i);
@@ -160,11 +171,17 @@ public class WikiMigrationServiceTest {
 		assertNotNull(results);
 		assertEquals(WikiMigrationResultType.SUCCESS, results.getResults().get(0).getResultType());
 		
+		// Store the markdown file handle created during migration to clean up
+		V2WikiPage wikiCreatedFromMigration = v2wikiPageDAO.get(key);
+		String firstMarkdownFileHandleId = wikiCreatedFromMigration.getMarkdownFileHandleId();
+		abandonedFileHandleIds.add(firstMarkdownFileHandleId);
+		
 		// Update the wiki page in the V1 DB and make sure etag is changed
 		wiki.setEtag("etag2");
 		wiki.setTitle("title2");
 		wiki = wikiPageDao.updateWikiPage(wiki, fileNameToFileHandleMap, ownerId, ownerType, false);
 		// Migrate the wiki again; should return success after updating the V2 DB
+		// The second markdown file handle created during remigration will be cleaned up when deleting the V2 wiki
 		PaginatedResults<WikiMigrationResult> resultsAfterUpdate = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
 		assertNotNull(resultsAfterUpdate);
 		assertEquals(WikiMigrationResultType.SUCCESS, resultsAfterUpdate.getResults().get(0).getResultType());
