@@ -12,11 +12,11 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.FileUtils;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -257,7 +257,7 @@ public class ITV2WikiPageTest {
 		// this root is in the V2 model, but should have all the same fields as "wiki"
 		assertEquals(root.getAttachmentFileHandleIds().size(), wiki.getAttachmentFileHandleIds().size());
 		File markdown = synapse.downloadV2WikiMarkdown(key);
-		assertEquals(FileUtils.readFileToString(markdown), wiki.getMarkdown());
+		assertEquals(FileUtils.readCompressedFileAsString(markdown), wiki.getMarkdown());
 		// test get first version
 		WikiPage firstWiki = synapse.getVersionOfV2WikiPageAsV1(key, new Long(0));
 		assertNotNull(firstWiki.getAttachmentFileHandleIds());
