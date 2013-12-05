@@ -189,4 +189,14 @@ public class FileUtilsTest {
 			assertTrue(Arrays.equals(expected, fileData));
 		}
 	}
+	
+	@Test
+	public void testWriteStringToCompressedFile() throws IOException {
+		String markdown = "This is a test **markdown** that will be compressed.";
+		File zippedFile = FileUtils.writeStringToCompressedFile(markdown);
+		
+		String unzippedString = FileUtils.readCompressedFileAsString(zippedFile);
+		assertEquals(markdown, unzippedString);
+		toDelete.add(zippedFile);
+	}
 }
