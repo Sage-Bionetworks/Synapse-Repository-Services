@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
@@ -28,11 +29,17 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -47,6 +54,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -83,6 +91,12 @@ public class MessageManagerImplTest {
 	private FileHandleManager fileHandleManager;
 	private FileHandleManager mockFileHandleManager;
 	
+	@Autowired
+	private NodeManager nodeManager;
+	
+	@Autowired
+	private EntityPermissionsManager entityPermissionsManager;
+	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
 	private static final long LIMIT = 100;
@@ -107,6 +121,7 @@ public class MessageManagerImplTest {
 	
 	private UserInfo adminUserInfo;
 	private List<String> cleanup;
+	private String nodeId;
 	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
@@ -167,7 +182,7 @@ public class MessageManagerImplTest {
 	/**
 	 * Creates a message row
 	 */
-	private MessageToUser createMessage(UserInfo userInfo, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException {
+	private MessageToUser createMessage(UserInfo userInfo, String subject, Set<String> recipients, String inReplyTo) throws InterruptedException, NotFoundException {
 		assertNotNull(userInfo);
 		
 		MessageToUser dto = new MessageToUser();
@@ -219,6 +234,12 @@ public class MessageManagerImplTest {
 
 		// Cleanup the team
 		teamManager.delete(testUser, testTeam.getId());
+		
+		if (nodeId != null) {
+			try {
+				nodeManager.delete(adminUserInfo, nodeId);
+			} catch (NotFoundException e) { }
+		}
 		
 		// Reset the test user's notification settings to the default
 		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
@@ -528,16 +549,95 @@ public class MessageManagerImplTest {
 		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
-		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
 		cleanup.add(resetEmail.getId());
+		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
+		
+		// Try the delivery failure email
+		List<String> mockErrors = new ArrayList<String>();
+		mockErrors.add(UUID.randomUUID().toString());
+		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		MessageToUser failureEmail = inbox.getResults().get(0).getMessage();
+		cleanup.add(failureEmail.getId());
+		assertEquals("Message " + userToOther.getId() + " Delivery Failure(s)", failureEmail.getSubject());
 		
 		// Try another variation
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
-		verify(mockFileHandleManager, times(2)).uploadFile(anyString(), any(FileItemStream.class));
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		resetEmail = inbox.getResults().get(0).getMessage();
-		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
 		cleanup.add(resetEmail.getId());
+		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
+	}
+	
+	@Test
+	public void testCreateMessageToEntityOwner() throws Exception {
+		// Make an "entity"
+		Node node = new Node();
+		node.setName(UUID.randomUUID().toString());
+		node.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
+		nodeId = nodeManager.createNewNode(node, testUser);
+		
+		// Case #1 - Creator can share
+		// This is in effect sending a message from the other test user to the test user
+		userToOther.setRecipients(null);
+		MessageToUser message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		cleanup.add(message.getId());
+		
+		// Check the test user's inbox
+		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
+		// Case #2 - Creator can't share
+		// Have the admin give transfer the sharing permission to the other user
+		AccessControlList acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(otherTestUser.getIndividualGroup().getId()));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>());
+		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl.getResourceAccess().add(ra);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// This is in effect sending a message from the other test user to itself
+		userToOther.setRecipients(null);
+		message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		cleanup.add(message.getId());
+		
+		// Check the test user's inbox
+		inbox = messageManager.getInbox(otherTestUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
+		// Case #3 - Creator and other can share
+		// Have the admin give sharing permission back to the creator
+		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(testUser.getIndividualGroup().getId()));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>());
+		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl.getResourceAccess().add(ra);
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+		
+		// This is in effect sending a message from the other test user to the test user
+		userToOther.setRecipients(null);
+		message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		cleanup.add(message.getId());
+		
+		// Check the test user's inbox
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
+		// Case #4 - Nobody can share
+		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		entityPermissionsManager.updateACL(acl, adminUserInfo);
+
+		try {
+			message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		} catch (UnauthorizedException e) { }
 	}
 }

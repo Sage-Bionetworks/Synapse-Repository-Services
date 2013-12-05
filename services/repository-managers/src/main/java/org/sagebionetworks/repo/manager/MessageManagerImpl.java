@@ -21,13 +21,18 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -104,6 +109,12 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	
+	@Autowired
+	private NodeDAO nodeDAO;
+	
+	@Autowired
+	private EntityPermissionsManager entityPermissionsManager;
+	
 	/**
 	 * The ID of the default group AUTHENTICATED_USERS
 	 */
@@ -120,9 +131,12 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	 * Used for testing
 	 */
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
-			GroupMembersDAO groupMembersDAO, UserManager userManager, UserProfileDAO userProfileDAO,
+			GroupMembersDAO groupMembersDAO, UserManager userManager,
+			UserProfileDAO userProfileDAO,
 			AuthorizationManager authorizationManager,
-			AmazonSimpleEmailService amazonSESClient, FileHandleManager fileHandleManager) {
+			AmazonSimpleEmailService amazonSESClient,
+			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
+			EntityPermissionsManager entityPermissionsManager) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -131,6 +145,8 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 		this.fileHandleManager = fileHandleManager;
+		this.nodeDAO = nodeDAO;
+		this.entityPermissionsManager = entityPermissionsManager;
 	}
 	
 	@Override
@@ -183,10 +199,18 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		}
 		return message;
 	}
+	
+	@Override
+	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
+		// If the user can get the message metadata (permission checking by the manager)
+		// then the user can download the file
+		MessageToUser dto = getMessage(userInfo, messageId);
+		return fileHandleManager.getRedirectURLForFileHandle(dto.getFileHandleId());
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) {
+	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
 		dto.setCreatedBy(userInfo.getIndividualGroup().getId());
 		
@@ -208,6 +232,11 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 								+ MAX_NUMBER_OF_RECIPIENTS
 								+ " at once.  Consider grouping the recipients in a Team if possible.");
 			}
+		}
+		
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId())
+				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
+			throw new UnauthorizedException("Invalid file handle given");
 		}
 		
 		dto = messageDAO.createMessage(dto);
@@ -237,6 +266,45 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			}
 		}
 		return dto;
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
+			String entityId, MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
+		// No permission checks since we only need to find the IDs of the creator of the node
+		//   (or anyone with CHANGE_PERMISSIONS access)
+		Node entity = nodeDAO.getNode(entityId);
+		AccessControlList acl = entityPermissionsManager.getACL(entityId, userInfo);
+		
+		// Find all users with permission to change permissions
+		Set<Long> sharers = new HashSet<Long>();
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS)) {
+				sharers.add(ra.getPrincipalId());
+			}
+		}
+
+		if (toCreate.getRecipients() == null) {
+			toCreate.setRecipients(new HashSet<String>());
+		}
+		
+		// If the creator has permission, just message the creator
+		if (sharers.contains(entity.getCreatedByPrincipalId())) {
+			toCreate.getRecipients().add(entity.getCreatedByPrincipalId().toString());
+			
+		// Otherwise message everyone else
+		} else {
+			if (sharers.size() <= 0) {
+				throw new UnauthorizedException("Unable to find a user with access to this entity.  Please contact a Synapse Administrator at synapseInfo@sagebase.org");
+			}
+			for (Long sharer : sharers) {
+				toCreate.getRecipients().add(sharer.toString());
+			}
+		}
+		
+		// Create the message like normal
+		return createMessage(userInfo, toCreate);
 	}
 	
 	@Override
@@ -532,6 +600,8 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	private static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
 	private static final String TEMPLATE_KEY_USERNAME = "#username#";
 	private static final String TEMPLATE_KEY_WEB_LINK = "#link#";
+	private static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
+	private static final String TEMPLATE_KEY_DETAILS = "#details#";
 
 	
 	@Override
@@ -574,6 +644,21 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
 		
 		sendTemplateEmail(recipientId, subject, messageBody, true);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void sendDeliveryFailureEmail(String messageId, List<String> errors) throws NotFoundException {
+		// Build the subject and body of the message
+		MessageToUser dto = messageDAO.getMessage(messageId);
+		UserInfo sender = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		String subject = "Message " + messageId + " Delivery Failure(s)";
+		String messageBody = readMailTemplate("message/DeliveryFailureTemplate.txt");
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, sender.getUser().getDisplayName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
+		
+		sendTemplateEmail(sender.getIndividualGroup().getId(), subject, messageBody, true);
 	}
 	
 	/**
@@ -662,7 +747,10 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			dto = messageDAO.createMessage(dto);
 			
 			// Now process the message like any other message
-			processMessage(dto, true, messageBody);
+			List<String> errors = processMessage(dto, true, messageBody);
+			if (errors.size() > 0) {
+				throw new IllegalArgumentException(StringUtils.join(errors, "\n"));
+			}
 		} else {
 			UserGroup recipient = userGroupDAO.get(recipientId);
 			sendEmail(recipient.getName(), subject, messageBody);

@@ -20,7 +20,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -50,11 +52,18 @@ public class MessageToUserWorkerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
+	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
 	private MessageReceiver messageToUserQueueMessageReceiver;
 	
 	private UserInfo userInfo;
+	private UserInfo otherUserInfo;
 	private String fileHandleId;
 	private MessageToUser message;
+	
+	// This is a side effect of the worker and must be cleaned up after the test
+	private MessageToUser failureMessage;
 	
 	@SuppressWarnings("serial")
 	@Before
@@ -63,7 +72,7 @@ public class MessageToUserWorkerIntegrationTest {
 		emptyQueue();
 		
 		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		final UserInfo otherInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
+		otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 
 		final URL url = MessageToUserWorkerIntegrationTest.class.getClassLoader().getResource("Message.txt");
 		FileItemStream fis = new FileItemStream() {
@@ -101,8 +110,10 @@ public class MessageToUserWorkerIntegrationTest {
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(new HashSet<String>() {
 			{
-				add(userInfo.getIndividualGroup().getId());
-				add(otherInfo.getIndividualGroup().getId());
+				add(otherUserInfo.getIndividualGroup().getId());
+				
+				// Note: this causes the worker to send a delivery failure notification too
+				add(userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
 			}
 		});
 		message = messageManager.createMessage(userInfo, message);
@@ -130,8 +141,10 @@ public class MessageToUserWorkerIntegrationTest {
 	public void after() throws Exception {
 		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		messageManager.deleteMessage(adminUserInfo, message.getId());
+		messageManager.deleteMessage(adminUserInfo, failureMessage.getId());
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
+		fileHandleManager.deleteFileHandle(adminUserInfo, failureMessage.getFileHandleId());
 	}
 	
 	
@@ -142,6 +155,8 @@ public class MessageToUserWorkerIntegrationTest {
 		
 		long start = System.currentTimeMillis();
 		while (messages == null || messages.getResults().size() < 1) {
+			// Check the inbox of the sender for a delivery failure notification
+			// This is sent after processing the message
 			messages = messageManager.getInbox(userInfo, new ArrayList<MessageStatusType>() {
 				{
 					add(MessageStatusType.UNREAD);
@@ -153,6 +168,16 @@ public class MessageToUserWorkerIntegrationTest {
 			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);
 		}
 		
+		// Check the failure notification
+		failureMessage = messages.getResults().get(0).getMessage();
+		assertEquals("Message " + message.getId() + " Delivery Failure(s)", failureMessage.getSubject());
+
+		// Now check if the message was successfully sent to the valid recipient
+		messages = messageManager.getInbox(otherUserInfo, new ArrayList<MessageStatusType>() {
+			{
+				add(MessageStatusType.UNREAD);
+			}
+		}, MessageSortBy.SEND_DATE, true, 100, 0);
 		assertEquals(message, messages.getResults().get(0).getMessage());
 	}
 	
