@@ -268,9 +268,34 @@ public class MembershipRequestManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsByRequesterUnauthorized() throws Exception {
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		membershipRequestManagerImpl.getOpenSubmissionsByRequesterInRange(userInfo, ""+(userId+999),1,0);
+	}
+	
 	@Test
 	public void testGetOpenSubmissionsByRequesterAndTeam() throws Exception {
-		fail("NYI");
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		long teamId = 111L;
+		mrs.setTeamId(""+teamId);
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		mrs.setUserId(""+userId);
+		List<MembershipRqstSubmission> expected = Arrays.asList(new MembershipRqstSubmission[]{mrs});
+		when(mockMembershipRqstSubmissionDAO.getOpenSubmissionsByTeamAndRequesterInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipRqstSubmission> actual = membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+userId,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsByRequesterAndTeamUnauthorized() throws Exception {
+		long teamId = 111L;
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+(userId+999),1,0);
+
 	}
 
 }

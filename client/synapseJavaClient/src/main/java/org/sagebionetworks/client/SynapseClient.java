@@ -972,6 +972,17 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * 
+	 * @param teamId
+	 * @param inviteeId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(String teamId, String inviteeId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
 	 * @param invitationId
 	 * @throws SynapseException
 	 */
@@ -998,10 +1009,21 @@ public interface SynapseClient extends BaseClient {
 	 * @param requestorId the id of the user requesting membership (optional)
 	 * @param limit
 	 * @param offset
-	 * @return a list of membership requests sent to the given team, optionally filtered by the requestor
+	 * @return a list of membership requests sent to the given team, optionally filtered by the requester
 	 * @throws SynapseException
 	 */
-	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
+	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requesterId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
+	 * @param requesterId
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(String requesterId, String teamId, long limit, long offset) throws SynapseException;
 
 	/**
 	 * 
