@@ -6,8 +6,8 @@ import org.openid4java.message.ParameterList;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
-import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.OriginatingClient;
@@ -30,11 +30,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private AuthenticationManager authManager;
 	
+	@Autowired
+	private MessageManager messageManager;
+	
 	public AuthenticationServiceImpl() {}
 	
-	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager) {
+	public AuthenticationServiceImpl(UserManager userManager, AuthenticationManager authManager, MessageManager messageManager) {
 		this.userManager = userManager;
 		this.authManager = authManager;
+		this.messageManager = messageManager;
 	}
 
 	@Override
@@ -114,17 +118,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		UserInfo user = userManager.getUserInfo(username);
 		username = user.getIndividualGroup().getName();
 		String sessionToken = authManager.authenticate(username, null).getSessionToken();
-
-		// Pass along some basic info to the email sender
-		NewUser mailTarget = new NewUser();
-		mailTarget.setDisplayName(user.getUser().getDisplayName());
-		mailTarget.setEmail(user.getIndividualGroup().getName());
-		mailTarget.setFirstName(user.getUser().getFname());
-		mailTarget.setLastName(user.getUser().getLname());
 		
 		// Send the email
-		SendMail sendMail = new SendMail(originClient);
-		sendMail.sendSetPasswordMail(mailTarget, sessionToken);
+		messageManager.sendPasswordResetEmail(user.getIndividualGroup().getId(), originClient, sessionToken);
 	}
 	
 	@Override
@@ -235,9 +231,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setLastName(lname);
 				user.setDisplayName(fullName);
 				userManager.createUser(user);
+				UserInfo justCreated = userManager.getUserInfo(email);
 				
-				SendMail sendMail = new SendMail(originClient);
-				sendMail.sendWelcomeMail(user);
+				// Send a welcome message
+				messageManager.sendWelcomeEmail(justCreated.getIndividualGroup().getId(), originClient);
 			} else {
 				throw new NotFoundException(email);
 			}

@@ -4,24 +4,34 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -42,8 +52,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
- * Tests message access requirement checking
- * and the sending of messages
+ * Tests message access requirement checking and the sending of messages
+ * Note: only the logic for sending messages is tested, a separate test handles tests of sending emails
  * 
  * Sorting of messages is not tested.  All tests order their results as most recent first.
  */
@@ -68,6 +78,10 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	private FileHandleManager fileHandleManager;
+	private FileHandleManager mockFileHandleManager;
 	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
@@ -124,6 +138,14 @@ public class MessageManagerImplTest {
 		handle = fileDAO.createFile(handle);
 		fileHandleId = handle.getId();
 		
+		// Mock out the file handle manager so that the fake file handle won't result in broken downloads
+		mockFileHandleManager = mock(FileHandleManager.class);
+		URL url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt");
+		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
+		messageManager.setFileHandleManager(mockFileHandleManager);
+		
+		when(mockFileHandleManager.uploadFile(anyString(), any(FileItemStream.class))).thenReturn(handle);
+		
 		// Create all the messages
 		// These will be send automatically since they have only one recipient
 		userToOther = createMessage(testUser, "userToOther", 
@@ -178,11 +200,11 @@ public class MessageManagerImplTest {
 	 * @param send_otherToSelfAndGroup This message may or may not have the proper permissions associated with it
 	 */
 	private List<String> sendUnsentMessages(boolean send_otherToGroup) throws Exception {
-		assertEquals(0, messageManager.sendMessage(userReplyToOtherAndSelf.getId()).size());
-		assertEquals(0, messageManager.sendMessage(otherReplyToUserAndSelf.getId()).size());
-		assertEquals(0, messageManager.sendMessage(userToSelfAndGroup.getId()).size());
+		assertEquals(0, messageManager.processMessage(userReplyToOtherAndSelf.getId()).size());
+		assertEquals(0, messageManager.processMessage(otherReplyToUserAndSelf.getId()).size());
+		assertEquals(0, messageManager.processMessage(userToSelfAndGroup.getId()).size());
 		if (send_otherToGroup) {
-			return messageManager.sendMessage(otherToGroup.getId());
+			return messageManager.processMessage(otherToGroup.getId());
 		}
 		return new ArrayList<String>();
 	}
@@ -202,6 +224,9 @@ public class MessageManagerImplTest {
 		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
 		profile.setNotificationSettings(new Settings());
 		userProfileDAO.update(profile);
+		
+		// Restore the old fileHandleManager
+		messageManager.setFileHandleManager(fileHandleManager);
 	}
 	
 	@SuppressWarnings("serial")
@@ -344,9 +369,9 @@ public class MessageManagerImplTest {
 		assertEquals(1L, messages.getTotalNumberOfResults());
 		assertEquals(1, messages.getResults().size());
 		
-		messageManager.sendMessage(userToOther.getId());
-		messageManager.sendMessage(userToOther.getId());
-		messageManager.sendMessage(userToOther.getId());
+		messageManager.processMessage(userToOther.getId());
+		messageManager.processMessage(userToOther.getId());
+		messageManager.processMessage(userToOther.getId());
 		
 		// Multiple calls to sendMessage do nothing
 		messages = messageManager.getInbox(otherTestUser, 
@@ -399,13 +424,13 @@ public class MessageManagerImplTest {
 		
 		// This should fail since no one has permission to send to this public group
 		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
-		List<String> errors = messageManager.sendMessage(notAllowedToSend.getId());
+		List<String> errors = messageManager.processMessage(notAllowedToSend.getId());
 		String joinedErrors = StringUtils.join(errors, "\n");
 		assertTrue(joinedErrors.contains("may not send"));
 		
 		// But an admin can do it
 		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", new HashSet<String>() {{add(authUsersId);}}, null);
-		errors = messageManager.sendMessage(spam.getId());
+		errors = messageManager.processMessage(spam.getId());
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 		
 		// Now everyone has been spammed
@@ -485,6 +510,34 @@ public class MessageManagerImplTest {
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message3, inbox.getResults().get(0).getMessage());
+	}
+	
+	@Test
+	public void testSendTemplateEmail() throws Exception {
+		// Send an email to the test user
+		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE, "Blah?");
+		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
 		
+		// Try another variation
+		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE, "Blah?");
+		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
+		
+		// Try the other one
+		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);
+		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
+		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
+		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
+		cleanup.add(resetEmail.getId());
+		
+		// Try another variation
+		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
+		verify(mockFileHandleManager, times(2)).uploadFile(anyString(), any(FileItemStream.class));
+		inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		resetEmail = inbox.getResults().get(0).getMessage();
+		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
+		cleanup.add(resetEmail.getId());
 	}
 }

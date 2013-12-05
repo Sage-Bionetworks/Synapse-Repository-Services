@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -27,6 +28,7 @@ public class AuthenticationServiceImplTest {
 	
 	private UserManager mockUserManager;
 	private AuthenticationManager mockAuthenticationManager;
+	private MessageManager mockMessageManager;
 	
 	private LoginCredentials credential;
 	private UserInfo userInfo;
@@ -57,7 +59,9 @@ public class AuthenticationServiceImplTest {
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenReturn(userId);
 		
-		service = new AuthenticationServiceImpl(mockUserManager, mockAuthenticationManager);
+		mockMessageManager = Mockito.mock(MessageManager.class);
+		
+		service = new AuthenticationServiceImpl(mockUserManager, mockAuthenticationManager, mockMessageManager);
 	}
 	
 	@Test

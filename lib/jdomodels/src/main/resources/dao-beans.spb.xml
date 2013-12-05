@@ -49,7 +49,9 @@
 	<!-- Controls how nodes inherit their permissions -->
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
-
+		
+	<bean id="notificationEmail" class="org.sagebionetworks.StackConfiguration"
+		factory-method="getNotificationEmailAddress" />
 	<util:list id="bootstrapUsers">
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="0" />
@@ -79,6 +81,11 @@
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="273950" />
 			<property name="name" value="anonymous@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273951" />
+			<property name="name" ref="notificationEmail" />
 			<property name="isIndividual" value="true" />
 		</bean>
 	</util:list>
