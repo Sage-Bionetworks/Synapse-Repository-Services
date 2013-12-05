@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -64,5 +63,31 @@ public interface MembershipInvitationManager {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<MembershipInvitation> getOpenForUserAndTeamInRange(String principalId, String teamId, long limit, long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForTeamInRange(
+			UserInfo userInfo, String teamId, long limit, long offset) throws NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param inviteeId
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForUserAndTeamInRange(
+			UserInfo userInfo, String inviteeId, String teamId, long limit,
+			long offset)  throws NotFoundException;
 
 }

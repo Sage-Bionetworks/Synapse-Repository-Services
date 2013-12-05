@@ -31,7 +31,20 @@ public interface MembershipInvitationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipInvitation> getOpenInvitations(String inviteeId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipInvitation> getOpenInvitations(String userId, String inviteeId, String teamId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param inviteeId
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 */
+	public PaginatedResults<MembershipInvtnSubmission> getOpenInvitationSubmissions(String userId, String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**

@@ -208,4 +208,21 @@ public class MembershipInvitationManagerImplTest {
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 
+	@Test
+	public void testGetOpenSubmissionsForTeamInRange() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		List<MembershipInvtnSubmission> expected = Arrays.asList(new MembershipInvtnSubmission[]{mis});
+		when(mockMembershipInvtnSubmissionDAO.getOpenSubmissionsByTeamInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamCount(eq(Long.parseLong(TEAM_ID)), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipInvtnSubmission> actual = membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+	
+	@Test
+	public void testGetOpenSubmissionsForTeamAndRequesterInRange() throws Exception {
+		fail("NYI");
+	}
+
 }

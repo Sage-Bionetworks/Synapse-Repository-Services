@@ -155,6 +155,30 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		}
 	};
 	
+	private static final RowMapper<DBOMembershipRqstSubmission> dboMembershipRequestRowMapper = 
+			(new DBOMembershipRqstSubmission()).getTableMapping();
+	
+	private static final RowMapper<MembershipRqstSubmission> membershipRqstSubmissionRowMapper = new RowMapper<MembershipRqstSubmission>(){
+		@Override
+		public MembershipRqstSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOMembershipRqstSubmission dbo = dboMembershipRequestRowMapper.mapRow(rs,  rowNum);
+			return MembershipRqstSubmissionUtils.copyDboToDto(dbo);
+		}
+	};
+	
+	private <T> List<T> getOpenByTeamAndRequesterInRange(
+			long teamId, long requesterId, long now, long limit, long offset, RowMapper<T> rowMapper)
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
+		param.addValue(OFFSET_PARAM_NAME, offset);
+		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
+		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_PAGINATED, rowMapper, param);
+	}
+	
 	@Override
 	public List<MembershipRequest> getOpenByTeamInRange(long teamId, long now, long limit,
 			long offset) throws DatastoreException {
@@ -178,16 +202,15 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 
 	@Override
 	public List<MembershipRequest> getOpenByTeamAndRequesterInRange(
-			long teamId, long requestorId, long now, long limit, long offset)
+			long teamId, long requesterId, long now, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();	
-		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_TEAM_ID, teamId);
-		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requestorId);
-		param.addValue(OFFSET_PARAM_NAME, offset);
-		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
-		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_TEAM_AND_REQUESTER_PAGINATED, membershipRequestRowMapper, param);
+		return getOpenByTeamAndRequesterInRange(teamId, requesterId, now, limit, offset, membershipRequestRowMapper);
+	}
+
+	@Override
+	public List<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
+			long teamId, long requesterId, long now, long limit, long offset) throws DatastoreException, NotFoundException {
+		return getOpenByTeamAndRequesterInRange(teamId, requesterId, now, limit, offset, membershipRqstSubmissionRowMapper);
 	}
 
 	@Override
@@ -202,16 +225,15 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 	}
 
 	@Override
-	public List<MembershipRequest> getOpenByRequesterInRange(
-			long requesterId, long now, long limit, long offset)
-			throws DatastoreException, NotFoundException {
+	public List<MembershipRqstSubmission> getOpenSubmissionsByRequesterInRange(
+			long requesterId, long now, long limit, long offset) {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_USER_ID, requesterId);
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
-		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED, membershipRequestRowMapper, param);
+		return simpleJdbcTemplate.query(SELECT_OPEN_REQUESTS_BY_REQUESTER_PAGINATED, membershipRqstSubmissionRowMapper, param);
 	}
 
 	@Override
@@ -222,6 +244,7 @@ public class DBOMembershipRqstSubmissionDAOImpl implements MembershipRqstSubmiss
 		param.addValue(COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON, now);	
 		return simpleJdbcTemplate.queryForLong(SELECT_OPEN_REQUESTS_BY_REQUESTER_COUNT, param);
 	}
+
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override

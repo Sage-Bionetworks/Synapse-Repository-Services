@@ -33,7 +33,21 @@ public interface MembershipRequestService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipRequest> getOpenRequests(String userId, String requestorId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipRequest> getOpenRequests(String userId, String requesterId, String teamId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userId
+	 * @param requestorId
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException 
+	 */
+	public PaginatedResults<MembershipRqstSubmission> getOpenRequestSubmissions(String userId, String requesterId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
