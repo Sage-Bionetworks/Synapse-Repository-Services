@@ -5,8 +5,6 @@ import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -24,16 +22,22 @@ public class DBOBuilder<T> {
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
-		final private Method fieldSetter;
+		private final Method fieldSetter;
 		private final String columnName;
+		private final boolean isNullable;
 
-		public BaseRowMapper(Method fieldSetter, String columnName) {
+		public BaseRowMapper(Method fieldSetter, String columnName, boolean isNullable) {
 			this.fieldSetter = fieldSetter;
 			this.columnName = columnName;
+			this.isNullable = isNullable;
 		}
 
 		public final void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException {
-			fieldSetter.invoke(result, getValue(rs, columnName));
+			if (isNullable && rs.getString(columnName) == null) {
+				fieldSetter.invoke(result, (Object) null);
+			} else {
+				fieldSetter.invoke(result, getValue(rs, columnName));
+			}
 		}
 
 		public abstract Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException;
@@ -42,8 +46,8 @@ public class DBOBuilder<T> {
 	private static class AssignmentRowMapper extends BaseRowMapper {
 		final Method mapperMethod;
 
-		public AssignmentRowMapper(Method fieldSetter, String columnName, Method mapperMethod) {
-			super(fieldSetter, columnName);
+		public AssignmentRowMapper(Method fieldSetter, String columnName, boolean nullable, Method mapperMethod) {
+			super(fieldSetter, columnName, nullable);
 			this.mapperMethod = mapperMethod;
 		}
 
@@ -56,8 +60,8 @@ public class DBOBuilder<T> {
 	private static class EnumRowMapper extends BaseRowMapper {
 		final private Class<? extends Enum> enumType;
 
-		public EnumRowMapper(Method fieldSetter, String columnName, Class<? extends Enum> enumType) {
-			super(fieldSetter, columnName);
+		public EnumRowMapper(Method fieldSetter, String columnName, boolean nullable, Class<? extends Enum> enumType) {
+			super(fieldSetter, columnName, nullable);
 			this.enumType = enumType;
 		}
 
@@ -71,30 +75,14 @@ public class DBOBuilder<T> {
 
 	private static class BlobRowMapper extends BaseRowMapper {
 
-		public BlobRowMapper(Method fieldSetter, String columnName) {
-			super(fieldSetter, columnName);
+		public BlobRowMapper(Method fieldSetter, String columnName, boolean nullable) {
+			super(fieldSetter, columnName, nullable);
 		}
 
 		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
 			Blob blobValue = rs.getBlob(columnName);
 			if (blobValue != null) {
 				return blobValue.getBytes(1, (int) blobValue.length());
-			} else {
-				return null;
-			}
-		}
-	}
-
-	private static class DateRowMapper extends BaseRowMapper {
-
-		public DateRowMapper(Method fieldSetter, String columnName) {
-			super(fieldSetter, columnName);
-		}
-
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
-			Timestamp ts = rs.getTimestamp(columnName);
-			if (ts != null) {
-				return new Date(ts.getTime());
 			} else {
 				return null;
 			}
@@ -117,7 +105,7 @@ public class DBOBuilder<T> {
 		return result.toArray(new FieldColumn[result.size()]);
 	}
 
-	private static final Object[][] TYPE_MAP = { { Long.class, "getLong" }, { String.class, "getString" } };
+	private static final Object[][] TYPE_MAP = { { Long.class, "getLong" }, { long.class, "getLong" }, { String.class, "getString" } };
 
 	public static <T> RowMapper[] getFieldMappers(final Class<? extends T> clazz, final String[] customColumns) {
 		List<Entry<Field>> fields = getAnnotatedFields(clazz, Field.class);
@@ -149,7 +137,8 @@ public class DBOBuilder<T> {
 						String getMethod = (String) entry[1];
 						try {
 							Method mapperMethod = ResultSet.class.getMethod((String) getMethod, new Class[] { String.class });
-							return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), mapperMethod);
+							return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
+									mapperMethod);
 						} catch (ReflectiveOperationException e) {
 							throw new IllegalArgumentException("Could not find method '" + getMethod + "' on ResultSet");
 						}
@@ -160,15 +149,11 @@ public class DBOBuilder<T> {
 				if (Enum.class.isAssignableFrom(fieldEntry.field.getType())) {
 					@SuppressWarnings("unchecked")
 					Class<? extends Enum<?>> enumClass = (Class<? extends Enum<?>>) fieldEntry.field.getType();
-					return new EnumRowMapper(setterMethod, fieldEntry.annotation.name(), enumClass);
+					return new EnumRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(), enumClass);
 				}
 
 				if (fieldEntry.field.getType() == byte[].class) {
-					return new BlobRowMapper(setterMethod, fieldEntry.annotation.name());
-				}
-
-				if (fieldEntry.field.getType() == Date.class) {
-					return new DateRowMapper(setterMethod, fieldEntry.annotation.name());
+					return new BlobRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
 
 				throw new IllegalArgumentException("No default mapper for type " + fieldEntry.field.getType());
@@ -226,8 +211,6 @@ public class DBOBuilder<T> {
 		if (Strings.isNullOrEmpty(type)) {
 			if (fieldClazz == Long.class) {
 				type = "bigint(20)";
-			} else if (fieldClazz == Date.class) {
-				type = "datetime";
 			} else if (fieldClazz == String.class) {
 				if (fieldAnnotation.varchar() != 0) {
 					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET latin1 COLLATE latin1_bin";

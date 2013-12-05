@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 @Table(name = "ANNOTATED_EXAMPLE_TEST")
@@ -18,6 +17,8 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	private Long id;
 	@Field(name = "NUMBER", nullable = false)
 	private Long number;
+	@Field(name = "NUMBER_OR_NULL", nullable = true)
+	private Long numberOrNull;
 	@Field(name = "BLOB_ONE", blob = "mediumblob")
 	private byte[] blob;
 	@Field(name = "CUSTOM", blob = "blob")
@@ -31,7 +32,7 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	@Field(name = "MODIFIED_BY", varchar = 256, nullable = false)
 	private String modifiedBy;
 	@Field(name = "MODIFIED_ON", nullable = false)
-	private Date modifiedOn;
+	private Long modifiedOn;
 
 	public Long getId() {
 		return id;
@@ -47,6 +48,14 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 
 	public void setNumber(Long number) {
 		this.number = number;
+	}
+
+	public Long getNumberOrNull() {
+		return numberOrNull;
+	}
+
+	public void setNumberOrNull(Long numberOrNull) {
+		this.numberOrNull = numberOrNull;
 	}
 
 	public byte[] getBlob() {
@@ -97,11 +106,11 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		this.modifiedBy = modifiedBy;
 	}
 
-	public Date getModifiedOn() {
+	public Long getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Date modifiedOn) {
+	public void setModifiedOn(Long modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
 
@@ -118,6 +127,7 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((number == null) ? 0 : number.hashCode());
+		result = prime * result + ((numberOrNull == null) ? 0 : numberOrNull.hashCode());
 		return result;
 	}
 
@@ -172,14 +182,19 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 				return false;
 		} else if (!number.equals(other.number))
 			return false;
+		if (numberOrNull == null) {
+			if (other.numberOrNull != null)
+				return false;
+		} else if (!numberOrNull.equals(other.numberOrNull))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOAnnotatedExample [id=" + id + ", number=" + number + ", blob=" + Arrays.toString(blob) + ", custom=" + custom
-				+ ", comment=" + comment + ", name=" + name + ", etag=" + etag + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ "]";
+		return "DBOAnnotatedExample [id=" + id + ", number=" + number + ", numberOrNull=" + numberOrNull + ", blob=" + Arrays.toString(blob)
+				+ ", custom=" + custom + ", comment=" + comment + ", name=" + name + ", etag=" + etag + ", modifiedBy=" + modifiedBy
+				+ ", modifiedOn=" + modifiedOn + "]";
 	}
 
 }

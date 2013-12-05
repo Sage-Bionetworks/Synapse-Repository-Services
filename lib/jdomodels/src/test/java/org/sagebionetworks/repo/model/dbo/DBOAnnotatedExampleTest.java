@@ -72,9 +72,27 @@ public class DBOAnnotatedExampleTest {
 	public void testInsert() throws DatastoreException, UnsupportedEncodingException{
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
 		example.setNumber(new Long(45));
+		example.setNumberOrNull(new Long(46));
 		example.setModifiedBy("you");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date((new Date().getTime() / 1000L) * 1000L));
+		example.setModifiedOn(new Date().getTime());
+		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
+		example.setComment("no comment");
+		example.setName("the name");
+		example = dboBasicDao.createNew(example);
+		assertNotNull(example);
+		// This class is auto-increment so it should have an id now
+		assertNotNull(example.getId());
+	}
+
+	@Test
+	public void testInsertNull() throws DatastoreException, UnsupportedEncodingException {
+		DBOAnnotatedExample example = new DBOAnnotatedExample();
+		example.setNumber(new Long(45));
+		example.setNumberOrNull(null);
+		example.setModifiedBy("you");
+		// dates don't compare because of rounding
+		example.setModifiedOn(new Date().getTime());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example.setComment("no comment");
 		example.setName("the name");
@@ -93,7 +111,7 @@ public class DBOAnnotatedExampleTest {
 			example.setNumber(new Long(i));
 			example.setModifiedBy("name"+i);
 			// dates don't compare because of rounding
-			example.setModifiedOn(new Date((new Date().getTime() / 1000L) * 1000L));
+			example.setModifiedOn(new Date().getTime());
 			example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 			batch.add(example);
 		}
@@ -118,7 +136,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumber(new Long(103));
 		example.setModifiedBy("nobodyKnows");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date((new Date().getTime() / 1000L) * 1000L));
+		example.setModifiedOn(new Date().getTime());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
@@ -147,7 +165,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumber(new Long(133));
 		example.setModifiedBy("nobodyKnows");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date((new Date().getTime() / 1000L) * 1000L));
+		example.setModifiedOn(new Date().getTime());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
@@ -168,7 +186,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumber(new Long(456));
 		example.setModifiedBy("snoopy");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date((new Date().getTime() / 1000L) * 1000L));
+		example.setModifiedOn(new Date().getTime());
 		example.setBlob("This is the starting string".getBytes("UTF-8"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
@@ -180,7 +198,7 @@ public class DBOAnnotatedExampleTest {
 		assertEquals(example, fetched);
 		// Now change the value
 		fetched.setBlob("I am the new string for the blob!".getBytes("UTF-8"));
-		fetched.setModifiedOn(new Date(fetched.getModifiedOn().getTime() + 1000));
+		fetched.setModifiedOn(fetched.getModifiedOn() + 10);
 		fetched.setModifiedBy("Sombody else");
 		// Now update it.
 		boolean result = dboBasicDao.update(fetched);
