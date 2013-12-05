@@ -103,4 +103,11 @@ public class MessageServiceImpl implements MessageService {
 		return messageManager.getMessageFileRedirectURL(userInfo, messageId);
 	}
 
+	@Override
+	public MessageToUser createMessageToEntityOwner(String username, String entityId,
+			MessageToUser toCreate) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(username);
+		return messageManager.createMessageToEntityOwner(userInfo, entityId, toCreate);
+	}
+
 }

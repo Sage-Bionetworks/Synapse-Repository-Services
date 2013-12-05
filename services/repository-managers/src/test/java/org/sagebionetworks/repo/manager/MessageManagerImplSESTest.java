@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -59,6 +60,7 @@ public class MessageManagerImplSESTest {
 	private UserProfileDAO mockUserProfileDAO;
 	private AuthorizationManager mockAuthorizationManager;
 	private FileHandleManager mockFileHandleManager;
+	private NodeDAO mockNodeDAO;
 
 	@Autowired
 	private AWSCredentials awsCredentials;
@@ -92,6 +94,7 @@ public class MessageManagerImplSESTest {
 		mockUserProfileDAO = mock(UserProfileDAO.class);
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		mockFileHandleManager = mock(FileHandleManager.class);
+		mockNodeDAO = mock(NodeDAO.class);
 		
 		// Use a working client
 		amazonSESClient = new AmazonSimpleEmailServiceClient(awsCredentials);
@@ -99,7 +102,7 @@ public class MessageManagerImplSESTest {
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileDAO, mockAuthorizationManager, amazonSESClient,
-				mockFileHandleManager);
+				mockFileHandleManager, mockNodeDAO);
 		
 		// The end goal of this mocking is to pass a single recipient through the authorization 
 		// and individual-ization checks within the MessageManager's sendMessage method.

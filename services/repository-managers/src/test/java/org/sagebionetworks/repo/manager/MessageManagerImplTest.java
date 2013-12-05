@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,8 +32,12 @@ import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -85,6 +90,9 @@ public class MessageManagerImplTest {
 	private FileHandleManager fileHandleManager;
 	private FileHandleManager mockFileHandleManager;
 	
+	@Autowired
+	private NodeDAO nodeDAO;
+	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
 	private static final long LIMIT = 100;
@@ -109,6 +117,7 @@ public class MessageManagerImplTest {
 	
 	private UserInfo adminUserInfo;
 	private List<String> cleanup;
+	private String nodeId;
 	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
@@ -221,6 +230,12 @@ public class MessageManagerImplTest {
 
 		// Cleanup the team
 		teamManager.delete(testUser, testTeam.getId());
+		
+		if (nodeId != null) {
+			try {
+				nodeDAO.delete(nodeId);
+			} catch (NotFoundException e) { }
+		}
 		
 		// Reset the test user's notification settings to the default
 		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
@@ -537,7 +552,6 @@ public class MessageManagerImplTest {
 		List<String> mockErrors = new ArrayList<String>();
 		mockErrors.add(UUID.randomUUID().toString());
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
-		verify(mockFileHandleManager, times(2)).uploadFile(anyString(), any(FileItemStream.class));
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		MessageToUser failureEmail = inbox.getResults().get(0).getMessage();
@@ -546,11 +560,37 @@ public class MessageManagerImplTest {
 		
 		// Try another variation
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
-		verify(mockFileHandleManager, times(2)).uploadFile(anyString(), any(FileItemStream.class));
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		resetEmail = inbox.getResults().get(0).getMessage();
 		cleanup.add(resetEmail.getId());
 		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
+	}
+	
+	@Test
+	public void testCreateMessageToEntityOwner() throws Exception {
+		// Make an "entity"
+		Node node = new Node();
+		node.setName(UUID.randomUUID().toString());
+		node.setCreatedByPrincipalId(Long.parseLong(testUser.getIndividualGroup().getId()));
+		node.setModifiedByPrincipalId(node.getCreatedByPrincipalId());
+		node.setCreatedOn(new Date(System.currentTimeMillis()));
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(EntityType.getNodeTypeForClass(Project.class).name());
+		nodeId = nodeDAO.createNew(node);
+		
+		// This is in effect sending a message from the other test user to itself and the test user
+		MessageToUser message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
+		cleanup.add(message.getId());
+		messageManager.processMessage(message.getId());
+		
+		// Check both inboxes
+		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		inbox = messageManager.getInbox(otherTestUser, 
+				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		assertEquals(message, inbox.getResults().get(0).getMessage());
+		
 	}
 }

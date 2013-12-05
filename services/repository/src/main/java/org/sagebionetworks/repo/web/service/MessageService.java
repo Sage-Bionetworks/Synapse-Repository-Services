@@ -45,4 +45,7 @@ public interface MessageService {
 
 	public URL getMessageFileRedirectURL(String username, String messageId) throws NotFoundException;
 
+	public MessageToUser createMessageToEntityOwner(String username, String entityId,
+			MessageToUser toCreate) throws NotFoundException;
+
 }

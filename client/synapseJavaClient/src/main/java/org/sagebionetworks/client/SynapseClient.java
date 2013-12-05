@@ -591,6 +591,12 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public MessageToUser sendMessage(MessageToUser message)
 			throws SynapseException;
+	
+	/**
+	 * Sends a message to another user and the owner of the given entity
+	 */
+	public MessageToUser sendMessage(MessageToUser message, String entityId) 
+			throws SynapseException;
 
 	/**
 	 * Gets the current authenticated user's received messages

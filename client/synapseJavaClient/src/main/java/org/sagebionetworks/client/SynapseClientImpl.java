@@ -3165,6 +3165,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String entityId) throws SynapseException {
+		String uri = ENTITY + "/" + entityId + "/" + MESSAGE;
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(message);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 
 	@Override
 	public PaginatedResults<MessageBundle> getInbox(

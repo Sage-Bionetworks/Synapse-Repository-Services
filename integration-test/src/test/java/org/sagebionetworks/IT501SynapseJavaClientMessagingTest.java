@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -50,6 +51,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private MessageToUser twoToOne;
 	
 	private List<String> cleanup;
+	private Project project;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -114,6 +116,12 @@ public class IT501SynapseJavaClientMessagingTest {
 	public void after() throws Exception {
 		for (String id : cleanup) {
 			synapseAdmin.deleteMessage(id);
+		}
+		
+		if (project != null) {
+			try {
+				synapseAdmin.deleteAndPurgeEntityById(project.getId());
+			} catch (Exception e) { }
 		}
 		
 		try {
@@ -240,5 +248,19 @@ public class IT501SynapseJavaClientMessagingTest {
 		}
 		
 		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+	}
+	
+	@Test
+	public void testSendMessageToEntityOwner() throws Exception {
+		project = synapseOne.createEntity(new Project());
+		
+		// Send a message from two to one in a different way
+		twoToOne.setRecipients(null);
+		MessageToUser message = synapseTwo.sendMessage(twoToOne, project.getId());
+		cleanup.add(message.getId());
+		
+		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
+				MessageSortBy.SEND_DATE, true, LIMIT, OFFSET);
+		assertEquals(message, messages.getResults().get(0).getMessage());
 	}
 }

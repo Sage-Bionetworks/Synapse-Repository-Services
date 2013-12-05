@@ -49,6 +49,14 @@ public interface MessageManager {
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException;
 
 	/**
+	 * Adds the creator of the given entity to the recipient list of the message.
+	 * 
+	 * Afterwards, calls {@link #createMessage(UserInfo, MessageToUser)}
+	 */
+	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
+			String entityId, MessageToUser toCreate) throws NotFoundException;
+
+	/**
 	 * Saves an existing message so that it can be delivered to the given set of recipients
 	 */
 	public MessageToUser forwardMessage(UserInfo userInfo, String messageId,

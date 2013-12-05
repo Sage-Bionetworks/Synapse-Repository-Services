@@ -25,6 +25,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -104,6 +106,9 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	
+	@Autowired
+	private NodeDAO nodeDAO;
+	
 	/**
 	 * The ID of the default group AUTHENTICATED_USERS
 	 */
@@ -122,7 +127,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager, UserProfileDAO userProfileDAO,
 			AuthorizationManager authorizationManager,
-			AmazonSimpleEmailService amazonSESClient, FileHandleManager fileHandleManager) {
+			AmazonSimpleEmailService amazonSESClient, FileHandleManager fileHandleManager, NodeDAO nodeDAO) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -131,6 +136,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 		this.fileHandleManager = fileHandleManager;
+		this.nodeDAO = nodeDAO;
 	}
 	
 	@Override
@@ -250,6 +256,23 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			}
 		}
 		return dto;
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public MessageToUser createMessageToEntityOwner(UserInfo userInfo,
+			String entityId, MessageToUser toCreate) throws NotFoundException {
+		// No permission checks since we only need to know the creator of the node
+		Node entity = nodeDAO.getNode(entityId);
+		
+		// Add the creator of the node to the recipient set
+		if (toCreate.getRecipients() == null) {
+			toCreate.setRecipients(new HashSet<String>());
+		}
+		toCreate.getRecipients().add(entity.getCreatedByPrincipalId().toString());
+		
+		// Create the message like normal
+		return createMessage(userInfo, toCreate);
 	}
 	
 	@Override

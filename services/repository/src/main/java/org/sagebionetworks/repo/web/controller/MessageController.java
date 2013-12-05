@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -222,5 +221,20 @@ public class MessageController extends BaseController {
 		URL redirectUrl = serviceProvider.getMessageService()
 				.getMessageFileRedirectURL(username, messageId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Adds the owner of the given entity as an additional recipient of the message.
+	 * 
+	 * Afterwards, behavior is identical to <a href="${POST.message}">POST /message</a>
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_MESSAGE, method = RequestMethod.POST)
+	public @ResponseBody
+	MessageToUser sendMessageToEntityOwner(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@PathVariable String id, 
+			@RequestBody MessageToUser toCreate) throws NotFoundException {
+		return serviceProvider.getMessageService().createMessageToEntityOwner(username, id, toCreate);
 	}
 }
