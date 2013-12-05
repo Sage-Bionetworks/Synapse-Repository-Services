@@ -1630,18 +1630,14 @@ public class IT500SynapseJavaClient {
 					synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			MembershipInvtnSubmission submission = invitationSubmissions.getResults().get(0);
-			assertEquals(expiresOn, submission.getExpiresOn());
-			assertEquals(message, submission.getMessage());
-			assertEquals(createdTeam.getId(), submission.getTeamId());
-			assertEquals(somePrincipalId, submission.getInviteeId());
+			assertEquals(created, submission);
 			// check pagination
 			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
 			assertEquals(0L, invitationSubmissions.getResults().size());
 			// query for SUBMISSIONs based on team and invitee
 			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
-			MembershipInvtnSubmission invitation2 = invitationSubmissions.getResults().get(0);
-			assertEquals(invitationSubmissions, invitation2);
+			assertEquals(created, invitationSubmissions.getResults().get(0));
 			// again, check pagination
 			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 2, 1);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
@@ -1722,10 +1718,7 @@ public class IT500SynapseJavaClient {
 			PaginatedResults<MembershipRqstSubmission> requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 1, 0);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
 			MembershipRqstSubmission requestSubmission = requestSubmissions.getResults().get(0);
-			assertEquals(expiresOn, requestSubmission.getExpiresOn());
-			assertEquals(message, requestSubmission.getMessage());
-			assertEquals(createdTeam.getId(), requestSubmission.getTeamId());
-			assertEquals(otherPrincipalId, requestSubmission.getUserId());
+			assertEquals(created, requestSubmission);
 			// check pagination
 			requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 2, 1);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
@@ -1733,8 +1726,7 @@ public class IT500SynapseJavaClient {
 			// query for requests based on team and member
 			requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 1, 0);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
-			MembershipRqstSubmission request2 = requestSubmissions.getResults().get(0);
-			assertEquals(requestSubmission, request2);
+			assertEquals(created, requestSubmissions.getResults().get(0));
 			// again, check pagination
 			requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 2, 1);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
