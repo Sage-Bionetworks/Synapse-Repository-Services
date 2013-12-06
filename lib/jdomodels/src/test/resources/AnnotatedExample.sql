@@ -5,6 +5,7 @@ CREATE TABLE `ANNOTATED_EXAMPLE_TEST` (
 	`BLOB_ONE` mediumblob,
 	`CUSTOM` blob,
 	`COMMENT` VARCHAR(256) CHARACTER SET latin1 COLLATE latin1_bin default null,
+	`ENUM` CHAR (32),
 	`NAME` CHAR(16) default null,
 	`ETAG` CHAR(36) default null,
 	`MODIFIED_BY` VARCHAR(256) CHARACTER SET latin1 COLLATE latin1_bin not null,

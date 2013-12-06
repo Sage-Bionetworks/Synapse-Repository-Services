@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.beans.IntrospectionException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -16,6 +18,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class DBOBuilder<T> {
+
+	private static final String RETURN_AS_STRING_METHOD_NAME_POSTFIX = "AsString";
 
 	public static abstract interface RowMapper {
 		public abstract void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException;
@@ -89,17 +93,37 @@ public class DBOBuilder<T> {
 		}
 	}
 
+	private static class DateRowMapper extends BaseRowMapper {
+
+		public DateRowMapper(Method fieldSetter, String columnName, boolean nullable) {
+			super(fieldSetter, columnName, nullable);
+		}
+
+		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+			Long timestamp = rs.getLong(columnName);
+			if (timestamp != null) {
+				return new Date(timestamp);
+			} else {
+				return null;
+			}
+		}
+	}
+
 	public static String getTableName(Class<?> clazz) {
 		Table tableAnnotation = clazz.getAnnotation(Table.class);
 		return tableAnnotation.name();
 	}
 
-	public static <T> FieldColumn[] getFields(Class<T> clazz) {
+	public static <T> FieldColumn[] getFields(final Class<T> clazz) {
 		List<FieldColumn> result = Lists.transform(getAnnotatedFields(clazz, Field.class), new Function<Entry<Field>, FieldColumn>() {
 			@Override
 			public FieldColumn apply(Entry<Field> fieldEntry) {
-				return new FieldColumn(fieldEntry.field.getName(), fieldEntry.annotation.name(), fieldEntry.annotation.primary())
-						.withIsBackupId(fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
+				String name = fieldEntry.field.getName();
+				if (fieldEntry.field.getType().isEnum() || fieldEntry.field.getType() == Date.class) {
+					name = handleTypedField(name, fieldEntry.field, clazz);
+				}
+				return new FieldColumn(name, fieldEntry.annotation.name(), fieldEntry.annotation.primary()).withIsBackupId(
+						fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
 			}
 		});
 		return result.toArray(new FieldColumn[result.size()]);
@@ -154,6 +178,10 @@ public class DBOBuilder<T> {
 
 				if (fieldEntry.field.getType() == byte[].class) {
 					return new BlobRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
+				}
+
+				if (fieldEntry.field.getType() == Date.class) {
+					return new DateRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
 
 				throw new IllegalArgumentException("No default mapper for type " + fieldEntry.field.getType());
@@ -211,6 +239,8 @@ public class DBOBuilder<T> {
 		if (Strings.isNullOrEmpty(type)) {
 			if (fieldClazz == Long.class) {
 				type = "bigint(20)";
+			} else if (fieldClazz == Date.class) {
+				type = "bigint(20)";
 			} else if (fieldClazz == String.class) {
 				if (fieldAnnotation.varchar() != 0) {
 					type = "VARCHAR(" + fieldAnnotation.varchar() + ") CHARACTER SET latin1 COLLATE latin1_bin";
@@ -250,6 +280,35 @@ public class DBOBuilder<T> {
 
 	private static String escapeName(String name) {
 		return '`' + name + '`';
+	}
+
+	private static String handleTypedField(String name, java.lang.reflect.Field field, Class<?> clazz) {
+		// working around spring issue, where it needs to have a string and not an enum to be able to store enums. Could
+		// not get property editors to work for this, so using slightly dirty method where it looks for a
+		// get<Enum>AsString method is the get<Enum> method does not return a string (the pattern used in this codebase
+		// sofar)
+		String getterMethodName = "get" + StringUtils.capitalize(field.getName());
+		String getterAsStringMethodName = "get" + StringUtils.capitalize(field.getName()) + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
+		try {
+			Method getterMethod = clazz.getMethod(getterMethodName);
+			if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
+				return name;
+			}
+			// try AsString method
+			getterMethodName = getterAsStringMethodName;
+			try {
+				getterMethod = clazz.getMethod(getterMethodName);
+				if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
+					return name + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
+				}
+			} catch (NoSuchMethodException e) {
+			}
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException("Cannot find method " + getterMethodName + " in class " + clazz.getName() + ": " + e.getMessage());
+		}
+		throw new RuntimeException("Need to either have a method " + getterMethodName
+				+ " that returns a String, or, if that method returns another type that spring cannot handle, a method named "
+				+ getterAsStringMethodName + " that returns a string instead");
 	}
 
 	private static class Entry<T extends Annotation> {

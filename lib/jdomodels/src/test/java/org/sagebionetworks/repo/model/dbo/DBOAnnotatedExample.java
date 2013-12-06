@@ -1,10 +1,15 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 @Table(name = "ANNOTATED_EXAMPLE_TEST")
 public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnotatedExample> {
+
+	public enum ExampleEnum {
+		aaa, bbb, ccc
+	}
 
 	private static final TableMapping<DBOAnnotatedExample> tableMapping = AutoTableMapping.create(DBOAnnotatedExample.class, "CUSTOM");
 
@@ -25,6 +30,8 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	private List<String> custom;
 	@Field(name = "COMMENT", varchar = 256, defaultNull = true)
 	private String comment;
+	@Field(name = "ENUM")
+	private ExampleEnum exampleEnum;
 	@Field(name = "NAME", fixedchar = 16, defaultNull = true)
 	private String name;
 	@Field(name = "ETAG", etag = true, defaultNull = true)
@@ -32,7 +39,7 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	@Field(name = "MODIFIED_BY", varchar = 256, nullable = false)
 	private String modifiedBy;
 	@Field(name = "MODIFIED_ON", nullable = false)
-	private Long modifiedOn;
+	private Date modifiedOn;
 
 	public Long getId() {
 		return id;
@@ -82,6 +89,18 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		this.comment = comment;
 	}
 
+	public String getExampleEnumAsString() {
+		return exampleEnum == null ? null : exampleEnum.name();
+	}
+
+	public ExampleEnum getExampleEnum() {
+		return exampleEnum;
+	}
+
+	public void setExampleEnum(ExampleEnum exampleEnum) {
+		this.exampleEnum = exampleEnum;
+	}
+
 	public String getName() {
 		return name;
 	}
@@ -106,11 +125,15 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		this.modifiedBy = modifiedBy;
 	}
 
-	public Long getModifiedOn() {
+	public Date getModifiedOn() {
 		return modifiedOn;
 	}
 
-	public void setModifiedOn(Long modifiedOn) {
+	public String getModifiedOnAsString() {
+		return Long.toString(modifiedOn.getTime());
+	}
+
+	public void setModifiedOn(Date modifiedOn) {
 		this.modifiedOn = modifiedOn;
 	}
 
@@ -122,6 +145,7 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
 		result = prime * result + ((custom == null) ? 0 : custom.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((exampleEnum == null) ? 0 : exampleEnum.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
@@ -156,6 +180,8 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 			if (other.etag != null)
 				return false;
 		} else if (!etag.equals(other.etag))
+			return false;
+		if (exampleEnum != other.exampleEnum)
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -193,8 +219,8 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	@Override
 	public String toString() {
 		return "DBOAnnotatedExample [id=" + id + ", number=" + number + ", numberOrNull=" + numberOrNull + ", blob=" + Arrays.toString(blob)
-				+ ", custom=" + custom + ", comment=" + comment + ", name=" + name + ", etag=" + etag + ", modifiedBy=" + modifiedBy
-				+ ", modifiedOn=" + modifiedOn + "]";
+				+ ", custom=" + custom + ", comment=" + comment + ", exampleEnum=" + exampleEnum + ", name=" + name + ", etag=" + etag
+				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + "]";
 	}
 
 }

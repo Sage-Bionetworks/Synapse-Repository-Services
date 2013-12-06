@@ -15,7 +15,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dbo.DBOAnnotatedExample.ExampleEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -64,10 +66,18 @@ public class DBOAnnotatedExampleTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testInsertMissingValues() throws DatastoreException{
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
+		example.setModifiedOn(new Date());
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
 	}
 	
+	@Test(expected = InvalidPropertyException.class)
+	public void testInsertMissingValuesNullPointerException() throws DatastoreException {
+		DBOAnnotatedExample example = new DBOAnnotatedExample();
+		example = dboBasicDao.createNew(example);
+		assertNotNull(example);
+	}
+
 	@Test
 	public void testInsert() throws DatastoreException, UnsupportedEncodingException{
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
@@ -75,10 +85,11 @@ public class DBOAnnotatedExampleTest {
 		example.setNumberOrNull(new Long(46));
 		example.setModifiedBy("you");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date().getTime());
+		example.setModifiedOn(new Date());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example.setComment("no comment");
 		example.setName("the name");
+		example.setExampleEnum(ExampleEnum.bbb);
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
 		// This class is auto-increment so it should have an id now
@@ -92,7 +103,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumberOrNull(null);
 		example.setModifiedBy("you");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date().getTime());
+		example.setModifiedOn(new Date());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example.setComment("no comment");
 		example.setName("the name");
@@ -111,7 +122,7 @@ public class DBOAnnotatedExampleTest {
 			example.setNumber(new Long(i));
 			example.setModifiedBy("name"+i);
 			// dates don't compare because of rounding
-			example.setModifiedOn(new Date().getTime());
+			example.setModifiedOn(new Date());
 			example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 			batch.add(example);
 		}
@@ -136,7 +147,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumber(new Long(103));
 		example.setModifiedBy("nobodyKnows");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date().getTime());
+		example.setModifiedOn(new Date());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
@@ -165,7 +176,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumber(new Long(133));
 		example.setModifiedBy("nobodyKnows");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date().getTime());
+		example.setModifiedOn(new Date());
 		example.setBlob("This string converts to a blob".getBytes("UTF-8"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
@@ -186,7 +197,7 @@ public class DBOAnnotatedExampleTest {
 		example.setNumber(new Long(456));
 		example.setModifiedBy("snoopy");
 		// dates don't compare because of rounding
-		example.setModifiedOn(new Date().getTime());
+		example.setModifiedOn(new Date());
 		example.setBlob("This is the starting string".getBytes("UTF-8"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
@@ -198,7 +209,7 @@ public class DBOAnnotatedExampleTest {
 		assertEquals(example, fetched);
 		// Now change the value
 		fetched.setBlob("I am the new string for the blob!".getBytes("UTF-8"));
-		fetched.setModifiedOn(fetched.getModifiedOn() + 10);
+		fetched.setModifiedOn(new Date(fetched.getModifiedOn().getTime() + 10));
 		fetched.setModifiedBy("Sombody else");
 		// Now update it.
 		boolean result = dboBasicDao.update(fetched);
