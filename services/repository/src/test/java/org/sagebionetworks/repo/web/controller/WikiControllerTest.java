@@ -170,8 +170,6 @@ public class WikiControllerTest {
 		assertNotNull(wiki.getEtag());
 		assertNotNull(ownerId, wiki.getModifiedBy());
 		assertNotNull(ownerId, wiki.getCreatedBy());
-		// A V2 wiki should also have been made to mirror this one
-		assertEquals(1, wikiPageDao.getCount());
 		assertEquals(1, v2WikiPageDao.getCount());
 		// Get the wiki page.
 		WikiPage clone = entityServletHelper.getWikiPage(key, userName);
@@ -184,7 +182,7 @@ public class WikiControllerTest {
 		assertEquals(clone, root);
 		
 		// Save the current file handle of the mirror wiki which will be lost when updating
-		V2WikiPage v2Mirror = v2WikiPageDao.get(key);
+		V2WikiPage v2Mirror = v2WikiPageDao.get(key, null);
 		String abandonedFileHandleId = v2Mirror.getMarkdownFileHandleId();
 		
 		// Update the wiki
@@ -195,7 +193,7 @@ public class WikiControllerTest {
 		assertNotNull(cloneUpdated);
 		// Title should be updated. V2 should have mirrored it too.
 		assertEquals("updated title", cloneUpdated.getTitle());
-		assertEquals("updated title", v2WikiPageDao.get(key).getTitle());
+		assertEquals("updated title", v2WikiPageDao.get(key, null).getTitle());
 		assertFalse("The etag should have changed from the update", currentEtag.equals(cloneUpdated.getId()));
 		
 		// Add a child wiki
@@ -213,7 +211,6 @@ public class WikiControllerTest {
 		assertNotNull(child.getId());
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(childKey);
-		assertEquals(2, wikiPageDao.getCount());
 		assertEquals(2, v2WikiPageDao.getCount());
 		// List the hierarchy
 		PaginatedResults<WikiHeader> paginated = entityServletHelper.getWikiHeaderTree(userName, ownerId, ownerType);
@@ -269,7 +266,7 @@ public class WikiControllerTest {
 		s3Client.deleteObject(abandonedHandle.getBucketName(), abandonedHandle.getKey());
 		fileMetadataDao.delete(abandonedFileHandleId);
 		for(int i = toDelete.size() - 1; i >= 0; i--) {
-			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i));
+			V2WikiPage wikiPage = v2WikiPageDao.get(toDelete.get(i), null);
 			String markdownHandleId = wikiPage.getMarkdownFileHandleId();
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
@@ -291,7 +288,6 @@ public class WikiControllerTest {
 		} catch (NotFoundException e) {
 			// this is expected
 		}
-		assertEquals(0, wikiPageDao.getCount());
 		assertEquals(0, v2WikiPageDao.getCount());
 	}
 }

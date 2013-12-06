@@ -1332,8 +1332,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-
+	
 	@Override
 	public V2WikiPage getV2WikiPage(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException {
@@ -1341,6 +1340,12 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+	@Override
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
@@ -2530,6 +2535,63 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		return null;
 	}
 
+	@Override
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(
+			WikiPageKey key, Long version) throws JSONObjectAdapterException,
+			SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadV2WikiMarkdown(WikiPageKey key)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version)
+			throws ClientProtocolException, FileNotFoundException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage createV2WikiPageWithV1(String ownerId,
+			ObjectType ownerType, WikiPage toCreate) throws IOException,
+			SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage updateV2WikiPageWithV1(String ownerId,
+			ObjectType ownerType, WikiPage toUpdate) throws IOException,
+			SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(
@@ -2538,15 +2600,14 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-
+	
 	@Override
 	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
-			String requesterId, String teamId, long limit, long offset)
+			String arg0, String arg1, long arg2, long arg3)
 			throws SynapseException {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
-
+	
+	
 }

@@ -611,6 +611,7 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_HANDLES_V2 = "/attachmenthandles";
 	public static final String WIKI_WITH_ID_V2 = WIKI_V2 + "/{wikiId}";
 	public static final String WIKI_VERSION_V2 = "/{wikiVersion}";
+	public static final String MARKDOWN_V2 = "/markdown";
 	// Entity
 	public static final String ENTITY_OWNER_ID_V2 = ENTITY+"/{ownerId}";
 	public static final String ENTITY_WIKI_V2 = ENTITY_OWNER_ID_V2 + WIKI_V2;
@@ -621,6 +622,7 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	// Evaluation
 	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
 	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
@@ -631,6 +633,7 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	
 	// Tables
 	public static final String COLUMN = "/column";

@@ -43,30 +43,13 @@ public interface V2WikiPageDao {
 	 */
 	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException;		
 	/**
-	 * Get a wiki page.
+	 * Get a version of a wiki page.
+	 * @param version TODO
 	 * @param id
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public V2WikiPage get(WikiPageKey key) throws NotFoundException;
-	
-	/**
-	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
-	 * @param key
-	 * @param version
-	 * @return
-	 * @throws NotFoundException 
-	 */
-	public String getMarkdownHandleIdFromHistory(WikiPageKey key, Long version) throws NotFoundException;
-	
-	/**
-	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
-	 * @param key
-	 * @param version
-	 * @return
-	 * @throws NotFoundException 
-	 */
-	public List<String> getWikiFileHandleIdsFromHistory(WikiPageKey key, Long version) throws NotFoundException;
+	public V2WikiPage get(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
 	 * Get ALL the file handle ids used (in the past/currently) for a wiki page.
@@ -124,15 +107,17 @@ public interface V2WikiPageDao {
 	String lockForUpdate(String wikiId);
 	
 	/**
-	 * Get all of the FileHandleIds for a wiki page.
+	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
+	 * If version is null, the current attachments of the wiki are returned.
 	 * @param key
+	 * @param version
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	List<String> getWikiFileHandleIds(WikiPageKey key) throws NotFoundException;
+	List<String> getWikiFileHandleIds(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
-	 * Lookup the FileHandleId for a given WikiPage with the given name.
+	 * Lookup the FileHandleId for an attachment, for a given WikiPage with the given name.
 	 * 
 	 * @param ownerId
 	 * @param type
@@ -141,6 +126,16 @@ public interface V2WikiPageDao {
 	 */
 	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName) throws NotFoundException;
 
+	/**
+	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
+	 * If version is null, then the current markdown handle id is returned.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	String getMarkdownHandleId(WikiPageKey key, Long version) throws NotFoundException;
+	
 	/**
 	 * Given a wiki id, lookup the key
 	 * @param wikiId

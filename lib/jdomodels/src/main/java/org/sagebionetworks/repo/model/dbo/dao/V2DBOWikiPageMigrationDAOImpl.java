@@ -276,7 +276,7 @@ public class V2DBOWikiPageMigrationDAOImpl implements V2WikiPageMigrationDao {
 		V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(dbo.getId(), dbo.getMarkdownVersion()); 
 		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
 		List<String> fileHandleIds = createFileHandleIdsList(listToString);
-		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo.getFileHandleId());
+		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
 	}
 	
 	/**

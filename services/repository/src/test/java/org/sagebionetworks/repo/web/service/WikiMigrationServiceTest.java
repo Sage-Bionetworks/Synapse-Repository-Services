@@ -98,7 +98,7 @@ public class WikiMigrationServiceTest {
 		// If not the special parent case, we delete from "toDelete" which are wikis without hierarchy
 		if(v2wikiPageDAO != null && toDelete != null && toDeleteForParentCase.size() == 0) {
 			for(WikiPageKey id: toDelete) {
-				V2WikiPage wiki = v2wikiPageDAO.get(id);
+				V2WikiPage wiki = v2wikiPageDAO.get(id, null);
 				String markdownHandleId = wiki.getMarkdownFileHandleId();
 				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
@@ -110,7 +110,7 @@ public class WikiMigrationServiceTest {
 		if(v2wikiPageDAO != null && toDeleteForParentCase != null) {
 			for(int i = 0; i < toDeleteForParentCase.size(); i++) {
 				WikiPageKey key = toDeleteForParentCase.get(i);
-				V2WikiPage wiki = v2wikiPageDAO.get(key);
+				V2WikiPage wiki = v2wikiPageDAO.get(key, null);
 				String markdownHandleId = wiki.getMarkdownFileHandleId();
 				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
@@ -172,7 +172,7 @@ public class WikiMigrationServiceTest {
 		assertEquals(WikiMigrationResultType.SUCCESS, results.getResults().get(0).getResultType());
 		
 		// Store the markdown file handle created during migration to clean up
-		V2WikiPage wikiCreatedFromMigration = v2wikiPageDAO.get(key);
+		V2WikiPage wikiCreatedFromMigration = v2wikiPageDAO.get(key, null);
 		String firstMarkdownFileHandleId = wikiCreatedFromMigration.getMarkdownFileHandleId();
 		abandonedFileHandleIds.add(firstMarkdownFileHandleId);
 		
@@ -185,7 +185,7 @@ public class WikiMigrationServiceTest {
 		PaginatedResults<WikiMigrationResult> resultsAfterUpdate = wikiMigrationService.migrateSomeWikis(userName, 1, 0, "somePath");
 		assertNotNull(resultsAfterUpdate);
 		assertEquals(WikiMigrationResultType.SUCCESS, resultsAfterUpdate.getResults().get(0).getResultType());
-		V2WikiPage retrievedFromV2 = v2wikiPageDAO.get(key);
+		V2WikiPage retrievedFromV2 = v2wikiPageDAO.get(key, null);
 		// V2 should show changes
 		assertEquals("title2", retrievedFromV2.getTitle());
 		
