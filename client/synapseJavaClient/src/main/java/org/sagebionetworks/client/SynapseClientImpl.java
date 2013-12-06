@@ -289,6 +289,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	private static final String OPEN_MEMBERSHIP_INVITATION = "/openInvitation";
 	private static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	private static final String INVITEE_ID_REQUEST_PARAMETER = "inviteeId";
 	// membership request
 	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
@@ -4636,6 +4637,29 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(
+			String teamId, String inviteeId, long limit, long offset)
+			throws SynapseException {
+		
+		String uri = null;
+		if (inviteeId==null) {
+			uri = TEAM+"/"+teamId+OPEN_MEMBERSHIP_INVITATION+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = TEAM+"/"+teamId+OPEN_MEMBERSHIP_INVITATION+"?"+INVITEE_ID_REQUEST_PARAMETER+"="+inviteeId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<MembershipInvtnSubmission> results = new PaginatedResults<MembershipInvtnSubmission>(MembershipInvtnSubmission.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
 	public void deleteMembershipInvitation(String invitationId)
 			throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, MEMBERSHIP_INVITATION + "/" + invitationId, getUserAgent());
@@ -4681,6 +4705,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>(MembershipRequest.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
+			String requesterId, String teamId, long limit, long offset)
+			throws SynapseException {
+		String uri = null;
+		if (teamId==null) {
+			uri = USER+"/"+requesterId+OPEN_MEMBERSHIP_REQUEST+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = USER+"/"+requesterId+OPEN_MEMBERSHIP_REQUEST+"?"+TEAM_ID_REQUEST_PARAMETER+"="+teamId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<MembershipRqstSubmission> results = new PaginatedResults<MembershipRqstSubmission>(MembershipRqstSubmission.class);
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;

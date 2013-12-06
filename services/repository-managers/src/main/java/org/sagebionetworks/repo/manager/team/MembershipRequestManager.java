@@ -64,6 +64,34 @@ public interface MembershipRequestManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequestorInRange(UserInfo userInfo, String teamId, String requestorId, long limit, long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequesterInRange(UserInfo userInfo, String teamId, String requesterId, long limit, long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param requesterId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByRequesterInRange(
+			UserInfo userInfo, String requesterId, long limit, long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param teamId
+	 * @param requesterId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
+			UserInfo userInfo, String teamId, String requesterId, long limit,
+			long offset) throws DatastoreException, NotFoundException;
 
 }

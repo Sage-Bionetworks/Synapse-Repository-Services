@@ -89,6 +89,11 @@ public class AuthorizationConstants {
 
 
 	/**
+	 * Request parameter for a Team ID
+	 */
+	public static final String TEAM_ID_PARAM = "teamId";
+	
+	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that
 	 * callers of the service do not actually use this parameter. Instead they
 	 * use a token parameter which is then converted to a user id by a request

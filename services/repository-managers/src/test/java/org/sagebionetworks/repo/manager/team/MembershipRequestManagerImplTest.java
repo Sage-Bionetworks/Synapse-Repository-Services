@@ -229,7 +229,7 @@ public class MembershipRequestManagerImplTest {
 	}
 	
 	@Test
-	public void testGetOpenByTeamAndRequestor() throws Exception {
+	public void testGetOpenByTeamAndRequester() throws Exception {
 		MembershipRequest mr = new MembershipRequest();
 		mr.setTeamId("111");
 		long userId = 333L;
@@ -240,17 +240,62 @@ public class MembershipRequestManagerImplTest {
 			thenReturn(expected);
 		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
+		PaginatedResults<MembershipRequest> actual = membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
 	}
 
 	@Test(expected=UnauthorizedException.class)
-	public void testGetOpenByTeamAndRequestorUnauthorized() throws Exception {
+	public void testGetOpenByTeamAndRequesterUnauthorized() throws Exception {
 		long userId = 333L;
 		long teamId = 101L;
 		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
-		membershipRequestManagerImpl.getOpenByTeamAndRequestorInRange(userInfo, ""+teamId,""+userId,1,0);
+		membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
+	}
+
+	@Test
+	public void testGetOpenSubmissionsByRequester() throws Exception {
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		mrs.setTeamId("111");
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		mrs.setUserId(""+userId);
+		List<MembershipRqstSubmission> expected = Arrays.asList(new MembershipRqstSubmission[]{mrs});
+		when(mockMembershipRqstSubmissionDAO.getOpenSubmissionsByRequesterInRange(eq(userId), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipRqstSubmissionDAO.getOpenByRequesterCount(eq(userId), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipRqstSubmission> actual = membershipRequestManagerImpl.getOpenSubmissionsByRequesterInRange(userInfo, ""+userId,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsByRequesterUnauthorized() throws Exception {
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		membershipRequestManagerImpl.getOpenSubmissionsByRequesterInRange(userInfo, ""+(userId+999),1,0);
+	}
+	
+	@Test
+	public void testGetOpenSubmissionsByRequesterAndTeam() throws Exception {
+		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
+		long teamId = 111L;
+		mrs.setTeamId(""+teamId);
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		mrs.setUserId(""+userId);
+		List<MembershipRqstSubmission> expected = Arrays.asList(new MembershipRqstSubmission[]{mrs});
+		when(mockMembershipRqstSubmissionDAO.getOpenSubmissionsByTeamAndRequesterInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(eq(teamId), eq(userId), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipRqstSubmission> actual = membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+userId,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsByRequesterAndTeamUnauthorized() throws Exception {
+		long teamId = 111L;
+		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+(userId+999),1,0);
+
 	}
 
 }
