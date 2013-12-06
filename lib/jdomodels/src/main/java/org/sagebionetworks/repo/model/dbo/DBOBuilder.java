@@ -37,11 +37,11 @@ public class DBOBuilder<T> {
 		}
 
 		public final void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException {
-			if (isNullable && rs.getString(columnName) == null) {
-				fieldSetter.invoke(result, (Object) null);
-			} else {
-				fieldSetter.invoke(result, getValue(rs, columnName));
+			Object value = getValue(rs, columnName);
+			if (isNullable && rs.wasNull()) {
+				value = null;
 			}
+			fieldSetter.invoke(result, value);
 		}
 
 		public abstract Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException;
@@ -71,9 +71,13 @@ public class DBOBuilder<T> {
 
 		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
 			String stringValue = rs.getString(columnName);
-			@SuppressWarnings("unchecked")
-			Object enumValue = Enum.valueOf(enumType, stringValue);
-			return enumValue;
+			if (stringValue != null) {
+				@SuppressWarnings("unchecked")
+				Object enumValue = Enum.valueOf(enumType, stringValue);
+				return enumValue;
+			} else {
+				return null;
+			}
 		}
 	}
 
