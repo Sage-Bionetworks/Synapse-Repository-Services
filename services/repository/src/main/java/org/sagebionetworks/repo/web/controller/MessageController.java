@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -16,6 +20,7 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,8 +38,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Provides REST APIs for sending messages to other Synapse users and for commenting on Synapse entities.
  * </p>
  */
-// No javadocs since the implementation is not complete yet
-// @ControllerInfo(displayName = "Message Services", path = "repo/v1")
+@ControllerInfo(displayName = "Message Services", path = "repo/v1")
 @Controller
 public class MessageController extends BaseController {
 
@@ -196,5 +200,42 @@ public class MessageController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
 			@PathVariable String messageId) throws NotFoundException {
 		serviceProvider.getMessageService().deleteMessage(username, messageId);
+	}
+	
+	/**
+	 * Get the actual URL of the file associated with the message
+	 * </br>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * 
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 */
+	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void fileRedirectForMessage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@PathVariable String messageId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws NotFoundException, IOException {
+		URL redirectUrl = serviceProvider.getMessageService()
+				.getMessageFileRedirectURL(username, messageId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Adds the owner of the given entity as an additional recipient of the message.
+	 * 
+	 * Afterwards, behavior is identical to <a href="${POST.message}">POST /message</a>
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_MESSAGE, method = RequestMethod.POST)
+	public @ResponseBody
+	MessageToUser sendMessageToEntityOwner(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@PathVariable String id, 
+			@RequestBody MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
+		return serviceProvider.getMessageService().createMessageToEntityOwner(username, id, toCreate);
 	}
 }

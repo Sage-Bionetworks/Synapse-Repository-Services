@@ -4,7 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
@@ -48,7 +47,7 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 			// We only care about MESSAGE messages here
 			if (ObjectType.MESSAGE == change.getObjectType()) {
 				try {
-					List<String> errors = null;
+					List<String> errors;
 					switch (change.getChangeType()) {
 					case CREATE:
 						errors = messageManager.processMessage(change.getObjectId());
@@ -57,11 +56,8 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 						throw new IllegalArgumentException("Unknown change type: " + change.getChangeType());
 					}
 					
-					//TODO How should we handle error messages?  Relay them to the user?
 					if (errors.size() > 0) {
-						log.info("Errors while processing message ("
-								+ change.getObjectId() + ")\n"
-								+ StringUtils.join(errors, "\n"));
+						messageManager.sendDeliveryFailureEmail(change.getObjectId(), errors);
 					}
 					
 					// This message was processed

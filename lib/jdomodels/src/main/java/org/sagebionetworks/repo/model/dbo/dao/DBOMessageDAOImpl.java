@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
@@ -55,6 +57,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private static final String ROOT_MESSAGE_ID_PARAM_NAME = "rootMessageId";
 	private static final String INBOX_FILTER_PARAM_NAME = "inboxFilter";
 	private static final String TIMESTAMP_PARAM_NAME = "timestamp";
+	private static final String FILEHANDLE_PARAM_NAME = "filehandle";
 	
 	private static final String SELECT_MESSAGE_BY_ID = 
 			"SELECT * FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," + SqlConstants.TABLE_MESSAGE_TO_USER +
@@ -128,6 +131,12 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
 			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_CREATED_BY + "=:" + USER_ID_PARAM_NAME +
 			" AND " + SqlConstants.COL_MESSAGE_CONTENT_CREATED_ON + ">:" + TIMESTAMP_PARAM_NAME;
+	
+	private static final String COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE = 
+			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + "," + SqlConstants.TABLE_MESSAGE_RECIPIENT + 
+			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=" + SqlConstants.COL_MESSAGE_RECIPIENT_MESSAGE_ID + 
+			" AND " + SqlConstants.COL_MESSAGE_CONTENT_FILE_HANDLE_ID + "=:" + FILEHANDLE_PARAM_NAME + 
+			" AND " + SqlConstants.COL_MESSAGE_RECIPIENT_ID + " IN(:" + USER_ID_PARAM_NAME + ")";
 	
 	private static final RowMapper<DBOMessageContent> messageContentRowMapper = new DBOMessageContent().getTableMapping();
 	private static final RowMapper<DBOMessageToUser> messageToUserRowMapper = new DBOMessageToUser().getTableMapping();
@@ -427,5 +436,23 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		params.addValue(TIMESTAMP_PARAM_NAME, new Date().getTime() - messageCreationInterval);
 		long messages = simpleJdbcTemplate.queryForLong(COUNT_RECENTLY_CREATED_MESSAGES, params);
 		return messages < maxNumberOfNewMessages;
+	}
+	
+	@Override
+	public boolean canSeeMessagesUsingFileHandle(Collection<UserGroup> userGroups, String fileHandleId) {
+		if (userGroups.size() <= 0) {
+			return false;
+		}
+		
+		List<String> groupIds = new ArrayList<String>();
+		for (UserGroup ug : userGroups) {
+			groupIds.add(ug.getId());
+		}
+		
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(USER_ID_PARAM_NAME, groupIds);
+		params.addValue(FILEHANDLE_PARAM_NAME, fileHandleId);
+		long messages = simpleJdbcTemplate.queryForLong(COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE, params);
+		return messages > 0;
 	}
 }

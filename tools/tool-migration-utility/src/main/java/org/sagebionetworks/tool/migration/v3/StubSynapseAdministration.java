@@ -2516,6 +2516,22 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public MessageToUser sendMessage(MessageToUser message, String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public String downloadMessage(String messageId) throws SynapseException,
+			MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
 	public PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(
 			String teamId, String inviteeId, long limit, long offset)
 			throws SynapseException {
@@ -2531,4 +2547,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
 }
