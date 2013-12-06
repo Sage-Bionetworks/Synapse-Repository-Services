@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * Implementation of a table mapping that uses @{@link Table} and @{@link Field} annotations to generate all the boiler
+ * plate. This mean fewer duplication in the class itself and no need for a separate sql ddl file
+ * 
+ * @author marcel
+ */
 public class AutoTableMapping<T> implements TableMapping<T> {
 
 	private final Class<? extends T> clazz;
@@ -17,15 +17,23 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 	private final FieldColumn[] fields;
 	private final DBOBuilder.RowMapper[] mappers;
 
-	public static <T> TableMapping<T> create(Class<? extends T> clazz) {
-		return new AutoTableMapping<T>(clazz);
+	/**
+	 * Create a table mapping for this class (assumed to be annotated with @{@link Table} and @{@link Field}
+	 * 
+	 * @param clazz
+	 * @param customColumns the columns that cannot use a default mapping and are handled by overriding
+	 *        {@link TableMapping#mapRow(ResultSet, int)}
+	 * @return
+	 */
+	public static <T> TableMapping<T> create(Class<? extends T> clazz, String... customColumns) {
+		return new AutoTableMapping<T>(clazz, customColumns);
 	}
 
-	private AutoTableMapping(Class<? extends T> clazz) {
+	public AutoTableMapping(Class<? extends T> clazz, String... customColumns) {
 		this.clazz = clazz;
 		this.fields = DBOBuilder.getFields(clazz);
 		this.tableName = DBOBuilder.getTableName(clazz);
-		this.mappers = DBOBuilder.getFieldMappers(clazz);
+		this.mappers = DBOBuilder.getFieldMappers(clazz, customColumns);
 	}
 
 	@Override
@@ -35,6 +43,7 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 
 	@Override
 	public String getDDLFileName() {
+		// the one and only caller of this method should call getDLL instead
 		throw new IllegalStateException("getDDLFileName should not be called on AutoTableMapping");
 	}
 
