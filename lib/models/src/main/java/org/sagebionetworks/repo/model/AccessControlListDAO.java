@@ -20,7 +20,7 @@ public interface AccessControlListDAO  {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException 
 	 */
-	public String create(AccessControlList dto) throws DatastoreException,	InvalidModelException, NotFoundException;
+	public String create(AccessControlList dto, ObjectType ownerType) throws DatastoreException,	InvalidModelException, NotFoundException;
 
 	/**
 	 * Get an ACL using the Node's ID
@@ -39,7 +39,7 @@ public interface AccessControlListDAO  {
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public void update(AccessControlList dto) throws DatastoreException, InvalidModelException, NotFoundException,ConflictingUpdateException;
+	public void update(AccessControlList dto, ObjectType ownerType) throws DatastoreException, InvalidModelException, NotFoundException,ConflictingUpdateException;
 
 	/**
 	 * Delete a ACL using the Node's Id.

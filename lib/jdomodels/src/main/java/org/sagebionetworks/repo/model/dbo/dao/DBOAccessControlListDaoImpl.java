@@ -68,7 +68,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String create(AccessControlList acl) throws DatastoreException, NotFoundException {
+	public String create(AccessControlList acl, ObjectType ownerType) throws DatastoreException, NotFoundException {
 
 		if (acl == null) {
 			throw new IllegalArgumentException("ACL cannot be null.");
@@ -78,7 +78,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 		AccessControlListUtils.validateACL(acl);
 
-		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
+		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, ownerType);
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(acl);
 
@@ -147,7 +147,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void update(AccessControlList acl) throws DatastoreException, NotFoundException {
+	public void update(AccessControlList acl, ObjectType ownerType) throws DatastoreException, NotFoundException {
 
 		AccessControlListUtils.validateACL(acl);
 
@@ -159,7 +159,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		acl.setEtag(UUID.randomUUID().toString());
 
-		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
+		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, ownerType);
 		dboBasicDao.update(dbo);
 		// Now delete the resource access
 		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, ownerKey);

@@ -221,7 +221,7 @@ public class TeamManagerImpl implements TeamManager {
 		groupMembersDAO.addMembers(id, Arrays.asList(new String[]{userInfo.getIndividualGroup().getId()}));
 		// create ACL, adding the current user to the team, as an admin
 		AccessControlList acl = createInitialAcl(userInfo, id, now);
-		aclDAO.create(acl);
+		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
 	}
 
@@ -410,7 +410,7 @@ public class TeamManagerImpl implements TeamManager {
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);
-			aclDAO.update(acl);
+			aclDAO.update(acl, ObjectType.TEAM);
 		}
 	}
 
@@ -431,7 +431,7 @@ public class TeamManagerImpl implements TeamManager {
 	public void updateACL(UserInfo userInfo, AccessControlList acl)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, acl.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot change Team permissions.");
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.TEAM);
 	}
 
 	@Override
@@ -463,7 +463,7 @@ public class TeamManagerImpl implements TeamManager {
 			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
 		}
 		// finally, update the ACL
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.TEAM);
 	}
 	
 	// answers the question about whether membership approval is required to add principal to team

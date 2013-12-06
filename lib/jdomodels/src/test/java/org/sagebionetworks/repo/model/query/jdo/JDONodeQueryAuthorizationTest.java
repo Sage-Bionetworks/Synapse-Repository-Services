@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -455,7 +456,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		access.setAccessType(new HashSet<ACCESS_TYPE>());
 		access.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(access);
-		accessControlListDAO.create(acl);
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		// Project B
 		projectB = NodeTestUtils.createNew("projectB", creatorUserGroupId);
 		projectB.setNodeType(EntityType.project.name());
@@ -471,7 +472,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		access.setAccessType(new HashSet<ACCESS_TYPE>());
 		access.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(access);
-		accessControlListDAO.create(acl);
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		// Now add some nodes to each project.
 		nodesInProjectA = new HashMap<String, Node>();

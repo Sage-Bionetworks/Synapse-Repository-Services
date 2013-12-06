@@ -251,7 +251,7 @@ public class TeamManagerImplTest {
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
 		verify(mockTeamDAO).create(team);
-		verify(mockAclDAO).create((AccessControlList)any());
+		verify(mockAclDAO).create((AccessControlList)any(), eq(ObjectType.TEAM));
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
 		// verify that ID and dates are set in returned team
 		assertNotNull(created.getCreatedOn());
@@ -532,7 +532,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO).update((AccessControlList)any());
+		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
 		assertEquals(0, acl.getResourceAccess().size());
 	}
 	
@@ -553,7 +553,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO, times(0)).update((AccessControlList)any());		
+		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));		
 	}
 	
 	@Test
@@ -575,7 +575,7 @@ public class TeamManagerImplTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(TEAM_ID);
 		teamManagerImpl.updateACL(userInfo, acl);
-		verify(mockAclDAO).update(acl);
+		verify(mockAclDAO).update(acl, ObjectType.TEAM);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -623,7 +623,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		String principalId = MEMBER_PRINCIPAL_ID;
 		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);
-		verify(mockAclDAO).update((AccessControlList)any());
+		verify(mockAclDAO).update((AccessControlList)any(),  eq(ObjectType.TEAM));
 		// now check that user is actually an admin
 		boolean foundRA=false;
 		for (ResourceAccess ra: acl.getResourceAccess()) {
