@@ -172,7 +172,7 @@ public class WikiMigrationServiceTest {
 		assertEquals(WikiMigrationResultType.SUCCESS, results.getResults().get(0).getResultType());
 		
 		// Store the markdown file handle created during migration to clean up
-		V2WikiPage wikiCreatedFromMigration = v2wikiPageDAO.get(key);
+		V2WikiPage wikiCreatedFromMigration = v2wikiPageDAO.get(key, null);
 		String firstMarkdownFileHandleId = wikiCreatedFromMigration.getMarkdownFileHandleId();
 		abandonedFileHandleIds.add(firstMarkdownFileHandleId);
 		

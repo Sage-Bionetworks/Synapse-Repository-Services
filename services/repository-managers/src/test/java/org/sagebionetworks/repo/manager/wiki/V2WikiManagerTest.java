@@ -803,7 +803,10 @@ public class V2WikiManagerTest {
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		S3FileHandle markdown2 = new S3FileHandle();
-		markdown.setFileName("markdownContent2");
+		markdown2.setId("5");
+		markdown2.setCreatedBy(user.getIndividualGroup().getId());
+		markdown2.setCreatedOn(new Date(1));
+		markdown2.setFileName("markdownContent2");
 		when(mockFileDao.get(markdown2.getId())).thenReturn(markdown2);
 		
 		// We are restoring content from an earlier version.
@@ -843,6 +846,7 @@ public class V2WikiManagerTest {
 		wiki.getAttachmentFileHandleIds().add(two.getId());
 		wiki.setMarkdownFileHandleId(markdown2.getId());
 		
+		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wiki);
 		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
 		verify(mockWikiDao, times(1)).getWikiFileHandleIds(key, new Long(0));
 		

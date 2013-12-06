@@ -182,7 +182,7 @@ public class WikiControllerTest {
 		assertEquals(clone, root);
 		
 		// Save the current file handle of the mirror wiki which will be lost when updating
-		V2WikiPage v2Mirror = v2WikiPageDao.get(key);
+		V2WikiPage v2Mirror = v2WikiPageDao.get(key, null);
 		String abandonedFileHandleId = v2Mirror.getMarkdownFileHandleId();
 		
 		// Update the wiki
