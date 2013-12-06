@@ -45,13 +45,29 @@ public class MembershipInvitationServiceImpl implements
 	 */
 	@Override
 	public PaginatedResults<MembershipInvitation> getOpenInvitations(
-			String inviteeId, String teamId, long limit, long offset)
+			String userId, String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (teamId==null) {
 			return membershipInvitationManager.getOpenForUserInRange(inviteeId, limit, offset);
 		} else {
 			return membershipInvitationManager.getOpenForUserAndTeamInRange(inviteeId, teamId, limit, offset);
 		}
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.MembershipInvitationService#getOpenInvitations(java.lang.String, java.lang.String, long, long)
+	 */
+	@Override
+	public PaginatedResults<MembershipInvtnSubmission> getOpenInvitationSubmissions(
+			String userId, String inviteeId, String teamId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+			UserInfo userInfo = userManager.getUserInfo(userId);
+			if (inviteeId==null) {
+				return membershipInvitationManager.getOpenSubmissionsForTeamInRange(userInfo, teamId, limit, offset);
+			} else {
+				return membershipInvitationManager.getOpenSubmissionsForUserAndTeamInRange(userInfo, inviteeId, teamId, limit, offset);
+			}
 		
 	}
 

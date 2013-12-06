@@ -42,13 +42,28 @@ public class MembershipRequestServiceImpl implements MembershipRequestService {
 	 */
 	@Override
 	public PaginatedResults<MembershipRequest> getOpenRequests(String userId,
-			String requestorId, String teamId, long limit, long offset)
+			String requesterId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (requestorId==null) {
+		if (requesterId==null) {
 			return membershipRequestManager.getOpenByTeamInRange(userInfo, teamId, limit, offset);
 		} else {
-			return membershipRequestManager.getOpenByTeamAndRequestorInRange(userInfo, teamId, requestorId, limit, offset);
+			return membershipRequestManager.getOpenByTeamAndRequesterInRange(userInfo, teamId, requesterId, limit, offset);
+		}
+	}
+
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.MembershipRequestService#getOpenRequestSubmissions(java.lang.String, java.lang.String, java.lang.String, long, long)
+	 */
+	@Override
+	public PaginatedResults<MembershipRqstSubmission> getOpenRequestSubmissions(String userId,
+			String requesterId, String teamId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (teamId==null) {
+			return membershipRequestManager.getOpenSubmissionsByRequesterInRange(userInfo, requesterId, limit, offset);
+		} else {
+			return membershipRequestManager.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, teamId, requesterId, limit, offset);
 		}
 	}
 

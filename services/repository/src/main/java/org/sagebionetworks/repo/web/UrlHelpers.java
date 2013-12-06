@@ -668,12 +668,15 @@ public class UrlHelpers {
 	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;
-	public static final String OPEN_MEMBERSHIP_INVITATION = USER+ID+"/openInvitation";
+	public static final String OPEN_MEMBERSHIP_INVITATION_BY_USER = USER+ID+"/openInvitation";
+	public static final String OPEN_MEMBERSHIP_INVITATION_BY_TEAM = TEAM+ID+"/openInvitation";
 	public static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	public static final String INVITEE_ID_REQUEST_PARAMETER = "inviteeId";
 	// membership request
 	public static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;
-	public static final String OPEN_MEMBERSHIP_REQUEST = TEAM_ID+"/openRequest";
+	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
+	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 	
 	/**
