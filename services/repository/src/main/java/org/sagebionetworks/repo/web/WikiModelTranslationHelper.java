@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -73,9 +74,9 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		String markdown = from.getMarkdown();
 		File markdownTemp;
         if(markdown != null) {
-        	markdownTemp = ZipUtils.writeStringToCompressedFile(markdown);
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdown);
         } else {
-        	markdownTemp = ZipUtils.writeStringToCompressedFile("");
+        	markdownTemp = FileUtils.writeStringToCompressedFile("");
         }
 		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
@@ -133,7 +134,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
 				markdownHandle.getKey()), markdownTemp);
 		// Read the file as a string
-		String markdownString = ZipUtils.readCompressedFileAsString(markdownTemp);
+		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
 		wiki.setMarkdown(markdownString);
 		if(markdownTemp != null){
 			markdownTemp.delete();
