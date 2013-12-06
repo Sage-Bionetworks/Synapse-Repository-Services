@@ -5,8 +5,7 @@ import java.util.List;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.repo.model.*;
 
 /**
  * Abstraction for Synapse.
@@ -34,7 +33,7 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public BridgeVersionInfo getVersionInfo() throws SynapseException;
+	public BridgeVersionInfo getBridgeVersionInfo() throws SynapseException;
 
 	/****** communities ******/
 
@@ -52,7 +51,14 @@ public interface BridgeClient extends BaseClient {
 	 * 
 	 * @throws SynapseException
 	 */
-	public List<Community> getCommunities() throws SynapseException;
+	public PaginatedResults<Community> getCommunities(long limit, long offset) throws SynapseException;
+
+	/**
+	 * Get all the available communities
+	 * 
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<Community> getAllCommunities(long limit, long offset) throws SynapseException;
 
 	/**
 	 * Get community by id
@@ -80,6 +86,14 @@ public interface BridgeClient extends BaseClient {
 	public void deleteCommunity(String communityId) throws SynapseException;
 
 	/**
+	 * Get all the members of a community (admins only)
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<UserGroupHeader> getCommunityMembers(String communityId, long limit, long offset) throws SynapseException;
+
+	/**
 	 * Join a community
 	 * 
 	 * @param community
@@ -94,4 +108,22 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void leaveCommunity(String communityId) throws SynapseException;
+
+	/**
+	 * Add a current member as an admin for the community
+	 * 
+	 * @param communityId
+	 * @param principalId
+	 * @throws SynapseException
+	 */
+	public void addCommunityAdmin(String communityId, String principalId) throws SynapseException;
+
+	/**
+	 * Remove a current member as an admin for the community
+	 * 
+	 * @param communityId
+	 * @param principalId
+	 * @throws SynapseException
+	 */
+	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException;
 }

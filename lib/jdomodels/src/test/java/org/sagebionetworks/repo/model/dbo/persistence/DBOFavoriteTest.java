@@ -88,7 +88,6 @@ public class DBOFavoriteTest {
 		favorite.setPrincipalId(createdById);
 		favorite.setCreatedOn(System.currentTimeMillis());
 		favorite.setId(idGenerator.generateNewId(TYPE.FAVORITE_ID));
-		favorite.seteTag("1");
 		// Make sure we can create it
 		DBOFavorite clone = dboBasicDao.createNew(favorite);
 		assertNotNull(clone);
@@ -104,7 +103,6 @@ public class DBOFavoriteTest {
 		
 		// Make sure we can update it.
 		favorite.setCreatedOn(System.currentTimeMillis() + 100000);
-		clone.seteTag("2");
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		

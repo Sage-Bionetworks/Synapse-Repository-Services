@@ -11,14 +11,20 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamHeader;
@@ -38,6 +44,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOTeamDAOImplTest {
 	
 	private long teamToDelete = -1L;
+	private String aclToDelete = null;
 
 	private String[] teamMemberPairToDelete = null;
 	
@@ -48,14 +55,20 @@ public class DBOTeamDAOImplTest {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	private GroupMembersDAO groupMembersDAO;
-	
+	private GroupMembersDAO groupMembersDAO;	
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	
+	@Autowired
+	private AccessControlListDAO aclDAO;
+	
 	@After
 	public void tearDown() throws Exception {
+		if (aclDAO!=null && aclToDelete!=null) {
+			aclDAO.delete(aclToDelete);
+			aclToDelete = null;
+		}
 		if (teamDAO!=null && teamToDelete!=-1L) {
 			teamDAO.delete(""+teamToDelete);
 			teamToDelete=-1L;
@@ -129,14 +142,14 @@ public class DBOTeamDAOImplTest {
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 
 		// need an arbitrary user to add to the group
-		UserGroup pg = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{pg.getId()}));
-		teamMemberPairToDelete = new String[] {""+id, pg.getId()};
-		assertEquals(1, teamDAO.getForMemberInRange(pg.getId(), 1, 0).size());
-		assertEquals(0, teamDAO.getForMemberInRange(pg.getId(), 3, 1).size());
-		assertEquals(1, teamDAO.getCountForMember(pg.getId()));
+		UserGroup anon = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
+		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{anon.getId()}));
+		teamMemberPairToDelete = new String[] {""+id, anon.getId()};
+		assertEquals(1, teamDAO.getForMemberInRange(anon.getId(), 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(anon.getId(), 3, 1).size());
+		assertEquals(1, teamDAO.getCountForMember(anon.getId()));
 		
-		UserProfile up = userProfileDAO.get(pg.getId());
+		UserProfile up = userProfileDAO.get(anon.getId());
 		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
 		TeamMember tm = new TeamMember();
@@ -160,13 +173,13 @@ public class DBOTeamDAOImplTest {
 			}
 		}
 		
-		// the team has two members, the creator plus 'pg'
+		// the team has one member,  'pg'
 		assertEquals(1L, teamDAO.getMembersCount(updated.getId()));
 		List<TeamMember> members = teamDAO.getMembersInRange(updated.getId(), 2, 0);
 		assertEquals(1, members.size());
 		TeamMember m = members.get(0);
 		assertFalse(m.getIsAdmin());
-		assertEquals(pg.getId(), m.getMember().getOwnerId());
+		assertEquals(anon.getId(), m.getMember().getOwnerId());
 		assertEquals(updated.getId(), m.getTeamId());
 		
 		// check pagination
@@ -175,7 +188,31 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0L, teamDAO.getMembersInRange("-999", 10, 0).size());
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
 		
-		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{pg.getId()}));
+		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
+		TeamMember member = teamDAO.getMember(updated.getId(), anon.getId());
+		assertEquals(updated.getId(), member.getTeamId());
+		assertFalse(member.getIsAdmin());
+		ugh = member.getMember();
+		assertTrue(ugh.getIsIndividual());
+		assertEquals(anon.getId(), ugh.getOwnerId());
+		assertEquals("First-anonymous@sagebase.org", ugh.getFirstName());
+		assertEquals("Last-anonymous@sagebase.org", ugh.getLastName());
+		assertEquals("anonymous@sagebase.org", ugh.getDisplayName());
+		// now make the member an admin
+		AccessControlList acl = createAdminAcl(anon.getId(), updated.getId(), new Date());
+		aclToDelete = aclDAO.create(acl);
+		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
+		member = teamDAO.getMember(updated.getId(), anon.getId());
+		assertEquals(updated.getId(), member.getTeamId());
+		assertTrue(member.getIsAdmin());
+		ugh = member.getMember();
+		assertTrue(ugh.getIsIndividual());
+		assertEquals(anon.getId(), ugh.getOwnerId());
+		assertEquals("First-anonymous@sagebase.org", ugh.getFirstName());
+		assertEquals("Last-anonymous@sagebase.org", ugh.getLastName());
+		assertEquals("anonymous@sagebase.org", ugh.getDisplayName());
+		
+		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{anon.getId()}));
 		teamMemberPairToDelete = null; // no longer need to schedule for deletion
 		
 		// delete the team
@@ -188,5 +225,26 @@ public class DBOTeamDAOImplTest {
 		}
 		teamToDelete=-1L; // no need to delete in 'tear down'
 	}
+	
+	public static AccessControlList createAdminAcl(
+			final String pid, 
+			final String teamId, 
+			final Date creationDate) {
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(accessSet);
+		ra.setPrincipalId(Long.parseLong(pid));
+		raSet.add(ra);
+		AccessControlList acl = new AccessControlList();
+		acl.setId(teamId);
+		acl.setCreatedBy(pid);
+		acl.setCreationDate(creationDate);
+		acl.setModifiedBy(pid);
+		acl.setModifiedOn(creationDate);
+		acl.setResourceAccess(raSet);
+		return acl;
+	}
+
 
 }

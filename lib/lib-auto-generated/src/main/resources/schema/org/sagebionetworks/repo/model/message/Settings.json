@@ -1,0 +1,14 @@
+{
+	"title": "Settings",
+	"description": "Contains a user's notification settings",
+	"properties": {
+		"sendEmailNotifications": {
+			"type": "boolean",
+			"description": "Should the user receive email notifications?  Default true."
+		}, 
+        "markEmailedMessagesAsRead": {
+            "type": "boolean", 
+            "description": "Should messages that are emailed to the user be marked as READ in Synapse?  Default false."
+        }
+	}
+}

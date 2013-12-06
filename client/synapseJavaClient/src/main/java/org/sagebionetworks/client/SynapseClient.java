@@ -651,6 +651,12 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public MessageToUser sendMessage(MessageToUser message)
 			throws SynapseException;
+	
+	/**
+	 * Sends a message to another user and the owner of the given entity
+	 */
+	public MessageToUser sendMessage(MessageToUser message, String entityId) 
+			throws SynapseException;
 
 	/**
 	 * Gets the current authenticated user's received messages
@@ -696,6 +702,11 @@ public interface SynapseClient extends BaseClient {
 	 * Deletes a message.  Used for test cleanup only.  Admin only.
 	 */
 	public void deleteMessage(String messageId) throws SynapseException;
+	
+	/**
+	 * Returns a temporary URL that can be used to download the body of a message
+	 */
+	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 
@@ -967,6 +978,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * Return the TeamMember object for the given team and member
+	 * @param teamId
+	 * @param memberId
+	 * @return
+	 * @throws SynapseException
+	 */
+	TeamMember getTeamMember(String teamId, String memberId) throws SynapseException;
 
 	/**
 	 * 

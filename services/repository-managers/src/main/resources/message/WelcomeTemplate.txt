@@ -1,6 +1,6 @@
 Hello #displayname#,
 
-Welcome to Bridge!
+Welcome to #originclient#!
 
 Here are the details of your account:
 User Name: #username#
@@ -8,4 +8,4 @@ Full Name: #displayname#
 
 If you did not mean to create this account, please contact us at synapseInfo@synapse.org.
 
-Bridge Administrator
+#originclient# Administrator

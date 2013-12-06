@@ -6,5 +6,6 @@ package org.sagebionetworks.bridge.model;
 public class BridgePrefixConst {
 	
 	public final static String COMMUNITY = "/community";
+	public final static String MEMBER = "/member";
 
 }

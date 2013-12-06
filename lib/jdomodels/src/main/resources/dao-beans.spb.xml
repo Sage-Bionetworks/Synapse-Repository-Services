@@ -25,8 +25,6 @@
 	<bean id="transactionalMessenger"
 		class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl" />
 
-	<bean id="tagMessenger" class="org.sagebionetworks.repo.model.dbo.dao.TagMessengerImpl" />
-
 	<bean id="dboAnnotationsDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl" />
 
@@ -51,7 +49,9 @@
 	<!-- Controls how nodes inherit their permissions -->
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
-
+		
+	<bean id="notificationEmail" class="org.sagebionetworks.StackConfiguration"
+		factory-method="getNotificationEmailAddress" />
 	<util:list id="bootstrapUsers">
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="0" />
@@ -81,6 +81,11 @@
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="273950" />
 			<property name="name" value="anonymous@sagebase.org" />
+			<property name="isIndividual" value="true" />
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.UserGroup">
+			<property name="id" value="273951" />
+			<property name="name" ref="notificationEmail" />
 			<property name="isIndividual" value="true" />
 		</bean>
 	</util:list>
@@ -195,6 +200,8 @@
 	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
+
+	<bean id="communityTeamDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOCommunityTeamDAOImpl" scope="singleton"/>
 
 	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
 

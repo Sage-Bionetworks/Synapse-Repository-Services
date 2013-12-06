@@ -14,8 +14,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT;
@@ -26,8 +24,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -60,10 +58,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;	
+	
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
@@ -81,13 +79,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	private static final String SELECT_FOR_SAR_SQL = "select * from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
 	COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID;
-
-
-	private static final String SELECT_FOR_RANGE_SQL = "select * from "+TABLE_ACCESS_REQUIREMENT+" order by "+COL_ACCESS_REQUIREMENT_ID+
-	" limit :"+LIMIT_PARAM_NAME+" offset :"+OFFSET_PARAM_NAME;
-
-	private static final String SELECT_FOR_MULTIPLE_SAR_SQL = "select * from "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" where "+
-		COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+" IN (:"+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+")";
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select "+
 			COL_ACCESS_REQUIREMENT_CREATED_BY+", "+
@@ -172,8 +163,12 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag());
+		if (dbo.getId() == null) {
+			dbo.setId(idGenerator.generateNewId());
+		}
+		if (dbo.geteTag() == null) {
+			dbo.seteTag(UUID.randomUUID().toString());
+		}
 		dbo = basicDao.createNew(dbo);
 		populateSubjectAccessRequirement(dbo.getId(), dto.getSubjectIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));
@@ -269,23 +264,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Override
 	public <T extends AccessRequirement> T update(T dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {
-		return update(dto, false);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public <T extends AccessRequirement> T updateFromBackup(T dto) throws DatastoreException,
-			InvalidModelException,NotFoundException, ConflictingUpdateException {
-		return update(dto, true);
-	}
-
-	/**
-	 * @param fromBackup Whether we are updating from backup.
-	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
-	 */
-	private <T extends AccessRequirement> T update(T dto, boolean fromBackup) throws DatastoreException,
-			InvalidModelException,NotFoundException, ConflictingUpdateException {
-
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, dto.getId());
 		List<DBOAccessRequirement> ars = null;
@@ -309,19 +287,15 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");			
 		}
 
+		// Check dbo's etag against dto's etag
+		// if different rollback and throw a meaningful exception
 		DBOAccessRequirement dbo = ars.get(0);
-		if (!fromBackup) {
-			// check dbo's etag against dto's etag
-			// if different rollback and throw a meaningful exception
-			if (!dbo.geteTag().equals(dto.getEtag())) {
-				throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
-			}
+		if (!dbo.geteTag().equals(dto.getEtag())) {
+			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		if (!fromBackup) {
-			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
-			dbo.seteTag(eTagGenerator.generateETag());
-		}
+		// Update with a new e-tag
+		dbo.seteTag(UUID.randomUUID().toString());
 
 		boolean success = basicDao.update(dbo);
 

@@ -48,7 +48,7 @@ public class DDLUtilsImpl implements DDLUtils{
 		if(list.size() == 0){
 			log.info("Creating table: "+mapping.getTableName());
 			// Create the table 
-			String tableDDL = loadSchemaSql(mapping.getDDLFileName());
+			String tableDDL = loadSchemaSql(mapping);
 			if(log.isDebugEnabled()){
 				log.debug(tableDDL);
 			}
@@ -79,13 +79,31 @@ public class DDLUtilsImpl implements DDLUtils{
 	}
 	
 	/**
-	 * Load the schema file from the classpath.
+	 * Load the schema file from the mapper.
+	 * 
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
+	 */
+	public static String loadSchemaSql(TableMapping mapping) throws IOException {
+		if (mapping instanceof AutoTableMapping) {
+			return ((AutoTableMapping) mapping).getDDL();
+		} else {
+			return loadSchemaSql(mapping.getDDLFileName());
+		}
+	}
+
+	/**
+	 * Load the schema file from the classpath.
+	 * 
+	 * @return
+	 * @throws IOException
 	 */
 	public static String loadSchemaSql(String fileName) throws IOException{
 		InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName);
 		if(in == null){
+			if (fileName.startsWith("CREATE TABLE")) {
+				return fileName;
+			}
 			throw new RuntimeException("Failed to load the schema file from the classpath: "+fileName);
 		}
 		try{

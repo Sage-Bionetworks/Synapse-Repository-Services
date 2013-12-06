@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -60,15 +61,20 @@ public interface MessageDAO {
 	public long getNumSentMessages(String userId);
 	
 	/**
-	 * See {@link #createMessageStatus(String, String, MessageStatusType)}
+	 * Marks a user as a recipient of a message
 	 * The status of the message defaults to UNREAD
+	 * 
+	 * Note: This operation occurs in a separate transaction (REQUIRES_NEW)
 	 */
-	public void createMessageStatus(String messageId, String userId);
+	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status);
 	
 	/**
 	 * Marks a user as a recipient of a message
+	 * The status of the message defaults to UNREAD
+	 * 
+	 * Note: This operation occurs in the same transaction (REQUIRED)
 	 */
-	public void createMessageStatus(String messageId, String userId, MessageStatusType status);
+	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status);
 	
 	/**
 	 * Marks a message within the user's inbox with the given status
@@ -81,4 +87,22 @@ public interface MessageDAO {
 	 * Deletes a message.  Only used for test cleanup.
 	 */
 	public void deleteMessage(String messageId);
+
+	/**
+	 * Returns true if there is at least one recipient of the message
+	 */
+	public boolean hasMessageBeenSent(String messageId);
+
+	/**
+	 * Checks how many messages a user has created over a given interval (from present time)
+	 * If the given threshold is met or exceeded, this returns false
+	 */
+	public boolean canCreateMessage(String userId, long maxNumberOfNewMessages,
+			long messageCreationInterval);
+	
+	/**
+	 * Checks if the given file handle has been sent (or was intended to be sent) to the given UserGroups
+	 * If so, then the user or group should be allowed to download the file associated with the file handle
+	 */
+	public boolean canSeeMessagesUsingFileHandle(Collection<UserGroup> userGroups, String fileHandleId);
 }

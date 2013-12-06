@@ -26,6 +26,8 @@ import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -39,6 +41,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -47,6 +50,7 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
@@ -71,6 +75,7 @@ public class SynapseTest {
 	
 	SynapseClientImpl synapse;
 	
+	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception{
 		// The mock provider
@@ -99,9 +104,12 @@ public class SynapseTest {
 		synapse.createEntity(null);
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Test (expected=SynapseTermsOfUseException.class)
 	public void testTermsOfUseNotAccepted() throws Exception{
 		HttpClientHelperException simulatedHttpException = new HttpClientHelperException(){
+			private static final long serialVersionUID = 1L;
+
 			public int getHttpStatus() {return 403;};
 		};
 		
@@ -364,7 +372,7 @@ public class SynapseTest {
 		EntityPath path = eb2.getPath();
 		assertNull("Path was not requested, but was returned in bundle", path);
 		
-		List<AccessRequirement> ars = eb2.getAccessRequirements();
+		eb2.getAccessRequirements();
 		assertNull("Access Requirements were not requested, but were returned in bundle", path);
 	}
 
@@ -542,6 +550,37 @@ public class SynapseTest {
 		offset = 44l;
 		expected ="/column?prefix=abc&limit=123&offset=44";
 		assertEquals(expected, SynapseClientImpl.buildListColumnModelUrl(prefix, limit, offset));
+	}
+	
+	/**
+	 * Used to check URLs for {@link #testBuildOpenIDUrl()}
+	 */
+	private String expectedURL;
+	
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testBuildOpenIDUrl() throws Exception {
+		StringEntity responseEntity = new StringEntity(EntityFactory.createJSONStringForEntity(new Session()));
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		when(mockProvider.performRequest(any(String.class), any(String.class), any(String.class), (Map<String,String>)anyObject())).thenAnswer(new Answer<HttpResponse>() {
+
+			@Override
+			public HttpResponse answer(
+					InvocationOnMock invocation) throws Throwable {
+				String url = (String) invocation.getArguments()[0];
+				expectedURL = url;
+				return mockResponse;
+			}
+			
+		});
+		
+		// One variation of the parameters that can be passed in
+		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, OriginatingClient.SYNAPSE);
+		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&originClient=synapse"));
+		
+		// Another variation
+		synapse.passThroughOpenIDParameters("blah=fun", false, OriginatingClient.BRIDGE);
+		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&originClient=bridge"));
 	}
 	
 	

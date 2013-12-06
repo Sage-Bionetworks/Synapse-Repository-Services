@@ -161,6 +161,12 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
-		}
+		}, 
+        "notificationSettings": {
+            "type": "object", 
+            "title": "Notification Settings", 
+            "descriptions": "The user's preferences regarding when email notifications should be sent", 
+            "$ref": "org.sagebionetworks.repo.model.message.Settings"
+        }
 	}
 }

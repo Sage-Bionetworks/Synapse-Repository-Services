@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -102,19 +103,19 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	public static void validateForCreate(Team team) {
-		if (team.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
-		if (team.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
-		if(team.getEtag()!=null) throw new InvalidModelException("'etag' field is not user specifiable.");
-		if(team.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if(team.getModifiedBy()!=null) throw new InvalidModelException("'modifiedBy' field is not user specifiable.");
-		if(team.getModifiedOn()!=null) throw new InvalidModelException("'modifiedOn' field is not user specifiable.");
-		if(team.getName()==null) throw new InvalidModelException("'name' field is required.");
+		Validate.notSpecifiable(team.getCreatedBy(), "createdBy");
+		Validate.notSpecifiable(team.getCreatedOn(), "createdOn");
+		Validate.notSpecifiable(team.getEtag(), "etag");
+		Validate.notSpecifiable(team.getId(), "id");
+		Validate.notSpecifiable(team.getModifiedBy(), "modifiedBy");
+		Validate.notSpecifiable(team.getModifiedOn(), "modifiedOn");
+		Validate.required(team.getName(), "name");
 	}
 	
 	public static void validateForUpdate(Team team) {
-		if(team.getEtag()==null) throw new InvalidModelException("'etag' field is missing.");
-		if(team.getId()==null) throw new InvalidModelException("'id' field is missing.");
-		if(team.getName()==null) throw new InvalidModelException("'name' field is required.");
+		Validate.missing(team.getEtag(), "etag");
+		Validate.missing(team.getId(), "id");
+		Validate.required(team.getName(), "name");
 	}
 	
 	public static void populateCreationFields(UserInfo userInfo, Team team, Date now) {
@@ -194,7 +195,16 @@ public class TeamManagerImpl implements TeamManager {
 		acl.setResourceAccess(newRA);
 	}
 
-		/* (non-Javadoc)
+	// returns true iff the the ACL has an entry for a Team admin
+	public static boolean aclHasTeamAdmin(AccessControlList acl) {
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		for (ResourceAccess ra: ras) {
+			if (ra.getAccessType().contains(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) return true;
+		}
+		return false;
+	}
+	
+	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.Team)
 	 * 
 	 * Note:  This method must execute within a transaction, since it makes calls to two different DAOs
@@ -253,6 +263,12 @@ public class TeamManagerImpl implements TeamManager {
 		queryResults.setTotalNumberOfResults(count);
 		return queryResults;
 	}
+	
+	@Override
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
+		return teamDAO.getMember(teamId, principalId);
+	}
+
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#getByMember(java.lang.String, long, long)
@@ -394,7 +410,7 @@ public class TeamManagerImpl implements TeamManager {
 		if (amTeamAdmin) return true;
 		return false;
 	}
-
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.TeamManager#removeMember(org.sagebionetworks.repo.model.UserInfo, java.lang.String, java.lang.String)
 	 */
@@ -405,11 +421,13 @@ public class TeamManagerImpl implements TeamManager {
 			UnauthorizedException, NotFoundException {
 		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
 		// check that member is actually in Team
-		if (userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId)) {
-			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
+		List<UserGroup> currentMembers = groupMembersDAO.getMembers(teamId);
+		if (userGroupsHasPrincipalId(currentMembers, principalId)) {
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 			removeFromACL(acl, principalId);
+			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
+			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			aclDAO.update(acl);
 		}
 	}
@@ -462,6 +480,7 @@ public class TeamManagerImpl implements TeamManager {
 			// if isAdmin is true, then we add the specified admin permissions
 			addToACL(acl, principalId, ADMIN_TEAM_PERMISSIONS);
 		}
+		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
 		// finally, update the ACL
 		aclDAO.update(acl);
 	}

@@ -15,8 +15,8 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -108,7 +108,7 @@ public class IT060SynapseJavaClientDoiTest {
 		}
 		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertNull(doi.getObjectVersion());
 		assertEquals(ObjectType.ENTITY, doi.getObjectType());
@@ -145,7 +145,7 @@ public class IT060SynapseJavaClientDoiTest {
 		}
 		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertEquals(Long.valueOf(1L), doi.getObjectVersion());
 		assertEquals(ObjectType.ENTITY, doi.getObjectType());

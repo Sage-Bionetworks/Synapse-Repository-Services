@@ -3340,6 +3340,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String entityId) throws SynapseException {
+		String uri = ENTITY + "/" + entityId + "/" + MESSAGE;
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(message);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 
 	@Override
 	public PaginatedResults<MessageBundle> getInbox(
@@ -3424,6 +3436,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void deleteMessage(String messageId) throws SynapseException {
 		String uri = MESSAGE + "/" + messageId;
 		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
+	}
+	
+	@Override
+	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException {
+		String uri = MESSAGE + "/" + messageId + FILE;
+		return getSharedClientConnection().getDirect(repoEndpoint, uri, getUserAgent());
 	}
 
 	/**
@@ -4697,6 +4715,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+	@Override
+	public TeamMember getTeamMember(String teamId, String memberId) throws SynapseException {
+		JSONObject jsonObj = getEntity(TEAM + "/" + teamId + MEMBER + "/" + memberId);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		TeamMember result = new TeamMember();
+		try {
+			result.initializeFromJSONObject(adapter);
+			return result;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
+	}
+
 
 	@Override
 	public void removeTeamMember(String teamId, String memberId)
