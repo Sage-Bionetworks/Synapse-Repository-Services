@@ -123,6 +123,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		param.addValue("id", ownerKey);
 		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, objectType);
+		if (acl.getOwnerType()==null) acl.setOwnerType(objectType);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
