@@ -170,8 +170,6 @@ public class WikiControllerTest {
 		assertNotNull(wiki.getEtag());
 		assertNotNull(ownerId, wiki.getModifiedBy());
 		assertNotNull(ownerId, wiki.getCreatedBy());
-		// A V2 wiki should also have been made to mirror this one
-		assertEquals(1, wikiPageDao.getCount());
 		assertEquals(1, v2WikiPageDao.getCount());
 		// Get the wiki page.
 		WikiPage clone = entityServletHelper.getWikiPage(key, userName);
@@ -208,7 +206,6 @@ public class WikiControllerTest {
 		assertNotNull(child.getId());
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(childKey);
-		assertEquals(2, wikiPageDao.getCount());
 		assertEquals(2, v2WikiPageDao.getCount());
 		// List the hierarchy
 		PaginatedResults<WikiHeader> paginated = entityServletHelper.getWikiHeaderTree(userName, ownerId, ownerType);
@@ -283,7 +280,6 @@ public class WikiControllerTest {
 		} catch (NotFoundException e) {
 			// this is expected
 		}
-		assertEquals(0, wikiPageDao.getCount());
 		assertEquals(0, v2WikiPageDao.getCount());
 	}
 }
