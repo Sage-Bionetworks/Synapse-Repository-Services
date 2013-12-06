@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -104,7 +105,7 @@ public class WikiModelTranslationHelperTest {
 		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
 				markdownHandle.getKey()), markdownTemp);
 		// Read the file as a string
-		String markdownString = ZipUtils.readCompressedFileAsString(markdownTemp);
+		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
 		// Make sure uploaded markdown is accurate
 		assertEquals(markdownAsString, markdownString);
 		
@@ -136,7 +137,7 @@ public class WikiModelTranslationHelperTest {
 		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
 				markdownHandle.getKey()), markdownTemp);
 		// Read the file as a string
-		String markdownString = ZipUtils.readCompressedFileAsString(markdownTemp);
+		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
 		assertEquals("", markdownString);
 	}
 }
