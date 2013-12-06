@@ -30,7 +30,7 @@ public class AccessControlListUtils {
 	public static DBOAccessControlList createDBO(AccessControlList acl, ObjectType ownerType) throws DatastoreException {
 		DBOAccessControlList dbo = new DBOAccessControlList();
 		dbo.setId(KeyFactory.stringToKey(acl.getId()));
-		dbo.setOwnerType(ownerType);
+		dbo.setOwnerType(ownerType.name());
 		dbo.setEtag(acl.getEtag());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
 		return dbo;
