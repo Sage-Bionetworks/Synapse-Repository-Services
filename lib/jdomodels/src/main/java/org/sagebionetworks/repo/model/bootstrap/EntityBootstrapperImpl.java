@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -169,6 +170,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setId(nodeId);
+		acl.setOwnerType(ObjectType.ENTITY);
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		for(AccessBootstrapData data: list){

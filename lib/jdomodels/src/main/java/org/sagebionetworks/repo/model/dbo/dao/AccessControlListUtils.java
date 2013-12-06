@@ -32,6 +32,7 @@ public class AccessControlListUtils {
 		dbo.setId(KeyFactory.stringToKey(acl.getId()));
 		dbo.setEtag(acl.getEtag());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
+		dbo.setOwnerType(acl.getOwnerType());
 		return dbo;
 	}
 	
@@ -48,6 +49,7 @@ public class AccessControlListUtils {
 		} else {
 			acl.setId(dbo.getId().toString());
 		}
+		acl.setOwnerType(objectType);
 		acl.setEtag(dbo.getEtag());
 		acl.setCreationDate(new Date(dbo.getCreationDate()));
 		return acl;

@@ -5,6 +5,7 @@ import java.util.Random;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 
 /**
@@ -32,6 +33,7 @@ public class RandomAccessControlListUtil {
 	public static AccessControlList generateRandom(Random rand) {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(""+rand.nextLong());
+		acl.setOwnerType(ObjectType.ENTITY);
 		acl.setCreationDate(RandomUtils.createRandomStableDate(rand));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		int countToAdd = rand.nextInt(5);

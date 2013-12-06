@@ -906,6 +906,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, boolean recursive) throws SynapseException {
+		if (acl.getOwnerType()==null) {
+			acl.setOwnerType(ObjectType.ENTITY);
+		}
+		if (acl.getOwnerType()!=ObjectType.ENTITY) {
+			throw new IllegalArgumentException("Cannot update entity ACL having owner type "+acl.getOwnerType());
+		}
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
 		if (recursive)
@@ -928,6 +934,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AccessControlList createACL(AccessControlList acl) throws SynapseException {
 		String entityId = acl.getId();
+		if (acl.getOwnerType()==null) {
+			acl.setOwnerType(ObjectType.ENTITY);
+		}
+		if (acl.getOwnerType()!=ObjectType.ENTITY) {
+			throw new IllegalArgumentException("Cannot create entity ACL having owner type "+acl.getOwnerType());
+		}
+
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
 		try {
 			JSONObject jsonAcl = EntityFactory.createJSONObjectForEntity(acl);
@@ -4293,6 +4306,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 		if (acl == null) {
 			throw new IllegalArgumentException("ACL can not be null.");
+		}
+		if (acl.getOwnerType()==null) {
+			acl.setOwnerType(ObjectType.EVALUATION);
+		}
+		if (acl.getOwnerType()!=ObjectType.EVALUATION) {
+			throw new IllegalArgumentException("Cannot create evaluation ACL having owner type "+acl.getOwnerType());
 		}
 
 		String url = EVALUATION_ACL_URI_PATH;	

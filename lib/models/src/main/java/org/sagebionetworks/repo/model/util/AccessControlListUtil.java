@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -22,6 +23,7 @@ public class AccessControlListUtil {
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setId(nodeId);
+		acl.setOwnerType(ObjectType.ENTITY);
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
