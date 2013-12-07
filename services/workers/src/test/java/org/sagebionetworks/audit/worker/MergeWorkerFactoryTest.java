@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,6 +39,7 @@ public class MergeWorkerFactoryTest {
 		accessRecordDAO.deleteAllStackInstanceBatches();
 	}
 	
+	@Ignore
 	@Test
 	public void testIntegration() throws IOException, InterruptedException{
 		// Start this test with no data in the bucket
