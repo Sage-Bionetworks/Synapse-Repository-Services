@@ -4,50 +4,32 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import org.apache.http.HttpException;
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
-import org.sagebionetworks.client.*;
-import org.sagebionetworks.client.exceptions.*;
-import org.sagebionetworks.ids.UuidETagGenerator;
-import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.client.BridgeClient;
+import org.sagebionetworks.client.BridgeClientImpl;
+import org.sagebionetworks.client.BridgeProfileProxy;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
-import org.sagebionetworks.utils.HttpClientHelper;
 
 import com.google.common.collect.Lists;
 
@@ -104,13 +86,13 @@ public class IT600BridgeCommunities {
 
 	@Before
 	public void before() throws SynapseException {
-		// toDelete = new ArrayList<String>();
-		//
-		// community = bridge.createCommunity(new Community());
-		//
-		// toDelete.add(community.getId());
-		//
-		// accessRequirementsToDelete = new ArrayList<Long>();
+		// Delete all communities that bridge and bridgeTwo are members of
+		for (Community community : bridge.getCommunities(1000, 0).getResults()) {
+			deleteCommunity(community.getId());
+		}
+		for (Community community : bridgeTwo.getCommunities(1000, 0).getResults()) {
+			deleteCommunity(community.getId());
+		}
 	}
 
 	/**
@@ -124,17 +106,26 @@ public class IT600BridgeCommunities {
 	@After
 	public void after() throws Exception {
 		for (String communityId : communitiesToDelete) {
+			deleteCommunity(communityId);
+		}
+	}
+
+	private void deleteCommunity(String communityId) {
+		try {
+			bridge.deleteCommunity(communityId);
+		} catch (Exception e) {
 			try {
-				bridge.deleteCommunity(communityId);
-			} catch (Exception e) {
-				System.err.println("Could not delete community: " + e.getMessage());
+				bridgeTwo.deleteCommunity(communityId);
+			} catch (Exception e2) {
+				System.err.println(e.getMessage());
+				System.err.println(e2.getMessage());
 			}
 		}
 	}
 
 	@Test
 	public void testGetVersion() throws Exception {
-		BridgeVersionInfo versionInfo = bridge.getVersionInfo();
+		BridgeVersionInfo versionInfo = bridge.getBridgeVersionInfo();
 		assertFalse(versionInfo.getVersion().isEmpty());
 	}
 
@@ -181,14 +172,77 @@ public class IT600BridgeCommunities {
 		}
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testAddRemoveUsers() throws Exception {
+		int beforeCount = (int) bridge.getAllCommunities(1000, 0).getTotalNumberOfResults();
+
 		Community community = createCommunity();
+
+		PaginatedResults<Community> allCommunities = bridge.getAllCommunities(1000, 0);
+		assertEquals(beforeCount + 1, allCommunities.getTotalNumberOfResults());
+
+		assertEquals(1, bridge.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(community, bridge.getCommunities(1000, 0).getResults().get(0));
+		assertEquals(0, bridgeTwo.getCommunities(1000, 0).getTotalNumberOfResults());
+
 		bridgeTwo.joinCommunity(community.getId());
+
+		assertEquals(1, bridge.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(1, bridgeTwo.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(community, bridgeTwo.getCommunities(1000, 0).getResults().get(0));
+
 		bridgeTwo.leaveCommunity(community.getId());
+
+		assertEquals(1, bridge.getCommunities(1000, 0).getTotalNumberOfResults());
+		assertEquals(0, bridgeTwo.getCommunities(1000, 0).getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testAddRemoveAdmin() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	@Test
+	public void testAddRemoveAdminIdempotentcy() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.removeCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	@Test
+	public void testAddAdminAndLeave() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridgeTwo.leaveCommunity(community.getId());
+	}
+
+	@Test
+	public void testAddOtherAdminAndLeave() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.addCommunityAdmin(community.getId(), StackConfiguration.getIntegrationTestUserTwoName());
+		bridge.leaveCommunity(community.getId());
+	}
+
+	@Test(expected = SynapseException.class)
+	public void testLeaveLastAdminNotAllowed() throws Exception {
+		Community community = createCommunity();
+
+		bridgeTwo.joinCommunity(community.getId());
+		bridge.leaveCommunity(community.getId());
 	}
 
 	private Community createCommunity() throws SynapseException {

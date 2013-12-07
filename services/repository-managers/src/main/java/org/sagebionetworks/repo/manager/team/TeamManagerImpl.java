@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -102,19 +103,19 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	public static void validateForCreate(Team team) {
-		if (team.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
-		if (team.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
-		if(team.getEtag()!=null) throw new InvalidModelException("'etag' field is not user specifiable.");
-		if(team.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if(team.getModifiedBy()!=null) throw new InvalidModelException("'modifiedBy' field is not user specifiable.");
-		if(team.getModifiedOn()!=null) throw new InvalidModelException("'modifiedOn' field is not user specifiable.");
-		if(team.getName()==null) throw new InvalidModelException("'name' field is required.");
+		Validate.notSpecifiable(team.getCreatedBy(), "createdBy");
+		Validate.notSpecifiable(team.getCreatedOn(), "createdOn");
+		Validate.notSpecifiable(team.getEtag(), "etag");
+		Validate.notSpecifiable(team.getId(), "id");
+		Validate.notSpecifiable(team.getModifiedBy(), "modifiedBy");
+		Validate.notSpecifiable(team.getModifiedOn(), "modifiedOn");
+		Validate.required(team.getName(), "name");
 	}
 	
 	public static void validateForUpdate(Team team) {
-		if(team.getEtag()==null) throw new InvalidModelException("'etag' field is missing.");
-		if(team.getId()==null) throw new InvalidModelException("'id' field is missing.");
-		if(team.getName()==null) throw new InvalidModelException("'name' field is required.");
+		Validate.missing(team.getEtag(), "etag");
+		Validate.missing(team.getId(), "id");
+		Validate.required(team.getName(), "name");
 	}
 	
 	public static void populateCreationFields(UserInfo userInfo, Team team, Date now) {
@@ -380,17 +381,23 @@ public class TeamManagerImpl implements TeamManager {
 	}
 	
 	/**
-	 * MEMBERSHIP permission on group OR user issuing request is the one being removed.
+	 * MEMBERSHIP permission on group OR user issuing request is the one being removed.  But can't
+	 * remove the last user or last admin UNLESS you're a Synapse admin.
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalId
 	 * @return
 	 */
-	public boolean canRemoveTeamMember(UserInfo userInfo, String teamId, String principalId) throws NotFoundException {
+	public boolean canRemoveTeamMember(UserInfo userInfo, String teamId, String principalId, List<UserGroup> currentMembers, long teamAdminCount) throws NotFoundException {
 		if (userInfo.isAdmin()) return true;
+		if (currentMembers.size()==1) {
+			UserGroup lastMember = currentMembers.get(0);
+			if (lastMember.getId().equals(principalId)) return false;
+		}
 		boolean principalIsSelf = userInfo.getIndividualGroup().getId().equals(principalId);
-		if (principalIsSelf) return true;
 		boolean amTeamAdmin = authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		if (amTeamAdmin && teamAdminCount==1 && principalIsSelf) return false;
+		if (principalIsSelf) return true;
 		if (amTeamAdmin) return true;
 		return false;
 	}
@@ -403,9 +410,11 @@ public class TeamManagerImpl implements TeamManager {
 	public void removeMember(UserInfo userInfo, String teamId,
 			String principalId) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
-		if (!canRemoveTeamMember(userInfo, teamId, principalId)) throw new UnauthorizedException("Cannot remove member from Team.");
+		List<UserGroup> currentMembers = groupMembersDAO.getMembers(teamId);
+		long teamAdminCount = teamDAO.getAdminMemberCount(teamId);
+		if (!canRemoveTeamMember(userInfo, teamId, principalId, currentMembers, teamAdminCount)) throw new UnauthorizedException("Cannot remove member from Team.");
 		// check that member is actually in Team
-		if (userGroupsHasPrincipalId(groupMembersDAO.getMembers(teamId), principalId)) {
+		if (userGroupsHasPrincipalId(currentMembers, principalId)) {
 			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
 			// remove from ACL
 			AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
@@ -454,6 +463,10 @@ public class TeamManagerImpl implements TeamManager {
 			String principalId, boolean isAdmin) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot change Team permissions.");
+		// can't remove your own admin access
+		if (!isAdmin && principalId.equals(userInfo.getIndividualGroup().getId())) {
+			throw new UnauthorizedException("Cannot remove your own administrative access to the Team.");
+		}
 		AccessControlList acl = aclDAO.get(teamId, ObjectType.TEAM);
 		// first, remove the principal's entries from the ACL
 		removeFromACL(acl, principalId);

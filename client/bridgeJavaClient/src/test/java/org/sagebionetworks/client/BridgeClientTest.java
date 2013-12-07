@@ -61,7 +61,7 @@ public class BridgeClientTest {
 		
 		expectRequest(URIBASE + "/version?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(version));
 
-		bridgeClient.getVersionInfo();
+		bridgeClient.getBridgeVersionInfo();
 
 		verifyRequest(URIBASE + "/version?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(version));
 	}
