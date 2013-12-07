@@ -16,7 +16,8 @@ public interface IdGenerator {
 		FAVORITE_ID,
 		ACL_RES_ACC_ID,
 		COLUMN_MODEL_ID, 
-		MESSAGE_ID
+		MESSAGE_ID,
+		PRINCIPAL_ID
 	}
 	
 

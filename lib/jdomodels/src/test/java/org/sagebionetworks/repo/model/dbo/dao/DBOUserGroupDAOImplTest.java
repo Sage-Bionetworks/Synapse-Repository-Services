@@ -63,10 +63,14 @@ public class DBOUserGroupDAOImplTest {
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
 		group.setIsIndividual(false);
+		// Give it an ID
+		String startingId = "123";
+		group.setId(""+startingId);
 		long initialCount = userGroupDAO.getCount();
 		String groupId = userGroupDAO.create(group);
 		assertNotNull(groupId);
 		groupsToDelete.add(groupId);
+		assertFalse("A new ID should have been issued to the principal",groupId.equals(startingId));
 		UserGroup clone = userGroupDAO.get(groupId);
 		assertEquals(groupId, clone.getId());
 		assertEquals(GROUP_NAME, clone.getName());
