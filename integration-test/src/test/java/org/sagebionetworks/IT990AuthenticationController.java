@@ -144,6 +144,13 @@ public class IT990AuthenticationController {
 	public void testChangePassword() throws Exception {
 		String testNewPassword = "newPassword";
 		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+		
+		// Session token should be invalid
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseUnauthorizedException e) { }
+		
 		synapse.logout();
 		synapse.login(username, testNewPassword);
 		
@@ -167,6 +174,7 @@ public class IT990AuthenticationController {
 		synapse.changePassword(synapse.getCurrentSessionToken(), password);
 		
 		// Accept the terms again (cleanup)
+		synapse.login(username, password);
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	

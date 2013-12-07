@@ -15,7 +15,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.NamedIdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -43,7 +45,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private NamedIdGenerator idGenerator;
+	private IdGenerator idGenerator;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -257,18 +259,26 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(UserGroup dto) throws DatastoreException,
 			InvalidModelException {
+		// The public version unconditionally clears the ID so a new one will be assigned
+		dto.setId(null);
+		return createPrivate(dto);
+	}
+
+	/**
+	 * This will not clear the ID like the public method.
+	 * This allows us to boostrap users with set IDs.
+	 * @param dto
+	 * @return
+	 */
+	private String createPrivate(UserGroup dto) {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
-		
 		// If the create is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
-		if (AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(dto.getName())) {
-			// This is a special hack since the auto-generated ID column cannot
-			// start at zero yet the BOOTSTRAP_USER_GROUP_NAME was assigned to zero long ago.
-			dbo.setId(0l);
-		} else {
+		// Bootstraped users will have IDs already assigned.
+		if(dbo.getId() == null){
 			// We allow the ID generator to create all other IDs
-			dbo.setId(idGenerator.generateNewId(dto.getName(), NamedType.USER_GROUP_ID));
+			dbo.setId(idGenerator.generateNewId(TYPE.PRINCIPAL_ID));
 		}
 		try {
 			dbo = basicDao.createNew(dbo);
@@ -369,6 +379,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapUsers() throws Exception {
+		// Reserver an ID well above the current
+		idGenerator.reserveId(3318977l, TYPE.PRINCIPAL_ID);
+		
 		// Boot strap all users and groups
 		if (this.bootstrapUsers == null) {
 			throw new IllegalArgumentException("bootstrapUsers cannot be null");
@@ -389,13 +402,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				newUg.setId(ug.getId());
 				newUg.setName(ug.getName());
 				newUg.setIsIndividual(ug.getIsIndividual());
-				// Make sure the ID generator has reserved this ID.
-				if (!AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME.equals(ug.getName())) {
-					// We cannot do this for the BOOTSTRAP_USER_GROUP because its ID is zero which is
-					// the same a null for MySQL auto-increment columns
-					idGenerator.unconditionallyAssignIdToName(id, ug.getName(), NamedType.USER_GROUP_ID);
-				}
-				this.create(newUg);
+				this.createPrivate(newUg);
 			}
 		}
 
@@ -415,7 +422,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 					UserGroup ug = new UserGroup();
 					ug.setName(username);
 					ug.setIsIndividual(!username.equals(AuthorizationConstants.TEST_GROUP_NAME));
-					ug.setId(this.create(ug));
+					ug.setId(this.createPrivate(ug));
 				}
 				UserGroup ug = new UserGroup();
 				UserGroupUtils.copyDboToDto(this.findGroup(username), ug);

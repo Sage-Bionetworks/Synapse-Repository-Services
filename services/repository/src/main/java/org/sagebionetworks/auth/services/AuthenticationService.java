@@ -56,6 +56,7 @@ public interface AuthenticationService {
 	
 	/**
 	 * Changes the password of the user
+	 * Also invalidates the user's session token
 	 */
 	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
 	
