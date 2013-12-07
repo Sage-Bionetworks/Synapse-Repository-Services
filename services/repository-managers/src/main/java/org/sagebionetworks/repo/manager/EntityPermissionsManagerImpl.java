@@ -80,7 +80,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// validate content
 		Long ownerId = nodeDAO.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
@@ -104,7 +104,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
-		aclDAO.create(acl);
+		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}

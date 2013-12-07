@@ -50,8 +50,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 
-import com.google.gwt.user.client.rpc.core.java.util.Collections;
-
 public class TeamManagerImplTest {
 	private TeamManagerImpl teamManagerImpl = null;
 	private AuthorizationManager mockAuthorizationManager = null;
@@ -253,7 +251,7 @@ public class TeamManagerImplTest {
 		// verify that group, acl were created
 		assertEquals(TEAM_ID, created.getId());
 		verify(mockTeamDAO).create(team);
-		verify(mockAclDAO).create((AccessControlList)any());
+		verify(mockAclDAO).create((AccessControlList)any(), eq(ObjectType.TEAM));
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
 		// verify that ID and dates are set in returned team
 		assertNotNull(created.getCreatedOn());
@@ -504,57 +502,38 @@ public class TeamManagerImplTest {
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 	}
 	
-	private static List<UserGroup> ugList(String[] pids) {
-		List<UserGroup> ans = new ArrayList<UserGroup>();
-		for (String pid : pids) {
-			UserGroup ug = new UserGroup();
-			ug.setId(pid);
-			ans.add(ug);
-		}
-		return ans;
+	@Test
+	public void testCanRemoveTeamMember() throws Exception {
+		// admin can do anything
+		assertTrue(teamManagerImpl.canRemoveTeamMember(adminInfo, TEAM_ID, "987"));
+		// anyone can remove self
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
+		// team admin can remove anyone
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
+		// not self or team admin, can't do it
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		assertFalse(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
 	}
-	
-    @Test
-    public void testCanRemoveTeamMember() throws Exception {
-            // admin can do anything
-            assertTrue(teamManagerImpl.canRemoveTeamMember(adminInfo, TEAM_ID, "987"));
-            // anyone can remove self
-            when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
-            assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, MEMBER_PRINCIPAL_ID));
-            // team admin can remove anyone
-            when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-            assertTrue(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
-            // not self or team admin, can't do it
-            when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
-            assertFalse(teamManagerImpl.canRemoveTeamMember(userInfo, TEAM_ID, "987"));
-    }
 	
 	@Test
 	public void testRemoveMember() throws Exception {
 		String memberPrincipalId = "987";
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{memberPrincipalId, "000"}));
+		UserGroup ug = new UserGroup();
+		ug.setId(memberPrincipalId);
+		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
 		AccessControlList acl = new AccessControlList();
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
-		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong("000"), new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(memberPrincipalId));
+		acl.getResourceAccess().add(ra);
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO).update((AccessControlList)any());
-		assertEquals(1, acl.getResourceAccess().size());
-	}
-	
-	@Test(expected=InvalidModelException.class)
-	public void testRemoveLastAdminMember() throws Exception {
-		String memberPrincipalId = "987";
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
-		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(ugList(new String[]{memberPrincipalId}));
-		AccessControlList acl = new AccessControlList();
-		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		acl.getResourceAccess().add(TeamManagerImpl.createResourceAccess(Long.parseLong(memberPrincipalId), new ACCESS_TYPE[]{ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE}));
-		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
+		verify(mockAclDAO).update((AccessControlList)any(), eq(ObjectType.TEAM));
+		assertEquals(0, acl.getResourceAccess().size());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -574,7 +553,7 @@ public class TeamManagerImplTest {
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
 		teamManagerImpl.removeMember(userInfo, TEAM_ID, memberPrincipalId);
 		verify(mockGroupMembersDAO, times(0)).removeMembers(TEAM_ID, Arrays.asList(new String[]{memberPrincipalId}));
-		verify(mockAclDAO, times(0)).update((AccessControlList)any());		
+		verify(mockAclDAO, times(0)).update((AccessControlList)any(), eq(ObjectType.TEAM));		
 	}
 	
 	@Test
@@ -596,7 +575,7 @@ public class TeamManagerImplTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(TEAM_ID);
 		teamManagerImpl.updateACL(userInfo, acl);
-		verify(mockAclDAO).update(acl);
+		verify(mockAclDAO).update(acl, ObjectType.TEAM);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -642,9 +621,9 @@ public class TeamManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date());
 		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		String principalId = "321";
+		String principalId = MEMBER_PRINCIPAL_ID;
 		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);
-		verify(mockAclDAO).update((AccessControlList)any());
+		verify(mockAclDAO).update((AccessControlList)any(),  eq(ObjectType.TEAM));
 		// now check that user is actually an admin
 		boolean foundRA=false;
 		for (ResourceAccess ra: acl.getResourceAccess()) {
@@ -666,17 +645,6 @@ public class TeamManagerImplTest {
 			}
 		}
 		assertFalse(foundRA);
-	}
-	
-	@Test(expected=InvalidModelException.class)
-	public void testSetRemoveOwnPermissions() throws Exception {
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.UPDATE)).thenReturn(true);
-		AccessControlList acl = TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date());
-		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).thenReturn(acl);
-		String principalId = MEMBER_PRINCIPAL_ID; // add SELF as admin
-		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, true);
-		// now try to remove own admin permissions
-		teamManagerImpl.setPermissions(userInfo, TEAM_ID, principalId, false);
 	}
 	
 	@Test(expected=UnauthorizedException.class)

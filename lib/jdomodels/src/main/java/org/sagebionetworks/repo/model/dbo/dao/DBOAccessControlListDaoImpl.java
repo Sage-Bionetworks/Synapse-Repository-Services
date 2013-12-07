@@ -68,7 +68,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String create(AccessControlList acl) throws DatastoreException, NotFoundException {
+	public String create(AccessControlList acl, ObjectType ownerType) throws DatastoreException, NotFoundException {
 
 		if (acl == null) {
 			throw new IllegalArgumentException("ACL cannot be null.");
@@ -78,7 +78,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 		AccessControlListUtils.validateACL(acl);
 
-		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
+		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, ownerType);
 		dboBasicDao.createNew(dbo);
 		populateResourceAccess(acl);
 
@@ -121,7 +121,15 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", ownerKey);
-		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		DBOAccessControlList dboAcl = null;
+		try {
+			param.addValue("ownerType", objectType.name());
+			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		} catch (NotFoundException nfe) {
+			// TEMPORARY, until ownerType is required nonnull
+			param.addValue("ownerType", null);
+			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
+		}
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, objectType);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
@@ -147,7 +155,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void update(AccessControlList acl) throws DatastoreException, NotFoundException {
+	public void update(AccessControlList acl, ObjectType ownerType) throws DatastoreException, NotFoundException {
 
 		AccessControlListUtils.validateACL(acl);
 
@@ -159,7 +167,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		acl.setEtag(UUID.randomUUID().toString());
 
-		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl);
+		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, ownerType);
 		dboBasicDao.update(dbo);
 		// Now delete the resource access
 		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, ownerKey);
@@ -173,7 +181,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", ownerKey);
+		params.addValue("ownerType", null); // TODO specify owner type
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
+		// TEMPORARY: for now just delete for all owner types
+		for (ObjectType ownerType : new ObjectType[]{ObjectType.ENTITY,ObjectType.EVALUATION,ObjectType.TEAM}) {
+			params.addValue("ownerType", ownerType.name());
+			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);			
+		}
 	}
 
 	@Override

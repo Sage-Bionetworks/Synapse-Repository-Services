@@ -245,6 +245,7 @@ public class SqlConstants {
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID                 = "ID";
+	public static final String COL_ACL_TYPE               = "OWNER_TYPE";
 	public static final String COL_ACL_ETAG               = "ETAG";
 	public static final String COL_ACL_CREATED_ON         = "CREATED_ON";
 	public static final String DDL_FILE_ACL               = "schema/ACL-ddl.sql";
@@ -368,15 +369,8 @@ public class SqlConstants {
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
 	public static final String COL_BOUND_CM_OBJECT_ID		= "OBJECT_ID";
-	public static final String COL_BOUND_CM_UPDATED_ON		= "UPDATED_ON";
+	public static final String COL_BOUND_CM_IS_CURRENT		= "IS_CURRENT";
 	public static final String DDL_BOUND_COLUMN = "schema/BoundColumn-ddl.sql";
-	
-	// The bound column ordinal model table
-	public static final String TABLE_BOUND_COLUMN_ORDINAL		= "BOUND_COLUMN_ORDINAL";
-	public static final String COL_BOUND_CM_ORD_COLUMN_ID		= "COLUMN_ID";
-	public static final String COL_BOUND_CM_ORD_OBJECT_ID		= "OBJECT_ID";
-	public static final String COL_BOUND_CM_ORD_ORDINAL			= "ORDINAL";
-	public static final String DDL_BOUND_COLUMN_ORDINAL = "schema/BoundColumnOrdinal-ddl.sql";
 	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
@@ -523,11 +517,6 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
-
-	// The group members table
-	public static final String TABLE_COMMUNITY_TEAM = "COMMUNITY_TEAM";
-	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
-	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

@@ -106,7 +106,7 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setId(nodeId);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		String aclId = aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
 
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
@@ -125,7 +125,7 @@ public class DBOAccessControlListDAOImplTest {
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
 		assertFalse(etagBeforeUpdate.equals(acl.getEtag()));
@@ -206,7 +206,7 @@ public class DBOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#get(java.lang.String)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#get(java.lang.String, Long)}.
 	 */
 	@Test
 	public void testGet() throws Exception {
@@ -248,7 +248,7 @@ public class DBOAccessControlListDAOImplTest {
 						ACCESS_TYPE.CREATE
 				})));
 		String etagBeforeUpdate = acl.getEtag();
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
 		gs.add(group);
@@ -261,7 +261,7 @@ public class DBOAccessControlListDAOImplTest {
 
 		try {
 			acl2.setEtag("someFakeEtag");
-			aclDAO.update(acl2);
+			aclDAO.update(acl2, ObjectType.ENTITY);
 		} catch (ConflictingUpdateException e) {
 			// Expected
 			assertTrue(true);
@@ -290,7 +290,7 @@ public class DBOAccessControlListDAOImplTest {
 						ACCESS_TYPE.READ,
 				})));
 		acl.getResourceAccess().add(ra2);
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
 		gs.add(group);

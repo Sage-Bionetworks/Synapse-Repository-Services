@@ -75,7 +75,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final String evalOwerId = eval.getOwnerId();
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(evalOwerId));
 
-		final String aclId = aclDAO.create(acl);
+		final String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
 		return acl;
 	}
@@ -106,7 +106,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
 
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
 	}
 
