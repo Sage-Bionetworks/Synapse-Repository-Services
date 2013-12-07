@@ -20,15 +20,15 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -56,9 +56,9 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Autowired
 	private TrashCanDao trashCanDao;
-
+	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 
 	@Autowired
 	private StackConfiguration stackConfig;
@@ -121,8 +121,7 @@ public class TrashManagerImpl implements TrashManager {
 			final String parentId = nodeDao.getParentId(descendantId);
 			trashCanDao.create(userGroupId, descendantId, nodeName, parentId);
 			String etag = nodeDao.peekCurrentEtag(descendantId);
-			tagMessenger.sendMessage(descendantId, parentId, etag,
-					ObjectType.ENTITY, ChangeType.DELETE);
+			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.DELETE);
 		}
 	}
 
@@ -182,8 +181,7 @@ public class TrashManagerImpl implements TrashManager {
 			// Send CREATE message
 			String parentId = nodeDao.getParentId(descendantId);
 			String etag = nodeDao.peekCurrentEtag(descendantId);
-			tagMessenger.sendMessage(descendantId, parentId, etag,
-					ObjectType.ENTITY, ChangeType.CREATE);
+			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.CREATE);
 		}
 	}
 

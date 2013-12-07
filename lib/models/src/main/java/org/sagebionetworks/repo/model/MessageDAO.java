@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -91,4 +92,17 @@ public interface MessageDAO {
 	 * Returns true if there is at least one recipient of the message
 	 */
 	public boolean hasMessageBeenSent(String messageId);
+
+	/**
+	 * Checks how many messages a user has created over a given interval (from present time)
+	 * If the given threshold is met or exceeded, this returns false
+	 */
+	public boolean canCreateMessage(String userId, long maxNumberOfNewMessages,
+			long messageCreationInterval);
+	
+	/**
+	 * Checks if the given file handle has been sent (or was intended to be sent) to the given UserGroups
+	 * If so, then the user or group should be allowed to download the file associated with the file handle
+	 */
+	public boolean canSeeMessagesUsingFileHandle(Collection<UserGroup> userGroups, String fileHandleId);
 }

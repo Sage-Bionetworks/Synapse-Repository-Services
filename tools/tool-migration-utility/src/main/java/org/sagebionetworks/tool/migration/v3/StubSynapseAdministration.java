@@ -2513,6 +2513,29 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
+	public TeamMember getTeamMember(String teamId, String memberId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String entityId)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public String downloadMessage(String messageId) throws SynapseException,
+			MalformedURLException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
 	public FileHandleResults getVersionOfV2WikiAttachmentHandles(
 			WikiPageKey key, Long version) throws JSONObjectAdapterException,
 			SynapseException {
@@ -2535,4 +2558,56 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+
+	@Override
+	public WikiPage createV2WikiPageWithV1(String ownerId,
+			ObjectType ownerType, WikiPage toCreate) throws IOException,
+			SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage updateV2WikiPageWithV1(String ownerId,
+			ObjectType ownerType, WikiPage toUpdate) throws IOException,
+			SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException, IOException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(
+			String teamId, String inviteeId, long limit, long offset)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
+	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
+			String arg0, String arg1, long arg2, long arg3)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	
 }

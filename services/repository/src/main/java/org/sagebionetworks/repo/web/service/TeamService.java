@@ -122,6 +122,16 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<TeamMember> getMembers(String teamId, String fragment, long limit, long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * 

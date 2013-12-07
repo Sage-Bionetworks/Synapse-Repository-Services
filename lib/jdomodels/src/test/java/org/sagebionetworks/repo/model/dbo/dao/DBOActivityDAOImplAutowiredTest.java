@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -65,7 +64,6 @@ public class DBOActivityDAOImplAutowiredTest {
 	List<String> toDelete;
 	List<String> nodesToDelete;
 	
-	private UserInfo userInfo = null;
 	private Long creatorUserGroupId = null;	
 	private Long altUserGroupId = null;
 	@Before
@@ -299,23 +297,6 @@ public class DBOActivityDAOImplAutowiredTest {
 		// assure that activity id was set to null with deletion of activity
 		Node alteredNode = nodeDao.getNode(nodeId);
 		assertNull(alteredNode.getActivityId());
-	}	
-	
-	@Test
-	public void testCreateFromBackup() throws Exception {
-		long initialCount = activityDao.getCount();
-		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString());
-		String startEtag = "real";
-		toCreate.setEtag(startEtag);
-		String id = activityDao.createFromBackup(toCreate);				
-		assertEquals(1+initialCount, activityDao.getCount()); 
-		toDelete.add(id);
-		assertNotNull(id);
-		
-		// This activity should exist & make sure we can fetch it		
-		Activity loaded = activityDao.get(id);
-		assertEquals(id, loaded.getId().toString());
-		assertEquals(startEtag, loaded.getEtag());				
 	}
 
 	
@@ -344,15 +325,6 @@ public class DBOActivityDAOImplAutowiredTest {
 		used.add(ux);
 		act.setUsed(used);
 		return act;
-	}
-
-	private void generateActivities(int numActs) {
-		// add 3 entities
-		for(int i=0; i<numActs; i++) {
-			Activity act = newTestActivity(idGenerator.generateNewId().toString());
-			activityDao.create(act);
-			toDelete.add(act.getId());			
-		}
 	}
 
 }

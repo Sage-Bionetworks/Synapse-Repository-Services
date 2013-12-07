@@ -13,8 +13,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -42,10 +42,10 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
+	
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
@@ -82,8 +82,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			InvalidModelException {
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag());
+		if (dbo.getId() == null) {
+			dbo.setId(idGenerator.generateNewId());
+		}
+		if (dbo.geteTag() == null) {
+			dbo.seteTag(UUID.randomUUID().toString());
+		}
 		dbo = basicDao.createNew(dbo);
 		T result = (T)AccessApprovalUtils.copyDboToDto(dbo);
 		return result;
@@ -123,23 +127,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Override
 	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		return update(dto, false);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public <T extends AccessApproval> T  updateFromBackup(T dto) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		return update(dto, true);
-	}
-
-	/**
-	 * @param fromBackup Whether we are updating from backup.
-	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
-	 */
-	private <T extends AccessApproval> T  update(T dto, boolean fromBackup) throws DatastoreException,
-			InvalidModelException, NotFoundException, ConflictingUpdateException {
-
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID, dto.getId());
 		List<DBOAccessApproval> aas = null;
@@ -162,19 +149,16 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");			
 		}
 
+		// Check dbo's etag against dto's etag
+		// if different rollback and throw a meaningful exception
 		DBOAccessApproval dbo = aas.get(0);
-		if (!fromBackup) {
-			// check dbo's etag against dto's etag
-			// if different rollback and throw a meaningful exception
-			if (!dbo.geteTag().equals(dto.getEtag())) {
-				throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
-			}
+		if (!dbo.geteTag().equals(dto.getEtag())) {
+			throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		if (!fromBackup) {
-			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
-			dbo.seteTag(eTagGenerator.generateETag());
-		}
+		
+		// Update with a new e-tag
+		dbo.seteTag(UUID.randomUUID().toString());
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Approval in database.");

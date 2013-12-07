@@ -393,11 +393,11 @@ public class CommunityManagerImpl implements CommunityManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void addAdmin(UserInfo userInfo, String communityId, String memberId) throws UnauthorizedException, DatastoreException,
+	public void addAdmin(UserInfo userInfo, String communityId, String principalId) throws UnauthorizedException, DatastoreException,
 			NotFoundException {
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
 
-		UserInfo memberInfo = userManager.getUserInfo(memberId);
+		UserInfo memberInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		if (!memberInfo.getIndividualGroup().getIsIndividual()) {
 			throw new UnauthorizedException("Can only add individuals as admin");
 		}
@@ -421,11 +421,11 @@ public class CommunityManagerImpl implements CommunityManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void removeAdmin(UserInfo userInfo, String communityId, String memberId) throws UnauthorizedException, DatastoreException,
+	public void removeAdmin(UserInfo userInfo, String communityId, String principalId) throws UnauthorizedException, DatastoreException,
 			NotFoundException {
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
 
-		UserInfo memberInfo = userManager.getUserInfo(memberId);
+		UserInfo memberInfo = userManager.getUserInfo(Long.parseLong(principalId));
 		if (!memberInfo.getIndividualGroup().getIsIndividual()) {
 			throw new UnauthorizedException("Can only remove individuals as admin");
 		}

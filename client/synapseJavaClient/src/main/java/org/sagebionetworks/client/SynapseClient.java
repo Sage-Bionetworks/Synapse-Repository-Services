@@ -495,6 +495,56 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
 	
+	/**
+	 * Creates a V2 WikiPage from a V1 model. This will zip up markdown
+	 * content and track it with a file handle.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toCreate
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Updates a V2 WikiPage from a V1 model.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toUpdate
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Gets a V2 WikiPage and returns as a V1 WikiPage.
+	 * @param key
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key) 
+		throws JSONObjectAdapterException, SynapseException, IOException;
+	
+	/**
+	 * Gets a version of a V2 WikiPage and returns it as a V1 WikiPage.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) 
+		throws JSONObjectAdapterException, SynapseException, IOException;
+	
 	@Deprecated
 	public File downloadLocationableFromSynapse(Locationable locationable)
 			throws SynapseException;
@@ -601,6 +651,12 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public MessageToUser sendMessage(MessageToUser message)
 			throws SynapseException;
+	
+	/**
+	 * Sends a message to another user and the owner of the given entity
+	 */
+	public MessageToUser sendMessage(MessageToUser message, String entityId) 
+			throws SynapseException;
 
 	/**
 	 * Gets the current authenticated user's received messages
@@ -646,6 +702,11 @@ public interface SynapseClient extends BaseClient {
 	 * Deletes a message.  Used for test cleanup only.  Admin only.
 	 */
 	public void deleteMessage(String messageId) throws SynapseException;
+	
+	/**
+	 * Returns a temporary URL that can be used to download the body of a message
+	 */
+	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 
@@ -917,6 +978,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * Return the TeamMember object for the given team and member
+	 * @param teamId
+	 * @param memberId
+	 * @return
+	 * @throws SynapseException
+	 */
+	TeamMember getTeamMember(String teamId, String memberId) throws SynapseException;
 
 	/**
 	 * 
@@ -973,6 +1043,17 @@ public interface SynapseClient extends BaseClient {
 
 	/**
 	 * 
+	 * @param teamId
+	 * @param inviteeId
+	 * @param limit
+	 * @param offset
+	 * @return a list of open invitations issued by a team, optionally filtered by invitee
+	 * @throws SynapseException
+	 */
+	PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(String teamId, String inviteeId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
 	 * @param invitationId
 	 * @throws SynapseException
 	 */
@@ -999,10 +1080,21 @@ public interface SynapseClient extends BaseClient {
 	 * @param requestorId the id of the user requesting membership (optional)
 	 * @param limit
 	 * @param offset
-	 * @return a list of membership requests sent to the given team, optionally filtered by the requestor
+	 * @return a list of membership requests sent to the given team, optionally filtered by the requester
 	 * @throws SynapseException
 	 */
-	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
+	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requesterId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
+	 * @param requesterId
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return a list of membership requests from a requester, optionally filtered by the team to which the request was sent
+	 * @throws SynapseException
+	 */
+	PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(String requesterId, String teamId, long limit, long offset) throws SynapseException;
 
 	/**
 	 * 

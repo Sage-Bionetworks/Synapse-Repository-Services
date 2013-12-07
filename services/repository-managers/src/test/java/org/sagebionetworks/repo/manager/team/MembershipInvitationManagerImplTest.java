@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -206,6 +205,45 @@ public class MembershipInvitationManagerImplTest {
 		PaginatedResults<MembershipInvitation> actual = membershipInvitationManagerImpl.getOpenForUserAndTeamInRange(MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testGetOpenSubmissionsForTeamInRange() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		List<MembershipInvtnSubmission> expected = Arrays.asList(new MembershipInvtnSubmission[]{mis});
+		when(mockMembershipInvtnSubmissionDAO.getOpenSubmissionsByTeamInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamCount(eq(Long.parseLong(TEAM_ID)), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipInvtnSubmission> actual = membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsForTeamInRangeUnauthorized() throws Exception {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID,1,0);
+	}
+	
+	@Test
+	public void testGetOpenSubmissionsForTeamAndRequesterInRange() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		List<MembershipInvtnSubmission> expected = Arrays.asList(new MembershipInvtnSubmission[]{mis});
+		when(mockMembershipInvtnSubmissionDAO.getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamCount(eq(Long.parseLong(TEAM_ID)), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipInvtnSubmission> actual = membershipInvitationManagerImpl.
+				getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsForTeamAndRequesterInRangeUnauthorized() throws Exception {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
 	}
 
 }

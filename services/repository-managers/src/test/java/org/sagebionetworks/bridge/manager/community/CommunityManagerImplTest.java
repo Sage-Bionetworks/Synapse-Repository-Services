@@ -31,6 +31,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	private static final String TEAM_ID = "456";
 	private static final String COMMUNITY_ID = "789";
 	private static final String USER_ID2 = "1232";
+	
 
 	@Mock
 	private AuthorizationManager authorizationManager;
@@ -60,9 +61,10 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	private CommunityManager communityManager;
 	private UserInfo validUser;
-	private UserInfo otherUser;
 	private Team testTeam;
 	private Community testCommunity;
+	
+	private UserInfo otherUser;
 
 	@Before
 	public void doBefore() {
@@ -98,7 +100,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		testTeam = new Team();
 		testTeam.setId(TEAM_ID);
 		testTeam.setName(COMMUNITY_ID);
-
+		
 		communityManager = new CommunityManagerImpl(authorizationManager, fileHandleManager, userManager, teamManager, entityManager,
 				entityPermissionsManager, wikiManager, communityTeamDAO, aclDAO);
 	}
@@ -345,7 +347,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		aclAfter.setResourceAccess(Sets.newHashSet(radmin, ra, ra2));
 
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(community);
-		when(userManager.getUserInfo(USER_ID2)).thenReturn(otherUser);
+		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(teamManager.getTeamMembershipStatus(validUser, TEAM_ID, otherUser)).thenReturn(membershipIsMember);
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		when(aclDAO.get(COMMUNITY_ID, ObjectType.ENTITY)).thenReturn(aclBefore);
@@ -353,7 +355,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		communityManager.addAdmin(validUser, COMMUNITY_ID, USER_ID2);
 
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
-		verify(userManager).getUserInfo(USER_ID2);
+		verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 		verify(teamManager).getTeamMembershipStatus(validUser, TEAM_ID, otherUser);
 		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
@@ -370,7 +372,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		membershipIsMember.setIsMember(true);
 
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(community);
-		when(userManager.getUserInfo(USER_ID2)).thenReturn(otherUser);
+		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(teamManager.getTeamMembershipStatus(validUser, TEAM_ID, otherUser)).thenReturn(membershipIsMember);
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
 				.thenReturn(false);
@@ -378,7 +380,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 			communityManager.addAdmin(validUser, COMMUNITY_ID, USER_ID2);
 		} finally {
 			verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
-			verify(userManager).getUserInfo(USER_ID2);
+			verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 			verify(teamManager).getTeamMembershipStatus(validUser, TEAM_ID, otherUser);
 			verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		}
@@ -393,13 +395,13 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		membershipIsMember.setIsMember(false);
 
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(community);
-		when(userManager.getUserInfo(USER_ID2)).thenReturn(otherUser);
+		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(teamManager.getTeamMembershipStatus(validUser, TEAM_ID, otherUser)).thenReturn(membershipIsMember);
 		try {
 			communityManager.addAdmin(validUser, COMMUNITY_ID, USER_ID2);
 		} finally {
 			verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
-			verify(userManager).getUserInfo(USER_ID2);
+			verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 			verify(teamManager).getTeamMembershipStatus(validUser, TEAM_ID, otherUser);
 		}
 	}
@@ -426,14 +428,14 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		aclAfter.setResourceAccess(Sets.newHashSet(ra, ra2));
 
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(community);
-		when(userManager.getUserInfo(USER_ID2)).thenReturn(otherUser);
+		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		when(aclDAO.get(COMMUNITY_ID, ObjectType.ENTITY)).thenReturn(aclBefore);
 
 		communityManager.removeAdmin(validUser, COMMUNITY_ID, USER_ID2);
 
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
-		verify(userManager).getUserInfo(USER_ID2);
+		verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
 		verify(aclDAO).update(aclAfter);
@@ -462,13 +464,13 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		aclAfter.setResourceAccess(Sets.newHashSet(ra, ra2));
 
 		when(entityManager.getEntity(otherUser, COMMUNITY_ID, Community.class)).thenReturn(community);
-		when(userManager.getUserInfo(USER_ID2)).thenReturn(otherUser);
+		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(aclDAO.get(COMMUNITY_ID, ObjectType.ENTITY)).thenReturn(aclBefore);
 
 		communityManager.removeAdmin(otherUser, COMMUNITY_ID, USER_ID2);
 
 		verify(entityManager).getEntity(otherUser, COMMUNITY_ID, Community.class);
-		verify(userManager).getUserInfo(USER_ID2);
+		verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
 		verify(aclDAO).update(aclAfter);
 		verify(teamManager).setPermissions(otherUser, TEAM_ID, USER_ID2, false);
@@ -494,14 +496,14 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		aclBefore.setResourceAccess(Sets.newHashSet(radmin, ra, ra2));
 
 		when(entityManager.getEntity(otherUser, COMMUNITY_ID, Community.class)).thenReturn(community);
-		when(userManager.getUserInfo(USER_ID2)).thenReturn(otherUser);
+		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(aclDAO.get(COMMUNITY_ID, ObjectType.ENTITY)).thenReturn(aclBefore);
 
 		try {
 			communityManager.removeAdmin(otherUser, COMMUNITY_ID, USER_ID2);
 		} finally {
 			verify(entityManager).getEntity(otherUser, COMMUNITY_ID, Community.class);
-			verify(userManager).getUserInfo(USER_ID2);
+			verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 			verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
 		}
 	}

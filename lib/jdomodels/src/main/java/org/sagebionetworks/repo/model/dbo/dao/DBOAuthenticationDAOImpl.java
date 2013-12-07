@@ -260,10 +260,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public String getSecretKey(String id) {
+	public String getSecretKey(String id) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, param);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(e);
+		}
 	}
 	
 	@Override
@@ -284,10 +288,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public boolean hasUserAcceptedToU(String id) {
+	public boolean hasUserAcceptedToU(String id) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		Boolean acceptance = simpleJdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, param);
+		Boolean acceptance;
+		try {
+			acceptance = simpleJdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(e);
+		}
 		if (acceptance == null) {
 			return false;
 		}

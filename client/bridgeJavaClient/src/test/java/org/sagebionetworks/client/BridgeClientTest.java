@@ -1,6 +1,8 @@
 package org.sagebionetworks.client;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.*;
@@ -12,15 +14,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.*;
 import org.mockito.*;
+import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.util.StringInputStream;
 
 import static org.mockito.Mockito.*;
-
 import static org.junit.Assert.fail;
 
 public class BridgeClientTest {

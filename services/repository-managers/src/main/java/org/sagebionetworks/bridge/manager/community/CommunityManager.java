@@ -37,7 +37,7 @@ public interface CommunityManager {
 	 */
 	public PaginatedResults<Community> getForMember(UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			NotFoundException;
-
+	
 	/**
 	 * Retrieve the Communities to which the given user belongs, paginated
 	 * 
@@ -126,12 +126,12 @@ public interface CommunityManager {
 	 * 
 	 * @param userInfo
 	 * @param communityId
-	 * @param memberId
+	 * @param principalId
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws AuthenticationException
 	 */
-	public void addAdmin(UserInfo userInfo, String communityId, String memberId) throws DatastoreException,
+	public void addAdmin(UserInfo userInfo, String communityId, String principalId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -139,11 +139,11 @@ public interface CommunityManager {
 	 * 
 	 * @param userInfo
 	 * @param communityId
-	 * @param memberId
+	 * @param principalId
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws AuthenticationException
 	 */
-	public void removeAdmin(UserInfo userInfo, String communityId, String memberId) throws DatastoreException,
+	public void removeAdmin(UserInfo userInfo, String communityId, String principalId) throws DatastoreException,
 			NotFoundException;
 }

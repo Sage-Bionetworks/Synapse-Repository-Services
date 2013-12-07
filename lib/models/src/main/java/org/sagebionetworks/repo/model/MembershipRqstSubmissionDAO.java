@@ -23,6 +23,30 @@ public interface MembershipRqstSubmissionDAO {
 	 */
 	public MembershipRqstSubmission get(String id) throws DatastoreException, NotFoundException;
 	
+	/**
+	 * 
+	 * @param requesterId
+	 * @param now
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public List<MembershipRqstSubmission> getOpenSubmissionsByRequesterInRange(
+			long requesterId, long now, long limit, long offset);
+
+	/**
+	 * 
+	 * @param teamId
+	 * @param requesterId
+	 * @param time
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public List<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
+			long teamId, long requesterId, long time, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team
@@ -36,6 +60,29 @@ public interface MembershipRqstSubmissionDAO {
 	public List<MembershipRequest> getOpenByTeamInRange(long teamId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team from a given requester
+	 * @param teamId
+	 * @param requesterId
+	 * @param now
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<MembershipRequest> getOpenByTeamAndRequesterInRange(long teamId, long requesterId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param requesterId
+	 * @param now
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public long getOpenByRequesterCount(long requesterId, long now) throws DatastoreException, NotFoundException;
+
+	/**
 	 * 
 	 * @param teamId
 	 * @param now
@@ -44,18 +91,6 @@ public interface MembershipRqstSubmissionDAO {
 	 * @throws NotFoundException
 	 */
 	public long getOpenByTeamCount(long teamId, long now) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the open (unexpired and unfulfilled) MembershipRqstSubmissions received by the given team from a given requester
-	 * 
-	 * @param teamId
-	 * @param requesterId
-	 * @param now current time, expressed as a long
-	 * @param offset
-	 * @param limit
-	 * 
-	 */
-	public List<MembershipRequest> getOpenByTeamAndRequesterInRange(long teamId, long requesterId, long now, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -85,5 +120,4 @@ public interface MembershipRqstSubmissionDAO {
 	 * @throws DatastoreException
 	 */
 	public void deleteByTeamAndRequester(long teamId, long requesterId) throws DatastoreException;
-
 }

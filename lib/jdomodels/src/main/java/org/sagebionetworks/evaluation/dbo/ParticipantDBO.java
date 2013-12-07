@@ -1,15 +1,20 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_PARTICIPANT_CREATED_ON;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_PARTICIPANT_EVAL_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_PARTICIPANT_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_PARTICIPANT_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_PARTICIPANT;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_PARTICIPANT;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -21,7 +26,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class ParticipantDBO implements MigratableDatabaseObject<ParticipantDBO, ParticipantDBO>, TaggableEntity {
+public class ParticipantDBO implements MigratableDatabaseObject<ParticipantDBO, ParticipantDBO> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_PARTICIPANT_ID, COL_PARTICIPANT_ID).withIsBackupId(true),

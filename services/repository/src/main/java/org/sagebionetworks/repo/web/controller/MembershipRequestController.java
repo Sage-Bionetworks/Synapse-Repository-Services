@@ -67,9 +67,9 @@ public class MembershipRequestController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_REQUEST, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_REQUEST_FOR_TEAM, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<MembershipRequest> getOpenRequests(
+	PaginatedResults<MembershipRequest> getOpenRequestsByTeam(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = UrlHelpers.REQUESTOR_ID_REQUEST_PARAMETER, required = false) String requestorId,
@@ -77,6 +77,33 @@ public class MembershipRequestController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
 			) throws NotFoundException {
 		return serviceProvider.getMembershipRequestService().getOpenRequests(userId, requestorId, id, limit, offset);
+	}
+
+	/**
+	 * Retrieve the open requests submitted by a user, optionally filtering by the Team.
+	 * An request is only open if it has not expired and if the requester has not been added the Team.
+	 * Note:  The 'id' in the URI must be the same ID as that of the authenticated user issuing the request.
+	 * 
+	 * @param id User ID
+	 * @param userId
+	 * @param teamId
+
+	 * @param limit the maximum number of requests to return (default 10)
+	 * @param offset the starting index of the returned results (default 0)
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_REQUEST_FOR_USER, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<MembershipRqstSubmission> getOpenRequestsByUser(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.TEAM_ID_PARAM, required = false) String teamId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			) throws NotFoundException {
+		return serviceProvider.getMembershipRequestService().getOpenRequestSubmissions(userId, id, teamId, limit, offset);
 	}
 
 	/**

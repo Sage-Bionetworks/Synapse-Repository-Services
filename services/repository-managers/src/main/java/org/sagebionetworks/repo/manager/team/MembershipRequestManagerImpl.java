@@ -124,7 +124,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#getOpenByTeamAndRequestorInRange(java.lang.String, java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequestorInRange(UserInfo userInfo, 
+	public PaginatedResults<MembershipRequest> getOpenByTeamAndRequesterInRange(UserInfo userInfo, 
 			String teamId, String requestorId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot retrieve membership requests.");
@@ -134,6 +134,37 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		List<MembershipRequest> mrList = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), limit, offset);
 		long count = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamIdAsLong, requestorIdAsLong, now.getTime());
 		PaginatedResults<MembershipRequest> results = new PaginatedResults<MembershipRequest>();
+		results.setResults(mrList);
+		results.setTotalNumberOfResults(count);
+		return results;
+	}
+
+
+	@Override
+	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByRequesterInRange(
+			UserInfo userInfo, String requesterId, long limit, long offset) throws DatastoreException, NotFoundException {
+		if (!userInfo.getIndividualGroup().getId().equals(requesterId)) throw new UnauthorizedException("Cannot retrieve another's membership requests.");
+		Date now = new Date();
+		long requesterIdAsLong = Long.parseLong(requesterId);
+		List<MembershipRqstSubmission> mrList = membershipRqstSubmissionDAO.getOpenSubmissionsByRequesterInRange(requesterIdAsLong, now.getTime(), limit, offset);
+		long count = membershipRqstSubmissionDAO.getOpenByRequesterCount(requesterIdAsLong, now.getTime());
+		PaginatedResults<MembershipRqstSubmission> results = new PaginatedResults<MembershipRqstSubmission>();
+		results.setResults(mrList);
+		results.setTotalNumberOfResults(count);
+		return results;
+	}
+
+	@Override
+	public PaginatedResults<MembershipRqstSubmission> getOpenSubmissionsByTeamAndRequesterInRange(
+			UserInfo userInfo, String teamId, String requesterId, long limit,
+			long offset) throws DatastoreException, NotFoundException {
+		if (!userInfo.getIndividualGroup().getId().equals(requesterId)) throw new UnauthorizedException("Cannot retrieve another's membership requests.");
+		Date now = new Date();
+		long teamIdAsLong = Long.parseLong(teamId);
+		long requestorIdAsLong = Long.parseLong(requesterId);
+		List<MembershipRqstSubmission> mrList = membershipRqstSubmissionDAO.getOpenSubmissionsByTeamAndRequesterInRange(teamIdAsLong, requestorIdAsLong, now.getTime(), limit, offset);
+		long count = membershipRqstSubmissionDAO.getOpenByTeamAndRequesterCount(teamIdAsLong, requestorIdAsLong, now.getTime());
+		PaginatedResults<MembershipRqstSubmission> results = new PaginatedResults<MembershipRqstSubmission>();
 		results.setResults(mrList);
 		results.setTotalNumberOfResults(count);
 		return results;

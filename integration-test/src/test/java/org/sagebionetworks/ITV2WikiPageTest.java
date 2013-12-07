@@ -18,6 +18,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -39,6 +41,7 @@ public class ITV2WikiPageTest {
 	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	
 	private List<WikiPageKey> toDelete = null;
+	private List<String> fileHandlesToDelete = null;
 	private static SynapseClientImpl synapse = null;
 	S3FileHandle fileHandle;
 	S3FileHandle fileHandleTwo;
@@ -69,6 +72,7 @@ public class ITV2WikiPageTest {
 	@Before
 	public void before() throws SynapseException {
 		toDelete = new ArrayList<WikiPageKey>();
+		fileHandlesToDelete = new ArrayList<String>();
 		// Get image and markdown files from the classpath.
 		URL url = ITV2WikiPageTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		URL url2 = ITV2WikiPageTest.class.getClassLoader().getResource("images/" + FILE_NAME2);
@@ -121,8 +125,11 @@ public class ITV2WikiPageTest {
 		if(project != null){
 			synapse.deleteAndPurgeEntity(project);
 		}
+		for(String id: fileHandlesToDelete) {
+			synapse.deleteFileHandle(id);
+		}
 		for(WikiPageKey key: toDelete){
-			synapse.deleteWikiPage(key);
+			synapse.deleteV2WikiPage(key);
 		}
 	}
 	
@@ -209,6 +216,54 @@ public class ITV2WikiPageTest {
 		}catch(SynapseException e){
 			// expected;
 		}
+	}
+	
+	@Test
+	public void testV2MethodsWithV1Models() throws IOException, SynapseException, JSONObjectAdapterException {
+		// Create V1 Wiki
+		WikiPage wiki = new WikiPage();
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
+		wiki.setMarkdown("markdown");
+		wiki.setTitle("ITV2WikiPageTest");
+		wiki = synapse.createV2WikiPageWithV1(project.getId(), ObjectType.ENTITY, wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
+		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
+		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		toDelete.add(key);
+		// Store file handle before updating to delete later
+		V2WikiPage wikiV2Clone = synapse.getV2WikiPage(key);
+		fileHandlesToDelete.add(wikiV2Clone.getMarkdownFileHandleId());
+		Date firstModifiedOn = wiki.getModifiedOn();
+		
+		// Add another file attachment and update the wiki
+		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
+		wiki.setMarkdown("updated markdown");
+		wiki = synapse.updateV2WikiPageWithV1(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		assertNotNull(wiki);
+		assertNotNull(wiki.getAttachmentFileHandleIds());
+		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
+		assertTrue(!wiki.getModifiedOn().equals(firstModifiedOn));
+		assertEquals("updated markdown", wiki.getMarkdown());
+		// Store file handle that was created during update for deletion
+		V2WikiPage updatedWikiV2Clone = synapse.getV2WikiPage(key);
+		fileHandlesToDelete.add(updatedWikiV2Clone.getMarkdownFileHandleId());
+		
+		// test get
+		wiki = synapse.getV2WikiPageAsV1(key);
+		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY);
+		// this root is in the V2 model, but should have all the same fields as "wiki"
+		assertEquals(root.getAttachmentFileHandleIds().size(), wiki.getAttachmentFileHandleIds().size());
+		File markdown = synapse.downloadV2WikiMarkdown(key);
+		assertEquals(FileUtils.readCompressedFileAsString(markdown), wiki.getMarkdown());
+		// test get first version
+		WikiPage firstWiki = synapse.getVersionOfV2WikiPageAsV1(key, new Long(0));
+		assertNotNull(firstWiki.getAttachmentFileHandleIds());
+		assertEquals(1, firstWiki.getAttachmentFileHandleIds().size());
+		assertEquals("markdown", firstWiki.getMarkdown());
+		
 	}
 	
 	@Test

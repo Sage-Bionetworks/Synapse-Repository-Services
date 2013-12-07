@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -30,7 +32,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author John
  *
  */
-public class DBOWikiPage implements MigratableDatabaseObject<DBOWikiPage, DBOWikiPage> {
+public class DBOWikiPage implements MigratableDatabaseObject<DBOWikiPage, DBOWikiPage>, ObservableEntity {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_WIKI_ID, true).withIsBackupId(true),
@@ -112,6 +114,22 @@ public class DBOWikiPage implements MigratableDatabaseObject<DBOWikiPage, DBOWik
 		this.id = id;
 	}
 
+	@Override
+	public String getIdString() {
+		return id.toString();
+	}
+
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
+
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.WIKI;
+	}
+
+	@Override
 	public String getEtag() {
 		return etag;
 	}

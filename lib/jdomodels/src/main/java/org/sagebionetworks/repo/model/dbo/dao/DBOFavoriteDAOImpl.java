@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -49,19 +48,13 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	
 	@Autowired
-	private TagMessenger tagMessenger;
-	@Autowired
 	private DBOBasicDao basicDao;	
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
 	@Autowired
 	private IdGenerator idGenerator;
-	
-	private static final String SELECT_FOR_RANGE_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID 
-														+ " FROM " + TABLE_FAVORITE 
-														+ " ORDER BY " + COL_FAVORITE_PRINCIPAL_ID + ", "+ COL_FAVORITE_NODE_ID 
-														+ " LIMIT :" + LIMIT_PARAM_NAME 
-														+ " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SELECT_GET_FAVORITES_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID +", "+ COL_FAVORITE_CREATED_ON
 															+ " FROM " + TABLE_FAVORITE 
@@ -100,14 +93,10 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	
 	/**
 	 * For Testing
-	 * @param tagMessenger
-	 * @param basicDao
-	 * @param simpleJdbcTemplate
 	 */
-	public DBOFavoriteDAOImpl(TagMessenger tagMessenger, DBOBasicDao basicDao,
+	public DBOFavoriteDAOImpl(DBOBasicDao basicDao,
 			SimpleJdbcTemplate simpleJdbcTemplate) {
 		super();
-		this.tagMessenger = tagMessenger;
 		this.basicDao = basicDao;
 		this.simpleJdbcTemplate = simpleJdbcTemplate;
 	}

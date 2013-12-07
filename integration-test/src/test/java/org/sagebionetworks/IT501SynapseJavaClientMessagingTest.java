@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,7 +15,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -30,6 +33,7 @@ public class IT501SynapseJavaClientMessagingTest {
 
 	private static final Long LIMIT = 100L;
 	private static final Long OFFSET = 0L;
+	private static final String MESSAGE_BODY = "Blah blah blah\n";
 
 	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
@@ -44,6 +48,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private MessageToUser twoToOne;
 	
 	private List<String> cleanup;
+	private Project project;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -72,7 +77,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		try {
 			FileOutputStream fos = new FileOutputStream(file);
 			pw = new PrintWriter(fos);
-			pw.println("test");
+			pw.print(MESSAGE_BODY);
 			pw.close();
 			pw = null;
 		} finally {
@@ -109,7 +114,16 @@ public class IT501SynapseJavaClientMessagingTest {
 		for (String id : cleanup) {
 			synapseAdmin.deleteMessage(id);
 		}
-		synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
+		
+		if (project != null) {
+			try {
+				synapseAdmin.deleteAndPurgeEntityById(project.getId());
+			} catch (Exception e) { }
+		}
+		
+		try {
+			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
+		} catch (Exception e) { }
 	}
 
 	@SuppressWarnings("serial")
@@ -181,5 +195,51 @@ public class IT501SynapseJavaClientMessagingTest {
 		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
 				null, null, LIMIT, OFFSET);
 		assertEquals(0, messages.getResults().size());
+	}
+	
+	@Test
+	public void testTooManyMessages() throws Exception {
+		// DDOS (not really) the messaging service
+		long start = System.currentTimeMillis();
+		boolean gotNerfed = false;
+		int i;
+		for (i = 1; i <= 100; i++) {
+			try {
+				oneToTwo = synapseOne.sendMessage(oneToTwo);
+				cleanup.add(oneToTwo.getId());
+			} catch (SynapseUserException e) {
+				if (e.getMessage().contains("429")) {
+					gotNerfed = true;
+					break;
+				}
+			}
+		}
+		long end = System.currentTimeMillis();
+		
+		assertTrue(
+				"Assuming that a service calls takes less than 6 seconds to complete, we should have hit the rate limit.  A total of "
+						+ i + " messages were sent in " + (end - start) + " ms.  Average: " + ((end - start) / i) + " ms",
+				gotNerfed);
+	}
+	
+	@Test
+	public void testDownloadMessage() throws Exception {
+		String message = synapseTwo.downloadMessage(oneToTwo.getId());
+		
+		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+	}
+	
+	@Test
+	public void testSendMessageToEntityOwner() throws Exception {
+		project = synapseOne.createEntity(new Project());
+		
+		// Send a message from two to one in a different way
+		twoToOne.setRecipients(null);
+		MessageToUser message = synapseTwo.sendMessage(twoToOne, project.getId());
+		cleanup.add(message.getId());
+		
+		PaginatedResults<MessageBundle> messages = synapseOne.getInbox(null,
+				MessageSortBy.SEND_DATE, true, LIMIT, OFFSET);
+		assertEquals(message, messages.getResults().get(0).getMessage());
 	}
 }

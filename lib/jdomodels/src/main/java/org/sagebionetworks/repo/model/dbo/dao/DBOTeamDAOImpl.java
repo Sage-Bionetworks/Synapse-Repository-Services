@@ -33,8 +33,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -64,10 +64,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	@Autowired
 	private DBOBasicDao basicDao;	
+
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
@@ -116,14 +116,21 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 				SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
 	
-	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
+	private static final String SELECT_MEMBERS_OF_TEAM_CORE =
 			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
 			", up."+COL_USER_PROFILE_ID+
 			", gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_USER_PROFILE+" up "+
 			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+" "+
-			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID+
+			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+	
+	private static final String SELECT_MEMBERS_OF_TEAM_PAGINATED =
+			SELECT_MEMBERS_OF_TEAM_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_SINGLE_MEMBER_OF_TEAM =
+			SELECT_MEMBERS_OF_TEAM_CORE+" AND gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
+			
 	
 	private static final String SELECT_MEMBERS_OF_TEAM_COUNT =
 			"SELECT COUNT(*) FROM "+TABLE_GROUP_MEMBERS+" gm "+
@@ -135,6 +142,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final String SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT = 
 			"SELECT COUNT(gm."+COL_GROUP_MEMBERS_MEMBER_ID+") "+SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE+
 			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
+	
+	private static final String IS_MEMBER_AN_ADMIN = 
+			SELECT_ADMIN_MEMBERS_OF_TEAM_COUNT +
+			" and gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=:"+COL_GROUP_MEMBERS_MEMBER_ID;
 	
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_TEAM+" where "+COL_TEAM_ID+
 			"=:"+COL_TEAM_ID+" for update";
@@ -149,7 +160,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		if (dto.getId()==null) throw new InvalidModelException("ID is required");
 		DBOTeam dbo = new DBOTeam();
 		TeamUtils.copyDtoToDbo(dto, dbo);
-		dbo.setEtag(eTagGenerator.generateETag());
+		dbo.setEtag(UUID.randomUUID().toString());
 		dbo = basicDao.createNew(dbo);
 		Team result = TeamUtils.copyDboToDto(dbo);
 		return result;
@@ -243,7 +254,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		
 		// Update with a new e-tag
-		dto.setEtag(eTagGenerator.generateETag());
+		dto.setEtag(UUID.randomUUID().toString());
 		TeamUtils.copyDtoToDbo(dto, dbo);
 
 		boolean success = basicDao.update(dbo);
@@ -430,6 +441,24 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 		
 		return teamMembers;
+	}
+	
+	
+	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		param.addValue(COL_GROUP_MEMBERS_MEMBER_ID, principalId);
+		List<TeamMember> teamMembers = simpleJdbcTemplate.query(SELECT_SINGLE_MEMBER_OF_TEAM, teamMemberRowMapper, param);
+		if (teamMembers.size()==0) throw new NotFoundException("Could not find member "+principalId+" in team "+teamId);
+		if (teamMembers.size()>1) throw new DatastoreException("Expected one result but found "+teamMembers.size());
+		TeamMember theMember = teamMembers.get(0);
+		// now find if it's an admin
+		long adminCount = simpleJdbcTemplate.queryForLong(IS_MEMBER_AN_ADMIN, param);
+		if (adminCount==1) theMember.setIsAdmin(true);
+		if (adminCount>1) throw new DatastoreException("Expected 0-1 but found "+adminCount);
+		return theMember;
 	}
 	
 	@Override

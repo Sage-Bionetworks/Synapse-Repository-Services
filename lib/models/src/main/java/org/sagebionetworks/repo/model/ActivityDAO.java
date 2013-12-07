@@ -15,15 +15,6 @@ public interface ActivityDAO {
 	 */
 	public String create(Activity dto) throws DatastoreException, InvalidModelException;
 
-	/**
-	 * Create an Activity from Back (for migration only)
-	 * @param dto
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 */
-	public String createFromBackup(Activity dto) throws DatastoreException, InvalidModelException;
-
 
 	/**
 	 * Updates the object.
@@ -33,19 +24,6 @@ public interface ActivityDAO {
 	 */
 	public Activity update(Activity activity) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException;
-
-	/**
-	 * Updates the 'shallow' properties of an object from backup.
-	 * @param <T>
-	 * @param activity
-	 * @return
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 */
-	public Activity updateFromBackup(Activity activity) throws InvalidModelException,
-	NotFoundException, ConflictingUpdateException, DatastoreException;
 	
 	/**
 	 * Retrieves the object given its id

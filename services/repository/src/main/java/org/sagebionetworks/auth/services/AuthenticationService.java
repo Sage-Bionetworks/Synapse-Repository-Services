@@ -27,14 +27,14 @@ public interface AuthenticationService {
 	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
 	 * @throws TermsOfUseException If the user has not accepted the terms of use
 	 */
-	public String revalidate(String sessionToken);
+	public String revalidate(String sessionToken) throws NotFoundException;
 	
 	/**
 	 * Revalidates a session token
 	 * See {@link #revalidate(String)}
 	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
 	 */
-	public String revalidate(String sessionToken, boolean checkToU);
+	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException;
 	
 	/**
 	 * Invalidates a session token
@@ -58,7 +58,7 @@ public interface AuthenticationService {
 	 * Changes the password of the user
 	 * Also invalidates the user's session token
 	 */
-	public void changePassword(ChangePasswordRequest request);
+	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
 	
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
@@ -81,6 +81,12 @@ public interface AuthenticationService {
 	 * Returns the username of the user
 	 */
 	public String getUsername(String principalId)
+			throws NotFoundException;
+	
+	/**
+	 * Has the user accepted the terms of use?
+	 */
+	public boolean hasUserAcceptedTermsOfUse(String username) 
 			throws NotFoundException;
 	
 	/**
