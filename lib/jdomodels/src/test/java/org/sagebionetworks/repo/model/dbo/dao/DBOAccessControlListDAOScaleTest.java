@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -99,7 +100,7 @@ public class DBOAccessControlListDAOScaleTest {
 			}
 			ra.setAccessType(types);
 			acl.getResourceAccess().add(ra);
-			aclDAO.create(acl);
+			aclDAO.create(acl, ObjectType.ENTITY);
 		}
 
 	}
