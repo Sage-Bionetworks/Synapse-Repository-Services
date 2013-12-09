@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -65,9 +66,13 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 				mapper.map(result, rs);
 			}
 			return result;
-		} catch (ReflectiveOperationException e) {
-			throw new SQLException("Error creating " + clazz.getName() + " object: " + e.getMessage(), e);
 		} catch (IllegalArgumentException e) {
+			throw new SQLException("Error creating " + clazz.getName() + " object: " + e.getMessage(), e);
+		} catch (InvocationTargetException e) {
+			throw new SQLException("Error creating " + clazz.getName() + " object: " + e.getMessage(), e);
+		} catch (IllegalAccessException e) {
+			throw new SQLException("Error creating " + clazz.getName() + " object: " + e.getMessage(), e);
+		} catch (InstantiationException e) {
 			throw new SQLException("Error creating " + clazz.getName() + " object: " + e.getMessage(), e);
 		}
 	}
