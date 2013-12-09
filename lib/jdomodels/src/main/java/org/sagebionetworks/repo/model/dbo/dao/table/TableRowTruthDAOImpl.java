@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
@@ -20,12 +21,15 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -91,6 +95,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	private AmazonS3Client s3Client;
+	@Autowired
+	TransactionalMessenger transactionalMessanger;
 
 	private String s3Bucket;
 	private int maxBytesPerRequest;
@@ -194,6 +200,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		RowReferenceSet results = new RowReferenceSet();
 		results.setHeaders(headers);
 		results.setTableId(tableId);
+		results.setEtag(changeDBO.getEtag());
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
 		for (Row row : delta.getRows()) {
@@ -203,6 +210,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			refs.add(ref);
 		}
 		results.setRows(refs);
+		// Fire a change event
+		transactionalMessanger.sendMessageAfterCommit(changeDBO.getTableId().toString(), ObjectType.TABLE, changeDBO.getEtag(), ChangeType.UPDATE);
 		return results;
 	}
 
