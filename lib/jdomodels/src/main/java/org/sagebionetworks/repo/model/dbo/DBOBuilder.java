@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import java.beans.IntrospectionException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -22,7 +22,7 @@ public class DBOBuilder<T> {
 	private static final String RETURN_AS_STRING_METHOD_NAME_POSTFIX = "AsString";
 
 	public static abstract interface RowMapper {
-		public abstract void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException;
+		public abstract void map(Object result, ResultSet rs) throws SQLException, InvocationTargetException, IllegalAccessException;
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
@@ -36,7 +36,7 @@ public class DBOBuilder<T> {
 			this.isNullable = isNullable;
 		}
 
-		public final void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException {
+		public final void map(Object result, ResultSet rs) throws InvocationTargetException, SQLException, IllegalAccessException {
 			Object value = getValue(rs, columnName);
 			if (isNullable && rs.wasNull()) {
 				value = null;
@@ -44,7 +44,8 @@ public class DBOBuilder<T> {
 			fieldSetter.invoke(result, value);
 		}
 
-		public abstract Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException;
+		public abstract Object getValue(ResultSet rs, String columnName) throws SQLException, IllegalAccessException,
+				InvocationTargetException;
 	}
 
 	private static class AssignmentRowMapper extends BaseRowMapper {
@@ -55,7 +56,7 @@ public class DBOBuilder<T> {
 			this.mapperMethod = mapperMethod;
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException, IllegalAccessException, InvocationTargetException {
 			return mapperMethod.invoke(rs, columnName);
 		}
 	}
@@ -69,7 +70,7 @@ public class DBOBuilder<T> {
 			this.enumType = enumType;
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
 			String stringValue = rs.getString(columnName);
 			if (stringValue != null) {
 				@SuppressWarnings("unchecked")
@@ -87,7 +88,7 @@ public class DBOBuilder<T> {
 			super(fieldSetter, columnName, nullable);
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
 			Blob blobValue = rs.getBlob(columnName);
 			if (blobValue != null) {
 				return blobValue.getBytes(1, (int) blobValue.length());
@@ -103,7 +104,7 @@ public class DBOBuilder<T> {
 			super(fieldSetter, columnName, nullable);
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
 			Long timestamp = rs.getLong(columnName);
 			if (timestamp != null) {
 				return new Date(timestamp);
@@ -156,7 +157,7 @@ public class DBOBuilder<T> {
 				String setterMethodName = "set" + StringUtils.capitalize(fieldEntry.field.getName());
 				try {
 					setterMethod = clazz.getMethod(setterMethodName, new Class[] { fieldEntry.field.getType() });
-				} catch (ReflectiveOperationException e) {
+				} catch (NoSuchMethodException e) {
 					throw new IllegalArgumentException("Could not find method '" + setterMethodName + "' on " + clazz.getName());
 				}
 
@@ -167,7 +168,7 @@ public class DBOBuilder<T> {
 							Method mapperMethod = ResultSet.class.getMethod((String) getMethod, new Class[] { String.class });
 							return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
 									mapperMethod);
-						} catch (ReflectiveOperationException e) {
+						} catch (NoSuchMethodException e) {
 							throw new IllegalArgumentException("Could not find method '" + getMethod + "' on ResultSet");
 						}
 					}
