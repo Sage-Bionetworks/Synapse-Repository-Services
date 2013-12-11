@@ -62,9 +62,6 @@ public class MessageToUserWorkerIntegrationTest {
 	private String fileHandleId;
 	private MessageToUser message;
 	
-	// This is a side effect of the worker and must be cleaned up after the test
-	private MessageToUser failureMessage;
-	
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
@@ -113,6 +110,7 @@ public class MessageToUserWorkerIntegrationTest {
 				add(otherUserInfo.getIndividualGroup().getId());
 				
 				// Note: this causes the worker to send a delivery failure notification too
+				// Which can be visually confirmed by the tester (appears in STDOUT)
 				add(userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
 			}
 		});
@@ -141,10 +139,8 @@ public class MessageToUserWorkerIntegrationTest {
 	public void after() throws Exception {
 		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		messageManager.deleteMessage(adminUserInfo, message.getId());
-		messageManager.deleteMessage(adminUserInfo, failureMessage.getId());
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
-		fileHandleManager.deleteFileHandle(adminUserInfo, failureMessage.getFileHandleId());
 	}
 	
 	
@@ -155,9 +151,8 @@ public class MessageToUserWorkerIntegrationTest {
 		
 		long start = System.currentTimeMillis();
 		while (messages == null || messages.getResults().size() < 1) {
-			// Check the inbox of the sender for a delivery failure notification
-			// This is sent after processing the message
-			messages = messageManager.getInbox(userInfo, new ArrayList<MessageStatusType>() {
+			// Check the inbox of the recipient
+			messages = messageManager.getInbox(otherUserInfo, new ArrayList<MessageStatusType>() {
 				{
 					add(MessageStatusType.UNREAD);
 				}
@@ -167,17 +162,6 @@ public class MessageToUserWorkerIntegrationTest {
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for message to be sent", elapse < MAX_WAIT);
 		}
-		
-		// Check the failure notification
-		failureMessage = messages.getResults().get(0).getMessage();
-		assertEquals("Message " + message.getId() + " Delivery Failure(s)", failureMessage.getSubject());
-
-		// Now check if the message was successfully sent to the valid recipient
-		messages = messageManager.getInbox(otherUserInfo, new ArrayList<MessageStatusType>() {
-			{
-				add(MessageStatusType.UNREAD);
-			}
-		}, MessageSortBy.SEND_DATE, true, 100, 0);
 		assertEquals(message, messages.getResults().get(0).getMessage());
 	}
 	

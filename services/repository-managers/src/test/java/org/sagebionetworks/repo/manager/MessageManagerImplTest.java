@@ -545,30 +545,14 @@ public class MessageManagerImplTest {
 		
 		// Try the other one
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);
-		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
-		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
-		cleanup.add(resetEmail.getId());
-		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();
 		mockErrors.add(UUID.randomUUID().toString());
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
-		inbox = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		MessageToUser failureEmail = inbox.getResults().get(0).getMessage();
-		cleanup.add(failureEmail.getId());
-		assertEquals("Message " + userToOther.getId() + " Delivery Failure(s)", failureEmail.getSubject());
 		
 		// Try another variation
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
-		inbox = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		resetEmail = inbox.getResults().get(0).getMessage();
-		cleanup.add(resetEmail.getId());
-		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
 	}
 	
 	@Test
