@@ -12,8 +12,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.Hit;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -41,13 +44,20 @@ public class SearchControllerTest {
 	
 	private static long MAX_WAIT = 1000*15;
 	
-	ServiceProvider provider;
+	@Autowired
+	private UserManager userManager;
+	
+	private String adminUsername;
+	
+	private ServiceProvider provider;
 	private SearchDao searchDao;
 	private SearchDocumentDriver documentProvider;
 	private Project project;
 	
 	@Before
 	public void before() throws Exception {
+		adminUsername = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
 		StackConfiguration config = new StackConfiguration();
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
@@ -61,7 +71,7 @@ public class SearchControllerTest {
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest");
-		project = provider.getEntityService().createEntity(AuthorizationConstants.TEST_USER_NAME, project, null, new MockHttpServletRequest());
+		project = provider.getEntityService().createEntity(adminUsername, project, null, new MockHttpServletRequest());
 		// Push this to the serach index
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchDao.createOrUpdateSearchDocument(doc);
@@ -78,7 +88,7 @@ public class SearchControllerTest {
 	@After
 	public void after()  throws Exception{
 		if(provider != null && project != null){
-			provider.getEntityService().deleteEntity(AuthorizationConstants.TEST_USER_NAME, project.getId());
+			provider.getEntityService().deleteEntity(adminUsername, project.getId());
 			searchDao.deleteAllDocuments();
 		}
 	}
@@ -99,7 +109,7 @@ public class SearchControllerTest {
 		request.addHeader("Accept", "application/json");
 		request.addHeader("Content-Type", "application/json");
 		request.setRequestURI("/search");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, AuthorizationConstants.TEST_USER_NAME);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUsername);
 		request.setContent(EntityFactory.createJSONStringForEntity(query)
 				.getBytes("UTF-8"));
 		DispatchServletSingleton.getInstance().service(request, response);

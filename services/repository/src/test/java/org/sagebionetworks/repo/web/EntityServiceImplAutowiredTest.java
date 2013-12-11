@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -64,7 +64,7 @@ public class EntityServiceImplAutowiredTest {
 	private int locations = 2;
 	
 	private String userName;
-	private UserInfo userInfo;
+	private UserInfo adminUserInfo;
 	private String activityId;
 	
 	HttpServletRequest mockRequest;
@@ -73,9 +73,10 @@ public class EntityServiceImplAutowiredTest {
 	public void before() throws Exception {
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		userInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		UserInfo.validateUserInfo(userInfo);
-		userName = userInfo.getUser().getUserId();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		UserInfo.validateUserInfo(adminUserInfo);
+		userName = adminUserInfo.getIndividualGroup().getName();
+		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		activityId = null;
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");

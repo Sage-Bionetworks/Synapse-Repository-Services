@@ -16,10 +16,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -73,7 +72,7 @@ public class AdministrationControllerTest {
 	private static HttpServlet dispatchServlet;
 	
 	@Autowired
-	StackStatusDao stackStatusDao;
+	private StackStatusDao stackStatusDao;
 	
 	private List<String> toDelete;
 	private List<WikiPageKey> wikisToDelete;
@@ -84,7 +83,7 @@ public class AdministrationControllerTest {
 	public void before() throws DatastoreException, NotFoundException {
 		toDelete = new ArrayList<String>();
 		wikisToDelete = new ArrayList<WikiPageKey>();
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 	
 	@BeforeClass
@@ -181,7 +180,7 @@ public class AdministrationControllerTest {
 		// create an entity
 		entity = new Project();
 		entity.setEntityType(Project.class.getName());
-		entity = (Project) entityServletHelper.createEntity(entity, AuthorizationConstants.ADMIN_USER_NAME, null);
+		entity = (Project) entityServletHelper.createEntity(entity, adminUserInfo.getIndividualGroup().getName(), null);
 		createWikiPages(entity.getId());
 		
 		Map<String, String> extraParams = new HashMap<String, String>();
@@ -230,6 +229,7 @@ public class AdministrationControllerTest {
 		extraParams.put("limit", "10");
 		
 		// Not an admin, so this should fail with a 403
-		ServletTestHelper.migrateWikisToV2(dispatchServlet, StackConfiguration.getIntegrationTestUserOneName(), extraParams);
+		String anonUsername = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		ServletTestHelper.migrateWikisToV2(dispatchServlet, anonUsername, extraParams);
 	}
 }

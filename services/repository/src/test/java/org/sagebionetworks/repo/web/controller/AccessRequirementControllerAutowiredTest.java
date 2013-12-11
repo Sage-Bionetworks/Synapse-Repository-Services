@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -24,7 +25,7 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,7 +64,8 @@ public class AccessRequirementControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private String userName;
+	private UserInfo otherUserInfo;
 	private UserInfo testUser;
 	private Project project;
 
@@ -72,6 +75,13 @@ public class AccessRequirementControllerAutowiredTest {
 	public void before() throws Exception {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
+		
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		otherUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
 		testUser = userManager.getUserInfo(userName);
@@ -109,6 +119,9 @@ public class AccessRequirementControllerAutowiredTest {
 				(new EntityServletTestHelper()).deleteEvaluation(evaluation.getId(), userName);
 			} catch (Exception e) {}
 		}
+		
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
 	}
 
 	@BeforeClass
@@ -155,7 +168,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		// get the unmet access requirements for the entity
 		results = ServletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, AuthorizationConstants.TEST_USER_NAME);	
+				dispatchServlet, entityId, otherUserInfo.getIndividualGroup().getName());	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
@@ -197,7 +210,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		// get the unmet access requirements for the evaluation
 		results = ServletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), AuthorizationConstants.TEST_USER_NAME);	
+				dispatchServlet, evaluation.getId(), otherUserInfo.getIndividualGroup().getName());	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		

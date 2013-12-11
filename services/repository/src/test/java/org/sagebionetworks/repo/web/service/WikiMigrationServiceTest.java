@@ -13,13 +13,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.V2WikiPageMigrationDao;
@@ -42,28 +39,34 @@ import com.amazonaws.services.s3.AmazonS3Client;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class WikiMigrationServiceTest {
+	
 	@Autowired
 	private WikiMigrationService wikiMigrationService;
+	
 	@Autowired
 	private WikiPageDao wikiPageDao;
+	
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
+	
 	@Autowired
 	private V2WikiPageMigrationDao v2WikiPageMigrationDao;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
 	private AmazonS3Client s3Client;
+	
 	@Autowired
 	public UserManager userManager;
 
-	String creatorUserGroupId;
-	List<WikiPageKey> toDelete;
-	List<WikiPageKey> toDeleteForParentCase;
-	List<String> abandonedFileHandleIds;
-	UserInfo adminUserInfo;
+	private UserInfo adminUserInfo;
+	private String creatorUserGroupId;
+	
+	private List<WikiPageKey> toDelete;
+	private List<WikiPageKey> toDeleteForParentCase;
+	private List<String> abandonedFileHandleIds;
 	
 	@Before
 	public void before() throws NotFoundException {
@@ -71,12 +74,8 @@ public class WikiMigrationServiceTest {
 		toDeleteForParentCase = new ArrayList<WikiPageKey>();
 		abandonedFileHandleIds = new ArrayList<String>();
 		
-		UserGroup userGroup = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
-		assertNotNull(userGroup);
-		creatorUserGroupId = userGroup.getId();
-		assertNotNull(creatorUserGroupId);
-		
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		creatorUserGroupId = adminUserInfo.getIndividualGroup().getId();
 	}
 	
 	@After

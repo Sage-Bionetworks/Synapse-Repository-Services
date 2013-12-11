@@ -13,7 +13,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -34,13 +36,22 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiControllerAutowiredTest {
 
-	@Autowired private EntityService entityService;
-	@Autowired private DoiAdminDao doiAdminDao;
-	private final String testUser = AuthorizationConstants.TEST_USER_NAME;
+	@Autowired
+	private EntityService entityService;
+	
+	@Autowired
+	private DoiAdminDao doiAdminDao;
+	
+	@Autowired
+	private UserManager userManager;
+	
+	private String testUser;
 	private Entity entity;
 
 	@Before
 	public void before() throws Exception {
+		testUser = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
 		entity = new Project();
 		entity.setName("DoiControllerAutowiredTest");
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();

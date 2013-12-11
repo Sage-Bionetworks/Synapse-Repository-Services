@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -29,9 +28,7 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -40,10 +37,9 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -70,11 +66,9 @@ import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
-import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -195,61 +189,54 @@ public class MigrationIntegrationAutowireTest {
 	@Autowired
 	private WikiPageDao wikiPageDAO;
 
-	UserInfo userInfo;
+	private UserInfo adminUserInfo;
 	private String userName;
 	private String adminId;
 	
 	// Activity
-	Activity activity;
+	private Activity activity;
 	
 	// Entities
-	Project project;
-	FileEntity fileEntity;
-	Community community;
-	Folder folderToTrash;
+	private Project project;
+	private FileEntity fileEntity;
+	private Community community;
+	private Folder folderToTrash;
+	
 	// requirement
-	AccessRequirement accessRequirement;
+	private AccessRequirement accessRequirement;
+	
 	// approval
-	AccessApproval accessApproval;
+	private AccessApproval accessApproval;
 	
 	// Wiki pages
-	WikiPage rootWiki;
-	WikiPage subWiki;
-	WikiPageKey rootWikiKey;
-	WikiPageKey subWikiKey;
+	private WikiPage rootWiki;
+	private WikiPage subWiki;
 	
 	// V2 Wiki page
-	V2WikiPage v2RootWiki;
-	V2WikiPage v2SubWiki;
-	WikiPageKey v2RootWikiKey;
-	WikiPageKey v2SubWikiKey;
+	private V2WikiPage v2RootWiki;
+	private V2WikiPage v2SubWiki;
 
 	// File Handles
-	S3FileHandle handleOne;
-	S3FileHandle markdownOne;
-	PreviewFileHandle preview;
+	private S3FileHandle handleOne;
+	private S3FileHandle markdownOne;
+	private PreviewFileHandle preview;
 	
 	// Evaluation
-	Evaluation evaluation;
-	Participant participant;
-	Submission submission;
-	SubmissionStatus submissionStatus;
-	// Doi
-	Doi doi;
-	// Favorite
-	Favorite favorite;
+	private Evaluation evaluation;
+	private Submission submission;
 	
-	HttpServletRequest mockRequest;
-
+	private HttpServletRequest mockRequest;
 	
 	@Before
 	public void before() throws Exception{
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		
 		// get user IDs
-		userName = AuthorizationConstants.MIGRATION_USER_NAME;
-		userInfo = userManager.getUserInfo(userName);
-		adminId = userInfo.getIndividualGroup().getId();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userName = adminUserInfo.getIndividualGroup().getName();
+		adminId = adminUserInfo.getIndividualGroup().getId();
+		
 		resetDatabase();
 		String sampleFileHandleId = createFileHandles();
 		createActivity();
@@ -305,7 +292,7 @@ public class MigrationIntegrationAutowireTest {
 		// This gives us a chance to also delete the S3 for table rows
 		tableRowTruthDao.truncateAllRowData();
 		// Before we start this test we want to start with a clean database
-		migrationManager.deleteAllData(userInfo);
+		migrationManager.deleteAllData(adminUserInfo);
 		// bootstrap to put back the bootstrap data
 		entityBootstrapper.bootstrapAll();
 		storageQuotaAdminDao.clear();
@@ -313,12 +300,12 @@ public class MigrationIntegrationAutowireTest {
 
 
 	private void createFavorite() {
-		favorite =  userProfileManager.addFavorite(userInfo, fileEntity.getId());
+		userProfileManager.addFavorite(adminUserInfo, fileEntity.getId());
 	}
 
 
 	private void createDoi() throws Exception {
-		doi = serviceProvider.getDoiService().createDoi(userName, project.getId(), ObjectType.ENTITY, 1L);
+		serviceProvider.getDoiService().createDoi(userName, project.getId(), ObjectType.ENTITY, 1L);
 	}
 
 
@@ -349,7 +336,7 @@ public class MigrationIntegrationAutowireTest {
         evaluation = serviceProvider.getEvaluationService().createEvaluation(userName, evaluation);
 
         // initialize Participants
-		participant = serviceProvider.getEvaluationService().addParticipant(userName, evaluation.getId());
+		serviceProvider.getEvaluationService().addParticipant(userName, evaluation.getId());
         
         // initialize Submissions
 		submission = new Submission();
@@ -359,7 +346,6 @@ public class MigrationIntegrationAutowireTest {
 		submission.setUserId(userName);
 		submission.setEvaluationId(evaluation.getId());
 		submission = entityServletHelper.createSubmission(submission, userName, fileEntity.getEtag());
-		submissionStatus = serviceProvider.getEvaluationService().getSubmissionStatus(userName, submission.getId());
 	}
 
 
@@ -411,7 +397,6 @@ public class MigrationIntegrationAutowireTest {
 		Map<String, FileHandle> map = new HashMap<String, FileHandle>();
 		map.put(handleOne.getFileName(), handleOne);
 		rootWiki = wikiPageDAO.create(rootWiki, map, fileEntity.getId(), ObjectType.ENTITY);
-		rootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, rootWiki.getId());
 		
 		subWiki = new WikiPage();
 		subWiki.setParentWikiId(rootWiki.getId());
@@ -420,7 +405,6 @@ public class MigrationIntegrationAutowireTest {
 		subWiki.setCreatedBy(adminId);
 		subWiki.setModifiedBy(adminId);
 		subWiki = wikiPageDAO.create(subWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY);
-		subWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, subWiki.getId());
 	}
 	
 	public void createV2WikiPages() throws NotFoundException {
@@ -440,7 +424,6 @@ public class MigrationIntegrationAutowireTest {
 		List<String> newIds = new ArrayList<String>();
 		newIds.add(handleOne.getId());
 		v2RootWiki = v2wikiPageDAO.create(v2RootWiki, map, fileEntity.getId(), ObjectType.ENTITY, newIds);
-		v2RootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2RootWiki.getId());
 		
 		// Create a child
 		v2SubWiki = new V2WikiPage();
@@ -450,7 +433,6 @@ public class MigrationIntegrationAutowireTest {
 		v2SubWiki.setTitle("V2 Sub-wiki-title");
 		v2SubWiki.setMarkdownFileHandleId(markdownOne.getId());
 		v2SubWiki = v2wikiPageDAO.create(v2SubWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY, new ArrayList<String>());
-		v2SubWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, v2SubWiki.getId()); 
 	}
 
 
@@ -534,7 +516,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 	private void createStorageQuota() {
-		storageQuotaManager.setQuotaForUser(userInfo, userInfo, 3000);
+		storageQuotaManager.setQuotaForUser(adminUserInfo, adminUserInfo, 3000);
 	}
 	
 	// returns a group for use in a team
@@ -600,6 +582,8 @@ public class MigrationIntegrationAutowireTest {
 	}
 	
 	private void createTeamsRequestsAndInvitations(UserGroup group) {
+		String otherUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+		
 		Team team = new Team();
 		team.setId(group.getId());
 		team.setName(group.getName());
@@ -615,8 +599,7 @@ public class MigrationIntegrationAutowireTest {
 		mrs.setMessage("Please let me join the team.");
 		mrs.setTeamId(""+group.getId());
 		// need another valid user group
-		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		mrs.setUserId(individUser.getId());
+		mrs.setUserId(otherUserId);
 		membershipRqstSubmissionDAO.create(mrs);
 		
 		
@@ -628,8 +611,7 @@ public class MigrationIntegrationAutowireTest {
 		mis.setTeamId(""+group.getId());
 		
 		// need another valid user group
-		mis.setInviteeId(individUser.getId());
-		Long.parseLong(individUser.getId());
+		mis.setInviteeId(otherUserId);
 		
 		membershipInvtnSubmissionDAO.create(mis);
 	}
@@ -697,10 +679,10 @@ public class MigrationIntegrationAutowireTest {
 			// Special cases for the not-deleted migration admin
 			if (afterDelete.getType() == MigrationType.PRINCIPAL) {
 				assertEquals("There should be 4 UserGroups remaining after the delete: "
-								+ AuthorizationConstants.MIGRATION_USER_NAME + ", "
-								+ AuthorizationConstants.ADMIN_GROUP_NAME + ", "
-								+ AuthorizationConstants.DEFAULT_GROUPS.PUBLIC + ", and "
-								+ AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS,
+								+ BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER + ", "
+								+ BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP + ", "
+								+ BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP + ", and "
+								+ BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP,
 						new Long(4), afterDelete.getCount());
 			} else if (afterDelete.getType() == MigrationType.GROUP_MEMBERS 
 					|| afterDelete.getType() == MigrationType.CREDENTIAL) {
@@ -752,7 +734,7 @@ public class MigrationIntegrationAutowireTest {
 		assertNotNull(startCounts.getList());
 		List<MigrationType> typesToMigrate = new LinkedList<MigrationType>();
 		for (MigrationType tm: MigrationType.values()) {
-			if (migrationManager.isMigrationTypeUsed(userInfo, tm)) {
+			if (migrationManager.isMigrationTypeUsed(adminUserInfo, tm)) {
 				typesToMigrate.add(tm);
 			}
 		}

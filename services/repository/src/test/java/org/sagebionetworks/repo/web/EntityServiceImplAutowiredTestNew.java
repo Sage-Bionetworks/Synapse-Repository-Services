@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -48,7 +48,7 @@ public class EntityServiceImplAutowiredTestNew {
 	private List<String> toDelete;
 	private HttpServletRequest mockRequest;
 	private String userName;
-	private UserInfo userInfo;
+	private UserInfo adminUserInfo;
 	
 	private S3FileHandle fileHandle1;
 	private S3FileHandle fileHandle2;
@@ -58,9 +58,10 @@ public class EntityServiceImplAutowiredTestNew {
 		toDelete = new LinkedList<String>();
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		userInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		UserInfo.validateUserInfo(userInfo);
-		userName = userInfo.getUser().getUserId();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		UserInfo.validateUserInfo(adminUserInfo);
+		userName = adminUserInfo.getIndividualGroup().getName();
+		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// Create a project
@@ -72,7 +73,7 @@ public class EntityServiceImplAutowiredTestNew {
 		S3FileHandle handle = new S3FileHandle();
 		handle.setBucketName("bucket");
 		handle.setKey("key");
-		handle.setCreatedBy(userInfo.getIndividualGroup().getId());
+		handle.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
 		handle.setCreatedOn(new Date());
 		handle.setContentSize(123l);
 		handle.setConcreteType("text/plain");

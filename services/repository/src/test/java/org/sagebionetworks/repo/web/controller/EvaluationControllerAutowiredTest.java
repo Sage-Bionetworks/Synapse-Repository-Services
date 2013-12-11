@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -32,8 +33,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,26 +55,36 @@ public class EvaluationControllerAutowiredTest {
 	
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
 	private UserManager userManager;
+	
 	@Autowired
 	private NodeManager nodeManager;
+	
 	@Autowired
 	private EvaluationPermissionsManager evalPermissionsManager;
+	
 	@Autowired
 	private EvaluationDAO evaluationDAO;
+	
 	@Autowired
 	private ParticipantDAO participantDAO;
+	
 	@Autowired
 	private SubmissionDAO submissionDAO;
+	
 	@Autowired
 	private SubmissionStatusDAO submissionStatusDAO;
+	
 	@Autowired
 	private NodeDAO nodeDAO;
 	
+	private UserInfo adminUserInfo;
 	private String ownerName;
+	
+	private UserInfo testUserInfo;
 	private String userName;
-	private String userId;
 	
 	private Evaluation eval1;
 	private Evaluation eval2;
@@ -95,10 +106,13 @@ public class EvaluationControllerAutowiredTest {
 		nodesToDelete = new ArrayList<String>();
 		
 		// get user IDs
-		ownerName = AuthorizationConstants.ADMIN_USER_NAME;
-		userName = AuthorizationConstants.TEST_USER_NAME;
-		userManager.getUserInfo(ownerName).getIndividualGroup().getId();
-		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		ownerName = adminUserInfo.getIndividualGroup().getName();
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		userName = testUserInfo.getIndividualGroup().getName();
 		
 		// initialize Evaluations
 		eval1 = new Evaluation();
@@ -130,7 +144,7 @@ public class EvaluationControllerAutowiredTest {
 	}
 	
 	@After
-	public void after() {
+	public void after() throws Exception {
 		// clean up submissions
 		for (String id : submissionsToDelete) {
 			try {
@@ -151,8 +165,7 @@ public class EvaluationControllerAutowiredTest {
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
-				UserInfo admin = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-				evalPermissionsManager.deleteAcl(admin, id);
+				evalPermissionsManager.deleteAcl(adminUserInfo, id);
 				evaluationDAO.delete(id);
 			} catch (Exception e) {}
 		}
@@ -163,6 +176,8 @@ public class EvaluationControllerAutowiredTest {
 				nodeDAO.delete(id);
 			} catch (Exception e) {}
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 	}
 	
 	@Test
@@ -251,8 +266,7 @@ public class EvaluationControllerAutowiredTest {
 			accessSet.add(ACCESS_TYPE.READ);
 			ResourceAccess ra = new ResourceAccess();
 			ra.setAccessType(accessSet);
-			String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
-			ra.setPrincipalId(Long.parseLong(userId));
+			ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 			acl.getResourceAccess().add(ra);
 		}
 		{
@@ -284,14 +298,14 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(eval1, pr.getResults().iterator().next());
 		
 		// read
-		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
-		Participant clone = entityServletHelper.getParticipant(userName, userId, eval1.getId());
+		String testUserId = testUserInfo.getIndividualGroup().getId();
+		Participant clone = entityServletHelper.getParticipant(userName, testUserId, eval1.getId());
 		assertEquals(part1, clone);
 		
 		// delete
-		entityServletHelper.deleteParticipant(ownerName, userId, eval1.getId());
+		entityServletHelper.deleteParticipant(ownerName, testUserId, eval1.getId());
 		try {
-			entityServletHelper.getParticipant(ownerName, userId, eval1.getId());
+			entityServletHelper.getParticipant(ownerName, testUserId, eval1.getId());
 			fail("Failed to delete Participant " + part1.toString());
 		} catch (NotFoundException e) {
 			// expected
@@ -312,8 +326,7 @@ public class EvaluationControllerAutowiredTest {
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
-		ra.setPrincipalId(Long.parseLong(userId));
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
 		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
@@ -410,8 +423,7 @@ public class EvaluationControllerAutowiredTest {
 		accessSet.add(ACCESS_TYPE.READ);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		String userId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
-		ra.setPrincipalId(Long.parseLong(userId));
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
 		acl.getResourceAccess().add(ra);
 		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
@@ -518,7 +530,7 @@ public class EvaluationControllerAutowiredTest {
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessType);
-		ra.setPrincipalId(Long.parseLong(userId));
+		ra.setPrincipalId(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 		aclReturned.getResourceAccess().add(ra);
 
 		aclReturned = entityServletHelper.updateEvaluationAcl(userName, aclReturned);
