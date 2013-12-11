@@ -11,7 +11,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -48,6 +48,7 @@ public class RdsWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver rdsQueueMessageReveiver;
 	
+	private UserInfo adminUserInfo;
 	private final String key = "some_annotation_key";
 	private String uniqueValue;
 	private Project project;
@@ -58,17 +59,17 @@ public class RdsWorkerIntegrationTest {
 		emptyQueue();
 		
 		// Create a project
-		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		project = new Project();
 		project.setName("RdsWorkerIntegrationTest.Project");
 		// this should trigger create message.
-		String id = entityManager.createEntity(userInfo, project, null);
-		project = entityManager.getEntity(userInfo, id, Project.class);
+		String id = entityManager.createEntity(adminUserInfo, project, null);
+		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 		// Add an annotation to query for
-		Annotations annos = entityManager.getAnnotations(userInfo, id);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		uniqueValue = UUID.randomUUID().toString();
 		annos.addAnnotation(key, uniqueValue);
-		entityManager.updateAnnotations(userInfo, id, annos);
+		entityManager.updateAnnotations(adminUserInfo, id, annos);
 	}
 
 	/**
@@ -89,7 +90,6 @@ public class RdsWorkerIntegrationTest {
 	
 	@After
 	public void after() throws Exception {
-		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		entityManager.deleteEntity(adminUserInfo, project.getId());
 	}
 	
@@ -97,11 +97,10 @@ public class RdsWorkerIntegrationTest {
 	@Test
 	public void testRoundTrip() throws Exception {
 		// First run query
-		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		BasicQuery query = new BasicQuery();
 		query.addExpression(new Expression(new CompoundId(null, key), Comparator.EQUALS, uniqueValue));
 		long start = System.currentTimeMillis();
-		while(nodeQueryDao.executeCountQuery(query, userInfo)< 1){
+		while(nodeQueryDao.executeCountQuery(query, adminUserInfo)< 1){
 			System.out.println("Waiting for annotations index to be updated for entity: "+project.getId());
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;

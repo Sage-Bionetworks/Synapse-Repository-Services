@@ -15,7 +15,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -60,10 +60,10 @@ public class SearchWorkerIntegrationTest {
 	@Autowired
 	private WikiPageDao wikiPageDao;
 	
+	private UserInfo adminUserInfo;
 	private Project project;
 	private WikiPage rootPage;
 	private WikiPageKey rootKey;
-	private UserInfo userInfo;
 	
 	@Before
 	public void before() throws Exception {
@@ -75,12 +75,12 @@ public class SearchWorkerIntegrationTest {
 		searchDao.deleteAllDocuments();
 		
 		// Create a project
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		project = new Project();
 		project.setName("SearchIntegrationTest.Project");
 		// this should trigger create messaage.
-		String id = entityManager.createEntity(userInfo, project, null);
-		project = entityManager.getEntity(userInfo, id, Project.class);
+		String id = entityManager.createEntity(adminUserInfo, project, null);
+		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 
 	}
 
@@ -114,7 +114,6 @@ public class SearchWorkerIntegrationTest {
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
 		if (project != null){
-			UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 		if(rootKey != null){
@@ -130,7 +129,7 @@ public class SearchWorkerIntegrationTest {
 				
 		// Now add a wikpage
 		// Create a wiki page
-		rootPage = createWikiPage(userInfo);
+		rootPage = createWikiPage(adminUserInfo);
 		rootPage.setTitle("rootTile");
 		String uuid = UUID.randomUUID().toString();
 		rootPage.setMarkdown(" "+uuid);

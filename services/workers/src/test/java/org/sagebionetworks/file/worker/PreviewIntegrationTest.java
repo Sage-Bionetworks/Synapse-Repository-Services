@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -63,8 +63,8 @@ public class PreviewIntegrationTest {
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
+	private UserInfo adminUserInfo;
 	private List<S3FileHandleInterface> toDelete;
-	private UserInfo userInfo;
 	private S3FileHandle imageFileHandle, csvFileHandle, tabFileHandle, txtFileHandle;
 	
 	@Before
@@ -72,7 +72,7 @@ public class PreviewIntegrationTest {
 		// Before we start, make sure the queue is empty
 		emptyQueue();
 		// Create a file
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		imageFileHandle = uploadFile(LITTLE_IMAGE_NAME, ImagePreviewGenerator.IMAGE_PNG);
@@ -96,7 +96,7 @@ public class PreviewIntegrationTest {
 		when(mockFiz.getContentType()).thenReturn(contentType);
 		when(mockFiz.getName()).thenReturn(fileName);
 		// Now upload the file.
-		return fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
+		return fileUploadManager.uploadFile(adminUserInfo.getIndividualGroup().getId(), mockFiz);
 	}
 	
 	@After
