@@ -1,6 +1,9 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.List;
@@ -9,11 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAOImpl;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -21,6 +19,7 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -39,21 +38,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class SubmissionDAOImplTest {
  
     @Autowired
-    SubmissionDAO submissionDAO;
+    private SubmissionDAO submissionDAO;
+    
     @Autowired
-    SubmissionStatusDAO submissionStatusDAO;
+    private SubmissionStatusDAO submissionStatusDAO;
+    
     @Autowired
-    ParticipantDAO participantDAO;
+    private ParticipantDAO participantDAO;
+    
     @Autowired
-    EvaluationDAO evaluationDAO;
-	@Autowired
-	NodeDAO nodeDAO;
-	@Autowired
-	FileHandleDao fileHandleDAO;
+    private EvaluationDAO evaluationDAO;
+	
+    @Autowired
+	private NodeDAO nodeDAO;
+	
+    @Autowired
+	private FileHandleDao fileHandleDAO;
  
-	private String nodeId = null;
+	private String nodeId;
+	private String userId;
+	
     private String submissionId = "206";
-    private String userId = "0";
     private String userId_does_not_exist = "2";
     private String evalId;
     private String evalId_does_not_exist = "456";
@@ -64,6 +69,8 @@ public class SubmissionDAOImplTest {
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+    	
     	// create a file handle
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");

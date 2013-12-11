@@ -18,18 +18,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.JDONodeLockChecker;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -47,28 +46,26 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class NodeDaoMessageTest {
 	
 	@Autowired
-	NodeDAO nodeDao;
-	@Autowired
-	JDONodeLockChecker nodeLockerA;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private NodeDAO nodeDao;
 	
 	@Autowired
-	TransactionalMessenger transactionalMessanger;
+	private JDONodeLockChecker nodeLockerA;
 	
 	@Autowired
-	DBOChangeDAO changeDAO;
+	private TransactionalMessenger transactionalMessanger;
 	
-	TransactionalMessengerObserver mockObserver;
+	@Autowired
+	private DBOChangeDAO changeDAO;
+	
+	private TransactionalMessengerObserver mockObserver;
 	
 	// delete anything at the end
-	List<String> toDelete = new ArrayList<String>();
-	private Long creatorUserGroupId = null;	
+	private List<String> toDelete = new ArrayList<String>();
+	private Long creatorUserGroupId;	
 	
 	@Before
 	public void before() throws NumberFormatException, DatastoreException{
-		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-		assertNotNull(creatorUserGroupId);
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
 		// Add a mock observer

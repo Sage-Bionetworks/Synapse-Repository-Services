@@ -9,7 +9,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -47,7 +46,10 @@ public class DBOCommentDAOImplTest {
 	public void setup() throws Exception {
 		cleanup = new ArrayList<String>();
 		
-		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
+		maliciousUser = new UserGroup();
+		maliciousUser.setName("CommentDAOUser");
+		maliciousUser.setIsIndividual(true);
+		maliciousUser.setId(userGroupDAO.create(maliciousUser));
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -63,6 +65,7 @@ public class DBOCommentDAOImplTest {
 			messageDAO.deleteMessage(id);
 		}
 		fileDAO.delete(fileHandleId);
+		userGroupDAO.delete(maliciousUser.getId());
 	}
 	
 	@Test

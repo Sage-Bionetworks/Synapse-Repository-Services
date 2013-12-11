@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,24 +35,31 @@ import org.springframework.transaction.UnexpectedRollbackException;
 public class SubmissionFileHandleDAOImplTest {
  
     @Autowired
-    SubmissionDAO submissionDAO;
+    private SubmissionDAO submissionDAO;
+    
     @Autowired
-    SubmissionStatusDAO submissionStatusDAO;
+    private SubmissionStatusDAO submissionStatusDAO;
+    
     @Autowired
-    SubmissionFileHandleDAO submissionFileHandleDAO;
+    private SubmissionFileHandleDAO submissionFileHandleDAO;
+    
     @Autowired
-    ParticipantDAO participantDAO;
+    private ParticipantDAO participantDAO;
+    
     @Autowired
-    EvaluationDAO evaluationDAO;
-	@Autowired
-	NodeDAO nodeDAO;
-	@Autowired
-	FileHandleDao fileHandleDAO;
+    private EvaluationDAO evaluationDAO;
+	
+    @Autowired
+    private NodeDAO nodeDAO;
+	
+    @Autowired
+    private FileHandleDao fileHandleDAO;
  
-	private String nodeId = null;
+	private String userId;
+	private String nodeId;
+	
     private String submissionId1 = "206";
     private String submissionId2 = "207";
-    private String userId = "0";
     private String evalId;
     private String name = "test submission";
     private String fileHandleId1;
@@ -61,6 +69,8 @@ public class SubmissionFileHandleDAOImplTest {
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+    	
     	// create a file handle
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");

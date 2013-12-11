@@ -1,5 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_TITLE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_ATTACHMENT_RESERVATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -9,23 +21,12 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION_NUM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_MARKDOWN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_ATTACHMENT_RESERVATION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -44,19 +45,22 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_TITLE;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class V2DBOWikiPageMigrationDAOImplTest {
+	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
 	private V2WikiPageMigrationDao v2WikiPageMigrationDao;
+	
 	@Autowired
 	private V2WikiPageDao v2WikiPageDao;
+	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
@@ -80,18 +84,21 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 	};
 	
 	private List<WikiPageKey> toDeleteFromV2;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
-	S3FileHandle attachOne;
-	S3FileHandle markdown;
+	private S3FileHandle attachOne;
+	private S3FileHandle markdown;
 	
 	@Before
 	public void before(){
 		toDeleteFromV2 = new LinkedList<WikiPageKey>();
-		UserGroup userGroup = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
-		assertNotNull(userGroup);
-		creatorUserGroupId = userGroup.getId();
-		assertNotNull(creatorUserGroupId);
+		
+		UserGroup user = new UserGroup();
+		user.setName(UUID.randomUUID().toString());
+		user.setIsIndividual(true);
+		user.setId(userGroupDAO.create(user));
+		creatorUserGroupId = user.getId();
+
 		// We use a long file name to test the uniqueness constraint
 		String prefix = "prefix";
 		
@@ -120,19 +127,15 @@ public class V2DBOWikiPageMigrationDAOImplTest {
 	}
 	
 	@After
-	public void after(){
-		if(v2WikiPageDao != null && toDeleteFromV2 != null){
-			for(WikiPageKey id: toDeleteFromV2){
-				v2WikiPageDao.delete(id);
-			}
+	public void after() throws Exception {
+		for (WikiPageKey id : toDeleteFromV2) {
+			v2WikiPageDao.delete(id);
 		}
 		// Delete the file handles
-		if(attachOne != null){
-			fileMetadataDao.delete(attachOne.getId());
-		}
-		if(markdown != null){
-			fileMetadataDao.delete(markdown.getId());
-		}
+		fileMetadataDao.delete(attachOne.getId());
+		fileMetadataDao.delete(markdown.getId());
+		
+		userGroupDAO.delete(creatorUserGroupId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

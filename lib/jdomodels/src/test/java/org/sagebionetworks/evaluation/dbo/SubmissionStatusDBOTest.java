@@ -1,21 +1,19 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
-import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
-import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
-import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -38,15 +36,18 @@ public class SubmissionStatusDBOTest {
     @Autowired
     IdGenerator idGenerator;
     
-    private String nodeId = null;
+    private String nodeId;
+    private long userId;
+    
     private long submissionId = 2000;
-    private long userId = 0;
     private long evalId;
     private String name = "test submission";
     private String eTag = "foo";
     
     @Before
-    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {    	
+    public void setUp() throws Exception {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+    	
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, userId);
     	toCreate.setVersionComment("This is the first version of the first node ever!");

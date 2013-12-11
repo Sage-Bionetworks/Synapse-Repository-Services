@@ -13,8 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Favorite;
@@ -23,8 +22,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,24 +39,16 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOFavoriteDAOImplAutowiredTest {
 
 	@Autowired
-	FavoriteDAO favoriteDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private FavoriteDAO favoriteDao;
 	
 	@Autowired
 	private NodeDAO nodeDao;
 	
 	// must be deleted at the end of each test.
-	List<Favorite> favoritesToDelete;
-	List<String> nodesToDelete;
+	private List<Favorite> favoritesToDelete;
+	private List<String> nodesToDelete;
 	
-	private UserInfo userInfo = null;
 	private Long creatorUserGroupId = null;	
-	private Long altUserGroupId = null;
 	
 	long initialCount; 
 
@@ -68,11 +57,7 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		favoritesToDelete = new ArrayList<Favorite>();
 		nodesToDelete = new ArrayList<String>();
 		
-		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-		assertNotNull(creatorUserGroupId);
-		
-		altUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
-		assertNotNull(altUserGroupId);
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		assertNotNull(favoriteDao);
 		
