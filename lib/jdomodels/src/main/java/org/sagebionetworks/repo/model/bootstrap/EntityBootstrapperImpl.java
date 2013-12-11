@@ -12,8 +12,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +73,6 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		// First make sure the nodeDao has been bootstrapped
 		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
-		UserGroup bootstrapPrincipal = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
 		// Map the default users to their ids
 		// Now create a node for each type in the list
 		for(EntityBootstrapData entityBoot: bootstrapEntities){
@@ -103,21 +101,16 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setDescription(entityBoot.getEntityDescription());
 			if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
 			toCreate.setNodeType(entityBoot.getEntityType().name());
-			toCreate.setCreatedByPrincipalId(Long.parseLong(bootstrapPrincipal.getId()));
+			toCreate.setCreatedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 			toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
-			toCreate.setModifiedByPrincipalId(Long.parseLong(bootstrapPrincipal.getId()));
+			toCreate.setModifiedByPrincipalId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
 			toCreate.setId(""+entityBoot.getEntityId());
 			String nodeId = nodeDao.createNew(toCreate);
-			
-			for (AccessBootstrapData abd: entityBoot.getAccessList()) {
-				Long groupId = Long.parseLong(userGroupDAO.findGroup(abd.getGroup().name(), false).getId());
-				abd.setGroupId(groupId);
-			}
 
 			// Now create the ACL on the node
-			AccessControlList acl = createAcl(nodeId, bootstrapPrincipal.getId(), entityBoot.getAccessList());
+			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
 			// Now set the ACL for this node.
 			aclDAO.create(acl);
 			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
@@ -158,13 +151,9 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	}
 	
 	/**
-	 * Build up an ACL from List<AccessBootstrapData> list.
-	 * @param nodeId
-	 * @param list
-	 * @param groupIdMap
-	 * @return
+	 * Build up an ACL from List<AccessBootstrapData> list
 	 */
-	public static AccessControlList createAcl(String nodeId, String creatorPrincipalId, List<AccessBootstrapData> list) throws DatastoreException {
+	protected static AccessControlList createAcl(String nodeId, List<AccessBootstrapData> list) throws DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		AccessControlList acl = new AccessControlList();
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
@@ -177,7 +166,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			set.add(access);
 			Set<ACCESS_TYPE> typeSet = new HashSet<ACCESS_TYPE>();
 			access.setAccessType(typeSet);
-			access.setPrincipalId(data.getGroupId());
+			access.setPrincipalId(data.getGroup().getPrincipalId());
 			// Add each type to the set
 			List<ACCESS_TYPE> types = data.getAccessTypeList();
 			for(ACCESS_TYPE type: types){

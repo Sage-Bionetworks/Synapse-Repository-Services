@@ -3,48 +3,50 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserManager {
 
 	/**
 	 * Get the User and UserGroup information for the given user name.
-	 * Has the side effect of creating permissions-related objects for the
-	 * groups that the user is in.
 	 * 
 	 * @param userName the name (email address) of the user of interest
 	 */
+	@Deprecated
 	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the User and UserGroup information for the given user ID.
-	 * Has the side effect of creating permissions-related objects for the
-	 * groups that the user is in.
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */
 	public UserInfo getUserInfo(Long principalId) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get a default group
-	 */
-	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group) throws DatastoreException;
-
-	/**
 	 * Find a group
 	 */
+	@Deprecated
 	public UserGroup findGroup(String name, boolean b) throws DatastoreException;
 	
 	/**
 	 * Creates a new user
+	 * 
+	 * @return The ID of the user
 	 */
-	public void createUser(NewUser user);
+	public long createUser(NewUser user);
+	
+	/**
+	 * Creates a new user and initializes some fields as specified.
+	 * Must be an admin to use this
+	 */
+	public UserInfo createUser(UserInfo adminUserInfo, String username, UserProfile profile, DBOCredential credential) throws NotFoundException;
 	
 	/**
 	 * Does a principal with this name exist?
@@ -52,9 +54,11 @@ public interface UserManager {
 	public boolean doesPrincipalExist(String name);
 	
 	/**
-	 * Delete a principal by name
+	 * Delete a principal by ID
+	 * 
+	 * For testing purposes only
 	 */
-	public boolean deletePrincipal(String name);
+	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException;
 
 	/**
 	 * @param principalId

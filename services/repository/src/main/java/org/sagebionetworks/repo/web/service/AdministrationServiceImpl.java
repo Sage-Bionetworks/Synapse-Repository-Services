@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -13,16 +14,20 @@ import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
+import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
@@ -35,16 +40,22 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
+	
 	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;	
+	private ObjectTypeSerializer objectTypeSerializer;	
+	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	StackStatusManager stackStatusManager;	
+	private StackStatusManager stackStatusManager;	
+	
 	@Autowired
-	MessageSyndication messageSyndication;
+	private MessageSyndication messageSyndication;
+	
 	@Autowired
 	private DoiAdminManager doiAdminManager;
+	
 	@Autowired
 	private DynamoAdminManager dynamoAdminManager;
 
@@ -178,5 +189,32 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			String hashKeyName, String rangeKeyName) throws NotFoundException,
 			UnauthorizedException, DatastoreException {
 		dynamoAdminManager.clear(userId, tableName, hashKeyName, rangeKeyName);
+	}
+	
+	@Override
+	public void createTestUser(String userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
+		DBOCredential cred = new DBOCredential();
+		if (userSpecs.getPassword() != null) {
+			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
+		}
+		if (userSpecs.getSecretKey() != null) {
+			cred.setSecretKey(userSpecs.getSecretKey());
+		} else {
+			cred.setSecretKey(HMACUtils.newHMACSHA1Key());
+		}
+		if (userSpecs.getSession() != null) {
+			cred.setSessionToken(userSpecs.getSession().getSessionToken());
+			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
+			cred.setValidatedOn(new Date());
+		}
+				
+		userManager.createUser(userInfo, userSpecs.getUsername(), userSpecs.getProfile(), cred);
+	}
+	@Override
+	public void deleteUser(String userId, String id) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		userManager.deletePrincipal(userInfo, Long.parseLong(id));
 	}
 }

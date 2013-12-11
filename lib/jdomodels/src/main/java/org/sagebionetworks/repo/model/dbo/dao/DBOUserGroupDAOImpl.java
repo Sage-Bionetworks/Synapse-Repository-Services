@@ -14,12 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.ids.NamedIdGenerator.NamedType;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -27,11 +23,9 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -286,15 +280,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			throw new DatastoreException("id=" + dbo.getId() + " name="+dto.getName(), e);
 		}
 		
-		Boolean isIndividual = dbo.getIsIndividual();
-		if (isIndividual != null && isIndividual.booleanValue()) {
-			// Create a row for the authentication DAO
-			DBOCredential credDBO = new DBOCredential();
-			credDBO.setPrincipalId(dbo.getId());
-			credDBO.setSecretKey(HMACUtils.newHMACSHA1Key());
-			basicDao.createNew(credDBO);
-		}
-		
 		return dbo.getId().toString();
 	}
 
@@ -403,35 +388,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				newUg.setName(ug.getName());
 				newUg.setIsIndividual(ug.getIsIndividual());
 				this.createPrivate(newUg);
-			}
-		}
-
-		// A few additional users are required for testing
-		if (!StackConfiguration.isProductionStack()) {
-			String testUsers[] = new String[]{ 
-					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
-					StackConfiguration.getIntegrationTestUserOneName(), 
-					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeName(), 
-					AuthorizationConstants.ADMIN_USER_NAME, 
-					AuthorizationConstants.TEST_GROUP_NAME, 
-					AuthorizationConstants.TEST_USER_NAME };
-			for (String username : testUsers) {
-				if (!this.doesPrincipalExist(username)) {
-					UserGroup ug = new UserGroup();
-					ug.setName(username);
-					ug.setIsIndividual(!username.equals(AuthorizationConstants.TEST_GROUP_NAME));
-					ug.setId(this.createPrivate(ug));
-				}
-				UserGroup ug = new UserGroup();
-				UserGroupUtils.copyDboToDto(this.findGroup(username), ug);
-				ug.setCreationDate(null);
-				ug.setEtag(null);
-				ug.setUri(null);
-				if (!this.bootstrapUsers.contains(ug)) {
-					this.bootstrapUsers.add(ug);
-				}
 			}
 		}
 	}

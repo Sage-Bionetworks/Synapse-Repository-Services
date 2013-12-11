@@ -10,6 +10,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *   presumably created by the UserGroupDAO
  */
 public interface AuthenticationDAO {
+	
+	/**
+	 * Creates a row in the Credentials table for the given principal
+	 */
+	public void createNew(long principalId);
 
 	/**
 	 * Checks to see if the username and password hash combination are valid

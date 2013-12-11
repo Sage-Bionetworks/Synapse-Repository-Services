@@ -144,7 +144,9 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		if (username == null) {
-			username = AuthorizationConstants.ANONYMOUS_USER_ID;
+			//TODO This must be refactored to use a Long rather than a string
+			// Only kept in place to keep a refactoring commit as small as possible
+			username = "anonymous@sagebase.org";
 		}
 
 		// Pass along, including the user ID
