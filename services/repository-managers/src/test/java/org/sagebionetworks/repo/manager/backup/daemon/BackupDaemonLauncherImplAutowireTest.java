@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.manager.backup.daemon;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -28,29 +27,24 @@ public class BackupDaemonLauncherImplAutowireTest {
 	@Autowired
 	private UserManager userManager;
 	
-	@Autowired
-	public NodeManager nodeManager;
-	
-	private List<String> nodesToDelete = null;
-	private UserInfo adminUserInfo;
+	private UserInfo testUserInfo;
 	
 	@Before
 	public void before() throws Exception {
-		nodesToDelete = new ArrayList<String>();
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 	}
 	
 	@After
 	public void after() throws Exception {
-		for (String id: nodesToDelete) {
-			nodeManager.delete(adminUserInfo, id);
-		}
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testNonAdminUserGetStatus() throws UnauthorizedException, DatastoreException, NotFoundException{
 		// A non-admin should not be able to start the daemon
-		UserInfo nonAdmin = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		backupDaemonLauncher.getStatus(nonAdmin, "123");
+		backupDaemonLauncher.getStatus(testUserInfo, "123");
 	}
 }

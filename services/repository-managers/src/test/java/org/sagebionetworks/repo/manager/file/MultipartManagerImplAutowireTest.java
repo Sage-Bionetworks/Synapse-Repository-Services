@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -54,13 +54,14 @@ public class MultipartManagerImplAutowireTest {
 	@Autowired
 	public UserManager userManager;
 	
-	private UserInfo userInfo;
-	List<String> fileHandlesToDelete;
+	// Only used to satisfy FKs
+	private UserInfo adminUserInfo;
+	private List<String> fileHandlesToDelete;
 	
 	@Before
 	public void before() throws Exception {
 		fileHandlesToDelete = new LinkedList<String>();
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 	
 	@After
@@ -82,7 +83,7 @@ public class MultipartManagerImplAutowireTest {
 		String bucket = StackConfiguration.getS3Bucket();
 		// First create a chunked file token
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		String userId = userInfo.getIndividualGroup().getId();
+		String userId = adminUserInfo.getIndividualGroup().getId();
 		String fileName = "foo.bar";
 		ccftr.setFileName(fileName);
 		ccftr.setContentType("text/plain");

@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
@@ -138,10 +138,10 @@ public class MembershipRequestManagerImplTest {
 	public void testAnonymousCreate() throws Exception {
 		UserInfo anonymousInfo = new UserInfo(false);
 		UserGroup individualGroup = new UserGroup();
-		individualGroup.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
+		individualGroup.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		anonymousInfo.setIndividualGroup(individualGroup);
 		User user = new User();
-		user.setUserId(AuthorizationConstants.ANONYMOUS_USER_ID);
+		user.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		anonymousInfo.setUser(user);
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		membershipRequestManagerImpl.create(anonymousInfo, mrs);
