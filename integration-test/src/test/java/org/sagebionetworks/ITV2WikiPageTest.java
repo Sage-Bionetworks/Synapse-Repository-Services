@@ -13,9 +13,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -35,38 +39,40 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class ITV2WikiPageTest {
-	private static String FILE_NAME = "LittleImage.png";
-	private static String FILE_NAME2 = "profile_pic.png";
-	private static String MARKDOWN_NAME = "previewtest.txt";
-	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
+
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+	
+	private static final String FILE_NAME = "LittleImage.png";
+	private static final String FILE_NAME2 = "profile_pic.png";
+	private static final String MARKDOWN_NAME = "previewtest.txt";
+	private static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	
 	private List<WikiPageKey> toDelete = null;
 	private List<String> fileHandlesToDelete = null;
-	private static SynapseClientImpl synapse = null;
-	S3FileHandle fileHandle;
-	S3FileHandle fileHandleTwo;
-	S3FileHandle markdownHandle;
-	File imageFile;
-	File imageFileTwo;
-	File markdownFile;
-	Project project;
-	
-	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
-		
-		return synapse;
-	}
+	private S3FileHandle fileHandle;
+	private S3FileHandle fileHandleTwo;
+	private S3FileHandle markdownHandle;
+	private File imageFile;
+	private File imageFileTwo;
+	private File markdownFile;
+	private Project project;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		String session = SynapseClientHelper.createUser(adminSynapse);
+		
+		synapse = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapse);
+		synapse.setSessionToken(session);
+		
+		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
 	}
 	
 	@Before
@@ -131,6 +137,11 @@ public class ITV2WikiPageTest {
 		for(WikiPageKey key: toDelete){
 			synapse.deleteV2WikiPage(key);
 		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
