@@ -1,5 +1,6 @@
 package org.sagebionetworks.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -335,15 +336,38 @@ public class SharedClientConnection {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws FileNotFoundException
+	 * @throws SynapseException 
 	 */
 	public File downloadFile(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
-			FileNotFoundException {
+			FileNotFoundException, SynapseException {
 		HttpGet get = new HttpGet(endpoint+uri);
 		setHeaders(get, defaultGETDELETEHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
 		HttpResponse response = clientProvider.execute(get);
 		HttpEntity entity = response.getEntity();
 		InputStream input = entity.getContent();
+		int statusCode = response.getStatusLine().getStatusCode();
+		if(statusCode != 200) {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			String fromZip;
+			try{
+				byte[] buffer = new byte[1024]; 
+				int read = -1;
+				while((read = input.read(buffer)) > 0){
+					baos.write(buffer, 0, read);
+				}
+				fromZip = new String(baos.toByteArray(), "UTF-8");
+			}finally{
+				if(baos != null){
+					baos.flush();
+					baos.close();
+				}
+				if(input != null){
+					input.close();
+				}
+			}
+			throw new SynapseException("Status code: " + statusCode + ", " + fromZip);
+		}
 		File temp = File.createTempFile("downloadWikiAttachment", ".tmp");
 		FileOutputStream fos = new FileOutputStream(temp);
 		try{
