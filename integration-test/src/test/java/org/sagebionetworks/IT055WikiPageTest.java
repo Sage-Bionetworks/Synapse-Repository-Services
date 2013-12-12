@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -33,7 +32,6 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
@@ -46,6 +44,7 @@ public class IT055WikiPageTest {
 	private static final String FILE_NAME = "LittleImage.png";
 
 	private List<WikiPageKey> toDelete;
+	private List<String> handlesToDelete;
 	private File imageFile;
 	private S3FileHandle fileHandle;
 	private Project project;
@@ -69,6 +68,8 @@ public class IT055WikiPageTest {
 	@Before
 	public void before() throws SynapseException {
 		toDelete = new ArrayList<WikiPageKey>();
+		handlesToDelete = new ArrayList<String>();
+		
 		// Get the image file from the classpath.
 		URL url = IT055WikiPageTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -82,6 +83,8 @@ public class IT055WikiPageTest {
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
+		handlesToDelete.add(fileHandle.getId());
+		
 		// Create a project, this will own the wiki page.
 		project = new Project();
 		project = synapse.createEntity(project);
@@ -89,10 +92,11 @@ public class IT055WikiPageTest {
 
 	@After
 	public void after() throws Exception {
-		//TODO Cleanup properly after tests
-		try {
-			adminSynapse.deleteFileHandle(fileHandle.getId());
-		} catch (SynapseNotFoundException e) {}
+		for (String id : handlesToDelete) {
+			try {
+				adminSynapse.deleteFileHandle(id);
+			} catch (SynapseNotFoundException e) {}
+		}
 		
 		adminSynapse.deleteAndPurgeEntity(project);
 		for (WikiPageKey key : toDelete) {
@@ -102,15 +106,11 @@ public class IT055WikiPageTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		//TODO This deletes should not need to be surrounded by a try-catch
-		// This means proper cleanup was not done by the test 
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (Exception e) { }
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
-	public void testWikiRoundTrip() throws SynapseException, IOException, InterruptedException, JSONObjectAdapterException{
+	public void testWikiRoundTrip() throws Exception {
 		// Now create a WikPage that has this file as an attachment
 		WikiPage wiki = new WikiPage();
 		wiki.setTitle("IT055WikiPageTest.testWikiRoundTrip");
@@ -119,6 +119,8 @@ public class IT055WikiPageTest {
 		assertNotNull(wiki);
 		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
+		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
+		
 		// Add the file attachment and update the wiki
 		wiki.getAttachmentFileHandleIds().add(fileHandle.getId());
 		wiki = synapse.updateWikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
@@ -128,8 +130,10 @@ public class IT055WikiPageTest {
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		// test get
 		wiki = synapse.getWikiPage(key);
+		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
 		
 		WikiPage root = synapse.getRootWikiPage(project.getId(), ObjectType.ENTITY);
+		handlesToDelete.add(synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY).getMarkdownFileHandleId());
 		assertEquals(wiki, root);
 		// Get the tree
 		PaginatedResults<WikiHeader> tree = synapse.getWikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
@@ -149,7 +153,7 @@ public class IT055WikiPageTest {
 	}
 	
 	@Test
-	public void testGetWikiPageAttachments() throws Exception{
+	public void testGetWikiPageAttachments() throws Exception {
 		WikiPage wiki = new WikiPage();
 		wiki.setTitle("IT055WikiPageTest.testGetWikiPageAttachmentFileHandles");
 		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
@@ -159,13 +163,17 @@ public class IT055WikiPageTest {
 		assertNotNull(wiki);
 		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
+		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
+		
 		// Since we expect the preview file handle to be returned we need to wait for it.
 		waitForPreviewToBeCreated(fileHandle);
+		
 		// There should be two handles for this WikiPage, one for the origin file
 		// and the other for the preview.
 		FileHandleResults results = synapse.getWikiAttachmenthHandles(key);
 		assertNotNull(results);
 		assertNotNull(results.getList());
+		
 		// there should be two things on the list, the original file and its preview.
 		assertEquals(2, results.getList().size());
 		FileHandle one = results.getList().get(0);
@@ -175,6 +183,7 @@ public class IT055WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
+		
 		// Make sure we can download
 		File mainFile = null;
 		File previewFile = null;
@@ -185,7 +194,7 @@ public class IT055WikiPageTest {
 			// Make sure we can also just get the temporary URL
 			URL tempUrl = synapse.getWikiAttachmentTemporaryUrl(key, handle.getFileName());
 			assertNotNull(tempUrl);
-//			assertTrue("Did not get the expected URL",tempUrl.toString().indexOf(handle.getKey()) > 0);
+			
 			// the file should be the expected size
 			assertEquals(handle.getContentSize().longValue(), mainFile.length());
 			// Check the MD5
@@ -196,13 +205,10 @@ public class IT055WikiPageTest {
 			assertNotNull(previewFile);
 			// the file should be the expected size
 			assertEquals(preview.getContentSize().longValue(), previewFile.length());
+			
 			// Make sure we can also just get the temporary URL
 			tempUrl = synapse.getWikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
 			assertNotNull(tempUrl);
-//			assertTrue("Did not get the expected URL",tempUrl.toString().indexOf(preview.getKey()) > 0);
-			// The preview FileHandle md5 is currently null
-//			md5 = MD5ChecksumHelper.getMD5Checksum(previewFile);
-//			assertEquals(preview.getContentMd5(), md5);
 		}finally{
 			if(mainFile != null){
 				mainFile.delete();
@@ -227,6 +233,7 @@ public class IT055WikiPageTest {
 			assertTrue("Timed out waiting for a preview to be created",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
 			fileHandle = (S3FileHandle) synapse.getRawFileHandle(fileHandle.getId());
 		}
+		handlesToDelete.add(fileHandle.getPreviewId());
 	}
 	
 }

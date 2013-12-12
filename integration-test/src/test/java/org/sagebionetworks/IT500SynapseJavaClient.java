@@ -32,7 +32,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
@@ -41,6 +40,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -104,10 +104,12 @@ public class IT500SynapseJavaClient {
 	private static final int PREVIEW_TIMOUT = 10*1000;
 	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
-	private List<String> toDelete = null;
-	private static List<Long> accessRequirementsToDelete;
-	private static Project project = null;
-	private static Study dataset = null;
+	private List<String> toDelete;
+	private List<Long> accessRequirementsToDelete;
+	private List<String> handlesToDelete;
+	private List<String> teamsToDelete;
+	private Project project;
+	private Study dataset;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -139,6 +141,9 @@ public class IT500SynapseJavaClient {
 	@Before
 	public void before() throws SynapseException {
 		toDelete = new ArrayList<String>();
+		accessRequirementsToDelete = new ArrayList<Long>();
+		handlesToDelete = new ArrayList<String>();
+		teamsToDelete = new ArrayList<String>();
 		
 		project = synapseOne.createEntity(new Project());
 		dataset = new Study();
@@ -148,37 +153,51 @@ public class IT500SynapseJavaClient {
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
 		
-		accessRequirementsToDelete = new ArrayList<Long>();
+		
+		// there shouldn't be any Teams floating around in the system
+		// the Team tests assume there are no Teams to start.  So before
+		// running the tests, we clean up all the teams
+		long numTeams = 0L;
+		do {
+			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
+			numTeams = teams.getTotalNumberOfResults();
+			for (Team team : teams.getResults()) {
+				synapseOne.deleteTeam(team.getId());
+			}
+		} while (numTeams>0);
 	}
-
+	
 	@After
 	public void after() throws Exception {
-		//TODO Cleanup properly after tests
-		if (toDelete != null) {
-			for (String id: toDelete) {
-				try {
-					synapseOne.deleteAndPurgeEntityById(id);
-				} catch (Exception e) {}
-			}
+		for (String id: toDelete) {
+			try {
+				adminSynapse.deleteAndPurgeEntityById(id);
+			} catch (SynapseNotFoundException e) {}
 		}
-		if (accessRequirementsToDelete!=null) {
-			// clean up Access Requirements
-			for (Long id : accessRequirementsToDelete) {
-				try {
-					synapseOne.deleteAccessRequirement(id);
-				} catch (Exception e) {}
-			}
+
+		for (Long id : accessRequirementsToDelete) {
+			try {
+				adminSynapse.deleteAccessRequirement(id);
+			} catch (SynapseNotFoundException e) {}
+		}
+
+		for (String id : handlesToDelete) {
+			try {
+				adminSynapse.deleteFileHandle(id);
+			} catch (SynapseNotFoundException e) {}
+		}
+		
+		for (String id : teamsToDelete) {
+			try {
+				adminSynapse.deleteTeam(id);
+			} catch (SynapseNotFoundException e) {}
 		}
 	}
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		//TODO This delete should not need to be surrounded by a try-catch
-		// This means proper cleanup was not done by the test 
-		try {
-			adminSynapse.deleteUser(user1ToDelete);
-			adminSynapse.deleteUser(user2ToDelete);
-		} catch (Exception e) { }
+		adminSynapse.deleteUser(user1ToDelete);
+		adminSynapse.deleteUser(user2ToDelete);
 	}
 	
 	@Test
@@ -204,10 +223,11 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
-	// for entities like our project, which have 'root' as parent
-	// it should not be possible to delete the ACL
 	@Test
 	public void testNoDeleteACLOnProject() throws Exception {
+		// for entities like our project, which have 'root' as parent
+		// it should not be possible to delete the ACL
+		
 		// Get the Users permission for this entity
 		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(project.getId());
 		// first, we CAN change permissions (i.e. edit the ACL)
@@ -223,9 +243,9 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
-	// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
 	@Test(expected=SynapseBadRequestException.class)
 	public void testEmptyACLAccessTypeList() throws Exception {
+		// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
 		AccessControlList acl = synapseOne.getACL(project.getId());
 		List<UserGroup> ugs = synapseOne.getGroups(0, 100).getResults();
 		Long publicPrincipalId = null;
@@ -253,62 +273,7 @@ public class IT500SynapseJavaClient {
 		// now push it, should get a SynapseBadRequestException
 		synapseOne.updateACL(acl);
 	}
-	
-	@Ignore
-	@Test
-	public void testUpdateACLRecursive() throws Exception {
-		// Create resource access for me
-		UserProfile myProfile = synapseOne.getMyProfile();
-		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
-		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
-		ra.setAccessType(accessTypes);
-		
-		// retrieve parent acl
-		AccessControlList parentAcl = synapseOne.getACL(project.getId());
 
-		// retrieve child acl - should get parent's
-		AccessControlList childAcl;
-		try {
-			childAcl = synapseOne.getACL(dataset.getId());
-			fail("Child has ACL, but should inherit from parent");
-		} catch (SynapseException e) {}		
-		
-		// assign new ACL to child
-		childAcl = new AccessControlList();
-		childAcl.setId(dataset.getId());
-		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
-		resourceAccesses.add(ra);
-		childAcl.setResourceAccess(resourceAccesses);
-		childAcl = synapseOne.createACL(childAcl);
-		
-		// retrieve child acl - should get child's
-		AccessControlList returnedAcl = synapseOne.getACL(dataset.getId());
-		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
-		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
-		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
-				
-		// apply parent ACL non-recursively
-		parentAcl = synapseOne.updateACL(parentAcl, false);
-		// child ACL should still be intact
-		returnedAcl = synapseOne.getACL(dataset.getId());
-		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
-		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
-		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
-		
-		// apply parent ACL recursively
-		parentAcl = synapseOne.updateACL(parentAcl, true);
-		// child ACL should have been deleted
-		try {
-			childAcl = synapseOne.getACL(dataset.getId());
-			fail("Child has ACL, but should inherit from parent");
-		} catch (SynapseException e) {}		
-	}
-
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testJavaClientCRUD() throws Exception {
 		Study aNewDataset = new Study();
@@ -372,6 +337,7 @@ public class IT500SynapseJavaClient {
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
 		ar = synapseOne.createAccessRequirement(ar);
+		accessRequirementsToDelete.add(ar.getId());
 		
 		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
@@ -443,9 +409,6 @@ public class IT500SynapseJavaClient {
 		
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testJavaClientCreateEntity() throws Exception {
 		Study study = new Study();
@@ -463,7 +426,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(createdStudy, fromGetById);
 
 	}
-	
+
 	@Test
 	public void testJavaClientGetEntityBundle() throws SynapseException {		
 		Annotations annos = synapseOne.getAnnotations(project.getId());
@@ -510,7 +473,7 @@ public class IT500SynapseJavaClient {
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
 	}
-	
+
 	@Test
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create resource access for me
@@ -593,10 +556,6 @@ public class IT500SynapseJavaClient {
 
 	}
 
-
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
 		
@@ -637,79 +596,8 @@ public class IT500SynapseJavaClient {
 		// TODO test auto versioning
 		
 	}
-	
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore // This test is not stable.  It has caused two builds to fail with: java.net.SocketTimeoutException: Read timed out
-	public void testJavaDownloadExternalLayer() throws Exception {
-
-		// Use a url that we expect to be available and whose contents we don't
-		// expect to change
-		String externalUrl = "http://www.sagebase.org/favicon";
-		String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
-		int externalUrlFileSizeBytes = 1150;
-
-		LocationData externalLocation = new LocationData();
-		externalLocation.setPath(externalUrl);
-		externalLocation.setType(LocationTypeNames.external);
-		List<LocationData> locations = new ArrayList<LocationData>();
-		locations.add(externalLocation);
-
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.M);
-		layer.setMd5(externalUrlMD5);
-		layer.setParentId(dataset.getId());
-		layer.setLocations(locations);
-		layer = synapseOne.createEntity(layer);
-
-		File downloadedLayer = synapseOne.downloadLocationableFromSynapse(layer);
-		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
-
-	}
-	
 	/**
 	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore // This test has the same potential instability issue as testJavaDownloadExternalLayer(). Useful test to run locally
-	public void testJavaClientUpdateExternalLocation() throws Exception {
-			// Use a url that we expect to be available and whose contents we don't
-		// expect to change
-		String externalUrl = "http://www.sagebase.org/favicon";
-		int externalUrlFileSizeBytes = 1150;
-
-		List<LocationData> locations = new ArrayList<LocationData>();
-		
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.M);
-		layer.setLocations(locations);
-		layer.setParentId(dataset.getId());
-		layer = synapseOne.createEntity(layer);
-
-		//update the locations
-		layer = (Data)synapseOne.updateExternalLocationableToSynapse(layer, externalUrl);
-		locations = layer.getLocations();
-		
-		assertEquals(1, locations.size());
-		LocationData location = locations.get(0);
-		assertEquals(LocationTypeNames.external, location.getType());
-		assertNotNull(location.getPath());
-		//test location url
-		assertEquals(location.getPath(), externalUrl);
-		//md5 is not calculated, should not be set
-		//assertEquals(layer.getMd5(), externalUrlMD5);
-		assertTrue(layer.getMd5() == null || layer.getMd5().length() == 0);
-		
-		File downloadedLayer = synapseOne.downloadLocationableFromSynapse(layer);
-		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
-	}
-	
-	/**
-	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 * @throws Exception
 	 */
 	@Test
 	public void testJavaClientUpdateExternalLocationWithoutDownload() throws Exception {
@@ -755,7 +643,6 @@ public class IT500SynapseJavaClient {
 	
 	/**
 	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 * @throws Exception
 	 */
 	@Test(expected=SynapseBadRequestException.class)
 	public void testJavaClientUpdateMissingMd5() throws Exception {
@@ -775,7 +662,6 @@ public class IT500SynapseJavaClient {
 		layer = synapseOne.createEntity(layer);
 	}
 
-	
 	@Test
 	public void testGetUsers() throws Exception {
 		UserProfile myProfile = synapseOne.getMyProfile();
@@ -795,7 +681,7 @@ public class IT500SynapseJavaClient {
 		}
 		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);
 	}
-	
+
 	@Test
 	public void testGetGroups() throws Exception {
 		PaginatedResults<UserGroup> groups = synapseOne.getGroups(0,100);
@@ -805,7 +691,7 @@ public class IT500SynapseJavaClient {
 			assertNotNull(ug.getName());
 		}
 	}
-	
+
 	@Test
 	public void testGetUserGroupHeadersById() throws Exception {
 		List<String> ids = new ArrayList<String>();		
@@ -828,7 +714,7 @@ public class IT500SynapseJavaClient {
 			if (!id.equals(dummyId))
 				assertTrue(headers.containsKey(id));
 	}
-	
+
 	@Test
 	public void testAccessRequirement() throws Exception {
 		// create a node
@@ -850,7 +736,8 @@ public class IT500SynapseJavaClient {
 
 		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		r.setTermsOfUse("I promise to be good.");
-		synapseOne.createAccessRequirement(r);
+		r = synapseOne.createAccessRequirement(r);
+		accessRequirementsToDelete.add(r.getId());
 		
 		// check that owner can download
 		assertTrue(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
@@ -887,7 +774,7 @@ public class IT500SynapseJavaClient {
 		// check that CAN download
 		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 	}
-	
+
 	@Test
 	public void testUserSessionData() throws Exception {
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
@@ -896,7 +783,7 @@ public class IT500SynapseJavaClient {
 		UserProfile integrationTestUserProfile = userSessionData.getProfile();
 		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
 	}
-	
+
 	@Test
 	public void testRetrieveSynapseTOU() throws Exception {
 		String termsOfUse = synapseOne.getSynapseTermsOfUse();
@@ -906,10 +793,6 @@ public class IT500SynapseJavaClient {
 	
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
-	 * 
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
 	 */
 	@Test
 	public void testAttachmentsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
@@ -968,10 +851,6 @@ public class IT500SynapseJavaClient {
 
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
-	 * 
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
 	 */
 	@Test
 	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
@@ -1031,7 +910,6 @@ public class IT500SynapseJavaClient {
 		}
 	}
 
-	
 	@Test	
 	public void testGetChildCount() throws SynapseException{
 		// Start with no children.
@@ -1063,8 +941,6 @@ public class IT500SynapseJavaClient {
 	
 	/**
 	 * PLFM-1166 annotations are not being returned from queries.
-	 * @throws SynapseException 
-	 * @throws JSONException 
 	 */
 	@Test 
 	public void testPLMF_1166() throws SynapseException, JSONException{
@@ -1095,9 +971,6 @@ public class IT500SynapseJavaClient {
 
 	/**
 	 * PLFM-1212 Links need to return what they reference.
-	 * @throws SynapseException 
-	 * @throws JSONException 
-	 * @throws InterruptedException 
 	 */
 	@Test 
 	public void testPLFM_1212() throws SynapseException, JSONException, InterruptedException{
@@ -1125,11 +998,9 @@ public class IT500SynapseJavaClient {
 		assertEquals(project.getId(), refs.getResults().get(0).getId());
 		
 	}
+	
 	/**
 	 * Helper to wait for references to be update.
-	 * @param entity
-	 * @throws SynapseException
-	 * @throws InterruptedException
 	 */
 	private void waitForReferencesBy(Entity toWatch) throws SynapseException, InterruptedException{
 		// Wait for the references to appear
@@ -1143,7 +1014,7 @@ public class IT500SynapseJavaClient {
 			refs = synapseOne.getEntityReferencedBy(toWatch);
 		}
 	}
-	
+
 	@Test
 	public void testPLFM_1548() throws SynapseException, InterruptedException, JSONException{
 		// Add a unique annotation and query for it
@@ -1159,10 +1030,6 @@ public class IT500SynapseJavaClient {
 	
 	/**
 	 * Helper 
-	 * @param queryString
-	 * @throws SynapseException
-	 * @throws InterruptedException
-	 * @throws JSONException
 	 */
 	private void waitForQuery(String queryString) throws SynapseException, InterruptedException, JSONException{
 		// Wait for the references to appear
@@ -1195,7 +1062,7 @@ public class IT500SynapseJavaClient {
 		dataset = synapseOne.putEntity(dataset);
 		assertEquals(null, dataset.getNumSamples());
 	}
-	
+
 	@Test
 	public void testPLFM_1272() throws Exception{
 		// Now add a data object 
@@ -1216,7 +1083,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(results.has("totalNumberOfResults"));
 		assertEquals(1l, results.getLong("totalNumberOfResults"));
 	}
-	
+
 	@Test
 	public void testGetAllUserAndGroupIds() throws SynapseException{
 		HashSet<String> expected = new HashSet<String>();
@@ -1235,41 +1102,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(expected,results);
 		
 	}
-	
 	@Test
 	public void testRetrieveApiKey() throws SynapseException {
 		String apiKey = synapseOne.retrieveApiKey();
 		assertNotNull(apiKey);		
-	}
-	
-	private Team teamToDelete = null;
-	private S3FileHandle fileHandleToDelete = null;
-	
-	// there shouldn't be any Teams floating around in the system
-	// the Team tests assume there are no Teams to start.  So before
-	// running the tests, we clean up all the teams
-	@Before
-	public void deleteAllTeams() throws SynapseException {
-		long numTeams = 0L;
-		do {
-			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
-			numTeams = teams.getTotalNumberOfResults();
-			for (Team team : teams.getResults()) {
-				synapseOne.deleteTeam(team.getId());
-			}
-		} while (numTeams>0);
-	}
-	
-	@After
-	public void cleanUpTeamTests() throws SynapseException {
-		if (teamToDelete!=null) {
-			synapseOne.deleteTeam(teamToDelete.getId());
-			teamToDelete = null;
-		}
-		if (fileHandleToDelete!=null) {
-			synapseOne.deleteFileHandle(fileHandleToDelete.getId());
-			fileHandleToDelete = null;
-		}
 	}
 	
 	private String getSomeGroup(String notThisOne) throws SynapseException {
@@ -1284,7 +1120,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(somePrincipalId);
 		return somePrincipalId;
 	}
-	
+
 	@Test
 	public void testTeamAPI() throws SynapseException, IOException {
 		// create a Team
@@ -1294,8 +1130,8 @@ public class IT500SynapseJavaClient {
 		team.setName(name);
 		team.setDescription(description);
 		Team createdTeam = synapseOne.createTeam(team);
-		// schedule Team for deletion
-		this.teamToDelete = createdTeam;
+		teamsToDelete.add(createdTeam.getId());
+
 		UserProfile myProfile = synapseOne.getMyProfile();
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
@@ -1332,6 +1168,8 @@ public class IT500SynapseJavaClient {
 			if (pw!=null) pw.close();
 		}
 		S3FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
+		handlesToDelete.add(fileHandle.getId());
+		
 		// update the Team with the icon
 		createdTeam.setIcon(fileHandle.getId());
 		Team updatedTeam = synapseOne.updateTeam(createdTeam);
@@ -1426,7 +1264,6 @@ public class IT500SynapseJavaClient {
 		members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 2, 0);
 		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
-		List<String> teamMembersEmails = new ArrayList<String>();
 		
 		// query for team members using name fragment
 		members = synapseOne.getTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
@@ -1473,7 +1310,7 @@ public class IT500SynapseJavaClient {
 			// as expected
 		}
 	}
-	
+
 	@Test
 	public void testTeamRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
 		// Create Evaluation
@@ -1484,8 +1321,8 @@ public class IT500SynapseJavaClient {
 		team.setName(name);
 		team.setDescription(description);
 		Team createdTeam = synapseOne.createTeam(team);
-		// schedule Team for deletion
-		this.teamToDelete = createdTeam;
+		teamsToDelete.add(createdTeam.getId());
+
 		// Create AccessRestriction
 		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
 		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
@@ -1520,7 +1357,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 	}
-	
+
 	@Test
 	public void testMembershipInvitationAPI() throws SynapseException {
 		// create a Team
@@ -1532,8 +1369,8 @@ public class IT500SynapseJavaClient {
 		team.setName(name);
 		team.setDescription(description);
 		Team createdTeam = synapseOne.createTeam(team);
-		// schedule Team for deletion (which will cascade to any created invitations)
-		this.teamToDelete = createdTeam;
+		teamsToDelete.add(createdTeam.getId());
+		
 		// create an invitation
 		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
 		String somePrincipalId = getSomeGroup(createdTeam.getId());
@@ -1607,7 +1444,7 @@ public class IT500SynapseJavaClient {
 			// as expected
 		}
 	}
-	
+
 	@Test
 	public void testMembershipRequestAPI() throws SynapseException {
 		// create a Team
@@ -1619,8 +1456,7 @@ public class IT500SynapseJavaClient {
 		team.setName(name);
 		team.setDescription(description);
 		Team createdTeam = synapseOne.createTeam(team);
-		// schedule Team for deletion (which will cascade to any created requests)
-		this.teamToDelete = createdTeam;
+		teamsToDelete.add(createdTeam.getId());
 		
 		// create a request
 		String otherPrincipalId = synapseTwo.getMyProfile().getOwnerId();

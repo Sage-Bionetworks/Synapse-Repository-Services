@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +21,6 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
@@ -45,6 +45,7 @@ public class IT100TableControllerTest {
 	private static Long userToDelete;
 
 	private List<Entity> entitiesToDelete;
+	private List<TableEntity> tablesToDelete;
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -65,16 +66,18 @@ public class IT100TableControllerTest {
 	@Before
 	public void before(){
 		entitiesToDelete = new LinkedList<Entity>();
+		tablesToDelete = new ArrayList<TableEntity>();
 	}
 	
 	@After
 	public void after() throws Exception {
-		//TODO Cleanup properly after tests
 		for (Entity entity : entitiesToDelete) {
-			try {
-				adminSynapse.deleteAndPurgeEntity(entity);
-			} catch (SynapseNotFoundException e) {
-			}
+			adminSynapse.deleteAndPurgeEntity(entity);
+		}
+		
+		for (TableEntity table : tablesToDelete) {
+			//TODO This function does not exist
+			// adminSynapse.deleteTable(table);
 		}
 	}
 	
@@ -86,7 +89,7 @@ public class IT100TableControllerTest {
 			adminSynapse.deleteUser(userToDelete);
 		} catch (Exception e) { }
 	}
-	
+
 	@Test
 	public void testCreateGetColumn() throws SynapseException{
 		ColumnModel cm = new ColumnModel();
@@ -128,7 +131,8 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
-		entitiesToDelete.add(table);
+		tablesToDelete.add(table);
+		
 		assertNotNull(table);
 		assertNotNull(table.getId());
 		// Now make sure we can get the columns for this entity.
@@ -153,7 +157,7 @@ public class IT100TableControllerTest {
 		assertEquals(table.getId(), results.getTableId());
 		assertEquals(TableModelUtils.getHeaders(columns), results.getHeaders());
 	}
-	
+
 	@Test
 	public void testListColumnModels() throws ServletException, Exception{
 		ColumnModel one = new ColumnModel();
