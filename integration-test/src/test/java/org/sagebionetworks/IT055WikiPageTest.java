@@ -12,16 +12,18 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.http.HttpException;
-import org.json.JSONException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -29,46 +31,39 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
-	
-	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
-	
-	private static String FILE_NAME = "LittleImage.png";
 
-	private List<WikiPageKey> toDelete = null;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+	
+	private  static final long MAX_WAIT_MS = 1000*20; // 10 sec
+	private static final String FILE_NAME = "LittleImage.png";
 
-	private static SynapseClientImpl synapse = null;
-	File imageFile;
-	S3FileHandle fileHandle;
-	Project project;
+	private List<WikiPageKey> toDelete;
+	private File imageFile;
+	private S3FileHandle fileHandle;
+	private Project project;
 	
-	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
-		
-		return synapse;
-	}
-	
-	/**
-	 * @throws Exception
-	 * 
-	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		// Create a 
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		String session = SynapseClientHelper.createUser(adminSynapse);
+		
+		synapse = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapse);
+		synapse.setSessionToken(session);
+		
+		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
 	}
 	
 	@Before
@@ -92,27 +87,26 @@ public class IT055WikiPageTest {
 		project = synapse.createEntity(project);
 	}
 
-	/**
-	 * @throws Exception 
-	 * @throws HttpException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
-	 */
 	@After
 	public void after() throws Exception {
-		if(fileHandle != null){
-			try {
-				synapse.deleteFileHandle(fileHandle.getId());
-			} catch (Exception e) {}
+		//TODO Cleanup properly after tests
+		try {
+			adminSynapse.deleteFileHandle(fileHandle.getId());
+		} catch (SynapseNotFoundException e) {}
+		
+		adminSynapse.deleteAndPurgeEntity(project);
+		for (WikiPageKey key : toDelete) {
+			adminSynapse.deleteWikiPage(key);
 		}
-		if(project != null){
-			synapse.deleteAndPurgeEntity(project);
-		}
-		for(WikiPageKey key: toDelete){
-			synapse.deleteWikiPage(key);
-		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		//TODO This deletes should not need to be surrounded by a try-catch
+		// This means proper cleanup was not done by the test 
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (Exception e) { }
 	}
 	
 	@Test

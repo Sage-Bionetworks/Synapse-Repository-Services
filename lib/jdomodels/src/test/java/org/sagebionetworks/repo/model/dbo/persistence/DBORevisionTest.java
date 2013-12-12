@@ -12,10 +12,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -27,17 +26,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBORevisionTest {
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private List<Long> toDelete = null;
 	
-	List<Long> toDelete = null;
-	
-	DBONode node;
+	private DBONode node;
 	
 	@After
 	public void after() throws DatastoreException {
@@ -58,7 +54,7 @@ public class DBORevisionTest {
 		node.setId(idGenerator.generateNewId());
 		toDelete.add(node.getId());
 		node.setBenefactorId(node.getId());
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
@@ -79,7 +75,7 @@ public class DBORevisionTest {
 		rev.setReferences(null);
 		rev.setComment(null);
 		rev.setLabel(""+rev.getRevisionNumber());
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		rev.setModifiedBy(createdById);
 		rev.setModifiedOn(System.currentTimeMillis());
 		// Now create it

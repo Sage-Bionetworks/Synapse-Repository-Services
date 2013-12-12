@@ -9,11 +9,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,18 +28,13 @@ public class DBOStorageQuotaDaoImplAutowiredTest {
 	@Autowired
 	private StorageQuotaAdminDao storageQuotaAdminDao;
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
 	private String userId;
 
 	@Before
 	public void before() {
 		assertNotNull(storageQuotaDao);
 		assertNotNull(storageQuotaAdminDao);
-		assertNotNull(userGroupDAO);
-		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		assertNotNull(userId);
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 	}
 
 	@After

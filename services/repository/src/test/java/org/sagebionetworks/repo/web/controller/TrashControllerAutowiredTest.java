@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServlet;
 
@@ -11,13 +12,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -34,14 +39,28 @@ public class TrashControllerAutowiredTest {
 
 	@Autowired
 	private EntityService entityService;
+	
+	@Autowired
+	private UserManager userManager;
 
-	private final String adminUser = AuthorizationConstants.ADMIN_USER_NAME;
-	private final String testUser = AuthorizationConstants.TEST_USER_NAME;
+	private UserInfo adminUserInfo;
+	private String adminUser;
+	private UserInfo testUserInfo;
+	private String testUser;
+	
 	private Entity parent;
 	private Entity child;
 
 	@Before
 	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUser = adminUserInfo.getIndividualGroup().getName();
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		testUser = testUserInfo.getIndividualGroup().getName();
+		
 		Assert.assertNotNull(this.entityService);
 		parent = new Project();
 		parent.setName("TrashControllerAutowiredTest.parent");
@@ -67,6 +86,8 @@ public class TrashControllerAutowiredTest {
 		if (parent != null) {
 			entityService.deleteEntity(testUser, parent.getId());
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 	}
 
 	@Test

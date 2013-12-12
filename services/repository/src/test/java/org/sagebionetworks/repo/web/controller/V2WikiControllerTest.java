@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.net.URL;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.net.URL;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,7 +19,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -41,31 +41,36 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class V2WikiControllerTest {
+	
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
 	private UserManager userManager;
+	
 	@Autowired
 	private NodeManager nodeManager;
+	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
 	private String userName;
 	private String ownerId;
 	
-	Project entity;
-	Evaluation evaluation;
-	List<WikiPageKey> toDelete;
-	S3FileHandle handleOne;
-	S3FileHandle markdown;
-	S3FileHandle markdownTwo;
-	PreviewFileHandle handleTwo;
+	private Project entity;
+	private Evaluation evaluation;
+	private List<WikiPageKey> toDelete;
+	private S3FileHandle handleOne;
+	private S3FileHandle markdown;
+	private S3FileHandle markdownTwo;
+	private PreviewFileHandle handleTwo;
 	
 	@Before
 	public void before() throws Exception{
 		// get user IDs
-		userName = AuthorizationConstants.TEST_USER_NAME;
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+		
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
 		handleOne = new S3FileHandle();

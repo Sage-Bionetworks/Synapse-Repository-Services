@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Test;
@@ -22,7 +22,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
@@ -34,7 +33,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -42,11 +40,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOTeamDAOImplTest {
-	
-	private long teamToDelete = -1L;
-	private String aclToDelete = null;
-
-	private String[] teamMemberPairToDelete = null;
 	
 	@Autowired
 	private TeamDAO teamDAO;
@@ -63,25 +56,16 @@ public class DBOTeamDAOImplTest {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
+	private String teamToDelete;
+	private String aclToDelete;
+	private String userToDelete;
+	
 	@After
 	public void tearDown() throws Exception {
-		if (aclDAO!=null && aclToDelete!=null) {
-			aclDAO.delete(aclToDelete);
-			aclToDelete = null;
-		}
-		if (teamDAO!=null && teamToDelete!=-1L) {
-			teamDAO.delete(""+teamToDelete);
-			teamToDelete=-1L;
-		}
-		if (groupMembersDAO!=null && teamMemberPairToDelete!=null) {
-			groupMembersDAO.removeMembers(teamMemberPairToDelete[0],  Arrays.asList(new String[]{teamMemberPairToDelete[1]}));
-
-		}
-		
-		// make sure I didn't delete something I shouldn't have
-		for (AuthorizationConstants.DEFAULT_GROUPS g : AuthorizationConstants.DEFAULT_GROUPS.values()) {
-			assertNotNull(userGroupDAO.findGroup(g.name(), false));
-		}
+		aclDAO.delete(aclToDelete);
+		teamDAO.delete(teamToDelete);
+		userGroupDAO.delete(teamToDelete);
+		userGroupDAO.delete(userToDelete);
 	}
 	
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
@@ -98,12 +82,15 @@ public class DBOTeamDAOImplTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
+		UserGroup group = new UserGroup();
+		group.setName(UUID.randomUUID().toString());
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group));
+		teamToDelete = group.getId();
+		
 		// create a team
 		Team team = new Team();
-		assertNotNull(userGroupDAO);
-		UserGroup bug = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
-		assertNotNull(bug);
-		Long id = Long.parseLong(bug.getId());
+		Long id = Long.parseLong(group.getId());
 		team.setId(""+id);
 		team.setName("Super Team");
 		team.setDescription("This is a Team designated for testing.");
@@ -113,7 +100,6 @@ public class DBOTeamDAOImplTest {
 		team.setModifiedOn(new Date());
 		team.setModifiedBy("102");
 		Team createdTeam = teamDAO.create(team);
-		teamToDelete = id;
 		assertNotNull(createdTeam.getEtag());
 		createdTeam.setEtag(null); // to allow comparison with 'team'
 		assertEquals(team, createdTeam);
@@ -142,14 +128,22 @@ public class DBOTeamDAOImplTest {
 		assertEquals(new HashMap<TeamHeader,List<UserGroupHeader>>(), teamDAO.getAllTeamsAndMembers());
 
 		// need an arbitrary user to add to the group
-		UserGroup anon = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{anon.getId()}));
-		teamMemberPairToDelete = new String[] {""+id, anon.getId()};
-		assertEquals(1, teamDAO.getForMemberInRange(anon.getId(), 1, 0).size());
-		assertEquals(0, teamDAO.getForMemberInRange(anon.getId(), 3, 1).size());
-		assertEquals(1, teamDAO.getCountForMember(anon.getId()));
+		UserGroup user = new UserGroup();
+		user.setName(UUID.randomUUID().toString());
+		user.setIsIndividual(true);
+		user.setId(userGroupDAO.create(user));
+		userToDelete = user.getId();
 		
-		UserProfile up = userProfileDAO.get(anon.getId());
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId(user.getId());
+		userProfileDAO.create(profile);
+
+		groupMembersDAO.addMembers(""+id, Arrays.asList(new String[]{user.getId()}));
+		assertEquals(1, teamDAO.getForMemberInRange(user.getId(), 1, 0).size());
+		assertEquals(0, teamDAO.getForMemberInRange(user.getId(), 3, 1).size());
+		assertEquals(1, teamDAO.getCountForMember(user.getId()));
+		
+		UserProfile up = userProfileDAO.get(user.getId());
 		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
 		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
 		TeamMember tm = new TeamMember();
@@ -179,7 +173,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, members.size());
 		TeamMember m = members.get(0);
 		assertFalse(m.getIsAdmin());
-		assertEquals(anon.getId(), m.getMember().getOwnerId());
+		assertEquals(user.getId(), m.getMember().getOwnerId());
 		assertEquals(updated.getId(), m.getTeamId());
 		
 		// check pagination
@@ -189,41 +183,22 @@ public class DBOTeamDAOImplTest {
 		assertEquals(0L, teamDAO.getMembersCount("-999"));
 		
 		assertEquals(0L, teamDAO.getAdminMemberCount(updated.getId()));
-		TeamMember member = teamDAO.getMember(updated.getId(), anon.getId());
+		TeamMember member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());
 		assertFalse(member.getIsAdmin());
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
-		assertEquals(anon.getId(), ugh.getOwnerId());
-		assertEquals("First-anonymous@sagebase.org", ugh.getFirstName());
-		assertEquals("Last-anonymous@sagebase.org", ugh.getLastName());
-		assertEquals("anonymous@sagebase.org", ugh.getDisplayName());
+		assertEquals(user.getId(), ugh.getOwnerId());
 		// now make the member an admin
-		AccessControlList acl = createAdminAcl(anon.getId(), updated.getId(), new Date());
+		AccessControlList acl = createAdminAcl(user.getId(), updated.getId(), new Date());
 		aclToDelete = aclDAO.create(acl);
 		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
-		member = teamDAO.getMember(updated.getId(), anon.getId());
+		member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());
 		assertTrue(member.getIsAdmin());
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
-		assertEquals(anon.getId(), ugh.getOwnerId());
-		assertEquals("First-anonymous@sagebase.org", ugh.getFirstName());
-		assertEquals("Last-anonymous@sagebase.org", ugh.getLastName());
-		assertEquals("anonymous@sagebase.org", ugh.getDisplayName());
-		
-		groupMembersDAO.removeMembers(""+id,  Arrays.asList(new String[]{anon.getId()}));
-		teamMemberPairToDelete = null; // no longer need to schedule for deletion
-		
-		// delete the team
-		teamDAO.delete(""+id);
-		try {
-			teamDAO.get(""+id);
-			fail("Failed to delete "+id);
-		} catch (NotFoundException e) {
-			// OK
-		}
-		teamToDelete=-1L; // no need to delete in 'tear down'
+		assertEquals(user.getId(), ugh.getOwnerId());
 	}
 	
 	public static AccessControlList createAdminAcl(

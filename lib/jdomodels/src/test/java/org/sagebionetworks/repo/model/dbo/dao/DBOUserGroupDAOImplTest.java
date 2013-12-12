@@ -16,7 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -31,6 +30,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOUserGroupDAOImplTest {
+	
+	/**
+	 * Allows existing test to pass while refactoring UserGroup names to Principal names
+	 */
+	@Deprecated
+	private static final String AUTHENTICATED_USERS = "AUTHENTICATED_USERS";
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -78,11 +83,6 @@ public class DBOUserGroupDAOImplTest {
 		assertEquals(1+initialCount, userGroupDAO.getCount());
 	}
 	
-	
-	@Test
-	public void findAnonymousUser() throws Exception {
-		assertNotNull(userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true));
-	}
 	@Test
 	public void testDoesPrincipalExist() throws Exception {
 		UserGroup group = new UserGroup();
@@ -114,7 +114,6 @@ public class DBOUserGroupDAOImplTest {
 		Map<String,UserGroup> map = null;
 		map = userGroupDAO.getGroupsByNames(groupNames);
 		assertFalse("initial groups: "+allGroups+"  getGroupsByNames("+GROUP_NAME+") returned "+map.keySet(), map.containsKey(GROUP_NAME));
-//		assertFalse(map.containsKey(GROUP_NAME));
 			
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
@@ -132,14 +131,14 @@ public class DBOUserGroupDAOImplTest {
 		
 		groupNames.clear(); 
 		// Add one of the default groups
-		groupNames.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
+		groupNames.add(AUTHENTICATED_USERS);
 		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name()));
+		assertTrue(map.toString(), map.containsKey(AUTHENTICATED_USERS));
 
 		// try the paginated call
 		List<UserGroup> groups = userGroupDAO.getInRange(0, startingCount+100, false);
 		List<String> omit = new ArrayList<String>();
-		omit.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
+		omit.add(AUTHENTICATED_USERS);
 		List<UserGroup> groupsButOne = userGroupDAO.getInRangeExcept(0, startingCount+100, false, omit);
 		assertEquals(groups.size(), groupsButOne.size()+1);
 	}

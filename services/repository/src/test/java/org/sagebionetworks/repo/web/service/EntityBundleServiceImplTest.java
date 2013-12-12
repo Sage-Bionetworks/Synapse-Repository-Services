@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.mockito.Mockito.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -17,7 +22,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -34,20 +38,20 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class EntityBundleServiceImplTest {
 	
-	EntityBundleService entityBundleService;
+	private EntityBundleService entityBundleService;
 	
-	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
+	private static final String TEST_USER1 = "Blarg@blurgle";
 	
 	private ServiceProvider mockServiceProvider;
 	private EntityService mockEntityService;
 	
-	Project project;
-	Study study;
-	Study studyWithId;
-	Annotations annos;
-	AccessControlList acl;
+	private Project project;
+	private Study study;
+	private Study studyWithId;
+	private Annotations annos;
+	private AccessControlList acl;
 	
-	EntityBundle responseBundle;
+	private EntityBundle responseBundle;
 	
 	private static final String DUMMY_STUDY_1 = "Test Study 1";
 	private static final String DUMMY_PROJECT = "Test Project";

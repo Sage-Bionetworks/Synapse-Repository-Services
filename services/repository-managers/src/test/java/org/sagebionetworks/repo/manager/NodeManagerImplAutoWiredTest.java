@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,8 +25,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -37,7 +38,9 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,16 +83,22 @@ public class NodeManagerImplAutoWiredTest {
 	private List<String> activitiesToDelete;
 	
 	private UserInfo adminUserInfo;
+	private UserInfo userInfo;
 	
 	@Before
-	public void before() throws Exception{
+	public void before() throws Exception {
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
+		
 		// Make sure we have a valid user.
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserInfo.validateUserInfo(adminUserInfo);
-
+		
+		DBOCredential cred = new DBOCredential();
+		cred.setAgreesToTermsOfUse(true);
+		cred.setSecretKey("");
+		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
 	}
 	
 	@After
@@ -112,13 +121,14 @@ public class NodeManagerImplAutoWiredTest {
 				} 				
 			}
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
 	}
 	
 	@Test
-	public void testCreateEachType() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+	public void testCreateEachType() throws Exception {
 		// We do not want an admin for this test
-		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		
+
 		// Create a node of each type.
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
@@ -159,9 +169,8 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testCreateWithAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+	public void testCreateWithAnnotations() throws Exception {
 		// We do not want an admin for this test
-		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		
 		// Create a node
 		Node newNode = new Node();

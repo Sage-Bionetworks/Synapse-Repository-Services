@@ -9,12 +9,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -27,18 +26,19 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBODoiDaoImplAutowiredTest {
 
-	@Autowired private DoiDao doiDao;
-	@Autowired private DoiAdminDao doiAdminDao;
-	@Autowired private UserGroupDAO userGroupDAO;
+	@Autowired
+	private DoiDao doiDao;
+	
+	@Autowired
+	private DoiAdminDao doiAdminDao;
+	
 	private String userId;
 
 	@Before
 	public void before() throws Exception {
 		assertNotNull(doiDao);
 		assertNotNull(doiAdminDao);
-		assertNotNull(userGroupDAO);
-		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		assertNotNull(userId);
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 	}
 
 	@After

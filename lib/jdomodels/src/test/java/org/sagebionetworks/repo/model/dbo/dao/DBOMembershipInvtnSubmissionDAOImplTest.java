@@ -2,42 +2,31 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dbo.DMLUtils;
-import org.sagebionetworks.repo.model.dbo.FieldColumn;
-import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOMembershipInvtnSubmissionDAOImplTest {
-	
-	private long misToDelete = -1L;
-	private long teamToDelete = -1L;
 	
 	@Autowired
 	private TeamDAO teamDAO;
@@ -51,26 +40,22 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 	@Autowired
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
 	
-	@After
-	public void tearDown() throws Exception {
-		if (membershipInvtnSubmissionDAO!=null && misToDelete!=-1L) {
-			membershipInvtnSubmissionDAO.delete(""+misToDelete);
-			misToDelete=-1L;
-		}
-		if (teamDAO!=null && teamToDelete!=-1L) {
-			teamDAO.delete(""+teamToDelete);
-			teamToDelete=-1L;
-		}
-	}
+	private Team team;
+	private UserGroup individUser;
+	private MembershipInvtnSubmission mis;
 	
-	private Team createTeam() throws Exception {
+	@Before
+	public void before() throws Exception {
+		UserGroup group = new UserGroup();
+		group.setName(UUID.randomUUID().toString());
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group));
+		Long groupId = Long.parseLong(group.getId());
+		
 		// create a team
-		Team team = new Team();
+		team = new Team();
 		assertNotNull(userGroupDAO);
-		UserGroup bug = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
-		assertNotNull(bug);
-		Long teamId = Long.parseLong(bug.getId());
-		team.setId(""+teamId);
+		team.setId(groupId.toString());
 		team.setName("Super Team");
 		team.setDescription("This is a Team designated for testing.");
 		team.setIcon("999");
@@ -79,30 +64,37 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		team.setModifiedOn(new Date());
 		team.setModifiedBy("102");
 		team = teamDAO.create(team);
-		teamToDelete = teamId;
-		return team;
+		
+		// Create another user
+		individUser = new UserGroup();
+		individUser.setName("DBOMembershipInvtnSubmissionDAOImplTest");
+		individUser.setIsIndividual(true);
+		individUser.setId(userGroupDAO.create(individUser));
+		
+		// Initialize the submission but let the tests create it
+		mis = new MembershipInvtnSubmission();
+		mis.setCreatedOn(new Date());
+		mis.setExpiresOn(null); // NO EXPIRATION DATE
+		mis.setMessage("Please join the team.");
+		mis.setTeamId(team.getId());
+		mis.setInviteeId(individUser.getId());
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		membershipInvtnSubmissionDAO.delete(mis.getId());
+		teamDAO.delete(team.getId());
+		userGroupDAO.delete(team.getId());
+		userGroupDAO.delete(individUser.getId());
 	}
 	
 	@Test 
 	public void testNoExpirationDate() throws Exception {
-		Team team = createTeam();
 		Long teamId = Long.parseLong(team.getId());
-		// create the submission
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		mis.setCreatedOn(new Date());
-		mis.setExpiresOn(null); // NO EXPIRATION DATE
-		mis.setMessage("Please join the team.");
-		mis.setTeamId(""+teamId);
-		
-		// need another valid user group
-		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		mis.setInviteeId(individUser.getId());
-		long pgLong = Long.parseLong(individUser.getId());
+		Long pgLong = Long.parseLong(individUser.getId());
 		
 		mis = membershipInvtnSubmissionDAO.create(mis);
-		String id = mis.getId();
-		assertNotNull(id);
-		misToDelete = Long.parseLong(id);
+		assertNotNull(mis.getId());
 		
 		// get-by-team query, returning only the *open* (unexpired) invitations
 		// OK
@@ -120,28 +112,17 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		Team team = createTeam();
 		Long teamId = Long.parseLong(team.getId());
-		// create the submission
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		Date expiresOn = new Date();
-		mis.setCreatedOn(new Date());
-		mis.setExpiresOn(expiresOn);
-		mis.setMessage("Please join the team.");
-		mis.setTeamId(""+teamId);
+		Long pgLong = Long.parseLong(individUser.getId());
 		
-		// need another valid user group
-		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		mis.setInviteeId(individUser.getId());
-		long pgLong = Long.parseLong(individUser.getId());
+		Date expiresOn = new Date();
+		mis.setExpiresOn(expiresOn);
 		
 		mis = membershipInvtnSubmissionDAO.create(mis);
-		String id = mis.getId();
-		assertNotNull(id);
-		misToDelete = Long.parseLong(id);
+		assertNotNull(mis.getId());
 		
 		// retrieve the mis
-		MembershipInvtnSubmission clone = membershipInvtnSubmissionDAO.get(id);
+		MembershipInvtnSubmission clone = membershipInvtnSubmissionDAO.get(mis.getId());
 		assertEquals(mis, clone);
 		
 		// get-by-team query, returning only the *open* (unexpired) invitations
@@ -235,40 +216,18 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		groupMembersDAO.addMembers(""+teamId, Arrays.asList(new String[]{individUser.getId()}));
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenSubmissionsByTeamAndUserInRange(teamId,  pgLong, expiresOn.getTime()-1000L, 1, 0).size());
 		groupMembersDAO.removeMembers(""+teamId,  Arrays.asList(new String[]{individUser.getId()}));
-		
-		
-		// delete the mis
-		membershipInvtnSubmissionDAO.delete(""+id);
-		try {
-			membershipInvtnSubmissionDAO.get(""+id);
-			fail("Failed to delete "+id);
-		} catch (NotFoundException e) {
-			// OK
-		}
-		misToDelete=-1L; // no need to delete in 'tear down'
 	}
 	
 	@Test
 	public void testDeleteByTeamAndUser() throws Exception {
-		Team team = createTeam();
 		Long teamId = Long.parseLong(team.getId());
-		// create the submission
-		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		Date expiresOn = new Date();
-		mis.setCreatedOn(new Date());
-		mis.setExpiresOn(expiresOn);
-		mis.setMessage("Please join the team.");
-		mis.setTeamId(""+teamId);
+		Long pgLong = Long.parseLong(individUser.getId());
 		
-		// need another valid user group
-		UserGroup individUser = userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true);
-		mis.setInviteeId(individUser.getId());
-		long pgLong = Long.parseLong(individUser.getId());
+		Date expiresOn = new Date();
+		mis.setExpiresOn(expiresOn);
 		
 		mis = membershipInvtnSubmissionDAO.create(mis);
-		String id = mis.getId();
-		assertNotNull(id);
-		misToDelete = Long.parseLong(id);
+		assertNotNull(mis.getId());
 		
 		assertEquals(1, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
 
@@ -280,8 +239,6 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		membershipInvtnSubmissionDAO.deleteByTeamAndUser(teamId, pgLong);
 		// now we did!
 		assertEquals(0, membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamId, pgLong, expiresOn.getTime()-1000L));
-		
-		misToDelete=-1L; // no need to delete in 'tear down'
 	}
 	
 }

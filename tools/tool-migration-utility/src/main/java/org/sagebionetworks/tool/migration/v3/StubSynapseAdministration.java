@@ -93,6 +93,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -100,6 +101,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -2605,6 +2607,78 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	public PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(
 			String arg0, String arg1, long arg2, long arg3)
 			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void createUser(String username, String password,
+			UserProfile profile, String secretKey, Session session)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void deleteUser(Long id) throws SynapseException,
+			JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void clearDynamoTable(String tableName, String hashKeyName,
+			String rangeKeyName) throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void clearDoi() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit)
+			throws SynapseException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public void purgeTrash() throws SynapseException {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public BackupRestoreStatus getDaemonStatus(String daemonId)
+			throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type,
+			Long limit) throws SynapseException, JSONObjectAdapterException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public PublishResults publishChangeMessages(String queueName,
+			Long startChangeNumber, ObjectType type, Long limit)
+			throws SynapseException, JSONObjectAdapterException {
 		// TODO Auto-generated method stub
 		return null;
 	}

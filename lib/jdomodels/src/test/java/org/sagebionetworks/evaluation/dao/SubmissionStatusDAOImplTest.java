@@ -1,17 +1,15 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Date;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -19,6 +17,7 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -46,15 +45,18 @@ public class SubmissionStatusDAOImplTest {
 	@Autowired
 	NodeDAO nodeDAO;
  
-	private String nodeId = null;
+	private String nodeId;
+	private String userId;
+	
     private String submissionId = null;
-    private String userId = "0";
     private String evalId;
     private String name = "test submission";
     private Long versionNumber = 1L;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+    	
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");

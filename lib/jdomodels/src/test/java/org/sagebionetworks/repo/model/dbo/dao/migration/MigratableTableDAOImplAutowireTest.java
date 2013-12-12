@@ -10,8 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
@@ -31,9 +30,6 @@ public class MigratableTableDAOImplAutowireTest {
 
 	@Autowired
 	private FileHandleDao fileHandleDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 
 	@Autowired
 	private MigratableTableDAO migratableTableDAO;
@@ -44,7 +40,7 @@ public class MigratableTableDAOImplAutowireTest {
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
-		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	

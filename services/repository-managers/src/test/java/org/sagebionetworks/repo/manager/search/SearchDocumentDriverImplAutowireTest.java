@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -62,8 +62,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchDocumentDriverImplAutowireTest {
 
-	private UserInfo userInfo;
-	
 	@Autowired
 	private SearchDocumentDriver searchDocumentDriver;
 
@@ -76,6 +74,7 @@ public class SearchDocumentDriverImplAutowireTest {
 	@Autowired
 	private WikiPageDao wikiPageDao;
 	
+	private UserInfo adminUserInfo;
 	private Project project;
 	private WikiPage rootPage;
 	private WikiPageKey rootKey;
@@ -84,15 +83,16 @@ public class SearchDocumentDriverImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception {
-		// This will create the user if they do not exist
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		// To satisfy some FKs
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		// Create a project
 		project = new Project();
 		project.setName("SearchDocumentDriverImplAutowireTest");
 		project.setDescription("projectDescription");
 		
-		String projectId = entityManager.createEntity(userInfo, project, null);
-		project = entityManager.getEntity(userInfo, projectId, Project.class);
+		String projectId = entityManager.createEntity(adminUserInfo, project, null);
+		project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 		// Add two wikiPages to the entity
 		rootPage = createWikiPage();
 		rootPage.setTitle("rootTile");
@@ -112,7 +112,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		WikiPage page = new  WikiPage();
 		page.setTitle("rootTile");
 		page.setMarkdown("rootMarkdown");
-		page.setCreatedBy(userInfo.getIndividualGroup().getId());
+		page.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
 		page.setModifiedOn(page.getCreatedOn());
@@ -135,7 +135,7 @@ public class SearchDocumentDriverImplAutowireTest {
 			wikiPageDao.delete(rootKey);
 		}
 		if(project != null){
-			entityManager.deleteEntity(userInfo, project.getId());
+			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 	}
 

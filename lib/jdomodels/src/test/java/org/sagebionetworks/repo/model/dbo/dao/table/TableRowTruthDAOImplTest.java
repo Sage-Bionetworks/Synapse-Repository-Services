@@ -14,10 +14,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -40,20 +39,16 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class TableRowTruthDAOImplTest {
 	
 	@Autowired
-	TableRowTruthDAO tableRowTruthDao;
+	private TableRowTruthDAO tableRowTruthDao;
 	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private DBOChangeDAO changeDAO;
 	
-	@Autowired
-	DBOChangeDAO changeDAO;
-	
-	
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 
 	@Before
 	public void before(){
-		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	

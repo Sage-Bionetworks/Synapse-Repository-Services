@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -85,7 +85,6 @@ import org.springframework.web.servlet.DispatcherServlet;
 public class ServletTestHelper {
 
 	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
-	private static final String DEFAULT_USERNAME = AuthorizationConstants.TEST_USER_NAME;
 
 	// Used for cleanup
 	@Autowired
@@ -112,20 +111,17 @@ public class ServletTestHelper {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 
-		this.setTestUser(DEFAULT_USERNAME);
+		this.setTestUser(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 
 	/**
 	 * Change the test user
-	 * 
-	 * @param username
-	 * @throws Exception
 	 */
-	public void setTestUser(String username) throws Exception {
+	public void setTestUser(Long userId) throws Exception {
 		// Make sure we have a valid user.
-		this.username = username;
-		testUser = userManager.getUserInfo(this.username);
+		testUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(testUser);
+		username = testUser.getIndividualGroup().getName();
 	}
 
 	public UserInfo getTestUser() throws Exception {
@@ -136,11 +132,11 @@ public class ServletTestHelper {
 	 * Cleanup the created entities and destroy the servlet
 	 */
 	public void tearDown() throws Exception {
+		String adminUsername = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(
-							AuthorizationConstants.ADMIN_USER_NAME, idToDelete);
+					entityController.deleteEntity(adminUsername, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {

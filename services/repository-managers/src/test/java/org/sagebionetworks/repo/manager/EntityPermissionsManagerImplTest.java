@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -14,16 +13,16 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -32,6 +31,8 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -61,8 +62,9 @@ public class EntityPermissionsManagerImplTest {
 	private Node childNode = null;
 	private Node grandchildNode0 = null;
 	private Node grandchildNode1 = null;
-	private UserInfo userInfo;
 	private UserInfo adminUserInfo;
+	private UserInfo userInfo;
+	private UserInfo otherUserInfo;
 	private static Long ownerId;
 	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
@@ -87,9 +89,17 @@ public class EntityPermissionsManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		DBOCredential cred = new DBOCredential();
+		cred.setAgreesToTermsOfUse(true);
+		cred.setSecretKey("");
+		
+		// Need two users for this test
+		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		otherUserInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		
 		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		
 		// create a resource
 		project = createNode("foo", 1L, 2L, null);
@@ -107,6 +117,9 @@ public class EntityPermissionsManagerImplTest {
 				nodeManager.delete(adminUserInfo, n.getId());
 			} catch (NotFoundException e) {}
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
 	}
 	
 	@Test
@@ -155,7 +168,6 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should fail, since user is not included with proper permissions in ACL
-		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 
@@ -194,7 +206,6 @@ public class EntityPermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should fail since user does not have permission editing rights in ACL
-		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 

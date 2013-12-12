@@ -702,6 +702,13 @@ public class UrlHelpers {
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
+	
+	/**
+	 * API for creating integration test users
+	 */
+	public static final String ADMIN_USER = ADMIN + AUTH_USER;
+	
+	public static final String ADMIN_USER_ID = ADMIN_USER + ID;
 
 	
 	static {

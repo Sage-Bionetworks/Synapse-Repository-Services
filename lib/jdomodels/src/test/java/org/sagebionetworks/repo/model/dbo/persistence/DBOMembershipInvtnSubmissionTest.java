@@ -3,10 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,14 +14,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.MembershipInvtnSubmissionUtils;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -35,13 +30,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOMembershipInvtnSubmissionTest {
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 		
 	private List<Long> toDelete = null;
 	private List<Long> teamToDelete = null;
@@ -72,26 +64,23 @@ public class DBOMembershipInvtnSubmissionTest {
 	
 	public static DBOMembershipInvtnSubmission newMembershipInvtnSubmission(
 			IdGenerator idGenerator, 
-			UserGroupDAO userGroupDAO,
 			DBOBasicDao dboBasicDao) {
 		DBOMembershipInvtnSubmission invitation = new DBOMembershipInvtnSubmission();
 		invitation.setId(idGenerator.generateNewId());
 		invitation.setCreatedOn(System.currentTimeMillis());
 		invitation.setExpiresOn(System.currentTimeMillis());
-		DBOTeam team = DBOTeamTest.newTeam(userGroupDAO);
+		DBOTeam team = DBOTeamTest.newTeam();
 		team = dboBasicDao.createNew(team);
 		invitation.setTeamId(team.getId());
 		invitation.setProperties((new String("abcdefg")).getBytes());
-		assertNotNull(userGroupDAO);
-		UserGroup bug = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
-		assertNotNull(bug);
-		invitation.setInviteeId(Long.parseLong(bug.getId()));
+		Long invitee = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		invitation.setInviteeId(invitee);
 		return invitation;
 	}
 	
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException {
-		DBOMembershipInvtnSubmission invitation = newMembershipInvtnSubmission(idGenerator, userGroupDAO, dboBasicDao);
+		DBOMembershipInvtnSubmission invitation = newMembershipInvtnSubmission(idGenerator, dboBasicDao);
 		// Make sure we can create it
 		DBOMembershipInvtnSubmission clone = dboBasicDao.createNew(invitation);
 		toDelete.add(invitation.getId());

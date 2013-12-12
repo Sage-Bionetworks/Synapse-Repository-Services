@@ -11,13 +11,16 @@ import java.util.UUID;
 import javax.servlet.ServletException;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
@@ -37,18 +40,26 @@ import org.sagebionetworks.repo.model.table.TableEntity;
  */
 public class IT100TableControllerTest {
 
-	private static SynapseClient synapse = null;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+
 	private List<Entity> entitiesToDelete;
 	
-	private static SynapseClient createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.login(user, pw);
-		// Return a proxy
-		return SynapseProfileProxy.createProfileProxy(synapse);
+	@BeforeClass 
+	public static void beforeClass() throws Exception {
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		String session = SynapseClientHelper.createUser(adminSynapse);
+		
+		synapse = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapse);
+		synapse.setSessionToken(session);
+		
+		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
 	}
 	
 	@Before
@@ -57,23 +68,23 @@ public class IT100TableControllerTest {
 	}
 	
 	@After
-	public void after(){
-		if(entitiesToDelete != null && synapse != null){
-			for(Entity entity: entitiesToDelete){
-				try {
-					synapse.deleteEntity(entity);
-				} catch (SynapseException e) {}
+	public void after() throws Exception {
+		//TODO Cleanup properly after tests
+		for (Entity entity : entitiesToDelete) {
+			try {
+				adminSynapse.deleteAndPurgeEntity(entity);
+			} catch (SynapseNotFoundException e) {
 			}
 		}
 	}
-	/**
-	 * @throws Exception
-	 * 
-	 */
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		//TODO This delete should not need to be surrounded by a try-catch
+		// This means proper cleanup was not done by the test 
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (Exception e) { }
 	}
 	
 	@Test
@@ -117,6 +128,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		entitiesToDelete.add(table);
 		assertNotNull(table);
 		assertNotNull(table.getId());
 		// Now make sure we can get the columns for this entity.

@@ -8,12 +8,13 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -134,6 +135,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 		
 	};
+	
+	@Override
+	public void createNew(long principalId) {
+		DBOCredential cred = new DBOCredential();
+		cred.setPrincipalId(principalId);
+		cred.setSecretKey(HMACUtils.newHMACSHA1Key());
+		basicDAO.createNew(cred);
+	}
 	
 	@Override
 	public Long checkEmailAndPassword(String email, String passHash) {
@@ -317,39 +326,26 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void bootstrapCredentials() throws NotFoundException {
-		if (StackConfiguration.isProductionStack()) {
-			// The migration admin should only be used in specific, non-development stacks
-			String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
-			changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
-		
-		} else {
-			String testUsers[] = new String[] { 
-					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
-					StackConfiguration.getIntegrationTestUserOneName(), 
-					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeName() };
-			String testPasswords[] = new String[] { 
-					StackConfiguration.getIntegrationTestUserAdminPassword(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
-					StackConfiguration.getIntegrationTestUserOnePassword(), 
-					StackConfiguration.getIntegrationTestUserTwoPassword(), 
-					StackConfiguration.getIntegrationTestUserThreePassword() };
-			for (int i = 0; i < testUsers.length; i++) {
-				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], null);
-				String userId = userGroupDAO.findGroup(testUsers[i], true).getId();
-				changePassword(userId, passHash);
-			}
-		}
-		
-		// With the exception of anonymous and one integration test user
-		// bootstrapped users should not need to sign the terms of use
 		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
 		for (UserGroupInt ug : ugs) {
-			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseName())
-					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
+			if (!ug.getIsIndividual()) {
+				continue;
+			}
+			
+			// If the user has a secret key, then the user has a row in the credentials table
+			try {
+				getSecretKey(ug.getId());
+			} catch (NotFoundException e) {
+				createNew(Long.parseLong(ug.getId()));
+			}
+			
+			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
+			if (!AuthorizationUtils.isUserAnonymous(ug.getId())) {
 				setTermsOfUseAcceptance(ug.getId(), true);
 			}
 		}
+		// The migration admin should only be used in specific, non-development stacks
+		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		changeSecretKey(migrationAdminId.toString(), StackConfiguration.getMigrationAdminAPIKey());
 	}
 }

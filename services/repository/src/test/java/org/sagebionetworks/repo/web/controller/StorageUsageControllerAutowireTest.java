@@ -8,11 +8,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -33,21 +36,24 @@ public class StorageUsageControllerAutowireTest {
 	private EntityService entityController;
 	
 	@Autowired
-	private UserProfileController userProfileController;
+	private UserManager userManager;
 
-	private final String username = AuthorizationConstants.ADMIN_USER_NAME;
+	private String username;
 	private String userId;
 	private Entity testEntity;
 
 	@Before
 	public void before() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		username = adminUserInfo.getIndividualGroup().getName();
+		userId = adminUserInfo.getIndividualGroup().getId();
+		
 		testEntity = new Project();
 		testEntity.setName("projectForStorageUsageControllerTest");
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
 		testEntity = ServletTestHelper.createEntity(dispatchServlet, testEntity, username);
 		Assert.assertNotNull(testEntity);
 		
-		userId = userProfileController.getMyOwnUserProfile(username, null).getOwnerId();
 	}
 
 	@After

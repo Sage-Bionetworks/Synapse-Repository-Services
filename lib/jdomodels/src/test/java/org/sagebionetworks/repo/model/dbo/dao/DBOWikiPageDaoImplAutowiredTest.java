@@ -10,13 +10,14 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
@@ -35,25 +36,30 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOWikiPageDaoImplAutowiredTest {
 
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
 	
 	@Autowired
-	WikiPageDao wikiPageDao;
+	private WikiPageDao wikiPageDao;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
 	private List<WikiPageKey> toDelete;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
-	S3FileHandle fileOne;
-	S3FileHandle fileTwo;
+	private S3FileHandle fileOne;
+	private S3FileHandle fileTwo;
 	
 	@Before
 	public void before(){
 		toDelete = new LinkedList<WikiPageKey>();
-		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		assertNotNull(creatorUserGroupId);
+		
+		UserGroup group = new UserGroup();
+		group.setName(UUID.randomUUID().toString());
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group));
+		creatorUserGroupId = group.getId();
+		
 		// We use a long file name to test the uniqueness constraint
 		String longFileNamePrefix = "loooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnggggggggggggggggggggggggg";
 		// Create a few files
@@ -81,19 +87,15 @@ public class DBOWikiPageDaoImplAutowiredTest {
 	}
 	
 	@After
-	public void after(){
-		if(wikiPageDao != null && toDelete != null){
-			for(WikiPageKey id: toDelete){
-				wikiPageDao.delete(id);
-			}
+	public void after() throws Exception {
+		for(WikiPageKey id: toDelete){
+			wikiPageDao.delete(id);
 		}
 		// Delete the file handles
-		if(fileOne != null){
-			fileMetadataDao.delete(fileOne.getId());
-		}
-		if(fileTwo != null){
-			fileMetadataDao.delete(fileTwo.getId());
-		}
+		fileMetadataDao.delete(fileOne.getId());
+		fileMetadataDao.delete(fileTwo.getId());
+		
+		userGroupDAO.delete(creatorUserGroupId);
 	}
 	
 	/**

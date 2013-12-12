@@ -1,50 +1,35 @@
 package org.sagebionetworks.bridge.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOCommunityTeamDAOImplTest {
-
-	@SuppressWarnings("rawtypes")
-	public class Deletable {
-		Long id;
-		Class clazz;
-
-		public Deletable(Long l, Class c) {
-			this.id = l;
-			this.clazz = c;
-		}
-	}
 
 	@Autowired
 	private CommunityTeamDAO communityTeamDAO;
@@ -59,110 +44,104 @@ public class DBOCommunityTeamDAOImplTest {
 	private NodeDAO nodeDAO;
 
 	@Autowired
-	private DBOBasicDao dboBasicDao;
+	private TeamDAO teamDAO;
 
-	@Autowired
-	private IdGenerator idGenerator;
+	private List<String> teamsToDelete;
+	private List<String> nodesToDelete;
+	private List<String> usersToDelete;
+	
+	@Before
+	public void before() throws Exception {
+		teamsToDelete = new ArrayList<String>();
+		nodesToDelete = new ArrayList<String>();
+		usersToDelete = new ArrayList<String>();
+	}
 
-	List<Deletable> toDelete = Lists.newArrayList();
-
-	@SuppressWarnings({ "unchecked" })
 	@After
 	public void after() throws Exception {
-		if (dboBasicDao != null) {
-			for (Deletable item : toDelete) {
-				if (item.clazz == UserGroup.class) {
-					userGroupDAO.delete("" + item.id);
-				} else {
-					MapSqlParameterSource params = new MapSqlParameterSource("id", item.id);
-					try {
-						dboBasicDao.getObjectByPrimaryKey(item.clazz, params);
-						dboBasicDao.deleteObjectByPrimaryKey(item.clazz, params);
-					} catch (NotFoundException e) {
-						// ignore, expected
-					}
-				}
-			}
+		for (String id : teamsToDelete) {
+			teamDAO.delete(id);
+		}
+		
+		for (String id : nodesToDelete) {
+			nodeDAO.delete(id);
+		}
+
+		for (String id : usersToDelete) {
+			userGroupDAO.delete(id);
 		}
 	}
 
 	private String createMember() throws Exception {
 		UserGroup newMember = new UserGroup();
-		newMember.setName("u-" + idGenerator.generateNewId());
+		newMember.setName(UUID.randomUUID().toString());
 		newMember.setIsIndividual(true);
 		String newMemberId = userGroupDAO.create(newMember);
-		toDelete.add(new Deletable(Long.parseLong(newMemberId), UserGroup.class));
+		usersToDelete.add(newMemberId);
 		return newMemberId;
 	}
 
-	private DBOTeam createTeam(String... memberIds) throws Exception {
+	private Team createTeam(String... memberIds) throws Exception {
 		UserGroup newGroup = new UserGroup();
-		newGroup.setName("group-" + idGenerator.generateNewId());
+		newGroup.setName(UUID.randomUUID().toString());
 		String newGroupId = userGroupDAO.create(newGroup);
+		usersToDelete.add(newGroupId);
 
 		groupMembersDAO.addMembers(newGroupId, Arrays.asList(memberIds));
 
-		DBOTeam team = new DBOTeam();
-		Long id = Long.parseLong(newGroupId);
-		team.setId(id);
-		team.setEtag("1");
-		team.setProperties((new String("12345")).getBytes());
-		DBOTeam clone = dboBasicDao.createNew(team);
-		assertNotNull(clone);
-
-		toDelete.add(new Deletable(id, DBOTeam.class));
-		toDelete.add(new Deletable(id, UserGroup.class));
-
-		return clone;
+		Team team = new Team();
+		team.setId(newGroupId);
+		team = teamDAO.create(team);
+		teamsToDelete.add(team.getId());
+		return team;
 	}
 
-	private DBONode createNode() {
-		DBONode node = new DBONode();
-		node.setId(idGenerator.generateNewId());
+	private Node createNode(String creatorId) throws NotFoundException {
+		Long createdById = Long.parseLong(userGroupDAO.get(creatorId).getId());
+		
+		Node node = new Node();
 		node.setName("SomeCommunity");
-		node.setBenefactorId(node.getId());
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-		node.setCreatedBy(createdById);
-		node.setCreatedOn(System.currentTimeMillis());
-		node.setCurrentRevNumber(null);
-		node.seteTag("1");
-		node.setNodeType(EntityType.project.getId());
-		// Make sure we can create it
-		DBONode clone = dboBasicDao.createNew(node);
-		assertNotNull(clone);
+		node.setCreatedByPrincipalId(createdById);
+		node.setCreatedOn(new Date());
+		node.setModifiedByPrincipalId(createdById);
+		node.setModifiedOn(new Date());
+		node.setNodeType(EntityType.project.name());
+		String nodeId = nodeDAO.createNew(node);
+		node.setId(nodeId);
+		
+		nodesToDelete.add(nodeId);
 
-		toDelete.add(new Deletable(node.getId(), DBONode.class));
-
-		return clone;
+		return node;
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		DBOTeam team = createTeam();
-		DBONode node = createNode();
+		Team team = createTeam();
+		Node node = createNode(createMember());
 
-		communityTeamDAO.create(node.getId(), team.getId());
+		communityTeamDAO.create(KeyFactory.stringToKey(node.getId()), Long.parseLong(team.getId()));
 
-		assertEquals(node.getId().longValue(), communityTeamDAO.getCommunityId(team.getId()));
+		assertEquals(KeyFactory.stringToKey(node.getId()).longValue(), communityTeamDAO.getCommunityId(Long.parseLong(team.getId())));
 	}
 
 	@Test
 	public void testGetMultiple() throws Exception {
 		int startNodeCount = communityTeamDAO.getCommunityIds().size();
-		DBOTeam team1 = createTeam();
-		DBOTeam team2 = createTeam();
-		DBOTeam team3 = createTeam();
-		DBONode node1 = createNode();
-		DBONode node2 = createNode();
+		Team team1 = createTeam();
+		Team team2 = createTeam();
+		Team team3 = createTeam();
+		String nodeCreator = createMember();
+		Node node1 = createNode(nodeCreator);
+		Node node2 = createNode(nodeCreator);
 
-		communityTeamDAO.create(node1.getId(), team1.getId());
-		communityTeamDAO.create(node1.getId(), team2.getId());
-		communityTeamDAO.create(node2.getId(), team3.getId());
+		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team1.getId()));
+		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team2.getId()));
+		communityTeamDAO.create(KeyFactory.stringToKey(node2.getId()), Long.parseLong(team3.getId()));
 
 		assertEquals(2, communityTeamDAO.getCommunityIds().size() - startNodeCount);
 
-		dboBasicDao.deleteObjectByPrimaryKey(DBOTeam.class, new MapSqlParameterSource("id", team3.getId()));
-		dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, new MapSqlParameterSource("id", node2.getId()));
+		teamDAO.delete(team3.getId());
+		nodeDAO.delete(node2.getId());
 
 		assertEquals(1, communityTeamDAO.getCommunityIds().size() - startNodeCount);
 	}
@@ -173,18 +152,18 @@ public class DBOCommunityTeamDAOImplTest {
 		String member2 = createMember();
 		String member3 = createMember();
 
-		DBOTeam team1 = createTeam(member1);
-		DBOTeam team2 = createTeam(member1, member2);
-		DBOTeam team3 = createTeam(member2);
-		DBOTeam team4 = createTeam();
-		DBONode node1 = createNode();
-		DBONode node2 = createNode();
-		DBONode node3 = createNode();
+		Team team1 = createTeam(member1);
+		Team team2 = createTeam(member1, member2);
+		Team team3 = createTeam(member2);
+		Team team4 = createTeam();
+		Node node1 = createNode(member1);
+		Node node2 = createNode(member1);
+		Node node3 = createNode(member1);
 
-		communityTeamDAO.create(node1.getId(), team1.getId());
-		communityTeamDAO.create(node1.getId(), team2.getId());
-		communityTeamDAO.create(node2.getId(), team3.getId());
-		communityTeamDAO.create(node3.getId(), team4.getId());
+		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team1.getId()));
+		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team2.getId()));
+		communityTeamDAO.create(KeyFactory.stringToKey(node2.getId()), Long.parseLong(team3.getId()));
+		communityTeamDAO.create(KeyFactory.stringToKey(node3.getId()), Long.parseLong(team4.getId()));
 
 		assertEquals(1, communityTeamDAO.getCommunityIdsByMember(member1).size());
 		assertEquals(2, communityTeamDAO.getCommunityIdsByMember(member2).size());

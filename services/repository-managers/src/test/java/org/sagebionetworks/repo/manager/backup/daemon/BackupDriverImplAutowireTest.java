@@ -17,7 +17,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -26,7 +27,6 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,38 +38,37 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class BackupDriverImplAutowireTest {
 	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
+	
 	@Autowired
-	WikiPageDao wikiPageDao;
+	private WikiPageDao wikiPageDao;
 	
 	@Autowired
 	private UserManager userManager;	
 	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
 	
 	@Autowired
-	BackupDriver backupDriver;
+	private BackupDriver backupDriver;
 	
 	private List<String> toDelete;
-	UserInfo adminUser;
-	String creatorUserGroupId;
-	S3FileHandle withPreview;
-	PreviewFileHandle preview;
-	long startCount;
-	WikiPageKey wikiKey;
-	WikiPage wiki;
-	Map<String, FileHandle> fileNameToFileHandleMap;
-	File backupOne;
-	File backupTwo;
+	private UserInfo adminUser;
+	private String creatorUserGroupId;
+	private S3FileHandle withPreview;
+	private PreviewFileHandle preview;
+	private WikiPageKey wikiKey;
+	private WikiPage wiki;
+	private Map<String, FileHandle> fileNameToFileHandleMap;
+	private File backupOne;
+	private File backupTwo;
 	
 	@Before
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
-		adminUser = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		creatorUserGroupId = adminUser.getIndividualGroup().getId();
 		assertNotNull(creatorUserGroupId);
-		startCount = fileHandleDao.getCount();
 		// The one will have a preview
 		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");

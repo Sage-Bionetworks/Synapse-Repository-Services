@@ -12,11 +12,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,10 +26,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOTeamTest {
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private DBOBasicDao dboBasicDao;
 	
 	List<Long> toDelete = null;
 	
@@ -52,8 +46,8 @@ public class DBOTeamTest {
 		toDelete = new LinkedList<Long>();
 	}
 	
-	public static DBOTeam newTeam(UserGroupDAO userGroupDAO) {
-		Long id = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+	public static DBOTeam newTeam() {
+		Long id = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		DBOTeam team = new DBOTeam();
 		team.setId(id);
 		team.setEtag("1");
@@ -64,7 +58,7 @@ public class DBOTeamTest {
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		// Make sure we can create it
-		DBOTeam team = newTeam(userGroupDAO);
+		DBOTeam team = newTeam();
 		toDelete.add(team.getId());
 		DBOTeam clone = dboBasicDao.createNew(team);		
 		assertNotNull(clone);

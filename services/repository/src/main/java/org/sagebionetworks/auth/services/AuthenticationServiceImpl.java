@@ -3,7 +3,6 @@ package org.sagebionetworks.auth.services;
 import java.io.IOException;
 
 import org.openid4java.message.ParameterList;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
@@ -91,16 +90,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			sendPasswordEmail(user.getEmail(), originClient);
 		} catch (NotFoundException e) {
 			throw new DatastoreException("Could not find user that was just created", e);
-		}
-		
-		// For integration test to confirm that a user can be created
-		if (!StackConfiguration.isProductionStack()) {
-			try {
-				UserInfo userInfo = userManager.getUserInfo(user.getEmail());
-				authManager.changePassword(userInfo.getIndividualGroup().getId(), user.getPassword());
-			} catch (NotFoundException e) {
-				throw new DatastoreException(e);
-			}
 		}
 	}
 	

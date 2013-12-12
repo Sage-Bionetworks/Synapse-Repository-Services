@@ -1,22 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -36,32 +34,41 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOWikiMigrationDAOTest {
+	
 	@Autowired
 	private DBOWikiMigrationDAO wikiMigrationDao;
+	
 	@Autowired
 	private WikiPageDao wikiPageDao;
+	
 	@Autowired
 	private V2WikiPageDao v2WikiPageDao;
+	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
 	private List<WikiPageKey> toDeleteFromV1;
 	private List<WikiPageKey> toDeleteFromV2;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
-	S3FileHandle attachOne;
-	S3FileHandle markdown;
+	private S3FileHandle attachOne;
+	private S3FileHandle markdown;
 	
 	@Before
 	public void before(){
 		toDeleteFromV1 = new LinkedList<WikiPageKey>();
 		toDeleteFromV2 = new LinkedList<WikiPageKey>();
-		UserGroup userGroup = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
-		assertNotNull(userGroup);
-		creatorUserGroupId = userGroup.getId();
-		assertNotNull(creatorUserGroupId);
+		
+		// Create a group
+		UserGroup group = new UserGroup();
+		group.setName(UUID.randomUUID().toString());
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group));
+		creatorUserGroupId = group.getId();
+		
 		// We use a long file name to test the uniqueness constraint
 		String longFileNamePrefix = "loooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnggggggggggggggggggggggggg";
 		
@@ -90,24 +97,18 @@ public class DBOWikiMigrationDAOTest {
 	}
 	
 	@After
-	public void after(){
-		if(wikiPageDao != null && toDeleteFromV1 != null) {
-			for(WikiPageKey id: toDeleteFromV1) {
-				wikiPageDao.delete(id);
-			}
+	public void after() throws Exception {
+		for(WikiPageKey id: toDeleteFromV1) {
+			wikiPageDao.delete(id);
 		}
-		if(v2WikiPageDao != null && toDeleteFromV2 != null){
-			for(WikiPageKey id: toDeleteFromV2){
-				v2WikiPageDao.delete(id);
-			}
+		for(WikiPageKey id: toDeleteFromV2){
+			v2WikiPageDao.delete(id);
 		}
 		// Delete the file handles
-		if(attachOne != null){
-			fileMetadataDao.delete(attachOne.getId());
-		}
-		if(markdown != null){
-			fileMetadataDao.delete(markdown.getId());
-		}
+		fileMetadataDao.delete(attachOne.getId());
+		fileMetadataDao.delete(markdown.getId());
+		
+		userGroupDAO.delete(creatorUserGroupId);
 	}
 	
 	@Test

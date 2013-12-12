@@ -32,8 +32,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -42,6 +41,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -80,8 +80,10 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 	@Before
 	public void before() throws Exception {
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
 		evalsToDelete = new ArrayList<String>();
@@ -103,6 +105,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (String id : accessRestrictionsToDelete) {
 			accessRequirementDAO.delete(id);
 		}
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
 	}
 
 	@Test
@@ -406,7 +409,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(permissions.getCanPublicRead());
 
 		// Set 'public read' for anonymous user
-		UserInfo anonymous = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		UserInfo anonymous = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		principalId = Long.parseLong(anonymous.getIndividualGroup().getId());
 		raSet = new HashSet<ResourceAccess>();
 		ra = new ResourceAccess();
@@ -509,38 +512,5 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		acl.setModifiedBy(principalId);
 		acl.setModifiedOn(now);
 		return acl;
-	}
-
-	// PUBLIC: READ
-	// AUTHENTICATED)USERS: READ, PARTICIPATE
-	private void validatePublicReadParticipate(AccessControlList acl) {
-		Set<ResourceAccess> raSet = acl.getResourceAccess();
-		assertNotNull(raSet);
-		String publicUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC).getId();
-		String authenticatedUserId = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS).getId();
-		boolean hasPublicUser = false;
-		boolean hasAuthenticatedUser = false;
-		for (ResourceAccess ra: raSet) {
-			String principalId = ra.getPrincipalId().toString();
-			if (principalId.equals(publicUserId)) {
-				hasPublicUser = true;
-				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.READ));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CREATE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.DELETE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.PARTICIPATE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.UPDATE));
-			} else if (principalId.equals(authenticatedUserId)) {
-				hasAuthenticatedUser = true;
-				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.READ));
-				assertTrue(ra.getAccessType().contains(ACCESS_TYPE.PARTICIPATE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.CREATE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.DELETE));
-				assertFalse(ra.getAccessType().contains(ACCESS_TYPE.UPDATE));
-			}
-		}
-		assertTrue(hasPublicUser);
-		assertTrue(hasAuthenticatedUser);
 	}
 }

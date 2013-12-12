@@ -14,7 +14,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -33,24 +35,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class UploadControllerTest {
 
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
 
 	private String userName;
 	private String ownerId;
 
-	S3FileHandle handleOne;
-	PreviewFileHandle handleTwo;
-	List<String> toDelete;
+	private S3FileHandle handleOne;
+	private PreviewFileHandle handleTwo;
+	private List<String> toDelete;
 
 	@Before
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
+		
 		// get user IDs
-		userName = AuthorizationConstants.TEST_USER_NAME;
-		ownerId = userManager.getUserInfo(userName).getIndividualGroup()
-				.getId();
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		ownerId = adminUserInfo.getIndividualGroup().getId();
+		userName = adminUserInfo.getIndividualGroup().getName();
+		
 		// Create a file handle
 		handleOne = new S3FileHandle();
 		handleOne.setCreatedBy(ownerId);

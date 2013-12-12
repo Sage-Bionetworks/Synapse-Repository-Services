@@ -12,16 +12,17 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.http.HttpException;
-import org.json.JSONException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -31,39 +32,32 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT049FileHandleTest {
+
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
 	
 	private static final String LARGE_FILE_PATH_PROP_KEY = "org.sagebionetworks.test.large.file.path";
-
-	public static final long MAX_WAIT_MS = 1000*10; // 10 sec
-	
-	private static String FILE_NAME = "LittleImage.png";
+	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
+	private static final String FILE_NAME = "LittleImage.png";
 
 	private List<FileHandle> toDelete = null;
-
-	private static SynapseClientImpl synapse = null;
-	File imageFile;
+	private File imageFile;
 	
-	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
-		
-		return synapse;
-	}
-	
-	/**
-	 * @throws Exception
-	 * 
-	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		String session = SynapseClientHelper.createUser(adminSynapse);
+		
+		synapse = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapse);
+		synapse.setSessionToken(session);
+		
+		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
 	}
 	
 	@Before
@@ -72,26 +66,25 @@ public class IT049FileHandleTest {
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
-		
 	}
 
-	/**
-	 * @throws Exception 
-	 * @throws HttpException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
-	 */
 	@After
 	public void after() throws Exception {
-		if (toDelete != null) {
-			for (FileHandle handle: toDelete) {
-				try {
-					synapse.deleteFileHandle(handle.getId());
-				} catch (Exception e) {}
-			}
+		//TODO Cleanup properly after tests
+		for (FileHandle handle: toDelete) {
+			try {
+				synapse.deleteFileHandle(handle.getId());
+			} catch (SynapseNotFoundException e) {}
 		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		//TODO This delete should not need to be surrounded by a try-catch
+		// This means proper cleanup was not done by the test 
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (Exception e) { }
 	}
 	
 	@Test

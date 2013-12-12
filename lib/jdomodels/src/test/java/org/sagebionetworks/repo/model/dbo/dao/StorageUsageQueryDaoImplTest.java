@@ -11,9 +11,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.StorageUsageQueryDao;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -37,9 +36,6 @@ public class StorageUsageQueryDaoImplTest {
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
 	private String userId;
 
 	private List<String> toDelete;
@@ -49,9 +45,8 @@ public class StorageUsageQueryDaoImplTest {
 
 		assertNotNull(storageUsageQueryDao);
 		assertNotNull(fileHandleDao);
-		assertNotNull(userGroupDAO);
 
-		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(userId);
 
 		toDelete = new ArrayList<String>();

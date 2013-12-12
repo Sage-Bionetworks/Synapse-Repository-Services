@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
@@ -27,6 +28,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -257,5 +259,29 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request) throws NotFoundException, IOException {
 		return wikiMigrationService.migrateSomeWikis(username, limit, offset, request.getServletPath());
+	}
+
+	/**
+	 * Creates a user with specific state to be used for integration testing
+	 */
+	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void createIntegrationTestUser(
+			@RequestBody NewIntegrationTestUser userSpecs,
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId) 
+	        		throws NotFoundException {
+		serviceProvider.getAdministrationService().createTestUser(userId, userSpecs);
+	}
+
+	/**
+	 * Deletes a user.  All FKs must be deleted before this will succeed
+	 */
+	@RequestMapping(value = {UrlHelpers.ADMIN_USER_ID}, method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteUser(
+			@PathVariable String id, 
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId) 
+	        		throws NotFoundException {
+		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
 }

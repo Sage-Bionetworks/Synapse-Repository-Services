@@ -18,7 +18,9 @@ import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityId;
@@ -40,19 +42,30 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeTreeQueryControllerAutowireTest {
 
-	@Autowired private EntityService entityService;
+	@Autowired
+	private EntityService entityService;
 
-	@Autowired private DynamoAdminDao dynamoAdminDao;
-	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
-	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
+	@Autowired
+	private DynamoAdminDao dynamoAdminDao;
+	
+	@Autowired
+	private NodeTreeQueryDao nodeTreeQueryDao;
+	
+	@Autowired
+	private NodeTreeUpdateDao nodeTreeUpdateDao;
+	
+	@Autowired
+	private UserManager userManager;
 
-	private final String testUser = AuthorizationConstants.ADMIN_USER_NAME;
+	private String adminUsername;
 	private Entity parent;
 	private Entity child;
 	private List<EntityHeader> rootToChild;
 
 	@Before
 	public void before() throws Exception {
+		adminUsername = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
 		StackConfiguration config = new StackConfiguration();
 		// These tests are not run if dynamo is disabled.
 		Assume.assumeTrue(config.getDynamoEnabled());
@@ -65,16 +78,16 @@ public class NodeTreeQueryControllerAutowireTest {
 		parent = new Project();
 		parent.setName("NodeLineageQueryControllerAutowireTest.parent");
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
-		parent = ServletTestHelper.createEntity(dispatchServlet, parent, testUser);
+		parent = ServletTestHelper.createEntity(dispatchServlet, parent, adminUsername);
 		Assert.assertNotNull(parent);
 		child = new Study();
 		child.setName("NodeLineageQueryControllerAutowireTest.child");
 		child.setParentId(parent.getId());
 		child.setEntityType(Study.class.getName());
-		child = ServletTestHelper.createEntity(dispatchServlet, child, testUser);
+		child = ServletTestHelper.createEntity(dispatchServlet, child, adminUsername);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());
-		rootToChild = this.entityService.getEntityPath(testUser, child.getId());
+		rootToChild = this.entityService.getEntityPath(adminUsername, child.getId());
 
 		// Clear dynamo first
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
@@ -102,10 +115,10 @@ public class NodeTreeQueryControllerAutowireTest {
 		if(!config.getDynamoEnabled()) return;
 		// Clear RDS
 		if (child != null) {
-			entityService.deleteEntity(testUser, child.getId());
+			entityService.deleteEntity(adminUsername, child.getId());
 		}
 		if (parent != null) {
-			entityService.deleteEntity(testUser, parent.getId());
+			entityService.deleteEntity(adminUsername, parent.getId());
 		}
 		// Clear dynamo
 		this.dynamoAdminDao.clear(DboNodeLineage.TABLE_NAME,
@@ -120,7 +133,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId() + "/ancestors");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUsername);
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
@@ -143,7 +156,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId() + "/parent");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUsername);
 		response = new MockHttpServletResponse();
 		servlet.service(request, response);
 
@@ -159,7 +172,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + root + "/descendants");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUsername);
 		response = new MockHttpServletResponse();
 		servlet.service(request, response);
 
@@ -180,7 +193,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + root + "/descendants/2");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUsername);
 		response = new MockHttpServletResponse();
 		servlet.service(request, response);
 
@@ -199,7 +212,7 @@ public class NodeTreeQueryControllerAutowireTest {
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + root + "/children");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUsername);
 		response = new MockHttpServletResponse();
 		servlet.service(request, response);
 

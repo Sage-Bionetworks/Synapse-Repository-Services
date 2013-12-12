@@ -9,18 +9,19 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -60,9 +61,10 @@ public class MessageControllerAutowiredTest {
 	private static final long LIMIT = 100;
 	private static final long OFFSET = 0;
 
-	private final String alice = AuthorizationConstants.TEST_USER_NAME;
-	private final String bob = StackConfiguration.getIntegrationTestUserOneName();
-	private final String eve = StackConfiguration.getIntegrationTestUserTwoName();
+	private UserInfo adminUserInfo;
+	private String alice;
+	private String bob;
+	private String eve;
 	
 	private String aliceId;
 	private String bobId;
@@ -82,10 +84,22 @@ public class MessageControllerAutowiredTest {
 		cleanup = new ArrayList<String>();
 		testHelper.setUp();
 		
-		UserInfo testUserInfo = userManager.getUserInfo(alice);
-		aliceId = testUserInfo.getIndividualGroup().getId();
-		bobId = userManager.getUserInfo(bob).getIndividualGroup().getId();
-		eveId = userManager.getUserInfo(eve).getIndividualGroup().getId();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		// Need 3 users
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		aliceId = "" + userManager.createUser(user);
+		alice = user.getEmail();
+		
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		bobId = "" + userManager.createUser(user);
+		bob = user.getEmail();
+		
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		eveId = "" + userManager.createUser(user);
+		eve = user.getEmail();
+		
 		toAlice = new HashSet<String>() {{
 			add(aliceId);
 		}};
@@ -98,22 +112,27 @@ public class MessageControllerAutowiredTest {
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// And so that sent messages can be "downloaded"
+		// Alice creates the file and the other users get access when the file is sent to them via a message
 		ExternalFileHandle handle = new ExternalFileHandle();
 		handle.setContentType("text/plain");
 		handle.setFileName("foobar");
 		URL url = MessageControllerAutowiredTest.class.getClassLoader().getResource("images/notAnImage.txt");
 		handle.setExternalURL(url.toString());
-		handle = fileHandleManager.createExternalFileHandle(testUserInfo, handle);
+		handle = fileHandleManager.createExternalFileHandle(userManager.getUserInfo(Long.parseLong(aliceId)), handle);
 		fileHandleId = handle.getId();
 	}
 	
 	@After
 	public void after() throws Exception {
 		for (String id : cleanup) {
-			messageService.deleteMessage(AuthorizationConstants.ADMIN_USER_NAME, id);
+			messageService.deleteMessage(adminUserInfo.getIndividualGroup().getName(), id);
 		}
 		
-		fileHandleManager.deleteFileHandle(userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME), fileHandleId);
+		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(aliceId));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(bobId));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(eveId));
 	}
 	
 	/**

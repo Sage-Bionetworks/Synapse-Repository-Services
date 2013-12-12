@@ -7,7 +7,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -22,8 +28,34 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
-import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -64,16 +96,19 @@ public class DefaultControllerAutowiredAllTypesTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	
 	@Autowired
 	private ColumnModelDAO columnModelDao;
+	
 	@Autowired
 	private TeamManager teamManager;
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private String userName;
 	private UserInfo testUser;
 	private Team testTeam;
 
@@ -86,6 +121,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
+		
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
 		testUser = userManager.getUserInfo(userName);
@@ -159,7 +197,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertNotNull(acl);
 		assertEquals(id, acl.getId());
 		ResourceAccess ac = new ResourceAccess();
-		UserGroup publicUserGroup = userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name(), false);
+		UserGroup publicUserGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
 		assertNotNull(publicUserGroup);
 		ac.setPrincipalId(Long.parseLong(publicUserGroup.getId()));
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
@@ -168,7 +206,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 		ServletTestHelper.updateEntityAcl(dispatchServlet,id, acl, userName);
 		
 		// Make sure the anonymous user can see this.
-		Project clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(), AuthorizationConstants.ANONYMOUS_USER_ID);
+		String anonUsername = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		Project clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(), anonUsername);
 		assertNotNull(clone);
 	}
 	
@@ -728,7 +767,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	@Test
 	public void testLocationableS3Token() throws Exception {
 		testHelper.setUp();
-		testHelper.setTestUser(userName);
+		testHelper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		// First create one of each type
 		List<Entity> created = createEntitesOfEachType(1);

@@ -13,7 +13,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -41,13 +42,16 @@ public class StackStatusInterceptorTest {
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";
 	
 	@Autowired
-	StackStatusDao stackStatusDao;
+	private StackStatusDao stackStatusDao;
+	
+	@Autowired
+	private UserManager userManager;
 		
 	private static HttpServlet dispatchServlet;
 	
 	private Project sampleProject = null;
 
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private String userName;
 	
 	
 	@BeforeClass
@@ -62,6 +66,14 @@ public class StackStatusInterceptorTest {
 		dispatchServlet.init(servletConfig);
 	}
 	
+	@Before
+	public void before() throws Exception {
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		assertNotNull(stackStatusDao);
+		sampleProject = new Project();
+		// Create a sample project
+		sampleProject = ServletTestHelper.createEntity(dispatchServlet, sampleProject, 	userName);
+	}
 	
 	@After
 	public void after() throws Exception{
@@ -78,14 +90,6 @@ public class StackStatusInterceptorTest {
 		if(sampleProject != null){
 			ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
 		}
-	}
-	
-	@Before
-	public void before() throws Exception {
-		assertNotNull(stackStatusDao);
-		sampleProject = new Project();
-		// Create a sample project
-		sampleProject = ServletTestHelper.createEntity(dispatchServlet, sampleProject, 	userName);
 	}
 	
 	@Test

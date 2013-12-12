@@ -4,7 +4,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -176,6 +175,12 @@ public class TeamServiceImpl implements TeamService {
 	// NOTE:  A side effect is clearing the private fields of the UserGroupHeader in 'member',
 	// as well as obfuscating the email address.
 	private void addToMemberPrefixCache(Trie<String, Collection<TeamMember>> prefixCache, TeamMember member) {
+		// A user with no display name has no prefixes
+		//TODO replace this logic with alias logic
+		if (member.getMember().getDisplayName() == null) {
+			return;
+		}
+		
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
 		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember().getDisplayName());
 		

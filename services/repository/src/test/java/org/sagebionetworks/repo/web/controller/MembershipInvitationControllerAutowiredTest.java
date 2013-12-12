@@ -1,12 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.*;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -17,17 +14,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,7 +39,9 @@ public class MembershipInvitationControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 
-	private String userName = AuthorizationConstants.TEST_USER_NAME;
+	private UserInfo adminUserInfo;
+	private String adminUsername;
+	private UserInfo testInvitee;
 	
 	private static final String TEAM_NAME = "MIS_CONTRL_AW_TEST";
 	private Team teamToDelete;
@@ -56,23 +50,29 @@ public class MembershipInvitationControllerAutowiredTest {
 	public static void beforeClass() throws ServletException {
 		dispatchServlet = DispatchServletSingleton.getInstance();
 	}
-	private String inviteeUserName = AuthorizationConstants.ADMIN_USER_NAME;
-	private UserInfo testInvitee;
 
 	@Before
-	public void before() throws Exception {		
+	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUsername = adminUserInfo.getIndividualGroup().getName();
+		
 		// create a Team
 		Team team = new Team();
 		team.setName(TEAM_NAME);
-		teamToDelete = ServletTestHelper.createTeam(dispatchServlet, userName, team);
-		testInvitee = userManager.getUserInfo(inviteeUserName);
+		teamToDelete = ServletTestHelper.createTeam(dispatchServlet, adminUsername, team);
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testInvitee = userManager.getUserInfo(userManager.createUser(user));
 		assertNotNull(testInvitee.getIndividualGroup().getId());
 	}
 
 	@After
 	public void after() throws Exception {
-		 ServletTestHelper.deleteTeam(dispatchServlet, userName, teamToDelete);
+		 ServletTestHelper.deleteTeam(dispatchServlet, adminUsername, teamToDelete);
 		 teamToDelete = null;
+		 
+		 userManager.deletePrincipal(adminUserInfo, Long.parseLong(testInvitee.getIndividualGroup().getId()));
 	}
 
 	@Test
@@ -81,19 +81,15 @@ public class MembershipInvitationControllerAutowiredTest {
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setInviteeId(testInvitee.getIndividualGroup().getId());
 		mis.setTeamId(teamToDelete.getId());
-		MembershipInvtnSubmission created = ServletTestHelper.createMembershipInvitation(dispatchServlet, userName, mis);
+		MembershipInvtnSubmission created = ServletTestHelper.createMembershipInvitation(dispatchServlet, adminUsername, mis);
 		
 		// get the invitation
-		MembershipInvtnSubmission mis2 = ServletTestHelper.getMembershipInvitation(dispatchServlet, userName, created.getId());
+		MembershipInvtnSubmission mis2 = ServletTestHelper.getMembershipInvitation(dispatchServlet, adminUsername, created.getId());
 		assertEquals(created, mis2);
 		// get all invitations for the team
 		PaginatedResults<MembershipInvtnSubmission> miss = ServletTestHelper.
-				getMembershipInvitationSubmissions(dispatchServlet, userName, teamToDelete.getId());
+				getMembershipInvitationSubmissions(dispatchServlet, adminUsername, teamToDelete.getId());
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));
 	}
-
-	
-
-
 }

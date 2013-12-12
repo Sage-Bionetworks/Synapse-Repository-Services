@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
@@ -142,4 +143,14 @@ public interface AdministrationService {
 	 * Clears the specified dynamo table.
 	 */
 	void clearDynamoTable(String userId, String tableName, String hashKeyName, String rangeKeyName) throws NotFoundException, UnauthorizedException, DatastoreException;
+
+	/**
+	 * Creates a test user
+	 */
+	public void createTestUser(String userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
+
+	/**
+	 * Deletes a user, iff all FK constraints are met
+	 */
+	public void deleteUser(String userId, String id) throws NotFoundException;
 }

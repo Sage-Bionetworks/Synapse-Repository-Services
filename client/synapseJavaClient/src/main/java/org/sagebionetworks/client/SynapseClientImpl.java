@@ -90,6 +90,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -4425,15 +4426,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String retrieveApiKey() throws SynapseException {
 		try {
-			final String ATTRIBUTE_NAME = "secretKey";
 			String url = "/secretKey";
 			JSONObject jsonObj = getSharedClientConnection().getJson(authEndpoint, url, getUserAgent());
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			String apiKey = null;
-			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
-				apiKey = adapter.getString(ATTRIBUTE_NAME);
-			}
-			return apiKey;
+			SecretKey key = EntityFactory.createEntityFromJSONObject(jsonObj, SecretKey.class);
+			return key.getSecretKey();
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
