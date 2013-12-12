@@ -643,7 +643,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, recipient.getUser().getDisplayName());
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
 		
-		sendTemplateEmail(recipientId, subject, messageBody, true);
+		sendTemplateEmail(recipientId, subject, messageBody, false);
 	}
 	
 	@Override
@@ -658,7 +658,7 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		
-		sendTemplateEmail(sender.getIndividualGroup().getId(), subject, messageBody, true);
+		sendTemplateEmail(sender.getIndividualGroup().getId(), subject, messageBody, false);
 	}
 	
 	/**
