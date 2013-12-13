@@ -32,7 +32,7 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 
 	public AutoTableMapping(Class<? extends T> clazz, String... customColumns) {
 		this.clazz = clazz;
-		this.fields = DBOBuilder.getFields(clazz);
+		this.fields = DBOBuilder.getFields(clazz, customColumns);
 		this.tableName = DBOBuilder.getTableName(clazz);
 		this.mappers = DBOBuilder.getFieldMappers(clazz, customColumns);
 	}

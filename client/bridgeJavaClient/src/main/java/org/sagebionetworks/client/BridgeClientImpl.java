@@ -4,11 +4,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.schema.adapter.*;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -17,10 +22,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
-
 	public static final String BRIDGE_JAVA_CLIENT = "Bridge-Java-Client/";
-
-	private static final Logger log = LogManager.getLogger(BridgeClientImpl.class.getName());
 
 	private static final String DEFAULT_BRIDGE_ENDPOINT = "https://bridge-prod.prod.sagebase.org/bridge/v1";
 
@@ -28,9 +30,13 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	private static final String COMMUNITY = "/community";
 	private static final String MEMBER = "/member";
+	private static final String PARTICIPANT_DATA = "/participantData";
+	private static final String PARTICIPANT_DATA_DESCRIPTOR = "/participantDataDescriptor";
+	private static final String PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "/participantDataColumnDescriptor";
+	private static final String PARTICIPANT = "/participant";
 
 	private static final String JOINED = "/joined";
-	
+
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
 	private static final String ADD_ADMIN = "/addadmin";
@@ -69,6 +75,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		super(BRIDGE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), sharedClientConnection);
 		this.bridgeEndpoint = DEFAULT_BRIDGE_ENDPOINT;
 	}
+
 	/**
 	 * @param bridgeEndpoint the bridgeEndpoint to set
 	 */
@@ -149,7 +156,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = COMMUNITY + "/" + communityId + JOIN;
 		get(uri);
 	}
-	
+
 	@Override
 	public void leaveCommunity(String communityId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + LEAVE;
@@ -166,6 +173,60 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + principalId + REMOVE_ADMIN;
 		get(uri);
+	}
+
+	@Override
+	public RowSet appendParticipantData(String participantDataId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataId;
+		return create(uri, data);
+	}
+
+	@Override
+	public RowSet appendParticipantData(String participantIdentifier, String participantDataId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataId + "/" + PARTICIPANT + "/" + participantIdentifier;
+		return create(uri, data);
+	}
+
+	@Override
+	public RowSet updateParticipantData(String participantDataId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataId;
+		return update(uri, data);
+	}
+
+	@Override
+	public RowSet getParticipantData(String participantDataId) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataId;
+		return get(uri, RowSet.class);
+	}
+
+	@Override
+	public ParticipantDataDescriptor createParticipantData(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR;
+		return create(uri, participantDataDescriptor);
+	}
+
+	@Override
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR;
+		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA;
+		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
+	}
+
+	@Override
+	public ParticipantDataColumnDescriptor createParticipantDataColumn(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
+		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR;
+		return create(uri, participantDataColumnDescriptor1);
+	}
+
+	@Override
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumns(String participantDataId, long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR + "/" + participantDataId;
+		return getList(uri, ParticipantDataColumnDescriptor.class, limit, offset);
 	}
 
 	private void get(String uri) throws SynapseException {

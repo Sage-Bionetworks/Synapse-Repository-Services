@@ -17,5 +17,6 @@
 	<bean id="bridgeServiceProvider" class="org.sagebionetworks.bridge.service.BridgeServiceProviderImpl" />
 
 	<bean id="communityService" class="org.sagebionetworks.bridge.service.CommunityServiceImpl" />
+	<bean id="participantDataService" class="org.sagebionetworks.bridge.service.ParticipantDataServiceImpl" />
 	
 </beans>

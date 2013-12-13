@@ -4,6 +4,7 @@ CREATE TABLE `ANNOTATED_EXAMPLE_TEST` (
 	`NUMBER_OR_NULL` bigint(20),
 	`BLOB_ONE` mediumblob,
 	`CUSTOM` blob,
+	`SERIALIZED` blob,
 	`COMMENT` VARCHAR(256) CHARACTER SET latin1 COLLATE latin1_bin default null,
 	`ENUM` CHAR (32),
 	`NAME` CHAR(16) default null,

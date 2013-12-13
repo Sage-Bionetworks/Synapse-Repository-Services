@@ -3,9 +3,14 @@ package org.sagebionetworks.client;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.RowSet;
 
 /**
  * Abstraction for Synapse.
@@ -126,4 +131,52 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException;
+
+	/**
+	 * Upload new participant provided data for this participant for a specific data set
+	 * 
+	 * @param data
+	 * @param participantDataId the id of the participantData to append to
+	 * @throws SynapseException
+	 */
+	public RowSet appendParticipantData(String participantDataId, RowSet data) throws SynapseException;
+
+	/**
+	 * Upload new participant provided data for a participant
+	 * 
+	 * @param participantIdentifier the de-identified identifier for the participant
+	 * @param participantDataId the id of the participantData to append to
+	 * @param data
+	 * @throws SynapseException
+	 */
+	public RowSet appendParticipantData(String participantIdentifier, String participantDataId, RowSet data) throws SynapseException;
+
+	/**
+	 * Upload changed participant provided data
+	 * 
+	 * @param participantIdentifier the de-identified identifier for the participant
+	 * @param participantDataId the id of the participantData to append to
+	 * @param data
+	 * @throws SynapseException
+	 */
+	public RowSet updateParticipantData(String participantDataId, RowSet data) throws SynapseException;
+
+	/**
+	 * retrieve participant data
+	 * 
+	 * @param participantDataId the id of the participantData to retrieve
+	 * @return
+	 * @throws SynapseException
+	 */
+	public RowSet getParticipantData(String participantDataId) throws SynapseException;
+
+	public ParticipantDataDescriptor createParticipantData(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException;
+
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException;
+
+	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException;
+
+	public ParticipantDataColumnDescriptor createParticipantDataColumn(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
+
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumns(String participantDataId, long limit, long offset) throws SynapseException;
 }

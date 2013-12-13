@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -7,19 +9,26 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class DBOBuilder<T> {
 
 	private static final String RETURN_AS_STRING_METHOD_NAME_POSTFIX = "AsString";
+	private static final String RETURN_AS_BYTES_METHOD_NAME_POSTFIX = "AsBytes";
 
 	public static abstract interface RowMapper {
 		public abstract void map(Object result, ResultSet rs) throws SQLException, InvocationTargetException, IllegalAccessException;
@@ -114,17 +123,44 @@ public class DBOBuilder<T> {
 		}
 	}
 
+	private static class SerializedTypeRowMapper extends BaseRowMapper {
+
+		private final Class<?> clazz;
+
+		public SerializedTypeRowMapper(Method fieldSetter, String columnName, boolean nullable, Class<?> clazz) {
+			super(fieldSetter, columnName, nullable);
+			this.clazz = clazz;
+		}
+
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			Blob blobValue = rs.getBlob(columnName);
+			if (blobValue != null) {
+				byte[] bytes = blobValue.getBytes(1, (int) blobValue.length());
+				try {
+					return clazz.cast(JDOSecondaryPropertyUtils.decompressedObject(bytes));
+				} catch (IOException e) {
+					throw new SQLException("Error converting type " + clazz.getName() + ": " + e.getMessage(), e);
+				}
+			} else {
+				return null;
+			}
+		}
+	}
+
 	public static String getTableName(Class<?> clazz) {
 		Table tableAnnotation = clazz.getAnnotation(Table.class);
 		return tableAnnotation.name();
 	}
 
-	public static <T> FieldColumn[] getFields(final Class<T> clazz) {
+	public static <T> FieldColumn[] getFields(final Class<T> clazz, final String[] customColumns) {
+		final HashSet<String> customColumnsSet = Sets.newHashSet(customColumns);
 		List<FieldColumn> result = Lists.transform(getAnnotatedFields(clazz, Field.class), new Function<Entry<Field>, FieldColumn>() {
 			@Override
 			public FieldColumn apply(Entry<Field> fieldEntry) {
 				String name = fieldEntry.field.getName();
-				if (fieldEntry.field.getType().isEnum() || fieldEntry.field.getType() == Date.class) {
+				if (!customColumnsSet.contains(fieldEntry.annotation.name())
+						&& (fieldEntry.field.getType().isEnum() || fieldEntry.field.getType() == Date.class || !Serializable.class
+								.isAssignableFrom(fieldEntry.field.getType()))) {
 					name = handleTypedField(name, fieldEntry.field, clazz);
 				}
 				return new FieldColumn(name, fieldEntry.annotation.name(), fieldEntry.annotation.primary()).withIsBackupId(
@@ -179,6 +215,11 @@ public class DBOBuilder<T> {
 					@SuppressWarnings("unchecked")
 					Class<? extends Enum<?>> enumClass = (Class<? extends Enum<?>>) fieldEntry.field.getType();
 					return new EnumRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(), enumClass);
+				}
+
+				if (!StringUtils.isEmpty(fieldEntry.annotation.serialized())) {
+					return new SerializedTypeRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
+							fieldEntry.field.getType());
 				}
 
 				if (fieldEntry.field.getType() == byte[].class) {
@@ -261,6 +302,8 @@ public class DBOBuilder<T> {
 				type = "CHAR (" + 32 + ")";
 			} else if (!StringUtils.isEmpty(fieldAnnotation.blob())) {
 				type = fieldAnnotation.blob();
+			} else if (!StringUtils.isEmpty(fieldAnnotation.serialized())) {
+				type = fieldAnnotation.serialized();
 			} else {
 				throw new IllegalArgumentException("No type defined and " + fieldAnnotation.name() + " on " + owner.getName()
 						+ " cannot be automatically translated");
@@ -294,6 +337,7 @@ public class DBOBuilder<T> {
 		// sofar)
 		String getterMethodName = "get" + StringUtils.capitalize(field.getName());
 		String getterAsStringMethodName = "get" + StringUtils.capitalize(field.getName()) + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
+		String getterAsBytesMethodName = "get" + StringUtils.capitalize(field.getName()) + RETURN_AS_BYTES_METHOD_NAME_POSTFIX;
 		try {
 			Method getterMethod = clazz.getMethod(getterMethodName);
 			if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
@@ -308,12 +352,22 @@ public class DBOBuilder<T> {
 				}
 			} catch (NoSuchMethodException e) {
 			}
+			// try AsBytes method
+			getterMethodName = getterAsBytesMethodName;
+			try {
+				getterMethod = clazz.getMethod(getterMethodName);
+				if (byte[].class.isAssignableFrom(getterMethod.getReturnType())) {
+					return name + RETURN_AS_BYTES_METHOD_NAME_POSTFIX;
+				}
+			} catch (NoSuchMethodException e) {
+			}
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException("Cannot find method " + getterMethodName + " in class " + clazz.getName() + ": " + e.getMessage());
 		}
 		throw new RuntimeException("Need to either have a method " + getterMethodName
 				+ " that returns a String, or, if that method returns another type that spring cannot handle, a method named "
-				+ getterAsStringMethodName + " that returns a string instead");
+				+ getterAsStringMethodName + " that returns a string instead, or a method named " + getterAsBytesMethodName
+				+ " that returns a byte[] for class " + clazz.getName());
 	}
 
 	private static class Entry<T extends Annotation> {

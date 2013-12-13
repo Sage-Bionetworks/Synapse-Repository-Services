@@ -57,6 +57,7 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.stackInstanceNumber",
 			
 			"stackConfiguration.logBucketName",
+			"stackConfiguration.participantDataBucketName",
 	};
 	
 	@Before

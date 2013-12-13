@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 @Table(name = "ANNOTATED_EXAMPLE_TEST")
 public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnotatedExample> {
@@ -28,6 +31,8 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 	private byte[] blob;
 	@Field(name = "CUSTOM", blob = "blob")
 	private List<String> custom;
+	@Field(name = "SERIALIZED", serialized = "blob")
+	private List<String> serialized;
 	@Field(name = "COMMENT", varchar = 256, defaultNull = true)
 	private String comment;
 	@Field(name = "ENUM")
@@ -79,6 +84,18 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 
 	public void setCustom(List<String> custom) {
 		this.custom = custom;
+	}
+
+	public List<String> getSerialized() {
+		return serialized;
+	}
+
+	public byte[] getSerializedAsBytes() throws IOException {
+		return JDOSecondaryPropertyUtils.compressObject(serialized);
+	}
+
+	public void setSerialized(List<String> serialized) {
+		this.serialized = serialized;
 	}
 
 	public String getComment() {
@@ -152,6 +169,7 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((number == null) ? 0 : number.hashCode());
 		result = prime * result + ((numberOrNull == null) ? 0 : numberOrNull.hashCode());
+		result = prime * result + ((serialized == null) ? 0 : serialized.hashCode());
 		return result;
 	}
 
@@ -213,14 +231,18 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 				return false;
 		} else if (!numberOrNull.equals(other.numberOrNull))
 			return false;
+		if (serialized == null) {
+			if (other.serialized != null)
+				return false;
+		} else if (!serialized.equals(other.serialized))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
 		return "DBOAnnotatedExample [id=" + id + ", number=" + number + ", numberOrNull=" + numberOrNull + ", blob=" + Arrays.toString(blob)
-				+ ", custom=" + custom + ", comment=" + comment + ", exampleEnum=" + exampleEnum + ", name=" + name + ", etag=" + etag
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + "]";
+				+ ", custom=" + custom + ", serialized=" + serialized + ", comment=" + comment + ", exampleEnum=" + exampleEnum + ", name="
+				+ name + ", etag=" + etag + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + "]";
 	}
-
 }

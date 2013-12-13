@@ -55,6 +55,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private Map<Class<? extends DatabaseObject>, String> countMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> updateMap = new HashMap<Class<? extends DatabaseObject>, String>();
+
 	
 	/**
 	 * We cache the mapping for each object type.
@@ -189,22 +190,40 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
+
 	@Override
 	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
-		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
-		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
+		return getObjectByPrimaryKeyWithUpdateLock(clazz, namedParameters, false);
+	}
+	
+	@Override
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException, NotFoundException {
+		return getObjectByPrimaryKeyWithUpdateLock(clazz, namedParameters, true);
+	}
+
+	private <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters,
+			boolean updateLock) throws DatastoreException, NotFoundException {
+		if (clazz == null)
+			throw new IllegalArgumentException("Clazz cannot be null");
+		if (namedParameters == null)
+			throw new IllegalArgumentException("namedParameters cannot be null");
 		@SuppressWarnings("unchecked")
 		TableMapping<T> mapping = classToMapping.get(clazz);
-		if(mapping == null) throw new IllegalArgumentException("Cannot find the mapping for Class: "+clazz+" The class must be added to the 'databaseObjectRegister'");
+		if (mapping == null)
+			throw new IllegalArgumentException("Cannot find the mapping for Class: " + clazz
+					+ " The class must be added to the 'databaseObjectRegister'");
 		String fetchSql = getFetchSQL(clazz);
-		try{
+		if (updateLock) {
+			fetchSql += " FOR UPDATE";
+		}
+		try {
 			return simpleJdbcTemplate.queryForObject(fetchSql, mapping, namedParameters);
-		}catch(EmptyResultDataAccessException e){
+		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 	}
-	
+
 	@Override
 	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException {
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
@@ -286,7 +305,8 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	/**
-	 * The delete SQL for a given class
+	 * The update SQL for a given class
+	 * 
 	 * @param clazz
 	 * @return
 	 */
