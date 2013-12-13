@@ -71,16 +71,12 @@ public class IT510SynapseJavaClientSearchTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		
 		synapse = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapse);
-		synapse.setSessionToken(session);
-		
-		UserProfile profile = synapse.getMyProfile();
-		userToDelete = Long.parseLong(profile.getOwnerId());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		
 		// Update this user's profile to contain a display name
+		UserProfile profile = synapse.getMyProfile();
 		profile.setDisplayName(UUID.randomUUID().toString());
 		synapse.updateMyProfile(profile);
 		

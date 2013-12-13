@@ -19,10 +19,6 @@
 			"type": "object",
 			"description": "Holds the state of the user's session token and ToU",
 			"$ref": "org.sagebionetworks.repo.model.auth.Session"
-		},
-		"secretKey": {
-			"type": "string",
-			"description": "User's secret key"
 		}
 	}
 }

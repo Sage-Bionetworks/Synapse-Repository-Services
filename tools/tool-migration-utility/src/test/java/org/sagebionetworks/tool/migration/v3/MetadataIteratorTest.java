@@ -4,13 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
@@ -24,32 +24,36 @@ import org.sagebionetworks.tool.migration.Progress.BasicProgress;
  *
  */
 public class MetadataIteratorTest {
+
+	private SynapseAdminClientMockState mockStack;
+	private SynapseAdminClient stubSynapse;
 	
-	int rowCount = 101;
-	StubSynapseAdministration stubSynapse;
-	StubSynapseAdministration mockSynapse;
-	LinkedHashMap<MigrationType, List<RowMetadata>> rawData;
-	MigrationType type;
+	private SynapseAdminClient mockSynapse;
+	
+	private MigrationType type;
+	private int rowCount = 101;
 
 	@Before
-	public void before(){
+	public void before() throws Exception {
 		// This test uses both stubs and mocks.
-		stubSynapse = new StubSynapseAdministration("destination");
-		mockSynapse = Mockito.mock(StubSynapseAdministration.class);
+		mockSynapse = Mockito.mock(SynapseAdminClient.class);
 		
+		mockStack = new SynapseAdminClientMockState();
+		mockStack.endpoint = "destination";
+
 		// just used the first type for this test as they type used does not matter for this test.
 		type = MigrationType.values()[0];
 		
 		List<RowMetadata> list = new LinkedList<RowMetadata>();
-		for(int i=0; i<rowCount; i++){
+		for (int i = 0; i < rowCount; i++) {
 			RowMetadata row = new RowMetadata();
 			row.setId(new Long(i));
-			row.setEtag("etag"+i);
+			row.setEtag("etag" + i);
 			list.add(row);
 		}
-		rawData = new LinkedHashMap<MigrationType, List<RowMetadata>>();
-		rawData.put(type, list);
-		stubSynapse.setMetadata(rawData);
+		mockStack.metadata.put(type, list);
+		
+		stubSynapse = SynapseAdminClientMocker.createMock(mockStack);
 	}
 	
 	@Test
@@ -69,7 +73,7 @@ public class MetadataIteratorTest {
 			}
 		}while(row != null);
 		// Did we get what we expected?
-		assertEquals(rawData.get(type), results);
+		assertEquals(mockStack.metadata.get(type), results);
 	}
 	
 	@Test (expected=RuntimeException.class)

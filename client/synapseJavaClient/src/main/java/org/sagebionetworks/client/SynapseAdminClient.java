@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -133,9 +134,19 @@ public interface SynapseAdminClient extends SynapseClient {
 	
 	/**
 	 * Creates a user with the specified state
-	 * All arguments other than username may be null
+	 * Minimally requires a username
+	 * 
+	 * @return The ID of the user
 	 */
-	public void createUser(String username, String password, UserProfile profile, String secretKey, Session session) throws SynapseException, JSONObjectAdapterException;
+	public long createUser(NewIntegrationTestUser user) throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Creates a user with the specified state
+	 * All arguments other than username may be null
+	 * 
+	 * @return The ID of the user
+	 */
+	public long createUser(String username, String password, UserProfile profile, Session session) throws SynapseException, JSONObjectAdapterException;
 	
 	/**
 	 * Deletes a user by ID

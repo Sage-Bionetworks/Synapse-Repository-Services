@@ -64,17 +64,11 @@ public class IT501SynapseJavaClientMessagingTest {
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		synapseOne.setSessionToken(session);
-		user1ToDelete = Long.parseLong(synapseOne.getMyProfile().getOwnerId());
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
-		session = SynapseClientHelper.createUser(adminSynapse);
 		synapseTwo = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseTwo);
-		synapseTwo.setSessionToken(session);
-		user2ToDelete = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();

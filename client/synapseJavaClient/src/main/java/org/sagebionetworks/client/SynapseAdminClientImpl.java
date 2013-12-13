@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -316,18 +317,24 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
-	public void createUser(String username, String password,
-			UserProfile profile, String secretKey, Session session) throws SynapseException, JSONObjectAdapterException {
+	public long createUser(NewIntegrationTestUser user) throws SynapseException, JSONObjectAdapterException {
+		JSONObject json = getSharedClientConnection().postJson(repoEndpoint, ADMIN_USER,
+				EntityFactory.createJSONStringForEntity(user), getUserAgent());
+		
+		EntityId id = EntityFactory.createEntityFromJSONObject(json, EntityId.class);
+		return Long.parseLong(id.getId());
+	}
+
+	@Override
+	public long createUser(String username, String password,
+			UserProfile profile, Session session) throws SynapseException, JSONObjectAdapterException {
 		NewIntegrationTestUser user = new NewIntegrationTestUser();
 		user.setUsername(username);
 		user.setPassword(password);
 		user.setProfile(profile);
-		user.setSecretKey(secretKey);
 		user.setSession(session);
 		
-		
-		getSharedClientConnection().postJson(repoEndpoint, ADMIN_USER, EntityFactory.createJSONStringForEntity(user), getUserAgent());
-		
+		return createUser(user);
 	}
 
 	@Override

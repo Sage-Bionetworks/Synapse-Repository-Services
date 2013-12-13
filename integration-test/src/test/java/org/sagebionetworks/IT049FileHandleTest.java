@@ -51,13 +51,9 @@ public class IT049FileHandleTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		
 		synapse = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapse);
-		synapse.setSessionToken(session);
-		
-		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
@@ -70,7 +66,6 @@ public class IT049FileHandleTest {
 
 	@After
 	public void after() throws Exception {
-		//TODO Cleanup properly after tests
 		for (FileHandle handle: toDelete) {
 			try {
 				synapse.deleteFileHandle(handle.getId());
@@ -80,11 +75,7 @@ public class IT049FileHandleTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		//TODO This delete should not need to be surrounded by a try-catch
-		// This means proper cleanup was not done by the test 
-		try {
-			adminSynapse.deleteUser(userToDelete);
-		} catch (Exception e) { }
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
@@ -120,6 +111,7 @@ public class IT049FileHandleTest {
 		PreviewFileHandle preview = (PreviewFileHandle) synapse.getRawFileHandle(handle.getPreviewId());
 		assertNotNull(preview);
 		System.out.println(preview);
+		toDelete.add(preview);
 		
 		//clear the preview and wait for it to be recreated
 		synapse.clearPreview(handle.getId());
@@ -132,6 +124,7 @@ public class IT049FileHandleTest {
 		}
 		preview = (PreviewFileHandle) synapse.getRawFileHandle(handle.getPreviewId());
 		assertNotNull(preview);
+		toDelete.add(preview);
 		
 		// Now delete the root file handle.
 		synapse.deleteFileHandle(handle.getId());
@@ -139,13 +132,13 @@ public class IT049FileHandleTest {
 		try{
 			synapse.getRawFileHandle(handle.getId());
 			fail("The handle should be deleted.");
-		}catch(SynapseException e){
+		}catch(SynapseNotFoundException e){
 			// expected.
 		}
 		try{
 			synapse.getRawFileHandle(handle.getPreviewId());
 			fail("The handle should be deleted.");
-		}catch(SynapseException e){
+		}catch(SynapseNotFoundException e){
 			// expected.
 		}
 	}

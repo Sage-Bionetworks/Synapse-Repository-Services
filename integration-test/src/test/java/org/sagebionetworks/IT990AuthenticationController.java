@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.auth.Session;
 public class IT990AuthenticationController {
 
 	private static SynapseAdminClient adminSynapse;
+	private static Long userToDelete;
 	
 	/**
 	 * Signs in with username + password, has signed the ToU
@@ -46,8 +47,7 @@ public class IT990AuthenticationController {
 		
 		// Don't use the SynapseClientHelper here, since we need something different
 		username = UUID.randomUUID().toString() + "@sagebase.org";
-		adminSynapse.createUser(username, "password", null, null, null);
-		SynapseClientHelper.createUser(adminSynapse);
+		userToDelete = adminSynapse.createUser(username, PASSWORD, null, null);
 		
 		// Construct the client, but do nothing else
 		synapse = new SynapseClientImpl();
@@ -62,11 +62,7 @@ public class IT990AuthenticationController {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		synapse.login(username, PASSWORD);
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
-		
-		Long userId = Long.parseLong(synapse.getMyProfile().getOwnerId());
-		adminSynapse.deleteUser(userId);
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test

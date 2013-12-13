@@ -6,8 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax.xml.crypto.dsig.spec.HMACParameterSpec;
-
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -47,12 +45,20 @@ public class UserManagerImpl implements UserManager {
 	
 	/**
 	 * Testing purposes only
+	 * Do NOT use in non-test code
 	 * i.e. {@link #createUser(UserInfo, String, UserProfile, DBOCredential)}
 	 */
 	@Autowired
 	private DBOBasicDao basicDAO;
 	
-
+	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO) {
+		this.userGroupDAO = userGroupDAO;
+		this.userProfileDAO = userProfileDAO;
+		this.groupMembersDAO = groupMembersDAO;
+		this.authDAO = authDAO;
+		this.basicDAO = basicDAO;
+	}
+	
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
 	}
@@ -126,9 +132,9 @@ public class UserManagerImpl implements UserManager {
 		// Update the credentials
 		if (credential == null) {
 			credential = new DBOCredential();
-			credential.setSecretKey(HMACUtils.newHMACSHA1Key());
 		}
 		credential.setPrincipalId(principalId);
+		credential.setSecretKey(HMACUtils.newHMACSHA1Key());
 		basicDAO.update(credential);
 		
 		return getUserInfo(principalId);

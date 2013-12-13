@@ -26,6 +26,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -103,18 +104,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		synapseOne.setSessionToken(session);
-		user1ToDelete = Long.parseLong(synapseOne.getMyProfile().getOwnerId());
-		
-		session = SynapseClientHelper.createUser(adminSynapse);
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+
 		synapseTwo = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseTwo);
-		synapseTwo.setSessionToken(session);
-		user2ToDelete = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
-		
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	}
 	
 	@Before
@@ -163,53 +157,47 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@After
-	public void after() {
-		//TODO Cleanup properly after tests
-		
+	public void after() throws Exception {
 		// clean up submissions
 		for (String id : submissionsToDelete) {
 			try {
-				synapseOne.deleteSubmission(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteSubmission(id);
+			} catch (SynapseNotFoundException e) {}
 		};
 		
 		// clean up Access Requirements
 		for (Long id : accessRequirementsToDelete) {
 			try {
-				synapseOne.deleteAccessRequirement(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteAccessRequirement(id);
+			} catch (SynapseNotFoundException e) {}
 		}
 		
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
-				synapseOne.deleteEvaluation(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteEvaluation(id);
+			} catch (SynapseNotFoundException e) {}
 		}
 		
 		// clean up nodes
 		for (String id : entitiesToDelete) {
 			try {
-				synapseOne.deleteAndPurgeEntityById(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteAndPurgeEntityById(id);
+			} catch (SynapseNotFoundException e) {}
 		}
+		
 		// clean up FileHandle
 		if(fileHandle != null){
 			try {
-				synapseOne.deleteFileHandle(fileHandle.getId());
-			} catch (Exception e) {}
+				adminSynapse.deleteFileHandle(fileHandle.getId());
+			} catch (SynapseNotFoundException e) {}
 		}
 	}
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
 		adminSynapse.deleteUser(user1ToDelete);
-
-		//TODO This delete should not need to be surrounded by a try-catch
-		// This means proper cleanup was not done by the test 
-		try {
-			adminSynapse.deleteUser(user2ToDelete);
-		} catch (Exception e) { }
+		adminSynapse.deleteUser(user2ToDelete);
 	}
 	
 	@Test
