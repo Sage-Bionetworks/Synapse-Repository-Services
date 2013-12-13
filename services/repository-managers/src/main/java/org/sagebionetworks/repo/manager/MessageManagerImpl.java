@@ -161,12 +161,6 @@ public class MessageManagerImpl implements MessageManager, InitializingBean {
 			throw new DatastoreException("Could not find the default group for all authenticated users");
 		}
 		authenticatedUsersId = authUsers.getId();
-		
-		UserGroup emailer = userGroupDAO.findGroup(StackConfiguration.getNotificationEmailAddress(), true);
-		if (emailer == null) {
-			throw new DatastoreException("Could not find the user that sends Synapse emails");
-		}
-		emailerId = emailer.getId();
 	}
 	
 	@Override
