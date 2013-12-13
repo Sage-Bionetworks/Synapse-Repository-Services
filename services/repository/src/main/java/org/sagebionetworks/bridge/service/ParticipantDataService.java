@@ -6,11 +6,13 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataService {
-	public RowSet get(String userId, String participantDataId) throws DatastoreException, NotFoundException, IOException;
+	public PaginatedRowSet get(String userId, String participantDataId, Integer limit, Integer offset) throws DatastoreException,
+			NotFoundException, IOException;
 
 	public RowSet append(String userId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException;
 

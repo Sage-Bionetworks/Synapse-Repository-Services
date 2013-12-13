@@ -10,6 +10,7 @@ import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -194,9 +195,9 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public RowSet getParticipantData(String participantDataId) throws SynapseException {
+	public PaginatedRowSet getParticipantData(String participantDataId, long limit, long offset) throws SynapseException {
 		String uri = PARTICIPANT_DATA + "/" + participantDataId;
-		return get(uri, RowSet.class);
+		return getPaginated(uri, PaginatedRowSet.class, limit, offset);
 	}
 
 	@Override
@@ -247,14 +248,26 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private <T extends JSONEntity> PaginatedResults<T> getList(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
 		// Get the json for this entity
 		try {
+			uri = uri + "?limit=" + limit + "&offset=" + offset;
+
 			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-
-			uri = uri + "?limit=" + limit + "&offset=" + offset;
 
 			PaginatedResults<T> results = new PaginatedResults<T>(klass);
 			results.initializeFromJSONObject(adapter);
 			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	private <T extends JSONEntity> T getPaginated(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
+		// Get the json for this entity
+		try {
+			uri = uri + "?limit=" + limit + "&offset=" + offset;
+			JSONObject jsonObject = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
+
+			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, klass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

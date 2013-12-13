@@ -25,6 +25,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 
@@ -156,13 +157,59 @@ public class IT610BridgeData {
 		data3.setRows(Collections.singletonList(row3));
 		data3 = bridgeTwo.appendParticipantData(participantDataDescriptor.getId(), data3);
 
-		RowSet one = bridge.getParticipantData(participantDataDescriptor.getId());
-		RowSet two = bridgeTwo.getParticipantData(participantDataDescriptor.getId());
+		PaginatedRowSet one = bridge.getParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0);
+		PaginatedRowSet two = bridgeTwo.getParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0);
 
-		assertEquals(3, one.getRows().size());
-		assertEquals(1, two.getRows().size());
+		assertEquals(3, one.getResults().getRows().size());
+		assertEquals(1, two.getResults().getRows().size());
 
-		assertEquals(data3, two);
+		assertEquals(data3, two.getResults());
+	}
+
+	@Test
+	public void testPaginatedParticipantData() throws Exception {
+		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
+		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
+		participantDataDescriptor = bridge.createParticipantData(participantDataDescriptor);
+
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
+		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
+		participantDataColumnDescriptor1.setName("level");
+		bridge.createParticipantDataColumn(participantDataColumnDescriptor1);
+
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
+		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
+		participantDataColumnDescriptor2.setName("size");
+		bridge.createParticipantDataColumn(participantDataColumnDescriptor2);
+
+		List<String> headers = Lists.newArrayList("level", "size");
+
+		RowSet data1 = new RowSet();
+		data1.setHeaders(headers);
+		Row row1 = new Row();
+		row1.setValues(Lists.newArrayList("5", "200"));
+		Row row2 = new Row();
+		row2.setValues(Lists.newArrayList("6", "200"));
+		Row row3 = new Row();
+		row3.setValues(Lists.newArrayList("7", "200"));
+		data1.setRows(Lists.newArrayList(row1, row2, row3));
+		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
+
+		PaginatedRowSet result;
+		result = bridge.getParticipantData(participantDataDescriptor.getId(), 1, 0);
+		assertEquals(1, result.getResults().getRows().size());
+		assertEquals("5", result.getResults().getRows().get(0).getValues().get(0));
+
+		result = bridge.getParticipantData(participantDataDescriptor.getId(), 1, 1);
+		assertEquals(1, result.getResults().getRows().size());
+		assertEquals("6", result.getResults().getRows().get(0).getValues().get(0));
+
+		result = bridge.getParticipantData(participantDataDescriptor.getId(), 10, 1);
+		assertEquals(2, result.getResults().getRows().size());
+		assertEquals("6", result.getResults().getRows().get(0).getValues().get(0));
+		assertEquals("7", result.getResults().getRows().get(1).getValues().get(0));
 	}
 
 	@Test
@@ -205,12 +252,12 @@ public class IT610BridgeData {
 		assertEquals(1, dataToReplace.getRows().size());
 		assertEquals(data1.getRows().get(1).getRowId(), dataToReplace.getRows().get(0).getRowId());
 
-		RowSet result = bridge.getParticipantData(participantDataDescriptor.getId());
+		PaginatedRowSet result = bridge.getParticipantData(participantDataDescriptor.getId(), Integer.MAX_VALUE, 0);
 
-		assertEquals(3, result.getRows().size());
-		assertEquals("5", result.getRows().get(0).getValues().get(0));
-		assertEquals("8", result.getRows().get(1).getValues().get(0));
-		assertEquals("7", result.getRows().get(2).getValues().get(0));
+		assertEquals(3, result.getResults().getRows().size());
+		assertEquals("5", result.getResults().getRows().get(0).getValues().get(0));
+		assertEquals("8", result.getResults().getRows().get(1).getValues().get(0));
+		assertEquals("7", result.getResults().getRows().get(2).getValues().get(0));
 	}
 }
 

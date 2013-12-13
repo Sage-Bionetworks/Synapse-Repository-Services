@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +24,10 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	private ParticipantDataDescriptionManager participantDataDescriptionManager;
 
 	@Override
-	public RowSet get(String userId, String participantDataId) throws DatastoreException, NotFoundException, IOException {
+	public PaginatedRowSet get(String userId, String participantDataId, Integer limit, Integer offset) throws DatastoreException,
+			NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getData(userInfo, participantDataId);
+		return participantDataManager.getData(userInfo, participantDataId, limit, offset);
 	}
 
 	@Override

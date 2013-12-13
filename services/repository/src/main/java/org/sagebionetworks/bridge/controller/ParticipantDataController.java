@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,15 @@ public class ParticipantDataController {
 	@Autowired
 	BridgeServiceProvider serviceProvider;
 
+	/**
+	 * Append new participant data rows
+	 * 
+	 * @param userId
+	 * @param participantDataId
+	 * @param data
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ID, method = RequestMethod.POST)
 	public @ResponseBody
@@ -36,6 +46,16 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().append(userId, participantDataId, data);
 	}
 
+	/**
+	 * Append participant data rows for another participant
+	 * 
+	 * @param userId
+	 * @param participantId
+	 * @param participantDataId
+	 * @param data
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.APPEND_FOR_PARTICIPANT_DATA, method = RequestMethod.POST)
 	public @ResponseBody
@@ -44,6 +64,15 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().append(userId, participantId, participantDataId, data);
 	}
 
+	/**
+	 * update existing participant data rows
+	 * 
+	 * @param userId
+	 * @param participantDataId
+	 * @param data
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ID, method = RequestMethod.PUT)
 	public @ResponseBody
@@ -52,14 +81,35 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().update(userId, participantDataId, data);
 	}
 
+	/**
+	 * get partitipant data
+	 * 
+	 * @param userId
+	 * @param participantDataId
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	RowSet getParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	PaginatedRowSet getParticipantData(
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String participantDataId) throws Exception {
-		return serviceProvider.getParticipantDataService().get(userId, participantDataId);
+		return serviceProvider.getParticipantDataService().get(userId, participantDataId, limit, offset);
 	}
 
+	/**
+	 * Get the list of participant data for this user
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA, method = RequestMethod.GET)
 	public @ResponseBody
@@ -71,6 +121,14 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().getUserParticipantDataDescriptors(userId, limit, offset);
 	}
 
+	/**
+	 * create a new participant data description
+	 * 
+	 * @param userId
+	 * @param participantDataDescriptor
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR, method = RequestMethod.POST)
 	public @ResponseBody
@@ -79,6 +137,15 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().createParticipantDataDescriptor(userId, participantDataDescriptor);
 	}
 
+	/**
+	 * get a participant data description
+	 * 
+	 * @param userId
+	 * @param participantDataId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -87,6 +154,16 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().getParticipantDataDescriptor(userId, participantDataId);
 	}
 
+	/**
+	 * create all participant data descriptions
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR, method = RequestMethod.GET)
 	public @ResponseBody
@@ -98,6 +175,14 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().getAllParticipantDataDescriptors(userId, limit, offset);
 	}
 
+	/**
+	 * create a new participant data column description
+	 * 
+	 * @param userId
+	 * @param participantDataColumnDescriptor
+	 * @return
+	 * @throws Exception
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_COLUMN_DESCRIPTORS, method = RequestMethod.POST)
 	public @ResponseBody
@@ -107,6 +192,17 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().createParticipantDataColumnDescriptor(userId, participantDataColumnDescriptor);
 	}
 
+	/**
+	 * get all participant data column descriptions for a participant data descriptor
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @param userId
+	 * @param participantDataId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_COLUMN_DESCRIPTORS_FOR_PARTICIPANT_DATA_ID, method = RequestMethod.GET)
 	public @ResponseBody

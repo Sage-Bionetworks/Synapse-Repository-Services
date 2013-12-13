@@ -1,15 +1,13 @@
 package org.sagebionetworks.client;
 
-import java.util.List;
-
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 
 /**
@@ -168,7 +166,7 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public RowSet getParticipantData(String participantDataId) throws SynapseException;
+	public PaginatedRowSet getParticipantData(String participantDataId, long limit, long offset) throws SynapseException;
 
 	public ParticipantDataDescriptor createParticipantData(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException;
 
