@@ -38,13 +38,9 @@ public class IT070SynapseJavaClientTrashCanTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		
 		synapse = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapse);
-		synapse.setSessionToken(session);
-		
-		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 
 	@Before

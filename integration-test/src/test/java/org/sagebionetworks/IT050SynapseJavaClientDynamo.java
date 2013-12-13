@@ -38,13 +38,9 @@ public class IT050SynapseJavaClientDynamo {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		
 		synapse = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapse);
-		synapse.setSessionToken(session);
-		
-		userToDelete = Long.parseLong(synapse.getMyProfile().getOwnerId());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 
 		String tableName = DboNodeLineage.TABLE_NAME;
 		String hashKeyName = DboNodeLineage.HASH_KEY_NAME;

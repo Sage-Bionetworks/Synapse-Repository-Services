@@ -119,21 +119,14 @@ public class IT500SynapseJavaClient {
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		synapseOne.setSessionToken(session);
-		user1ToDelete = Long.parseLong(synapseOne.getMyProfile().getOwnerId());
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
-		session = SynapseClientHelper.createUser(adminSynapse);
 		synapseTwo = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseTwo);
-		synapseTwo.setSessionToken(session);
-		
-		UserProfile profile = synapseTwo.getMyProfile();
-		user2ToDelete = Long.parseLong(profile.getOwnerId());
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 		
 		// Update this user's profile to contain a display name
+		UserProfile profile = synapseTwo.getMyProfile();
 		profile.setDisplayName(UUID.randomUUID().toString());
 		synapseTwo.updateMyProfile(profile);
 	}

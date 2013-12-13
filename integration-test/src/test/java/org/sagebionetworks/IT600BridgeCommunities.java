@@ -41,8 +41,7 @@ public class IT600BridgeCommunities {
 	private static SynapseAdminClient adminSynapse;
 	private static BridgeClient bridge = null;
 	private static BridgeClient bridgeTwo = null;
-	private static Long user1ToDelete;
-	private static Long user2ToDelete;
+	private static List<Long> usersToDelete;
 
 	public static final int PREVIEW_TIMOUT = 10 * 1000;
 
@@ -52,9 +51,8 @@ public class IT600BridgeCommunities {
 	private List<String> handlesToDelete;
 
 	private static BridgeClient createBridgeClient(SynapseAdminClient client) throws Exception {
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		SynapseClient synapse = new SynapseClientImpl();
-		synapse.setSessionToken(session);
+		usersToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapse));
 
 		BridgeClient bridge = new BridgeClientImpl(synapse);
 		bridge.setBridgeEndpoint(StackConfiguration.getBridgeServiceEndpoint());
@@ -71,16 +69,15 @@ public class IT600BridgeCommunities {
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
+		usersToDelete = new ArrayList<Long>();
+		
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		bridge = createBridgeClient(adminSynapse);
-		user1ToDelete = Long.parseLong(createSynapse(bridge).getMyProfile().getOwnerId());
-		
 		bridgeTwo = createBridgeClient(adminSynapse);
-		user2ToDelete = Long.parseLong(createSynapse(bridgeTwo).getMyProfile().getOwnerId());
 	}
 
 	@Before
@@ -123,14 +120,13 @@ public class IT600BridgeCommunities {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		//TODO This delete should not need to be surrounded by a try-catch
-		// This means proper cleanup was not done by the test 
-		try {
-			adminSynapse.deleteUser(user1ToDelete);
-		} catch (Exception e) { }
-		try {
-			adminSynapse.deleteUser(user2ToDelete);
-		} catch (Exception e) { }
+		for (Long id : usersToDelete) {
+			//TODO This delete should not need to be surrounded by a try-catch
+			// This means proper cleanup was not done by the test 
+			try {
+				adminSynapse.deleteUser(id);
+			} catch (Exception e) { }
+		}
 	}
 
 	@Test

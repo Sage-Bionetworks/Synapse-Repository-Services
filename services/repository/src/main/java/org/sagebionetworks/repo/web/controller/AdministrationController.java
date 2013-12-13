@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -265,12 +266,12 @@ public class AdministrationController extends BaseController {
 	 * Creates a user with specific state to be used for integration testing
 	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void createIntegrationTestUser(
+	@ResponseStatus(HttpStatus.OK)
+	public @ResponseBody EntityId createIntegrationTestUser(
 			@RequestBody NewIntegrationTestUser userSpecs,
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId) 
 	        		throws NotFoundException {
-		serviceProvider.getAdministrationService().createTestUser(userId, userSpecs);
+		return serviceProvider.getAdministrationService().createTestUser(userId, userSpecs);
 	}
 
 	/**

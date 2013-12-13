@@ -104,18 +104,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		String session = SynapseClientHelper.createUser(adminSynapse);
 		synapseOne = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseOne);
-		synapseOne.setSessionToken(session);
-		user1ToDelete = Long.parseLong(synapseOne.getMyProfile().getOwnerId());
-		
-		session = SynapseClientHelper.createUser(adminSynapse);
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+
 		synapseTwo = new SynapseClientImpl();
-		SynapseClientHelper.setEndpoints(synapseTwo);
-		synapseTwo.setSessionToken(session);
-		user2ToDelete = Long.parseLong(synapseTwo.getMyProfile().getOwnerId());
-		
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	}
 	
 	@Before
