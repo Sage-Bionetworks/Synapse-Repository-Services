@@ -51,6 +51,8 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	private DBOBasicDao basicDAO;
 	
+	public UserManagerImpl() { }
+	
 	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;

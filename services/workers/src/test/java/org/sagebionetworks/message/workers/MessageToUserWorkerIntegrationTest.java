@@ -110,6 +110,7 @@ public class MessageToUserWorkerIntegrationTest {
 				add(adminUserInfo.getIndividualGroup().getId());
 				
 				// Note: this causes the worker to send a delivery failure notification too
+				// Which can be visually confirmed by the tester (appears in STDOUT)
 				add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString());
 			}
 		});

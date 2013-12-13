@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -86,6 +87,30 @@ public class AuthenticationFilterTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
+		
+		filter.doFilter(request, response, filterChain);
+		
+		// Should default to anonymous
+		ServletRequest modRequest = filterChain.getRequest();
+		assertNotNull(modRequest);
+		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		
+		//TODO Temporary string matching
+		assertTrue("anonymous@sagebase.org".equals(anonymous));
+	}
+	
+	/**
+	 * Test that we treat an empty session token the same an a null session token.
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_2422() throws Exception {
+		// A request with no information provided
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, "");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		MockFilterChain filterChain = new MockFilterChain();
+		when(mockAuthService.revalidate(eq(""), eq(false))).thenThrow(new UnauthorizedException("That is not a valid session token"));
 		
 		filter.doFilter(request, response, filterChain);
 		
