@@ -3392,7 +3392,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			System.arraycopy(bodyBytes, (int)startInclusive, chunk, 0, chunk.length);
 			Map<String,String> requestHeaders = new HashMap<String,String>();
 			requestHeaders.put("content-type", contentType);
-			//requestHeaders.put("content-length", ""+chunk.length);
 			
 			getSharedClientConnection().putToURL(presignedURL, new String(chunk), requestHeaders);
 			chunkNumbers.add(currentChunkNumber);
