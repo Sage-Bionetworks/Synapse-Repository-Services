@@ -275,6 +275,19 @@ public class SharedClientConnection {
 
 	}
 	
+	public HttpResponse putToURL(URL requestUrl, String content, Map<String,String> requestHeaders) throws SynapseException {
+		try {
+			return clientProvider.performRequest(requestUrl.toString(), "PUT", content,
+					requestHeaders);
+		} catch (ClientProtocolException e) {
+			throw new SynapseException(e);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		} catch (HttpClientHelperException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	/**
 	 * Asymmetrical post where the request and response are not of the same type.
 	 * 

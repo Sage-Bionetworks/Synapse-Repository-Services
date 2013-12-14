@@ -7,11 +7,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -3342,6 +3346,87 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+    private static final long MAX_CHUNK_SIZE_BYTES = 5 * 1000 * 1024;
+
+    /**
+	 * Convenience function for uploading message body and sending message
+	 */
+	@Override
+	public MessageToUser sendMessage(List<String>recipientIds, String subject, String message, String contentType, String inReplyTo) 
+			throws SynapseException {
+		if (contentType==null) contentType = "application/txt";	
+		byte[] bodyBytes = null; 
+		try {
+			bodyBytes = message.getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e1) {
+			throw new SynapseException(e1);
+		}
+		byte[] md5Bytes;
+		try {
+			md5Bytes = MessageDigest.getInstance("MD5").digest( bodyBytes );
+		} catch (NoSuchAlgorithmException e1) {
+			throw new SynapseException(e1);
+		}
+		String contentMD5 = new BigInteger(1, md5Bytes).toString(16);
+    	 
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setFileName("body");
+		ccftr.setContentType(contentType);
+		ccftr.setContentMD5(contentMD5);
+		// Start the upload
+		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
+		
+ 	   	List<Long> chunkNumbers = new ArrayList<Long>();
+		long currentChunkNumber = 1;
+		long endExclusive = 0; // 1 + the index of the last byte to include in the next chunk
+		while (endExclusive<bodyBytes.length) {
+			ChunkRequest request = new ChunkRequest();
+			request.setChunkedFileToken(token);
+			request.setChunkNumber((long) currentChunkNumber);
+			URL presignedURL = createChunkedPresignedUrl(request);
+			long startInclusive = endExclusive;
+			endExclusive = Math.min(startInclusive+MAX_CHUNK_SIZE_BYTES, bodyBytes.length);
+			// upload to presignedURL from startInclusive to endExclusive
+			byte[] chunk = new byte[(int)(endExclusive-startInclusive)];
+			System.arraycopy(bodyBytes, (int)startInclusive, chunk, 0, chunk.length);
+			Map<String,String> requestHeaders = new HashMap<String,String>();
+			requestHeaders.put("content-type", contentType);
+			//requestHeaders.put("content-length", ""+chunk.length);
+			
+			getSharedClientConnection().putToURL(presignedURL, new String(chunk), requestHeaders);
+			chunkNumbers.add(currentChunkNumber);
+			currentChunkNumber++;
+		}
+		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
+		cacr.setChunkedFileToken(token);
+		cacr.setChunkNumbers(chunkNumbers);
+		UploadDaemonStatus status = startUploadDeamon(cacr);
+		State state = status.getState();
+		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+			
+		long backOff = 100L; // initially just 1/10 sec, but will exponentially increase
+		while (state.equals(State.PROCESSING)) {
+			try {
+				Thread.sleep(backOff);
+			} catch (InterruptedException e) {
+				// continue
+			}
+			status = getCompleteUploadDaemonStatus(status.getDaemonId());
+			state = status.getState();
+			if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+			backOff *= 2; // exponential backoff
+		}
+		
+		// now send the message using the file Handle ID
+    	MessageToUser userMessage = new MessageToUser();
+    	userMessage.setFileHandleId(status.getFileHandleId());
+    	userMessage.setRecipients(new HashSet<String>(recipientIds));
+    	userMessage.setSubject(subject);
+    	return sendMessage(userMessage);		
+	}
+	
+
 	
 	@Override
 	public MessageToUser sendMessage(MessageToUser message, String entityId) throws SynapseException {
