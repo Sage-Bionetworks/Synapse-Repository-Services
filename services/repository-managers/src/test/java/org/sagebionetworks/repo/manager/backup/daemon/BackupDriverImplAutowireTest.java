@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -22,12 +23,13 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -41,7 +43,7 @@ public class BackupDriverImplAutowireTest {
 	private FileHandleDao fileHandleDao;
 	
 	@Autowired
-	private WikiPageDao wikiPageDao;
+	private V2WikiPageDao wikiPageDao;
 	
 	@Autowired
 	private UserManager userManager;	
@@ -57,8 +59,9 @@ public class BackupDriverImplAutowireTest {
 	private String creatorUserGroupId;
 	private S3FileHandle withPreview;
 	private PreviewFileHandle preview;
+	private FileHandle markdownFileHandle;
 	private WikiPageKey wikiKey;
-	private WikiPage wiki;
+	private V2WikiPage wiki;
 	private Map<String, FileHandle> fileNameToFileHandleMap;
 	private File backupOne;
 	private File backupTwo;
@@ -87,9 +90,15 @@ public class BackupDriverImplAutowireTest {
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 		String ownerId = "123";
 		ObjectType ownerType = ObjectType.EVALUATION;
-		wiki = new WikiPage();
+		wiki = new V2WikiPage();
 		wiki.setTitle("testPLFM_1937");
-		wiki.setMarkdown("markdown");
+		
+		markdownFileHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		markdownFileHandle.setFileName("markdown.txt");
+		markdownFileHandle = fileHandleDao.createFile(markdownFileHandle);
+		toDelete.add(markdownFileHandle.getId());
+		
+		wiki.setMarkdownFileHandleId(markdownFileHandle.getId());
 		wiki.setCreatedBy(adminUser.getIndividualGroup().getId());
 		wiki.setModifiedBy(wiki.getCreatedBy());
 		wiki.setCreatedOn(new Date());
@@ -98,8 +107,11 @@ public class BackupDriverImplAutowireTest {
 		fileNameToFileHandleMap = new HashMap<String, FileHandle>();
 		fileNameToFileHandleMap.put(withPreview.getFileName(), withPreview);
 		fileNameToFileHandleMap.put(preview.getFileName(), preview);
+		List<String> newFileHandleIds = new ArrayList<String>();
+		newFileHandleIds.add(withPreview.getId());
+		newFileHandleIds.add(preview.getId());
 		// Now create the wikipage
-		wiki = wikiPageDao.create(wiki, fileNameToFileHandleMap, ownerId, ownerType);
+		wiki = wikiPageDao.create(wiki, fileNameToFileHandleMap, ownerId, ownerType, newFileHandleIds);
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
 		wikiKey = new WikiPageKey(ownerId, ownerType, wiki.getId());
 	}
@@ -141,23 +153,23 @@ public class BackupDriverImplAutowireTest {
 		List<Long> ids1 = new LinkedList<Long>();
 		ids1.add(Long.parseLong(wiki.getId()));
 		backupOne = File.createTempFile("backupOne", ".zip");
-		backupDriver.writeBackup(adminUser, backupOne, new Progress(), MigrationType.WIKI_PAGE, ids1);
+		backupDriver.writeBackup(adminUser, backupOne, new Progress(), MigrationType.V2_WIKI_PAGE, ids1);
 		// Now delete one of the attachments and take another backup copy.
 		fileNameToFileHandleMap.remove(preview.getFileName());
-		wiki = wikiPageDao.updateWikiPage(wiki, fileNameToFileHandleMap, wikiKey.getOwnerObjectId(), wikiKey.getOwnerObjectType(), false);
+		wiki = wikiPageDao.updateWikiPage(wiki, fileNameToFileHandleMap, wikiKey.getOwnerObjectId(), wikiKey.getOwnerObjectType(), new ArrayList<String>());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		// Now create another backup
 		backupTwo = File.createTempFile("backupTwo", ".zip");
-		backupDriver.writeBackup(adminUser, backupTwo, new Progress(), MigrationType.WIKI_PAGE, ids1);
+		backupDriver.writeBackup(adminUser, backupTwo, new Progress(), MigrationType.V2_WIKI_PAGE, ids1);
 		
 		// Now apply the first backup, should restore the deleted attachment
 		backupDriver.restoreFromBackup(adminUser, backupOne, new Progress());
 		// We should have two attachments
-		wiki = wikiPageDao.get(wikiKey);
+		wiki = wikiPageDao.get(wikiKey, null);
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());
 		// Now apply the second backup
 		backupDriver.restoreFromBackup(adminUser, backupTwo, new Progress());
-		wiki = wikiPageDao.get(wikiKey);
+		wiki = wikiPageDao.get(wikiKey, null);
 		assertEquals("update did not clear secondary table rows",1, wiki.getAttachmentFileHandleIds().size());
 	}
 	

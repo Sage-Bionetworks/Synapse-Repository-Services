@@ -48,7 +48,6 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -1284,21 +1283,6 @@ public class ServletTestHelper {
 
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				EntityHeader.class);
-	}
-	
-	public static PaginatedResults<WikiMigrationResult> migrateWikisToV2(HttpServlet dispatchServlet,
-			String username, Map<String, String> extraParams) throws Exception {
-		
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ADMIN_MIGRATE_WIKI, username, null);
-		
-		ServletTestHelperUtils.addExtraParams(request, extraParams);
-		
-		MockHttpServletResponse response = ServletTestHelperUtils
-		.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
-
-		return ServletTestHelperUtils.readResponsePaginatedResults(response,
-				WikiMigrationResult.class);
 	}
 
 	/**
