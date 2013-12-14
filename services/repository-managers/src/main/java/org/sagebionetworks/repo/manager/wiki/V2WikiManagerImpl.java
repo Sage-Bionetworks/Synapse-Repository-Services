@@ -301,25 +301,36 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public V2WikiPage restoreWikiPage(UserInfo user, String objectId,
-			ObjectType objectType, Long version, V2WikiPage current) throws NotFoundException,
+			ObjectType objectType, Long version, String wikiId) throws NotFoundException,
 			UnauthorizedException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(objectId == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
-		if(current == null) throw new IllegalArgumentException("wikiPage cannot be null");
+		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
 		
-		WikiPageKey key = new WikiPageKey(objectId, objectType, current.getId());
+		WikiPageKey key = new WikiPageKey(objectId, objectType, wikiId);
+		// Get the most recent version of the wiki page for its etag
+		V2WikiPage wiki = wikiPageDao.get(key, null);
+		
 		String markdownFileHandleId = wikiPageDao.getMarkdownHandleId(key, version);
 		List<String> attachmentFileHandleIds = wikiPageDao.getWikiFileHandleIds(key, version);
+		
+		// Set up a new V2 WikiPage
+		V2WikiPage newWikiVersion = new V2WikiPage();
+		newWikiVersion.setId(wikiId);
+		newWikiVersion.setEtag(wiki.getEtag());
+		//Preserve creation metadata
+		newWikiVersion.setCreatedBy(wiki.getCreatedBy());
+		newWikiVersion.setCreatedOn(wiki.getCreatedOn());
 		// Assign restored content to the wiki page
-		current.setMarkdownFileHandleId(markdownFileHandleId);
-		current.setAttachmentFileHandleIds(attachmentFileHandleIds);
+		newWikiVersion.setMarkdownFileHandleId(markdownFileHandleId);
+		newWikiVersion.setAttachmentFileHandleIds(attachmentFileHandleIds);
 		// Update the page with these changes
-		return updateWikiPage(user, objectId, objectType, current);
+		return updateWikiPage(user, objectId, objectType, newWikiVersion);
 	}
 
 	@Override

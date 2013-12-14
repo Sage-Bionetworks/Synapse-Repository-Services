@@ -58,10 +58,10 @@ public class V2WikiServiceImpl implements V2WikiService {
 
 	@Override
 	public V2WikiPage restoreWikipage(String userId, String objectId,
-			ObjectType objectType, V2WikiPage toUpdate, Long version)
+			ObjectType objectType, String wikiId, Long version)
 			throws NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.restoreWikiPage(user, objectId, objectType, version, toUpdate);
+		return wikiManager.restoreWikiPage(user, objectId, objectType, version, wikiId);
 	}
 
 	@Override
