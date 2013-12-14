@@ -12,7 +12,6 @@ import java.util.Stack;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 
 /**
@@ -42,7 +41,5 @@ public class SynapseAdminClientMockState {
 	public BackupRestoreStatus status;
 	
 	public long statusSequence = 0L;
-	
-	public List<WikiMigrationResult> wikiMigrationResults = new ArrayList<WikiMigrationResult>();
 	
 }

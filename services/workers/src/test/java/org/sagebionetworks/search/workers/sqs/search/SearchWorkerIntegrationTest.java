@@ -2,6 +2,7 @@ package org.sagebionetworks.search.workers.sqs.search;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
@@ -21,9 +22,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
@@ -58,11 +60,11 @@ public class SearchWorkerIntegrationTest {
 	private SearchDao searchDao;
 	
 	@Autowired
-	private WikiPageDao wikiPageDao;
+	private V2WikiPageDao wikiPageDao;
 	
 	private UserInfo adminUserInfo;
 	private Project project;
-	private WikiPage rootPage;
+	private V2WikiPage rootPage;
 	private WikiPageKey rootKey;
 	
 	@Before
@@ -84,10 +86,10 @@ public class SearchWorkerIntegrationTest {
 
 	}
 
-	private WikiPage createWikiPage(UserInfo info){
-		WikiPage page = new  WikiPage();
+	private V2WikiPage createWikiPage(UserInfo info){
+		V2WikiPage page = new  V2WikiPage();
 		page.setTitle("rootTile");
-		page.setMarkdown("rootMarkdown");
+		page.setMarkdownFileHandleId("1");
 		page.setCreatedBy(info.getIndividualGroup().getId());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
@@ -132,8 +134,8 @@ public class SearchWorkerIntegrationTest {
 		rootPage = createWikiPage(adminUserInfo);
 		rootPage.setTitle("rootTile");
 		String uuid = UUID.randomUUID().toString();
-		rootPage.setMarkdown(" "+uuid);
-		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY);
+		rootPage.setMarkdownFileHandleId("2");
+		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
 		Thread.sleep(1000);

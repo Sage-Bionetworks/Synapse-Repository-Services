@@ -22,8 +22,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -40,19 +43,28 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 
 /**
  * @author deflaux
@@ -72,13 +84,20 @@ public class SearchDocumentDriverImplAutowireTest {
 	private EntityManager entityManager;
 	
 	@Autowired
-	private WikiPageDao wikiPageDao;
+	private V2WikiPageDao wikiPageDao;
+	
+	@Autowired
+	FileHandleManager fileHandleManager;
+	@Autowired
+	FileHandleDao fileMetadataDao;	
+	@Autowired
+	AmazonS3Client s3Client;
 	
 	private UserInfo adminUserInfo;
 	private Project project;
-	private WikiPage rootPage;
+	private V2WikiPage rootPage;
 	private WikiPageKey rootKey;
-	private WikiPage subPage;
+	private V2WikiPage subPage;
 	private WikiPageKey subPageKey;
 	
 	@Before
@@ -94,24 +113,22 @@ public class SearchDocumentDriverImplAutowireTest {
 		String projectId = entityManager.createEntity(adminUserInfo, project, null);
 		project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 		// Add two wikiPages to the entity
-		rootPage = createWikiPage();
+		rootPage = createWikiPageWithMarkdown("rootMarkdown");
 		rootPage.setTitle("rootTile");
-		rootPage.setMarkdown("rootMarkdown");
-		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY);
+		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// Add a sub-page;
-		subPage = createWikiPage();
+		subPage = createWikiPageWithMarkdown("subMarkdown");
 		subPage.setTitle("subTitle");
-		subPage.setMarkdown("subMarkdown");
 		subPage.setParentWikiId(rootPage.getId());
-		subPage = wikiPageDao.create(subPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY);
+		subPage = wikiPageDao.create(subPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		subPageKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, subPage.getId());
 	}
 	
-	private WikiPage createWikiPage(){
-		WikiPage page = new  WikiPage();
-		page.setTitle("rootTile");
-		page.setMarkdown("rootMarkdown");
+	private V2WikiPage createWikiPageWithMarkdown(String markdown) throws IOException{
+		V2WikiPage page = new  V2WikiPage();
+		String markdownHandleId = uploadAndGetFileHandleId(markdown);
+		page.setMarkdownFileHandleId(markdownHandleId);
 		page.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
@@ -119,7 +136,60 @@ public class SearchDocumentDriverImplAutowireTest {
 		page.setEtag("Etag");
 		return page;
 	}
+	
+	private String uploadAndGetFileHandleId(String markdownContent) throws IOException {
+		// Zip up the markdown into a file
+		// The upload file will hold the newly created markdown file.
+		File markdownTemp;
+        if(markdownContent != null) {
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownContent);
+        } else {
+        	markdownTemp = FileUtils.writeStringToCompressedFile("");
+        }
+		String contentType = "application/x-gzip";
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setContentType(contentType);
+		ccftr.setFileName(markdownTemp.getName());
+		// Calculate the MD5
+		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
+		ccftr.setContentMD5(md5);
+		// Start the upload
+		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(adminUserInfo, ccftr);
 
+		S3FileHandle handle = new S3FileHandle();
+		handle.setContentType(token.getContentType());
+		handle.setContentMd5(token.getContentMD5());
+		handle.setContentSize(markdownTemp.length());
+		handle.setFileName("markdown.txt");
+		// Creator of the wiki page may not have been set to the user yet
+		// so do not use wiki's createdBy
+		handle.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		long currentTime = System.currentTimeMillis();
+		handle.setCreatedOn(new Date(currentTime));
+		handle.setKey(token.getKey());
+		handle.setBucketName(StackConfiguration.getS3Bucket());
+		// Upload this to S3
+		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
+		// Save the metadata
+		handle = fileMetadataDao.createFile(handle);
+		
+		if(markdownTemp != null){
+			markdownTemp.delete();
+		}
+		
+		return handle.getId();
+	}
+
+	private String getMarkdownFromS3(String fileHandleId) throws IOException, DatastoreException, NotFoundException {
+		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(fileHandleId);
+		File markdownTemp = File.createTempFile("markdown", ".tmp");
+		// Retrieve uploaded markdown
+		s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
+				markdownHandle.getKey()), markdownTemp);
+		// Read the file as a string
+		return FileUtils.readCompressedFileAsString(markdownTemp);
+	}
+	
 	/**
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
@@ -128,6 +198,20 @@ public class SearchDocumentDriverImplAutowireTest {
 	 */
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException {
+		//Before we delete the two wiki pages, clean up file handles
+		if(subPage != null) {
+			String markdownHandleId = subPage.getMarkdownFileHandleId();
+			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			fileMetadataDao.delete(markdownHandleId);
+		}
+		if(rootPage != null) {
+			String markdownHandleId = rootPage.getMarkdownFileHandleId();
+			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			fileMetadataDao.delete(markdownHandleId);
+		}
+		
 		if(subPageKey != null){
 			wikiPageDao.delete(subPageKey);
 		}
@@ -317,17 +401,17 @@ public class SearchDocumentDriverImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetAllWikiPageText(){
+	public void testGetAllWikiPageText() throws DatastoreException, IOException, NotFoundException{
 		// The expected text fo
 		StringBuilder expected = new StringBuilder();
 		expected.append("\n");
 		expected.append(rootPage.getTitle());
 		expected.append("\n");
-		expected.append(rootPage.getMarkdown());
+		expected.append(getMarkdownFromS3(rootPage.getMarkdownFileHandleId()));
 		expected.append("\n");
 		expected.append(subPage.getTitle());
 		expected.append("\n");
-		expected.append(subPage.getMarkdown());
+		expected.append(getMarkdownFromS3(subPage.getMarkdownFileHandleId()));
 		// Now get the text from the d
 		String resultText = searchDocumentDriver.getAllWikiPageText(project.getId());
 		assertNotNull(resultText);

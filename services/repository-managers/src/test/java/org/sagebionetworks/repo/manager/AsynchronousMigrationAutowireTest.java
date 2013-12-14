@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +14,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.wiki.WikiManager;
+import org.sagebionetworks.downloadtools.FileUtils;
+import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -20,14 +23,20 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -40,19 +49,24 @@ public class AsynchronousMigrationAutowireTest {
 	private EntityManager entityManager;
 	
 	@Autowired
-	private WikiManager wikiManager;
+	private V2WikiManager wikiManager;
 	
 	@Autowired
 	private S3TokenManager s3TokenManager;
 	
 	@Autowired
 	private AsynchronousDAO asynchronousDAO;
+	
+	@Autowired
+	FileHandleDao fileMetadataDao;	
+	@Autowired
+	AmazonS3Client s3Client;
 
 	private List<String> toDelete;
 	
 	private UserInfo adminUserInfo;
 	private Project project;
-	private WikiPage wikiPage;
+	private V2WikiPage wikiPage;
 	
 	@Before
 	public void before() throws Exception{
@@ -100,7 +114,7 @@ public class AsynchronousMigrationAutowireTest {
 	
 	@Ignore // This test is currently not needed now that we have mirrored WikiPages for projects and folders
 	@Test
-	public void testPLFM_1709() throws NotFoundException{
+	public void testPLFM_1709() throws NotFoundException, IOException{
 		// Before we start
 		// Trigger the creation of the mirror
 		asynchronousDAO.createEntity(project.getId());
@@ -109,10 +123,18 @@ public class AsynchronousMigrationAutowireTest {
 		assertNotNull(wikiPage);
 		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wikiPage.getId());
 
-		assertEquals(project.getDescription(), wikiPage.getMarkdown());
+		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wikiPage.getMarkdownFileHandleId());
+		File markdownTemp = File.createTempFile("markdown", ".txt.gz");
+		// Retrieve uploaded markdown
+		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
+				markdownHandle.getKey()), markdownTemp);
+		// Read the file as a string
+		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+		
+		assertEquals(project.getDescription(), markdownString);
 		assertNotNull(wikiPage.getAttachmentFileHandleIds());
 		assertEquals(1, wikiPage.getAttachmentFileHandleIds().size());
-		FileHandleResults results = wikiManager.getAttachmentFileHandles(adminUserInfo, key);
+		FileHandleResults results = wikiManager.getAttachmentFileHandles(adminUserInfo, key, null);
 		assertNotNull(results);
 		assertEquals(1, results.getList().size());
 		S3FileHandle handle = (S3FileHandle) results.getList().get(0);

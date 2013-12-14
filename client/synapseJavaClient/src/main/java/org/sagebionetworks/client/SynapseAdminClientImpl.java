@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -300,20 +299,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	@Override
-	public PaginatedResults<WikiMigrationResult> migrateWikisToV2(long offset,
-			long limit) throws SynapseException, JSONObjectAdapterException {
-		String url = ADMIN_MIGRATE_WIKIS_TO_V2 + "?offset=" + offset +
-			"&limit=" + limit;
-		// Submit url and retrieve results
-		JSONObject jsonObject = getSharedClientConnection().postUri(repoEndpoint, url, getUserAgent());
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
-		PaginatedResults<WikiMigrationResult> results = new PaginatedResults<WikiMigrationResult>(WikiMigrationResult.class);
-		// Read in paginated migration results
-		results.initializeFromJSONObject(adapter);
-		return results;
 	}
 
 	@Override
