@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -316,8 +317,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Get the most recent version of the wiki page for its etag
 		V2WikiPage wiki = wikiPageDao.get(key, null);
 		
-		String markdownFileHandleId = wikiPageDao.getMarkdownHandleId(key, version);
-		List<String> attachmentFileHandleIds = wikiPageDao.getWikiFileHandleIds(key, version);
+		V2WikiMarkdownVersion versionOfContents = wikiPageDao.getVersionOfWikiContent(key, version);
 		
 		// Set up a new V2 WikiPage
 		V2WikiPage newWikiVersion = new V2WikiPage();
@@ -327,8 +327,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		newWikiVersion.setCreatedBy(wiki.getCreatedBy());
 		newWikiVersion.setCreatedOn(wiki.getCreatedOn());
 		// Assign restored content to the wiki page
-		newWikiVersion.setMarkdownFileHandleId(markdownFileHandleId);
-		newWikiVersion.setAttachmentFileHandleIds(attachmentFileHandleIds);
+		newWikiVersion.setMarkdownFileHandleId(versionOfContents.getMarkdownFileHandleId());
+		newWikiVersion.setAttachmentFileHandleIds(versionOfContents.getAttachmentFileHandleIds());
+		newWikiVersion.setTitle(versionOfContents.getTitle());
 		// Update the page with these changes
 		return updateWikiPage(user, objectId, objectType, newWikiVersion);
 	}

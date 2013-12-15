@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -373,7 +375,8 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		newIds2.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		
+		assertNotNull(clone2);
 		assertTrue(clone2.getMarkdownFileHandleId().equals(markdownTwo.getId()));
 
 		// At this point, the markdown database has two versions for this wiki page
@@ -417,26 +420,38 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertTrue(currentMarkdownFileHandleId.equals(markdownTwo.getId()));
 		assertTrue(currentAttachmentIds.size() == 2);
 		assertTrue(currentAttachmentIds.contains(attachOne.getId()) && currentAttachmentIds.contains(attachTwo.getId()));
-		
+
 		// To restore wiki to a the oldWikiVersion, mimick what Manager does.
 		// Download old version of attachments and markdown, set, and update again
-		String oldMarkdownFileHandleId = wikiPageDao.getMarkdownHandleId(key, Long.parseLong(oldWikiVersion.getVersion()));
-		List<String> oldAttachmentIds = wikiPageDao.getWikiFileHandleIds(key, Long.parseLong(oldWikiVersion.getVersion()));
-		// Test getMarkdownHandleIdFromHistory and getWikiFileHandleIdsFromHistory
-		assertTrue(oldMarkdownFileHandleId.equals(markdownOne.getId()));
-		assertTrue(oldAttachmentIds.size() == 1);
-		assertTrue(oldAttachmentIds.get(0).equals(attachOne.getId()));
-		
-		clone2.setMarkdownFileHandleId(oldMarkdownFileHandleId);
-		clone2.setAttachmentFileHandleIds(oldAttachmentIds);
+		V2WikiMarkdownVersion oldWikiContents = wikiPageDao.getVersionOfWikiContent(key, Long.parseLong(oldWikiVersion.getVersion()));
+		assertNotNull(oldWikiContents);
+		assertTrue(oldWikiContents.getMarkdownFileHandleId().equals(markdownOne.getId()));
+		assertTrue(oldWikiContents.getAttachmentFileHandleIds().size() == 1);
+		assertTrue(oldWikiContents.getAttachmentFileHandleIds().get(0).equals(attachOne.getId()));
+		// Set up a new V2 WikiPage
+		V2WikiPage newWikiVersion = new V2WikiPage();
+		newWikiVersion.setId(clone.getId());
+		// Sets etag to most recent etag so it will lock
+		newWikiVersion.setEtag(clone2.getEtag());
+		//Preserve creation metadata
+		newWikiVersion.setCreatedBy(clone.getCreatedBy());
+		newWikiVersion.setCreatedOn(clone.getCreatedOn());
+		newWikiVersion.setModifiedBy(clone.getCreatedBy());
+		newWikiVersion.setModifiedOn(new Date(1));
+		// Assign restored content to the wiki page
+		newWikiVersion.setMarkdownFileHandleId(oldWikiContents.getMarkdownFileHandleId());
+		newWikiVersion.setAttachmentFileHandleIds(oldWikiContents.getAttachmentFileHandleIds());
+		newWikiVersion.setTitle(oldWikiContents.getTitle());
+
 		fileNameMap.remove(attachTwo.getFileName());
 		
 		// Update
-		V2WikiPage restored = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());		assertNotNull(restored);
+		V2WikiPage restored = wikiPageDao.updateWikiPage(newWikiVersion, fileNameMap, ownerId, ownerType, new ArrayList<String>());		
+		assertNotNull(restored);
 		
 		assertTrue(restored.getMarkdownFileHandleId().equals(markdownOne.getId()));
 		assertTrue(restored.getAttachmentFileHandleIds().size() == 1);
-		
+		assertTrue(restored.getTitle().equals("Title"));
 		// At this point, the restored wiki is the third version of the markdown/attachments
 		List<V2WikiHistorySnapshot> historyAfterRestoration = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyAfterRestoration.size() == 3);
