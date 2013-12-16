@@ -1,37 +1,37 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class DBOBuilder<T> {
 
-	private static final String RETURN_AS_STRING_METHOD_NAME_POSTFIX = "AsString";
-	private static final String RETURN_AS_BYTES_METHOD_NAME_POSTFIX = "AsBytes";
+	public interface RowMapper {
+		public void map(Object result, ResultSet rs) throws SQLException, InvocationTargetException, IllegalAccessException;
+	}
 
-	public static abstract interface RowMapper {
-		public abstract void map(Object result, ResultSet rs) throws SQLException, InvocationTargetException, IllegalAccessException;
+	public interface ParamTypeMapper {
+		public Object convert(Object result);
+
+		public int getSqlType();
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
@@ -153,18 +153,11 @@ public class DBOBuilder<T> {
 	}
 
 	public static <T> FieldColumn[] getFields(final Class<T> clazz, final String[] customColumns) {
-		final HashSet<String> customColumnsSet = Sets.newHashSet(customColumns);
 		List<FieldColumn> result = Lists.transform(getAnnotatedFields(clazz, Field.class), new Function<Entry<Field>, FieldColumn>() {
 			@Override
 			public FieldColumn apply(Entry<Field> fieldEntry) {
-				String name = fieldEntry.field.getName();
-				if (!customColumnsSet.contains(fieldEntry.annotation.name())
-						&& (fieldEntry.field.getType().isEnum() || fieldEntry.field.getType() == Date.class || !Serializable.class
-								.isAssignableFrom(fieldEntry.field.getType()))) {
-					name = handleTypedField(name, fieldEntry.field, clazz);
-				}
-				return new FieldColumn(name, fieldEntry.annotation.name(), fieldEntry.annotation.primary()).withIsBackupId(
-						fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
+				return new FieldColumn(fieldEntry.field.getName(), fieldEntry.annotation.name(), fieldEntry.annotation.primary())
+						.withIsBackupId(fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
 			}
 		});
 		return result.toArray(new FieldColumn[result.size()]);
@@ -172,20 +165,17 @@ public class DBOBuilder<T> {
 
 	private static final Object[][] TYPE_MAP = { { Long.class, "getLong" }, { long.class, "getLong" }, { String.class, "getString" } };
 
-	public static <T> RowMapper[] getFieldMappers(final Class<? extends T> clazz, final String[] customColumns) {
-		List<Entry<Field>> fields = getAnnotatedFields(clazz, Field.class);
-		// filter out custom columns. They are handled by the caller
-		fields = Lists.newArrayList(Iterables.filter(getAnnotatedFields(clazz, Field.class), new Predicate<Entry<Field>>() {
-			@Override
-			public boolean apply(Entry<Field> fieldEntry) {
-				for (String customColumn : customColumns) {
-					if (customColumn.equals(fieldEntry.annotation.name())) {
-						return false;
-					}
-				}
-				return true;
+	private static String getMethodFromTypeMap(Class<?> type) {
+		for (Object[] entry : TYPE_MAP) {
+			if (type == entry[0]) {
+				return (String) entry[1];
 			}
-		}));
+		}
+		return null;
+	}
+
+	public static <T> RowMapper[] getFieldMappers(final Class<? extends T> clazz, final String[] customColumns) {
+		List<Entry<Field>> fields = getAnnotatedFieldsWithoutCustomColums(clazz, Field.class, customColumns);
 		List<RowMapper> mappers = Lists.transform(fields, new Function<Entry<Field>, RowMapper>() {
 			@Override
 			public RowMapper apply(Entry<Field> fieldEntry) {
@@ -197,16 +187,14 @@ public class DBOBuilder<T> {
 					throw new IllegalArgumentException("Could not find method '" + setterMethodName + "' on " + clazz.getName());
 				}
 
-				for (Object[] entry : TYPE_MAP) {
-					if (fieldEntry.field.getType() == entry[0]) {
-						String getMethod = (String) entry[1];
-						try {
-							Method mapperMethod = ResultSet.class.getMethod((String) getMethod, new Class[] { String.class });
-							return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
-									mapperMethod);
-						} catch (NoSuchMethodException e) {
-							throw new IllegalArgumentException("Could not find method '" + getMethod + "' on ResultSet");
-						}
+				String getMethod = getMethodFromTypeMap(fieldEntry.field.getType());
+				if (getMethod != null) {
+					try {
+						Method mapperMethod = ResultSet.class.getMethod((String) getMethod, new Class[] { String.class });
+						return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
+								mapperMethod);
+					} catch (NoSuchMethodException e) {
+						throw new IllegalArgumentException("Could not find method '" + getMethod + "' on ResultSet");
 					}
 				}
 
@@ -234,6 +222,60 @@ public class DBOBuilder<T> {
 			}
 		});
 		return mappers.toArray(new RowMapper[mappers.size()]);
+	}
+
+	public static <T> Map<String, DBOBuilder.ParamTypeMapper> getParamTypeMappers(final Class<? extends T> clazz, final String[] customColumns) {
+		List<Entry<Field>> fields = getAnnotatedFieldsWithoutCustomColums(clazz, Field.class, customColumns);
+		ImmutableMap.Builder<String, ParamTypeMapper> mappers = ImmutableMap.builder();
+		for (Entry<Field> fieldEntry : fields) {
+			// enum?
+			if (Enum.class.isAssignableFrom(fieldEntry.field.getType())) {
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						return ((Enum<?>) result).name();
+					}
+
+					@Override
+					public int getSqlType() {
+						return Types.VARCHAR;
+					}
+				});
+			}
+
+			if (!StringUtils.isEmpty(fieldEntry.annotation.serialized())) {
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						try {
+							return JDOSecondaryPropertyUtils.compressObject(result);
+						} catch (IOException e) {
+							throw new IllegalStateException(e.getMessage(), e);
+						}
+					}
+
+					@Override
+					public int getSqlType() {
+						return Types.BLOB;
+					}
+				});
+			}
+
+			if (fieldEntry.field.getType() == Date.class) {
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						return ((Date) result).getTime();
+					}
+
+					@Override
+					public int getSqlType() {
+						return Types.NUMERIC;
+					}
+				});
+			}
+		}
+		return mappers.build();
 	}
 
 	public static <T> String buildDLL(Class<T> clazz, String tableName) {
@@ -330,46 +372,6 @@ public class DBOBuilder<T> {
 		return '`' + name + '`';
 	}
 
-	private static String handleTypedField(String name, java.lang.reflect.Field field, Class<?> clazz) {
-		// working around spring issue, where it needs to have a string and not an enum to be able to store enums. Could
-		// not get property editors to work for this, so using slightly dirty method where it looks for a
-		// get<Enum>AsString method is the get<Enum> method does not return a string (the pattern used in this codebase
-		// sofar)
-		String getterMethodName = "get" + StringUtils.capitalize(field.getName());
-		String getterAsStringMethodName = "get" + StringUtils.capitalize(field.getName()) + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
-		String getterAsBytesMethodName = "get" + StringUtils.capitalize(field.getName()) + RETURN_AS_BYTES_METHOD_NAME_POSTFIX;
-		try {
-			Method getterMethod = clazz.getMethod(getterMethodName);
-			if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
-				return name;
-			}
-			// try AsString method
-			getterMethodName = getterAsStringMethodName;
-			try {
-				getterMethod = clazz.getMethod(getterMethodName);
-				if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
-					return name + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
-				}
-			} catch (NoSuchMethodException e) {
-			}
-			// try AsBytes method
-			getterMethodName = getterAsBytesMethodName;
-			try {
-				getterMethod = clazz.getMethod(getterMethodName);
-				if (byte[].class.isAssignableFrom(getterMethod.getReturnType())) {
-					return name + RETURN_AS_BYTES_METHOD_NAME_POSTFIX;
-				}
-			} catch (NoSuchMethodException e) {
-			}
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException("Cannot find method " + getterMethodName + " in class " + clazz.getName() + ": " + e.getMessage());
-		}
-		throw new RuntimeException("Need to either have a method " + getterMethodName
-				+ " that returns a String, or, if that method returns another type that spring cannot handle, a method named "
-				+ getterAsStringMethodName + " that returns a string instead, or a method named " + getterAsBytesMethodName
-				+ " that returns a byte[] for class " + clazz.getName());
-	}
-
 	private static class Entry<T extends Annotation> {
 		java.lang.reflect.Field field;
 		T annotation;
@@ -388,5 +390,22 @@ public class DBOBuilder<T> {
 			}
 		}
 		return entries;
+	}
+
+	private static <T extends Annotation> List<Entry<Field>> getAnnotatedFieldsWithoutCustomColums(Class<?> clazz,
+			Class<Field> annotationType, final String[] customColumns) {
+		// filter out custom columns. They are handled by the caller
+		return Lists.newArrayList(Iterables.filter(getAnnotatedFields(clazz, Field.class), new Predicate<Entry<Field>>() {
+			@Override
+			public boolean apply(Entry<Field> fieldEntry) {
+				// Assumption is that custom columns are rare, and thus a linear search is acceptable
+				for (String customColumn : customColumns) {
+					if (customColumn.equals(fieldEntry.annotation.name())) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}));
 	}
 }

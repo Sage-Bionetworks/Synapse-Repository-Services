@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 @Table(name = "ANNOTATED_EXAMPLE_TEST")
 public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnotatedExample> {
@@ -90,10 +87,6 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 		return serialized;
 	}
 
-	public byte[] getSerializedAsBytes() throws IOException {
-		return JDOSecondaryPropertyUtils.compressObject(serialized);
-	}
-
 	public void setSerialized(List<String> serialized) {
 		this.serialized = serialized;
 	}
@@ -104,10 +97,6 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 
 	public void setComment(String comment) {
 		this.comment = comment;
-	}
-
-	public String getExampleEnumAsString() {
-		return exampleEnum == null ? null : exampleEnum.name();
 	}
 
 	public ExampleEnum getExampleEnum() {
@@ -144,10 +133,6 @@ public class DBOAnnotatedExample implements AutoIncrementDatabaseObject<DBOAnnot
 
 	public Date getModifiedOn() {
 		return modifiedOn;
-	}
-
-	public String getModifiedOnAsString() {
-		return Long.toString(modifiedOn.getTime());
 	}
 
 	public void setModifiedOn(Date modifiedOn) {

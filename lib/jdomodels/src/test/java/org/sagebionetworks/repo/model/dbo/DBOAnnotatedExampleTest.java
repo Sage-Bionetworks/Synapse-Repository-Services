@@ -71,7 +71,7 @@ public class DBOAnnotatedExampleTest {
 		assertNotNull(example);
 	}
 	
-	@Test(expected = InvalidPropertyException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testInsertMissingValuesNullPointerException() throws DatastoreException {
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
 		example = dboBasicDao.createNew(example);

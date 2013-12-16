@@ -69,10 +69,6 @@ public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObj
 		return participantDataColumnDescriptor;
 	}
 
-	public byte[] getParticipantDataColumnDescriptorAsBytes() throws IOException {
-		return JDOSecondaryPropertyUtils.compressObject(participantDataColumnDescriptor);
-	}
-
 	public void setParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor) {
 		this.participantDataColumnDescriptor = participantDataColumnDescriptor;
 	}

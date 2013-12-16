@@ -110,7 +110,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	private <T> T insert(T toCreate, String insertSQl) {
-		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toCreate);
+		@SuppressWarnings("unchecked")
+		TableMapping<T> mapping = classToMapping.get(toCreate.getClass());
+		if (mapping == null) {
+			throw new IllegalArgumentException("Cannot find the mapping for Class: " + toCreate.getClass()
+					+ " The class must be added to the 'databaseObjectRegister'");
+		}
+		SqlParameterSource namedParameters = getSqlParameterSource(toCreate,mapping);
 		try{
 			int updatedCount = simpleJdbcTemplate.update(insertSQl, namedParameters);
 			if(updatedCount != 1) throw new DatastoreException("Failed to insert without error");
@@ -126,7 +132,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 
-	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
@@ -149,10 +154,19 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return batchUpdate(batch, insertSQl, false);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private <T> List<T> batchUpdate(List<T> batch, String sql, boolean enforceUpdate) {
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+		TableMapping<T> mapping = null;
 		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+			if (mapping == null) {
+				mapping = classToMapping.get(batch.get(i).getClass());
+				if (mapping == null) {
+					throw new IllegalArgumentException("Cannot find the mapping for Class: " + batch.get(i).getClass()
+							+ " The class must be added to the 'databaseObjectRegister'");
+				}
+			}
+			namedParameters[i] = getSqlParameterSource(batch.get(i), mapping);
 		}
 		try{
 			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(sql, namedParameters);
@@ -182,7 +196,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	@Override
 	public <T extends DatabaseObject<T>> boolean update(T toUpdate)	throws DatastoreException {
 		String sql = getUpdateSQL(toUpdate.getClass());
-		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toUpdate);
+		@SuppressWarnings("unchecked")
+		TableMapping<T> mapping = classToMapping.get(toUpdate.getClass());
+		if (mapping == null) {
+			throw new IllegalArgumentException("Cannot find the mapping for Class: " + toUpdate.getClass()
+					+ " The class must be added to the 'databaseObjectRegister'");
+		}
+		SqlParameterSource namedParameters = getSqlParameterSource(toUpdate, mapping);
 		try{
 			int updatedCount = simpleJdbcTemplate.update(sql, namedParameters);
 			return updatedCount > 0;
@@ -244,6 +264,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return count == 1;
 	}
 	
+	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
+		if (mapping instanceof AutoTableMapping) {
+			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
+		}
+		return new BeanPropertySqlParameterSource(toCreate);
+	}
+
 	/**
 	 * Get the insert sql for a given class.;
 	 * @param clazz
