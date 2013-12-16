@@ -13,8 +13,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 
@@ -137,55 +135,6 @@ public class MigrationClientTest {
 			}
 		}
 		return list;
-	}
-	
-	/**
-	 * Test migration of wikis to V2 with successful results
-	 */
-	@Test
-	public void testWikiMigration() throws Exception {
-		List<WikiMigrationResult> results = createSuccessfulMigrationResults(300);
-		assertEquals(300, results.size());
-		mockDestination.wikiMigrationResults = results;
-		migrationClient.migrateWikisToV2();
-	}
-	
-	/**
-	 * Test migration of wikis to V2 with mixed failures. After,
-	 * an exception should be thrown to show migration failure.
-	 */
-	@Test (expected=RuntimeException.class)
-	public void testWikiMigrationFailure() throws Exception {
-		List<WikiMigrationResult> results = createSomeFailedResults(200);
-		assertEquals(200, results.size());
-		mockDestination.wikiMigrationResults = results;
-		migrationClient.migrateWikisToV2();
-	}
-	
-	private List<WikiMigrationResult> createSuccessfulMigrationResults(int numOfResults) {
-		List<WikiMigrationResult> results = new ArrayList<WikiMigrationResult>();
-		for(int i = 0; i < numOfResults; i++) {
-			WikiMigrationResult result = new WikiMigrationResult();
-			result.setResultType(WikiMigrationResultType.SUCCESS);
-			results.add(result);
-		}
-		return results;
-	}
-	
-	private List<WikiMigrationResult> createSomeFailedResults(int numOfResults) {
-		List<WikiMigrationResult> results = new ArrayList<WikiMigrationResult>();
-		for(int i = 0; i < numOfResults; i++) {
-			WikiMigrationResult result = new WikiMigrationResult();
-			if(i % 2 == 1) {
-				result.setResultType(WikiMigrationResultType.FAILURE);
-				result.setWikiId("" + i);
-				result.setMessage("It's odd.");
-			} else {
-				result.setResultType(WikiMigrationResultType.SUCCESS);
-			}
-			results.add(result);
-		}
-		return results;
 	}
 
 }

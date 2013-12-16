@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -126,11 +125,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws JSONObjectAdapterException
 	 */
 	public FireMessagesResult getCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException;
-	
-	/**
-	 * Migrates some wikis from the V1 DBs to the V2 DBs
-	 */
-	public PaginatedResults<WikiMigrationResult> migrateWikisToV2(long offset, long limit) throws SynapseException, JSONObjectAdapterException;
 	
 	/**
 	 * Creates a user with the specified state

@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -36,8 +35,6 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	private DBOAnnotationsDao dboAnnotationsDao;
 	@Autowired
 	FileHandleDao fileMetadataDao;
-	@Autowired
-	WikiPageDao wikiPageDao;
 	
 
 	Set<String> typesToMirror = new HashSet<String>(0);
@@ -58,14 +55,12 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	 */
 	public AsynchronousDAOImpl(NodeDAO nodeDao, DBOReferenceDao dboReferenceDao,
 		DBOAnnotationsDao dboAnnotationsDao,
-		StorageUsageQueryDao storageLocationDao, FileHandleDao fileMetadataDao,
-		WikiPageDao wikiPageDao) {
+		StorageUsageQueryDao storageLocationDao, FileHandleDao fileMetadataDao) {
 	super();
 	this.nodeDao = nodeDao;
 	this.dboReferenceDao = dboReferenceDao;
 	this.dboAnnotationsDao = dboAnnotationsDao;
 	this.fileMetadataDao = fileMetadataDao;
-	this.wikiPageDao = wikiPageDao;
 }
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

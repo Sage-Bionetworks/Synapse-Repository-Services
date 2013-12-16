@@ -12,12 +12,12 @@ import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -37,7 +37,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	private SearchDao searchDao;
 	private SearchDocumentDriver documentProvider;
 	private List<Message> messagesToProcess;
-	private WikiPageDao wikiPageDao;
+	private V2WikiPageDao wikiPageDao;
 	
 	private List<ChangeMessage> createOrUpdateMessages;
 	private List<ChangeMessage> deleteMessages;
@@ -49,7 +49,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	 * @param nodeWorkerManager
 	 * @param messagesToProcess
 	 */
-	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, WikiPageDao wikiPageDao) {
+	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, V2WikiPageDao wikiPageDao) {
 		if(searchDao == null) throw new IllegalArgumentException("SearchDao canot be null");
 		if(documentProvider == null) throw new IllegalArgumentException("SearchDocumentDriver cannot be null");
 		if(messagesToProcess == null) throw new IllegalArgumentException("messagesToProcess cannot be null");
