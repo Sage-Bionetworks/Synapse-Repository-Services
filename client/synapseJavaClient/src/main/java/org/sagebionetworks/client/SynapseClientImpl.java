@@ -2562,6 +2562,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return wiki;
 	}
 	
+	/**
+	 * Creates a V1 WikiPage model from a V2 and the already unzipped/string markdown.
+	 * @param model
+	 * @param markdown
+	 * @return
+	 */
+	private WikiPage mergeMarkdownAndMetadata(V2WikiPage model, String markdown) {
+		WikiPage wiki = new WikiPage();
+		wiki.setId(model.getId());
+		wiki.setEtag(model.getEtag());
+		wiki.setCreatedOn(model.getCreatedOn());
+		wiki.setCreatedBy(model.getCreatedBy());
+		wiki.setModifiedBy(model.getModifiedBy());
+		wiki.setModifiedOn(model.getModifiedOn());
+		wiki.setParentWikiId(model.getParentWikiId());
+		wiki.setTitle(model.getTitle());
+		wiki.setAttachmentFileHandleIds(model.getAttachmentFileHandleIds());
+		wiki.setMarkdown(markdown);
+		return wiki;
+	}
+	
 	@Override
 	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException{
@@ -2581,7 +2602,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Update the V2 WikiPage
 		V2WikiPage updated = updateV2WikiPage(ownerId, ownerType, converted);
 		// Return result in V1 form
-		return createWikiPageFromV2(updated, ownerId, ownerType, null);
+		return mergeMarkdownAndMetadata(updated, toUpdate.getMarkdown());
 	}
 	
 	@Override
