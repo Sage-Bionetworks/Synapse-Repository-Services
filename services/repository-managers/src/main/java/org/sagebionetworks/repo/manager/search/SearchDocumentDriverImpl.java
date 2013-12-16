@@ -15,7 +15,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
-import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -33,9 +32,7 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
@@ -43,14 +40,10 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 
 /**
  * This class writes out search documents in batch.
@@ -99,12 +92,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	NodeInheritanceDAO nodeInheritanceDao;
 	@Autowired
 	V2WikiPageDao wikiPageDao;
-	@Autowired
-	AmazonS3Client s3Client;
-	@Autowired
-	TempFileProvider tempFileProvider;
-	@Autowired
-	FileHandleDao fileMetadataDao;	
 
 	static {
 		// These are both node primary annotations and additional annotation
@@ -469,20 +456,14 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			// For each header get the wikipage
 			StringBuilder builder = new StringBuilder();
 			for (V2WikiHeader header : wikiHeaders) {
-				V2WikiPage page = wikiPageDao.get(new WikiPageKey(nodeId,
-						ObjectType.ENTITY, header.getId()), null);
+				WikiPageKey key = new WikiPageKey(nodeId, ObjectType.ENTITY, header.getId());
+				V2WikiPage page = wikiPageDao.get(key, null);
 				// Append the title and markdown
 				if (page.getTitle() != null) {
 					builder.append("\n");
 					builder.append(page.getTitle());
 				}
-				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(page.getMarkdownFileHandleId());
-				File markdownTemp = File.createTempFile(page.getId()+ "_markdown", ".tmp");
-				// Retrieve uploaded markdown
-				s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-						markdownHandle.getKey()), markdownTemp);
-				// Read the file as a string
-				String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+				String markdownString = wikiPageDao.getMarkdown(key, null);
 				builder.append("\n");
 				builder.append(markdownString);
 			}

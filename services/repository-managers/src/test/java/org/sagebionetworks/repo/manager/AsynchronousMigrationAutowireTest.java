@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -23,20 +22,15 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -58,9 +52,7 @@ public class AsynchronousMigrationAutowireTest {
 	private AsynchronousDAO asynchronousDAO;
 	
 	@Autowired
-	FileHandleDao fileMetadataDao;	
-	@Autowired
-	AmazonS3Client s3Client;
+	private V2WikiPageDao wikiPageDao;
 
 	private List<String> toDelete;
 	
@@ -123,13 +115,7 @@ public class AsynchronousMigrationAutowireTest {
 		assertNotNull(wikiPage);
 		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wikiPage.getId());
 
-		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wikiPage.getMarkdownFileHandleId());
-		File markdownTemp = File.createTempFile("markdown", ".txt.gz");
-		// Retrieve uploaded markdown
-		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-				markdownHandle.getKey()), markdownTemp);
-		// Read the file as a string
-		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+		String markdownString = wikiPageDao.getMarkdown(key, null);
 		
 		assertEquals(project.getDescription(), markdownString);
 		assertNotNull(wikiPage.getAttachmentFileHandleIds());

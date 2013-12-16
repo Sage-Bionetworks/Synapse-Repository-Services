@@ -22,6 +22,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -30,11 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -44,6 +48,7 @@ import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -60,6 +65,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 
 /**
  * The basic implementation of the V2WikiPageDao.
@@ -82,6 +90,12 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
+
+	@Autowired
+	private FileHandleDao fileMetadataDao;	
 
 	/**
 	 * Used to detect if a wiki object already exists.
@@ -395,6 +409,19 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		String listToString = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
 		List<String> fileHandleIds = createFileHandleIdsList(listToString);
 		return V2WikiTranslationUtils.createDTOfromDBO(dbo, fileHandleIds, markdownDbo);
+	}
+	
+	@Override
+	public String getMarkdown(WikiPageKey key, Long version) throws IOException, NotFoundException {
+		V2WikiPage wiki = get(key, version);
+		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wiki.getMarkdownFileHandleId());
+		File markdownTemp = File.createTempFile(wiki.getId()+ "_markdown", ".tmp");
+		// Retrieve uploaded markdown
+		s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
+				markdownHandle.getKey()), markdownTemp);
+		// Read the file as a string
+		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+		return markdownString;
 	}
 	
 	@Override

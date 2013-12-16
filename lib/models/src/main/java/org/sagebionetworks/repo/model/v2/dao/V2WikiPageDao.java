@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.v2.dao;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,16 @@ public interface V2WikiPageDao {
 	 * @throws NotFoundException 
 	 */
 	public V2WikiPage get(WikiPageKey key, Long version) throws NotFoundException;
+	
+	/**
+	 * Get the markdown of a wiki page as a string.
+	 * @param key
+	 * @param version TODO
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public String getMarkdown(WikiPageKey key, Long version) throws IOException, NotFoundException;
 	
 	/**
 	 * Get ALL the file handle ids used (in the past/currently) for a wiki page.

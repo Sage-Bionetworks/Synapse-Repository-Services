@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
@@ -64,7 +63,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectRequest;
 
 /**
  * @author deflaux
@@ -178,16 +176,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		}
 		
 		return handle.getId();
-	}
-
-	private String getMarkdownFromS3(String fileHandleId) throws IOException, DatastoreException, NotFoundException {
-		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(fileHandleId);
-		File markdownTemp = File.createTempFile("markdown", ".tmp");
-		// Retrieve uploaded markdown
-		s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-				markdownHandle.getKey()), markdownTemp);
-		// Read the file as a string
-		return FileUtils.readCompressedFileAsString(markdownTemp);
 	}
 	
 	/**
@@ -407,11 +395,11 @@ public class SearchDocumentDriverImplAutowireTest {
 		expected.append("\n");
 		expected.append(rootPage.getTitle());
 		expected.append("\n");
-		expected.append(getMarkdownFromS3(rootPage.getMarkdownFileHandleId()));
+		expected.append(wikiPageDao.getMarkdown(rootKey, null));
 		expected.append("\n");
 		expected.append(subPage.getTitle());
 		expected.append("\n");
-		expected.append(getMarkdownFromS3(subPage.getMarkdownFileHandleId()));
+		expected.append(wikiPageDao.getMarkdown(subPageKey, null));
 		// Now get the text from the d
 		String resultText = searchDocumentDriver.getAllWikiPageText(project.getId());
 		assertNotNull(resultText);
