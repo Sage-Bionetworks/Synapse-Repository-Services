@@ -292,11 +292,11 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	}
 
 	@Override
-	public String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName) throws NotFoundException, UnauthorizedException {
+	public String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName, Long version) throws NotFoundException, UnauthorizedException {
 		// Validate that the user has read access
 		validateReadAccess(user, wikiPageKey);
 		// Look-up the fileHandle ID
-		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName);
+		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName, version);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

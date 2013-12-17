@@ -139,13 +139,14 @@ public interface V2WikiPageDao {
 	
 	/**
 	 * Lookup the FileHandleId for an attachment, for a given WikiPage with the given name.
-	 * 
+	 * @param fileName
+	 * @param version TODO
 	 * @param ownerId
 	 * @param type
-	 * @param fileName
+	 * 
 	 * @return
 	 */
-	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName) throws NotFoundException;
+	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName, Long version) throws NotFoundException;
 
 	/**
 	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.

@@ -195,6 +195,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OFFSET_PARAMETER = "?offset=";
 	private static final String LIMIT_PARAMETER = "limit=";
 	private static final String VERSION_PARAMETER = "?wikiVersion=";
+	private static final String AND_VERSION_PARAMETER = "&wikiVersion=";
 	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
@@ -2411,6 +2412,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
 		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
 				+ AND_REDIRECT_PARAMETER + "false";
+		return getUrl(uri);
+	}
+	
+	@Override
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
+			+ AND_REDIRECT_PARAMETER + "false" + AND_VERSION_PARAMETER + version;
+		return getUrl(uri);
+	}
+
+	@Override
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+			+ "false" + AND_VERSION_PARAMETER + version;
 		return getUrl(uri);
 	}
 	
