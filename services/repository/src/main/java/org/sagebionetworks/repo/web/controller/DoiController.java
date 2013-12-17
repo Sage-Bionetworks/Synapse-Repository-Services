@@ -40,7 +40,7 @@ public class DoiController extends BaseController {
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody Doi
 	createDoi(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, null);
@@ -58,7 +58,7 @@ public class DoiController extends BaseController {
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody Doi
 	createDoi(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
@@ -74,7 +74,7 @@ public class DoiController extends BaseController {
 	@RequestMapping(value = {UrlHelpers.ENTITY_DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody Doi
-	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		return serviceProvider.getDoiService().getDoi(userId, id, ObjectType.ENTITY, null);
@@ -90,7 +90,7 @@ public class DoiController extends BaseController {
 	@RequestMapping(value = {UrlHelpers.ENTITY_VERSION_DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody Doi
-	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {

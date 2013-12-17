@@ -57,7 +57,7 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getMyOwnUserProfile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getMyOwnUserProfile(userId);
 	}
@@ -74,7 +74,7 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getUserProfileByOwnerId(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getUserProfileByOwnerId(userId, profileId);
@@ -95,7 +95,7 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false)  String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
@@ -116,7 +116,7 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.PUT)
 	public @ResponseBody
 	UserProfile updateUserProfile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
@@ -133,7 +133,7 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.USER_PROFILE_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
 	public @ResponseBody
 	S3AttachmentToken createUserProfileS3AttachmentToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
@@ -147,7 +147,7 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.USER_PROFILE_ATTACHMENT_URL }, method = RequestMethod.POST)
 	public @ResponseBody
 	PresignedUrl getUserProfileAttachmentUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			@RequestBody PresignedUrl url,
 			HttpServletRequest request) throws NotFoundException,
@@ -167,7 +167,7 @@ public class UserProfileController extends BaseController {
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
 			@RequestHeader HttpHeaders header,
 			@RequestParam(value = UrlHelpers.IDS_PATH_VARIABLE, required = true) String ids,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
 		String[] idsArray = ids.split(",");
@@ -208,7 +208,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	EntityHeader addFavorite(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
@@ -227,7 +227,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	void removeFavorite(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
@@ -248,7 +248,7 @@ public class UserProfileController extends BaseController {
 	}, method = RequestMethod.GET) 
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getFavorites(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required=false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
 			throws NotFoundException, DatastoreException, UnauthorizedException {

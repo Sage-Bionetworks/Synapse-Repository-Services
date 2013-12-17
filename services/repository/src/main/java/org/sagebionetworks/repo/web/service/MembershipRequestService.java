@@ -19,7 +19,7 @@ public interface MembershipRequestService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public MembershipRqstSubmission create(String userId,
+	public MembershipRqstSubmission create(Long userId,
 			MembershipRqstSubmission dto) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
 	
 	/**
@@ -33,7 +33,7 @@ public interface MembershipRequestService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipRequest> getOpenRequests(String userId, String requesterId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipRequest> getOpenRequests(Long userId, String requesterId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -47,7 +47,7 @@ public interface MembershipRequestService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipRqstSubmission> getOpenRequestSubmissions(String userId, String requesterId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipRqstSubmission> getOpenRequestSubmissions(Long userId, String requesterId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -59,7 +59,7 @@ public interface MembershipRequestService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public MembershipRqstSubmission get(String userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public MembershipRqstSubmission get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 
@@ -69,5 +69,5 @@ public interface MembershipRequestService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public void delete(String userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void delete(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 }

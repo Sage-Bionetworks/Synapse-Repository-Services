@@ -39,8 +39,8 @@ public class MembershipInvitationControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 
+	private Long adminUserId;
 	private UserInfo adminUserInfo;
-	private String adminUsername;
 	private UserInfo testInvitee;
 	
 	private static final String TEAM_NAME = "MIS_CONTRL_AW_TEST";
@@ -53,13 +53,13 @@ public class MembershipInvitationControllerAutowiredTest {
 
 	@Before
 	public void before() throws Exception {
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		adminUsername = adminUserInfo.getIndividualGroup().getName();
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		// create a Team
 		Team team = new Team();
 		team.setName(TEAM_NAME);
-		teamToDelete = ServletTestHelper.createTeam(dispatchServlet, adminUsername, team);
+		teamToDelete = ServletTestHelper.createTeam(dispatchServlet, adminUserId, team);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@");
@@ -69,7 +69,7 @@ public class MembershipInvitationControllerAutowiredTest {
 
 	@After
 	public void after() throws Exception {
-		 ServletTestHelper.deleteTeam(dispatchServlet, adminUsername, teamToDelete);
+		 ServletTestHelper.deleteTeam(dispatchServlet, adminUserId, teamToDelete);
 		 teamToDelete = null;
 		 
 		 userManager.deletePrincipal(adminUserInfo, Long.parseLong(testInvitee.getIndividualGroup().getId()));
@@ -81,14 +81,14 @@ public class MembershipInvitationControllerAutowiredTest {
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setInviteeId(testInvitee.getIndividualGroup().getId());
 		mis.setTeamId(teamToDelete.getId());
-		MembershipInvtnSubmission created = ServletTestHelper.createMembershipInvitation(dispatchServlet, adminUsername, mis);
+		MembershipInvtnSubmission created = ServletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis);
 		
 		// get the invitation
-		MembershipInvtnSubmission mis2 = ServletTestHelper.getMembershipInvitation(dispatchServlet, adminUsername, created.getId());
+		MembershipInvtnSubmission mis2 = ServletTestHelper.getMembershipInvitation(dispatchServlet, adminUserId, created.getId());
 		assertEquals(created, mis2);
 		// get all invitations for the team
 		PaginatedResults<MembershipInvtnSubmission> miss = ServletTestHelper.
-				getMembershipInvitationSubmissions(dispatchServlet, adminUsername, teamToDelete.getId());
+				getMembershipInvitationSubmissions(dispatchServlet, adminUserId, teamToDelete.getId());
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));
 	}

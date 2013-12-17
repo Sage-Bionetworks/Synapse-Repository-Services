@@ -80,11 +80,11 @@ public class EvaluationControllerAutowiredTest {
 	@Autowired
 	private NodeDAO nodeDAO;
 	
+	private Long adminUserId;
 	private UserInfo adminUserInfo;
-	private String ownerName;
 	
+	private Long testUserId;
 	private UserInfo testUserInfo;
-	private String userName;
 	
 	private Evaluation eval1;
 	private Evaluation eval2;
@@ -106,13 +106,13 @@ public class EvaluationControllerAutowiredTest {
 		nodesToDelete = new ArrayList<String>();
 		
 		// get user IDs
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		ownerName = adminUserInfo.getIndividualGroup().getName();
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
-		userName = testUserInfo.getIndividualGroup().getName();
+		testUserId = userManager.createUser(user);
+		testUserInfo = userManager.getUserInfo(testUserId);
 		
 		// initialize Evaluations
 		eval1 = new Evaluation();
@@ -128,9 +128,9 @@ public class EvaluationControllerAutowiredTest {
         
         // initialize Participants
         part1 = new Participant();
-        part1.setUserId(ownerName);
+        part1.setUserId(adminUserId.toString());
         part2 = new Participant();
-        part2.setUserId(userName);		
+        part2.setUserId(testUserId.toString());		
         
         // initialize Submissions
         sub1 = new Submission();
@@ -182,36 +182,36 @@ public class EvaluationControllerAutowiredTest {
 	
 	@Test
 	public void testEvaluationRoundTrip() throws Exception {
-		long initialCount = entityServletHelper.getEvaluationCount(ownerName);
+		long initialCount = entityServletHelper.getEvaluationCount(adminUserId);
 		
 		// Create
-		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);		
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);		
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		
 		//can read
-		Boolean canRead = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.READ);
+		Boolean canRead = entityServletHelper.canAccess(adminUserId, eval1.getId(), ACCESS_TYPE.READ);
 		assertTrue(canRead);
 		//test user cannot read
-		canRead = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.READ);
+		canRead = entityServletHelper.canAccess(testUserId, eval1.getId(), ACCESS_TYPE.READ);
 		assertFalse(canRead);
 		
 		// Read
-		Evaluation fetched = entityServletHelper.getEvaluation(ownerName, eval1.getId());
+		Evaluation fetched = entityServletHelper.getEvaluation(adminUserId, eval1.getId());
 		assertEquals(eval1, fetched);
 		try {
-			fetched = entityServletHelper.getEvaluation(userName, eval1.getId());
+			fetched = entityServletHelper.getEvaluation(testUserId, eval1.getId());
 			fail();
 		} catch (UnauthorizedException e) {
 			// Expected
 		}
 
 		// Find
-		fetched = entityServletHelper.findEvaluation(ownerName, eval1.getName());
+		fetched = entityServletHelper.findEvaluation(adminUserId, eval1.getName());
 		assertEquals(eval1, fetched);
 		try {
-			fetched = entityServletHelper.findEvaluation(userName, eval1.getName());
+			fetched = entityServletHelper.findEvaluation(testUserId, eval1.getName());
 			assertEquals(eval1, fetched);
 			fail();
 		} catch (NotFoundException e) {
@@ -219,47 +219,47 @@ public class EvaluationControllerAutowiredTest {
 		}
 		
 		//can update
-		Boolean canUpdate = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.UPDATE);
+		Boolean canUpdate = entityServletHelper.canAccess(adminUserId, eval1.getId(), ACCESS_TYPE.UPDATE);
 		assertTrue(canUpdate);
 		//test user can't update
-		canUpdate = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.UPDATE);
+		canUpdate = entityServletHelper.canAccess(testUserId, eval1.getId(), ACCESS_TYPE.UPDATE);
 		assertFalse(canUpdate);
 		
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
-		Evaluation updated = entityServletHelper.updateEvaluation(fetched, ownerName);
+		Evaluation updated = entityServletHelper.updateEvaluation(fetched, adminUserId);
 		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);		
-		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount(ownerName));
+		assertEquals(initialCount + 1, entityServletHelper.getEvaluationCount(adminUserId));
 		
 		// Delete
-		entityServletHelper.deleteEvaluation(eval1.getId(), ownerName);
+		entityServletHelper.deleteEvaluation(eval1.getId(), adminUserId);
 		try {
-			entityServletHelper.getEvaluation(ownerName, eval1.getId());
+			entityServletHelper.getEvaluation(adminUserId, eval1.getId());
 			fail("Delete failed");
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getEvaluationCount(ownerName));
+		assertEquals(initialCount, entityServletHelper.getEvaluationCount(adminUserId));
 	}
 	
 	@Test
 	public void testParticipantRoundTrip() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
 		
 		// create -- can't join yet
 		try {
-			part1 = entityServletHelper.createParticipant(userName, eval1.getId());
+			part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
 			fail();
 		} catch (UnauthorizedException e) {
 			// Expected
 		}
 		
 		// open the evaluation to join
-		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
 		{
 			Set<ACCESS_TYPE> accessSet = new HashSet<ACCESS_TYPE>(2);
 			accessSet.add(ACCESS_TYPE.PARTICIPATE);
@@ -275,48 +275,47 @@ public class EvaluationControllerAutowiredTest {
 			accessSet.add(ACCESS_TYPE.SUBMIT);
 			ResourceAccess ra = new ResourceAccess();
 			ra.setAccessType(accessSet);
-			String userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+			String userId = userManager.getUserInfo(testUserId).getIndividualGroup().getId();
 			assertNotNull(userId);
 			ra.setPrincipalId(Long.parseLong(userId));
 			acl.getResourceAccess().add(ra);
 		}
-		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
+		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
 		assertNotNull(acl);
 
 		// create
-		long initialCount = entityServletHelper.getParticipantCount(ownerName, eval1.getId());
-		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
+		long initialCount = entityServletHelper.getParticipantCount(adminUserId, eval1.getId());
+		part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
-		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(ownerName, eval1.getId()));
+		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(adminUserId, eval1.getId()));
 
 		// query, just checking basic wiring
-		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(userName);
+		PaginatedResults<Evaluation> pr = entityServletHelper.getAvailableEvaluations(testUserId);
 		assertEquals(1L, pr.getTotalNumberOfResults());
 		// get the new etag (changed when participant was added?)
-		eval1 = entityServletHelper.getEvaluation(userName, eval1.getId());
+		eval1 = entityServletHelper.getEvaluation(testUserId, eval1.getId());
 		assertEquals(eval1, pr.getResults().iterator().next());
 		
 		// read
-		String testUserId = testUserInfo.getIndividualGroup().getId();
-		Participant clone = entityServletHelper.getParticipant(userName, testUserId, eval1.getId());
+		Participant clone = entityServletHelper.getParticipant(testUserId, testUserId, eval1.getId());
 		assertEquals(part1, clone);
 		
 		// delete
-		entityServletHelper.deleteParticipant(ownerName, testUserId, eval1.getId());
+		entityServletHelper.deleteParticipant(adminUserId, testUserId, eval1.getId());
 		try {
-			entityServletHelper.getParticipant(ownerName, testUserId, eval1.getId());
+			entityServletHelper.getParticipant(adminUserId, testUserId, eval1.getId());
 			fail("Failed to delete Participant " + part1.toString());
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getParticipantCount(ownerName, eval1.getId()));
+		assertEquals(initialCount, entityServletHelper.getParticipantCount(adminUserId, eval1.getId()));
 	}
 	
 	@Test
 	public void testSubmissionRoundTrip() throws Exception {
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
 		
 		// open the evaluation to join
@@ -327,34 +326,34 @@ public class EvaluationControllerAutowiredTest {
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
 		acl.getResourceAccess().add(ra);
-		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
+		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
 		assertNotNull(acl);
 		
 		// join
-		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
+		part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
 		participantsToDelete.add(part1);
-		UserInfo userInfo = userManager.getUserInfo(userName);
+		UserInfo userInfo = userManager.getUserInfo(testUserId);
 		String nodeId = createNode("An entity", userInfo);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
 		
-		long initialCount = entityServletHelper.getSubmissionCount(ownerName, eval1.getId());
+		long initialCount = entityServletHelper.getSubmissionCount(adminUserId, eval1.getId());
 		
 		// create
 		Node node = nodeManager.get(userInfo, nodeId);
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, userName, node.getETag());
+		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
-		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(ownerName, eval1.getId()));
+		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		
 		// read
-		Submission clone = entityServletHelper.getSubmission(ownerName, sub1.getId());
+		Submission clone = entityServletHelper.getSubmission(adminUserId, sub1.getId());
 		assertEquals(sub1, clone);
-		SubmissionStatus status = entityServletHelper.getSubmissionStatus(ownerName, sub1.getId());
+		SubmissionStatus status = entityServletHelper.getSubmissionStatus(adminUserId, sub1.getId());
 		assertNotNull(status);
 		assertEquals(sub1.getId(), status.getId());
 		assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
@@ -363,23 +362,23 @@ public class EvaluationControllerAutowiredTest {
 		Thread.sleep(1L);
 		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
-		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, ownerName);
+		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, adminUserId);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
 		assertEquals(status, statusClone);
-		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(ownerName, eval1.getId()));
+		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		
 		// delete
-		entityServletHelper.deleteSubmission(sub1.getId(), ownerName);
+		entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
 		try {
-			entityServletHelper.deleteSubmission(sub1.getId(), ownerName);
+			entityServletHelper.deleteSubmission(sub1.getId(), adminUserId);
 			fail("Failed to delete Submission " + sub1.toString());
 		} catch (NotFoundException e) {
 			// expected
 		}
-		assertEquals(initialCount, entityServletHelper.getSubmissionCount(ownerName, eval1.getId()));
+		assertEquals(initialCount, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 	}
 	
 
@@ -387,11 +386,11 @@ public class EvaluationControllerAutowiredTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testSubmissionUnauthorized() throws Exception {		
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		evaluationsToDelete.add(eval1.getId());
-		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
+		part1 = entityServletHelper.createParticipant(testUserId, eval1.getId());
 		participantsToDelete.add(part1);
-		UserInfo ownerInfo = userManager.getUserInfo(ownerName);
+		UserInfo ownerInfo = userManager.getUserInfo(adminUserId);
 		String nodeId = createNode("An entity", ownerInfo);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
@@ -400,21 +399,21 @@ public class EvaluationControllerAutowiredTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, userName, node.getETag());
+		sub1 = entityServletHelper.createSubmission(sub1, testUserId, node.getETag());
 	}
 	
 	@Test
 	public void testPaginated() throws Exception {
 		// create objects
 		eval1.setStatus(EvaluationStatus.OPEN);
-		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
+		eval1 = entityServletHelper.createEvaluation(eval1, adminUserId);
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
-		eval2 = entityServletHelper.createEvaluation(eval2, ownerName);
+		eval2 = entityServletHelper.createEvaluation(eval2, adminUserId);
 		assertNotNull(eval2.getId());
 		evaluationsToDelete.add(eval2.getId());
 		
-		part1 = entityServletHelper.createParticipant(ownerName, eval1.getId());
+		part1 = entityServletHelper.createParticipant(adminUserId, eval1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
 		// open the evaluation to join
@@ -424,20 +423,20 @@ public class EvaluationControllerAutowiredTest {
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		AccessControlList acl = entityServletHelper.getEvaluationAcl(ownerName, eval1.getId());
+		AccessControlList acl = entityServletHelper.getEvaluationAcl(adminUserId, eval1.getId());
 		acl.getResourceAccess().add(ra);
-		acl = entityServletHelper.updateEvaluationAcl(ownerName, acl);
+		acl = entityServletHelper.updateEvaluationAcl(adminUserId, acl);
 		assertNotNull(acl);
-		part2 = entityServletHelper.createParticipant(userName, eval1.getId());
+		part2 = entityServletHelper.createParticipant(testUserId, eval1.getId());
 		assertNotNull(part2);
 		participantsToDelete.add(part2);
 		
 		// fetch eval1 and verify that eTag has been updated
 		String oldEtag = eval1.getEtag();
-		eval1 = entityServletHelper.getEvaluation(userName, eval1.getId());
+		eval1 = entityServletHelper.getEvaluation(testUserId, eval1.getId());
 		assertFalse("Etag was not updated", oldEtag.equals(eval1.getEtag()));
 		
-		UserInfo userInfo = userManager.getUserInfo(userName);
+		UserInfo userInfo = userManager.getUserInfo(testUserId);
 		String node1 = createNode("entity1", userInfo);
 		assertNotNull(node1);
 		String etag1 = nodeManager.get(userInfo, node1).getETag();
@@ -450,53 +449,53 @@ public class EvaluationControllerAutowiredTest {
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(node1);
 		sub1.setVersionNumber(1L);
-		sub1.setUserId(ownerName);
-		sub1 = entityServletHelper.createSubmission(sub1, ownerName, etag1);
+		sub1.setUserId(adminUserId.toString());
+		sub1 = entityServletHelper.createSubmission(sub1, adminUserId, etag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(node2);
 		sub2.setVersionNumber(1L);
-		sub2.setUserId(ownerName);
-		sub2 = entityServletHelper.createSubmission(sub2, ownerName, etag2);
+		sub2.setUserId(adminUserId.toString());
+		sub2 = entityServletHelper.createSubmission(sub2, adminUserId, etag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
 		// paginated evaluations
-		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(ownerName, 10, 0);
+		PaginatedResults<Evaluation> evals = entityServletHelper.getEvaluationsPaginated(adminUserId, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		}
 		
 		// paginated evaluations by content source
-		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(ownerName, KeyFactory.SYN_ROOT_ID, 10, 0);
+		evals = entityServletHelper.getEvaluationsByContentSourcePaginated(adminUserId, KeyFactory.SYN_ROOT_ID, 10, 0);
 		assertEquals(2, evals.getTotalNumberOfResults());
 		for (Evaluation c : evals.getResults()) {
 			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
 		}
 		
 		// paginated participants
-		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(ownerName, eval1.getId());
+		PaginatedResults<Participant> parts = entityServletHelper.getAllParticipants(adminUserId, eval1.getId());
 		assertEquals(2, parts.getTotalNumberOfResults());
 		for (Participant p : parts.getResults()) {
 			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
 		}
 		
-		parts = entityServletHelper.getAllParticipants(ownerName, eval2.getId());
+		parts = entityServletHelper.getAllParticipants(adminUserId, eval2.getId());
 		assertEquals(0, parts.getTotalNumberOfResults());
 		
 		// paginated submissions
-		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(ownerName, eval1.getId(), null);
+		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), null);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		}
 		
-		subs = entityServletHelper.getAllSubmissions(ownerName, eval1.getId(), SubmissionStatusEnum.SCORED);
+		subs = entityServletHelper.getAllSubmissions(adminUserId, eval1.getId(), SubmissionStatusEnum.SCORED);
 		assertEquals(0, subs.getTotalNumberOfResults());
 		
-		subs = entityServletHelper.getAllSubmissions(ownerName, eval2.getId(), null);
+		subs = entityServletHelper.getAllSubmissions(adminUserId, eval2.getId(), null);
 		assertEquals(0, subs.getTotalNumberOfResults());
 	}
 
@@ -504,21 +503,21 @@ public class EvaluationControllerAutowiredTest {
 	public void testAclRoundTrip() throws Exception {
 
 		// Create the entity first
-		UserInfo userInfo = userManager.getUserInfo(userName);
+		UserInfo userInfo = userManager.getUserInfo(testUserId);
 		String nodeId = createNode("EvaluationControllerAutowiredTest.testAclRoundTrip()", userInfo);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
 
 		// Create the evaluation (which should also creates the ACL)
 		eval1.setContentSource(nodeId);
-		eval1 = entityServletHelper.createEvaluation(eval1, userName);		
+		eval1 = entityServletHelper.createEvaluation(eval1, testUserId);		
 		assertNotNull(eval1.getEtag());
 		assertNotNull(eval1.getId());
 		assertEquals(nodeId, eval1.getContentSource());
 		evaluationsToDelete.add(eval1.getId());
 
 		// Get the ACL
-		AccessControlList aclReturned = entityServletHelper.getEvaluationAcl(userName, eval1.getId());
+		AccessControlList aclReturned = entityServletHelper.getEvaluationAcl(testUserId, eval1.getId());
 		assertNotNull(aclReturned);
 		assertEquals(eval1.getId(), aclReturned.getId());
 		assertNotNull(aclReturned.getResourceAccess());
@@ -533,17 +532,17 @@ public class EvaluationControllerAutowiredTest {
 		ra.setPrincipalId(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 		aclReturned.getResourceAccess().add(ra);
 
-		aclReturned = entityServletHelper.updateEvaluationAcl(userName, aclReturned);
+		aclReturned = entityServletHelper.updateEvaluationAcl(testUserId, aclReturned);
 		assertNotNull(aclReturned);
 		assertEquals(eval1.getId(), aclReturned.getId());
 
 		// getAcl()
-		aclReturned = entityServletHelper.getEvaluationAcl(userName, eval1.getId());
+		aclReturned = entityServletHelper.getEvaluationAcl(testUserId, eval1.getId());
 		assertNotNull(aclReturned);
 		assertEquals(eval1.getId(), aclReturned.getId());
 
 		// getUserEvaluationPermissions()
-		UserEvaluationPermissions uepReturned = entityServletHelper.getEvaluationPermissions(userName, eval1.getId());
+		UserEvaluationPermissions uepReturned = entityServletHelper.getEvaluationPermissions(testUserId, eval1.getId());
 		assertNotNull(uepReturned);
 	}
 

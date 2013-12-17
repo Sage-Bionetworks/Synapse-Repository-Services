@@ -14,11 +14,11 @@ public class DoiAdminManagerImpl implements DoiAdminManager {
 	@Autowired private DoiAdminDao doiAdminDao;
 
 	@Override
-	public void clear(String userName) throws NotFoundException, UnauthorizedException, DatastoreException {
-		if (userName == null || userName.isEmpty()) {
+	public void clear(Long userId) throws NotFoundException, UnauthorizedException, DatastoreException {
+		if (userId == null) {
 			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
-		UserInfo currentUser = userManager.getUserInfo(userName);
+		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
 		if (!currentUser.isAdmin()) {
 			throw new UnauthorizedException("User must be an administrator to clear the DOI table.");

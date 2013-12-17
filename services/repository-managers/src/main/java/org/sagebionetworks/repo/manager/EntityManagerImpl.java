@@ -526,7 +526,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public S3AttachmentToken createS3AttachmentToken(String userId,
+	public S3AttachmentToken createS3AttachmentToken(Long userId,
 			String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException{
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		validateUpdateAccess(userInfo, entityId);
@@ -534,7 +534,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 	
 	@Override
-	public PresignedUrl getAttachmentUrl(String userId, String entityId,
+	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
 			String tokenId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

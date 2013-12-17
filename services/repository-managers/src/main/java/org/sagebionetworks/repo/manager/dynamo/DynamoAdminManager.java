@@ -9,6 +9,6 @@ public interface DynamoAdminManager {
 	/**
 	 * Clears all the items in the specified table.
 	 */
-	void clear(String userName, String tableName, String hashKeyName, String rangeKeyName)
+	void clear(Long userId, String tableName, String hashKeyName, String rangeKeyName)
 			throws UnauthorizedException, DatastoreException, NotFoundException;
 }

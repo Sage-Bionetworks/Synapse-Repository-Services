@@ -37,7 +37,7 @@ public class ActivityServiceImplUnitTest {
 	UserManager mockUserManager;
 	
 	UserInfo userInfo;
-	String userId = "userId";
+	Long userId = 84739L;
 	Activity activity;
 	Set<Used> used;
 	String n1 = "syn123";
@@ -114,7 +114,6 @@ public class ActivityServiceImplUnitTest {
 		Long n3v = 1L;
 		List<Reference> refs = createExpectedRefs(n1v, n3v);			
 		
-		String activityId = "123";
 		when(mockActivityManager.updateActivity(userInfo, activity)).thenReturn(activity);
 		when(mockEntityManager.getCurrentRevisionNumbers(anyList())).thenReturn(refs);
 
