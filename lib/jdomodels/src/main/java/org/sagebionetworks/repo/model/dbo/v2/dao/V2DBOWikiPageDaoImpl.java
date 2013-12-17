@@ -626,11 +626,17 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 
 	@Override
 	public String getWikiAttachmentFileHandleForFileName(WikiPageKey key,
-			String fileName) throws NotFoundException {
+			String fileName, Long version) throws NotFoundException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-
-		String attachmentsList = getAttachmentsListFromMarkdownTable(key);
+		String attachmentsList;
+		if(version == null) {
+			attachmentsList = getAttachmentsListFromMarkdownTable(key);
+		} else {
+			// Lookup the attachments for another version of the wiki
+			V2DBOWikiMarkdown markdownDbo = getWikiMarkdownDBO(Long.parseLong(key.getWikiPageId()), version);
+			attachmentsList = V2WikiTranslationUtils.getStringFromByteArray(markdownDbo.getAttachmentIdList());
+		}
 		if(attachmentsList != null) {
 			// Process the list of attachments into a map for easy searching
 			Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentsList);

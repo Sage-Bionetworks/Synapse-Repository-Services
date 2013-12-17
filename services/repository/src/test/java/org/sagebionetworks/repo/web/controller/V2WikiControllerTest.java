@@ -265,6 +265,11 @@ public class V2WikiControllerTest {
 		V2WikiPage versionOne = entityServletHelper.getV2WikiPage(key, userName, versionToRestore);
 		assertEquals(markdownTwo.getId(), versionOne.getMarkdownFileHandleId());
 		assertEquals(1, versionOne.getAttachmentFileHandleIds().size());
+		// Get its attachment's URL
+		URL versionOneAttachment = entityServletHelper.getV2WikiAttachmentFileURL(userName, key, handleOne.getFileName(), null, new Long(1));
+		assertNotNull(versionOneAttachment);
+		assertTrue(versionOneAttachment.toString().indexOf("mainFileKey") > 0);
+		
 		assertEquals("Version 1 title", versionOne.getTitle());
 		assertEquals(cloneUpdated.getModifiedOn(), versionOne.getModifiedOn());
 		
@@ -323,24 +328,24 @@ public class V2WikiControllerTest {
 		assertEquals(handleTwo.getId(), handles.getList().get(1).getId());
 		
 		// Get the presigned URL for the first file
-		URL presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), null);
+		URL presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), null, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
 		System.out.println(presigned);
 		// Get the preview presigned URL.
-		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), null);
+		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), null, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);
 		
 		// Make sure we can get the URLs without a redirect
 		Boolean redirect = Boolean.FALSE;
-		presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), redirect);
+		presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), redirect, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
 		System.out.println(presigned);
 		// again without the redirct
-		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), redirect);
+		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), redirect, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);
