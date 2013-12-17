@@ -1256,7 +1256,7 @@ public class EntityServletTestHelper {
 			ObjectType ownerType, V2WikiPage wiki, Long version) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, wiki);
+						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 

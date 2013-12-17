@@ -157,8 +157,9 @@ public class ITV2WikiPageTest {
 		toDelete.add(key);
 		Date firstModifiedOn = wiki.getModifiedOn();
 		
-		// Add another file attachment and update the wiki
+		// Add another file attachment and change the title and update the wiki
 		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
+		wiki.setTitle("Updated ITV2WikiPageTest");
 		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
@@ -166,6 +167,7 @@ public class ITV2WikiPageTest {
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		assertEquals(fileHandleTwo.getId(), wiki.getAttachmentFileHandleIds().get(1));
 		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertEquals("Updated ITV2WikiPageTest", wiki.getTitle());
 		assertTrue(!wiki.getModifiedOn().equals(firstModifiedOn));
 		
 		// test get
@@ -200,7 +202,7 @@ public class ITV2WikiPageTest {
 		assertEquals(firstModifiedOn, firstVersion.getModifiedOn());
 		
 		// Restore wiki to first state before update
-		wiki = synapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki, new Long(versionToRestore));
+		wiki = synapse.restoreV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), key.getWikiPageId(), new Long(versionToRestore));
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertNotNull(wiki.getMarkdownFileHandleId());
@@ -213,6 +215,7 @@ public class ITV2WikiPageTest {
 		assertTrue(wiki.getAttachmentFileHandleIds().size() == 1);
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		assertEquals(markdownHandle.getId(), wiki.getMarkdownFileHandleId());
+		assertEquals("ITV2WikiPageTest.testWikiRoundTrip", wiki.getTitle());
 		
 		// Delete the wiki
 		synapse.deleteV2WikiPage(key);
@@ -308,6 +311,10 @@ public class ITV2WikiPageTest {
 		// Update wiki with another file handle
 		wiki.getAttachmentFileHandleIds().add(fileHandleTwo.getId());
 		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		
+		// Since we expect the preview file handle to be returned we need to wait for it.
+		waitForPreviewToBeCreated(fileHandleTwo);
+		
 		assertNotNull(wiki);
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(2, wiki.getAttachmentFileHandleIds().size());

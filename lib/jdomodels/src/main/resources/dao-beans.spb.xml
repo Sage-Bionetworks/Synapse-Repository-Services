@@ -146,11 +146,6 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
 		scope="singleton">
 	</bean>
-
-	<bean id="wikiPageDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
-		scope="singleton">
-	</bean>
 	
 	<bean id="v2wikiPageDAO"
 		class="org.sagebionetworks.repo.model.dbo.v2.dao.V2DBOWikiPageDaoImpl"
@@ -256,11 +251,5 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
-		
-	<bean id="wikiMigrationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
-		
-	<bean id="v2WikiPageMigrationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMigrationDAOImpl" />
 
 </beans>
