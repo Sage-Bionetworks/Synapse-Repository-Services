@@ -717,15 +717,32 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		
 		// Now lookup each file using its name.
-		String id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName());
+		String id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName(), null);
 		assertEquals(attachOne.getId(), id);
 		// The second
-		id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName());
+		id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName(), null);
 		assertEquals(attachTwo.getId(), id);
+		
+		// Update the page so it has no attachments
+		root.getAttachmentFileHandleIds().clear();
+		fileNameMap = new HashMap<String, FileHandle>();
+		newIds = new ArrayList<String>();
+		root = wikiPageDao.updateWikiPage(root, fileNameMap, ownerId, ownerType, newIds);
+		
+		try{
+			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName(), null);
+			fail("The file name does not exist and should have failed");
+		}catch(NotFoundException e){
+			// expected
+		}
+
+		// Try to get a version of the wiki's attachments, attachOne
+		String versionOfAttachmentId = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName(), new Long(0));
+		assertEquals(attachOne.getId(), versionOfAttachmentId);
 		
 		// Test the not found case
 		try{
-			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName()+"1");
+			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName()+"1", null);
 			fail("The file name does not exist and should have failed");
 		}catch(NotFoundException e){
 			// expected

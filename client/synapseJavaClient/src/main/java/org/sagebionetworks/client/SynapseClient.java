@@ -485,6 +485,12 @@ public interface SynapseClient extends BaseClient {
 
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
+	
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
+
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	

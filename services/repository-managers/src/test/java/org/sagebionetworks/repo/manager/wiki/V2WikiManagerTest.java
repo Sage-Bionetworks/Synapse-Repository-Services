@@ -280,7 +280,7 @@ public class V2WikiManagerTest {
 	public void testFileHandleIdForFileNameUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
-		wikiManager.getFileHandleIdForFileName(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), "fileName");
+		wikiManager.getFileHandleIdForFileName(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"), "fileName", null);
 	}
 	
 	@Test
@@ -288,8 +288,8 @@ public class V2WikiManagerTest {
 		// setup allow
 		WikiPageKey key = new WikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		wikiManager.getFileHandleIdForFileName(new UserInfo(false),key,"fileName");
-		verify(mockWikiDao, times(1)).getWikiAttachmentFileHandleForFileName(key, "fileName");
+		wikiManager.getFileHandleIdForFileName(new UserInfo(false),key,"fileName", null);
+		verify(mockWikiDao, times(1)).getWikiAttachmentFileHandleForFileName(key, "fileName", null);
 	}
 	
 	// Same test for getMarkdownFileHandleId()
