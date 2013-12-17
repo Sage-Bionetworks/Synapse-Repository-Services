@@ -4,28 +4,52 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Stack;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.ui.context.Theme;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.collect.MapMaker;
+import com.google.common.collect.Maps;
 
 /**
  * This is a Profiler that logs the results.
  * 
  * @author jmhill
- *
+ * 
  */
 @Aspect
 public class Profiler {
-	
-	// Each thread gets its own stack.
-	static Map<Long, Stack<Frame>> MAP = Collections
-			.synchronizedMap(new HashMap<Long, Stack<Frame>>());
-	
-	private List<ProfileHandler> handlers = null;
 
+	private static class Count {
+		long totalTime = 0;
+		int count = 0;
+	}
+
+	private static class ProfileData {
+		Frame currentFrame;
+		Map<String, Count> methodCalls = Maps.newHashMap();
+	}
+
+	private static final Cache<String, Count> globalMap = CacheBuilder.newBuilder().build(new CacheLoader<String, Count>() {
+		@Override
+		public Count load(String key) throws Exception {
+			// TODO Auto-generated method stub
+			return null;
+		}
+	});
+
+	// Each thread gets its own stack.
+	private static ThreadLocal<ProfileData> threadFrameStack = new ThreadLocal<ProfileData>();
+
+	private List<ProfileHandler> handlers = null;
 
 	public List<ProfileHandler> getHandlers() {
 		return handlers;
@@ -33,6 +57,7 @@ public class Profiler {
 
 	/**
 	 * Injected via Spring.
+	 * 
 	 * @param handlers
 	 */
 	public void setHandlers(List<ProfileHandler> handlers) {
@@ -41,6 +66,7 @@ public class Profiler {
 
 	/**
 	 * Should we even profile.
+	 * 
 	 * @param args
 	 * @return
 	 */
@@ -66,67 +92,53 @@ public class Profiler {
 			// Just proceed if logging is off.
 			return pjp.proceed();
 		}
-		Signature signatrue = pjp.getSignature();
 
+		Signature signature = pjp.getSignature();
+		Class<?> declaring = signature.getDeclaringType();
 
-		// Method method = invocation.getMethod();
-		String methodName = signatrue.getName();
-		Class declaring = signatrue.getDeclaringType();
-		Long threadId = Thread.currentThread().getId();
-		Stack<Frame> stack = null;
-		if (declaring != null) {
-			// We are at the end so print the frame
-			synchronized (MAP) {
-				stack = MAP.get(threadId);
-				if (stack == null) {
-					stack = new Stack<Frame>();
-					MAP.put(threadId, stack);
-				}
-			}
-			// Push a new frame onto the stack.
-			StringBuilder builder = new StringBuilder();
-			builder.append(declaring.getName());
-			builder.append(".");
-			builder.append(methodName);
-			long startTime = System.nanoTime();
-			Frame newFrame = new Frame(startTime, builder.toString());
-			stack.push(newFrame);
+		// Do nothing if we don't know where we came from
+		if (declaring == null) {
+			return pjp.proceed();
 		}
+
+		ProfileData profileData = threadFrameStack.get();
+
+		Frame parentFrame = profileData.currentFrame;
+
+		// Set a new frame as the current frame.
+		long startTime = System.nanoTime();
+		String methodName = declaring.getName() + "." + signature.getName();
+		Frame currentFrame = new Frame(startTime, methodName);
+		parentFrame.addChild(currentFrame);
+
+		profileData.currentFrame = currentFrame;
 
 		// Now start the method.
-		Object returnValue = null;
 		try {
-//			long start = System.nanoTime();
-			returnValue = pjp.proceed();
-//			long elapse = System.nanoTime() - start;
-//			long mili = elapse/1000000;
-//			log.info(mili);
-		} catch (Throwable e) {
-			// When this occurs we need to clear the stack
-			if (stack != null) {
-				stack.clear();
-			}
-			throw e;
-		}
+			return pjp.proceed();
+		} finally {
+			long endTime = System.nanoTime();
+			currentFrame.setEnd(endTime);
+			// set current frame back to parent
+			profileData.currentFrame = parentFrame;
 
-		// After the method is done.
-		if (declaring != null) {
-			// To get around unit test failure, check stack
-			if ((stack != null) && (stack.size() > 0)) {
-				// Push a new frame onto the stack.
-				Frame current = stack.pop();
-				current.setEnd(System.nanoTime());
-				// Is there anything else on the stack?
-				if (stack.size() > 0) {
-					Frame peek = stack.peek();
-					peek.addChild(current);
-				} else {
-					// This should get replace with a logger.
-					doFireProfile(current);
-				}
+			// mark average method
+			Count methodCount = profileData.methodCalls.get(methodName);
+			if (methodCount == null) {
+				methodCount = new Count();
+				profileData.methodCalls.put(methodName, methodCount);
+			}
+			methodCount.count++;
+			methodCount.totalTime += (endTime - startTime);
+
+			// Is there a previous frame?
+			if (parentFrame == null) {
+				// This should get replace with a logger.
+				doFireProfile(currentFrame);
+				collectMethodCallCounts(profileData.methodCalls);
+				profileData.methodCalls.clear();
 			}
 		}
-		return returnValue;
 	}
 
 	private void doFireProfile(Frame frame) {
@@ -135,6 +147,16 @@ public class Profiler {
 				if (handler.shouldCaptureProfile(null)) {
 					handler.fireProfile(frame);
 				}
+			}
+		}
+	}
+
+	private void collectMethodCallCounts(Map<String, Count> methodCalls) {
+		for (Entry<String, Count> entry : methodCalls.entrySet()) {
+			Count globalEntry = globalMap.get(entry.getKey());
+			synchronized (globalEntry) {
+				globalEntry.count += entry.getValue().count;
+				globalEntry.totalTime += entry.getValue().totalTime;
 			}
 		}
 	}

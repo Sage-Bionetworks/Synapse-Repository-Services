@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
+import com.amazonaws.services.identitymanagement.model.ListServerCertificatesRequest;
+import com.google.common.collect.Lists;
 
 /**
  * Sends latency information to AmazonWebServices CloudWatch. It's the consumer
@@ -29,8 +31,7 @@ public class Consumer {
 	public static final int MAX_BATCH_SIZE = 20;
 
 	// We us an atomic reference to the list instead of using synchronization.
-	private AtomicReference<List<ProfileData>> listProfileData = 
-			new AtomicReference<List<ProfileData>>(Collections.synchronizedList(new LinkedList<ProfileData>()));
+	private List<ProfileData> listProfileData = Lists.newLinkedList();
 
 	// need a cloudWatch client
 	@Autowired
@@ -60,7 +61,9 @@ public class Consumer {
 	 *             if the given object is null
 	 */
 	public void addProfileData(ProfileData addToList) {
-		listProfileData.get().add(addToList);
+		synchronized (this) {
+			listProfileData.add(addToList);
+		}
 	}
 
 	/**
@@ -70,8 +73,12 @@ public class Consumer {
 	 */
 	public List<String> executeCloudWatchPut() {
 		try {
-			// collect the ProfileData from synchronized list
-			List<ProfileData> nextBunch = listProfileData.getAndSet(Collections.synchronizedList(new LinkedList<ProfileData>()));
+			// collect the ProfileData from list
+			List<ProfileData> nextBunch;
+			synchronized (this) {
+				nextBunch = listProfileData;
+				listProfileData = Lists.newLinkedList();
+			}
 
 			//here I have a list of potentially different namespaces
 			//convert to a map (key is namespace, value is list of metricDatums)
@@ -183,8 +190,9 @@ public class Consumer {
 	 * @return List<ProfileData>
 	 */
 	protected List<ProfileData> getListProfileData() {
-		List<ProfileData> toReturn = new ArrayList<ProfileData>(listProfileData.get());
-		return toReturn;
+		synchronized (this) {
+			return Lists.newArrayList(listProfileData);
+		}
 	}
 
 
