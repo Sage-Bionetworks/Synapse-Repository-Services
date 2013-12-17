@@ -166,9 +166,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 
-		deleteDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
-
 		basicDao.deleteObjectByPrimaryKey(DBOParticipantData.class, param);
+
+		deleteDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 	}
 
 	@Override

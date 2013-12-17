@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
- * Mapping between communities and teams
+ * an anonymized participant in a study
  */
 @Table(name = SqlConstants.TABLE_PARTICIPANT)
 public class DBOParticipant implements MigratableDatabaseObject<DBOParticipant, DBOParticipant> {

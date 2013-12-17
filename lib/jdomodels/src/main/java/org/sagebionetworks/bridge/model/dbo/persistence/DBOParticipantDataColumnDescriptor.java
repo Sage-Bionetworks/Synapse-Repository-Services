@@ -21,6 +21,9 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
+/**
+ * descriptor of what's in a column of a participant data record
+ */
 @Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR)
 public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObject<DBOParticipantDataColumnDescriptor, DBOParticipantDataColumnDescriptor> {
 

@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
- * Mapping between communities and teams
+ * descriptor of what's in a participant data record
  */
 @Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR, constraints={
 	"unique key UNIQUE_DSM_NAME (" + SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_NAME + ")"
