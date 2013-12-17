@@ -3347,7 +3347,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
-    private static final long MAX_CHUNK_SIZE_BYTES = 5 * 1000 * 1024;
+    private static final int MAX_CHUNK_SIZE_BYTES = 5 * 1000 * 1024;
+    private static final int MAX_CHUNK_SIZE_UTF8_CHARS = MAX_CHUNK_SIZE_BYTES/6;
 
     /**
 	 * Convenience function for uploading message body and sending message
@@ -3356,19 +3357,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public MessageToUser sendMessage(List<String>recipientIds, String subject, String message, String contentType, String inReplyTo) 
 			throws SynapseException {
 		if (contentType==null) contentType = "application/txt";	
-		byte[] bodyBytes = null; 
+		String contentMD5 = null;
 		try {
-			bodyBytes = message.getBytes("UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			throw new SynapseException(e1);
+			byte[] bodyBytes = message.getBytes("UTF-8");
+			byte[] md5Bytes = MessageDigest.getInstance("MD5").digest( bodyBytes );
+			contentMD5 = new BigInteger(1, md5Bytes).toString(16);
+		} catch (UnsupportedEncodingException uee) {
+			throw new SynapseException(uee);
+		} catch (NoSuchAlgorithmException nsae) {
+			throw new SynapseException(nsae);
 		}
-		byte[] md5Bytes;
-		try {
-			md5Bytes = MessageDigest.getInstance("MD5").digest( bodyBytes );
-		} catch (NoSuchAlgorithmException e1) {
-			throw new SynapseException(e1);
-		}
-		String contentMD5 = new BigInteger(1, md5Bytes).toString(16);
     	 
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setFileName("body");
@@ -3379,21 +3377,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
  	   	List<Long> chunkNumbers = new ArrayList<Long>();
 		long currentChunkNumber = 1;
-		long endExclusive = 0; // 1 + the index of the last byte to include in the next chunk
-		while (endExclusive<bodyBytes.length) {
+		int endExclusive = 0; // 1 + the index of the last byte to include in the next chunk
+		while (endExclusive<message.length()) {
 			ChunkRequest request = new ChunkRequest();
 			request.setChunkedFileToken(token);
 			request.setChunkNumber((long) currentChunkNumber);
 			URL presignedURL = createChunkedPresignedUrl(request);
-			long startInclusive = endExclusive;
-			endExclusive = Math.min(startInclusive+MAX_CHUNK_SIZE_BYTES, bodyBytes.length);
+			int startInclusive = endExclusive;
+			endExclusive = Math.min(startInclusive+MAX_CHUNK_SIZE_UTF8_CHARS, message.length());
 			// upload to presignedURL from startInclusive to endExclusive
-			byte[] chunk = new byte[(int)(endExclusive-startInclusive)];
-			System.arraycopy(bodyBytes, (int)startInclusive, chunk, 0, chunk.length);
 			Map<String,String> requestHeaders = new HashMap<String,String>();
 			requestHeaders.put("content-type", contentType);
-			
-			getSharedClientConnection().putToURL(presignedURL, new String(chunk), requestHeaders);
+			getSharedClientConnection().putToURL(presignedURL, 
+					message.substring(startInclusive,endExclusive), requestHeaders);
 			chunkNumbers.add(currentChunkNumber);
 			currentChunkNumber++;
 		}
