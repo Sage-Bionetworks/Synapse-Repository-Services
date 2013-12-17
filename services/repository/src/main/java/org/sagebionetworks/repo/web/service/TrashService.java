@@ -16,13 +16,13 @@ public interface TrashService {
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 */
-	void moveToTrash(String currentUserId, String entityId)
+	void moveToTrash(Long currentUserId, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Moves an entity and its descendants out of the trash can.
 	 */
-	void restoreFromTrash(String currentUserId, String entityId, String newParentId)
+	void restoreFromTrash(Long currentUserId, String entityId, String newParentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -36,7 +36,7 @@ public interface TrashService {
 	 *             When the current user is not the same user nor an
 	 *             administrator.
 	 */
-	PaginatedResults<TrashedEntity> viewTrashForUser(String currentUserId, String userId,
+	PaginatedResults<TrashedEntity> viewTrashForUser(Long currentUserId, Long userId,
 			Long offset, Long limit, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
@@ -48,7 +48,7 @@ public interface TrashService {
 	 * @throws UnauthorizedException
 	 *             When the current user is not an administrator.
 	 */
-	PaginatedResults<TrashedEntity> viewTrash(String currentUserId,
+	PaginatedResults<TrashedEntity> viewTrash(Long currentUserId,
 			Long offset, Long limit, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
@@ -56,19 +56,19 @@ public interface TrashService {
 	 * Purges the specified entity from the trash can. After purging, the entity
 	 * will be permanently deleted.
 	 */
-	void purgeTrashForUser(String currentUserId, String entityId)
+	void purgeTrashForUser(Long currentUserId, String entityId)
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeTrashForUser(String currentUserId) throws DatastoreException, NotFoundException;
+	void purgeTrashForUser(Long currentUserId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeTrash(String currentUserId)
+	void purgeTrash(Long currentUserId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 }

@@ -6,6 +6,8 @@ import org.junit.Test;
 public class NodeTreeQueryServiceImplTest {
 
 	private NodeTreeQueryService service = new NodeTreeQueryServiceImpl();
+	
+	private static final Long USER_ID = 2938745L;
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetAncestorsWithException1() {
@@ -15,7 +17,7 @@ public class NodeTreeQueryServiceImplTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetAncestorsWithException2() {
-		this.service.getAncestors("user", null);
+		this.service.getAncestors(USER_ID, null);
 		Assert.fail();
 	}
 
@@ -27,7 +29,7 @@ public class NodeTreeQueryServiceImplTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetParentWithException2() {
-		this.service.getParent("user", null);
+		this.service.getParent(USER_ID, null);
 		Assert.fail();
 	}
 
@@ -39,7 +41,7 @@ public class NodeTreeQueryServiceImplTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetDescendantsWithException2() {
-		this.service.getDescendants("user", null, 2, null);
+		this.service.getDescendants(USER_ID, null, 2, null);
 		Assert.fail();
 	}
 
@@ -51,7 +53,7 @@ public class NodeTreeQueryServiceImplTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetDescendantsWithException4() {
-		this.service.getDescendants("user", null, 1, 2, null);
+		this.service.getDescendants(USER_ID, null, 1, 2, null);
 		Assert.fail();
 	}
 
@@ -63,7 +65,7 @@ public class NodeTreeQueryServiceImplTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetChildrenWithException2() {
-		this.service.getChildren("user", null, 2, null);
+		this.service.getChildren(USER_ID, null, 2, null);
 		Assert.fail();
 	}
 }

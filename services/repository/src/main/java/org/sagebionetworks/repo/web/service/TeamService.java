@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TeamService {
@@ -23,7 +22,7 @@ public interface TeamService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public Team create(String userId,
+	public Team create(Long userId,
 			Team team) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
 
 	/**
@@ -88,7 +87,7 @@ public interface TeamService {
 	 * @throws NotFoundException
 	 * @throws InvalidModelException
 	 */
-	public Team update(String userId, Team team) throws  DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException;
+	public Team update(Long userId, Team team) throws  DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException;
 	
 	/**
 	 * 
@@ -98,7 +97,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public void delete(String userId, String teamId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void delete(Long userId, String teamId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 
@@ -109,7 +108,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(String userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void addMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 
@@ -142,7 +141,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void removeMember(String userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void removeMember(Long userId, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * 
@@ -163,7 +162,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void refreshCache(String userId) throws DatastoreException, NotFoundException;
+	void refreshCache(Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -175,7 +174,7 @@ public interface TeamService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void setPermissions(String userId, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void setPermissions(Long userId, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 
@@ -186,6 +185,6 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public TeamMembershipStatus getTeamMembershipStatus(String userId, String teamId, String principalId) throws DatastoreException, NotFoundException;
+	public TeamMembershipStatus getTeamMembershipStatus(Long userId, String teamId, String principalId) throws DatastoreException, NotFoundException;
 	
 }

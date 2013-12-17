@@ -25,30 +25,32 @@ public class DoiAdminManagerImplAutowiredTest {
 	@Autowired
 	private UserManager userManager;
 	
+	private Long adminUserId;
+	private Long testUserId;
 	private UserInfo adminUserInfo;
-	private UserInfo testUserInfo;
 
 	@Before
 	public void before() throws Exception {
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		testUserId = userManager.createUser(user);
 	}
 	
 	@After
 	public void after() throws Exception {
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserId);
 	}
 
 	@Test
 	public void testAdmin() throws Exception {
-		doiAdminManager.clear(adminUserInfo.getIndividualGroup().getName());
+		doiAdminManager.clear(adminUserId);
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testNotAdmin() throws Exception {
-		doiAdminManager.clear(testUserInfo.getIndividualGroup().getName());
+		doiAdminManager.clear(testUserId);
 	}
 }

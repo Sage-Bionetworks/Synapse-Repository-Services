@@ -14,16 +14,16 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessApprovalService {
 
-	public AccessApproval createAccessApproval(String userId,
+	public AccessApproval createAccessApproval(Long userId,
 			AccessApproval accessApproval) throws DatastoreException,
 			UnauthorizedException, NotFoundException, InvalidModelException,
 			IOException;
 
-	public PaginatedResults<AccessApproval> getAccessApprovals(String userId,
+	public PaginatedResults<AccessApproval> getAccessApprovals(Long userId,
 			RestrictableObjectDescriptor subjectId, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
-	public void deleteAccessApprovals(String userId, String approvalId)
+	public void deleteAccessApprovals(Long userId, String approvalId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

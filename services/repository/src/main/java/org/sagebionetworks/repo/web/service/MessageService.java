@@ -15,38 +15,38 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface MessageService {
 
-	public MessageToUser create(String username, MessageToUser toCreate)
+	public MessageToUser create(Long userId, MessageToUser toCreate)
 			throws NotFoundException;
 
-	public PaginatedResults<MessageBundle> getInbox(String username,
+	public PaginatedResults<MessageBundle> getInbox(Long userId,
 			List<MessageStatusType> inclusionFilter, MessageSortBy sortBy,
 			boolean descending, long limit, long offset, String urlPath)
 			throws NotFoundException;
 
-	public PaginatedResults<MessageToUser> getOutbox(String username,
+	public PaginatedResults<MessageToUser> getOutbox(Long userId,
 			MessageSortBy sortBy, boolean descending, long limit, long offset,
 			String urlPath) throws NotFoundException;
 
-	public MessageToUser getMessage(String username, String messageId)
+	public MessageToUser getMessage(Long userId, String messageId)
 			throws NotFoundException;
 
-	public MessageToUser forwardMessage(String username, String messageId,
+	public MessageToUser forwardMessage(Long userId, String messageId,
 			MessageRecipientSet recipients) throws NotFoundException;
 
-	public PaginatedResults<MessageToUser> getConversation(String username,
+	public PaginatedResults<MessageToUser> getConversation(Long userId,
 			String messageId, MessageSortBy sortBy, boolean descending,
 			long limit, long offset, String urlPath)
 			throws NotFoundException;
 
-	public void updateMessageStatus(String username, MessageStatus status)
+	public void updateMessageStatus(Long userId, MessageStatus status)
 			throws NotFoundException;
 	
-	public void deleteMessage(String username, String messageId)
+	public void deleteMessage(Long userId, String messageId)
 			throws NotFoundException;
 
-	public URL getMessageFileRedirectURL(String username, String messageId) throws NotFoundException;
+	public URL getMessageFileRedirectURL(Long userId, String messageId) throws NotFoundException;
 
-	public MessageToUser createMessageToEntityOwner(String username, String entityId,
+	public MessageToUser createMessageToEntityOwner(Long userId, String entityId,
 			MessageToUser toCreate) throws NotFoundException, ACLInheritanceException;
 
 }

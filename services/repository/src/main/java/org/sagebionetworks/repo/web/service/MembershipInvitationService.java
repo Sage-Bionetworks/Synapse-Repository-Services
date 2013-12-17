@@ -18,7 +18,7 @@ public interface MembershipInvitationService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException 
 	 */
-	public MembershipInvtnSubmission create(String userId,
+	public MembershipInvtnSubmission create(Long userId,
 			MembershipInvtnSubmission dto) throws UnauthorizedException, InvalidModelException, NotFoundException;
 	
 	/**
@@ -31,7 +31,7 @@ public interface MembershipInvitationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipInvitation> getOpenInvitations(String userId, String inviteeId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipInvitation> getOpenInvitations(Long userId, String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -44,7 +44,7 @@ public interface MembershipInvitationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<MembershipInvtnSubmission> getOpenInvitationSubmissions(String userId, String inviteeId, String teamId, long limit, long offset)
+	public PaginatedResults<MembershipInvtnSubmission> getOpenInvitationSubmissions(Long userId, String inviteeId, String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -56,7 +56,7 @@ public interface MembershipInvitationService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public MembershipInvtnSubmission get(String userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public MembershipInvtnSubmission get(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 
@@ -66,5 +66,5 @@ public interface MembershipInvitationService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public void delete(String userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void delete(Long userId, String dtoId) throws DatastoreException, UnauthorizedException, NotFoundException;
 }

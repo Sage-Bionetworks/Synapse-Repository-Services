@@ -25,7 +25,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	V2WikiPage createWikiPage(String userId, String objectId, ObjectType entity, V2WikiPage toCreate) throws DatastoreException, NotFoundException;
+	V2WikiPage createWikiPage(Long userId, String objectId, ObjectType entity, V2WikiPage toCreate) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a wiki page.
@@ -38,7 +38,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	V2WikiPage getWikiPage(String userId, WikiPageKey key, Long version) throws DatastoreException, NotFoundException;
+	V2WikiPage getWikiPage(Long userId, WikiPageKey key, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a wiki page.
@@ -50,7 +50,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	V2WikiPage updateWikiPage(String userId, String objectId, ObjectType objectType, V2WikiPage toUpdate) throws DatastoreException, NotFoundException;
+	V2WikiPage updateWikiPage(Long userId, String objectId, ObjectType objectType, V2WikiPage toUpdate) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -63,7 +63,7 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	V2WikiPage restoreWikipage(String userId, String objectId, ObjectType objectType, String wikiId, Long version) throws NotFoundException;
+	V2WikiPage restoreWikipage(Long userId, String objectId, ObjectType objectType, String wikiId, Long version) throws NotFoundException;
 	
 	/**
 	 * Delete a wiki page.
@@ -73,7 +73,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	void deleteWikiPage(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
+	void deleteWikiPage(Long userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the WikiHeaderTree for an owner.
@@ -86,7 +86,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	PaginatedResults<V2WikiHeader> getWikiHeaderTree(String userId,String ownerId, ObjectType type, Long limit , Long offest) throws DatastoreException, NotFoundException;
+	PaginatedResults<V2WikiHeader> getWikiHeaderTree(Long userId,String ownerId, ObjectType type, Long limit , Long offest) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -100,7 +100,7 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(String userId, String ownerId, ObjectType type, Long limit , Long offset, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
+	PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(Long userId, String ownerId, ObjectType type, Long limit , Long offset, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get all of the file handles of all attachments on the given wiki page.
@@ -112,7 +112,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
+	FileHandleResults getAttachmentFileHandles(Long userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the redirect URL for the wiki's markdown.
@@ -123,7 +123,7 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getMarkdownRedirectURL(String userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
+	URL getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the Redirect URL for a given attachment.
@@ -134,7 +134,7 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the redirect URL for a given Preview.
@@ -145,7 +145,7 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the root wiki page.
@@ -156,6 +156,6 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 */
-	V2WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
+	V2WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
 
 }
