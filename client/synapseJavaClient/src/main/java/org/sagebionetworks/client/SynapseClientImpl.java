@@ -2282,7 +2282,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * 
 	 * @param ownerId
 	 * @param ownerType
-	 * @param toUpdate
+	 * @param wikiId
 	 * @param versionToRestore
 	 * @return
 	 * @throws JSONObjectAdapterException
@@ -2290,14 +2290,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-		V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+		String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 		SynapseException {
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
-		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		if(versionToRestore == null) throw new IllegalArgumentException("Version cannot be null");
-		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), String.valueOf(versionToRestore));
-		return updateJSONEntity(uri, toUpdate);
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, wikiId, String.valueOf(versionToRestore));
+		V2WikiPage mockWikiToUpdate = new V2WikiPage();
+		return updateJSONEntity(uri, mockWikiToUpdate);
 	}
 
 	/**

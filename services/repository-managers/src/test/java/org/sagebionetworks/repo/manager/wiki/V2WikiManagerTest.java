@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -725,8 +726,9 @@ public class V2WikiManagerTest {
 	UnauthorizedException {
 		String ownerId = "111";
 		ObjectType ownerType = ObjectType.ENTITY;
+		String wikiId = "123";
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
-		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), new V2WikiPage());
+		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wikiId);
 	}
 	
 	@Test
@@ -736,31 +738,45 @@ public class V2WikiManagerTest {
 		ObjectType ownerType = ObjectType.ENTITY;
 		String wikiId = "0";
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wikiId);
-		V2WikiPage current = new V2WikiPage();
-		current.setId(wikiId);
-		current.setEtag("etag");
-		current.setCreatedBy(user.getIndividualGroup().getId());
-		current.setModifiedBy(user.getIndividualGroup().getId());
-
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
-				
+		
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
 		markdown.setCreatedBy(user.getIndividualGroup().getId());
-		when(mockWikiDao.getMarkdownHandleId(key, new Long(0))).thenReturn(markdown.getId());
+		when(mockAuthManager.canAccessRawFileHandleByCreator(any(UserInfo.class), any(String.class))).thenReturn(true);
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
+		// Set up what will be returned in the restore method
+		V2WikiMarkdownVersion versionOfContent = new V2WikiMarkdownVersion();
+		versionOfContent.setAttachmentFileHandleIds(new ArrayList<String>());
+		versionOfContent.setMarkdownFileHandleId(markdown.getId());
+		versionOfContent.setTitle("Title");
+		versionOfContent.setVersion("0");
+		when(mockWikiDao.getVersionOfWikiContent(key, new Long(0))).thenReturn(versionOfContent);
+		
+		// Set up what will be returned in the update method
 		List<Long> allFileHandleIds = new LinkedList<Long>();
 	    when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(allFileHandleIds);
 		List<Long> allMarkdownFileHandleIds = new LinkedList<Long>();
 		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
-		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), current);
-		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
-		verify(mockWikiDao, times(1)).getWikiFileHandleIds(key, new Long(0));
-		verify(mockWikiDao, times(1)).updateWikiPage(current, new HashMap<String, FileHandle>(), ownerId, ownerType, new ArrayList<String>());
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
+		
+		// Create a wiki page. This is version 0.
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setId(wikiId);
+		wiki.setEtag("etag");
+		wiki.setMarkdownFileHandleId(markdown.getId());
+		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
+		wiki.setCreatedBy(user.getIndividualGroup().getId());
+		wiki.setCreatedOn(new Date(1));
+		when(mockWikiDao.get(key, null)).thenReturn(wiki);
+
+		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wikiId);
+		verify(mockWikiDao, times(1)).get(key, null);
+		verify(mockWikiDao, times(1)).getVersionOfWikiContent(key, new Long(0));
+		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(List.class));
 	}
 	
 	@Test
@@ -832,32 +848,27 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
-		when(mockWikiDao.getWikiFileHandleIds(key, new Long(0))).thenReturn(fileHandleIdsToRestore);
-		when(mockWikiDao.getMarkdownHandleId(key, new Long(0))).thenReturn(markdown.getId());
-		
-		// Old wiki we're passing into restoration for update
-		// This will be assigned content (received by getWikiFilHandleIdsFromHistory etc)
-		// inside the restore method
+		V2WikiMarkdownVersion versionOfContent = new V2WikiMarkdownVersion();
+		versionOfContent.setAttachmentFileHandleIds(fileHandleIdsToRestore);
+		versionOfContent.setMarkdownFileHandleId(markdown.getId());
+		versionOfContent.setTitle("Title");
+		versionOfContent.setVersion("0");
+		when(mockWikiDao.getVersionOfWikiContent(key, new Long(0))).thenReturn(versionOfContent);
+
+		// Most recent wiki with this wikiId, whose metadata we will use
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setId(wikiId);
 		wiki.setEtag("etag");
-		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
-		wiki.getAttachmentFileHandleIds().add(one.getId());
-		wiki.getAttachmentFileHandleIds().add(two.getId());
-		wiki.setMarkdownFileHandleId(markdown2.getId());
+		wiki.setCreatedBy(user.getIndividualGroup().getId());
+		wiki.setCreatedOn(new Date(1));
+		when(mockWikiDao.get(key, null)).thenReturn(wiki);
 		
-		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wiki);
-		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
-		verify(mockWikiDao, times(1)).getWikiFileHandleIds(key, new Long(0));
+		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wikiId);
+		verify(mockWikiDao, times(1)).getVersionOfWikiContent(key, new Long(0));
 		
 		verify(mockWikiDao, times(1)).getFileHandleReservationForWiki(key);
 		verify(mockWikiDao, times(1)).getMarkdownFileHandleIdsForWiki(key);
-		// File name map of new/restored content that should be passed to the dao
-		wiki.setAttachmentFileHandleIds(fileHandleIdsToRestore);
-		wiki.setMarkdownFileHandleId(markdown.getId());
-		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(wiki);
-		// No new file handle ids are sent to the dao, so send in empty list
-		verify(mockWikiDao, times(1)).updateWikiPage(wiki, fileHandleMap, ownerId, ownerType, new ArrayList<String>());
+		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(ArrayList.class));
 		
 	}
 	

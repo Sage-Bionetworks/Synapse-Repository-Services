@@ -403,11 +403,9 @@ public class V2WikiController extends BaseController {
 	V2WikiPage restoreEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable Long wikiVersion,
-			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestBody V2WikiPage toUpdate) throws DatastoreException,
-			NotFoundException {
-		validateUpateArguments(wikiId, toUpdate);
-		return serviceProvider.getV2WikiService().restoreWikipage(userId, ownerId, ObjectType.ENTITY, toUpdate, wikiVersion);
+			@PathVariable String ownerId, @PathVariable String wikiId) 
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().restoreWikipage(userId, ownerId, ObjectType.ENTITY, wikiId, wikiVersion);
 	}
 
 	/**
@@ -445,11 +443,9 @@ public class V2WikiController extends BaseController {
 	V2WikiPage restoreCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable Long wikiVersion,
-			@PathVariable String ownerId, @PathVariable String wikiId,
-			@RequestBody V2WikiPage toUpdate) throws DatastoreException,
-			NotFoundException {
-		validateUpateArguments(wikiId, toUpdate);
-		return serviceProvider.getV2WikiService().restoreWikipage(userId, ownerId, ObjectType.EVALUATION, toUpdate, wikiVersion);
+			@PathVariable String ownerId, @PathVariable String wikiId) 
+			throws DatastoreException, NotFoundException {
+		return serviceProvider.getV2WikiService().restoreWikipage(userId, ownerId, ObjectType.EVALUATION, wikiId, wikiVersion);
 	}
 	
 	// Delete methods

@@ -268,14 +268,16 @@ public class V2WikiControllerTest {
 		assertEquals("Version 1 title", versionOne.getTitle());
 		assertEquals(cloneUpdated.getModifiedOn(), versionOne.getModifiedOn());
 		
-		// Restore wiki to version 1 which had markdownTwo and one file attachment
+		// Restore wiki to version 1 which had markdownTwo and one file attachment, and a title of "Version 1 title"
 		String currentEtag3 = cloneUpdated2.getEtag();
 		V2WikiPage restored = entityServletHelper.restoreWikiPage(userName, ownerId, ownerType, cloneUpdated2, versionToRestore);
 		assertNotNull(restored);
 		assertFalse("The etag should have changed from the restore", currentEtag3.equals(restored.getEtag()));
-		
+		assertEquals(cloneUpdated2.getCreatedBy(), restored.getCreatedBy());
+		assertEquals(cloneUpdated2.getCreatedOn(), restored.getCreatedOn());
 		assertEquals(restored.getMarkdownFileHandleId(), markdownTwo.getId());
 		assertEquals(restored.getAttachmentFileHandleIds().size(), 1);
+		assertEquals(clone.getTitle(), restored.getTitle());
 
 		// Add a child wiki
 		V2WikiPage child = new V2WikiPage();
@@ -301,8 +303,8 @@ public class V2WikiControllerTest {
 		
 		// check the root header.
 		V2WikiHeader rootHeader = paginated.getResults().get(0);
-		assertEquals(cloneUpdated.getId(), rootHeader.getId());
-		assertEquals(cloneUpdated.getTitle(), rootHeader.getTitle());
+		assertEquals(clone.getId(), rootHeader.getId());
+		assertEquals(clone.getTitle(), rootHeader.getTitle());
 		assertEquals(null, rootHeader.getParentId());
 		
 		// Check the child header
