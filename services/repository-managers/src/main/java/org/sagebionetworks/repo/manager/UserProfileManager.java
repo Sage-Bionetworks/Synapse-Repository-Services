@@ -54,7 +54,7 @@ public interface UserProfileManager {
 	/**
 	 * return the preassigned url for the user profile attachment
 	 */
-	public PresignedUrl getUserProfileAttachmentUrl(UserInfo userInfo,
+	public PresignedUrl getUserProfileAttachmentUrl(Long userId,
 			String profileId, String tokenID) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
 

@@ -140,10 +140,10 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException {
 		SecretKey secret = new SecretKey();
-		secret.setSecretKey(authenticationService.getSecretKey(username));
+		secret.setSecretKey(authenticationService.getSecretKey(userId));
 		return secret;
 	}
 	
@@ -154,9 +154,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException {
-		authenticationService.deleteSecretKey(username);
+		authenticationService.deleteSecretKey(userId);
 	}
 	
 	/**

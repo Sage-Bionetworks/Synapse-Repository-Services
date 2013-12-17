@@ -21,13 +21,13 @@ public class StorageUsageManagerImpl implements StorageUsageManager {
 	}
 
 	@Override
-	public StorageUsageSummaryList getUsageForUser(String userId,
+	public StorageUsageSummaryList getUsageForUser(Long userId,
 			List<StorageUsageDimension> dimensionList) {
 		return storageUsageDao.getAggregatedUsageForUser(userId, dimensionList);
 	}
 
 	@Override
-	public QueryResults<StorageUsage> getUsageInRangeForUser(String userId, Integer offset, Integer limit) {
+	public QueryResults<StorageUsage> getUsageInRangeForUser(Long userId, Integer offset, Integer limit) {
 		List<StorageUsage> storageUsageList = storageUsageDao.getUsageInRangeForUser(userId, offset, offset + limit);
 		long totalCount = storageUsageDao.getTotalCountForUser(userId).longValue();
 		QueryResults<StorageUsage> queryResults = new QueryResults<StorageUsage>(storageUsageList, totalCount);

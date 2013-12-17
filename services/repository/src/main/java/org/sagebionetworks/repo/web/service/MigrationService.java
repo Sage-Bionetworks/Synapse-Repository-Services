@@ -26,7 +26,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	MigrationTypeCounts getTypeCounts(String userId) throws DatastoreException, NotFoundException;
+	MigrationTypeCounts getTypeCounts(Long userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the pagainated row metadta for one type.
@@ -38,7 +38,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	RowMetadataResult getRowMetadaForType(String userId, MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException;
+	RowMetadataResult getRowMetadaForType(Long userId, MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * This method is called on the destination stack to compare compare its metadata with the source stack metadata
@@ -49,7 +49,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	RowMetadataResult getRowMetadataDeltaForType(String userId,	MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
+	RowMetadataResult getRowMetadataDeltaForType(Long userId,	MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Start the backup of the provided list of Migration type IDs.
@@ -60,7 +60,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	BackupRestoreStatus startBackup(String userId, MigrationType type,	List<Long> list) throws DatastoreException, NotFoundException;
+	BackupRestoreStatus startBackup(Long userId, MigrationType type,	List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Start the restore of the provided file.
@@ -71,7 +71,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	BackupRestoreStatus startRestore(String userId, MigrationType type, String fileName) throws DatastoreException, NotFoundException;
+	BackupRestoreStatus startRestore(Long userId, MigrationType type, String fileName) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the migration objects identified in tha passed list.
@@ -81,7 +81,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	MigrationTypeCount delete(String userId, MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
+	MigrationTypeCount delete(Long userId, MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the status of either a restore or backup deamon
@@ -91,7 +91,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	BackupRestoreStatus getStatus(String userId, String daemonId) throws DatastoreException, NotFoundException;
+	BackupRestoreStatus getStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.
@@ -101,6 +101,6 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	MigrationTypeList getPrimaryTypes(String userId) throws DatastoreException, NotFoundException;
+	MigrationTypeList getPrimaryTypes(Long userId) throws DatastoreException, NotFoundException;
 
 }

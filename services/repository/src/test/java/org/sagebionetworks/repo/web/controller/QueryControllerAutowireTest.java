@@ -46,8 +46,11 @@ public class QueryControllerAutowireTest {
 	@Autowired
 	public UserManager userManager;
 	
+	private Long adminUserId;
 	private UserInfo adminUserInfo;
+	private Long testUserId;
 	private UserInfo testUserInfo;
+	
 	private List<String> toDelete;
 	private HttpServletRequest mockRequest;
 	
@@ -56,24 +59,26 @@ public class QueryControllerAutowireTest {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		toDelete = new LinkedList<String>();
 		
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
+		
 		// The user can't be an admin, since admins can see trash-canned entities
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		testUserId = userManager.createUser(user);
+		testUserInfo = userManager.getUserInfo(testUserId);
 	}
 	
 	@After
 	public void after() throws Exception {
-		if(toDelete != null && entityManager != null){
-			for(String id:toDelete){
-				try {
-					entityManager.deleteEntity(testUserInfo, id);
-				} catch (Exception e) {}
+		for (String id : toDelete) {
+			try {
+				entityManager.deleteEntity(adminUserInfo, id);
+			} catch (NotFoundException e) {
 			}
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserId);
 	}
 	
 	
@@ -81,7 +86,7 @@ public class QueryControllerAutowireTest {
 	public void testQueryForRoot() throws Exception{
 		// Only an admin can see the root node
 		String query = "select id, eTag from entity where parentId == null";
-		QueryResults results = controller.query(adminUserInfo.getIndividualGroup().getName(), query, mockRequest);
+		QueryResults results = controller.query(adminUserId, query, mockRequest);
 		assertNotNull(results);
 		assertTrue(results.getTotalNumberOfResults() > 0);
 	}
@@ -104,12 +109,12 @@ public class QueryControllerAutowireTest {
 		data.setId(id);
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+p.getId()+"\"";
-		QueryResults results = controller.query(testUserInfo.getIndividualGroup().getName(), queryString, mockRequest);
+		QueryResults results = controller.query(testUserId, queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 		
 		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+p.getId()+"\"";
-		results = controller.query(testUserInfo.getIndividualGroup().getName(), queryString, mockRequest);
+		results = controller.query(testUserId, queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}
@@ -124,8 +129,8 @@ public class QueryControllerAutowireTest {
 		p.setId(id);
 		toDelete.add(p.getId());
 		// Now query for the data object
-		String queryString = "SELECT id, name FROM project WHERE createdByPrincipalId == \""+testUserInfo.getIndividualGroup().getId()+"\"";
-		QueryResults results = controller.query(testUserInfo.getIndividualGroup().getName(), queryString, mockRequest);
+		String queryString = "SELECT id, name FROM project WHERE createdByPrincipalId == \""+testUserId+"\"";
+		QueryResults results = controller.query(testUserId, queryString, mockRequest);
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}

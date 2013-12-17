@@ -69,8 +69,8 @@ public class EntityControllerTest {
 	private S3FileHandle handleTwo;
 	private PreviewFileHandle previewTwo;
 	
-	private String username;
-	private String ownerId;
+	private Long adminUserId;
+	private String adminUserIdString;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -79,14 +79,13 @@ public class EntityControllerTest {
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);
 		
-		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		username = adminUserInfo.getIndividualGroup().getName();
-		ownerId = adminUserInfo.getIndividualGroup().getId();
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserIdString = adminUserId.toString();
 		
 		toDelete = new ArrayList<String>();
 		// Create a file handle
 		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(ownerId);
+		handleOne.setCreatedBy(adminUserIdString);
 		handleOne.setCreatedOn(new Date());
 		handleOne.setBucketName("bucket");
 		handleOne.setKey("EntityControllerTest.mainFileKey");
@@ -96,7 +95,7 @@ public class EntityControllerTest {
 		handleOne = fileMetadataDao.createFile(handleOne);
 		// Create a preview
 		previewOne = new PreviewFileHandle();
-		previewOne.setCreatedBy(ownerId);
+		previewOne.setCreatedBy(adminUserIdString);
 		previewOne.setCreatedOn(new Date());
 		previewOne.setBucketName("bucket");
 		previewOne.setKey("EntityControllerTest.previewFileKey");
@@ -108,7 +107,7 @@ public class EntityControllerTest {
 		
 		// Create a file handle
 		handleTwo = new S3FileHandle();
-		handleTwo.setCreatedBy(ownerId);
+		handleTwo.setCreatedBy(adminUserIdString);
 		handleTwo.setCreatedOn(new Date());
 		handleTwo.setBucketName("bucket");
 		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
@@ -117,7 +116,7 @@ public class EntityControllerTest {
 		handleTwo = fileMetadataDao.createFile(handleTwo);
 		// Create a preview
 		previewTwo = new PreviewFileHandle();
-		previewTwo.setCreatedBy(ownerId);
+		previewTwo.setCreatedBy(adminUserIdString);
 		previewTwo.setCreatedOn(new Date());
 		previewTwo.setBucketName("bucket");
 		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
@@ -130,10 +129,10 @@ public class EntityControllerTest {
 	
 	@After
 	public void after() throws Exception {
-		UserInfo testUserInfo = userManager.getUserInfo(username);
+		UserInfo adminUserInfo = userManager.getUserInfo(adminUserId);
 		for(String id: toDelete){
 			try {
-				nodeManager.delete(testUserInfo, id);
+				nodeManager.delete(adminUserInfo, id);
 			} catch (Exception e) {
 				// Try even if it fails.
 			}
@@ -149,16 +148,16 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("Create without entity type");
 		p.setEntityType(p.getClass().getName());		
-		Project clone = (Project) entityServletHelper.createEntity(p, username, null);
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		assertEquals(p.getName(), clone.getName());
 		// Now get the entity with the ID
-		Project clone2 = (Project) entityServletHelper.getEntity(id, username);
+		Project clone2 = (Project) entityServletHelper.getEntity(id, adminUserId);
 		assertEquals(clone, clone2);
 		// Make sure we can update it
 		clone2.setName("My new name");
-		Project clone3 = (Project) entityServletHelper.updateEntity(clone2, username);
+		Project clone3 = (Project) entityServletHelper.updateEntity(clone2, adminUserId);
 		assertNotNull(clone3);		
 		assertEquals(clone2.getName(), clone3.getName());
 		// Should not match the original
@@ -166,10 +165,10 @@ public class EntityControllerTest {
 		// the Etag should have changed
 		assertFalse(clone2.getEtag().equals(clone3.getEtag()));
 		// Now delete it
-		entityServletHelper.deleteEntity(id, username);
+		entityServletHelper.deleteEntity(id, adminUserId);
 		// it should not be found now
 		try{
-			entityServletHelper.getEntity(id, username);
+			entityServletHelper.getEntity(id, adminUserId);
 			fail("Delete failed");
 		}catch (NotFoundException e) {
 			// expected
@@ -181,17 +180,17 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("AnnotCrud");
 		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, username, null);
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
-		Annotations annos = entityServletHelper.getEntityAnnotations(id, username);
+		Annotations annos = entityServletHelper.getEntityAnnotations(id, adminUserId);
 		assertNotNull(annos);
 		// Change the values
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
 		// Updte them
-		Annotations annosClone = entityServletHelper.updateAnnotations(annos, username);
+		Annotations annosClone = entityServletHelper.updateAnnotations(annos, adminUserId);
 		assertNotNull(annosClone);
 		assertEquals(id, annosClone.getId());
 		assertFalse(annos.getEtag().equals(annosClone.getEtag()));
@@ -206,10 +205,10 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("UserEntityPermissions");
 		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, username, null);
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
-		UserEntityPermissions uep = entityServletHelper.getUserEntityPermissions(id, username);
+		UserEntityPermissions uep = entityServletHelper.getUserEntityPermissions(id, adminUserId);
 		assertNotNull(uep);
 		assertTrue(uep.getCanEdit());
 	}
@@ -221,13 +220,13 @@ public class EntityControllerTest {
 			Project p = new Project();
 			p.setName("EntityTypeBatchItem" + i);
 			p.setEntityType(p.getClass().getName());
-			Project clone = (Project) entityServletHelper.createEntity(p, username, null);
+			Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 			String id = clone.getId();
 			toDelete.add(id);
 			ids.add(id);
 		}
 	
-		BatchResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, username);
+		BatchResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, adminUserId);
 		assertNotNull(results);
 		assertEquals(12, results.getTotalNumberOfResults());
 		List<String> outputIds = new ArrayList<String>();
@@ -243,10 +242,10 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("EntityPath");
 		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, username, null);
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		String id = clone.getId();
 		toDelete.add(id);
-		EntityPath path = entityServletHelper.getEntityPath(id, username);
+		EntityPath path = entityServletHelper.getEntityPath(id, adminUserId);
 		assertNotNull(path);
 		assertNotNull(path.getPath());
 		assertEquals(2, path.getPath().size());
@@ -294,20 +293,20 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("Create without entity type");
 		p.setEntityType(p.getClass().getName());
-		p = (Project) entityServletHelper.createEntity(p, username, null);
+		p = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		toDelete.add(p.getId());
 		
 		Study one = new Study();
 		one.setName("one");
 		one.setParentId(p.getId());
 		one.setEntityType(Study.class.getName());
-		one = (Study) entityServletHelper.createEntity(one, username, null);
+		one = (Study) entityServletHelper.createEntity(one, adminUserId, null);
 		// Now try to re-use the name
 		Study two = new Study();
 		two.setName("one");
 		two.setParentId(p.getId());
 		two.setEntityType(Study.class.getName());
-		two = (Study) entityServletHelper.createEntity(two, username, null);
+		two = (Study) entityServletHelper.createEntity(two, adminUserId, null);
 	}
 
 	@Test
@@ -315,21 +314,21 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("Create without entity type");
 		p.setEntityType(p.getClass().getName());
-		p = (Project) entityServletHelper.createEntity(p, username, null);
+		p = (Project) entityServletHelper.createEntity(p, adminUserId, null);
 		toDelete.add(p.getId());
 		
 		Study one = new Study();
 		one.setName("one");
 		one.setParentId(p.getId());
 		one.setEntityType(Study.class.getName());
-		one = (Study) entityServletHelper.createEntity(one, username, null);
+		one = (Study) entityServletHelper.createEntity(one, adminUserId, null);
 		// Now try to re-use the name
 		Code two = new Code();
 		two.setName("code");
 		two.setParentId(one.getId());
 		two.setEntityType(Code.class.getName());
 		try{
-			two = (Code) entityServletHelper.createEntity(two, username, null);
+			two = (Code) entityServletHelper.createEntity(two, adminUserId, null);
 			fail("Code cannot have a parent of type Study");
 		}catch(IllegalArgumentException e){
 			System.out.println(e.getMessage());
@@ -345,7 +344,7 @@ public class EntityControllerTest {
 		p.setName("Create without entity type");
 		p.setEntityType(p.getClass().getName());
 		String activityId = "123456789";
-		Project clone = (Project) entityServletHelper.createEntity(p, username, activityId);
+		Project clone = (Project) entityServletHelper.createEntity(p, adminUserId, activityId);
 		String id = clone.getId();
 		toDelete.add(id);
 	}
@@ -365,7 +364,7 @@ public class EntityControllerTest {
 		Project parent = new Project();
 		parent.setName("project");
 		parent.setEntityType(Project.class.getName());
-		Project parentClone = (Project) entityServletHelper.createEntity(parent, username, null);
+		Project parentClone = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
 		String parentId = parentClone.getId();
 		toDelete.add(parentId);
 		// Create a file entity
@@ -375,7 +374,7 @@ public class EntityControllerTest {
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
 		// Save it
-		file = (FileEntity) entityServletHelper.createEntity(file, username, null);
+		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
 		assertNotNull(file);
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
@@ -387,47 +386,47 @@ public class EntityControllerTest {
 		file.setDataFileHandleId(handleTwo.getId());
 		file.setVersionComment("V2 comment");
 		file.setVersionLabel("V2");
-		file = (FileEntity) entityServletHelper.createNewVersion(username, file);
+		file = (FileEntity) entityServletHelper.createNewVersion(adminUserId, file);
 		// Validate we are on V3
 		assertEquals(new Long(2), file.getVersionNumber());
 		// First get the URL for the current version
-		URL url = entityServletHelper.getEntityFileURLForCurrentVersion(username, file.getId(), null);
+		URL url = entityServletHelper.getEntityFileURLForCurrentVersion(adminUserId, file.getId(), null);
 		assertNotNull(url);
 		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleTwo.getKey()) > 0);
-		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(username, file.getId(), Boolean.FALSE);
+		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(adminUserId, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(handleTwo.getKey()) > 0);
 		// Now the first version
-		url = entityServletHelper.getEntityFileURLForVersion(username, file.getId(), 1l, null);
+		url = entityServletHelper.getEntityFileURLForVersion(adminUserId, file.getId(), 1l, null);
 		assertNotNull(url);
 		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
-		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(username, file.getId(), 1l, Boolean.FALSE);
+		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(adminUserId, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(handleOne.getKey()) > 0);
 		// Get the preview of the current version
-		url = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(username, file.getId(), null);
+		url = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(adminUserId, file.getId(), null);
 		assertNotNull(url);
 		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewTwo.getKey()) > 0);
-		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(username, file.getId(), Boolean.FALSE);
+		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(adminUserId, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewTwo.getKey()) > 0);
 		// Get the preview of the first version
-		url = entityServletHelper.getEntityFilePreviewURLForVersion(username, file.getId(), 1l, null);
+		url = entityServletHelper.getEntityFilePreviewURLForVersion(adminUserId, file.getId(), 1l, null);
 		assertNotNull(url);
 		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
-		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForVersion(username, file.getId(), 1l, Boolean.FALSE);
+		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForVersion(adminUserId, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
 		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewOne.getKey()) > 0);
 		
 		// Validate that we can get the files handles
-		FileHandleResults fhr = entityServletHelper.geEntityFileHandlesForCurrentVersion(username, file.getId());
+		FileHandleResults fhr = entityServletHelper.geEntityFileHandlesForCurrentVersion(adminUserId, file.getId());
 		assertNotNull(fhr);
 		assertNotNull(fhr.getList());
 		assertEquals(2, fhr.getList().size());
 		assertEquals(handleTwo.getId(), fhr.getList().get(0).getId());
 		assertEquals(previewTwo.getId(), fhr.getList().get(1).getId());
 		// Get the previous version as well
-		fhr = entityServletHelper.geEntityFileHandlesForVersion(username, file.getId(), 1l);
+		fhr = entityServletHelper.geEntityFileHandlesForVersion(adminUserId, file.getId(), 1l);
 		assertNotNull(fhr);
 		assertNotNull(fhr.getList());
 		assertEquals(2, fhr.getList().size());
@@ -441,7 +440,7 @@ public class EntityControllerTest {
 		Study study = new Study();
 		study.setName("parentStudy-PLFM-1841");
 		study.setEntityType(Study.class.getName());
-		study = (Study) entityServletHelper.createEntity(study, username, null);
+		study = (Study) entityServletHelper.createEntity(study, adminUserId, null);
 		toDelete.add(study.getId());
 		// Create a file Entity
 		// Create a file entity
@@ -451,7 +450,7 @@ public class EntityControllerTest {
 		file.setParentId(study.getId());
 		file.setDataFileHandleId(handleOne.getId());
 		// Save it
-		file = (FileEntity) entityServletHelper.createEntity(file, username, null);
+		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
 		assertNotNull(file);
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
@@ -461,7 +460,7 @@ public class EntityControllerTest {
 	public void testGetEntityHeaderByMd5() throws Exception {
 
 		BatchResults<EntityHeader> results = entityServletHelper.getEntityHeaderByMd5(
-				username, "548c050497fb361742b85e0712b0cc96");
+				adminUserId, "548c050497fb361742b85e0712b0cc96");
 		assertNotNull(results);
 		assertEquals(0, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
@@ -469,7 +468,7 @@ public class EntityControllerTest {
 		Project parent = new Project();
 		parent.setName("testGetEntityHeaderByMd5");
 		parent.setEntityType(Project.class.getName());
-		parent = (Project) entityServletHelper.createEntity(parent, username, null);
+		parent = (Project) entityServletHelper.createEntity(parent, adminUserId, null);
 		assertNotNull(parent);
 		String parentId = parent.getId();
 		toDelete.add(parentId);
@@ -479,12 +478,12 @@ public class EntityControllerTest {
 		file.setEntityType(FileEntity.class.getName());
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
-		file = (FileEntity) entityServletHelper.createEntity(file, username, null);
+		file = (FileEntity) entityServletHelper.createEntity(file, adminUserId, null);
 		assertNotNull(file);
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
 
-		results = entityServletHelper.getEntityHeaderByMd5(username, handleOne.getContentMd5());
+		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
 		assertEquals(file.getId(), results.getResults().get(0).getId());

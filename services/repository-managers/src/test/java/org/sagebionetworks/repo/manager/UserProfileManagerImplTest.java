@@ -77,7 +77,7 @@ public class UserProfileManagerImplTest {
 		String otherUserProfileId = "12345";
 		
 		// Make the actual call
-		userProfileManager.getUserProfileAttachmentUrl(userInfo, otherUserProfileId, tokenId.toString());
+		userProfileManager.getUserProfileAttachmentUrl(Long.parseLong(userInfo.getIndividualGroup().getId()), otherUserProfileId, tokenId.toString());
 	}
 	
 	@Test

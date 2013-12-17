@@ -29,8 +29,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class NodeTreeQueryManagerImplTest {
 
-	private final String userId = "0";
-	private final String adminUserId = "1";
+	private final Long userId = 43560L;
+	private final Long adminUserId = 24571L;
 	private final String nodeRoot = "syn4489";
 	private final String nodeCanAccessX = "syn11028";
 	private final String nodeCanAccessY = "syn11029";

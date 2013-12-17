@@ -12,7 +12,6 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -93,34 +92,5 @@ public class UserManagerImplTest {
 	public void testIdempotency() throws Exception {
 		userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-	}
-	
-	/**
-	 * This test can be reactivated once the Named ID generator
-	 * supports a one-to-many mapping
-	 */
-	@Ignore 
-	@Test
-	public void testUpdateEmail() throws Exception {
-		String oldEmail = "old-change-email-test-user@sagebase.org";
-		String newEmail = "new-change-email-test-user@sagebase.org";
-		groupsToDelete.add(oldEmail);
-		groupsToDelete.add(newEmail);
-		
-		// Create a user to change the email of
-		NewUser oldie = new NewUser();
-		oldie.setEmail(oldEmail);
-		oldie.setPassword("foobar");
-		userManager.createUser(oldie);
-		
-		// Make sure the new user exists
-		UserInfo userInfo = userManager.getUserInfo(oldEmail);
-		
-		// Change the email and check it
-		userManager.updateEmail(userInfo, newEmail);
-		UserInfo newUserInfo = userManager.getUserInfo(newEmail);
-		
-		// ID should be the same after updating the email
-		assertEquals(userInfo.getIndividualGroup().getId(), newUserInfo.getIndividualGroup().getId());
 	}
 }
