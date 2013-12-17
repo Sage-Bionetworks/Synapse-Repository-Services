@@ -7,15 +7,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -3347,52 +3343,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
-    private static final int MAX_CHUNK_SIZE_BYTES = 5 * 1000 * 1024;
-    private static final int MAX_CHUNK_SIZE_UTF8_CHARS = MAX_CHUNK_SIZE_BYTES/6;
 
-    /**
-	 * Convenience function for uploading message body and sending message
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
 	 */
 	@Override
-	public MessageToUser sendMessage(List<String>recipientIds, String subject, String message, String contentType, String inReplyTo) 
-			throws SynapseException {
-		if (contentType==null) contentType = "application/txt";	
+    public String uploadToFileHandle(String content, String contentType) throws SynapseException {
+    	if (content==null || content.length()==0) throw new IllegalArgumentException("Missing content.");
+    	if (content.getBytes().length>=MINIMUM_CHUNK_SIZE_BYTES) 
+    		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
+		if (contentType==null) contentType = "text/plain";	
 		String contentMD5 = null;
 		try {
-			byte[] bodyBytes = message.getBytes("UTF-8");
-			byte[] md5Bytes = MessageDigest.getInstance("MD5").digest( bodyBytes );
-			contentMD5 = new BigInteger(1, md5Bytes).toString(16);
-		} catch (UnsupportedEncodingException uee) {
-			throw new SynapseException(uee);
-		} catch (NoSuchAlgorithmException nsae) {
-			throw new SynapseException(nsae);
+			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForString(content);
+		} catch (IOException e) {
+			throw new SynapseException(e);
 		}
     	 
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		ccftr.setFileName("body");
+		ccftr.setFileName("content");
 		ccftr.setContentType(contentType);
 		ccftr.setContentMD5(contentMD5);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		
+		// because of the restriction on string length there will be exactly one chunk
  	   	List<Long> chunkNumbers = new ArrayList<Long>();
 		long currentChunkNumber = 1;
-		int endExclusive = 0; // 1 + the index of the last byte to include in the next chunk
-		while (endExclusive<message.length()) {
-			ChunkRequest request = new ChunkRequest();
-			request.setChunkedFileToken(token);
-			request.setChunkNumber((long) currentChunkNumber);
-			URL presignedURL = createChunkedPresignedUrl(request);
-			int startInclusive = endExclusive;
-			endExclusive = Math.min(startInclusive+MAX_CHUNK_SIZE_UTF8_CHARS, message.length());
-			// upload to presignedURL from startInclusive to endExclusive
-			Map<String,String> requestHeaders = new HashMap<String,String>();
-			requestHeaders.put("content-type", contentType);
-			getSharedClientConnection().putToURL(presignedURL, 
-					message.substring(startInclusive,endExclusive), requestHeaders);
-			chunkNumbers.add(currentChunkNumber);
-			currentChunkNumber++;
-		}
+		chunkNumbers.add(currentChunkNumber);
+		ChunkRequest request = new ChunkRequest();
+		request.setChunkedFileToken(token);
+		request.setChunkNumber((long) currentChunkNumber);
+		URL presignedURL = createChunkedPresignedUrl(request);
+		getSharedClientConnection().putStringToURL(presignedURL, content, contentType);
+
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 		cacr.setChunkedFileToken(token);
 		cacr.setChunkNumbers(chunkNumbers);
@@ -3400,27 +3385,61 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		State state = status.getState();
 		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
 			
-		long backOff = 100L; // initially just 1/10 sec, but will exponentially increase
-		while (state.equals(State.PROCESSING)) {
+		long backOffMillis = 100L; // initially just 1/10 sec, but will exponentially increase
+		int backOffCounter = 0;
+		while (state.equals(State.PROCESSING) && backOffCounter++<MAX_BACKOFF_TRIES) {
 			try {
-				Thread.sleep(backOff);
+				Thread.sleep(backOffMillis);
 			} catch (InterruptedException e) {
 				// continue
 			}
 			status = getCompleteUploadDaemonStatus(status.getDaemonId());
 			state = status.getState();
 			if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
-			backOff *= 2; // exponential backoff
+			backOffMillis *= 2; // exponential backoff
 		}
 		
-		// now send the message using the file Handle ID
-    	MessageToUser userMessage = new MessageToUser();
-    	userMessage.setFileHandleId(status.getFileHandleId());
-    	userMessage.setRecipients(new HashSet<String>(recipientIds));
-    	userMessage.setSubject(subject);
-    	return sendMessage(userMessage);		
+		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+
+		return status.getFileHandleId();
+    }
+    
+    private static int MAX_BACKOFF_TRIES = 10;
+    
+	/**
+	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * @param message
+	 * @param messageBody
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
+			throws SynapseException {
+		if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
+		String fileHandleId = uploadToFileHandle(messageBody, contentType);
+		message.setFileHandleId(fileHandleId);
+    	return sendMessage(message);		
 	}
 	
+	/**
+	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId
+	 * @param message
+	 * @param entityId
+	 * @param messageBody
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
+			throws SynapseException {
+				if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
+				String fileHandleId = uploadToFileHandle(messageBody, contentType);
+				message.setFileHandleId(fileHandleId);
+		    	return sendMessage(message, entityId);		
+			}
 
 	
 	@Override

@@ -1523,4 +1523,12 @@ public class IT500SynapseJavaClient {
 			// as expected
 		}
 	}
+	
+	@Test
+	public void testStringUploadToS3() throws Exception {
+		String content = "This is my test string.";
+		String fileHandleId = synapseOne.uploadToFileHandle(content, null);
+		assertNotNull(fileHandleId);
+		handlesToDelete.add(fileHandleId);
+	}
 }

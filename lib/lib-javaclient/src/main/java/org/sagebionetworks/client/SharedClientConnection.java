@@ -275,17 +275,38 @@ public class SharedClientConnection {
 
 	}
 	
-	public HttpResponse putToURL(URL requestUrl, String content, Map<String,String> requestHeaders) throws SynapseException {
+	/**
+	 * Put the contents of the passed file to the passed URL.
+	 * 
+	 * @param url
+	 * @param file
+	 * @throws IOException
+	 * @throws ClientProtocolException
+	 */
+	public String putStringToURL(URL url, String content, String contentType) throws SynapseException {
 		try {
-			return clientProvider.performRequest(requestUrl.toString(), "PUT", content,
-					requestHeaders);
+			if (url == null)
+				throw new IllegalArgumentException("URL cannot be null");
+			if (content == null)
+				throw new IllegalArgumentException("content cannot be null");
+			HttpPut httppost = new HttpPut(url.toString());
+			// There must not be any headers added or Amazon will return a 403.
+			// Therefore, we must clear the content type.
+			org.apache.http.entity.StringEntity se = new org.apache.http.entity.StringEntity(content, contentType);
+			httppost.setEntity(se);
+			HttpResponse response = clientProvider.execute(httppost);
+			int code = response.getStatusLine().getStatusCode();
+			if (code < 200 || code > 299) {
+				throw new SynapseException("Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+						+ " for " + url);
+			}
+			return EntityUtils.toString(response.getEntity());
 		} catch (ClientProtocolException e) {
 			throw new SynapseException(e);
 		} catch (IOException e) {
 			throw new SynapseException(e);
-		} catch (HttpClientHelperException e) {
-			throw new SynapseException(e);
 		}
+
 	}
 	
 	/**

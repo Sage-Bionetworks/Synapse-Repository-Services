@@ -645,6 +645,12 @@ public interface SynapseClient extends BaseClient {
 			throws JSONObjectAdapterException, SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
+	
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
+	 */
+	public String uploadToFileHandle(String content, String contentType) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -652,7 +658,15 @@ public interface SynapseClient extends BaseClient {
 	public MessageToUser sendMessage(MessageToUser message)
 			throws SynapseException;
 	
-	public MessageToUser sendMessage(List<String>recipientIds, String subject, String message, String contentType, String inReplyTo) 
+	/**
+	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * @param message
+	 * @param messageBody
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
+	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
 			throws SynapseException;
 	
 	/**
@@ -661,6 +675,18 @@ public interface SynapseClient extends BaseClient {
 	public MessageToUser sendMessage(MessageToUser message, String entityId) 
 			throws SynapseException;
 
+	/**
+	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId
+	 * @param message
+	 * @param entityId
+	 * @param messageBody
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
+	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
+			throws SynapseException;
+	
 	/**
 	 * Gets the current authenticated user's received messages
 	 */
