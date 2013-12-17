@@ -22,8 +22,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -62,10 +64,16 @@ public class SearchWorkerIntegrationTest {
 	@Autowired
 	private V2WikiPageDao wikiPageDao;
 	
+	@Autowired
+	private FileHandleDao fileMetadataDao;
+	
 	private UserInfo adminUserInfo;
 	private Project project;
 	private V2WikiPage rootPage;
 	private WikiPageKey rootKey;
+	
+	private S3FileHandle markdownOne;
+	private S3FileHandle markdownTwo;
 	
 	@Before
 	public void before() throws Exception {
@@ -84,12 +92,33 @@ public class SearchWorkerIntegrationTest {
 		String id = entityManager.createEntity(adminUserInfo, project, null);
 		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 
+		String creatorId = adminUserInfo.getIndividualGroup().getId();
+		//Create different markdown content
+		S3FileHandle meta = new S3FileHandle();
+		meta.setBucketName("markdownBucketName");
+		meta.setKey("key3");
+		meta.setContentType("content type3");
+		meta.setContentSize((long) 1231);
+		meta.setContentMd5("md53");
+		meta.setCreatedBy(creatorId);
+		meta.setFileName("markdown1");
+		markdownOne = fileMetadataDao.createFile(meta);
+		
+		meta = new S3FileHandle();
+		meta.setBucketName("markdownBucketName2");
+		meta.setKey("key4");
+		meta.setContentType("content type4");
+		meta.setContentSize((long) 1231);
+		meta.setContentMd5("md54");
+		meta.setCreatedBy(creatorId);
+		meta.setFileName("markdown2");
+		markdownTwo = fileMetadataDao.createFile(meta);
 	}
 
 	private V2WikiPage createWikiPage(UserInfo info){
 		V2WikiPage page = new  V2WikiPage();
 		page.setTitle("rootTile");
-		page.setMarkdownFileHandleId("1");
+		page.setMarkdownFileHandleId(markdownOne.getId());
 		page.setCreatedBy(info.getIndividualGroup().getId());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
@@ -121,6 +150,14 @@ public class SearchWorkerIntegrationTest {
 		if(rootKey != null){
 			wikiPageDao.delete(rootKey);
 		}
+		
+		if(markdownOne != null) {
+			fileMetadataDao.delete(markdownOne.getId());
+		}
+		
+		if(markdownTwo != null) {
+			fileMetadataDao.delete(markdownTwo.getId());
+		}
 	}
 	
 	
@@ -134,7 +171,7 @@ public class SearchWorkerIntegrationTest {
 		rootPage = createWikiPage(adminUserInfo);
 		rootPage.setTitle("rootTile");
 		String uuid = UUID.randomUUID().toString();
-		rootPage.setMarkdownFileHandleId("2");
+		rootPage.setMarkdownFileHandleId(markdownTwo.getId());
 		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
