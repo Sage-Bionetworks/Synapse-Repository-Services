@@ -48,7 +48,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
+
 	private List<WikiPageKey> toDelete;
 	private String creatorUserGroupId;
 	

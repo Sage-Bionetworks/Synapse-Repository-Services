@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.io.IOException;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -29,8 +31,9 @@ public interface SearchDocumentDriver {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException TODO
 	 */
-	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException;
+	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException, IOException;
 	/**
 	 * Create a search document and return it.
 	 * 
@@ -53,7 +56,7 @@ public interface SearchDocumentDriver {
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
 	
 	
-	public String getAllWikiPageText(String nodeId) throws DatastoreException;
+	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException;
 	
 
 }
