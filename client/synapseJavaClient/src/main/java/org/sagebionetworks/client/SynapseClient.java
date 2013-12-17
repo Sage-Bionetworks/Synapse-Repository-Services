@@ -652,6 +652,9 @@ public interface SynapseClient extends BaseClient {
 	public MessageToUser sendMessage(MessageToUser message)
 			throws SynapseException;
 	
+	public MessageToUser sendMessage(List<String>recipientIds, String subject, String message, String contentType, String inReplyTo) 
+			throws SynapseException;
+	
 	/**
 	 * Sends a message to another user and the owner of the given entity
 	 */
