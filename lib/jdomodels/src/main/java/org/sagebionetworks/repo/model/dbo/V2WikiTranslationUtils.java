@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -205,5 +206,22 @@ public class V2WikiTranslationUtils {
 			throw new RuntimeException(e);
 		}
 		return listToString;
+	}
+	
+	/**
+	 * Parses the attachment list and returns a list of the file handle ids
+	 * @param attachmentsList
+	 * @return
+	 */
+	public static List<String> createFileHandleListFromString(String attachmentsList) {
+		List<String> fileHandleIds = new ArrayList<String>();
+		if(attachmentsList != null) {
+			// Process the list of attachments into a map for easy searching
+			Map<String, String> fileNameToIdMap = V2WikiTranslationUtils.getFileNameAndHandleIdPairs(attachmentsList);
+			for(String fileName: fileNameToIdMap.keySet()) {
+				fileHandleIds.add(fileNameToIdMap.get(fileName));
+			}
+		}
+		return fileHandleIds;
 	}
 }

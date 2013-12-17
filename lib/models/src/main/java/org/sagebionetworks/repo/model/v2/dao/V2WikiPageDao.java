@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -101,6 +102,15 @@ public interface V2WikiPageDao {
 	 */
 	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
+	/**
+	 * Gets a version of a wiki's title, markdown handle id, and list of attachments' file handle ids.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public V2WikiMarkdownVersion getVersionOfWikiContent(WikiPageKey key, Long version) throws NotFoundException;
+	
 	/**
 	 * Get the entire tree of wiki pages for a given owner.
 	 * @param parentId

@@ -80,12 +80,12 @@ public interface V2WikiManager {
 	 * @param objectId
 	 * @param objectType
 	 * @param version
-	 * @param current
+	 * @param wikiId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	V2WikiPage restoreWikiPage(UserInfo user, String objectId, ObjectType objectType, Long version, V2WikiPage current) throws NotFoundException, UnauthorizedException;
+	V2WikiPage restoreWikiPage(UserInfo user, String objectId, ObjectType objectType, Long version, String wikiId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * 
