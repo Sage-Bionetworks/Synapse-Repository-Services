@@ -16,10 +16,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class StorageUsageManagerImplTest {
 
+	private Long userId = 0L;
+	
 	@Test
 	public void testGetStorageUsage() throws Exception {
 
-		String userId = "0";
 		int offset = 1;
 		int limit = 2;
 		long total = 100;

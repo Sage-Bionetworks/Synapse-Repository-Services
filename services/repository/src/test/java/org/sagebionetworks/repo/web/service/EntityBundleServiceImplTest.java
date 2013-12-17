@@ -40,7 +40,7 @@ public class EntityBundleServiceImplTest {
 	
 	private EntityBundleService entityBundleService;
 	
-	private static final String TEST_USER1 = "Blarg@blurgle";
+	private static final Long TEST_USER1 = 8745962384L;
 	
 	private ServiceProvider mockServiceProvider;
 	private EntityService mockEntityService;

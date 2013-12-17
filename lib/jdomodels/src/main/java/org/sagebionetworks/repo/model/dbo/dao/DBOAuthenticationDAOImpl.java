@@ -158,7 +158,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void revalidateSessionToken(String principalId) {
+	public void revalidateSessionToken(long principalId) {
 		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -169,7 +169,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public String changeSessionToken(String principalId, String sessionToken) {
+	public String changeSessionToken(long principalId, String sessionToken) {
 		userGroupDAO.touch(principalId);
 		
 		if (sessionToken == null) {
@@ -208,7 +208,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public void deleteSessionToken(String sessionToken) {
 		Long principalId = getPrincipal(sessionToken);
 		if (principalId != null) {
-			userGroupDAO.touch(principalId.toString());
+			userGroupDAO.touch(principalId);
 		}
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -259,19 +259,19 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void changePassword(String id, String passHash) {
-		userGroupDAO.touch(id);
+	public void changePassword(long principalId, String passHash) {
+		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(PASSWORD_PARAM_NAME, passHash);
 		simpleJdbcTemplate.update(UPDATE_PASSWORD, param);
 	}
 	
 	@Override
-	public String getSecretKey(String id) throws NotFoundException {
+	public String getSecretKey(long principalId) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		try {
 			return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, param);
 		} catch (EmptyResultDataAccessException e) {
@@ -281,25 +281,25 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void changeSecretKey(String id) {
-		changeSecretKey(id, HMACUtils.newHMACSHA1Key());
+	public void changeSecretKey(long principalId) {
+		changeSecretKey(principalId, HMACUtils.newHMACSHA1Key());
 	}
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void changeSecretKey(String id, String secretKey) {
-		userGroupDAO.touch(id);
+	public void changeSecretKey(long principalId, String secretKey) {
+		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TOKEN_PARAM_NAME, secretKey);
 		simpleJdbcTemplate.update(UPDATE_SECRET_KEY, param);
 	}
 
 	@Override
-	public boolean hasUserAcceptedToU(String id) throws NotFoundException {
+	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		Boolean acceptance;
 		try {
 			acceptance = simpleJdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, param);
@@ -314,11 +314,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
-		userGroupDAO.touch(id);
+	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance) {
+		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TOU_PARAM_NAME, acceptance);
 		simpleJdbcTemplate.update(UPDATE_TERMS_OF_USE_ACCEPTANCE, param);
 	}
@@ -334,18 +334,18 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			
 			// If the user has a secret key, then the user has a row in the credentials table
 			try {
-				getSecretKey(ug.getId());
+				getSecretKey(Long.parseLong(ug.getId()));
 			} catch (NotFoundException e) {
 				createNew(Long.parseLong(ug.getId()));
 			}
 			
 			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
 			if (!AuthorizationUtils.isUserAnonymous(ug.getId())) {
-				setTermsOfUseAcceptance(ug.getId(), true);
+				setTermsOfUseAcceptance(Long.parseLong(ug.getId()), true);
 			}
 		}
 		// The migration admin should only be used in specific, non-development stacks
 		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		changeSecretKey(migrationAdminId.toString(), StackConfiguration.getMigrationAdminAPIKey());
+		changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
 	}
 }

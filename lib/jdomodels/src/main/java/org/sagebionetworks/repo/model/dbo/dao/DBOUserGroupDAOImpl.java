@@ -409,9 +409,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void touch(String id) {
+	public void touch(Long principalId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
 		simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
 	}

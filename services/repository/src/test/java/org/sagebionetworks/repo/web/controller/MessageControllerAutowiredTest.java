@@ -62,9 +62,9 @@ public class MessageControllerAutowiredTest {
 	private static final long OFFSET = 0;
 
 	private UserInfo adminUserInfo;
-	private String alice;
-	private String bob;
-	private String eve;
+	private Long alice;
+	private Long bob;
+	private Long eve;
 	
 	private String aliceId;
 	private String bobId;
@@ -89,16 +89,16 @@ public class MessageControllerAutowiredTest {
 		// Need 3 users
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		aliceId = "" + userManager.createUser(user);
-		alice = user.getEmail();
+		alice = userManager.createUser(user);
+		aliceId = "" + alice;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		bobId = "" + userManager.createUser(user);
-		bob = user.getEmail();
+		bob = userManager.createUser(user);
+		bobId = "" + bob;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		eveId = "" + userManager.createUser(user);
-		eve = user.getEmail();
+		eve = userManager.createUser(user);
+		eveId = "" + eve;
 		
 		toAlice = new HashSet<String>() {{
 			add(aliceId);
@@ -125,7 +125,7 @@ public class MessageControllerAutowiredTest {
 	@After
 	public void after() throws Exception {
 		for (String id : cleanup) {
-			messageService.deleteMessage(adminUserInfo.getIndividualGroup().getName(), id);
+			messageService.deleteMessage(Long.parseLong(adminUserInfo.getIndividualGroup().getId()), id);
 		}
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);

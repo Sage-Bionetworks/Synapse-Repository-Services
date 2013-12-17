@@ -55,7 +55,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getEntities(String userId,
+	public <T extends Entity> PaginatedResults<T> getEntities(Long userId,
 			PaginatedParameters paging, HttpServletRequest request,
 			Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
@@ -76,7 +76,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(String userId,
+	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(Long userId,
 			Integer offset, Integer limit, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
@@ -95,7 +95,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T getEntity(String userId, String id,
+	public <T extends Entity> T getEntity(Long userId, String id,
 			HttpServletRequest request, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
@@ -110,13 +110,13 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Entity getEntity(String userId, String id, HttpServletRequest request)
+	public Entity getEntity(Long userId, String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
 	 */
-	public List<EntityHeader> getEntityHeaderByMd5(String userId, String md5, HttpServletRequest request)
+	public List<EntityHeader> getEntityHeaderByMd5(Long userId, String md5, HttpServletRequest request)
 			throws NotFoundException, DatastoreException;
 
 	/**
@@ -152,7 +152,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T getEntityForVersion(String userId, String id,
+	public <T extends Entity> T getEntityForVersion(Long userId, String id,
 			Long versionNumber, HttpServletRequest request,
 			Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
@@ -169,7 +169,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Entity getEntityForVersion(String userId, String id,
+	public Entity getEntityForVersion(Long userId, String id,
 			Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
@@ -204,7 +204,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public <T extends Entity> List<T> getEntityChildrenOfType(String userId,
+	public <T extends Entity> List<T> getEntityChildrenOfType(Long userId,
 			String parentId, Class<? extends T> clazz,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
@@ -224,7 +224,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	public <T extends Entity> PaginatedResults<T> getEntityChildrenOfTypePaginated(
-			String userId, String parentId, Class<? extends T> clazz,
+			Long userId, String parentId, Class<? extends T> clazz,
 			PaginatedParameters paging, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
@@ -242,7 +242,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> T createEntity(String userId, T newEntity,
+	public <T extends Entity> T createEntity(Long userId, T newEntity,
 			String activityId, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
@@ -257,7 +257,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<EntityHeader> getEntityPath(String userId, String entityId)
+	public List<EntityHeader> getEntityPath(Long userId, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -278,7 +278,7 @@ public interface EntityService {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T updateEntity(String userId, T updatedEntity,
+	public <T extends Entity> T updateEntity(Long userId, T updatedEntity,
 			boolean newVersion, String activityId, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
@@ -294,7 +294,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> void deleteEntity(String userId, String id,
+	public <T extends Entity> void deleteEntity(Long userId, String id,
 			Class<? extends T> clazz) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
@@ -307,7 +307,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public void deleteEntity(String userId, String id)
+	public void deleteEntity(Long userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -321,7 +321,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Annotations getEntityAnnotations(String userId, String id,
+	public Annotations getEntityAnnotations(Long userId, String id,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
@@ -337,7 +337,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public Annotations getEntityAnnotationsForVersion(String userId, String id,
+	public Annotations getEntityAnnotationsForVersion(Long userId, String id,
 			Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
@@ -356,7 +356,7 @@ public interface EntityService {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException;
 
-	public Annotations updateEntityAnnotations(String userId, String entityId,
+	public Annotations updateEntityAnnotations(Long userId, String entityId,
 			Annotations updatedAnnotations, HttpServletRequest request)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
@@ -378,7 +378,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public AccessControlList createEntityACL(String userId,
+	public AccessControlList createEntityACL(Long userId,
 			AccessControlList newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException,
@@ -400,7 +400,7 @@ public interface EntityService {
 	 *             inherits its permissions. The exception will include the
 	 *             benefactor's ID.
 	 */
-	public AccessControlList getEntityACL(String entityId, String userId,
+	public AccessControlList getEntityACL(String entityId, Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException;
 
@@ -419,7 +419,7 @@ public interface EntityService {
 	 * @throws ACLInheritanceException
 	 */
 	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId,
-			String userId, HttpServletRequest request)
+			Long userId, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException;
 
@@ -436,7 +436,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public AccessControlList updateEntityACL(String userId,
+	public AccessControlList updateEntityACL(Long userId,
 			AccessControlList updated, String recursive,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, InvalidModelException, UnauthorizedException,
@@ -459,7 +459,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	public AccessControlList createOrUpdateEntityACL(String userId,
+	public AccessControlList createOrUpdateEntityACL(Long userId,
 			AccessControlList acl, String recursive, HttpServletRequest request)
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, UnauthorizedException,
@@ -477,7 +477,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	public void deleteEntityACL(String userId, String id)
+	public void deleteEntityACL(Long userId, String id)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException;
 
@@ -494,7 +494,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> boolean hasAccess(String entityId, String userId,
+	public <T extends Entity> boolean hasAccess(String entityId, Long userId,
 			HttpServletRequest request, String accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
@@ -510,7 +510,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> void deleteEntityVersion(String userId,
+	public <T extends Entity> void deleteEntityVersion(Long userId,
 			String id, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
 			ConflictingUpdateException;
@@ -527,7 +527,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException
 	 */
-	public <T extends Entity> void deleteEntityVersion(String userId,
+	public <T extends Entity> void deleteEntityVersion(Long userId,
 			String id, Long versionNumber, Class<? extends Entity> classForType)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, ConflictingUpdateException;
@@ -543,7 +543,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getEntityHeader(String userId, String entityId, Long versionNumber)
+	public EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
@@ -560,7 +560,7 @@ public interface EntityService {
 	 * @return the headers of the entities which have references to 'entityId'
 	 * 
 	 */
-	public PaginatedResults<EntityHeader> getEntityReferences(String userId,
+	public PaginatedResults<EntityHeader> getEntityReferences(Long userId,
 			String entityId, Integer versionNumber, Integer offset,
 			Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException;
@@ -574,7 +574,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public UserEntityPermissions getUserEntityPermissions(String userId,
+	public UserEntityPermissions getUserEntityPermissions(Long userId,
 			String entityId) throws NotFoundException, DatastoreException;
 
 	/**
@@ -598,7 +598,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public S3AttachmentToken createS3AttachmentToken(String userId, String id,
+	public S3AttachmentToken createS3AttachmentToken(Long userId, String id,
 			S3AttachmentToken token) throws UnauthorizedException,
 			NotFoundException, DatastoreException, InvalidModelException;
 
@@ -614,7 +614,7 @@ public interface EntityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PresignedUrl getAttachmentUrl(String userId, String id,
+	public PresignedUrl getAttachmentUrl(Long userId, String id,
 			String tokenID) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException;
 
@@ -630,7 +630,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public boolean doesEntityHaveChildren(String userId, String entityId,
+	public boolean doesEntityHaveChildren(Long userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
 
@@ -645,7 +645,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Activity getActivityForEntity(String userId, String entityId, HttpServletRequest request)
+	public Activity getActivityForEntity(Long userId, String entityId, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -660,7 +660,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Activity getActivityForEntity(String userId, String entityId,
+	public Activity getActivityForEntity(Long userId, String entityId,
 			Long versionNumber, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
@@ -676,7 +676,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Activity setActivityForEntity(String userId, String entityId,
+	public Activity setActivityForEntity(Long userId, String entityId,
 			String activityId, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
@@ -689,7 +689,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public void deleteActivityForEntity(String userId, String entityId,
+	public void deleteActivityForEntity(Long userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
@@ -701,7 +701,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFileRedirectURLForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+	public URL getFileRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file preview redirect URL for the current version of the entity.
@@ -711,7 +711,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFilePreviewRedirectURLForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+	public URL getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
 
 
 	/**
@@ -723,7 +723,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFileRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
+	public URL getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file preview redirect URL for a given version number.
@@ -734,7 +734,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getFilePreviewRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
+	public URL getFilePreviewRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the entity file handles for the current version of an entity.
@@ -745,7 +745,7 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandleResults getEntityFileHandlesForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the entity file handles for a given version of an entity.
@@ -756,6 +756,6 @@ public interface EntityService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileHandleResults getEntityFileHandlesForVersion(String userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
+	public FileHandleResults getEntityFileHandlesForVersion(Long userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
 
 }

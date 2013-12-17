@@ -12,13 +12,13 @@ public interface NodeTreeQueryService {
 	 * ordered in that the first the ancestor is the root and the last
 	 * ancestor is the parent. The root will get an empty list of ancestors.
 	 */
-	EntityIdList getAncestors(String currUserName, String nodeId)
+	EntityIdList getAncestors(Long userId, String nodeId)
 			throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets the parent of the specified node. Root will get the dummy ROOT as its parent.
 	 */
-	EntityId getParent(String currUserName, String nodeId)
+	EntityId getParent(Long userId, String nodeId)
 			throws UnauthorizedException, DatastoreException;
 
 	/**
@@ -27,7 +27,7 @@ public interface NodeTreeQueryService {
 	 * @param lastDescIdExcl
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
-	EntityIdList getDescendants(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
+	EntityIdList getDescendants(Long userId, String nodeId, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException;
 
 	/**
@@ -38,7 +38,7 @@ public interface NodeTreeQueryService {
 	 * @param lastDescIdExcl
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
-	EntityIdList getDescendants(String currUserName, String nodeId, int generation, int pageSize, String lastDescIdExcl)
+	EntityIdList getDescendants(Long userId, String nodeId, int generation, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException;
 
 	/**
@@ -47,6 +47,6 @@ public interface NodeTreeQueryService {
 	 * @param lastDescIdExcl
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
-	EntityIdList getChildren(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
+	EntityIdList getChildren(Long userId, String nodeId, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException;
 }

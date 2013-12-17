@@ -52,7 +52,7 @@ public class S3TokenController extends BaseController {
 			method = RequestMethod.POST)
 	public @ResponseBody
 	S3Token createEntityS3Token(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, InvalidModelException {

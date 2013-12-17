@@ -40,7 +40,7 @@ public interface FileUploadService {
 	 * @throws FileUploadException 
 	 * @throws ServiceUnavailableException 
 	 */
-	FileHandleResults uploadFiles(String userName, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
+	FileHandleResults uploadFiles(Long userId, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 	/**
 	 * Get a file handle by ID.
@@ -50,7 +50,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FileHandle getFileHandle(String handleId, String userId) throws DatastoreException, NotFoundException;
+	FileHandle getFileHandle(String handleId, Long userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete a file handle.
@@ -59,7 +59,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	void deleteFileHandle(String handleId, String userId) throws DatastoreException, NotFoundException;
+	void deleteFileHandle(String handleId, Long userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the preview associated with the given file handle (causes the preview generator worker to recreate).
@@ -68,7 +68,7 @@ public interface FileUploadService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	void clearPreview(String handleId, String userId) throws DatastoreException, NotFoundException;
+	void clearPreview(String handleId, Long userId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Create an external file Handle.
@@ -78,7 +78,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	ExternalFileHandle createExternalFileHandle(String userId,	ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException;
+	ExternalFileHandle createExternalFileHandle(Long userId,	ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Create a chunked file upload token that can be used to upload large files to S3.
@@ -89,7 +89,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	ChunkedFileToken createChunkedFileUploadToken(String userId, CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException;
+	ChunkedFileToken createChunkedFileUploadToken(Long userId, CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Creates a pre-signed URL that can be used PUT file data to S3.
@@ -99,7 +99,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL createChunkedFileUploadPartURL(String userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
+	URL createChunkedFileUploadPartURL(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
 	 * After upload a file chunk to a pre-signed URL, the part must be added to the final file.
@@ -109,7 +109,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	ChunkResult addChunkToFile(String userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
+	ChunkResult addChunkToFile(Long userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 
@@ -119,7 +119,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	S3FileHandle completeChunkFileUpload(String userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
+	S3FileHandle completeChunkFileUpload(Long userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Start an asynchronous daemon that will add all chunks to the file upload and complete the file upload
@@ -130,7 +130,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public UploadDaemonStatus startUploadDeamon(String userId, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
+	public UploadDaemonStatus startUploadDeamon(Long userId, CompleteAllChunksRequest cacf) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the status of an asynchronous daemon stated with {@link #startUploadDeamon(UserInfo, CompleteAllChunksRequest)}
@@ -140,7 +140,7 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public UploadDaemonStatus getUploadDaemonStatus(String userId, String daemonId) throws DatastoreException, NotFoundException;
+	public UploadDaemonStatus getUploadDaemonStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException;
 	
 
 }

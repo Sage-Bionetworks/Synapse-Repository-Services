@@ -58,6 +58,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	@Autowired
 	private UserManager userManager;
 	
+	private Long testUserId;
 	private UserInfo testUserInfo;
 	private List<String> toClearList;
 
@@ -65,8 +66,8 @@ public class EntityDoiManagerImplAutowiredTest {
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@");
-		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
-		assertNotNull(testUserInfo);
+		testUserId = userManager.createUser(user);
+		testUserInfo = userManager.getUserInfo(testUserId);
 
 		toClearList = new ArrayList<String>();
 
@@ -89,7 +90,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		}
 		doiAdminDao.clear();
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserId);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -104,8 +105,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		toClearList.add(nodeId);
 		assertNotNull(nodeId);
 
-		final String userName = testUserInfo.getIndividualGroup().getName();
-		Doi doiCreate = entityDoiManager.createDoi(userName, nodeId, null);
+		Doi doiCreate = entityDoiManager.createDoi(testUserId, nodeId, null);
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
@@ -116,7 +116,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 
-		Doi doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+		Doi doiGet = entityDoiManager.getDoi(testUserId, nodeId, null);
 		assertNotNull(doiGet);
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
@@ -133,14 +133,14 @@ public class EntityDoiManagerImplAutowiredTest {
 		while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(doiStatus)) {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
-			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+			doiGet = entityDoiManager.getDoi(testUserId, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.CREATED, doiStatus);
 		while (time < MAX_WAIT && DoiStatus.CREATED.equals(doiStatus)) {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
-			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+			doiGet = entityDoiManager.getDoi(testUserId, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.READY, doiStatus);
@@ -158,8 +158,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		toClearList.add(nodeId);
 		assertNotNull(nodeId);
 
-		final String userName = testUserInfo.getIndividualGroup().getName();
-		Doi doiCreate = entityDoiManager.createDoi(userName, nodeId, 1L);
+		Doi doiCreate = entityDoiManager.createDoi(testUserId, nodeId, 1L);
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
 		assertEquals(nodeId, doiCreate.getObjectId());
@@ -170,7 +169,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 
-		Doi doiGet = entityDoiManager.getDoi(userName, nodeId, 1L);
+		Doi doiGet = entityDoiManager.getDoi(testUserId, nodeId, 1L);
 		assertNotNull(doiGet);
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
@@ -187,14 +186,14 @@ public class EntityDoiManagerImplAutowiredTest {
 		while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(doiStatus)) {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
-			doiGet = entityDoiManager.getDoi(userName, nodeId, 1L);
+			doiGet = entityDoiManager.getDoi(testUserId, nodeId, 1L);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.CREATED, doiStatus);
 		while (time < MAX_WAIT && DoiStatus.CREATED.equals(doiStatus)) {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
-			doiGet = entityDoiManager.getDoi(userName, nodeId, 1L);
+			doiGet = entityDoiManager.getDoi(testUserId, nodeId, 1L);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.READY, doiStatus);
@@ -217,8 +216,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		final String userId = testUserInfo.getIndividualGroup().getId();
 		doiDao.createDoi(userId, nodeId, ObjectType.ENTITY, null, DoiStatus.ERROR);
 
-		final String userName = testUserInfo.getIndividualGroup().getName();
-		Doi doiCreate = entityDoiManager.createDoi(userName, nodeId, null);
+		Doi doiCreate = entityDoiManager.createDoi(testUserId, nodeId, null);
 
 		assertNotNull(doiCreate);
 		assertNotNull(doiCreate.getId());
@@ -230,7 +228,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 
-		Doi doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+		Doi doiGet = entityDoiManager.getDoi(testUserId, nodeId, null);
 		assertNotNull(doiGet);
 		assertNotNull(doiGet.getId());
 		assertEquals(nodeId, doiGet.getObjectId());
@@ -247,14 +245,14 @@ public class EntityDoiManagerImplAutowiredTest {
 		while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(doiStatus)) {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
-			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+			doiGet = entityDoiManager.getDoi(testUserId, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.CREATED, doiStatus);
 		while (time < MAX_WAIT && DoiStatus.CREATED.equals(doiStatus)) {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
-			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+			doiGet = entityDoiManager.getDoi(testUserId, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.READY, doiStatus);
