@@ -65,7 +65,6 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
@@ -185,9 +184,6 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
-	
-	@Autowired
-	private WikiPageDao wikiPageDAO;
 
 	private UserInfo adminUserInfo;
 	private String userName;
@@ -207,10 +203,6 @@ public class MigrationIntegrationAutowireTest {
 	
 	// approval
 	private AccessApproval accessApproval;
-	
-	// Wiki pages
-	private WikiPage rootWiki;
-	private WikiPage subWiki;
 	
 	// V2 Wiki page
 	private V2WikiPage v2RootWiki;
@@ -245,7 +237,6 @@ public class MigrationIntegrationAutowireTest {
 		createEvaluation();
 		createAccessRequirement();
 		createAccessApproval();
-		creatWikiPages();
 		createV2WikiPages();
 		createDoi();
 		createStorageQuota();
@@ -379,32 +370,6 @@ public class MigrationIntegrationAutowireTest {
 		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
 		return aa;
-	}
-
-
-	public void creatWikiPages() throws Exception {
-		// Using the DAO to bypass the bridge that translates wiki pages
-		// to V2 wiki pages from the service.
-		
-		// Create a wiki page
-		rootWiki = new WikiPage();
-		rootWiki.setAttachmentFileHandleIds(new LinkedList<String>());
-		rootWiki.getAttachmentFileHandleIds().add(handleOne.getId());
-		rootWiki.setTitle("Root title");
-		rootWiki.setMarkdown("Root markdown");
-		rootWiki.setCreatedBy(adminId);
-		rootWiki.setModifiedBy(adminId);
-		Map<String, FileHandle> map = new HashMap<String, FileHandle>();
-		map.put(handleOne.getFileName(), handleOne);
-		rootWiki = wikiPageDAO.create(rootWiki, map, fileEntity.getId(), ObjectType.ENTITY);
-		
-		subWiki = new WikiPage();
-		subWiki.setParentWikiId(rootWiki.getId());
-		subWiki.setTitle("Sub-wiki-title");
-		subWiki.setMarkdown("sub-wiki markdown");
-		subWiki.setCreatedBy(adminId);
-		subWiki.setModifiedBy(adminId);
-		subWiki = wikiPageDAO.create(subWiki, new HashMap<String, FileHandle>(), fileEntity.getId(), ObjectType.ENTITY);
 	}
 	
 	public void createV2WikiPages() throws NotFoundException {

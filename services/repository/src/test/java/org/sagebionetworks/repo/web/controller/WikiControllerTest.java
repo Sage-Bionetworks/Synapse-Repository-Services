@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -62,9 +61,6 @@ public class WikiControllerTest {
 	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
-	
-	@Autowired
-	private WikiPageDao wikiPageDao;
 	
 	@Autowired
 	private V2WikiPageDao v2WikiPageDao;
