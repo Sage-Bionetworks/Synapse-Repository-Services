@@ -76,7 +76,7 @@ public class AuthenticationFilter implements Filter {
 		// First look for a session token in the header or as a parameter
 		HttpServletRequest req = (HttpServletRequest) servletRqst;
 		String sessionToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		if (sessionToken == null) {
+		if (isSessionTokenEmptyOrNull(sessionToken)) {
 			// Check for a session token as a parameter
 			sessionToken = req.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		}
@@ -85,7 +85,7 @@ public class AuthenticationFilter implements Filter {
 		String username = null;
 		
 		// A session token maps to a specific user
-		if (sessionToken != null) {
+		if (!isSessionTokenEmptyOrNull(sessionToken)) {
 			String failureReason = "Invalid session token";
 			try {
 				String userId = authenticationService.revalidate(sessionToken, false);
@@ -157,6 +157,17 @@ public class AuthenticationFilter implements Filter {
 		filterChain.doFilter(modRqst, servletResponse);
 	}
 
+	/**
+	 * Is a session token empty or null?
+	 * This is part of the fix for PLFM-2422.
+	 * @param sessionToken
+	 * @return
+	 */
+	private boolean isSessionTokenEmptyOrNull(String sessionToken){
+		if(sessionToken == null) return true;
+		if("".equals(sessionToken.trim())) return true;
+		return false;
+	}
 	private static final long MAX_TIMESTAMP_DIFF_MIN = 15;
 	
 	public static boolean isSigned(HttpServletRequest request) {

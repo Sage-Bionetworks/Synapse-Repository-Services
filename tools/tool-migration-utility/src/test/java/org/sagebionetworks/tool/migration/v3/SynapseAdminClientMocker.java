@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -348,25 +347,7 @@ public class SynapseAdminClientMocker {
 			}
 			
 		});
-		
-		when(client.migrateWikisToV2(anyLong(), anyLong())).thenAnswer(new Answer<PaginatedResults<WikiMigrationResult>>() {
 
-			@Override
-			public PaginatedResults<WikiMigrationResult> answer(
-					InvocationOnMock invocation) throws Throwable {
-				Long offset = (Long) invocation.getArguments()[0];
-				Long limit = (Long) invocation.getArguments()[1];
-				
-				// Return the requested migration results for processing
-				PaginatedResults<WikiMigrationResult> results = new PaginatedResults<WikiMigrationResult>();
-				List<WikiMigrationResult> subResults = createSubResultAtOffset(state, offset, limit);
-				results.setResults(subResults);
-				results.setTotalNumberOfResults(state.wikiMigrationResults.size());
-				return results;
-			}
-			
-		});
-		
 		return client;
 	}
 
@@ -431,19 +412,5 @@ public class SynapseAdminClientMocker {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	/**
-	 * Returns a subset of all the migration results, specified by the
-	 * offset and limit parameters.
-	 */
-	private static List<WikiMigrationResult> createSubResultAtOffset(SynapseAdminClientMockState state, long offset, long limit) {
-		List<WikiMigrationResult> subResults = new ArrayList<WikiMigrationResult>();
-		long counter = offset;
-		while(counter < offset + limit && counter < state.wikiMigrationResults.size()) {
-			subResults.add(state.wikiMigrationResults.get((int) counter));
-			counter++;
-		}
-		return subResults;
 	}
 }

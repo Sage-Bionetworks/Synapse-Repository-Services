@@ -101,9 +101,6 @@
 
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
-	
-	<!-- The temporary Wiki Migration Service -->
-	<bean id="wikiMigrationService" class="org.sagebionetworks.repo.web.service.WikiMigrationService" />
 
 	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />

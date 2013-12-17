@@ -24,8 +24,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResultType;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -418,44 +416,5 @@ public class MigrationClient {
 		for (Exception e: this.deferredExceptions) {
 			log.error("Deferred exception " + i++, e);
 		}
-	}
-	
-	public void migrateWikisToV2() throws SynapseException, JSONObjectAdapterException {
-		log.info("Migration Wikis to V2");
-		SynapseAdminClient destination = factory.createNewDestinationClient();
-		long limit = 10;
-		long offset = 0;
-		int failures = 0; // Number of failures
-		log.info("Migrating group of wikis at offset: " + offset);
-		PaginatedResults<WikiMigrationResult> results = destination.migrateWikisToV2(offset, limit);
-		failures += processMigrationResults(results.getResults());
-		long totalNumOfV1Wikis = results.getTotalNumberOfResults();
-		offset += results.getResults().size();
-		while(offset < totalNumOfV1Wikis) {
-			// Migrate while we have not requested for the migration of all v1 wikis
-			log.info("Migrating group of wikis at offset: " + offset);
-			results = destination.migrateWikisToV2(offset, limit);
-			failures += processMigrationResults(results.getResults());
-			offset += results.getResults().size();
-		}
-		
-		if(failures != 0) {
-			throw new RuntimeException("There were " + failures + " failures during wiki migration.");
-		} else {
-			log.info("NO FAILURES!");
-		}
-		
-	}
-	
-	private int processMigrationResults(List<WikiMigrationResult> results) {
-		int failures = 0;
-		for(WikiMigrationResult result: results) {
-			if(result.getResultType().equals(WikiMigrationResultType.FAILURE)) {
-				failures++;
-				log.info("[MIGRATION FAILURE] " + result.getMessage());
-			}
-		}
-		// Return the number of failures in these results
-		return failures;
 	}
 }

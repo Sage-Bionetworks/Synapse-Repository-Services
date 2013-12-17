@@ -1937,7 +1937,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException 
 	 */
 	@Override
-	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -1974,7 +1974,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException 
 	 */
 	@Override
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException{
+	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2282,7 +2282,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * 
 	 * @param ownerId
 	 * @param ownerType
-	 * @param toUpdate
+	 * @param wikiId
 	 * @param versionToRestore
 	 * @return
 	 * @throws JSONObjectAdapterException
@@ -2290,14 +2290,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-		V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+		String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 		SynapseException {
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
-		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		if(versionToRestore == null) throw new IllegalArgumentException("Version cannot be null");
-		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), String.valueOf(versionToRestore));
-		return updateJSONEntity(uri, toUpdate);
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, wikiId, String.valueOf(versionToRestore));
+		V2WikiPage mockWikiToUpdate = new V2WikiPage();
+		return updateJSONEntity(uri, mockWikiToUpdate);
 	}
 
 	/**
@@ -2324,14 +2325,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 	@Override
-	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException {
+	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = createV2WikiURL(key)+MARKDOWN_FILE;
 		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
 	}
 	
 	@Override
-	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException {
+	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(version == null) throw new IllegalArgumentException("Version cannot be null");
 		String uri = createV2WikiURL(key)+MARKDOWN_FILE+VERSION_PARAMETER+version;
@@ -2348,7 +2349,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-		throws ClientProtocolException, IOException {
+		throws ClientProtocolException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2367,7 +2368,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-		throws ClientProtocolException, FileNotFoundException, IOException {
+		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2532,7 +2533,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
-	private WikiPage createWikiPageFromV2(V2WikiPage from, String ownerId, ObjectType ownerType, Long version) throws ClientProtocolException, FileNotFoundException, IOException {
+	private WikiPage createWikiPageFromV2(V2WikiPage from, String ownerId, ObjectType ownerType, Long version) throws ClientProtocolException, 
+		FileNotFoundException, IOException, SynapseException {
 		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
@@ -2562,6 +2564,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return wiki;
 	}
 	
+	/**
+	 * Creates a V1 WikiPage model from a V2 and the already unzipped/string markdown.
+	 * @param model
+	 * @param markdown
+	 * @return
+	 */
+	private WikiPage mergeMarkdownAndMetadata(V2WikiPage model, String markdown) {
+		WikiPage wiki = new WikiPage();
+		wiki.setId(model.getId());
+		wiki.setEtag(model.getEtag());
+		wiki.setCreatedOn(model.getCreatedOn());
+		wiki.setCreatedBy(model.getCreatedBy());
+		wiki.setModifiedBy(model.getModifiedBy());
+		wiki.setModifiedOn(model.getModifiedOn());
+		wiki.setParentWikiId(model.getParentWikiId());
+		wiki.setTitle(model.getTitle());
+		wiki.setAttachmentFileHandleIds(model.getAttachmentFileHandleIds());
+		wiki.setMarkdown(markdown);
+		return wiki;
+	}
+	
 	@Override
 	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
 			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException{
@@ -2581,7 +2604,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		// Update the V2 WikiPage
 		V2WikiPage updated = updateV2WikiPage(ownerId, ownerType, converted);
 		// Return result in V1 form
-		return createWikiPageFromV2(updated, ownerId, ownerType, null);
+		return mergeMarkdownAndMetadata(updated, toUpdate.getMarkdown());
 	}
 	
 	@Override

@@ -57,13 +57,13 @@ public interface V2WikiService {
 	 * @param userId
 	 * @param objectId
 	 * @param objectType
-	 * @param toUpdate
+	 * @param wikiId
 	 * @param version
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	V2WikiPage restoreWikipage(String userId, String objectId, ObjectType objectType, V2WikiPage toUpdate, Long version) throws NotFoundException;
+	V2WikiPage restoreWikipage(String userId, String objectId, ObjectType objectType, String wikiId, Long version) throws NotFoundException;
 	
 	/**
 	 * Delete a wiki page.

@@ -119,6 +119,7 @@ public class FileUtils {
 			out.flush();
 			out.close();
 		} finally {
+			gzout.close();
 			fos.close();
 		}
 		return temp;

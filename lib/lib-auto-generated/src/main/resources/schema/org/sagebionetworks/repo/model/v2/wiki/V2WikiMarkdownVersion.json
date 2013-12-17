@@ -1,0 +1,24 @@
+{
+	"description": "A V2WikiMarkdownVersion contains the markdown file handle id and title of a specific version of a V2WikiPage",
+	"properties": {
+		"version": {
+			"type": "string",
+			"description": "The version of this snapshot in the wiki's history."
+		},
+		"title": {
+			"type": "string",
+			"description": "The title of the wiki."
+		},
+		"markdownFileHandleId": {
+			"type": "string",
+			"description": "The id of the S3FileHandle that helps locate the markdown file in S3."
+		},
+		"attachmentFileHandleIds": {
+			"type": "array",
+			"description": "The list of attachment file handle ids of this page for this version.",
+            "items":{
+                "type":"string"
+            }
+		}
+	}
+}
