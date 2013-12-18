@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -534,13 +534,13 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), DomainType.BRIDGE, "Blah?");
 		
 		// Try another variation
-		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);
+		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), DomainType.SYNAPSE);
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();
@@ -548,7 +548,7 @@ public class MessageManagerImplTest {
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
 		
 		// Try another variation
-		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
+		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), DomainType.BRIDGE);
 	}
 	
 	@Test

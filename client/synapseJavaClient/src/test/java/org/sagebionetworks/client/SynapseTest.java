@@ -41,7 +41,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -575,11 +575,11 @@ public class SynapseTest {
 		});
 		
 		// One variation of the parameters that can be passed in
-		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, OriginatingClient.SYNAPSE);
+		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, DomainType.SYNAPSE);
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&originClient=synapse"));
 		
 		// Another variation
-		synapse.passThroughOpenIDParameters("blah=fun", false, OriginatingClient.BRIDGE);
+		synapse.passThroughOpenIDParameters("blah=fun", false, DomainType.BRIDGE);
 		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&originClient=bridge"));
 	}
 	

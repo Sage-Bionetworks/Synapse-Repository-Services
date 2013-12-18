@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
@@ -571,7 +571,7 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordResetEmail(String recipientId, OriginatingClient originClient, String sessionToken) throws NotFoundException {
+	public void sendPasswordResetEmail(String recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
 		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
 		String domain = WordUtils.capitalizeFully(originClient.name());
@@ -605,7 +605,7 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendWelcomeEmail(String recipientId, OriginatingClient originClient) throws NotFoundException {
+	public void sendWelcomeEmail(String recipientId, DomainType originClient) throws NotFoundException {
 		// Build the subject and body of the message
 		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
 		String domain = WordUtils.capitalizeFully(originClient.name());
