@@ -70,7 +70,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
 import org.sagebionetworks.repo.web.controller.EntityServletTestHelper;
@@ -134,6 +133,9 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private PrincipalHeaderDAO prinHeadDAO;
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -233,6 +235,7 @@ public class MigrationIntegrationAutowireTest {
 		createDoi();
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups(1);
+		createPrincipalHeaders(sampleGroup);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
 		createMessages(sampleGroup, sampleFileHandleId);
@@ -506,6 +509,16 @@ public class MigrationIntegrationAutowireTest {
 		groupMembersDAO.addMembers(parentGroup.getId(), adder);
 		
 		return parentGroup;
+	}
+	
+	private void createPrincipalHeaders(UserGroup group) {
+		PrincipalHeader header = new PrincipalHeader();
+		header.setPrincipalId(Long.parseLong(group.getId()));
+		header.setIdentifier("PrincipalHeader");
+		header.setPrincipalType(PrincipalType.USER);
+		header.setDomainType(DomainType.SYNAPSE);
+		header.setNameType(NameType.ALIAS);
+		prinHeadDAO.insertNew(header);
 	}
 	
 	private void createCredentials(UserGroup group) throws Exception {
