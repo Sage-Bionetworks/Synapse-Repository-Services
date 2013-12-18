@@ -1,0 +1,41 @@
+{
+	"title": "Principal Header",
+	"description": "Holds information that maps a Principal to its ID",
+	"properties": {
+		"principalId": {
+			"type": "integer",
+			"description": "ID of the principal being described",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"identifier": {
+			"type": "string",
+			"description": "A result that matches the filter",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		}, 
+		"principalType": {
+			"type": "string", 
+			"description": "The type of principal this result refers to",
+			"$ref": "org.sagebionetworks.repo.model.PrincipalType"
+		}, 
+		"domainType": {
+			"type": "string", 
+			"description": "The type of domain this result refers to",
+			"$ref": "org.sagebionetworks.repo.model.DomainType"
+		}, 
+		"nameType": {
+			"type": "string", 
+			"description": "The type of name this result refers to",
+			"$ref": "org.sagebionetworks.repo.model.NameType"
+		}
+	}
+}
