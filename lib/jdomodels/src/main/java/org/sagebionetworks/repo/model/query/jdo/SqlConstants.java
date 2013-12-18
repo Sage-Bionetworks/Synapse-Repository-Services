@@ -236,6 +236,14 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
+	
+	// Principal headers table
+	public static final String TABLE_PRINCIPAL_HEADER              = "PRINCIPAL_HEADER";
+	public static final String COL_PRINCIPAL_HEADER_ID             = "PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_HEADER_NAME           = "PRINCIPAL_NAME";
+	public static final String COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE = "PRINCIPAL_TYPE";
+	public static final String COL_PRINCIPAL_HEADER_DOMAIN_TYPE    = "DOMAIN_TYPE";
+	public static final String COL_PRINCIPAL_HEADER_NAME_TYPE      = "NAME_TYPE";
     
     // The group members table
     public static final String TABLE_GROUP_MEMBERS         = "GROUP_MEMBERS";
