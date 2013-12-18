@@ -650,7 +650,7 @@ public interface SynapseClient extends BaseClient {
 	 * uploads a String to S3 using the chunked file upload service
 	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
 	 */
-	public String uploadToFileHandle(String content, String contentType) throws SynapseException;
+	public String uploadToFileHandle(String content, String charSet, String contentType) throws SynapseException;
 
 	/**
 	 * Sends a message to another user

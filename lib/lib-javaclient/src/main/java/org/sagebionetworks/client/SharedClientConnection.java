@@ -284,7 +284,7 @@ public class SharedClientConnection {
 	 * @throws IOException
 	 * @throws ClientProtocolException
 	 */
-	public String putStringToURL(URL url, String content, String contentType) throws SynapseException {
+	public String putStringToURL(URL url, String content, String charset, String contentType) throws SynapseException {
 		try {
 			if (url == null)
 				throw new IllegalArgumentException("URL cannot be null");
@@ -293,7 +293,8 @@ public class SharedClientConnection {
 			HttpPut httppost = new HttpPut(url.toString());
 			// There must not be any headers added or Amazon will return a 403.
 			// Therefore, we must clear the content type.
-			org.apache.http.entity.StringEntity se = new org.apache.http.entity.StringEntity(content, contentType);
+			org.apache.http.entity.StringEntity se = new org.apache.http.entity.StringEntity(content, charset);
+			httppost.setHeader("content-type", contentType);
 			httppost.setEntity(se);
 			HttpResponse response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();

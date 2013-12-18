@@ -3372,11 +3372,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
 	 */
 	@Override
-    public String uploadToFileHandle(String content, String contentType) throws SynapseException {
+    public String uploadToFileHandle(String content, String charSet, String contentType) throws SynapseException {
     	if (content==null || content.length()==0) throw new IllegalArgumentException("Missing content.");
     	if (content.getBytes().length>=MINIMUM_CHUNK_SIZE_BYTES) 
     		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
-		if (contentType==null) contentType = "text/plain";	
+    	if (charSet==null) charSet = "UTF-8";
+		if (contentType==null) contentType = "application/txt";
 		String contentMD5 = null;
 		try {
 			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForString(content);
@@ -3399,7 +3400,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setChunkedFileToken(token);
 		request.setChunkNumber((long) currentChunkNumber);
 		URL presignedURL = createChunkedPresignedUrl(request);
-		getSharedClientConnection().putStringToURL(presignedURL, content, contentType);
+		getSharedClientConnection().putStringToURL(presignedURL, content, charSet, contentType);
 
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 		cacr.setChunkedFileToken(token);
@@ -3441,7 +3442,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
 			throws SynapseException {
 		if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
-		String fileHandleId = uploadToFileHandle(messageBody, contentType);
+		String fileHandleId = uploadToFileHandle(messageBody, null, contentType);
 		message.setFileHandleId(fileHandleId);
     	return sendMessage(message);		
 	}
@@ -3459,7 +3460,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
 			throws SynapseException {
 				if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
-				String fileHandleId = uploadToFileHandle(messageBody, contentType);
+				String fileHandleId = uploadToFileHandle(messageBody, null, contentType);
 				message.setFileHandleId(fileHandleId);
 		    	return sendMessage(message, entityId);		
 			}
