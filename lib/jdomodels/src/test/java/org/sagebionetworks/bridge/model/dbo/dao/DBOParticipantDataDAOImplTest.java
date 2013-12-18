@@ -176,7 +176,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet1);
 
 		RowSet rowSet2 = createRowSet(new String[] { "a", "b", "c" }, new String[] { "0", "1a", "2b", "3c" }, new String[] { "1", "4a", "5b",
-				"6c" }, new String[] { "2", "a7", "8b", "9c" });
+				"6c" }, new String[] { "2", "7a", "8b", "9c" });
 
 		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rowSet2);
 
