@@ -1172,15 +1172,19 @@ public class EntityServletTestHelper {
 	
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
+	 * @param wikiVersion TODO
 	 */
 	public URL getV2WikiAttachmentFileURL(Long userId, WikiPageKey key,
-			String fileName, Boolean redirect) throws Exception {
+			String fileName, Boolean redirect, Long wikiVersion) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
 						+ "/attachment", userId, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
+		}
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
 		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1191,9 +1195,10 @@ public class EntityServletTestHelper {
 
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
+	 * @param wikiVersion TODO
 	 */
 	public URL getV2WikiAttachmentPreviewFileURL(Long userId,
-			WikiPageKey key, String fileName, Boolean redirect)
+			WikiPageKey key, String fileName, Boolean redirect, Long wikiVersion)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
@@ -1202,7 +1207,10 @@ public class EntityServletTestHelper {
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
-
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
+		
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, null);
 

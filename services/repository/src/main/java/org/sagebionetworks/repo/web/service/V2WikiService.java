@@ -130,22 +130,24 @@ public interface V2WikiService {
 	 * @param userId
 	 * @param wikiPageKey
 	 * @param fileName
+	 * @param version TODO
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the redirect URL for a given Preview.
 	 * @param userId
 	 * @param wikiPageKey
 	 * @param fileName
+	 * @param version TODO
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the root wiki page.

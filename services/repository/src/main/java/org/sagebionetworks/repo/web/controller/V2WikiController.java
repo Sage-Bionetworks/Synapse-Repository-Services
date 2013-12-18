@@ -787,13 +787,14 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true)  String fileName,
 			@RequestParam(required = false) Boolean redirect,
-			HttpServletResponse response) throws DatastoreException,
+			HttpServletResponse response,
+			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentRedirectURL(userId,
 						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
-						fileName);
+						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
@@ -836,7 +837,8 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
-			HttpServletResponse response) throws DatastoreException,
+			HttpServletResponse response,
+			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider
@@ -844,7 +846,7 @@ public class V2WikiController extends BaseController {
 				.getAttachmentRedirectURL(
 						userId,
 						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
-						fileName);
+						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
@@ -886,13 +888,14 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
-			HttpServletResponse response) throws DatastoreException,
+			HttpServletResponse response,
+			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentPreviewRedirectURL(userId,
 						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
-						fileName);
+						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
@@ -935,7 +938,8 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId,
 			@RequestParam(required = true) String fileName,
 			@RequestParam(required = false) Boolean redirect,
-			HttpServletResponse response) throws DatastoreException,
+			HttpServletResponse response,
+			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider
@@ -943,7 +947,7 @@ public class V2WikiController extends BaseController {
 				.getAttachmentPreviewRedirectURL(
 						userId,
 						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
-						fileName);
+						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	

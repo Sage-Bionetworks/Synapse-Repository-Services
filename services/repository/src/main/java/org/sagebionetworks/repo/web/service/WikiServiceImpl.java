@@ -107,7 +107,7 @@ public class WikiServiceImpl implements WikiService {
 	public URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey,	String fileName) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// First lookup the FileHandle from V2
-		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, null);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -116,7 +116,7 @@ public class WikiServiceImpl implements WikiService {
 	public URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName)	throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// First lookup the FileHandle
-		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, null);
 		// Get FileHandle from V2
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Get the URL of the preview.
