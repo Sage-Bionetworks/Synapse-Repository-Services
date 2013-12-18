@@ -266,7 +266,7 @@ public class V2WikiControllerTest {
 		assertEquals(markdownTwo.getId(), versionOne.getMarkdownFileHandleId());
 		assertEquals(1, versionOne.getAttachmentFileHandleIds().size());
 		// Get its attachment's URL
-		URL versionOneAttachment = entityServletHelper.getV2WikiAttachmentFileURL(userName, key, handleOne.getFileName(), null, new Long(1));
+		URL versionOneAttachment = entityServletHelper.getV2WikiAttachmentFileURL(adminUserId, key, handleOne.getFileName(), null, new Long(1));
 		assertNotNull(versionOneAttachment);
 		assertTrue(versionOneAttachment.toString().indexOf("mainFileKey") > 0);
 		
