@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -502,7 +504,18 @@ public class SqlConstants {
 	public static final String COL_TEAM_ETAG			= "ETAG";
 	public static final String COL_TEAM_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_TEAM = "schema/Team-ddl.sql";
-
+	
+	// This table holds the binding of principal IDs to alias.
+	// These alias can be used to lookup a principal.
+	public static final String TABLE_PRINCIPAL_ALIAS 				= "PRINCIPAL_ALIAS";
+	public static final String COL_PRINCIPAL_ALIAS_ID 				= "ID";
+	public static final String COL_PRINCIPAL_ALIAS_ETAG				= "ETAG";
+	public static final String COL_PRINCIPAL_ALIAS_PRINCIPAL_ID		= "PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_ALIAS_UNIQUE			= "ALIAS_UNIQUE";
+	public static final String COL_BOUND_ALIAS_DISPLAY				= "ALIAS_DISPLAY";
+	public static final String COL_PRINCIPAL_ALIAS_TYPE				= "TYPE";
+	public static final String COL_PRINCIPAL_ALIAS_IS_VALIDATED		= "IS_VALIDATED";
+	public static final String CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE 	= "UNIQUE KEY `PRINCIPAL_ALIAS_UNIQUE` (`"+COL_PRINCIPAL_ALIAS_UNIQUE+"`)";
 	
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION_SUBMISSION	= "MEMBERSHIP_INVITATION_SUBMISSION";
