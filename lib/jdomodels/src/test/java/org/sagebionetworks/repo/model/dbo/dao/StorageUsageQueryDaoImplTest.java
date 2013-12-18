@@ -36,7 +36,8 @@ public class StorageUsageQueryDaoImplTest {
 	@Autowired
 	private FileHandleDao fileHandleDao;
 
-	private String userId;
+	private Long userId;
+	private String userIdString;
 
 	private List<String> toDelete;
 
@@ -46,8 +47,8 @@ public class StorageUsageQueryDaoImplTest {
 		assertNotNull(storageUsageQueryDao);
 		assertNotNull(fileHandleDao);
 
-		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
-		assertNotNull(userId);
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		userIdString = userId.toString();
 
 		toDelete = new ArrayList<String>();
 	}
@@ -74,21 +75,21 @@ public class StorageUsageQueryDaoImplTest {
 
 		// Create the files -- only S3 files count here
 		final int size = 50;
-		S3FileHandle s3 = TestUtils.createS3FileHandle(userId, size);
+		S3FileHandle s3 = TestUtils.createS3FileHandle(userIdString, size);
 		s3 = fileHandleDao.createFile(s3);
 		assertNotNull(s3);
 		final String s3Id = s3.getId();
 		assertNotNull(s3Id);
 		toDelete.add(s3Id);
 
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userId);
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userIdString);
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		final String previewId = preview.getId();
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 
-		ExternalFileHandle external = TestUtils.createExternalFileHandle(userId);
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(userIdString);
 		external = fileHandleDao.createFile(external);
 		assertNotNull(external);
 		final String extId = external.getId();
@@ -107,7 +108,7 @@ public class StorageUsageQueryDaoImplTest {
 		// Create the files
 		final int size1 = 10;
 		final String contentType1 = "content type 1";
-		S3FileHandle s3File1 = TestUtils.createS3FileHandle(userId, size1, contentType1);
+		S3FileHandle s3File1 = TestUtils.createS3FileHandle(userIdString, size1, contentType1);
 		s3File1 = fileHandleDao.createFile(s3File1);
 		assertNotNull(s3File1);
 		final String s3Id1 = s3File1.getId();
@@ -116,7 +117,7 @@ public class StorageUsageQueryDaoImplTest {
 
 		final int size2 = 30;
 		final String contentType2 = "content type 2";
-		S3FileHandle s3File2 = TestUtils.createS3FileHandle(userId, size2, contentType2);
+		S3FileHandle s3File2 = TestUtils.createS3FileHandle(userIdString, size2, contentType2);
 		s3File2 = fileHandleDao.createFile(s3File2);
 		assertNotNull(s3File2);
 		final String s3Id2 = s3File2.getId();
@@ -124,14 +125,14 @@ public class StorageUsageQueryDaoImplTest {
 		toDelete.add(s3Id2);
 
 		final int size3 = 50;
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userId, size3, contentType1);
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userIdString, size3, contentType1);
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		final String previewId = preview.getId();
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 
-		ExternalFileHandle external = TestUtils.createExternalFileHandle(userId, "content type");
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(userIdString, "content type");
 		external = fileHandleDao.createFile(external);
 		assertNotNull(external);
 		final String extId = external.getId();
@@ -272,7 +273,7 @@ public class StorageUsageQueryDaoImplTest {
 		// Set up the files
 		final int size1 = 10;
 		final String contentType1 = "content type 1";
-		S3FileHandle s3File1 = TestUtils.createS3FileHandle(userId, size1, contentType1);
+		S3FileHandle s3File1 = TestUtils.createS3FileHandle(userIdString, size1, contentType1);
 		s3File1 = fileHandleDao.createFile(s3File1);
 		assertNotNull(s3File1);
 		final String s3Id1 = s3File1.getId();
@@ -281,7 +282,7 @@ public class StorageUsageQueryDaoImplTest {
 
 		final int size2 = 30;
 		final String contentType2 = "content type 2";
-		S3FileHandle s3File2 = TestUtils.createS3FileHandle(userId, size2, contentType2);
+		S3FileHandle s3File2 = TestUtils.createS3FileHandle(userIdString, size2, contentType2);
 		s3File2 = fileHandleDao.createFile(s3File2);
 		assertNotNull(s3File2);
 		final String s3Id2 = s3File2.getId();
@@ -289,14 +290,14 @@ public class StorageUsageQueryDaoImplTest {
 		toDelete.add(s3Id2);
 
 		final int size3 = 50;
-		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userId, size3, contentType1);
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(userIdString, size3, contentType1);
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
 		final String previewId = preview.getId();
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 
-		ExternalFileHandle external = TestUtils.createExternalFileHandle(userId, contentType2);
+		ExternalFileHandle external = TestUtils.createExternalFileHandle(userIdString, contentType2);
 		external = fileHandleDao.createFile(external);
 		assertNotNull(external);
 		final String extId = external.getId();

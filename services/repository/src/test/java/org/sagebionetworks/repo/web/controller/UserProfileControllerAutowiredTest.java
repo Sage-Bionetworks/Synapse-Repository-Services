@@ -23,7 +23,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -32,7 +31,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
@@ -49,17 +47,13 @@ public class UserProfileControllerAutowiredTest {
 	
 	@Autowired
 	private ServletTestHelper testHelper;
-	
-	@Autowired
-	private UserManager userManager;
 
 	@Autowired 
 	private EntityService entityService;
 
 	private static HttpServlet dispatchServlet;
 	
-	private String username;
-	private UserInfo testUser;
+	private Long adminUserId;
 
 	private List<String> favoritesToDelete;
 	private List<String> entityIdsToDelete;
@@ -73,16 +67,12 @@ public class UserProfileControllerAutowiredTest {
 
 	@Before
 	public void before() throws Exception{
-		username = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		testHelper.setUp();
 		assertNotNull(userProfileService);
 		favoritesToDelete = new ArrayList<String>();
 		entityIdsToDelete = new ArrayList<String>();
-		// Map test objects to their urls
-		// Make sure we have a valid user.
-		testUser = userManager.getUserInfo(username);
-		UserInfo.validateUserInfo(testUser);
 		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
@@ -93,7 +83,7 @@ public class UserProfileControllerAutowiredTest {
 		if (userProfileService != null && favoritesToDelete != null) {
 			for (String entityId : favoritesToDelete) {
 				try {
-					userProfileService.removeFavorite(username, entityId);
+					userProfileService.removeFavorite(adminUserId, entityId);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -104,7 +94,7 @@ public class UserProfileControllerAutowiredTest {
 		if (entityService != null && entityIdsToDelete != null) {
 			for (String idToDelete : entityIdsToDelete) {
 				try {
-					entityService.deleteEntity(username, idToDelete);
+					entityService.deleteEntity(adminUserId, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -162,12 +152,12 @@ public class UserProfileControllerAutowiredTest {
 		// create an entity
 		Project proj = new Project();
 		proj.setEntityType(Project.class.getName());
-		proj = entityService.createEntity(username, proj, null, mockRequest);
+		proj = entityService.createEntity(adminUserId, proj, null, mockRequest);
 		entityIdsToDelete.add(proj.getId());
 		
 		// add favorite
 		Map<String, String> extraParams = new HashMap<String, String>();
-		EntityHeader fav = ServletTestHelper.addFavorite(dispatchServlet, proj.getId(), username, extraParams);
+		EntityHeader fav = ServletTestHelper.addFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);
 		favoritesToDelete.add(fav.getId());
 		assertNotNull(fav);
 
@@ -175,7 +165,7 @@ public class UserProfileControllerAutowiredTest {
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		PaginatedResults<EntityHeader> favs = ServletTestHelper.getFavorites(dispatchServlet, username, extraParams);
+		PaginatedResults<EntityHeader> favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
 		assertNotNull(favs);
 		assertEquals(1, favs.getTotalNumberOfResults());
 		assertEquals(1, favs.getResults().size());
@@ -183,12 +173,12 @@ public class UserProfileControllerAutowiredTest {
 		
 		// test removal
 		extraParams = new HashMap<String, String>();
-		ServletTestHelper.removeFavorite(dispatchServlet, proj.getId(), username, extraParams);
+		ServletTestHelper.removeFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);
 		// assure deletion
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		favs = ServletTestHelper.getFavorites(dispatchServlet, username, extraParams);
+		favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
 		assertEquals(0, favs.getTotalNumberOfResults());
 		assertEquals(0, favs.getResults().size());
 	}

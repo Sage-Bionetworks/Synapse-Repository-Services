@@ -82,7 +82,7 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
 			@RequestParam int mask, HttpServletRequest request
 			)
@@ -110,7 +110,7 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			@RequestParam int mask, HttpServletRequest request
@@ -143,7 +143,7 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle createEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
@@ -177,7 +177,7 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
 	public @ResponseBody
 	EntityBundle updateEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc,

@@ -134,7 +134,7 @@ public class ActivityController extends BaseController{
 			}, method = RequestMethod.POST)
 	public @ResponseBody
 	Activity createActivity(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Activity activity,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -171,7 +171,7 @@ public class ActivityController extends BaseController{
 	public @ResponseBody
 	Activity getActivity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		return serviceProvider.getActivityService().getActivity(userId, id);
@@ -216,7 +216,7 @@ public class ActivityController extends BaseController{
 	public @ResponseBody
 	Activity updateActivity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Activity activity,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
@@ -247,7 +247,7 @@ public class ActivityController extends BaseController{
 			}, method = RequestMethod.DELETE)
 	public void deleteActivity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		serviceProvider.getActivityService().deleteActivity(userId, id);
@@ -285,7 +285,7 @@ public class ActivityController extends BaseController{
 	public @ResponseBody
 	PaginatedResults<Reference> getEntitiesGeneratedBy(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required=false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
 			throws NotFoundException, DatastoreException, UnauthorizedException {

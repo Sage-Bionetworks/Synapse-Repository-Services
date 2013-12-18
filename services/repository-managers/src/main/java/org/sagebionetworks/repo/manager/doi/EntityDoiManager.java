@@ -7,9 +7,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface EntityDoiManager {
 
-	Doi createDoi(String userId, String objectId, Long versionNumber)
+	Doi createDoi(Long userId, String objectId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
-	Doi getDoi(String userId, String objectId, Long versionNumber)
+	Doi getDoi(Long userId, String objectId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 }

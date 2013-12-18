@@ -22,7 +22,7 @@ public interface UserGroupService {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public PaginatedResults<UserGroup> getUserGroups(HttpServletRequest request,
-			String userId, Integer offset, Integer limit, String sort,
+			Long userId, Integer offset, Integer limit, String sort,
 			Boolean ascending) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 }

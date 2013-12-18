@@ -58,13 +58,13 @@ public class AdministrationControllerTest {
 	private StackStatusDao stackStatusDao;
 	
 	private List<String> toDelete;
-	private UserInfo adminUserInfo;
+	private Long adminUserId;
 	private Project entity;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		toDelete = new ArrayList<String>();
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	}
 	
 	@BeforeClass
@@ -73,12 +73,15 @@ public class AdministrationControllerTest {
 	}
 
 	@After
-	public void after() throws UnauthorizedException {
+	public void after() throws Exception {
 		// Always restore the status to read-write
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
 		stackStatusDao.updateStatus(status);
 
+		
+		UserInfo adminUserInfo = userManager.getUserInfo(adminUserId);
+		
 		if(entity != null){
 			try {
 				nodeManager.delete(adminUserInfo, entity.getId());
@@ -118,7 +121,7 @@ public class AdministrationControllerTest {
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
 		// Make sure we can update the status
 		status.setPendingMaintenanceMessage("AdministrationControllerTest.testUpdateStatus");
-		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), status);
+		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, status);
 		assertEquals(status, back);
 	}
 	
@@ -128,7 +131,7 @@ public class AdministrationControllerTest {
 		StackStatus setDown = new StackStatus();
 		setDown.setStatus(StatusEnum.DOWN);
 		setDown.setCurrentMessage("Synapse is going down for a test: AdministrationControllerTest.testGetStatusWhenDown");
-		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), setDown);
+		StackStatus back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
 		assertEquals(setDown, back);
 		// Make sure we can still get the status
 		StackStatus current = ServletTestHelper.getStackStatus(dispatchServlet);
@@ -137,7 +140,7 @@ public class AdministrationControllerTest {
 		// Now make sure we can turn it back on when down.
 		setDown.setStatus(StatusEnum.READ_WRITE);
 		setDown.setCurrentMessage(null);
-		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), setDown);
+		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
 		assertEquals(setDown, back);
 	}
 }

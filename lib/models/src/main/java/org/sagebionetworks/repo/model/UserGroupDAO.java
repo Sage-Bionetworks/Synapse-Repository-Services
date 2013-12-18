@@ -78,6 +78,6 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>{
 	/**
 	 * Updates the etag the group with the given ID
 	 */
-	public void touch(String id);
+	public void touch(Long principalId);
 
 }

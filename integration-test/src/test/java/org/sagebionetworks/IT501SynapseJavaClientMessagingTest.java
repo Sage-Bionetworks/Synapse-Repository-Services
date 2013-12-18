@@ -19,6 +19,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -126,12 +127,12 @@ public class IT501SynapseJavaClientMessagingTest {
 		if (project != null) {
 			try {
 				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (Exception e) { }
+			} catch (SynapseNotFoundException e) { }
 		}
 		
 		try {
 			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (Exception e) { }
+		} catch (SynapseNotFoundException e) { }
 	}
 	
 	@AfterClass

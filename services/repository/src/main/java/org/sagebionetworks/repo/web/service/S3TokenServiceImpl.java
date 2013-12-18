@@ -30,7 +30,7 @@ public class S3TokenServiceImpl implements S3TokenService {
 	 * @see org.sagebionetworks.repo.web.service.S3TokenService#createEntityS3Token(java.lang.String, java.lang.String, org.sagebionetworks.repo.model.S3Token, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public S3Token createEntityS3Token(String userId, String id, S3Token s3Token,
+	public S3Token createEntityS3Token(Long userId, String id, S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, InvalidModelException {
 

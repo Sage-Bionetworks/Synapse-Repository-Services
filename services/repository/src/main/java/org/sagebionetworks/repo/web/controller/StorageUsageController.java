@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.repo.web.service.StorageUsageService;
-import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -38,9 +37,6 @@ public class StorageUsageController extends BaseController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;
-	
-	@Autowired
-	private UserProfileService userProfileService;
 
 	/**
 	 * Retrieves the aggregated usage for the current user. Aggregation is done over the supplied dimensions,
@@ -57,15 +53,14 @@ public class StorageUsageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageForCurrentUser(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUsername,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
 			HttpServletRequest request)
 			throws IllegalArgumentException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		String userId = userProfileService.getMyOwnUserProfile(currUsername).getOwnerId();
-		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUsername, userId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(userId, userId, dList);
 		return storageSummaries;
 	}
 
@@ -91,29 +86,29 @@ public class StorageUsageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY_USER_ID, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageForUser(
-			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) String userId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
+			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) Long userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long currentUserId,
 			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
 			HttpServletRequest request)
 			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUserId, userId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currentUserId, userId, dList);
 		return storageSummaries;
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageForAdmin(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
 			HttpServletRequest request)
 			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getUsage(currUserId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsage(userId, dList);
 		return storageSummaries;
 	}
 
@@ -126,7 +121,7 @@ public class StorageUsageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsageForCurrentUser(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
@@ -134,7 +129,7 @@ public class StorageUsageController extends BaseController {
 
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currUserId, currUserId, offset, limit, url);
+		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(userId, userId, offset, limit, url);
 		return results;
 	}
 
@@ -154,8 +149,8 @@ public class StorageUsageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS_USER_ID, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsageForUser(
-			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) String userId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
+			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) Long userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long currentUserId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
@@ -163,20 +158,20 @@ public class StorageUsageController extends BaseController {
 
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS_USER_ID;
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currUserId, userId, offset, limit, url);
+		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currentUserId, userId, offset, limit, url);
 		return results;
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY_PER_USER, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageByUserForAdmin(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		return service.getUsageByUserInRange(currUserId, offset, limit);
+		return service.getUsageByUserInRange(userId, offset, limit);
 	}
 
 	/**

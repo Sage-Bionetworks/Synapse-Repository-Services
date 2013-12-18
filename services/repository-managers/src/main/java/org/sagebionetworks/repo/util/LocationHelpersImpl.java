@@ -104,36 +104,36 @@ public class LocationHelpersImpl implements LocationHelper {
 	}
 
 	@Override
-	public String presignS3GETUrl(String userId, String s3Key)
+	public String presignS3GETUrl(Long userId, String s3Key)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.GET, READ_ACCESS_EXPIRY_HOURS_IN_SECONDS);
 	}
 
 	@Override
-	public String presignS3GETUrl(String userId, String s3Key, int expiresSeconds)
+	public String presignS3GETUrl(Long userId, String s3Key, int expiresSeconds)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.GET, expiresSeconds);
 	}
 	
 	@Override
-	public String presignS3HEADUrl(String userId, String s3Key)
+	public String presignS3HEADUrl(Long userId, String s3Key)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.HEAD, READ_ACCESS_EXPIRY_HOURS_IN_SECONDS);
 	}
 	
 	@Override
-	public String presignS3HEADUrl(String userId, String s3Key, int expiresSeconds)
+	public String presignS3HEADUrl(Long userId, String s3Key, int expiresSeconds)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.HEAD,	expiresSeconds);
 	}
 	
 	@Override
-	public String presignS3GETUrlShortLived(String userId, String s3Key)
+	public String presignS3GETUrlShortLived(Long userId, String s3Key)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.GET, READ_ACCESS_EXPIRY_SECONDS);
 	}
 
-	private String getS3Url(String userId, String s3Key, HttpMethod method,
+	private String getS3Url(Long userId, String s3Key, HttpMethod method,
 			int expiresSeconds) throws DatastoreException {
 
 		DateTime now = new DateTime();
@@ -179,7 +179,7 @@ public class LocationHelpersImpl implements LocationHelper {
 	}
 
 	@Override
-	public String presignS3PUTUrl(String userId, String s3Key, String md5,
+	public String presignS3PUTUrl(Long userId, String s3Key, String md5,
 			String contentType) throws DatastoreException {
 
 		// Get the credentials with which to sign the request
@@ -268,7 +268,7 @@ public class LocationHelpersImpl implements LocationHelper {
 
 
 	@Override
-	public Credentials createFederationTokenForS3(String userId, HttpMethod method,
+	public Credentials createFederationTokenForS3(Long userId, HttpMethod method,
 			String s3Key) throws NumberFormatException, DatastoreException {
 
 		// Append the stack name to the federated username for prod vs. test

@@ -126,14 +126,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throw new UnauthorizedException("Can't assign attachment to another user's profile");
 		if (!AttachmentManagerImpl.isPreviewType(token.getFileName()))
 			throw new IllegalArgumentException("User profile attachment is not a recognized image type, please try a different file.");
-		return s3TokenManager.createS3AttachmentToken(userInfo.getIndividualGroup().getId(), profileId, token);
+		return s3TokenManager.createS3AttachmentToken(Long.parseLong(userInfo.getIndividualGroup().getId()), profileId, token);
 	}
 	
 	@Override
-	public PresignedUrl getUserProfileAttachmentUrl(UserInfo userInfo,
+	public PresignedUrl getUserProfileAttachmentUrl(Long userId,
 			String profileId, String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		//anyone can see the public profile pictures
-		return s3TokenManager.getAttachmentUrl(userInfo, profileId, tokenID);
+		return s3TokenManager.getAttachmentUrl(userId, profileId, tokenID);
 	}
 
 	@Override

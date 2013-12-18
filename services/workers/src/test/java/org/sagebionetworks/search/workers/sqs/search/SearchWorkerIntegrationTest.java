@@ -1,6 +1,7 @@
 package org.sagebionetworks.search.workers.sqs.search;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -13,9 +14,12 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -24,6 +28,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -32,9 +38,12 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * This test validates that entity messages pushed to the topic propagate to the search queue,
@@ -67,13 +76,19 @@ public class SearchWorkerIntegrationTest {
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
+	@Autowired
+	private FileHandleManager fileHandleManager;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
+	
 	private UserInfo adminUserInfo;
 	private Project project;
 	private V2WikiPage rootPage;
 	private WikiPageKey rootKey;
 	
 	private S3FileHandle markdownOne;
-	private S3FileHandle markdownTwo;
+	String uuid;
 	
 	@Before
 	public void before() throws Exception {
@@ -92,30 +107,41 @@ public class SearchWorkerIntegrationTest {
 		String id = entityManager.createEntity(adminUserInfo, project, null);
 		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 
-		String creatorId = adminUserInfo.getIndividualGroup().getId();
-		//Create different markdown content
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("markdownBucketName");
-		meta.setKey("key3");
-		meta.setContentType("content type3");
-		meta.setContentSize((long) 1231);
-		meta.setContentMd5("md53");
-		meta.setCreatedBy(creatorId);
-		meta.setFileName("markdown1");
-		markdownOne = fileMetadataDao.createFile(meta);
+		uuid = UUID.randomUUID().toString();
 		
-		meta = new S3FileHandle();
-		meta.setBucketName("markdownBucketName2");
-		meta.setKey("key4");
-		meta.setContentType("content type4");
-		meta.setContentSize((long) 1231);
-		meta.setContentMd5("md54");
-		meta.setCreatedBy(creatorId);
-		meta.setFileName("markdown2");
-		markdownTwo = fileMetadataDao.createFile(meta);
+		// Zip up the markdown into a file with UUID
+		String markdown = "markdown contents " + uuid;
+		File markdownTemp = FileUtils.writeStringToCompressedFile(markdown);
+		String contentType = "application/x-gzip";
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setContentType(contentType);
+		ccftr.setFileName(markdownTemp.getName());
+		// Calculate the MD5
+		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
+		ccftr.setContentMD5(md5);
+		// Start the upload
+		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(adminUserInfo, ccftr);
+
+		S3FileHandle handle = new S3FileHandle();
+		handle.setContentType(token.getContentType());
+		handle.setContentMd5(token.getContentMD5());
+		handle.setContentSize(markdownTemp.length());
+		handle.setFileName("markdown.txt");
+		// Creator of the wiki page may not have been set to the user yet
+		// so do not use wiki's createdBy
+		handle.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		long currentTime = System.currentTimeMillis();
+		handle.setCreatedOn(new Date(currentTime));
+		handle.setKey(token.getKey());
+		handle.setBucketName(StackConfiguration.getS3Bucket());
+		// Upload this to S3
+		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
+		// Save the metadata
+		markdownOne = fileMetadataDao.createFile(handle);
 	}
 
 	private V2WikiPage createWikiPage(UserInfo info){
+		// Create a wiki page that points to the markdown file
 		V2WikiPage page = new  V2WikiPage();
 		page.setTitle("rootTile");
 		page.setMarkdownFileHandleId(markdownOne.getId());
@@ -144,22 +170,22 @@ public class SearchWorkerIntegrationTest {
 	
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
+		if(markdownOne != null) {
+			// Clean up S3 File and S3FileHandle
+			String markdownHandleId = markdownOne.getId();
+			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			fileMetadataDao.delete(markdownHandleId);
+		}
+		
 		if (project != null){
 			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 		if(rootKey != null){
 			wikiPageDao.delete(rootKey);
 		}
-		
-		if(markdownOne != null) {
-			fileMetadataDao.delete(markdownOne.getId());
-		}
-		
-		if(markdownTwo != null) {
-			fileMetadataDao.delete(markdownTwo.getId());
-		}
-	}
-	
+
+	}	
 	
 	@Test
 	public void testRoundTrip() throws Exception {
@@ -167,11 +193,7 @@ public class SearchWorkerIntegrationTest {
 		waitForPojectToAppearInSearch();
 				
 		// Now add a wikpage
-		// Create a wiki page
 		rootPage = createWikiPage(adminUserInfo);
-		rootPage.setTitle("rootTile");
-		String uuid = UUID.randomUUID().toString();
-		rootPage.setMarkdownFileHandleId(markdownTwo.getId());
 		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.

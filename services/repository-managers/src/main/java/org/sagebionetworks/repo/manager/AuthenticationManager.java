@@ -39,17 +39,17 @@ public interface AuthenticationManager {
 	/**
 	 * Changes a user's password
 	 */
-	public void changePassword(String id, String password);
+	public void changePassword(Long principalId, String password);
 	
 	/** 
 	 * Gets the user's secret key
 	 */
-	public String getSecretKey(String id) throws NotFoundException;
+	public String getSecretKey(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Replaces the user's secret key with a new one
 	 */
-	public void changeSecretKey(String id);
+	public void changeSecretKey(Long principalId);
 	
 	/**
 	 * Returns the user's session token
@@ -60,11 +60,11 @@ public interface AuthenticationManager {
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedTermsOfUse(String id) throws NotFoundException;
+	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException;
 
 	/**
 	 * Sets whether the user has accepted or rejected the terms of use
 	 */
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance);
+	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 	
 }

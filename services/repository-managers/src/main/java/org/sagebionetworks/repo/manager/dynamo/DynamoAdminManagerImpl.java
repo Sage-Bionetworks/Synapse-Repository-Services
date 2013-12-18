@@ -17,10 +17,10 @@ public class DynamoAdminManagerImpl implements DynamoAdminManager {
 	private UserManager userManager;
 
 	@Override
-	public void clear(String userName, String tableName, String hashKeyName, String rangeKeyName)
+	public void clear(Long userId, String tableName, String hashKeyName, String rangeKeyName)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 
-		if (userName == null || userName.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
 		if (tableName == null || tableName.isEmpty()) {
@@ -33,9 +33,9 @@ public class DynamoAdminManagerImpl implements DynamoAdminManager {
 			throw new IllegalArgumentException("Range key name cannot be null or empty.");
 		}
 
-		UserInfo userInfo = userManager.getUserInfo(userName);
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("User " + userName + " is not an administrator.");
+			throw new UnauthorizedException("User " + userId + " is not an administrator.");
 		}
 
 		dynamoAdminDao.clear(tableName, hashKeyName, rangeKeyName);
