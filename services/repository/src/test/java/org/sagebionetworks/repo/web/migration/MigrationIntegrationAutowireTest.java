@@ -24,8 +24,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -33,33 +39,8 @@ import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.CommentDAO;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FileEntity;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
-import org.sagebionetworks.repo.model.MessageDAO;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -99,6 +80,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 /**
  * This is an integration test to test the migration of all tables from start to finish.
@@ -160,6 +143,15 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private CommunityTeamDAO communityTeamDAO;
+
+	@Autowired
+	private BridgeParticipantDAO bridgeParticipantDAO;
+
+	@Autowired
+	private ParticipantDataDAO participantDataDAO;
+
+	@Autowired
+	private ParticipantDataDescriptorDAO participantDataDescriptorDAO;
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -247,6 +239,7 @@ public class MigrationIntegrationAutowireTest {
 		createColumnModel();
 		UserGroup sampleGroup2 = createUserGroups(2);
 		createCommunity(sampleGroup2);
+		createParticipantData(sampleGroup);
 	}
 
 
@@ -596,6 +589,25 @@ public class MigrationIntegrationAutowireTest {
 		community = serviceProvider.getEntityService().createEntity(adminUserId, community, null, mockRequest);
 
 		communityTeamDAO.create(KeyFactory.stringToKey(community.getId()), Long.parseLong(team.getId()));
+	}
+
+	private void createParticipantData(UserGroup sampleGroup) throws Exception {
+		String participantId = Long.toString(Long.parseLong(sampleGroup.getId()) ^ -1L);
+		bridgeParticipantDAO.create(participantId);
+		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
+		participantDataDescriptor.setName(participantId + "desc");
+		participantDataDescriptor = participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor = new ParticipantDataColumnDescriptor();
+		participantDataColumnDescriptor.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		participantDataColumnDescriptor.setName("a");
+		participantDataColumnDescriptor.setColumnType(ParticipantDataColumnType.STRING);
+		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
+		RowSet data = new RowSet();
+		data.setHeaders(Lists.newArrayList("a", "b"));
+		Row row = new Row();
+		row.setValues(Lists.newArrayList("1", "2"));
+		data.setRows(Lists.newArrayList(row));
+		participantDataDAO.append(participantId, participantDataDescriptor.getId(), data);
 	}
 
 	@After

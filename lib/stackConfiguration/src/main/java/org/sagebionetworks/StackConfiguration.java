@@ -1144,7 +1144,7 @@ public class StackConfiguration {
 	
 
 	/**
-	 * Get the name of the audit record bucket.
+	 * Get the name of the table row bucket.
 	 * 
 	 * @return
 	 */
@@ -1152,6 +1152,15 @@ public class StackConfiguration {
 		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, StackConfiguration.getStack());
 	}
 	
+	/**
+	 * Get the name of the participant data bucket.
+	 * 
+	 * @return
+	 */
+	public String getParticipantDataBucketName() {
+		return String.format(StackConstants.PARTICIPANT_DATA_BUCKET, StackConfiguration.getStack());
+	}
+
 	/**
 	 * Get the name of the audit record bucket.
 	 * 
