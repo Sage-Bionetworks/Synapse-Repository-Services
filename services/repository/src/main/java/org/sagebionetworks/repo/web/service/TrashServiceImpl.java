@@ -22,21 +22,21 @@ public class TrashServiceImpl implements TrashService {
 	private TrashManager trashManager;
 
 	@Override
-	public void moveToTrash(String currentUserId, String entityId)
+	public void moveToTrash(Long currentUserId, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		trashManager.moveToTrash(currentUser, entityId);
 	}
 
 	@Override
-	public void restoreFromTrash(String currentUserId, String entityId, String newParentId)
+	public void restoreFromTrash(Long currentUserId, String entityId, String newParentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		trashManager.restoreFromTrash(currentUser, entityId, newParentId);
 	}
 
 	@Override
-	public PaginatedResults<TrashedEntity> viewTrashForUser(String currentUserId, String userId,
+	public PaginatedResults<TrashedEntity> viewTrashForUser(Long currentUserId, Long userId,
 			Long offset, Long limit, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 
@@ -65,7 +65,7 @@ public class TrashServiceImpl implements TrashService {
 	}
 
 	@Override
-	public PaginatedResults<TrashedEntity> viewTrash(String currentUserId,
+	public PaginatedResults<TrashedEntity> viewTrash(Long currentUserId,
 			Long offset, Long limit, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
@@ -77,21 +77,21 @@ public class TrashServiceImpl implements TrashService {
 	}
 
 	@Override
-	public void purgeTrashForUser(String currentUserId, String entityId) throws DatastoreException,
+	public void purgeTrashForUser(Long currentUserId, String entityId) throws DatastoreException,
 			NotFoundException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		trashManager.purgeTrashForUser(currentUser, entityId);
 	}
 
 	@Override
-	public void purgeTrashForUser(String currentUserId) throws DatastoreException,
+	public void purgeTrashForUser(Long currentUserId) throws DatastoreException,
 			NotFoundException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		trashManager.purgeTrashForUser(currentUser);
 	}
 
 	@Override
-	public void purgeTrash(String currentUserId) throws DatastoreException,
+	public void purgeTrash(Long currentUserId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 		trashManager.purgeTrash(currentUser);

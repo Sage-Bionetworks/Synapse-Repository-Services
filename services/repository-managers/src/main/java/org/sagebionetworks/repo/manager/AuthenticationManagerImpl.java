@@ -67,11 +67,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		// Check the terms of use
-		if (checkToU && !authDAO.hasUserAcceptedToU(principalId.toString())) {
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId)) {
 			throw new TermsOfUseException();
 		}
 		
-		authDAO.revalidateSessionToken(principalId.toString());
+		authDAO.revalidateSessionToken(principalId);
 		return principalId;
 	}
 
@@ -83,20 +83,20 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String id, String password) {
+	public void changePassword(Long principalId, String password) {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
-		authDAO.changePassword(id, passHash);
+		authDAO.changePassword(principalId, passHash);
 	}
 	
 	@Override
-	public String getSecretKey(String id) throws NotFoundException {
-		return authDAO.getSecretKey(id);
+	public String getSecretKey(Long principalId) throws NotFoundException {
+		return authDAO.getSecretKey(principalId);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changeSecretKey(String id) {
-		authDAO.changeSecretKey(id);
+	public void changeSecretKey(Long principalId) {
+		authDAO.changeSecretKey(principalId);
 	}
 	
 	@Override
@@ -116,7 +116,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			if (ug == null) {
 				throw new NotFoundException("The user (" + username + ") does not exist");
 			}
-			String principalId = ug.getId();
+			Long principalId = Long.parseLong(ug.getId());
 			String token = authDAO.changeSessionToken(principalId, null);
 			boolean toU = authDAO.hasUserAcceptedToU(principalId);
 			session.setSessionToken(token);
@@ -129,17 +129,17 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(String id) throws NotFoundException {
+	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException {
 		return authDAO.hasUserAcceptedToU(id);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
+	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
 		if (acceptance == null) {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
-		authDAO.setTermsOfUseAcceptance(id, acceptance);
+		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
 	}
 	
 }

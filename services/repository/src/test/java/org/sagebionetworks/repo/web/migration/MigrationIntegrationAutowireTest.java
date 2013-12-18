@@ -177,9 +177,9 @@ public class MigrationIntegrationAutowireTest {
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
 
+	private Long adminUserId;
+	private String adminUserIdString;
 	private UserInfo adminUserInfo;
-	private String userName;
-	private String adminId;
 	
 	// Activity
 	private Activity activity;
@@ -217,9 +217,9 @@ public class MigrationIntegrationAutowireTest {
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		
 		// get user IDs
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		userName = adminUserInfo.getIndividualGroup().getName();
-		adminId = adminUserInfo.getIndividualGroup().getId();
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserIdString = adminUserId.toString();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		resetDatabase();
 		String sampleFileHandleId = createFileHandles();
@@ -264,11 +264,11 @@ public class MigrationIntegrationAutowireTest {
 		set.setRows(rows);
 		set.setTableId(tableId);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminId, tableId, models, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 		// Append some more rows
 		rows = TableModelUtils.createRows(models, 6);
 		set.setRows(rows);
-		tableRowTruthDao.appendRowSetToTable(adminId, tableId, models, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 	}
 
 
@@ -289,14 +289,14 @@ public class MigrationIntegrationAutowireTest {
 
 
 	private void createDoi() throws Exception {
-		serviceProvider.getDoiService().createDoi(userName, project.getId(), ObjectType.ENTITY, 1L);
+		serviceProvider.getDoiService().createDoi(adminUserId, project.getId(), ObjectType.ENTITY, 1L);
 	}
 
 
 	private void createActivity() throws Exception {
 		activity = new Activity();
 		activity.setDescription("some desc");
-		activity = serviceProvider.getActivityService().createActivity(userName, activity);
+		activity = serviceProvider.getActivityService().createActivity(adminUserId, activity);
 	}
 
 
@@ -309,7 +309,7 @@ public class MigrationIntegrationAutowireTest {
 		evaluation.setStatus(EvaluationStatus.PLANNED);
 		evaluation.setSubmissionInstructionsMessage("instructions");
 		evaluation.setSubmissionReceiptMessage("receipt");
-		evaluation = serviceProvider.getEvaluationService().createEvaluation(userName, evaluation);	
+		evaluation = serviceProvider.getEvaluationService().createEvaluation(adminUserId, evaluation);	
 		evaluation = new Evaluation();
 		evaluation.setName("name2");
 		evaluation.setDescription("description");
@@ -317,26 +317,26 @@ public class MigrationIntegrationAutowireTest {
 		evaluation.setStatus(EvaluationStatus.OPEN);		
 		evaluation.setSubmissionInstructionsMessage("instructions");
 		evaluation.setSubmissionReceiptMessage("receipt");
-        evaluation = serviceProvider.getEvaluationService().createEvaluation(userName, evaluation);
+        evaluation = serviceProvider.getEvaluationService().createEvaluation(adminUserId, evaluation);
 
         // initialize Participants
-		serviceProvider.getEvaluationService().addParticipant(userName, evaluation.getId());
+		serviceProvider.getEvaluationService().addParticipant(adminUserId, evaluation.getId());
         
         // initialize Submissions
 		submission = new Submission();
 		submission.setName("submission1");
 		submission.setVersionNumber(1L);
 		submission.setEntityId(fileEntity.getId());
-		submission.setUserId(userName);
+		submission.setUserId(adminUserIdString);
 		submission.setEvaluationId(evaluation.getId());
-		submission = entityServletHelper.createSubmission(submission, userName, fileEntity.getEtag());
+		submission = entityServletHelper.createSubmission(submission, adminUserId, fileEntity.getEtag());
 	}
 
 
 	public void createAccessApproval() throws Exception {
-		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminId);
+		accessApproval = newToUAccessApproval(accessRequirement.getId(), adminUserIdString);
 		accessApproval = ServletTestHelper.createAccessApproval(
-				DispatchServletSingleton.getInstance(), accessApproval, userName, new HashMap<String, String>());
+				DispatchServletSingleton.getInstance(), accessApproval, adminUserId, new HashMap<String, String>());
 	}
 
 
@@ -354,7 +354,7 @@ public class MigrationIntegrationAutowireTest {
 		evaluationSubjectId.setType(RestrictableObjectType.EVALUATION);
 		
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{entitySubjectId, evaluationSubjectId})); 
-		accessRequirement = ServletTestHelper.createAccessRequirement(DispatchServletSingleton.getInstance(), accessRequirement, userName, new HashMap<String, String>());
+		accessRequirement = ServletTestHelper.createAccessRequirement(DispatchServletSingleton.getInstance(), accessRequirement, adminUserId, new HashMap<String, String>());
 	}
 	
 	private TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
@@ -370,8 +370,8 @@ public class MigrationIntegrationAutowireTest {
 		
 		// Create a V2 Wiki page
 		v2RootWiki = new V2WikiPage();
-		v2RootWiki.setCreatedBy(adminId);
-		v2RootWiki.setModifiedBy(adminId);
+		v2RootWiki.setCreatedBy(adminUserIdString);
+		v2RootWiki.setModifiedBy(adminUserIdString);
 		v2RootWiki.setAttachmentFileHandleIds(new LinkedList<String>());
 		v2RootWiki.getAttachmentFileHandleIds().add(handleOne.getId());
 		v2RootWiki.setTitle("Root title");
@@ -385,8 +385,8 @@ public class MigrationIntegrationAutowireTest {
 		
 		// Create a child
 		v2SubWiki = new V2WikiPage();
-		v2SubWiki.setCreatedBy(adminId);
-		v2SubWiki.setModifiedBy(adminId);
+		v2SubWiki.setCreatedBy(adminUserIdString);
+		v2SubWiki.setModifiedBy(adminUserIdString);
 		v2SubWiki.setParentWikiId(v2RootWiki.getId());
 		v2SubWiki.setTitle("V2 Sub-wiki-title");
 		v2SubWiki.setMarkdownFileHandleId(markdownOne.getId());
@@ -407,7 +407,7 @@ public class MigrationIntegrationAutowireTest {
 		project = new Project();
 		project.setName("MigrationIntegrationAutowireTest.Project");
 		project.setEntityType(Project.class.getName());
-		project = serviceProvider.getEntityService().createEntity(userName, project, null, mockRequest);
+		project = serviceProvider.getEntityService().createEntity(adminUserId, project, null, mockRequest);
 		
 		// Create a file entity
 		fileEntity = new FileEntity();
@@ -415,15 +415,15 @@ public class MigrationIntegrationAutowireTest {
 		fileEntity.setEntityType(FileEntity.class.getName());
 		fileEntity.setParentId(project.getId());
 		fileEntity.setDataFileHandleId(handleOne.getId());
-		fileEntity = serviceProvider.getEntityService().createEntity(userName, fileEntity, activity.getId(),mockRequest);
+		fileEntity = serviceProvider.getEntityService().createEntity(adminUserId, fileEntity, activity.getId(),mockRequest);
 
 		// Create a folder to trash
 		folderToTrash = new Folder();
 		folderToTrash.setName("boundForTheTrashCan");
 		folderToTrash.setParentId(project.getId());
-		folderToTrash = serviceProvider.getEntityService().createEntity(userName, folderToTrash, null, mockRequest);
+		folderToTrash = serviceProvider.getEntityService().createEntity(adminUserId, folderToTrash, null, mockRequest);
 		// Send it to the trash can
-		serviceProvider.getTrashService().moveToTrash(userName, folderToTrash.getId());
+		serviceProvider.getTrashService().moveToTrash(adminUserId, folderToTrash.getId());
 	}
 	
 	private AccessRequirement newAccessRequirement() {
@@ -442,7 +442,7 @@ public class MigrationIntegrationAutowireTest {
 	public String createFileHandles() throws NotFoundException {
 		// Create a file handle
 		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(adminId);
+		handleOne.setCreatedBy(adminUserIdString);
 		handleOne.setCreatedOn(new Date());
 		handleOne.setBucketName("bucket");
 		handleOne.setKey("mainFileKey");
@@ -451,7 +451,7 @@ public class MigrationIntegrationAutowireTest {
 		handleOne = fileMetadataDao.createFile(handleOne);
 		// Create markdown content
 		markdownOne = new S3FileHandle();
-		markdownOne.setCreatedBy(adminId);
+		markdownOne.setCreatedBy(adminUserIdString);
 		markdownOne.setCreatedOn(new Date());
 		markdownOne.setBucketName("bucket");
 		markdownOne.setKey("markdownFileKey");
@@ -460,7 +460,7 @@ public class MigrationIntegrationAutowireTest {
 		markdownOne = fileMetadataDao.createFile(markdownOne);
 		// Create a preview
 		preview = new PreviewFileHandle();
-		preview.setCreatedBy(adminId);
+		preview.setCreatedBy(adminUserIdString);
 		preview.setCreatedOn(new Date());
 		preview.setBucketName("bucket");
 		preview.setKey("previewFileKey");
@@ -509,7 +509,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 	
 	private void createCredentials(UserGroup group) throws Exception {
-		String principalId = group.getId();
+		Long principalId = Long.parseLong(group.getId());
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
 		authDAO.changeSessionToken(principalId, null);
@@ -586,7 +586,7 @@ public class MigrationIntegrationAutowireTest {
 		community.setName("MigrationIntegrationAutowireTest.Community");
 		community.setEntityType(Community.class.getName());
 		community.setTeamId(team.getId());
-		community = serviceProvider.getEntityService().createEntity(userName, community, null, mockRequest);
+		community = serviceProvider.getEntityService().createEntity(adminUserId, community, null, mockRequest);
 
 		communityTeamDAO.create(KeyFactory.stringToKey(community.getId()), Long.parseLong(team.getId()));
 	}
@@ -624,12 +624,12 @@ public class MigrationIntegrationAutowireTest {
 	@Test
 	public void testRoundTrip() throws Exception{
 		// Get the list of primary types
-		MigrationTypeList primaryTypesList = entityServletHelper.getPrimaryMigrationTypes(userName);
+		MigrationTypeList primaryTypesList = entityServletHelper.getPrimaryMigrationTypes(adminUserId);
 		assertNotNull(primaryTypesList);
 		assertNotNull(primaryTypesList.getList());
 		assertTrue(primaryTypesList.getList().size() > 0);
 		// Get the counts before we start
-		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(userName);
+		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(adminUserId);
 		validateStartingCount(startCounts);
 		
 		// This test will backup all data, delete it, then restore it.
@@ -646,7 +646,7 @@ public class MigrationIntegrationAutowireTest {
 		}
 		
 		// After deleting, the counts should be 0 except for a few special cases
-		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
+		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(adminUserId);
 		assertNotNull(afterDeleteCounts);
 		assertNotNull(afterDeleteCounts.getList());
 		
@@ -678,7 +678,7 @@ public class MigrationIntegrationAutowireTest {
 		}
 		
 		// The counts should all be back
-		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
+		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(adminUserId);
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
@@ -739,7 +739,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws Exception
 	 */
 	private List<BackupInfo> backupAllOfType(MigrationType type) throws Exception {
-		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
+		RowMetadataResult list = entityServletHelper.getRowMetadata(adminUserId, type, Long.MAX_VALUE, 0);
 		if(list == null) return null;
 		// Backup batches by their level in the tree
 		ListBucketProvider provider = new ListBucketProvider();
@@ -759,10 +759,10 @@ public class MigrationIntegrationAutowireTest {
 		// Start the backup job
 		IdList ids = new IdList();
 		ids.setList(tobackup);
-		BackupRestoreStatus status = entityServletHelper.startBackup(userName, type, ids);
+		BackupRestoreStatus status = entityServletHelper.startBackup(adminUserId, type, ids);
 		// wait for it..
 		waitForDaemon(status);
-		status = entityServletHelper.getBackupRestoreStatus(userName, status.getId());
+		status = entityServletHelper.getBackupRestoreStatus(adminUserId, status.getId());
 		assertNotNull(status.getBackupUrl());
 		return getFileNameFromUrl(status.getBackupUrl());
 	}
@@ -770,7 +770,7 @@ public class MigrationIntegrationAutowireTest {
 	private void restoreFromBackup(MigrationType type, String fileName) throws Exception{
 		RestoreSubmission sub = new RestoreSubmission();
 		sub.setFileName(fileName);
-		BackupRestoreStatus status = entityServletHelper.startRestore(userName, type, sub);
+		BackupRestoreStatus status = entityServletHelper.startRestore(adminUserId, type, sub);
 		// wait for it
 		waitForDaemon(status);
 	}
@@ -785,7 +785,7 @@ public class MigrationIntegrationAutowireTest {
 	private void deleteAllOfType(MigrationType type) throws Exception{
 		IdList idList = getIdListOfAllOfType(type);
 		if(idList == null) return;
-		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
+		MigrationTypeCount result = entityServletHelper.deleteMigrationType(adminUserId, type, idList);
 		System.out.println("Deleted: "+result);
 	}
 	
@@ -798,7 +798,7 @@ public class MigrationIntegrationAutowireTest {
 	 * @throws JSONObjectAdapterException
 	 */
 	private IdList getIdListOfAllOfType(MigrationType type) throws Exception{
-		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
+		RowMetadataResult list = entityServletHelper.getRowMetadata(adminUserId, type, Long.MAX_VALUE, 0);
 		if(list.getTotalCount() < 1) return null;
 		// Create the backup list
 		List<Long> toBackup = new LinkedList<Long>();
@@ -826,7 +826,7 @@ public class MigrationIntegrationAutowireTest {
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for a backup/restore daemon",elapse < MAX_WAIT_MS);
-			status = entityServletHelper.getBackupRestoreStatus(userName, status.getId());
+			status = entityServletHelper.getBackupRestoreStatus(adminUserId, status.getId());
 		}
 	}
 

@@ -34,7 +34,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	FileHandleManager fileHandleManager;
 	
 	@Override
-	public V2WikiPage createWikiPage(String userId, String objectId,
+	public V2WikiPage createWikiPage(Long userId, String objectId,
 			ObjectType entity, V2WikiPage toCreate) throws DatastoreException,
 			NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -42,14 +42,14 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public V2WikiPage getWikiPage(String userId, WikiPageKey key, Long version)
+	public V2WikiPage getWikiPage(Long userId, WikiPageKey key, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return wikiManager.getWikiPage(user, key, version);
 	}
 	
 	@Override
-	public V2WikiPage updateWikiPage(String userId, String objectId,
+	public V2WikiPage updateWikiPage(Long userId, String objectId,
 			ObjectType objectType, V2WikiPage toUpdate)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -57,7 +57,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public V2WikiPage restoreWikipage(String userId, String objectId,
+	public V2WikiPage restoreWikipage(Long userId, String objectId,
 			ObjectType objectType, String wikiId, Long version)
 			throws NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -65,14 +65,14 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public void deleteWikiPage(String userId, WikiPageKey wikiPageKey)
+	public void deleteWikiPage(Long userId, WikiPageKey wikiPageKey)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		wikiManager.deleteWiki(user, wikiPageKey);
 	}
 
 	@Override
-	public PaginatedResults<V2WikiHeader> getWikiHeaderTree(String userId,
+	public PaginatedResults<V2WikiHeader> getWikiHeaderTree(Long userId,
 			String ownerId, ObjectType type, Long limit, Long offest)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -81,7 +81,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 
 	@Override
 	public PaginatedResults<V2WikiHistorySnapshot> getWikiHistory(
-			String userId, String ownerId, ObjectType type, Long limit,
+			Long userId, String ownerId, ObjectType type, Long limit,
 			Long offset, WikiPageKey wikiPageKey) throws DatastoreException,
 			NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -89,7 +89,7 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public FileHandleResults getAttachmentFileHandles(String userId,
+	public FileHandleResults getAttachmentFileHandles(Long userId,
 			WikiPageKey wikiPageKey, Long version) throws DatastoreException,
 			NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
@@ -97,33 +97,33 @@ public class V2WikiServiceImpl implements V2WikiService {
 	}
 
 	@Override
-	public URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey,
-			String fileName) throws DatastoreException, NotFoundException {
+	public URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey,
+			String fileName, Long version) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, version);
 		return fileHandleManager.getRedirectURLForFileHandle(id);
 	}
 
 	@Override
-	public URL getAttachmentPreviewRedirectURL(String userId,
-			WikiPageKey wikiPageKey, String fileName)
+	public URL getAttachmentPreviewRedirectURL(Long userId,
+			WikiPageKey wikiPageKey, String fileName, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, version);
 		String previewId = fileHandleManager.getPreviewFileHandleId(id);
 		// Get the URL of the preview.
 		return fileHandleManager.getRedirectURLForFileHandle(previewId);
 	}
 
 	@Override
-	public V2WikiPage getRootWikiPage(String userId, String ownerId,
+	public V2WikiPage getRootWikiPage(Long userId, String ownerId,
 			ObjectType type) throws UnauthorizedException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return wikiManager.getRootWikiPage(user, ownerId, type);
 	}
 
 	@Override
-	public URL getMarkdownRedirectURL(String userId, WikiPageKey wikiPageKey, Long version)
+	public URL getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		String id = wikiManager.getMarkdownFileHandleId(user, wikiPageKey, version);

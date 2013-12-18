@@ -9,5 +9,5 @@ public interface DoiAdminManager {
 	/**
 	 * Clears DOI data.
 	 */
-	void clear(String userName) throws NotFoundException, UnauthorizedException, DatastoreException;
+	void clear(Long userId) throws NotFoundException, UnauthorizedException, DatastoreException;
 }

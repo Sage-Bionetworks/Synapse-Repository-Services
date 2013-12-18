@@ -53,8 +53,9 @@ public class AuthenticationServiceImplTest {
 		userInfo.getIndividualGroup().setId("" + userId);
 		
 		mockUserManager = Mockito.mock(UserManager.class);
-		when(mockUserManager.getUserInfo(eq(username))).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
 		when(mockUserManager.getGroupName(anyString())).thenReturn(username);
+		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenReturn(userId);

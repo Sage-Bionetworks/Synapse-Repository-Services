@@ -61,7 +61,7 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.POST)
 	public @ResponseBody
 	ColumnModel createColumnModel(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ColumnModel toCreate) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices().createColumnModel(userId,
@@ -84,7 +84,7 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.COLUMN_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	ColumnModel getColumnModel(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String columnId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices().getColumnModel(userId,
@@ -109,7 +109,7 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_COLUMNS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedColumnModels getColumnForTable(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices()
@@ -141,7 +141,7 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.COLUMN, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedColumnModels listColumnModels(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = false) String prefix,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset)
@@ -185,7 +185,7 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE, method = RequestMethod.POST)
 	public @ResponseBody
 	RowReferenceSet appendRows(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody RowSet rows)
 			throws DatastoreException, NotFoundException, IOException {
 		if(id == null) throw new IllegalArgumentException("{id} cannot be null");

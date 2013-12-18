@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.web.service.table;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -28,7 +26,7 @@ public interface TableServices {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ColumnModel createColumnModel(String userId, ColumnModel model) throws DatastoreException, NotFoundException;
+	public ColumnModel createColumnModel(Long userId, ColumnModel model) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a ColumnModel for a given ID
@@ -39,7 +37,7 @@ public interface TableServices {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ColumnModel getColumnModel(String userId, String columnId) throws DatastoreException, NotFoundException;
+	public ColumnModel getColumnModel(Long userId, String columnId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the ColumnModels for a TableEntity
@@ -49,7 +47,7 @@ public interface TableServices {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public PaginatedColumnModels getColumnModelsForTableEntity(String userId, String entityId) throws DatastoreException, NotFoundException;
+	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, String entityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * List all of the the ColumnModels.
@@ -61,7 +59,7 @@ public interface TableServices {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedColumnModels listColumnModels(String userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException;
+	public PaginatedColumnModels listColumnModels(Long userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Append rows to a table.
@@ -73,6 +71,6 @@ public interface TableServices {
 	 * @throws DatastoreException 
 	 * @throws IOException 
 	 */
-	public RowReferenceSet appendRows(String userId, RowSet rows) throws DatastoreException, NotFoundException, IOException;
+	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException;
 	
 }

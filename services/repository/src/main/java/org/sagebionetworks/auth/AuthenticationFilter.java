@@ -21,6 +21,7 @@ import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -82,14 +83,13 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		// Determine the caller's identity
-		String username = null;
+		Long userId = null;
 		
 		// A session token maps to a specific user
 		if (!isSessionTokenEmptyOrNull(sessionToken)) {
 			String failureReason = "Invalid session token";
 			try {
-				String userId = authenticationService.revalidate(sessionToken, false);
-				username = authenticationService.getUsername(userId);
+				userId = authenticationService.revalidate(sessionToken, false);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
@@ -103,9 +103,10 @@ public class AuthenticationFilter implements Filter {
 		// If there is no session token, then check for a HMAC signature
 		} else if (isSigned(req)) {
 			String failureReason = "Invalid HMAC signature";
-			username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
+			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {
-				String secretKey = authenticationService.getSecretKey(username);
+				userId = authenticationService.getUserId(username);
+				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
@@ -118,7 +119,7 @@ public class AuthenticationFilter implements Filter {
 			}
 		}
 		
-		if (username == null && !allowAnonymous) {
+		if (userId == null && !allowAnonymous) {
 			String reason = "The session token provided was missing, invalid or expired.";
 			reject(req, (HttpServletResponse) servletResponse, reason);
 			log.warn("Anonymous not allowed");
@@ -126,12 +127,12 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		// If the user has been identified, check if they have accepted the terms of use
-		if (username != null) {
+		if (userId != null) {
 			boolean toUCheck = false;
 			try {
-				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(username);
+				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId);
 			} catch (NotFoundException e) {
-				String reason = "User " + username + " does not exist";
+				String reason = "User " + userId + " does not exist";
 				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
 				log.error("This should be unreachable", e);
 				return;
@@ -143,16 +144,14 @@ public class AuthenticationFilter implements Filter {
 			}	
 		}
 		
-		if (username == null) {
-			//TODO This must be refactored to use a Long rather than a string
-			// Only kept in place to keep a refactoring commit as small as possible
-			username = "anonymous@sagebase.org";
+		if (userId == null) {
+			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		}
 
 		// Pass along, including the user ID
 		@SuppressWarnings("unchecked")
 		Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { username });
+		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
 		filterChain.doFilter(modRqst, servletResponse);
 	}

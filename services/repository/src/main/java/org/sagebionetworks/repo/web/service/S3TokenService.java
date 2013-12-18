@@ -25,7 +25,7 @@ public interface S3TokenService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public S3Token createEntityS3Token(String userId, String id,
+	public S3Token createEntityS3Token(Long userId, String id,
 			S3Token s3Token, HttpServletRequest request)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, InvalidModelException;

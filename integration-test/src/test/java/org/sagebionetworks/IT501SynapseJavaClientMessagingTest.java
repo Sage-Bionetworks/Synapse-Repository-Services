@@ -19,6 +19,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -34,6 +35,8 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
  * Related to IT500SynapseJavaClient
  */
 public class IT501SynapseJavaClientMessagingTest {
+	
+	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
@@ -48,7 +51,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static String oneId;
 	private static String twoId;
 
-	private S3FileHandle oneToRuleThemAll;
+	private static S3FileHandle oneToRuleThemAll;
 
 	private MessageToUser oneToTwo;
 	private MessageToUser twoToOne;
@@ -72,12 +75,6 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
-	}
-	
-	@SuppressWarnings("serial")
-	@Before
-	public void before() throws Exception {
-		cleanup = new ArrayList<String>();
 		
 		// Create a file handle to use with all the messages
 		PrintWriter pw = null;
@@ -94,6 +91,12 @@ public class IT501SynapseJavaClientMessagingTest {
 			}
 		}
 		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain");
+	}
+	
+	@SuppressWarnings("serial")
+	@Before
+	public void before() throws Exception {
+		cleanup = new ArrayList<String>();
 
 		oneToTwo = new MessageToUser();
 		oneToTwo.setFileHandleId(oneToRuleThemAll.getId());
@@ -126,18 +129,38 @@ public class IT501SynapseJavaClientMessagingTest {
 		if (project != null) {
 			try {
 				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (Exception e) { }
+			} catch (SynapseNotFoundException e) { }
 		}
-		
-		try {
-			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (Exception e) { }
 	}
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
+		// Delete the file handle and its preview
+		waitForPreviewToBeCreated(oneToRuleThemAll);
+		try {
+			adminSynapse.deleteFileHandle(oneToRuleThemAll.getPreviewId());
+		} catch (SynapseNotFoundException e) { }
+		try {
+			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
+		} catch (SynapseNotFoundException e) { }
+		
 		adminSynapse.deleteUser(user1ToDelete);
 		adminSynapse.deleteUser(user2ToDelete);
+	}
+
+	/**
+	 * Wait for a preview to be generated for the given file handle
+	 */
+	private static void waitForPreviewToBeCreated(S3FileHandle fileHandle) throws Exception {
+		long start = System.currentTimeMillis();
+		while (fileHandle.getPreviewId() == null) {
+			System.out.println("Waiting for a preview file to be created");
+			Thread.sleep(500);
+			assertTrue("Timed out waiting for a preview to be created",
+					(System.currentTimeMillis() - start) < MAX_WAIT_MS);
+			fileHandle = (S3FileHandle) adminSynapse.getRawFileHandle(fileHandle
+					.getId());
+		}
 	}
 
 	@SuppressWarnings("serial")

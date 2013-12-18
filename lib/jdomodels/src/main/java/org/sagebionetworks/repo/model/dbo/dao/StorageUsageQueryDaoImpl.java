@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimensionValue;
@@ -118,9 +117,9 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 	}
 
 	@Override
-	public Long getTotalSizeForUser(String userId) throws DatastoreException {
+	public Long getTotalSizeForUser(Long userId) throws DatastoreException {
 
-		if (userId == null || userId.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
@@ -133,9 +132,9 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 	}
 
 	@Override
-	public Long getTotalCountForUser(String userId) throws DatastoreException {
+	public Long getTotalCountForUser(Long userId) throws DatastoreException {
 
-		if (userId == null || userId.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
@@ -157,11 +156,11 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 	}
 
 	@Override
-	public StorageUsageSummaryList getAggregatedUsageForUser(String userId,
+	public StorageUsageSummaryList getAggregatedUsageForUser(Long userId,
 			List<StorageUsageDimension> dimensionList)
 			throws DatastoreException, InvalidModelException {
 
-		if (userId == null || userId.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 		if (dimensionList == null) {
@@ -192,10 +191,10 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 	}
 
 	@Override
-	public List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
+	public List<StorageUsage> getUsageInRangeForUser(Long userId, long beginIncl, long endExcl)
 			throws DatastoreException {
 
-		if (userId == null || userId.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
@@ -210,8 +209,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(OFFSET_PARAM_NAME, beginIncl);
 		paramMap.addValue(LIMIT_PARAM_NAME, endExcl - beginIncl);
-		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userId);
 		List<DBOFileHandle> dboList = simpleJdbcTemplate.query(
 				SELECT_STORAGE_USAGE_FOR_USER_PAGINATED, rowMapper, paramMap);
 
@@ -245,7 +243,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return total;
 	}
 
-	private Long getTotalSizeForUser(String userId, boolean s3Only) throws DatastoreException {
+	private Long getTotalSizeForUser(Long userId, boolean s3Only) throws DatastoreException {
 
 		String sql = SELECT_SUM_SIZE_FOR_USER;
 		if (s3Only) {
@@ -253,8 +251,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userId);
 		long total = simpleJdbcTemplate.queryForLong(sql, paramMap);
 		return total;
 	}
@@ -265,7 +262,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return count;
 	}
 
-	private Long getTotalCountForUser(String userId, boolean s3Only) throws DatastoreException {
+	private Long getTotalCountForUser(Long userId, boolean s3Only) throws DatastoreException {
 
 		String sql = SELECT_COUNT_FOR_USER;
 		if (s3Only) {
@@ -273,8 +270,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userId);
 		Long count = simpleJdbcTemplate.queryForLong(sql, paramMap);
 		return count;
 	}
@@ -341,7 +337,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 	 * Gets aggregated results for user. Gets the specific type of aggregations (sum, count, etc.)
 	 * by passing in the appropriate SQL parts. 
 	 */
-	private StorageUsageSummaryList getAggregatedResultsForUser(String userId,
+	private StorageUsageSummaryList getAggregatedResultsForUser(Long userId,
 			List<StorageUsageDimension> dimensionList, String sqlPart1, String sqlPart2)
 			throws DatastoreException, InvalidModelException {
 
@@ -360,8 +356,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 
 		String sql = getAggregateSql(sqlPart1, sqlPart2, columnList);
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		Long userIdLong = KeyFactory.stringToKey(userId);
-		paramMap.addValue(COL_FILES_CREATED_BY, userIdLong);
+		paramMap.addValue(COL_FILES_CREATED_BY, userId);
 		List<Map<String, Object>> rows = simpleJdbcTemplate.queryForList(sql, paramMap);
 		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
 		fillSummaryList(columnList, summaries, rows);
@@ -369,7 +364,7 @@ public final class StorageUsageQueryDaoImpl implements StorageUsageQueryDao {
 		return summaryList;
 	}
 
-	private StorageUsageSummaryList createEmptySummaryList(String userId) {
+	private StorageUsageSummaryList createEmptySummaryList(Long userId) {
 
 		StorageUsageSummaryList summaryList = new StorageUsageSummaryList();
 

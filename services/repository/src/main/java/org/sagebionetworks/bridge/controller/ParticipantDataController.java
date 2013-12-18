@@ -41,7 +41,7 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ID, method = RequestMethod.POST)
 	public @ResponseBody
-	RowSet appendParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	RowSet appendParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@PathVariable String participantDataId, @RequestBody RowSet data) throws Exception {
 		return serviceProvider.getParticipantDataService().append(userId, participantDataId, data);
 	}
@@ -59,7 +59,7 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.APPEND_FOR_PARTICIPANT_DATA, method = RequestMethod.POST)
 	public @ResponseBody
-	RowSet appendParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	RowSet appendParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@PathVariable String participantId, @PathVariable String participantDataId, @RequestBody RowSet data) throws Exception {
 		return serviceProvider.getParticipantDataService().append(userId, participantId, participantDataId, data);
 	}
@@ -76,7 +76,7 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ID, method = RequestMethod.PUT)
 	public @ResponseBody
-	RowSet updateParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	RowSet updateParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@PathVariable String participantDataId, @RequestBody RowSet data) throws Exception {
 		return serviceProvider.getParticipantDataService().update(userId, participantDataId, data);
 	}
@@ -95,7 +95,7 @@ public class ParticipantDataController {
 	PaginatedRowSet getParticipantData(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@PathVariable String participantDataId) throws Exception {
 		return serviceProvider.getParticipantDataService().get(userId, participantDataId, limit, offset);
 	}
@@ -116,7 +116,7 @@ public class ParticipantDataController {
 	PaginatedResults<ParticipantDataDescriptor> getUserParticipantDatas(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getParticipantDataService().getUserParticipantDataDescriptors(userId, limit, offset);
 	}
@@ -132,7 +132,8 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR, method = RequestMethod.POST)
 	public @ResponseBody
-	ParticipantDataDescriptor createParticipantDataDescriptor(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	ParticipantDataDescriptor createParticipantDataDescriptor(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@RequestBody ParticipantDataDescriptor participantDataDescriptor) throws Exception {
 		return serviceProvider.getParticipantDataService().createParticipantDataDescriptor(userId, participantDataDescriptor);
 	}
@@ -149,7 +150,8 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	ParticipantDataDescriptor getParticipantDataDescriptor(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	ParticipantDataDescriptor getParticipantDataDescriptor(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@PathVariable String participantDataId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getParticipantDataService().getParticipantDataDescriptor(userId, participantDataId);
 	}
@@ -170,7 +172,7 @@ public class ParticipantDataController {
 	PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getParticipantDataService().getAllParticipantDataDescriptors(userId, limit, offset);
 	}
@@ -187,7 +189,7 @@ public class ParticipantDataController {
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_COLUMN_DESCRIPTORS, method = RequestMethod.POST)
 	public @ResponseBody
 	ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@RequestBody ParticipantDataColumnDescriptor participantDataColumnDescriptor) throws Exception {
 		return serviceProvider.getParticipantDataService().createParticipantDataColumnDescriptor(userId, participantDataColumnDescriptor);
 	}
@@ -209,7 +211,7 @@ public class ParticipantDataController {
 	PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId, @PathVariable String participantDataId)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId, @PathVariable String participantDataId)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getParticipantDataService().getParticipantDataColumnDescriptors(userId, participantDataId, limit, offset);
 	}

@@ -355,6 +355,15 @@ public class ITV2WikiPageTest {
 				previewFile.delete();
 			}
 		}
+		
+		// Update wiki and remove all attachments
+		wiki.getAttachmentFileHandleIds().clear();
+		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
+		FileHandleResults resultsUpdatedAgain = synapse.getV2WikiAttachmentHandles(key);
+		assertEquals(0, resultsUpdatedAgain.getList().size());
+		// Make sure we can get the URL to render the image when viewing an old version of the wiki
+		URL tempUrlForVersion = synapse.getVersionOfV2WikiAttachmentTemporaryUrl(key, handle.getFileName(), new Long(0));
+		assertNotNull(tempUrlForVersion);
 	}
 	
 	/**

@@ -56,13 +56,15 @@ public class AsynchronousMigrationAutowireTest {
 
 	private List<String> toDelete;
 	
-	private UserInfo adminUserInfo;
+	private Long adminUserId;
+	UserInfo adminUserInfo;
 	private Project project;
 	private V2WikiPage wikiPage;
 	
 	@Before
 	public void before() throws Exception{
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
 		toDelete = new ArrayList<String>();
 		
 		// Create a project
@@ -80,7 +82,7 @@ public class AsynchronousMigrationAutowireTest {
 		at.setMd5("3b54d27920bfe247442f8005dd071664");
 		at.setContentType("application/json");
 		at.setFileName("foo.bar");
-		S3AttachmentToken token = s3TokenManager.createS3AttachmentToken(adminUserInfo.getIndividualGroup().getId(), project.getId(), at);
+		S3AttachmentToken token = s3TokenManager.createS3AttachmentToken(adminUserId, project.getId(), at);
 
 		AttachmentData ad = new AttachmentData();
 		ad.setContentType("application/json");
@@ -96,7 +98,7 @@ public class AsynchronousMigrationAutowireTest {
 	}
 	
 	@After
-	public void after(){
+	public void after() throws Exception {
 		for (String id: toDelete) {
 			try {
 				entityManager.deleteEntity(adminUserInfo, id);

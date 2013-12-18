@@ -146,6 +146,9 @@ public class IT055WikiPageTest {
 		}catch(SynapseException e){
 			// expected;
 		}
+		
+		// Make sure cleanup of the file handle can be performed without race conditions
+		waitForPreviewToBeCreated(fileHandle);
 	}
 	
 	@Test

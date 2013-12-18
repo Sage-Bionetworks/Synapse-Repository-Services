@@ -30,7 +30,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for GET requests
 	 * @throws DatastoreException
 	 */
-	String presignS3GETUrl(String userId, String path) throws DatastoreException;
+	String presignS3GETUrl(Long userId, String path) throws DatastoreException;
 	
 	/**
 	 * Return a pre-signed URL for use in downloading files from S3. The
@@ -51,7 +51,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for GET requests
 	 * @throws DatastoreException
 	 */
-	String presignS3GETUrl(String userId, String s3Key, int expiresSeconds)
+	String presignS3GETUrl(Long userId, String s3Key, int expiresSeconds)
 			throws DatastoreException;
 
 	/**
@@ -68,7 +68,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for GET requests
 	 * @throws DatastoreException
 	 */
-	String presignS3GETUrlShortLived(String userId, String path) throws DatastoreException;
+	String presignS3GETUrlShortLived(Long userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use checking the status of files in S3, such
@@ -89,7 +89,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for HEAD requests
 	 * @throws DatastoreException
 	 */
-	String presignS3HEADUrl(String userId, String path) throws DatastoreException;
+	String presignS3HEADUrl(Long userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use checking the status of files in S3, such
@@ -110,7 +110,7 @@ public interface LocationHelper {
 	 * @return a pre-signed S3 URL valid for HEAD requests
 	 * @throws DatastoreException
 	 */
-	String presignS3HEADUrl(String userId, String s3Key, int expiresSeconds)
+	String presignS3HEADUrl(Long userId, String s3Key, int expiresSeconds)
 			throws DatastoreException;
 
 	/**
@@ -134,7 +134,7 @@ public interface LocationHelper {
 	 * @return a pre-signed URL valid for PUT requests
 	 * @throws DatastoreException
 	 */
-	String presignS3PUTUrl(String userId, String path, String md5, String contentType)
+	String presignS3PUTUrl(Long userId, String path, String md5, String contentType)
 			throws DatastoreException;
 	
 	/**
@@ -159,7 +159,7 @@ public interface LocationHelper {
 	 * @throws DatastoreException 
 	 * @throws NumberFormatException 
 	 */
-	Credentials createFederationTokenForS3(String userId, HttpMethod method,
+	Credentials createFederationTokenForS3(Long userId, HttpMethod method,
 			String s3Key) throws NumberFormatException, DatastoreException;
 
 	/**
