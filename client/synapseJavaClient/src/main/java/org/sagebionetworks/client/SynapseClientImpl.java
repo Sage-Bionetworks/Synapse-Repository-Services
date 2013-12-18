@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
@@ -65,7 +66,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -138,6 +139,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -4942,14 +4945,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void createUser(NewUser user) throws SynapseException {
-		createUser(user, OriginatingClient.SYNAPSE);
+		createUser(user, DomainType.SYNAPSE);
 	}
 	
 	@Override
-	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException {
+	public void createUser(NewUser user, DomainType originClient) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			Map<String,String> parameters = originClient.getParameterMap();
+			Map<String, String> parameters = Maps.newHashMap();
+			parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -4958,16 +4962,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException{
-		sendPasswordResetEmail(email, OriginatingClient.SYNAPSE);
+		sendPasswordResetEmail(email, DomainType.SYNAPSE);
 	}
 	
 	@Override
-	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException{
+	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			Map<String,String> parameters = originClient.getParameterMap();
+			Map<String, String> parameters = Maps.newHashMap();
+			parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 			getSharedClientConnection().postJson(authEndpoint, "/user/password/email", obj.toString(), getUserAgent(),
 					parameters);
 		} catch (JSONObjectAdapterException e) {
@@ -5011,18 +5016,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary) throws SynapseException {
-		return passThroughOpenIDParameters(queryString, createUserIfNecessary, OriginatingClient.SYNAPSE);
+		return passThroughOpenIDParameters(queryString, createUserIfNecessary, DomainType.SYNAPSE);
 	}
 	
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, DomainType originClient) throws SynapseException {
+		Map<String, String> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 		try {
 			URIBuilder builder = new URIBuilder();
 			builder.setPath("/openIdCallback");
 			builder.setQuery(queryString);
 			builder.setParameter("org.sagebionetworks.createUserIfNecessary", createUserIfNecessary.toString());
 			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
-					getUserAgent(), originClient.getParameterMap());
+					getUserAgent(), parameters);
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);

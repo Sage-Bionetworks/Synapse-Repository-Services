@@ -14,7 +14,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -92,7 +92,7 @@ public class AuthenticationServiceImplTest {
 		info.setEmail(username);
 		info.setFullName(fullName);
 		
-		service.processOpenIDInfo(info, true, OriginatingClient.SYNAPSE);
+		service.processOpenIDInfo(info, true, DomainType.SYNAPSE);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));

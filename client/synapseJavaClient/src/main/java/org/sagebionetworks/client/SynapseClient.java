@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -1137,7 +1137,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Creates a user
 	 */
-	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException;
+	public void createUser(NewUser user, DomainType originClient) throws SynapseException;
 
 	/**
 	 * Changes the registering user's password
@@ -1157,7 +1157,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Sends a password reset email to the given user
 	 */
-	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException;
+	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException;
 	
 	/**
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
@@ -1181,6 +1181,6 @@ public interface SynapseClient extends BaseClient {
 	 *            party provider (Synapse or Bridge)?
 	 */
 	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary, OriginatingClient originClient)
+			Boolean createUserIfNecessary, DomainType originClient)
 			throws SynapseException;
 }
