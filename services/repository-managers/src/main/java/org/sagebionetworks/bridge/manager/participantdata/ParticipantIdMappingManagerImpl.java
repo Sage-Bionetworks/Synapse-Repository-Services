@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
 
-public class ParticipantDataMappingManagerImpl implements ParticipantDataMappingManager {
+public class ParticipantIdMappingManagerImpl implements ParticipantDataIdManager {
 
 	@Autowired
 	private BridgeParticipantDAO participantDAO;

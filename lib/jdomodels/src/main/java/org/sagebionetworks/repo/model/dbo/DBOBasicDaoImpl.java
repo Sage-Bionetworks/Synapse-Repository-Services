@@ -213,16 +213,16 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 
 	@Override
 	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
-		return getObjectByPrimaryKeyWithUpdateLock(clazz, namedParameters, false);
+		return doGetObjectByPrimaryKey(clazz, namedParameters, false);
 	}
 	
 	@Override
 	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
 			throws DatastoreException, NotFoundException {
-		return getObjectByPrimaryKeyWithUpdateLock(clazz, namedParameters, true);
+		return doGetObjectByPrimaryKey(clazz, namedParameters, true);
 	}
 
-	private <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters,
+	private <T extends DatabaseObject<T>> T doGetObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters,
 			boolean updateLock) throws DatastoreException, NotFoundException {
 		if (clazz == null)
 			throw new IllegalArgumentException("Clazz cannot be null");

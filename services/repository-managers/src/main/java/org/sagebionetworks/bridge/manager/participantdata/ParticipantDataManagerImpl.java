@@ -17,7 +17,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	@Autowired
 	private ParticipantDataDAO participantDataDAO;
 	@Autowired
-	private ParticipantDataMappingManager participantDataMappingManager;
+	private ParticipantDataIdManager participantDataMappingManager;
 
 	@Override
 	public RowSet appendData(UserInfo userInfo, String participantId, String participantDataId, RowSet data) throws DatastoreException,
@@ -39,6 +39,9 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	public RowSet updateData(UserInfo userInfo, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
+		if (participantId == null) {
+			throw new NotFoundException("No data to update found for this user");
+		}
 		return participantDataDAO.update(participantId, participantDataId, data);
 	}
 
@@ -47,6 +50,9 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 			throws DatastoreException, NotFoundException, IOException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
+		if (participantId == null) {
+			throw new NotFoundException("No data found for this user");
+		}
 		RowSet rowset = participantDataDAO.get(participantId, participantDataId);
 		Long totalNumberOfResults = (long) rowset.getRows().size();
 		rowset.setRows(PaginatedResultsUtil.prePaginate(rowset.getRows(), limit, offset));

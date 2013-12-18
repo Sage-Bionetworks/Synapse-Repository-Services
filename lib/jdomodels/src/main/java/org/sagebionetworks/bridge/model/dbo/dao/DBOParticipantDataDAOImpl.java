@@ -86,7 +86,7 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowSet append(String participantId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException,
+	public RowSet append(String participantId, String participantDataDescriptorId, RowSet data) throws DatastoreException, NotFoundException,
 			IOException {
 
 		for (Row row : data.getRows()) {
@@ -95,7 +95,8 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			}
 		}
 
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD, participantDataId).addValue(
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(
 				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		try {
@@ -105,7 +106,7 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			return storeData(data, participantData, dataTable, false);
 		} catch (NotFoundException e) {
 			DBOParticipantData participantData = new DBOParticipantData();
-			participantData.setParticipantDataDescriptorId(Long.parseLong(participantDataId));
+			participantData.setParticipantDataDescriptorId(Long.parseLong(participantDataDescriptorId));
 			participantData.setParticipantId(Long.parseLong(participantId));
 			participantData.setS3_bucket(s3bucket);
 			participantData.setS3_key(participantData.getParticipantDataDescriptorId() + ":" + participantData.getParticipantId());
@@ -117,9 +118,10 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowSet update(String participantId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException,
+	public RowSet update(String participantId, String participantDataDescriptorId, RowSet data) throws DatastoreException, NotFoundException,
 			IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD, participantDataId).addValue(
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(
 				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
@@ -146,8 +148,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	@Override
-	public RowSet get(String participantId, String participantDataId) throws DatastoreException, NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD, participantDataId).addValue(
+	public RowSet get(String participantId, String participantDataDescriptorId) throws DatastoreException, NotFoundException, IOException {
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(
 				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
@@ -160,8 +163,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String participantId, String participantDataId) throws DatastoreException, NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD, participantDataId).addValue(
+	public void delete(String participantId, String participantDataDescriptorId) throws DatastoreException, NotFoundException, IOException {
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(
 				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
@@ -172,8 +176,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 	}
 
 	@Override
-	public String findParticipantForParticipantData(List<String> participantIds, String participantDataId) {
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_ID, participantDataId).addValue(PARTICIPANT_IDS,
+	public String findParticipantForParticipantData(List<String> participantIds, String participantDataDescriptorId) {
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_ID, participantDataDescriptorId).addValue(
+				PARTICIPANT_IDS,
 				participantIds);
 		List<String> result = simpleJdbcTemplate.query(SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA, new SingleColumnRowMapper<String>(String.class),
 				params);

@@ -131,50 +131,52 @@ public interface BridgeClient extends BaseClient {
 	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException;
 
 	/**
-	 * Upload new participant provided data for this participant for a specific data set
+	 * Upload new participant provided data for this participant for a specific data set (creates new data set if it
+	 * doesn't exist already)
 	 * 
 	 * @param data
-	 * @param participantDataId the id of the participantData to append to
+	 * @param participantDataDescriptorId the id of the participantData to append to
 	 * @throws SynapseException
 	 */
-	public RowSet appendParticipantData(String participantDataId, RowSet data) throws SynapseException;
+	public RowSet appendParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException;
 
 	/**
 	 * Upload new participant provided data for a participant
 	 * 
 	 * @param participantIdentifier the de-identified identifier for the participant
-	 * @param participantDataId the id of the participantData to append to
+	 * @param participantDataDescriptorId the id of the participantData to append to
 	 * @param data
 	 * @throws SynapseException
 	 */
-	public RowSet appendParticipantData(String participantIdentifier, String participantDataId, RowSet data) throws SynapseException;
+	public RowSet appendParticipantData(String participantIdentifier, String participantDataDescriptorId, RowSet data)
+			throws SynapseException;
 
 	/**
 	 * Upload changed participant provided data
 	 * 
-	 * @param participantIdentifier the de-identified identifier for the participant
-	 * @param participantDataId the id of the participantData to append to
+	 * @param participantDataDescriptorId the id of the participantData to append to
 	 * @param data
 	 * @throws SynapseException
 	 */
-	public RowSet updateParticipantData(String participantDataId, RowSet data) throws SynapseException;
+	public RowSet updateParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException;
 
 	/**
 	 * retrieve participant data
 	 * 
-	 * @param participantDataId the id of the participantData to retrieve
+	 * @param participantDataDescriptorId the id of the participantData to retrieve
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedRowSet getParticipantData(String participantDataId, long limit, long offset) throws SynapseException;
+	public PaginatedRowSet getParticipantData(String participantDataDescriptorId, long limit, long offset) throws SynapseException;
 
-	public ParticipantDataDescriptor createParticipantData(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException;
+	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException;
 
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException;
 
 	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException;
 
-	public ParticipantDataColumnDescriptor createParticipantDataColumn(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
 
-	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumns(String participantDataId, long limit, long offset) throws SynapseException;
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(String participantDataDescriptorId,
+			long limit, long offset) throws SynapseException;
 }

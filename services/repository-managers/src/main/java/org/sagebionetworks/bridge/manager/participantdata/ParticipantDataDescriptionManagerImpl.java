@@ -18,7 +18,7 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	private ParticipantDataDescriptorDAO participantDataDescriptorDAO;
 
 	@Autowired
-	private ParticipantDataMappingManager participantDataMappingManager;
+	private ParticipantDataIdManager participantDataMappingManager;
 
 	@Override
 	public ParticipantDataDescriptor createParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor) {

@@ -177,31 +177,32 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public RowSet appendParticipantData(String participantDataId, RowSet data) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataId;
+	public RowSet appendParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
 		return create(uri, data);
 	}
 
 	@Override
-	public RowSet appendParticipantData(String participantIdentifier, String participantDataId, RowSet data) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataId + "/" + PARTICIPANT + "/" + participantIdentifier;
+	public RowSet appendParticipantData(String participantIdentifier, String participantDataDescriptorId, RowSet data)
+			throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/" + PARTICIPANT + "/" + participantIdentifier;
 		return create(uri, data);
 	}
 
 	@Override
-	public RowSet updateParticipantData(String participantDataId, RowSet data) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataId;
+	public RowSet updateParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
 		return update(uri, data);
 	}
 
 	@Override
-	public PaginatedRowSet getParticipantData(String participantDataId, long limit, long offset) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataId;
+	public PaginatedRowSet getParticipantData(String participantDataDescriptorId, long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
 		return getPaginated(uri, PaginatedRowSet.class, limit, offset);
 	}
 
 	@Override
-	public ParticipantDataDescriptor createParticipantData(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException {
+	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR;
 		return create(uri, participantDataDescriptor);
 	}
@@ -219,14 +220,15 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public ParticipantDataColumnDescriptor createParticipantDataColumn(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
 		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR;
 		return create(uri, participantDataColumnDescriptor1);
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumns(String participantDataId, long limit, long offset) throws SynapseException {
-		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR + "/" + participantDataId;
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(String participantDataDescriptorId,
+			long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR + "/" + participantDataDescriptorId;
 		return getList(uri, ParticipantDataColumnDescriptor.class, limit, offset);
 	}
 

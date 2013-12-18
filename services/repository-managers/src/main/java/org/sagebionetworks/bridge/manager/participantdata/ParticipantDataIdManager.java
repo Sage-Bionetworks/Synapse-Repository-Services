@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
 
-public interface ParticipantDataMappingManager {
+public interface ParticipantDataIdManager {
 	/**
 	 * Returns a list of all participant ids for this user
 	 * 

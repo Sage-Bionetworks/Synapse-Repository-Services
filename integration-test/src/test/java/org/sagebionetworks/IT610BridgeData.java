@@ -118,19 +118,19 @@ public class IT610BridgeData {
 	public void testCreateAndDeleteParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor = bridge.createParticipantData(participantDataDescriptor);
+		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 		
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumn(participantDataColumnDescriptor1);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumn(participantDataColumnDescriptor2);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
 
 		List<String> headers = Lists.newArrayList("level", "size");
 
@@ -170,19 +170,19 @@ public class IT610BridgeData {
 	public void testPaginatedParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor = bridge.createParticipantData(participantDataDescriptor);
+		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumn(participantDataColumnDescriptor1);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumn(participantDataColumnDescriptor2);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
 
 		List<String> headers = Lists.newArrayList("level", "size");
 
@@ -216,19 +216,19 @@ public class IT610BridgeData {
 	public void testReplaceParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor = bridge.createParticipantData(participantDataDescriptor);
+		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumn(participantDataColumnDescriptor1);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumn(participantDataColumnDescriptor2);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
 
 		List<String> headers = Lists.newArrayList("level", "size");
 
