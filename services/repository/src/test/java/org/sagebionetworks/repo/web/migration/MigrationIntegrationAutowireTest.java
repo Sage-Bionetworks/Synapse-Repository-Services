@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -48,7 +49,11 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.NameType;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PrincipalHeader;
+import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
+import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -89,7 +94,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
 import org.sagebionetworks.repo.web.controller.EntityServletTestHelper;
@@ -151,6 +155,9 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private PrincipalHeaderDAO prinHeadDAO;
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -241,6 +248,7 @@ public class MigrationIntegrationAutowireTest {
 		createDoi();
 		createStorageQuota();
 		UserGroup sampleGroup = createUserGroups(1);
+		createPrincipalHeaders(sampleGroup);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
 		createMessages(sampleGroup, sampleFileHandleId);
@@ -513,6 +521,16 @@ public class MigrationIntegrationAutowireTest {
 		groupMembersDAO.addMembers(parentGroup.getId(), adder);
 		
 		return parentGroup;
+	}
+	
+	private void createPrincipalHeaders(UserGroup group) {
+		PrincipalHeader header = new PrincipalHeader();
+		header.setPrincipalId(Long.parseLong(group.getId()));
+		header.setIdentifier("PrincipalHeader");
+		header.setPrincipalType(PrincipalType.USER);
+		header.setDomainType(DomainType.SYNAPSE);
+		header.setNameType(NameType.ALIAS);
+		prinHeadDAO.insertNew(header);
 	}
 	
 	private void createCredentials(UserGroup group) throws Exception {

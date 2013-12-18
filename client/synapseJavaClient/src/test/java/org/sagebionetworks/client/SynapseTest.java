@@ -33,6 +33,7 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -90,13 +91,13 @@ public class SynapseTest {
 	public void testOriginatingClient() throws Exception {
 		SharedClientConnection connection = synapse.getSharedClientConnection();
 		Map<String,String> map = new HashMap<String,String>();
-		map.put("originClient", "bridge");
+		map.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.BRIDGE.name());
 		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
-		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=bridge", url);
-		
-		map.put("originClient", "synapse");
+		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=BRIDGE", url);
+
+		map.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.SYNAPSE.name());
 		url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
-		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=synapse", url);
+		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=SYNAPSE", url);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -576,11 +577,11 @@ public class SynapseTest {
 		
 		// One variation of the parameters that can be passed in
 		synapse.passThroughOpenIDParameters("some=openId&paramters=here", true, DomainType.SYNAPSE);
-		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&originClient=synapse"));
+		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?some=openId&paramters=here&org.sagebionetworks.createUserIfNecessary=true&originClient=SYNAPSE"));
 		
 		// Another variation
 		synapse.passThroughOpenIDParameters("blah=fun", false, DomainType.BRIDGE);
-		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&originClient=bridge"));
+		assertTrue("Incorrect URL: " + expectedURL, expectedURL.endsWith("/openIdCallback?blah=fun&org.sagebionetworks.createUserIfNecessary=false&originClient=BRIDGE"));
 	}
 	
 	
