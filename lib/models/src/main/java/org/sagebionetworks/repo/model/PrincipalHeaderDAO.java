@@ -9,10 +9,10 @@ import java.util.Set;
 public interface PrincipalHeaderDAO {
 
 	/**
-	 * Inserts a row into the PrincipalHeader table
+	 * Inserts a row into the PrincipalHeader table for each fragment
 	 * All fields are required
 	 */
-	public void insertNew(long principalId, String fragment, PrincipalType pType, DomainType dType);
+	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType, DomainType dType);
 	
 	/**
 	 * Deletes the ID to fragment mapping for the given principal

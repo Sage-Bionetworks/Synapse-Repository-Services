@@ -101,19 +101,18 @@ public class DBOPrincipalHeaderDAOImplTest {
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidCreate() throws Exception {
-		prinHeadDAO.insertNew(39485L, null, null, null);
+		prinHeadDAO.insertNew(39485L, Sets.newHashSet("asdf"), null, null);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testInsertNotIdempotent() throws Exception {
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE), PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE), PrincipalType.USER, DomainType.SYNAPSE);
 	}
 	
 	@Test
 	public void testCreateDelete() throws Exception {
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
-		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.SYNAPSE);
 		assertEquals(2, prinHeadDAO.delete(principalOne));
 		assertEquals(0, prinHeadDAO.delete(principalOne));
 	}
@@ -122,8 +121,8 @@ public class DBOPrincipalHeaderDAOImplTest {
 	public void testPrefixMatchFilterByEnum() throws Exception {
 		// These two rows will have completely different values
 		// But the two names will have similar prefixes
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
-		prinHeadDAO.insertNew(principalTwo, NAME_TWO, PrincipalType.TEAM, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE), PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalTwo, Sets.newHashSet(NAME_TWO), PrincipalType.TEAM, DomainType.BRIDGE);
 		
 		// With no enum filters, the prefix match should return both results
 		assertEquals(2, prinHeadDAO.countQueryResults(PREFIX, false, new HashSet<PrincipalType>(), new HashSet<DomainType>()));
@@ -169,13 +168,10 @@ public class DBOPrincipalHeaderDAOImplTest {
 	
 	@Test
 	public void testExactMatch() throws Exception {
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.TEAM, DomainType.SYNAPSE);
-		
-		// Only differs in name
-		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.TEAM, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.TEAM, DomainType.SYNAPSE);
 		
 		// Only differs in principalID
-		prinHeadDAO.insertNew(principalTwo, NAME_ONE, PrincipalType.TEAM, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalTwo, Sets.newHashSet(NAME_ONE), PrincipalType.TEAM, DomainType.SYNAPSE);
 
 		// Prefix matching no longer returns any results
 		assertEquals(0, prinHeadDAO.countQueryResults(PREFIX, true, null, null));
@@ -198,8 +194,7 @@ public class DBOPrincipalHeaderDAOImplTest {
 	@Test
 	public void testReturnDistinctIDs() throws Exception {
 		// Insert two rows belonging to the same user, but with different names
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.BRIDGE);
-		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.USER, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.BRIDGE);
 
 		// Prefix query should only return one result
 		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, null));
@@ -211,8 +206,7 @@ public class DBOPrincipalHeaderDAOImplTest {
 	@Test
 	public void testNullNameFilter() throws Exception {
 		// Insert two rows belonging to the same user, but with different names
-		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.BRIDGE);
-		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.USER, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, Sets.newHashSet(NAME_ONE, NAME_TWO), PrincipalType.USER, DomainType.BRIDGE);
 
 		// A null prefix match should return one result for each ID
 		assertEquals(1, prinHeadDAO.countQueryResults(null, false, null, null));

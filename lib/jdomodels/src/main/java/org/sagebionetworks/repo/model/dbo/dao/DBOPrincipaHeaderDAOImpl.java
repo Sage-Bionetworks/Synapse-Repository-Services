@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,16 +86,25 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void insertNew(long principalId, String fragment, PrincipalType pType, DomainType dType) {
-		DBOPrincipalHeader dbo = new DBOPrincipalHeader();
-		dbo.setPrincipalId(principalId);
+	public void insertNew(long principalId, Set<String> fragments, PrincipalType pType, DomainType dType) {
+		if (fragments == null || fragments.size() <= 0) {
+			return;
+		}
 		
-		//TODO Should preprocessing be done here or in the manager layer?
-		dbo.setFragment(fragment);
-		dbo.setPrincipalType(pType);
-		dbo.setDomainType(dType);
+		List<DBOPrincipalHeader> dbos = new ArrayList<DBOPrincipalHeader>();
+		for (String fragment : fragments) {
+			DBOPrincipalHeader dbo = new DBOPrincipalHeader();
+			dbo.setPrincipalId(principalId);
+			
+			//TODO Should preprocessing be done here or in the manager layer?
+			dbo.setFragment(fragment);
+			dbo.setPrincipalType(pType);
+			dbo.setDomainType(dType);
+			
+			dbos.add(dbo);
+		}
 		
-		basicDAO.createNew(dbo);
+		basicDAO.createBatch(dbos);
 	}
 
 	@Override
