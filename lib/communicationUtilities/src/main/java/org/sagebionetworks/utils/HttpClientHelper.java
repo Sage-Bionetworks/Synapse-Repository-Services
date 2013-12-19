@@ -12,6 +12,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -31,6 +32,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.conn.params.ConnPerRouteBean;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -58,7 +60,7 @@ public class HttpClientHelper {
 	 */
 	public static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 
-	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 500;
+	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
 	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 
 	// Note: Having this 'password' in plaintext is OK because (1) it's a well
@@ -130,6 +132,9 @@ public class HttpClientHelper {
 		schemeRegistry.register(new Scheme("https", 443, ssf));
 		// schemeRegistry.register(new Scheme("https", 8443, ssf));
 
+		// This is the maximum number connections to a single route
+		// This was increased from 2 to 100 to address SWC-
+		int maxConnectionsPerRoute = 100;
 		// TODO its unclear how to set a default for the timeout in
 		// milliseconds
 		// used when retrieving an
@@ -137,7 +142,10 @@ public class HttpClientHelper {
 		// ClientConnectionManager
 		// since parameters are now deprecated for connection managers.
 		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
-				schemeRegistry);
+				schemeRegistry,
+				-1,// max connection lifetime, <=0 implies "infinity"
+				TimeUnit.MILLISECONDS,
+				new ConnPerRouteBean(maxConnectionsPerRoute));
 		return connectionManager;
 	}
 
