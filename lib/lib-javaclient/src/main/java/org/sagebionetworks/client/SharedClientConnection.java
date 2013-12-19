@@ -385,6 +385,9 @@ public class SharedClientConnection {
 			if(input != null){
 				input.close();
 			}
+			if(temp != null){
+				temp.delete();
+			}
 		}
 	}
 
