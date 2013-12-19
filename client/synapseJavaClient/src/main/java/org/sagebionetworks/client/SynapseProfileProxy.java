@@ -51,6 +51,7 @@ public class SynapseProfileProxy {
 			try{
 				return method.invoke(wrapped, args);
 			} catch (InvocationTargetException e) {
+				log.error(e);
 				// We must catch InvocationTargetException to avoid UndeclaredThrowableExceptions
 				// see: http://amitstechblog.wordpress.com/2011/07/24/java-proxies-and-undeclaredthrowableexception/
 				throw e.getCause();
