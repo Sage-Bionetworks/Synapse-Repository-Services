@@ -647,10 +647,17 @@ public interface SynapseClient extends BaseClient {
 	public String getSynapseTermsOfUse() throws SynapseException;
 	
 	/**
-	 * uploads a String to S3 using the chunked file upload service
-	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
-	 */
-	public String uploadToFileHandle(String content, String charSet, String contentType) throws SynapseException;
+	 * Uploads a String to S3 using the chunked file upload service
+	 * Note:  Strings in memory should not be large, so we limit the length
+	 * of the byte array for the passed in string to be the size of one 'chunk'
+	 * 
+	 * @param content the string to upload.  The String is serialized "using the platform's default charset"
+	 * 
+	 * @param contentType This will become the contentType field of the resulting S3FileHandle
+	 * if not specified, this method uses "text/plain"
+	 * 
+	 */ 
+	public String uploadToFileHandle(String content, String contentType) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -660,9 +667,10 @@ public interface SynapseClient extends BaseClient {
 	
 	/**
 	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
 	 * @param message
-	 * @param messageBody
-	 * @param contentType
+	 * @param messageBody  Serialized using the "platform's default character set"
+	 * @param contentType  if null, this will be set to "text/plain"
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -676,11 +684,12 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	/**
-	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId
+	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId.
+	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
 	 * @param message
 	 * @param entityId
-	 * @param messageBody
-	 * @param contentType
+	 * @param messageBody Serialized using the "platform's default character set"
+	 * @param contentType if null, this will be set to "text/plain"
 	 * @return
 	 * @throws SynapseException
 	 */

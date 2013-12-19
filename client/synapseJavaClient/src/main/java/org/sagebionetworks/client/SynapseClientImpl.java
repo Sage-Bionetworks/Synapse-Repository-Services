@@ -3372,15 +3372,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
 	 */
 	@Override
-    public String uploadToFileHandle(String content, String charSet, String contentType) throws SynapseException {
-    	if (content==null || content.length()==0) throw new IllegalArgumentException("Missing content.");
-    	if (content.getBytes().length>=MINIMUM_CHUNK_SIZE_BYTES) 
+    public String uploadToFileHandle(String contentString, String contentType) throws SynapseException {
+    	if (contentString==null || contentString.length()==0) throw new IllegalArgumentException("Missing content.");
+    	
+    	// Note, we make sure to convert from String to byte[] just once.
+		byte[] content = contentString.getBytes();
+		
+    	if (content.length>=MINIMUM_CHUNK_SIZE_BYTES) 
     		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
-    	if (charSet==null) charSet = "UTF-8";
-		if (contentType==null) contentType = "application/txt";
+		if (contentType==null) contentType = "text/plain";
 		String contentMD5 = null;
 		try {
-			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForString(content);
+			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
 		} catch (IOException e) {
 			throw new SynapseException(e);
 		}
@@ -3400,7 +3403,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setChunkedFileToken(token);
 		request.setChunkNumber((long) currentChunkNumber);
 		URL presignedURL = createChunkedPresignedUrl(request);
-		getSharedClientConnection().putStringToURL(presignedURL, content, charSet, contentType);
+		getSharedClientConnection().putBytesToURL(presignedURL, content, contentType);
 
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 		cacr.setChunkedFileToken(token);
@@ -3410,8 +3413,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
 			
 		long backOffMillis = 100L; // initially just 1/10 sec, but will exponentially increase
-		int backOffCounter = 0;
-		while (state.equals(State.PROCESSING) && backOffCounter++<MAX_BACKOFF_TRIES) {
+		while (state.equals(State.PROCESSING) && backOffMillis<=MAX_BACKOFF_MILLIS) {
 			try {
 				Thread.sleep(backOffMillis);
 			} catch (InterruptedException e) {
@@ -3423,12 +3425,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			backOffMillis *= 2; // exponential backoff
 		}
 		
-		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+		if (!state.equals(State.COMPLETED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
 
 		return status.getFileHandleId();
     }
     
-    private static int MAX_BACKOFF_TRIES = 10;
+    private static long MAX_BACKOFF_MILLIS = 5*60*1000L; // five minutes
     
 	/**
 	 * Convenience function to upload message body, then send message using resultant fileHandleId
@@ -3442,7 +3444,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
 			throws SynapseException {
 		if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
-		String fileHandleId = uploadToFileHandle(messageBody, null, contentType);
+		String fileHandleId = uploadToFileHandle(messageBody, contentType);
 		message.setFileHandleId(fileHandleId);
     	return sendMessage(message);		
 	}
@@ -3460,7 +3462,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
 			throws SynapseException {
 				if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
-				String fileHandleId = uploadToFileHandle(messageBody, null, contentType);
+				String fileHandleId = uploadToFileHandle(messageBody, contentType);
 				message.setFileHandleId(fileHandleId);
 		    	return sendMessage(message, entityId);		
 			}

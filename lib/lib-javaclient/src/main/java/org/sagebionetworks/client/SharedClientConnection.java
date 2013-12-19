@@ -26,6 +26,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -277,23 +278,20 @@ public class SharedClientConnection {
 	}
 	
 	/**
-	 * Put the contents of the passed file to the passed URL.
+	 * Put the contents of the passed byte array to the passed URL, associating the given content type
 	 * 
 	 * @param url
-	 * @param file
-	 * @throws IOException
-	 * @throws ClientProtocolException
+	 * @param content the byte array to upload
+	 * @throws SynapseException
 	 */
-	public String putStringToURL(URL url, String content, String charset, String contentType) throws SynapseException {
+	public String putBytesToURL(URL url, byte[] content, String contentType) throws SynapseException {
 		try {
 			if (url == null)
 				throw new IllegalArgumentException("URL cannot be null");
 			if (content == null)
 				throw new IllegalArgumentException("content cannot be null");
 			HttpPut httppost = new HttpPut(url.toString());
-			// There must not be any headers added or Amazon will return a 403.
-			// Therefore, we must clear the content type.
-			org.apache.http.entity.StringEntity se = new org.apache.http.entity.StringEntity(content, charset);
+			ByteArrayEntity se = new ByteArrayEntity(content);
 			httppost.setHeader("content-type", contentType);
 			httppost.setEntity(se);
 			HttpResponse response = clientProvider.execute(httppost);

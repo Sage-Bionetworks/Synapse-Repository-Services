@@ -41,10 +41,16 @@ public class MD5ChecksumHelper {
 		return getHexString(b);
 	}
 	
-	public static String getMD5ChecksumForString(String content) throws IOException {
+	/**
+	 * Computes the MD5 for the byte array created from the String 
+	 * @param content
+	 * @return
+	 * @throws IOException
+	 */
+	public static String getMD5ChecksumForByteArray(byte[] content) throws IOException {
 		ByteArrayInputStream inputStream = null;
 		try {
-			inputStream = new ByteArrayInputStream(content.getBytes());
+			inputStream = new ByteArrayInputStream(content);
 			byte[] raw = createChecksum(inputStream);
 			return getHexString(raw);
 		} finally {
