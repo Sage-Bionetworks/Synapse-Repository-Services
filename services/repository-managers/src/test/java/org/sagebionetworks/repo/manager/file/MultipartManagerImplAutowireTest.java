@@ -127,7 +127,7 @@ public class MultipartManagerImplAutowireTest {
 		// Next add the part
 		ChunkResult part = multipartManager.copyPart(token, 1, bucket);
 		
-		// We need a lsit of parts
+		// We need a list of parts
 		List<ChunkResult> partList = new LinkedList<ChunkResult>();
 		partList.add(part);
 		CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();

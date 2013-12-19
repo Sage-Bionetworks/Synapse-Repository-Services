@@ -35,8 +35,6 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
  * Related to IT500SynapseJavaClient
  */
 public class IT501SynapseJavaClientMessagingTest {
-	
-	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
 
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
@@ -90,7 +88,7 @@ public class IT501SynapseJavaClientMessagingTest {
 				pw.close();
 			}
 		}
-		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain");
+		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false);
 	}
 	
 	@SuppressWarnings("serial")
@@ -135,32 +133,13 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		// Delete the file handle and its preview
-		waitForPreviewToBeCreated(oneToRuleThemAll);
-		try {
-			adminSynapse.deleteFileHandle(oneToRuleThemAll.getPreviewId());
-		} catch (SynapseNotFoundException e) { }
+		// Delete the file handle
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
 		} catch (SynapseNotFoundException e) { }
 		
 		adminSynapse.deleteUser(user1ToDelete);
 		adminSynapse.deleteUser(user2ToDelete);
-	}
-
-	/**
-	 * Wait for a preview to be generated for the given file handle
-	 */
-	private static void waitForPreviewToBeCreated(S3FileHandle fileHandle) throws Exception {
-		long start = System.currentTimeMillis();
-		while (fileHandle.getPreviewId() == null) {
-			System.out.println("Waiting for a preview file to be created");
-			Thread.sleep(500);
-			assertTrue("Timed out waiting for a preview to be created",
-					(System.currentTimeMillis() - start) < MAX_WAIT_MS);
-			fileHandle = (S3FileHandle) adminSynapse.getRawFileHandle(fileHandle
-					.getId());
-		}
 	}
 
 	@SuppressWarnings("serial")
