@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * Abstraction for binding alias to principals and looking up principals by alias.
@@ -19,15 +20,17 @@ public interface PrincipalAliasDAO {
 	 * 
 	 * @param binding
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public PrincipalAlias bindAliasToPrincipal(PrincipalAlias binding);
+	public PrincipalAlias bindAliasToPrincipal(PrincipalAlias binding) throws NotFoundException;
 	
 	/**
 	 * Get a principal alias by its id.
 	 * @param aliasId
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public PrincipalAlias getPrincipalAlias(Long aliasId);
+	public PrincipalAlias getPrincipalAlias(Long aliasId) throws NotFoundException;
 	
 	/**
 	 * Find a principal by an alias

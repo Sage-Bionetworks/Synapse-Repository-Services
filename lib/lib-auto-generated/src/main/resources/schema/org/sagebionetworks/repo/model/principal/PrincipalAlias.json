@@ -24,10 +24,6 @@
 		"isValidated": {
 			"type": "boolean",
 			"description": "Has this alias been validated?"
-		},
-		"isDefault": {
-			"type": "boolean",
-			"description": "Is this the default alias of this type?"
 		}
 	}
 }
