@@ -27,7 +27,7 @@ public interface AuthenticationDAO {
 	 * Updates the timestamp associated with the user's session token
 	 * It is the caller's responsibility to determine if the session token is still valid
 	 */
-	public void revalidateSessionToken(String principalId);
+	public void revalidateSessionToken(long principalId);
 	
 	/**
 	 * Changes the user's session token to the specified string
@@ -35,7 +35,7 @@ public interface AuthenticationDAO {
 	 *   To set the token to null, use deleteSessionToken()
 	 * @return The session token that was set
 	 */
-	public String changeSessionToken(String principalId, String sessionToken);
+	public String changeSessionToken(long principalId, String sessionToken);
 	
 	/** 
 	 * Fetches a session token by username (email)
@@ -75,32 +75,32 @@ public interface AuthenticationDAO {
 	/**
 	 * Changes a user's password
 	 */
-	public void changePassword(String id, String passHash);
+	public void changePassword(long principalId, String passHash);
 	
 	/**
 	 * Returns the user's secret key
 	 */
-	public String getSecretKey(String id) throws NotFoundException;
+	public String getSecretKey(long principalId) throws NotFoundException;
 	
 	/**
 	 * Generates a new secret key for the user
 	 */
-	public void changeSecretKey(String id);
+	public void changeSecretKey(long principalId);
 	
 	/**
 	 * Replaces the user's secret key with the specified one
 	 */
-	public void changeSecretKey(String id, String secretKey);
+	public void changeSecretKey(long principalId, String secretKey);
 	
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedToU(String id) throws NotFoundException;
+	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException;
 	
 	/**
 	 * Sets whether the user has accepted, rejected, or not seen the terms of use
 	 */
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance);
+	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance);
 
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate

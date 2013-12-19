@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
+import org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -21,6 +22,8 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +32,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class DBOCommunityTeamDAOImplTest {
+public class DBOCommunityTeamDAOImplTest extends TestBase {
 
 	@Autowired
 	private CommunityTeamDAO communityTeamDAO;
@@ -46,53 +49,18 @@ public class DBOCommunityTeamDAOImplTest {
 	@Autowired
 	private TeamDAO teamDAO;
 
-	private List<String> teamsToDelete;
-	private List<String> nodesToDelete;
-	private List<String> usersToDelete;
-	
-	@Before
-	public void before() throws Exception {
-		teamsToDelete = new ArrayList<String>();
-		nodesToDelete = new ArrayList<String>();
-		usersToDelete = new ArrayList<String>();
-	}
-
-	@After
-	public void after() throws Exception {
-		for (String id : teamsToDelete) {
-			teamDAO.delete(id);
-		}
-		
-		for (String id : nodesToDelete) {
-			nodeDAO.delete(id);
-		}
-
-		for (String id : usersToDelete) {
-			userGroupDAO.delete(id);
-		}
-	}
-
-	private String createMember() throws Exception {
-		UserGroup newMember = new UserGroup();
-		newMember.setName(UUID.randomUUID().toString());
-		newMember.setIsIndividual(true);
-		String newMemberId = userGroupDAO.create(newMember);
-		usersToDelete.add(newMemberId);
-		return newMemberId;
-	}
-
 	private Team createTeam(String... memberIds) throws Exception {
 		UserGroup newGroup = new UserGroup();
 		newGroup.setName(UUID.randomUUID().toString());
 		String newGroupId = userGroupDAO.create(newGroup);
-		usersToDelete.add(newGroupId);
+		addToDelete(UserGroup.class, newGroupId);
 
 		groupMembersDAO.addMembers(newGroupId, Arrays.asList(memberIds));
 
 		Team team = new Team();
 		team.setId(newGroupId);
 		team = teamDAO.create(team);
-		teamsToDelete.add(team.getId());
+		addToDelete(DBOTeam.class, team.getId());
 		return team;
 	}
 
@@ -109,7 +77,7 @@ public class DBOCommunityTeamDAOImplTest {
 		String nodeId = nodeDAO.createNew(node);
 		node.setId(nodeId);
 		
-		nodesToDelete.add(nodeId);
+		addToDelete(DBONode.class, nodeId);
 
 		return node;
 	}
@@ -120,6 +88,7 @@ public class DBOCommunityTeamDAOImplTest {
 		Node node = createNode(createMember());
 
 		communityTeamDAO.create(KeyFactory.stringToKey(node.getId()), Long.parseLong(team.getId()));
+		addToDelete(DBOCommunityTeam.class, team.getId());
 
 		assertEquals(KeyFactory.stringToKey(node.getId()).longValue(), communityTeamDAO.getCommunityId(Long.parseLong(team.getId())));
 	}
@@ -137,6 +106,9 @@ public class DBOCommunityTeamDAOImplTest {
 		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team1.getId()));
 		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team2.getId()));
 		communityTeamDAO.create(KeyFactory.stringToKey(node2.getId()), Long.parseLong(team3.getId()));
+		addToDelete(DBOCommunityTeam.class, team1.getId());
+		addToDelete(DBOCommunityTeam.class, team2.getId());
+		addToDelete(DBOCommunityTeam.class, team3.getId());
 
 		assertEquals(2, communityTeamDAO.getCommunityIds().size() - startNodeCount);
 
@@ -164,6 +136,10 @@ public class DBOCommunityTeamDAOImplTest {
 		communityTeamDAO.create(KeyFactory.stringToKey(node1.getId()), Long.parseLong(team2.getId()));
 		communityTeamDAO.create(KeyFactory.stringToKey(node2.getId()), Long.parseLong(team3.getId()));
 		communityTeamDAO.create(KeyFactory.stringToKey(node3.getId()), Long.parseLong(team4.getId()));
+		addToDelete(DBOCommunityTeam.class, team1.getId());
+		addToDelete(DBOCommunityTeam.class, team2.getId());
+		addToDelete(DBOCommunityTeam.class, team3.getId());
+		addToDelete(DBOCommunityTeam.class, team4.getId());
 
 		assertEquals(1, communityTeamDAO.getCommunityIdsByMember(member1).size());
 		assertEquals(2, communityTeamDAO.getCommunityIdsByMember(member2).size());

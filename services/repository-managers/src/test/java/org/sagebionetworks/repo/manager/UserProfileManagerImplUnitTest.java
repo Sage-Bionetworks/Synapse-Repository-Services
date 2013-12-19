@@ -50,6 +50,9 @@ public class UserProfileManagerImplUnitTest {
 	UserProfile userProfile;
 	S3AttachmentToken testToken;
 	
+	private static final Long userId = 9348725L;
+	private static final Long adminUserId = 823746L;
+	
 	private Random rand = new Random();
 	private static final String TEST_USER_NAME = "TruncatableName@test.com";
 	
@@ -130,13 +133,12 @@ public class UserProfileManagerImplUnitTest {
 		// Simulate an admin trying to access a presigned url
 		Long tokenId = new Long(456);
 		String profileId = "132";
-		String userId = "007";
 		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
 		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-		when(mockS3TokenManager.getAttachmentUrl(userInfo, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
+		when(mockS3TokenManager.getAttachmentUrl(userId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
 		// Make the actual call
-		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, tokenId.toString());
+		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userId, profileId, tokenId.toString());
 		assertNotNull(url);
 		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
 	}	
@@ -145,13 +147,12 @@ public class UserProfileManagerImplUnitTest {
 		// Simulate an normal user trying to access a presigned url
 		Long tokenId = new Long(456);
 		String profileId = "132";
-		String userId = userInfo.getIndividualGroup().getId();
 		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
 		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-		when(mockS3TokenManager.getAttachmentUrl(adminUserInfo, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
+		when(mockS3TokenManager.getAttachmentUrl(adminUserId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
 		// Make the actual call
-		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(adminUserInfo, profileId, tokenId.toString());
+		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(adminUserId, profileId, tokenId.toString());
 		assertNotNull(url);
 		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
 	}
@@ -160,19 +161,15 @@ public class UserProfileManagerImplUnitTest {
 		// Simulate an normal user trying to access a presigned url
 		Long tokenId = new Long(456);
 		String profileId = "132";
+		Long otherUserId = 209384L;
 		
-		UserInfo userInfo2 = new UserInfo(false);
-		UserGroup user2 = new UserGroup();
-		user2.setId("222");
-		
-		String userId = userInfo.getIndividualGroup().getId();
 		PresignedUrl expectedPreSignedUrl = new PresignedUrl();
 		expectedPreSignedUrl.setPresignedUrl("I am a presigned url! whooot!");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(adminUserInfo);
-		when(mockS3TokenManager.getAttachmentUrl(userInfo2, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
+		when(mockS3TokenManager.getAttachmentUrl(otherUserId, profileId, tokenId.toString())).thenReturn(expectedPreSignedUrl);
 		
 		// Make the actual call
-		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userInfo2, profileId, tokenId.toString());
+		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(otherUserId, profileId, tokenId.toString());
 		assertNotNull(url);
 		assertEquals(expectedPreSignedUrl.getPresignedUrl(), url.getPresignedUrl());
 	}	

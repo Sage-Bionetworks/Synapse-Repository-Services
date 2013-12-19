@@ -82,14 +82,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private volatile Map<String, UserGroupHeader> userGroupHeadersIdCache;
 
 	@Override
-	public UserProfile getMyOwnUserProfile(String userId) 
+	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return userProfileManager.getUserProfile(userInfo, userInfo.getIndividualGroup().getId());
 	}
 	
 	@Override
-	public UserProfile getUserProfileByOwnerId(String userId, String profileId) 
+	public UserProfile getUserProfileByOwnerId(Long userId, String profileId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile userProfile = userProfileManager.getUserProfile(userInfo, profileId);
@@ -100,7 +100,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Override
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
-			String userId, Integer offset, Integer limit, String sort, Boolean ascending)
+			Long userId, Integer offset, Integer limit, String sort, Boolean ascending)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
@@ -121,7 +121,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) 
+	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) 
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
@@ -129,7 +129,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public S3AttachmentToken createUserProfileS3AttachmentToken(String userId, String profileId, 
+	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId, String profileId, 
 			S3AttachmentToken token, HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -137,17 +137,15 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public PresignedUrl getUserProfileAttachmentUrl(String userId, String profileId,
+	public PresignedUrl getUserProfileAttachmentUrl(Long userId, String profileId,
 			PresignedUrl url, HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
-		// Pass it along.
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, url.getTokenID());
+		return userProfileManager.getUserProfileAttachmentUrl(userId, profileId, url.getTokenID());
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(String userId, List<String> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<String> ids) 
 			throws DatastoreException, NotFoundException {		
 		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
 			refreshCache();
@@ -277,7 +275,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	
 	@Override
-	public EntityHeader addFavorite(String userId, String entityId)
+	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
@@ -287,14 +285,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public void removeFavorite(String userId, String entityId)
+	public void removeFavorite(Long userId, String entityId)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);	
 		userProfileManager.removeFavorite(userInfo, entityId);
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getFavorites(String userId, int limit,
+	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit,
 			int offset) throws DatastoreException, InvalidModelException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

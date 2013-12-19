@@ -36,7 +36,7 @@ public interface AdministrationService {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	public BackupRestoreStatus getStatus(String daemonId, String userId,
+	public BackupRestoreStatus getStatus(String daemonId, Long userId,
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException,
@@ -55,7 +55,7 @@ public interface AdministrationService {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	public void terminateDaemon(String daemonId, String userId,
+	public void terminateDaemon(String daemonId, Long userId,
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException,
@@ -74,8 +74,7 @@ public interface AdministrationService {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	public StackStatus getStackStatus(String userId, HttpHeaders header,
-			HttpServletRequest request);
+	public StackStatus getStackStatus();
 
 	/**
 	 * Update the current status of the stack.
@@ -91,7 +90,7 @@ public interface AdministrationService {
 	 * @throws IOException
 	 * @throws ConflictingUpdateException
 	 */
-	public StackStatus updateStatusStackStatus(String userId,
+	public StackStatus updateStatusStackStatus(Long userId,
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, IOException;
@@ -103,7 +102,7 @@ public interface AdministrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ChangeMessages listChangeMessages(String userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException;
+	public ChangeMessages listChangeMessages(Long userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException;
 
 
 	/**
@@ -117,7 +116,7 @@ public interface AdministrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	PublishResults rebroadcastChangeMessagesToQueue(String userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
+	PublishResults rebroadcastChangeMessagesToQueue(Long userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Rebroadcast messages
@@ -128,30 +127,30 @@ public interface AdministrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FireMessagesResult reFireChangeMessages(String userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
+	FireMessagesResult reFireChangeMessages(Long userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
 	
 	/**
 	 *	Return the last change message number
 	 */
-	FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException, NotFoundException;
+	FireMessagesResult getCurrentChangeNumber(Long userId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Clears the Synapse DOI table.
 	 */
-	void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException;
+	void clearDoi(Long userId) throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
 	 * Clears the specified dynamo table.
 	 */
-	void clearDynamoTable(String userId, String tableName, String hashKeyName, String rangeKeyName) throws NotFoundException, UnauthorizedException, DatastoreException;
+	void clearDynamoTable(Long userId, String tableName, String hashKeyName, String rangeKeyName) throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
 	 * Creates a test user
 	 */
-	public EntityId createTestUser(String userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
+	public EntityId createTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException;
 
 	/**
 	 * Deletes a user, iff all FK constraints are met
 	 */
-	public void deleteUser(String userId, String id) throws NotFoundException;
+	public void deleteUser(Long userId, String id) throws NotFoundException;
 }

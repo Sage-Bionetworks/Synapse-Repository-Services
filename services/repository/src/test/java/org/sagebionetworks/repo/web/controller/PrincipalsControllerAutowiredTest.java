@@ -49,7 +49,7 @@ public class PrincipalsControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName;
+	private Long adminUserId;
 	private UserInfo testUser;
 
 	private List<String> toDelete;
@@ -59,11 +59,11 @@ public class PrincipalsControllerAutowiredTest {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 		
-		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		testUser = userManager.getUserInfo(userName);
+		testUser = userManager.getUserInfo(adminUserId);
 		UserInfo.validateUserInfo(testUser);
 	}
 
@@ -72,7 +72,7 @@ public class PrincipalsControllerAutowiredTest {
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(userName, idToDelete);
+					entityController.deleteEntity(adminUserId, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -90,7 +90,7 @@ public class PrincipalsControllerAutowiredTest {
 
 	@Test
 	public void testGetUsers() throws Exception {
-		PaginatedResults<UserProfile> userProfiles = ServletTestHelper.getUsers(dispatchServlet, userName);
+		PaginatedResults<UserProfile> userProfiles = ServletTestHelper.getUsers(dispatchServlet, adminUserId);
 		assertNotNull(userProfiles);
 		for (UserProfile userProfile : userProfiles.getResults()) {
 			System.out.println(userProfile);
@@ -110,7 +110,7 @@ public class PrincipalsControllerAutowiredTest {
 	
 	@Test
 	public void testGetGroups() throws Exception {
-		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, userName);
+		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, adminUserId);
 		assertNotNull(ugs);
 		boolean foundPublic = false;
 		boolean foundAdmin = false;

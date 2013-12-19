@@ -13,21 +13,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserManager {
-
-	/**
-	 * Get the User and UserGroup information for the given user name.
-	 * 
-	 * @param userName the name (email address) of the user of interest
-	 */
-	@Deprecated
-	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the User and UserGroup information for the given user ID.
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */
-	public UserInfo getUserInfo(Long principalId) throws DatastoreException, NotFoundException;
+	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
 
 	/**
 	 * Find a group

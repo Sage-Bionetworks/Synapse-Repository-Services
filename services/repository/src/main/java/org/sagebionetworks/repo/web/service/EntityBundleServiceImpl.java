@@ -46,13 +46,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	}
 	
 	@Override
-	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request)
+	public EntityBundle getEntityBundle(Long userId, String entityId, int mask, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
 		return getEntityBundle(userId, entityId, null, mask, request);
 	}
 
 	@Override
-	public EntityBundle getEntityBundle(String userId, String entityId,
+	public EntityBundle getEntityBundle(Long userId, String entityId,
 			Long versionNumber, int mask, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
@@ -124,7 +124,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
 		}
@@ -157,7 +157,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public EntityBundle updateEntityBundle(String userId, String entityId,
+	public EntityBundle updateEntityBundle(Long userId, String entityId,
 			EntityBundleCreate ebc, String activityId, HttpServletRequest request)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,

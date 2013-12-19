@@ -1,7 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -14,7 +20,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -34,7 +39,7 @@ public class EntityManagerImplUnitTest {
 	private S3TokenManager mockS3TokenManager;
 	private IdGenerator mocIdGenerator;
 	private LocationHelper mocKLocationHelper;
-	String userId = "007";
+	Long userId = 007L;
 	
 	@Before
 	public void before(){
@@ -46,14 +51,11 @@ public class EntityManagerImplUnitTest {
 		mocIdGenerator = Mockito.mock(IdGenerator.class);
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
 		mockUser = new UserInfo(false);
-		mockUser.setUser(new User());
-		mockUser.getUser().setId(userId);
 		entityManager = new EntityManagerImpl(mockNodeManager, mockS3TokenManager, mockPermissionsManager, mockUserManager);
 	}
 
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateReadAccessFail() throws DatastoreException, NotFoundException, UnauthorizedException{
-		String userId = "123456";
 		String entityId = "abc";
 		// return the mock user.
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
@@ -66,7 +68,6 @@ public class EntityManagerImplUnitTest {
 	
 	@Test 
 	public void testValidateReadAccessPass() throws DatastoreException, NotFoundException, UnauthorizedException{
-		String userId = "123456";
 		String entityId = "abc";
 		// return the mock user.
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
@@ -81,7 +82,6 @@ public class EntityManagerImplUnitTest {
 	public void testGetAttachmentUrlNoReadAccess() throws Exception{
 		Long tokenId = new Long(456);
 		String entityId = "132";
-		String userId = "007";
 		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
@@ -102,7 +102,6 @@ public class EntityManagerImplUnitTest {
 		startToken.setMd5(almostMd5);
 		Long tokenId = new Long(456);
 		String entityId = "132";
-		String userId = "007";
 		String expectedPath = entityId+"/"+tokenId.toString();
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);

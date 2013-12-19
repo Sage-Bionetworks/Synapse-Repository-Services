@@ -12,13 +12,13 @@ public interface DoiService {
 	 * Creates a DOI for the specified entity version. If the version number is null,
 	 * the DOI will associated with the most recent version if applicable.
 	 */
-	Doi createDoi(String userId, String objectId, ObjectType objectType, Long versionNumber)
+	Doi createDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets the DOI for the specified entity version. If version number is null,
 	 * the DOI associated with the most recent version will be retrieved.
 	 */
-	Doi getDoi(String userId, String objectId, ObjectType objectType, Long versionNumber)
+	Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 }

@@ -88,6 +88,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 				<!-- bridge -->
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
 			</list>
 		</property>
 	</bean>
@@ -121,6 +125,11 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
+
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />

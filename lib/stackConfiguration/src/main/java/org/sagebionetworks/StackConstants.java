@@ -73,10 +73,15 @@ public class StackConstants {
 	public static final String UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-unsent-messages-update-queue";
 	
 	/**
-	 * The bucket containing all access record data.
+	 * The bucket containing all table row data.
 	 */
 	public static final String TABLE_ROW_CHANGE_BUCKET = "%1$s.table.row.changes";
 	
+	/**
+	 * The bucket containing all participant data.
+	 */
+	public static final String PARTICIPANT_DATA_BUCKET = "%1$s.ptdata";
+
 	/**
 	 * The bucket containing all access record data.
 	 */

@@ -61,15 +61,15 @@ public class ServletTestHelperUtils {
 	 *            Optional, object to serialize into the body of the request
 	 */
 	public static MockHttpServletRequest initRequest(HTTPMODE mode,
-			String requestURI, String username, JSONEntity entity)
+			String requestURI, Long userId, JSONEntity entity)
 			throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod(mode.name());
 		request.addHeader("Accept", "application/json");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setRequestURI(requestURI);
-		if (username != null) {
-			request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		if (userId != null) {
+			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
 		}
 		if (entity != null) {
 			String body = EntityFactory.createJSONStringForEntity(entity);

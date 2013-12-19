@@ -21,7 +21,7 @@ public class UserGroupServiceImpl implements UserGroupService {
 	
 	@Override
 	public PaginatedResults<UserGroup> getUserGroups(HttpServletRequest request,
-			String userId, Integer offset, Integer limit, String sort, Boolean ascending) 
+			Long userId, Integer offset, Integer limit, String sort, Boolean ascending) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;

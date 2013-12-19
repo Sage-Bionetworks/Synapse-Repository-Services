@@ -109,7 +109,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		simpleJdbcTemplate.batchUpdate(INSERT_NEW_MEMBERS_OF_GROUP, params);
 		
 		// Update the etag on the parent group
-		userGroupDAO.touch(groupId);
+		userGroupDAO.touch(Long.parseLong(groupId));
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -134,7 +134,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		simpleJdbcTemplate.batchUpdate(DELETE_MEMBERS_OF_GROUP, params);
 		
 		// Update the etag on the parent group
-		userGroupDAO.touch(groupId);
+		userGroupDAO.touch(Long.parseLong(groupId));
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

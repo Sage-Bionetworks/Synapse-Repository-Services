@@ -1,6 +1,5 @@
 package org.sagebionetworks.bridge.service;
 
-import org.sagebionetworks.repo.web.service.table.TableServices;
 
 /**
  * Abstraction for the service providers.
@@ -9,4 +8,6 @@ import org.sagebionetworks.repo.web.service.table.TableServices;
 public interface BridgeServiceProvider {
 
 	public CommunityService getCommunityService();
+
+	public ParticipantDataService getParticipantDataService();
 }

@@ -45,8 +45,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public class UserProfileServiceTest {
 	
-	private static final String EXTRA_USER_ID = "foo";
-	private static final String NONEXISTENT_USER_ID = "bar";
+	private static final Long EXTRA_USER_ID = 2398475L;
+	private static final Long NONEXISTENT_USER_ID = 827634L;
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
 	
@@ -91,16 +91,16 @@ public class UserProfileServiceTest {
 		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
 		
 		extraProfile = new UserProfile();
-		extraProfile.setOwnerId(EXTRA_USER_ID);
+		extraProfile.setOwnerId(EXTRA_USER_ID.toString());
 		extraProfile.setDisplayName("This UserProfile was created after the cache was last refreshed.");
 		userInfo = new UserInfo(false);
 		userInfo.setIndividualGroup(new UserGroup());
-		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
+		userInfo.getIndividualGroup().setId(EXTRA_USER_ID.toString());
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
-		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(NONEXISTENT_USER_ID))).thenThrow(new NotFoundException());
+		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
+		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserManager.getGroups()).thenReturn(groups);
 
@@ -133,19 +133,20 @@ public class UserProfileServiceTest {
 		ids.add("g0");
 		ids.add("g1");
 		ids.add("g2");
-		ids.add(EXTRA_USER_ID); // should require fetch from repo
+		ids.add(EXTRA_USER_ID.toString()); // should require fetch from repo
 		
 		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
-		for (UserGroupHeader ugh : response.getChildren())
+		for (UserGroupHeader ugh : response.getChildren()) {
 			headers.put(ugh.getOwnerId(), ugh);
+		}
 		assertEquals(4, headers.size());
 		assertTrue(headers.containsKey("g0"));
 		assertTrue(headers.containsKey("g1"));
 		assertTrue(headers.containsKey("g2"));
-		assertTrue(headers.containsKey(EXTRA_USER_ID));
+		assertTrue(headers.containsKey(EXTRA_USER_ID.toString()));
 		
-		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID));
+		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()));
 	}
 	
 	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
@@ -153,7 +154,7 @@ public class UserProfileServiceTest {
 		ids.add("g0");
 		ids.add("g1");
 		ids.add("g2");
-		ids.add(NONEXISTENT_USER_ID); // should not exist
+		ids.add(NONEXISTENT_USER_ID.toString()); // should not exist
 		
 		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
@@ -289,7 +290,7 @@ public class UserProfileServiceTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);		
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
-		fav.setPrincipalId(EXTRA_USER_ID);
+		fav.setPrincipalId(EXTRA_USER_ID.toString());
 		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
 
 		userProfileService.addFavorite(EXTRA_USER_ID, entityId);
@@ -304,7 +305,7 @@ public class UserProfileServiceTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);		
 		Favorite fav = new Favorite();
 		fav.setEntityId(entityId);
-		fav.setPrincipalId(EXTRA_USER_ID);
+		fav.setPrincipalId(EXTRA_USER_ID.toString());
 		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
 
 		userProfileService.addFavorite(EXTRA_USER_ID, entityId);		
@@ -338,7 +339,7 @@ public class UserProfileServiceTest {
 
 		userInfo = new UserInfo(true);
 		userInfo.setIndividualGroup(new UserGroup());
-		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
+		userInfo.getIndividualGroup().setId(EXTRA_USER_ID.toString());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
 		
