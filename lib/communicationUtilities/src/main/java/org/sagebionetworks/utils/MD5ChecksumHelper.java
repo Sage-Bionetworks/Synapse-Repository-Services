@@ -48,13 +48,12 @@ public class MD5ChecksumHelper {
 	 * @throws IOException
 	 */
 	public static String getMD5ChecksumForByteArray(byte[] content) throws IOException {
-		ByteArrayInputStream inputStream = null;
+		ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
 		try {
-			inputStream = new ByteArrayInputStream(content);
 			byte[] raw = createChecksum(inputStream);
 			return getHexString(raw);
 		} finally {
-			if (inputStream!=null) inputStream.close();
+			inputStream.close();
 		}
 	}
 
