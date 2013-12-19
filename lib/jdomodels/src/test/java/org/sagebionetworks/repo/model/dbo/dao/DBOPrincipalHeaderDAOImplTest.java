@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
@@ -14,13 +13,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.NameType;
-import org.sagebionetworks.repo.model.PrincipalHeader;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
 import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -90,58 +86,35 @@ public class DBOPrincipalHeaderDAOImplTest {
 		assertTrue(converted.contains(PrincipalType.TEAM.name()));
 	}
 	
+	@Deprecated
 	@Test
 	public void testSqlLikeEscape() throws Exception {
 		// Shouldn't affect alpha-numerics
-		assertEquals("abc123", DBOPrincipaHeaderDAOImpl.escapeSqlLike("abc123"));
+		assertEquals("abc123", DBOPrincipaHeaderDAOImpl.preprocessFragment("abc123"));
 		
 		// Shouldn't affect most characters
-		assertEquals("`~!@#$^&*()=+[{]}\\|;:'\",<.>/?", DBOPrincipaHeaderDAOImpl.escapeSqlLike("`~!@#$^&*()=+[{]}\\|;:'\",<.>/?"));
+		assertEquals("`~!@#$^&*()=+[{]}\\|;:'\",<.>/?", DBOPrincipaHeaderDAOImpl.preprocessFragment("`~!@#$^&*()=+[{]}\\|;:'\",<.>/?"));
 		
 		// Should replace '%' and '_'
-		assertEquals("def\\%456\\_", DBOPrincipaHeaderDAOImpl.escapeSqlLike("def%456_"));
+		assertEquals("def\\%456\\_", DBOPrincipaHeaderDAOImpl.preprocessFragment("def%456_"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testInvalidCreate() throws Exception {
-		PrincipalHeader row = new PrincipalHeader();
-		prinHeadDAO.insertNew(row);
+		prinHeadDAO.insertNew(39485L, null, null, null);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testInsertNotIdempotent() throws Exception {
-		PrincipalHeader row = new PrincipalHeader();
-		row.setPrincipalId(principalOne);
-		row.setIdentifier(NAME_ONE);
-		row.setPrincipalType(PrincipalType.USER);
-		row.setDomainType(DomainType.SYNAPSE);
-		row.setNameType(NameType.PRINCIPAL_NAME);
-		prinHeadDAO.insertNew(row);
-		prinHeadDAO.insertNew(row);
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
 	}
 	
 	@Test
 	public void testCreateDelete() throws Exception {
-		PrincipalHeader row = new PrincipalHeader();
-		row.setPrincipalId(principalOne);
-		row.setIdentifier(NAME_ONE);
-		row.setPrincipalType(PrincipalType.USER);
-		row.setDomainType(DomainType.SYNAPSE);
-		row.setNameType(NameType.PRINCIPAL_NAME);
-		
-		// Should delete just fine
-		prinHeadDAO.insertNew(row);
-		assertTrue(prinHeadDAO.delete(principalOne, NAME_ONE));
-		assertFalse(prinHeadDAO.delete(principalOne, NAME_ONE));
-		assertEquals(0, prinHeadDAO.delete(principalOne));
-
-		// Try two rows
-		prinHeadDAO.insertNew(row);
-		row.setIdentifier(NAME_TWO);
-		prinHeadDAO.insertNew(row);
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.USER, DomainType.SYNAPSE);
 		assertEquals(2, prinHeadDAO.delete(principalOne));
-		assertFalse(prinHeadDAO.delete(principalOne, NAME_ONE));
-		assertFalse(prinHeadDAO.delete(principalOne, NAME_TWO));
 		assertEquals(0, prinHeadDAO.delete(principalOne));
 	}
 	
@@ -149,157 +122,106 @@ public class DBOPrincipalHeaderDAOImplTest {
 	public void testPrefixMatchFilterByEnum() throws Exception {
 		// These two rows will have completely different values
 		// But the two names will have similar prefixes
-		PrincipalHeader rowOne = new PrincipalHeader();
-		rowOne.setPrincipalId(principalOne);
-		rowOne.setIdentifier(NAME_ONE);
-		rowOne.setPrincipalType(PrincipalType.USER);
-		rowOne.setDomainType(DomainType.SYNAPSE);
-		rowOne.setNameType(NameType.PRINCIPAL_NAME);
-		prinHeadDAO.insertNew(rowOne);
-
-		PrincipalHeader rowTwo = new PrincipalHeader();
-		rowTwo.setPrincipalId(principalTwo);
-		rowTwo.setIdentifier(NAME_TWO);
-		rowTwo.setPrincipalType(PrincipalType.TEAM);
-		rowTwo.setDomainType(DomainType.BRIDGE);
-		rowTwo.setNameType(NameType.ALIAS);
-		prinHeadDAO.insertNew(rowTwo);
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.SYNAPSE);
+		prinHeadDAO.insertNew(principalTwo, NAME_TWO, PrincipalType.TEAM, DomainType.BRIDGE);
 		
 		// With no enum filters, the prefix match should return both results
-		assertEquals(2, prinHeadDAO.countQueryResults(PREFIX, false, new HashSet<PrincipalType>(), new HashSet<DomainType>(), new HashSet<NameType>()));
-		List<PrincipalHeader> results = prinHeadDAO.query(PREFIX, false, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(2, prinHeadDAO.countQueryResults(PREFIX, false, new HashSet<PrincipalType>(), new HashSet<DomainType>()));
+		List<Long> results = prinHeadDAO.query(PREFIX, false, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(2, results.size());
-		assertTrue(results.contains(rowOne));
-		assertTrue(results.contains(rowTwo));
+		assertTrue(results.contains(principalOne));
+		assertTrue(results.contains(principalTwo));
 		
 		// Filtering by PrincipalType
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, Sets.newHashSet(PrincipalType.USER), null, null));
-		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.USER), null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, Sets.newHashSet(PrincipalType.USER), null));
+		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.USER), null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowOne));
+		assertTrue(results.contains(principalOne));
 
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), null, null));
-		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), null));
+		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowTwo));
+		assertTrue(results.contains(principalTwo));
 		
 		// Filtering by DomainType
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, Sets.newHashSet(DomainType.SYNAPSE), null));
-		results = prinHeadDAO.query(PREFIX, false, null, Sets.newHashSet(DomainType.SYNAPSE), null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, Sets.newHashSet(DomainType.SYNAPSE)));
+		results = prinHeadDAO.query(PREFIX, false, null, Sets.newHashSet(DomainType.SYNAPSE), DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowOne));
+		assertTrue(results.contains(principalOne));
 
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, Sets.newHashSet(DomainType.BRIDGE), null));
-		results = prinHeadDAO.query(PREFIX, false, null, Sets.newHashSet(DomainType.BRIDGE), null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, Sets.newHashSet(DomainType.BRIDGE)));
+		results = prinHeadDAO.query(PREFIX, false, null, Sets.newHashSet(DomainType.BRIDGE), DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowTwo));
-		
-		// Filtering by NameType
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, null, Sets.newHashSet(NameType.PRINCIPAL_NAME)));
-		results = prinHeadDAO.query(PREFIX, false, null, null, Sets.newHashSet(NameType.PRINCIPAL_NAME), DEFAULT_LIMIT, DEFAULT_OFFSET);
-		assertEquals(1, results.size());
-		assertTrue(results.contains(rowOne));
-
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, null, Sets.newHashSet(NameType.ALIAS)));
-		results = prinHeadDAO.query(PREFIX, false, null, null, Sets.newHashSet(NameType.ALIAS), DEFAULT_LIMIT, DEFAULT_OFFSET);
-		assertEquals(1, results.size());
-		assertTrue(results.contains(rowTwo));
-
-		assertEquals(0, prinHeadDAO.query(PREFIX, false, null, null, Sets.newHashSet(NameType.FIRST_NAME), DEFAULT_LIMIT, DEFAULT_OFFSET).size());
-		assertEquals(0, prinHeadDAO.query(PREFIX, false, null, null, Sets.newHashSet(NameType.LAST_NAME), DEFAULT_LIMIT, DEFAULT_OFFSET).size());
+		assertTrue(results.contains(principalTwo));
 		
 		// Filter by some combination of filters
-		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.USER), Sets.newHashSet(DomainType.SYNAPSE), null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.USER), Sets.newHashSet(DomainType.SYNAPSE), DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowOne));
+		assertTrue(results.contains(principalOne));
 
-		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.BRIDGE), null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		results = prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.BRIDGE), DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowTwo));
+		assertTrue(results.contains(principalTwo));
 
-		assertEquals(0, prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.USER), Sets.newHashSet(DomainType.BRIDGE), null, DEFAULT_LIMIT, DEFAULT_OFFSET).size());
-		assertEquals(0, prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.SYNAPSE), null, DEFAULT_LIMIT, DEFAULT_OFFSET).size());
+		assertEquals(0, prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.USER), Sets.newHashSet(DomainType.BRIDGE), DEFAULT_LIMIT, DEFAULT_OFFSET).size());
+		assertEquals(0, prinHeadDAO.query(PREFIX, false, Sets.newHashSet(PrincipalType.TEAM), Sets.newHashSet(DomainType.SYNAPSE), DEFAULT_LIMIT, DEFAULT_OFFSET).size());
 	}
 	
 	@Test
 	public void testExactMatch() throws Exception {
-		PrincipalHeader rowOne = new PrincipalHeader();
-		rowOne.setPrincipalId(principalOne);
-		rowOne.setIdentifier(NAME_ONE);
-		rowOne.setPrincipalType(PrincipalType.TEAM);
-		rowOne.setDomainType(DomainType.SYNAPSE);
-		rowOne.setNameType(NameType.FIRST_NAME);
-		prinHeadDAO.insertNew(rowOne);
-
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.TEAM, DomainType.SYNAPSE);
+		
 		// Only differs in name
-		PrincipalHeader rowTwo = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(rowOne), PrincipalHeader.class);
-		rowTwo.setIdentifier(NAME_TWO);
-		prinHeadDAO.insertNew(rowTwo);
+		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.TEAM, DomainType.SYNAPSE);
 		
 		// Only differs in principalID
-		PrincipalHeader rowThree = EntityFactory.createEntityFromJSONObject(EntityFactory.createJSONObjectForEntity(rowOne), PrincipalHeader.class);
-		rowThree.setPrincipalId(principalTwo);
-		prinHeadDAO.insertNew(rowThree);
+		prinHeadDAO.insertNew(principalTwo, NAME_ONE, PrincipalType.TEAM, DomainType.SYNAPSE);
 
 		// Prefix matching no longer returns any results
-		assertEquals(0, prinHeadDAO.countQueryResults(PREFIX, true, null, null, null));
-		assertEquals(0, prinHeadDAO.query(PREFIX, true, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET).size());
+		assertEquals(0, prinHeadDAO.countQueryResults(PREFIX, true, null, null));
+		assertEquals(0, prinHeadDAO.query(PREFIX, true, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET).size());
 		
 		// Exact match on NAME_ONE
-		assertEquals(2, prinHeadDAO.countQueryResults(NAME_ONE, true, null, null, null));
-		List<PrincipalHeader> results = prinHeadDAO.query(NAME_ONE, true, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(2, prinHeadDAO.countQueryResults(NAME_ONE, true, null, null));
+		List<Long> results = prinHeadDAO.query(NAME_ONE, true, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(2, results.size());
-		assertTrue(results.contains(rowOne));
-		assertTrue(results.contains(rowThree));
+		assertTrue(results.contains(principalOne));
+		assertTrue(results.contains(principalTwo));
 		
 		// Exact match on NAME_TWO
-		assertEquals(1, prinHeadDAO.countQueryResults(NAME_TWO, true, null, null, null));
-		results = prinHeadDAO.query(NAME_TWO, true, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(NAME_TWO, true, null, null));
+		results = prinHeadDAO.query(NAME_TWO, true, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(rowTwo));
+		assertTrue(results.contains(principalOne));
 	}
 	
 	@Test
 	public void testReturnDistinctIDs() throws Exception {
 		// Insert two rows belonging to the same user, but with different names
-		PrincipalHeader row = new PrincipalHeader();
-		row.setPrincipalId(principalOne);
-		row.setIdentifier(NAME_ONE);
-		row.setPrincipalType(PrincipalType.USER);
-		row.setDomainType(DomainType.BRIDGE);
-		row.setNameType(NameType.LAST_NAME);
-		prinHeadDAO.insertNew(row);
-
-		row.setIdentifier(NAME_TWO);
-		prinHeadDAO.insertNew(row);
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.USER, DomainType.BRIDGE);
 
 		// Prefix query should only return one result
-		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, null, null));
-		List<PrincipalHeader> results = prinHeadDAO.query(PREFIX, false, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(PREFIX, false, null, null));
+		List<Long> results = prinHeadDAO.query(PREFIX, false, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertEquals(principalOne, results.get(0).getPrincipalId().longValue());
-		assertTrue(results.get(0).getIdentifier().equals(NAME_ONE) || results.get(0).getIdentifier().equals(NAME_TWO));
+		assertEquals(principalOne, results.get(0).longValue());
 	}
 	
 	@Test
 	public void testNullNameFilter() throws Exception {
 		// Insert two rows belonging to the same user, but with different names
-		PrincipalHeader row = new PrincipalHeader();
-		row.setPrincipalId(principalOne);
-		row.setIdentifier(NAME_ONE);
-		row.setPrincipalType(PrincipalType.USER);
-		row.setDomainType(DomainType.BRIDGE);
-		row.setNameType(NameType.LAST_NAME);
-		prinHeadDAO.insertNew(row);
+		prinHeadDAO.insertNew(principalOne, NAME_ONE, PrincipalType.USER, DomainType.BRIDGE);
+		prinHeadDAO.insertNew(principalOne, NAME_TWO, PrincipalType.USER, DomainType.BRIDGE);
 
 		// A null prefix match should return one result for each ID
-		assertEquals(1, prinHeadDAO.countQueryResults(null, false, null, null, null));
-		List<PrincipalHeader> results = prinHeadDAO.query(null, false, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
+		assertEquals(1, prinHeadDAO.countQueryResults(null, false, null, null));
+		List<Long> results = prinHeadDAO.query(null, false, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET);
 		assertEquals(1, results.size());
-		assertTrue(results.contains(row));
+		assertTrue(results.contains(principalOne));
 		
 		// A null exact match should return nothing
-		assertEquals(0, prinHeadDAO.countQueryResults(null, true, null, null, null));
-		assertEquals(0, prinHeadDAO.query(null, true, null, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET).size());
+		assertEquals(0, prinHeadDAO.countQueryResults(null, true, null, null));
+		assertEquals(0, prinHeadDAO.query(null, true, null, null, DEFAULT_LIMIT, DEFAULT_OFFSET).size());
 	}
 }

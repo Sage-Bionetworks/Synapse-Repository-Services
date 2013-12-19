@@ -8,8 +8,6 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.NameType;
-import org.sagebionetworks.repo.model.PrincipalHeader;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
 import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -36,7 +34,6 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	private static final String PRINCIPAL_NAME_PARAM_NAME = "principalName";
 	private static final String PRINCIPAL_TYPE_PARAM_NAME = "principalType";
 	private static final String DOMAIN_TYPE_PARAM_NAME = "domainType";
-	private static final String NAME_TYPE_PARAM_NAME = "nameType";
 	private static final String LIMIT_PARAM_NAME = "limit";
 	private static final String OFFSET_PARAM_NAME = "offset";
 	
@@ -44,8 +41,8 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			"DELETE FROM " + SqlConstants.TABLE_PRINCIPAL_HEADER + 
 			" WHERE " + SqlConstants.COL_PRINCIPAL_HEADER_ID + "=:" + PRINCIPAL_ID_PARAM_NAME;
 	
-	private static final String SELECT_PRINCIPAL_HEADERS = 
-			"SELECT * ";
+	private static final String SELECT_DISTINCT_IDS = 
+			"SELECT DISTINCT(" + SqlConstants.COL_PRINCIPAL_HEADER_ID + ")";
 	
 	private static final String SELECT_COUNT_OF_DISTINCT_IDS = 
 			"SELECT COUNT(DISTINCT(" + SqlConstants.COL_PRINCIPAL_HEADER_ID + ")) ";
@@ -53,24 +50,22 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	private static final String QUERY_ON_PRINCIPAL_HEADERS_CORE = 
 			"FROM " + SqlConstants.TABLE_PRINCIPAL_HEADER + 
 			" WHERE " + SqlConstants.COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE + " IN (:" + PRINCIPAL_TYPE_PARAM_NAME + ")" + 
-			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_DOMAIN_TYPE + " IN (:" + DOMAIN_TYPE_PARAM_NAME + ")" + 
-			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_NAME_TYPE + " IN (:" + NAME_TYPE_PARAM_NAME + ")";
+			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_DOMAIN_TYPE + " IN (:" + DOMAIN_TYPE_PARAM_NAME + ")";
 	
 	private static final String EXACT_MATCH_CONDITION = 
-			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_NAME + "=:" + PRINCIPAL_NAME_PARAM_NAME;
+			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_FRAGMENT + "=:" + PRINCIPAL_NAME_PARAM_NAME;
 	
 	private static final String PREFIX_MATCH_CONDITION = 
-			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_NAME + " LIKE :" + PRINCIPAL_NAME_PARAM_NAME;
+			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_FRAGMENT + " LIKE :" + PRINCIPAL_NAME_PARAM_NAME;
 	
-	private static final String GROUP_BY_UNIQUE_ID_AND_PAGINATION_PARAMS = 
-			" GROUP BY " + SqlConstants.COL_PRINCIPAL_HEADER_ID +  
+	private static final String PAGINATION_PARAMS = 
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 	
 	private static final String QUERY_FOR_EXACT_MATCH = 
-			SELECT_PRINCIPAL_HEADERS + QUERY_ON_PRINCIPAL_HEADERS_CORE + EXACT_MATCH_CONDITION + GROUP_BY_UNIQUE_ID_AND_PAGINATION_PARAMS;
+			SELECT_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + EXACT_MATCH_CONDITION + PAGINATION_PARAMS;
 	
 	private static final String QUERY_FOR_PREFIX_MATCH = 
-			SELECT_PRINCIPAL_HEADERS + QUERY_ON_PRINCIPAL_HEADERS_CORE + PREFIX_MATCH_CONDITION + GROUP_BY_UNIQUE_ID_AND_PAGINATION_PARAMS;
+			SELECT_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + PREFIX_MATCH_CONDITION + PAGINATION_PARAMS;
 	
 	private static final String COUNT_QUERY_FOR_EXACT_MATCH = 
 			SELECT_COUNT_OF_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + EXACT_MATCH_CONDITION;
@@ -78,31 +73,26 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	private static final String COUNT_QUERY_FOR_PREFIX_MATCH = 
 			SELECT_COUNT_OF_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + PREFIX_MATCH_CONDITION;
 
-	private RowMapper<PrincipalHeader> rowMapper = new RowMapper<PrincipalHeader>() {
+	private RowMapper<Long> rowMapper = new RowMapper<Long>() {
 
 		@Override
-		public PrincipalHeader mapRow(ResultSet rs, int rowNum)
+		public Long mapRow(ResultSet rs, int rowNum)
 				throws SQLException {
-			PrincipalHeader dto = new PrincipalHeader();
-			dto.setPrincipalId(rs.getLong(SqlConstants.COL_PRINCIPAL_HEADER_ID));
-			dto.setIdentifier(rs.getString(SqlConstants.COL_PRINCIPAL_HEADER_NAME));
-			dto.setPrincipalType(PrincipalType.valueOf(rs.getString(SqlConstants.COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE)));
-			dto.setDomainType(DomainType.valueOf(rs.getString(SqlConstants.COL_PRINCIPAL_HEADER_DOMAIN_TYPE)));
-			dto.setNameType(NameType.valueOf(rs.getString(SqlConstants.COL_PRINCIPAL_HEADER_NAME_TYPE)));
-			return dto;
+			return rs.getLong(SqlConstants.COL_PRINCIPAL_HEADER_ID);
 		}
 		
 	};
 			
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void insertNew(PrincipalHeader row) {
+	public void insertNew(long principalId, String fragment, PrincipalType pType, DomainType dType) {
 		DBOPrincipalHeader dbo = new DBOPrincipalHeader();
-		dbo.setPrincipalId(row.getPrincipalId());
-		dbo.setPrincipalName(row.getIdentifier());
-		dbo.setPrincipalType(row.getPrincipalType());
-		dbo.setDomainType(row.getDomainType());
-		dbo.setNameType(row.getNameType());
+		dbo.setPrincipalId(principalId);
+		
+		//TODO Should preprocessing be done here or in the manager layer?
+		dbo.setFragment(fragment);
+		dbo.setPrincipalType(pType);
+		dbo.setDomainType(dType);
 		
 		basicDAO.createNew(dbo);
 	}
@@ -116,23 +106,12 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public boolean delete(long principalId, String identifier) {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(PRINCIPAL_ID_PARAM_NAME, principalId);
-		params.addValue(PRINCIPAL_NAME_PARAM_NAME, identifier);
-		return basicDAO.deleteObjectByPrimaryKey(DBOPrincipalHeader.class, params);
-	}
-
-	@Override
-	public List<PrincipalHeader> query(String nameFilter,
-			boolean exactMatch, Set<PrincipalType> principals,
-			Set<DomainType> domains, Set<NameType> names, long limit,
+	public List<Long> query(String nameFilter, boolean exactMatch,
+			Set<PrincipalType> principals, Set<DomainType> domains, long limit,
 			long offset) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_TYPE_PARAM_NAME, convertEnum(principals, PrincipalType.class));
 		params.addValue(DOMAIN_TYPE_PARAM_NAME, convertEnum(domains, DomainType.class));
-		params.addValue(NAME_TYPE_PARAM_NAME, convertEnum(names, NameType.class));
 		params.addValue(LIMIT_PARAM_NAME, limit);
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		
@@ -141,7 +120,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			sql = QUERY_FOR_EXACT_MATCH;
 		} else {
 			sql = QUERY_FOR_PREFIX_MATCH;
-			nameFilter = escapeSqlLike(nameFilter) + "%";
+			nameFilter = preprocessFragment(nameFilter) + "%";
 		}
 		params.addValue(PRINCIPAL_NAME_PARAM_NAME, nameFilter);
 		
@@ -150,19 +129,17 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	
 	@Override
 	public long countQueryResults(String nameFilter, boolean exactMatch,
-			Set<PrincipalType> principals, Set<DomainType> domains,
-			Set<NameType> names) {
+			Set<PrincipalType> principals, Set<DomainType> domains) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_TYPE_PARAM_NAME, convertEnum(principals, PrincipalType.class));
 		params.addValue(DOMAIN_TYPE_PARAM_NAME, convertEnum(domains, DomainType.class));
-		params.addValue(NAME_TYPE_PARAM_NAME, convertEnum(names, NameType.class));
 
 		String sql;
 		if (exactMatch) {
 			sql = COUNT_QUERY_FOR_EXACT_MATCH;
 		} else {
 			sql = COUNT_QUERY_FOR_PREFIX_MATCH;
-			nameFilter = escapeSqlLike(nameFilter) + "%";
+			nameFilter = preprocessFragment(nameFilter) + "%";
 		}
 		params.addValue(PRINCIPAL_NAME_PARAM_NAME, nameFilter);
 		
@@ -185,14 +162,17 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 		return jdbcFriendly;
 	}
 	
+	//TODO Replace this method with the same preprocessing that is done to aliases
 	/**
 	 * Escapes the two special characters ('_' and '%') of a SQL "LIKE" operation
 	 * Also transforms null into empty string ("")
 	 */
-	protected static String escapeSqlLike(String str) {
+	@Deprecated
+	protected static String preprocessFragment(String str) {
 		if (str == null) {
 			return "";
 		}
+		
 		str = StringUtils.replace(str, "_", "\\_");
 		return StringUtils.replace(str, "%", "\\%");
 	}

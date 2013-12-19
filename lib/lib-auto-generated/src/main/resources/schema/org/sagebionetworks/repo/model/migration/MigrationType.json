@@ -3,7 +3,6 @@
     "type":"string",
     "enum":[
     	"PRINCIPAL",
-        "PRINCIPAL_HEADER", 
     	"GROUP_MEMBERS", 
     	"CREDENTIAL", 
     	"USER_PROFILE",

@@ -10,23 +10,16 @@ public interface PrincipalHeaderDAO {
 
 	/**
 	 * Inserts a row into the PrincipalHeader table
-	 * All fields of the DTO are required
+	 * All fields are required
 	 */
-	public void insertNew(PrincipalHeader row);
+	public void insertNew(long principalId, String fragment, PrincipalType pType, DomainType dType);
 	
 	/**
-	 * Deletes the ID to name mapping for the given principal
+	 * Deletes the ID to fragment mapping for the given principal
 	 * 
 	 * @return How many rows were deleted
 	 */
 	public long delete(long principalId);
-	
-	/**
-	 * Deletes the given row by primary key (i.e. PrincipalID & PrincipalName)
-	 * 
-	 * @return Did the delete succeed?
-	 */
-	public boolean delete(long principalId, String identifier);
 
 	/**
 	 * Performs a prefix search over the entries within the table
@@ -35,11 +28,9 @@ public interface PrincipalHeaderDAO {
 	 * @param exactMatch Should the result be an exact match?
 	 * @param principals The type(s) of principal to include.  If null or empty, all principals are included
 	 * @param domains The type(s) of domain to include.  If null or empty, all domains are included
-	 * @param names The type(s) of name to include.  If null or empty, all names are included
 	 */
-	public List<PrincipalHeader> query(String nameFilter,
-			boolean exactMatch, Set<PrincipalType> principals,
-			Set<DomainType> domains, Set<NameType> names, long limit,
+	public List<Long> query(String nameFilter, boolean exactMatch,
+			Set<PrincipalType> principals, Set<DomainType> domains, long limit,
 			long offset);
 	
 	/**
@@ -48,6 +39,5 @@ public interface PrincipalHeaderDAO {
 	 * See {@link #query(String, boolean, Set, Set, Set, long, long)}
 	 */
 	public long countQueryResults(String nameFilter, boolean exactMatch,
-			Set<PrincipalType> principals, Set<DomainType> domains,
-			Set<NameType> names);
+			Set<PrincipalType> principals, Set<DomainType> domains);
 }
