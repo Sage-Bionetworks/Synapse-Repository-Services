@@ -34,7 +34,7 @@ public interface PrincipalAliasDAO {
 	 * @param alias
 	 * @return
 	 */
-	public Long findPrincipalWithAlias(String alias);
+	public PrincipalAlias findPrincipalWithAlias(String alias);
 	
 	/**
 	 * Is an alias available? 

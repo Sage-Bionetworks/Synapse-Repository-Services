@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.dao.principal;
+package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.junit.Assert.assertEquals;
 

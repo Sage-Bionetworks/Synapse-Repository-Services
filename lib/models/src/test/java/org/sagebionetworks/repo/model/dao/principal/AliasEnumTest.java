@@ -1,10 +1,10 @@
-package org.sagebionetworks.evaluation.dao.principal;
+package org.sagebionetworks.repo.model.dao.principal;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.dbo.principal.AliasEnum;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 
 public class AliasEnumTest {
 

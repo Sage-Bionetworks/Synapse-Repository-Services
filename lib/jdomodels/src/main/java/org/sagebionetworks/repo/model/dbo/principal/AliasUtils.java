@@ -43,4 +43,14 @@ public class AliasUtils {
 		return m.replaceAll("");
 	}
 
+	/**
+	 * Convert a DBO to a DTO.
+	 * @param dbo
+	 * @return
+	 */
+	public static PrincipalAlias createDTOFromDBO(DBOPrincipalAlias dbo) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

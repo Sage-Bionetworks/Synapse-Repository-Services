@@ -10,10 +10,12 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -33,6 +35,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private IdGenerator idGenerator;
 	@Autowired
 	private DBOBasicDao basicDao;
+	
+	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -41,8 +45,10 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		// Convert to the DBO
 		DBOPrincipalAlias dbo = AliasUtils.createDBOFromDTO(binding);
 		// Does this alias already exist?
-		Long aliasId = findPrincipal(dbo.getAliasUnique(), dbo.getPrincipalId(), dbo.getAliasType());
-		if(aliasId == null){
+		PrincipalAlias current = findPrincipalWithAlias(binding.getAlias());
+		if(current != null){
+			// Must match the type and id
+			if(current.getPrincipalId().equals(obj))
 			// this alias does not exist so create a new ID
 			aliasId = idGenerator.generateNewId(IdGenerator.TYPE.PRINCIPAL_ALIAS_ID);
 		}
@@ -61,31 +67,17 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		return null;
 	}
 	
-	/**
-	 * Find the Alias id for an alias with he given values. 
-	 * @param alias
-	 * @param principalId
-	 * @param type
-	 * @return
-	 */
-	private Long findPrincipal(String alias, Long principalId, AliasEnum type){
+	@Override
+	public PrincipalAlias findPrincipalWithAlias(String alias) {
+		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
+		String unique = AliasUtils.getUniqueAliasName(alias);
 		try {
-			return simpleJdbcTemplate.queryForObject("", new RowMapper<Long>(){
-
-				@Override
-				public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-					return rs.getLong(COL_PRINCIPAL_ALIAS_ID);
-				}}, alias, principalId, type.name());
+			DBOPrincipalAlias dbo = simpleJdbcTemplate.queryForObject("", principalAliasMapper, unique);
+			return AliasUtils.createDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
-			// This does not exist
+			// no match
 			return null;
 		}
-	}
-
-	@Override
-	public Long findPrincipalWithAlias(String alias) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	@Override
