@@ -40,14 +40,14 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class ITV2WikiPageTest {
 
+	private static String FILE_NAME = "LittleImage.png";
+	private static String FILE_NAME2 = "profile_pic.png";
+	private static String MARKDOWN_NAME = "previewtest.txt.gz";
+	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
+
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapse;
 	private static Long userToDelete;
-	
-	private static final String FILE_NAME = "LittleImage.png";
-	private static final String FILE_NAME2 = "profile_pic.png";
-	private static final String MARKDOWN_NAME = "previewtest.txt";
-	private static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	
 	private List<WikiPageKey> toDelete = null;
 	private List<String> fileHandlesToDelete = null;
@@ -176,9 +176,9 @@ public class ITV2WikiPageTest {
 		assertEquals(wiki, root);
 		
 		// get markdown file
-		File markdown = synapse.downloadV2WikiMarkdown(key);
+		String markdown = synapse.downloadV2WikiMarkdown(key);
 		assertNotNull(markdown);
-		File oldMarkdown = synapse.downloadVersionOfV2WikiMarkdown(key, new Long(0));
+		String oldMarkdown = synapse.downloadVersionOfV2WikiMarkdown(key, new Long(0));
 		assertNotNull(oldMarkdown);
 		
 		// Get the tree
@@ -266,8 +266,8 @@ public class ITV2WikiPageTest {
 		V2WikiPage root = synapse.getV2RootWikiPage(project.getId(), ObjectType.ENTITY);
 		// this root is in the V2 model, but should have all the same fields as "wiki"
 		assertEquals(root.getAttachmentFileHandleIds().size(), wiki.getAttachmentFileHandleIds().size());
-		File markdown = synapse.downloadV2WikiMarkdown(key);
-		assertEquals(FileUtils.readCompressedFileAsString(markdown), wiki.getMarkdown());
+		String markdown = synapse.downloadV2WikiMarkdown(key);
+		assertEquals(markdown, wiki.getMarkdown());
 		// test get first version
 		WikiPage firstWiki = synapse.getVersionOfV2WikiPageAsV1(key, new Long(0));
 		assertNotNull(firstWiki.getAttachmentFileHandleIds());
@@ -323,47 +323,6 @@ public class ITV2WikiPageTest {
 		// Getting first version file handles should return two.
 		FileHandleResults oldResults = synapse.getVersionOfV2WikiAttachmentHandles(key, new Long(0));
 		assertEquals(2, oldResults.getList().size());
-		
-		// Make sure we can download
-		File mainFile = null;
-		File previewFile = null;
-		try{
-			// Download the files from Synapse:
-			mainFile = synapse.downloadV2WikiAttachment(key, handle.getFileName());
-			assertNotNull(mainFile);
-			// Make sure we can also just get the temporary URL
-			URL tempUrl = synapse.getV2WikiAttachmentTemporaryUrl(key, handle.getFileName());
-			assertNotNull(tempUrl);
-			// the file should be the expected size
-			assertEquals(handle.getContentSize().longValue(), mainFile.length());
-			// Check the MD5
-			String md5 = MD5ChecksumHelper.getMD5Checksum(mainFile);
-			assertEquals(handle.getContentMd5(), md5);
-			// Download the preview
-			previewFile = synapse.downloadV2WikiAttachmentPreview(key, handle.getFileName());
-			assertNotNull(previewFile);
-			// the file should be the expected size
-			assertEquals(preview.getContentSize().longValue(), previewFile.length());
-			// Make sure we can also just get the temporary URL
-			tempUrl = synapse.getV2WikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
-			assertNotNull(tempUrl);
-		}finally{
-			if(mainFile != null){
-				mainFile.delete();
-			}
-			if(previewFile != null){
-				previewFile.delete();
-			}
-		}
-		
-		// Update wiki and remove all attachments
-		wiki.getAttachmentFileHandleIds().clear();
-		wiki = synapse.updateV2WikiPage(key.getOwnerObjectId(), key.getOwnerObjectType(), wiki);
-		FileHandleResults resultsUpdatedAgain = synapse.getV2WikiAttachmentHandles(key);
-		assertEquals(0, resultsUpdatedAgain.getList().size());
-		// Make sure we can get the URL to render the image when viewing an old version of the wiki
-		URL tempUrlForVersion = synapse.getVersionOfV2WikiAttachmentTemporaryUrl(key, handle.getFileName(), new Long(0));
-		assertNotNull(tempUrlForVersion);
 	}
 	
 	/**

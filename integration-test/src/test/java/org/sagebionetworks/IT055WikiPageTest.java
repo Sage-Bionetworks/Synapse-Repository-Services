@@ -182,40 +182,7 @@ public class IT055WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
-		
-		// Make sure we can download
-		File mainFile = null;
-		File previewFile = null;
-		try{
-			// Download the files from Synapse:
-			mainFile = synapse.downloadWikiAttachment(key, handle.getFileName());
-			assertNotNull(mainFile);
-			// Make sure we can also just get the temporary URL
-			URL tempUrl = synapse.getWikiAttachmentTemporaryUrl(key, handle.getFileName());
-			assertNotNull(tempUrl);
-			
-			// the file should be the expected size
-			assertEquals(handle.getContentSize().longValue(), mainFile.length());
-			// Check the MD5
-			String md5 = MD5ChecksumHelper.getMD5Checksum(mainFile);
-			assertEquals(handle.getContentMd5(), md5);
-			// download the preview
-			previewFile = synapse.downloadWikiAttachmentPreview(key, handle.getFileName());
-			assertNotNull(previewFile);
-			// the file should be the expected size
-			assertEquals(preview.getContentSize().longValue(), previewFile.length());
-			
-			// Make sure we can also just get the temporary URL
-			tempUrl = synapse.getWikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
-			assertNotNull(tempUrl);
-		}finally{
-			if(mainFile != null){
-				mainFile.delete();
-			}
-			if(previewFile != null){
-				previewFile.delete();
-			}
-		}
+
 	}
 
 	/**

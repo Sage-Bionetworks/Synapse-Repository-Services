@@ -326,45 +326,7 @@ public class V2WikiControllerTest {
 		// The first should be the S3FileHandle, the second should be the Preview.
 		assertEquals(handleOne.getId(), handles.getList().get(0).getId());
 		assertEquals(handleTwo.getId(), handles.getList().get(1).getId());
-		
-		// Get the presigned URL for the first file
-		URL presigned  = entityServletHelper.getV2WikiAttachmentFileURL(adminUserId, childKey, handleOne.getFileName(), null, null);
-		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
-		System.out.println(presigned);
-		// Get the preview presigned URL.
-		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(adminUserId, childKey, handleOne.getFileName(), null, null);
-		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
-		System.out.println(presigned);
-		
-		// Make sure we can get the URLs without a redirect
-		Boolean redirect = Boolean.FALSE;
-		presigned  = entityServletHelper.getV2WikiAttachmentFileURL(adminUserId, childKey, handleOne.getFileName(), redirect, null);
-		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
-		System.out.println(presigned);
-		// again without the redirct
-		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(adminUserId, childKey, handleOne.getFileName(), redirect, null);
-		assertNotNull(presigned);
-		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
-		System.out.println(presigned);
-		
-		// Now delete the wiki
-		entityServletHelper.deleteV2WikiPage(key, adminUserId);
-		try {
-			entityServletHelper.getV2WikiPage(key, adminUserId, null);
-			fail("The wiki should have been deleted");
-		} catch (NotFoundException e) {
-			// this is expected
-		}
-		// the child should be delete as well
-		try {
-			entityServletHelper.getV2WikiPage(childKey, adminUserId, null);
-			fail("The wiki should have been deleted");
-		} catch (NotFoundException e) {
-			// this is expected
-		}
+	
 	}
 
 }

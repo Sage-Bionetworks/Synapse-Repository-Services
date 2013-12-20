@@ -1921,23 +1921,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 	
-
-	/**
-	 * 
-	 * @param key - Identifies a wiki page.
-	 * @param fileName - The name of the attachment file.
-	 * @return
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
-	@Override
-	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment. This is an alternative to downloading the attachment to a file.
@@ -1957,24 +1940,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
-
-	/**
-	 * Download the preview of a wiki attachment file.
-	 * @param key - Identifies a wiki page.
-	 * @param fileName - The name of the original attachment file that you want to downlaod a preview for.
-	 * @return
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws ClientProtocolException 
-	 */
-	@Override
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException{
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment preview. This is an alternative to downloading the attachment to a file.
@@ -2319,55 +2284,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 	@Override
-	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
+	public String downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = createV2WikiURL(key)+MARKDOWN_FILE;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
+		return getSharedClientConnection().downloadZippedFileString(repoEndpoint, uri, getUserAgent());
 	}
 	
 	@Override
-	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
+	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(version == null) throw new IllegalArgumentException("Version cannot be null");
 		String uri = createV2WikiURL(key)+MARKDOWN_FILE+VERSION_PARAMETER+version;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-	}
-	
-	/**
-	 * 
-	 * @param key - Identifies a V2 wiki page.
-	 * @param fileName - The name of the attachment file.
-	 * @return
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
-	@Override
-	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-		throws ClientProtocolException, IOException, SynapseException {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-	}
-	
-	/**
-	 * Download the preview of a V2 wiki attachment file.
-	 * @param key - Identifies a V2 wiki page.
-	 * @param fileName - The name of the original attachment file that you want to download a preview for.
-	 * @return
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws ClientProtocolException 
-	 */
-	@Override
-	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
+		return getSharedClientConnection().downloadZippedFileString(repoEndpoint, uri, getUserAgent());
 	}
 	
 	/**
@@ -2482,26 +2410,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	/**
-	 * Zips up content into a file and returns the file.
-	 * @param content
-	 * @param tempFileName
-	 * @return
-	 * @throws IOException
-	 */
-	private File zipUp(String content, String tempFileName) throws IOException {
-		File tempFile = File.createTempFile(tempFileName, ".tmp");
-		if(content != null) {
-			org.apache.commons.io.FileUtils.writeByteArrayToFile(tempFile, content.getBytes());
-		} else {
-			// When creating a wiki for the first time, markdown content doesn't exist
-			// Uploaded file should be empty
-			byte[] emptyByteArray = new byte[0];
-			org.apache.commons.io.FileUtils.writeByteArrayToFile(tempFile, emptyByteArray);
-		}
-		return tempFile;
-	}
-	
-	/**
 	 * Creates a V2 WikiPage model from a V1, zipping up markdown content and tracking it with
 	 * a file handle.
 	 * @param from
@@ -2524,18 +2432,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());	
 		
 		// Zip up markdown
-		File markdownFile;
-		String markdown = from.getMarkdown();
-		if(markdown != null) {
-			markdownFile = FileUtils.writeStringToCompressedFile(markdown);
-		} else {
-			markdownFile = FileUtils.writeStringToCompressedFile("");
+		File markdownFile = File.createTempFile("compressed", ".txt.gz");
+		try{
+			String markdown = from.getMarkdown();
+			if(markdown != null) {
+				markdownFile = FileUtils.writeStringToCompressedFile(markdownFile, markdown);
+			} else {
+				markdownFile = FileUtils.writeStringToCompressedFile(markdownFile, "");
+			}
+			String contentType = "application/x-gzip";
+			// Create file handle for markdown
+			S3FileHandle markdownS3Handle = createFileHandle(markdownFile, contentType);
+			wiki.setMarkdownFileHandleId(markdownS3Handle.getId());
+			return wiki;
+		}finally{
+			markdownFile.delete();
 		}
-		String contentType = "application/x-gzip";
-		// Create file handle for markdown
-		S3FileHandle markdownS3Handle = createFileHandle(markdownFile, contentType);
-		wiki.setMarkdownFileHandleId(markdownS3Handle.getId());
-		return wiki;
+
 	}
 	
 	/**
@@ -2568,13 +2481,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		
 		// We may be returning the most recent version of the V2 Wiki, or another version
 		// Download the correct markdown file
-		File markdownFile;
+		String markdownString = null;
 		if(version == null) {
-			markdownFile = downloadV2WikiMarkdown(key);
+			markdownString = downloadV2WikiMarkdown(key);
 		} else {
-			markdownFile = downloadVersionOfV2WikiMarkdown(key, version);
+			markdownString = downloadVersionOfV2WikiMarkdown(key, version);
 		}
-		String markdownString = FileUtils.readCompressedFileAsString(markdownFile);
 		// Store the markdown as a string
 		wiki.setMarkdown(markdownString);
 		return wiki;

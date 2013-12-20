@@ -437,12 +437,6 @@ public interface SynapseClient extends BaseClient {
 	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
-	public File downloadWikiAttachment(WikiPageKey key, String fileName)
-			throws ClientProtocolException, IOException, SynapseException;
-
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
-			throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
-
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
 
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
@@ -483,15 +477,15 @@ public interface SynapseClient extends BaseClient {
 	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
 		throws JSONObjectAdapterException, SynapseException;
 	
-	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+	public String downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
-	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
-	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-		throws ClientProtocolException, IOException, SynapseException;
+//	public String downloadV2WikiAttachment(WikiPageKey key, String fileName)
+//		throws ClientProtocolException, IOException, SynapseException;
 	
-	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+//	public String downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+//		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
