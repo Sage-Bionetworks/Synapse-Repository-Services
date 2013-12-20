@@ -7,6 +7,26 @@ import java.util.Set;
  * Holds a mapping between principal IDs and various parts of their identification(s)
  */
 public interface PrincipalHeaderDAO {
+	
+	/**
+	 * Determines what criterion is used to query on the PrincipalHeader table
+	 */
+	public enum MATCH_TYPE {
+		/**
+		 * Matches on the prefix of the supplied filter
+		 */
+		PREFIX, 
+		
+		/**
+		 * Matches on the supplied filter exactly
+		 */
+		EXACT, 
+		
+		/**
+		 * Matches on the Soundex of the supplied filter
+		 */
+		SOUNDEX
+	}
 
 	/**
 	 * Inserts a row into the PrincipalHeader table for each fragment
@@ -28,11 +48,11 @@ public interface PrincipalHeaderDAO {
 	 *   See comments in DBOPrincipalHeader for more info.  
 	 * 
 	 * @param nameFilter The string to match.  If null/empty and the exactMatch=false, then all results will be returned
-	 * @param exactMatch Should the result be an exact match?
+	 * @param mType How should the name filter be applied?  See {@link #MATCH_TYPE}
 	 * @param principals The type(s) of principal to include.  If null or empty, all principals are included
 	 * @param domains The type(s) of domain to include.  If null or empty, all domains are included
 	 */
-	public List<Long> query(String nameFilter, boolean exactMatch,
+	public List<Long> query(String nameFilter, MATCH_TYPE mType,
 			Set<PrincipalType> principals, Set<DomainType> domains, long limit,
 			long offset);
 	
@@ -41,6 +61,6 @@ public interface PrincipalHeaderDAO {
 	 * 
 	 * See {@link #query(String, boolean, Set, Set, Set, long, long)}
 	 */
-	public long countQueryResults(String nameFilter, boolean exactMatch,
+	public long countQueryResults(String nameFilter, MATCH_TYPE mType,
 			Set<PrincipalType> principals, Set<DomainType> domains);
 }

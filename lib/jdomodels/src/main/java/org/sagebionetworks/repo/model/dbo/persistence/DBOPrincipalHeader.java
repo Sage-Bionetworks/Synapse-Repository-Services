@@ -29,6 +29,9 @@ public class DBOPrincipalHeader implements DatabaseObject<DBOPrincipalHeader> {
 
 	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_FRAGMENT, primary = true, varchar = 256, nullable = false)
 	private String fragment;
+	
+	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_SOUNDEX, varchar = 4, nullable = false)
+	private String soundex;
 
 	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE, nullable = false)
 	private PrincipalType principalType;
@@ -50,6 +53,14 @@ public class DBOPrincipalHeader implements DatabaseObject<DBOPrincipalHeader> {
 
 	public void setFragment(String fragment) {
 		this.fragment = fragment;
+	}
+
+	public String getSoundex() {
+		return soundex;
+	}
+
+	public void setSoundex(String soundex) {
+		this.soundex = soundex;
 	}
 
 	public Long getPrincipalId() {
@@ -88,6 +99,7 @@ public class DBOPrincipalHeader implements DatabaseObject<DBOPrincipalHeader> {
 				+ ((principalId == null) ? 0 : principalId.hashCode());
 		result = prime * result
 				+ ((principalType == null) ? 0 : principalType.hashCode());
+		result = prime * result + ((soundex == null) ? 0 : soundex.hashCode());
 		return result;
 	}
 
@@ -114,14 +126,19 @@ public class DBOPrincipalHeader implements DatabaseObject<DBOPrincipalHeader> {
 			return false;
 		if (principalType != other.principalType)
 			return false;
+		if (soundex == null) {
+			if (other.soundex != null)
+				return false;
+		} else if (!soundex.equals(other.soundex))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
 		return "DBOPrincipalHeader [principalId=" + principalId + ", fragment="
-				+ fragment + ", principalType=" + principalType
-				+ ", domainType=" + domainType + "]";
+				+ fragment + ", soundex=" + soundex + ", principalType="
+				+ principalType + ", domainType=" + domainType + "]";
 	}
 
 }

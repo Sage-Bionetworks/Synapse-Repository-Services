@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.codec.language.Soundex;
 import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalHeader;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -23,13 +25,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Sets;
 
-public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
+public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO, InitializingBean {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	@Autowired
 	private DBOBasicDao basicDAO;
+	
+	private Soundex soundex;
 	
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String PRINCIPAL_NAME_PARAM_NAME = "principalName";
@@ -43,7 +47,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			" WHERE " + SqlConstants.COL_PRINCIPAL_HEADER_ID + "=:" + PRINCIPAL_ID_PARAM_NAME;
 	
 	private static final String SELECT_DISTINCT_IDS = 
-			"SELECT DISTINCT(" + SqlConstants.COL_PRINCIPAL_HEADER_ID + ")";
+			"SELECT DISTINCT(" + SqlConstants.COL_PRINCIPAL_HEADER_ID + ") ";
 	
 	private static final String SELECT_COUNT_OF_DISTINCT_IDS = 
 			"SELECT COUNT(DISTINCT(" + SqlConstants.COL_PRINCIPAL_HEADER_ID + ")) ";
@@ -59,6 +63,13 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	private static final String PREFIX_MATCH_CONDITION = 
 			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_FRAGMENT + " LIKE :" + PRINCIPAL_NAME_PARAM_NAME;
 	
+	/**
+	 * An exact match is used here because the Soundex algorithm always outputs
+	 * a 4 letter code consisting of a letter followed by 3 numbers
+	 */
+	private static final String SOUNDEX_MATCH_CONDITION = 
+			" AND " + SqlConstants.COL_PRINCIPAL_HEADER_SOUNDEX + "=:" + PRINCIPAL_NAME_PARAM_NAME;
+	
 	private static final String PAGINATION_PARAMS = 
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 	
@@ -68,11 +79,17 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	private static final String QUERY_FOR_PREFIX_MATCH = 
 			SELECT_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + PREFIX_MATCH_CONDITION + PAGINATION_PARAMS;
 	
+	private static final String QUERY_FOR_SOUNDEX_MATCH = 
+			SELECT_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + SOUNDEX_MATCH_CONDITION + PAGINATION_PARAMS;
+	
 	private static final String COUNT_QUERY_FOR_EXACT_MATCH = 
 			SELECT_COUNT_OF_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + EXACT_MATCH_CONDITION;
 	
 	private static final String COUNT_QUERY_FOR_PREFIX_MATCH = 
 			SELECT_COUNT_OF_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + PREFIX_MATCH_CONDITION;
+	
+	private static final String COUNT_QUERY_FOR_SOUNDEX_MATCH = 
+			SELECT_COUNT_OF_DISTINCT_IDS + QUERY_ON_PRINCIPAL_HEADERS_CORE + SOUNDEX_MATCH_CONDITION;
 
 	private RowMapper<Long> rowMapper = new RowMapper<Long>() {
 
@@ -83,6 +100,16 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 		}
 		
 	};
+
+	/**
+	 * Called by Spring after bean initialization
+	 * 
+	 * Creates an Apache Soundex encoder 
+	 */
+	@Override
+	public void afterPropertiesSet(){
+		soundex = new Soundex();
+	}
 			
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -98,6 +125,8 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 			
 			//TODO Should preprocessing be done here or in the manager layer?
 			dbo.setFragment(fragment);
+			dbo.setSoundex(soundex.encode(fragment));
+			
 			dbo.setPrincipalType(pType);
 			dbo.setDomainType(dType);
 			
@@ -116,7 +145,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	}
 
 	@Override
-	public List<Long> query(String nameFilter, boolean exactMatch,
+	public List<Long> query(String nameFilter, MATCH_TYPE mType,
 			Set<PrincipalType> principals, Set<DomainType> domains, long limit,
 			long offset) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -126,11 +155,20 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		
 		String sql;
-		if (exactMatch) {
+		switch (mType) {
+		case EXACT:
 			sql = QUERY_FOR_EXACT_MATCH;
-		} else {
+			break;
+		case PREFIX:
 			sql = QUERY_FOR_PREFIX_MATCH;
 			nameFilter = preprocessFragment(nameFilter) + "%";
+			break;
+		case SOUNDEX:
+			sql = QUERY_FOR_SOUNDEX_MATCH;
+			nameFilter = soundex.encode(nameFilter);
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown match type: " + mType); 
 		}
 		params.addValue(PRINCIPAL_NAME_PARAM_NAME, nameFilter);
 		
@@ -138,18 +176,27 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 	}
 	
 	@Override
-	public long countQueryResults(String nameFilter, boolean exactMatch,
+	public long countQueryResults(String nameFilter, MATCH_TYPE mType,
 			Set<PrincipalType> principals, Set<DomainType> domains) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(PRINCIPAL_TYPE_PARAM_NAME, convertEnum(principals, PrincipalType.class));
 		params.addValue(DOMAIN_TYPE_PARAM_NAME, convertEnum(domains, DomainType.class));
 
 		String sql;
-		if (exactMatch) {
+		switch (mType) {
+		case EXACT:
 			sql = COUNT_QUERY_FOR_EXACT_MATCH;
-		} else {
+			break;
+		case PREFIX:
 			sql = COUNT_QUERY_FOR_PREFIX_MATCH;
 			nameFilter = preprocessFragment(nameFilter) + "%";
+			break;
+		case SOUNDEX:
+			sql = COUNT_QUERY_FOR_SOUNDEX_MATCH;
+			nameFilter = soundex.encode(nameFilter);
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown match type: " + mType); 
 		}
 		params.addValue(PRINCIPAL_NAME_PARAM_NAME, nameFilter);
 		

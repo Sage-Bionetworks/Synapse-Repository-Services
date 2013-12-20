@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
+import org.sagebionetworks.repo.model.PrincipalHeaderDAO.MATCH_TYPE;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -101,7 +102,7 @@ public class PrincipalHeaderWorkerIntegrationTest {
 	private void emptyPrefixTable() throws Exception {
 		List<Long> results;
 		do {
-			results = prinHeadDAO.query(null, false, null, null, 10, 0);
+			results = prinHeadDAO.query(null, MATCH_TYPE.PREFIX, null, null, 10, 0);
 			for (Long id : results) {
 				prinHeadDAO.delete(id);
 			}
@@ -125,7 +126,7 @@ public class PrincipalHeaderWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while (results == null || results.size() < 2) {
 			// Query for the two principals
-			results = prinHeadDAO.query(PREFIX, false, null, null, 10, 0);
+			results = prinHeadDAO.query(PREFIX, MATCH_TYPE.PREFIX, null, null, 10, 0);
 			
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;

@@ -241,6 +241,7 @@ public class SqlConstants {
 	public static final String TABLE_PRINCIPAL_HEADER              = "PRINCIPAL_HEADER";
 	public static final String COL_PRINCIPAL_HEADER_ID             = "PRINCIPAL_ID";
 	public static final String COL_PRINCIPAL_HEADER_FRAGMENT       = "FRAGMENT";
+	public static final String COL_PRINCIPAL_HEADER_SOUNDEX        = "SOUNDEX";
 	public static final String COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE = "PRINCIPAL_TYPE";
 	public static final String COL_PRINCIPAL_HEADER_DOMAIN_TYPE    = "DOMAIN_TYPE";
     
