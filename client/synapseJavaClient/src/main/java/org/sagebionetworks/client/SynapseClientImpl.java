@@ -2337,43 +2337,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().downloadZippedFileString(repoEndpoint, uri, getUserAgent());
 	}
 	
-//	/**
-//	 * 
-//	 * @param key - Identifies a V2 wiki page.
-//	 * @param fileName - The name of the attachment file.
-//	 * @return
-//	 * @throws IOException 
-//	 * @throws ClientProtocolException 
-//	 */
-//	@Override
-//	public String downloadV2WikiAttachment(WikiPageKey key, String fileName)
-//		throws ClientProtocolException, IOException, SynapseException {
-//		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-//		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-//		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-//		String uri = createV2WikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
-//		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-//	}
-//	
-//	/**
-//	 * Download the preview of a V2 wiki attachment file.
-//	 * @param key - Identifies a V2 wiki page.
-//	 * @param fileName - The name of the original attachment file that you want to download a preview for.
-//	 * @return
-//	 * @throws IOException 
-//	 * @throws FileNotFoundException 
-//	 * @throws ClientProtocolException 
-//	 */
-//	@Override
-//	public String downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-//		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
-//		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-//		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-//		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-//		String uri = createV2WikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
-//		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-//	}
-	
 	/**
 	 * Get the temporary URL for a V2 WikiPage attachment. This is an alternative to downloading the attachment to a file.
 	 * @param key - Identifies a V2 wiki page.

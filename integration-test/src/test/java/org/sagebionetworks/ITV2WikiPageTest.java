@@ -37,7 +37,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 public class ITV2WikiPageTest {
 	private static String FILE_NAME = "LittleImage.png";
 	private static String FILE_NAME2 = "profile_pic.png";
-	private static String MARKDOWN_NAME = "previewtest.txt";
+	private static String MARKDOWN_NAME = "previewtest.txt.gz";
 	public static final long MAX_WAIT_MS = 1000*20; // 10 sec
 	
 	private List<WikiPageKey> toDelete = null;
@@ -309,38 +309,6 @@ public class ITV2WikiPageTest {
 		// Getting first version file handles should return two.
 		FileHandleResults oldResults = synapse.getVersionOfV2WikiAttachmentHandles(key, new Long(0));
 		assertEquals(2, oldResults.getList().size());
-		
-//		// Make sure we can download
-//		File mainFile = null;
-//		File previewFile = null;
-//		try{
-//			// Download the files from Synapse:
-//			mainFile = synapse.downloadV2WikiAttachment(key, handle.getFileName());
-//			assertNotNull(mainFile);
-//			// Make sure we can also just get the temporary URL
-//			URL tempUrl = synapse.getV2WikiAttachmentTemporaryUrl(key, handle.getFileName());
-//			assertNotNull(tempUrl);
-//			// the file should be the expected size
-//			assertEquals(handle.getContentSize().longValue(), mainFile.length());
-//			// Check the MD5
-//			String md5 = MD5ChecksumHelper.getMD5Checksum(mainFile);
-//			assertEquals(handle.getContentMd5(), md5);
-//			// Download the preview
-//			previewFile = synapse.downloadV2WikiAttachmentPreview(key, handle.getFileName());
-//			assertNotNull(previewFile);
-//			// the file should be the expected size
-//			assertEquals(preview.getContentSize().longValue(), previewFile.length());
-//			// Make sure we can also just get the temporary URL
-//			tempUrl = synapse.getV2WikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
-//			assertNotNull(tempUrl);
-//		}finally{
-//			if(mainFile != null){
-//				mainFile.delete();
-//			}
-//			if(previewFile != null){
-//				previewFile.delete();
-//			}
-//		}
 	}
 	
 	/**
