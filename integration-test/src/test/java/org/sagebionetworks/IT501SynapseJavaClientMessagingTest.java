@@ -20,6 +20,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -136,10 +137,15 @@ public class IT501SynapseJavaClientMessagingTest {
 		// Delete the file handle
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (SynapseNotFoundException e) { }
+		} catch (SynapseNotFoundException e) {
+		} catch (SynapseServiceException e) { }
 		
-		adminSynapse.deleteUser(user1ToDelete);
-		adminSynapse.deleteUser(user2ToDelete);
+		try {
+			adminSynapse.deleteUser(user1ToDelete);
+		} catch (SynapseServiceException e) { }
+		try {
+			adminSynapse.deleteUser(user2ToDelete);
+		} catch (SynapseServiceException e) { }
 	}
 
 	@SuppressWarnings("serial")
