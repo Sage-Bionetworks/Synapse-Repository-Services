@@ -22,6 +22,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -32,7 +33,6 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
-import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
 
@@ -91,7 +91,8 @@ public class IT055WikiPageTest {
 		for (String id : handlesToDelete) {
 			try {
 				adminSynapse.deleteFileHandle(id);
-			} catch (SynapseNotFoundException e) {}
+			} catch (SynapseNotFoundException e) {
+			} catch (SynapseServiceException e) { }
 		}
 		
 		adminSynapse.deleteAndPurgeEntity(project);
@@ -102,7 +103,9 @@ public class IT055WikiPageTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (SynapseServiceException e) { }
 	}
 	
 	@Test

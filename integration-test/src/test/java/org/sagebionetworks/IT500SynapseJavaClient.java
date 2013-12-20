@@ -41,6 +41,7 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -177,7 +178,8 @@ public class IT500SynapseJavaClient {
 		for (String id : handlesToDelete) {
 			try {
 				adminSynapse.deleteFileHandle(id);
-			} catch (SynapseNotFoundException e) {}
+			} catch (SynapseNotFoundException e) {
+			} catch (SynapseServiceException e) { }
 		}
 		
 		for (String id : teamsToDelete) {
@@ -189,8 +191,12 @@ public class IT500SynapseJavaClient {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(user1ToDelete);
-		adminSynapse.deleteUser(user2ToDelete);
+		try {
+			adminSynapse.deleteUser(user1ToDelete);
+		} catch (SynapseServiceException e) { }
+		try {
+			adminSynapse.deleteUser(user2ToDelete);
+		} catch (SynapseServiceException e) { }
 	}
 	
 	@Test

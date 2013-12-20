@@ -23,6 +23,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -69,13 +70,16 @@ public class IT049FileHandleTest {
 		for (FileHandle handle: toDelete) {
 			try {
 				synapse.deleteFileHandle(handle.getId());
-			} catch (SynapseNotFoundException e) {}
+			} catch (SynapseNotFoundException e) {
+			} catch (SynapseServiceException e) { }
 		}
 	}
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (SynapseServiceException e) { }
 	}
 	
 	@Test
