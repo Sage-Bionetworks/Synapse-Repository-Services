@@ -9,13 +9,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.HttpClientProvider;
-import org.sagebionetworks.client.HttpClientProviderImpl;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -27,30 +26,24 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserGroup;
 
 public class IT960TermsOfUse {
-	private static SynapseClientImpl synapse = null;
-	private static SynapseClientImpl adminSynapse = null;
-	private static String authEndpoint = null;
-	private static String repoEndpoint = null;
+
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
 	
 	private static Project project;
 	private static Study dataset;
-
-	@BeforeClass
+	
+	@BeforeClass 
 	public static void beforeClass() throws Exception {
-
-		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
-		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
-				StackConfiguration.getIntegrationTestUserThreePassword());
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		adminSynapse = new SynapseClientImpl();
-		adminSynapse.setAuthEndpoint(authEndpoint);
-		adminSynapse.setRepositoryEndpoint(repoEndpoint);
-		adminSynapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		
 		project = new Project();
 		project.setName("foo");
@@ -90,20 +83,15 @@ public class IT960TermsOfUse {
 		dataset = adminSynapse.createEntity(dataset);
 	}
 	
-	// make sure that after the test suite is done running the user has signed the Terms of Use
 	@AfterClass
 	public static void afterClass() throws Exception {
-		if (adminSynapse!=null && project!=null) adminSynapse.deleteAndPurgeEntity(project);
+		adminSynapse.deleteAndPurgeEntity(project);
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
 	public void testGetTermsOfUse() throws Exception {
-		HttpClientProvider clientProvider = new HttpClientProviderImpl();
-		String requestUrl = authEndpoint+"/termsOfUse.html";
-		String requestMethod = "GET";
-		HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, null, null);
-		String responseBody = (null != response.getEntity()) ? EntityUtils
-				.toString(response.getEntity()) : null;
+		String responseBody = synapse.getSynapseTermsOfUse();
 		assertTrue(responseBody.length()>100);
 	}
 	
@@ -118,8 +106,7 @@ public class IT960TermsOfUse {
 	@Test
 	public void testRepoSvcNoTermsOfUse() throws Exception {
 		SynapseClientImpl anonymous = new SynapseClientImpl();
-		anonymous.setAuthEndpoint(authEndpoint);
-		anonymous.setRepositoryEndpoint(repoEndpoint);
+		SynapseClientHelper.setEndpoints(anonymous);
 		
 		Study ds = synapse.getEntity(dataset.getId(), Study.class);
 		List<LocationData> locations = ds.getLocations();

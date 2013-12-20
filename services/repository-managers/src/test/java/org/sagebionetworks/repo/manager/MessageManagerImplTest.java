@@ -7,8 +7,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
@@ -24,15 +22,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
@@ -42,11 +38,11 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -58,6 +54,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Sets;
 
 /**
  * Tests message access requirement checking and the sending of messages
@@ -129,11 +127,17 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
 		
-		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		otherTestUser = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
+		DBOCredential cred = new DBOCredential();
+		cred.setAgreesToTermsOfUse(true);
+		cred.setSecretKey("");
+		
+		// Need two users for this test
+		testUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		otherTestUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+
 		final String testUserId = testUser.getIndividualGroup().getId();
 		final String otherTestUserId = otherTestUser.getIndividualGroup().getId();
 		
@@ -144,7 +148,7 @@ public class MessageManagerImplTest {
 		final String testTeamId = testTeam.getId();
 		
 		// This user info needs to be updated to contain the team
-		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		testUser = userManager.getUserInfo(Long.parseLong(testUser.getIndividualGroup().getId()));
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -248,6 +252,9 @@ public class MessageManagerImplTest {
 		
 		// Restore the old fileHandleManager
 		messageManager.setFileHandleManager(fileHandleManager);
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUser.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherTestUser.getIndividualGroup().getId()));
 	}
 	
 	@SuppressWarnings("serial")
@@ -430,27 +437,18 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
 	}
 	
-	@SuppressWarnings("serial")
 	@Test
 	public void testSendMessageTo_AUTH_USERS() throws Exception {
-		// Find the ID of the AUTHENTICATED_USERS group
-		String findingAuthUsers = null;
-		for (UserGroup ug : testUser.getGroups()) {
-			if (ug.getName().equals(DEFAULT_GROUPS.AUTHENTICATED_USERS.toString())) {
-				findingAuthUsers = ug.getId();
-			}
-		}
-		assertNotNull(findingAuthUsers);
-		final String authUsersId = findingAuthUsers;
-		
 		// This should fail since no one has permission to send to this public group
-		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
+		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", 
+				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
 		List<String> errors = messageManager.processMessage(notAllowedToSend.getId());
 		String joinedErrors = StringUtils.join(errors, "\n");
 		assertTrue(joinedErrors.contains("may not send"));
 		
 		// But an admin can do it
-		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", new HashSet<String>() {{add(authUsersId);}}, null);
+		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", 
+				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
 		errors = messageManager.processMessage(spam.getId());
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 		
@@ -537,11 +535,9 @@ public class MessageManagerImplTest {
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
 		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE, "Blah?");
-		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
 		
 		// Try another variation
 		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE, "Blah?");
-		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
 		
 		// Try the other one
 		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);

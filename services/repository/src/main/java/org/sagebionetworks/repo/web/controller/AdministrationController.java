@@ -7,26 +7,27 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
-import org.sagebionetworks.repo.web.service.WikiMigrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -43,9 +44,6 @@ public class AdministrationController extends BaseController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
-	
-	@Autowired
-	private WikiMigrationService wikiMigrationService;
 	
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
@@ -244,18 +242,28 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 		serviceProvider.getAdministrationService().clearDynamoTable(userId, tableName, hashKeyName, rangeKeyName);
 	}
-	
+
 	/**
-	 * Migrates some wikis from the V1 WikiPage DB to the V2 WikiPage DB.
+	 * Creates a user with specific state to be used for integration testing
 	 */
-	@RequestMapping(value = {UrlHelpers.ADMIN_MIGRATE_WIKI}, method = RequestMethod.POST)
+	@RequestMapping(value = {UrlHelpers.ADMIN_USER}, method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.OK)
-	public @ResponseBody
-	PaginatedResults<WikiMigrationResult> migrateFromV1Wiki(
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			HttpServletRequest request) throws NotFoundException, IOException {
-		return wikiMigrationService.migrateSomeWikis(username, limit, offset, request.getServletPath());
+	public @ResponseBody EntityId createIntegrationTestUser(
+			@RequestBody NewIntegrationTestUser userSpecs,
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId) 
+	        		throws NotFoundException {
+		return serviceProvider.getAdministrationService().createTestUser(userId, userSpecs);
+	}
+
+	/**
+	 * Deletes a user.  All FKs must be deleted before this will succeed
+	 */
+	@RequestMapping(value = {UrlHelpers.ADMIN_USER_ID}, method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteUser(
+			@PathVariable String id, 
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId) 
+	        		throws NotFoundException {
+		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
 }

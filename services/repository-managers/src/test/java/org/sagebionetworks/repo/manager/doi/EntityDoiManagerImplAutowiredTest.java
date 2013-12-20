@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -15,13 +16,14 @@ import org.sagebionetworks.doi.DoiAsyncClient;
 import org.sagebionetworks.doi.DxAsyncClient;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.springframework.aop.framework.Advised;
@@ -61,7 +63,9 @@ public class EntityDoiManagerImplAutowiredTest {
 
 	@Before
 	public void before() throws Exception {
-		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		assertNotNull(testUserInfo);
 
 		toClearList = new ArrayList<String>();
@@ -79,11 +83,13 @@ public class EntityDoiManagerImplAutowiredTest {
 
 	@After
 	public void after() throws Exception {
-		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		for (String nodeId : toClearList) {
 			nodeManager.delete(adminUserInfo, nodeId);
 		}
 		doiAdminDao.clear();
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 	}
 
 	@SuppressWarnings("deprecation")

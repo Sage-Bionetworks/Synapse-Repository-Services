@@ -13,9 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,15 +27,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOActivityTest {
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	List<Long> toDelete = null;
+	private List<Long> toDelete = null;
 	
 	@After
 	public void after() throws DatastoreException {
@@ -58,7 +54,7 @@ public class DBOActivityTest {
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		DBOActivity activity = new DBOActivity();
 		activity.setId(idGenerator.generateNewId());
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		activity.setCreatedBy(createdById);
 		activity.setCreatedOn(System.currentTimeMillis());
 		activity.setModifiedBy(createdById);

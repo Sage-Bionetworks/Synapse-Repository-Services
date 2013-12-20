@@ -1,24 +1,24 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
@@ -31,8 +31,8 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -50,24 +50,26 @@ public class StepControllerTest {
 	private ServletTestHelper testHelper;
 
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-
-	private static final String TEST_USER1 = AuthorizationConstants.TEST_USER_NAME;
-	private static final String TEST_USER2 = StackConfiguration.getIntegrationTestUserOneName();
+	private UserManager userManager;
+	
+	private UserInfo adminUserInfo;
+	private UserInfo testUserInfo;
 	
 	private Project project;
 	private Study dataset;
 	private Data layer;
 	private Code code;
 
-	/**
-	 * @throws Exception
-	 */
 	@Before
 	public void before() throws Exception {
-		testHelper.setUp();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		testHelper.setTestUser(TEST_USER1);
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		
+		testHelper.setUp();
+		testHelper.setTestUser(Long.parseLong(adminUserInfo.getIndividualGroup().getId()));
 		
 		project = new Project();
 		project = testHelper.createEntity(project, null);
@@ -91,8 +93,9 @@ public class StepControllerTest {
 	 */
 	@After
 	public void after() throws Exception {
-		testHelper.setTestUser(TEST_USER1);
 		testHelper.tearDown();
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 	}
 
 	/**
@@ -204,32 +207,27 @@ public class StepControllerTest {
 		assertEquals(analysis.getId(), step.getParentId());
 		
 		// Confirm that another user cannot read the analysis or the step
-		testHelper.setTestUser(TEST_USER2);
+		testHelper.setTestUser(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 		try {
 			testHelper.getEntity(step, null);
 			fail("expected exception");
 		}
 		catch (UnauthorizedException e) {
-			Assert.assertTrue(e.getMessage().contains(TEST_USER2 + " lacks read access to the requested object."));
+			Assert.assertTrue(e.getMessage().contains(testUserInfo.getIndividualGroup().getName() + " lacks read access to the requested object."));
 		}
 		
 		// Add a public read ACL to the project object
-		testHelper.setTestUser(TEST_USER1);
+		testHelper.setTestUser(Long.parseLong(adminUserInfo.getIndividualGroup().getId()));
 		AccessControlList projectAcl = testHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
-
-		UserGroup authenticatedUsers = userGroupDAO.findGroup(
-				AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
-		assertNotNull(authenticatedUsers);
-		ac.setPrincipalId(Long.parseLong(authenticatedUsers.getId()));
-
+		ac.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);
 		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
 
 		// Ensure that another user can now read the step
-		testHelper.setTestUser(TEST_USER2);
+		testHelper.setTestUser(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 		step = testHelper.getEntity(step, null);
 
 	}

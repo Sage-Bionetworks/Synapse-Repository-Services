@@ -16,7 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -80,8 +79,15 @@ public class DBOMessageDAOImplTest {
 		changeDAO.deleteAllChanges();
 		
 		// These two principals will act as mutual spammers
-		maliciousUser = userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true);
-		maliciousGroup = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false);
+		maliciousUser = new UserGroup();
+		maliciousUser.setName("MaliciousUser");
+		maliciousUser.setIsIndividual(true);
+		maliciousUser.setId(userGroupDAO.create(maliciousUser));
+
+		maliciousGroup = new UserGroup();
+		maliciousGroup.setName("MaliciousGroup");
+		maliciousGroup.setIsIndividual(false);
+		maliciousGroup.setId(userGroupDAO.create(maliciousGroup));
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -146,6 +152,8 @@ public class DBOMessageDAOImplTest {
 			messageDAO.deleteMessage(id);
 		}
 		fileDAO.delete(fileHandleId);
+		userGroupDAO.delete(maliciousUser.getId());
+		userGroupDAO.delete(maliciousGroup.getId());
 	}
 	
 	@Test

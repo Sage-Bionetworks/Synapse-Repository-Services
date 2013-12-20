@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -43,7 +43,6 @@ import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -79,9 +78,6 @@ public class NodeDAOImplTest {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
 	private ActivityDAO activityDAO;
 	
 	@Autowired
@@ -92,8 +88,8 @@ public class NodeDAOImplTest {
 	List<String> activitiesToDelete = new ArrayList<String>();
 	List<String> fileHandlesToDelete = new ArrayList<String>();
 	
-	private Long creatorUserGroupId = null;	
-	private Long altUserGroupId = null;
+	private Long creatorUserGroupId;	
+	private Long altUserGroupId;
 	private Activity testActivity = null;
 	private Activity testActivity2 = null;
 	
@@ -102,11 +98,8 @@ public class NodeDAOImplTest {
 	
 	@Before
 	public void before() throws Exception {
-		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-		assertNotNull(creatorUserGroupId);
-		
-		altUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
-		assertNotNull(altUserGroupId);
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 		
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);

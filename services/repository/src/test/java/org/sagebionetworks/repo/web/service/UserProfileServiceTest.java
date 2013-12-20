@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class UserProfileServiceTest {
 	
 	private static final String EXTRA_USER_ID = "foo";
+	private static final String NONEXISTENT_USER_ID = "bar";
 	private static UserProfile extraProfile;
 	private static UserInfo userInfo;
 	
@@ -99,6 +100,7 @@ public class UserProfileServiceTest {
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
+		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(NONEXISTENT_USER_ID))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserManager.getGroups()).thenReturn(groups);
 
@@ -146,13 +148,12 @@ public class UserProfileServiceTest {
 		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID));
 	}
 	
-	@Test(expected = NotFoundException.class)
 	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
 		List<String> ids = new ArrayList<String>();
 		ids.add("g0");
 		ids.add("g1");
 		ids.add("g2");
-		ids.add("g10"); // should not exist
+		ids.add(NONEXISTENT_USER_ID); // should not exist
 		
 		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(null, ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();

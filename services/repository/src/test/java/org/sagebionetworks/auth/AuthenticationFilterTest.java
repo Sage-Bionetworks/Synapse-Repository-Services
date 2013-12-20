@@ -26,7 +26,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -95,7 +94,9 @@ public class AuthenticationFilterTest {
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertTrue(AuthorizationUtils.isUserAnonymous(anonymous));
+		
+		//TODO Temporary string matching
+		assertTrue("anonymous@sagebase.org".equals(anonymous));
 	}
 	
 	/**
@@ -117,7 +118,9 @@ public class AuthenticationFilterTest {
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertTrue(AuthorizationUtils.isUserAnonymous(anonymous));
+		
+		//TODO Temporary string matching
+		assertTrue("anonymous@sagebase.org".equals(anonymous));
 	}
 	
 	@Test
@@ -170,7 +173,9 @@ public class AuthenticationFilterTest {
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertTrue(AuthorizationUtils.isUserAnonymous(sessionUsername));
+		
+		//TODO Temporary string matching
+		assertTrue("anonymous@sagebase.org".equals(sessionUsername));
 	}
 	
 	@Test

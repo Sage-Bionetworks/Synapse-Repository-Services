@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,7 +20,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -67,8 +69,11 @@ public class TrashManagerImplAutowiredTest {
 
 	@Before
 	public void before() throws Exception {
-		testAdminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		testAdminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 
@@ -89,6 +94,8 @@ public class TrashManagerImplAutowiredTest {
 	@After
 	public void after() throws Exception {
 		cleanUp();
+		
+		userManager.deletePrincipal(testAdminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
 	}
 
 	@Test

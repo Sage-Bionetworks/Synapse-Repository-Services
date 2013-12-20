@@ -58,10 +58,10 @@ public class V2WikiServiceImpl implements V2WikiService {
 
 	@Override
 	public V2WikiPage restoreWikipage(String userId, String objectId,
-			ObjectType objectType, V2WikiPage toUpdate, Long version)
+			ObjectType objectType, String wikiId, Long version)
 			throws NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return wikiManager.restoreWikiPage(user, objectId, objectType, version, toUpdate);
+		return wikiManager.restoreWikiPage(user, objectId, objectType, version, wikiId);
 	}
 
 	@Override
@@ -98,18 +98,18 @@ public class V2WikiServiceImpl implements V2WikiService {
 
 	@Override
 	public URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey,
-			String fileName) throws DatastoreException, NotFoundException {
+			String fileName, Long version) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, version);
 		return fileHandleManager.getRedirectURLForFileHandle(id);
 	}
 
 	@Override
 	public URL getAttachmentPreviewRedirectURL(String userId,
-			WikiPageKey wikiPageKey, String fileName)
+			WikiPageKey wikiPageKey, String fileName, Long version)
 			throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
-		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String id = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, version);
 		String previewId = fileHandleManager.getPreviewFileHandleId(id);
 		// Get the URL of the preview.
 		return fileHandleManager.getRedirectURLForFileHandle(previewId);

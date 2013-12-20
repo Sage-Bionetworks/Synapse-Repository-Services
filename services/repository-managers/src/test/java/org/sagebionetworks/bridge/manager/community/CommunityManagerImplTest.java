@@ -2,8 +2,12 @@ package org.sagebionetworks.bridge.manager.community;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.junit.Before;
@@ -11,12 +15,29 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
-import org.sagebionetworks.repo.manager.*;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
-import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -120,13 +141,6 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenAnswer(newCommunity.answer()).thenAnswer(
 				newCommunity.answer());
 
-		UserGroup allUsers = new UserGroup();
-		allUsers.setId("1");
-		UserGroup authenticatedUsers = new UserGroup();
-		authenticatedUsers.setId("2");
-		when(userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS)).thenReturn(authenticatedUsers);
-		when(userManager.getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC)).thenReturn(allUsers);
-
 		// set ACL, adding the current user to the community, as an admin
 		when(entityPermissionsManager.getACL(COMMUNITY_ID, validUser)).thenReturn(new AccessControlList());
 
@@ -169,9 +183,6 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		verify(entityManager, times(2)).getEntity(validUser, COMMUNITY_ID, Community.class);
 		verify(communityTeamDAO).create(Long.parseLong(COMMUNITY_ID), Long.parseLong(TEAM_ID));
 
-		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
-		verify(userManager).getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC);
-
 		verify(entityPermissionsManager).getACL(COMMUNITY_ID, validUser);
 		verify(entityPermissionsManager).updateACL(any((AccessControlList.class)), eq(validUser));
 
@@ -188,7 +199,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	public void testCreateFailAnonymous() throws Exception {
 		UserInfo anonymousUser = new UserInfo(false);
 		UserGroup ug = new UserGroup();
-		ug.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
+		ug.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		anonymousUser.setIndividualGroup(ug);
 
 		Community community = new Community();

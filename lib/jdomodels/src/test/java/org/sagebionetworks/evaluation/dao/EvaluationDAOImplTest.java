@@ -25,11 +25,10 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -236,7 +235,7 @@ public class EvaluationDAOImplTest {
 		List<Evaluation> evalList;
 
 		// those who have not joined do not get this result
-		long participantId = 0L;
+		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
 		assertTrue(evalList.isEmpty());
@@ -276,16 +275,16 @@ public class EvaluationDAOImplTest {
 		
 		
 		// PLFM-2312 problem with repeated entries
-		UserGroup au = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
-		assertNotNull(au);
 		ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(au.getId()));
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
 		ras = acl.getResourceAccess();
 		ras.add(ra);
 		aclDAO.update(acl);
 		// should still find just one result, even though I'm in the ACL twice
-		pids = Arrays.asList(new Long[]{participantId,Long.parseLong(au.getId())});
+		pids = Arrays.asList(new Long[] {
+				participantId,
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
 		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));

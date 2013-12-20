@@ -6,24 +6,25 @@ import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:bootstrap-entites-spb.xml" , "classpath:jdomodels-test-context.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class BootstrapRootFolderTest {
 	
 	@Autowired
-	EntityBootstrapData rootFolderBootstrapData;
+	private EntityBootstrapData rootFolderBootstrapData;
+	
 	@Autowired
-	EntityBootstrapData trashFolderBootstrapData;
+	private EntityBootstrapData trashFolderBootstrapData;
+	
 	@Autowired
-	UserGroupDAO userGroupDAO;
+	private UserGroupDAO userGroupDAO;
 	
 	@Test
 	public void testRootBootstrapDataLoad() throws Exception {
@@ -54,12 +55,8 @@ public class BootstrapRootFolderTest {
 		assertEquals(1, trashFolderBootstrapData.getAccessList().size());
 		AccessBootstrapData access = trashFolderBootstrapData.getAccessList().get(0);
 		assertNotNull(access);
-		access.setGroupId(Long.parseLong(userGroupDAO.findGroup(access.getGroup().name(), false).getId()));
-		UserGroup authenticatedUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
-		assertNotNull(authenticatedUsers);
-		assertNotNull(authenticatedUsers.getId());
-		assertEquals(authenticatedUsers.getId(), access.getGroupId().toString());
 		assertNotNull(access.getAccessTypeList());
+		assertEquals(access.getGroup(), BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP);
 		assertEquals(1, access.getAccessTypeList().size());
 		assertEquals(ACCESS_TYPE.CREATE, access.getAccessTypeList().get(0));
 	}

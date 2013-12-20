@@ -10,37 +10,34 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Test to convert from JDO to DTO
  * @author jmhill
  *
- */@RunWith(SpringJUnit4ClassRunner.class)
- @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
+ */
 public class NodeUtilsTest {
 	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
+	private Long createdById;
 	
+	@Before 
+	public void before() {
+		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+	}
+
 	@Test
 	public void testRoundTrip() throws DatastoreException, InvalidModelException {
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");
@@ -80,17 +77,16 @@ public class NodeUtilsTest {
 	
 	@Test
 	public void testJDOParentId() throws DatastoreException{
-		String createdById = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		DBONode parent = new DBONode();
 		parent.setId(new Long(123));
 		DBONode child = new DBONode();
 		child.setName("name");
 		child.setParentId(parent.getId());
 		child.setCreatedOn(System.currentTimeMillis());
-		child.setCreatedBy(Long.parseLong(createdById));
+		child.setCreatedBy(createdById);
 		// Make sure the parent id goes to the child
 		DBORevision rev = new DBORevision();
-		rev.setModifiedBy(Long.parseLong(createdById));
+		rev.setModifiedBy(createdById);
 		rev.setModifiedOn(System.currentTimeMillis());
 		rev.setRevisionNumber(new Long(21));
 		Node dto = NodeUtils.copyFromJDO(child, rev);
@@ -101,7 +97,6 @@ public class NodeUtilsTest {
 	
 	@Test
 	public void testreplaceFromDto() throws DatastoreException, UnsupportedEncodingException{
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");

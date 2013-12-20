@@ -14,9 +14,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.NamedIdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -200,20 +199,13 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Test
 	public void testBootstrapGroups() throws Exception {
-		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
 		List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);
-		Set<String> adminNames = new HashSet<String>();
+		Set<String> adminIds = new HashSet<String>();
 		for (UserGroup ug : admins) {
-			adminNames.add(ug.getName());
+			adminIds.add(ug.getId());
 		}
 		
-		assertTrue(adminNames.contains(StackConfiguration.getIntegrationTestUserAdminName()));
-		assertTrue(adminNames.contains(AuthorizationConstants.MIGRATION_USER_NAME));
-		assertTrue(adminNames.contains(AuthorizationConstants.ADMIN_USER_NAME));
-		
-		String testGroupId = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false).getId();
-		List<UserGroup> testUsers = groupMembersDAO.getMembers(testGroupId);
-		assertEquals(1, testUsers.size());
-		assertEquals(AuthorizationConstants.TEST_USER_NAME, testUsers.get(0).getName());
+		assertTrue(adminIds.contains(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString()));
 	}
 }

@@ -57,13 +57,13 @@ public interface V2WikiService {
 	 * @param userId
 	 * @param objectId
 	 * @param objectType
-	 * @param toUpdate
+	 * @param wikiId
 	 * @param version
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	V2WikiPage restoreWikipage(String userId, String objectId, ObjectType objectType, V2WikiPage toUpdate, Long version) throws NotFoundException;
+	V2WikiPage restoreWikipage(String userId, String objectId, ObjectType objectType, String wikiId, Long version) throws NotFoundException;
 	
 	/**
 	 * Delete a wiki page.
@@ -130,22 +130,24 @@ public interface V2WikiService {
 	 * @param userId
 	 * @param wikiPageKey
 	 * @param fileName
+	 * @param version TODO
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the redirect URL for a given Preview.
 	 * @param userId
 	 * @param wikiPageKey
 	 * @param fileName
+	 * @param version TODO
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the root wiki page.

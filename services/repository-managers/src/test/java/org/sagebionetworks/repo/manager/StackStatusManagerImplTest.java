@@ -3,11 +3,16 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.UUID;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +29,23 @@ public class StackStatusManagerImplTest {
 	@Autowired
 	public UserManager userManager;
 	
+	private UserInfo testUserInfo;
+	
+	@Before
+	public void before() throws Exception {
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+	}
+	
+	@After
+	public void after() throws Exception {
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+	}
+	
 	@Test
-	public void testGetCurrent(){
+	public void testGetCurrent() {
 		StackStatus status = stackStatusManager.getCurrentStatus();
 		assertNotNull(status);
 		assertEquals(StatusEnum.READ_WRITE, status.getStatus());
@@ -35,12 +55,13 @@ public class StackStatusManagerImplTest {
 	public void testNonAdminUpdate() throws Exception {
 		// Only an admin can change the status
 		StackStatus status = stackStatusManager.getCurrentStatus();
-		stackStatusManager.updateStatus(userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME), status);
+		stackStatusManager.updateStatus(testUserInfo, status);
 	}
 	
 	@Test 
 	public void testAdminUpdate() throws Exception {
-		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		// Only an admin can change the status
 		StackStatus status = stackStatusManager.getCurrentStatus();
 		status.setPendingMaintenanceMessage("Pending the completion of this test");

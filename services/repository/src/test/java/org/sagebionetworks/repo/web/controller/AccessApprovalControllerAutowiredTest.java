@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -62,7 +62,7 @@ public class AccessApprovalControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private String userName;
 	private UserInfo testUser;
 	private Project project;
 	private Evaluation evaluation;
@@ -88,6 +88,7 @@ public class AccessApprovalControllerAutowiredTest {
 		toDelete = new ArrayList<String>();
 		
 		entityServletTestHelper = new EntityServletTestHelper();
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		
 		// Map test objects to their urls
 		// Make sure we have a valid user.

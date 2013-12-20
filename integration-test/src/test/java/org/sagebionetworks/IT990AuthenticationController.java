@@ -9,9 +9,12 @@ import static org.junit.Assert.fail;
 
 import java.util.UUID;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
@@ -23,28 +26,48 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT990AuthenticationController {
-	private static SynapseClient synapse;
-	
-	private static final String username = StackConfiguration.getIntegrationTestUserThreeName();
-	private static final String password = StackConfiguration.getIntegrationTestUserThreePassword();
 
-	@BeforeClass
+	private static SynapseAdminClient adminSynapse;
+	private static Long userToDelete;
+	
+	/**
+	 * Signs in with username + password, has signed the ToU
+	 */
+	private static SynapseClient synapse;
+	private static String username;
+	private static final String PASSWORD = "password";
+	
+	@BeforeClass 
 	public static void beforeClass() throws Exception {
-		String authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
-		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		// Don't use the SynapseClientHelper here, since we need something different
+		username = UUID.randomUUID().toString() + "@sagebase.org";
+		userToDelete = adminSynapse.createUser(username, PASSWORD, null, null);
+		
+		// Construct the client, but do nothing else
 		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
+		SynapseClientHelper.setEndpoints(synapse);
 	}
 	
 	@Before
 	public void setup() throws Exception {
-		synapse.login(username, password);
+		synapse.login(username, PASSWORD);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
 	public void testLogin() throws Exception {
-		synapse.login(username, password);
+		synapse.login(username, PASSWORD);
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
@@ -55,20 +78,12 @@ public class IT990AuthenticationController {
 	
 	@Test
 	public void testLogin_NoTermsOfUse() throws Exception {
-		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
-		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
-		Session session = synapse.login(username, password);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		Session session = synapse.login(username, PASSWORD);
 		assertFalse(session.getAcceptsTermsOfUse());
 		try {
 			synapse.revalidateSession();
 		} catch (SynapseTermsOfUseException e) { }
-	}
-	
-	@Test
-	public void testLogin_IgnoreTermsOfUse() throws Exception {
-		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
-		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
-		synapse.login(username, password);
 		
 		// The session token can't be used to do much though
 		try {
@@ -102,42 +117,15 @@ public class IT990AuthenticationController {
 	public void testCreateExistingUser() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(username);
-		user.setFirstName("dev");
-		user.setLastName("usr");
-		user.setDisplayName("dev usr");
+		user.setFirstName("Foo");
+		user.setLastName("Bar");
+		user.setDisplayName("Baz");
 		
 		try {
 			synapse.createUser(user);
 		} catch (SynapseUserException e) {
 			assertTrue(e.getMessage().contains("409"));
 		}
-	}
-	
-	@Test
-	public void testCreateUser_AcceptToU() throws Exception {	
-		String username = "integration.test" + UUID.randomUUID().toString() + "@sagebase.org";
-		String password = "password";
-		
-		NewUser user = new NewUser();
-		user.setEmail(username);
-		user.setFirstName("foo");
-		user.setLastName("bar");
-		user.setDisplayName("foo bar");
-		// Note: passwords are only accepted in this request in non-production stacks
-		user.setPassword(password);
-		
-		synapse.createUser(user);
-		
-		// Login and fail an authenticated request
-		synapse.login(username, password);
-		try {
-			synapse.getMyProfile();
-			fail();
-		} catch (SynapseForbiddenException e) { }
-		
-		// Now accept the terms and try an authenticated request
-		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
-		synapse.getMyProfile();
 	}
 	
 	@Test
@@ -155,7 +143,7 @@ public class IT990AuthenticationController {
 		synapse.login(username, testNewPassword);
 		
 		// Restore original password
-		synapse.changePassword(synapse.getCurrentSessionToken(), password);
+		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
 	}
 	
 	@Test
@@ -171,10 +159,10 @@ public class IT990AuthenticationController {
 		synapse.login(username, testNewPassword);
 		
 		// Restore original password
-		synapse.changePassword(synapse.getCurrentSessionToken(), password);
+		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
 		
 		// Accept the terms again (cleanup)
-		synapse.login(username, password);
+		synapse.login(username, PASSWORD);
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
@@ -186,13 +174,13 @@ public class IT990AuthenticationController {
 		synapse.signTermsOfUse(sessionToken, false);
 		
 		// Now I can't do authenticated requests
-		Session session = synapse.login(username, password);
+		Session session = synapse.login(username, PASSWORD);
 		assertFalse(session.getAcceptsTermsOfUse());
 		
 		// Accept the terms
 		synapse.signTermsOfUse(sessionToken, true);
 		
-		session = synapse.login(username, password);
+		session = synapse.login(username, PASSWORD);
 		assertEquals(sessionToken, synapse.getCurrentSessionToken());
 		assertTrue(session.getAcceptsTermsOfUse());
 	}
@@ -214,6 +202,7 @@ public class IT990AuthenticationController {
 	public void testGetSecretKey() throws Exception {
 		String apikey = synapse.retrieveApiKey();
 		assertNotNull(apikey);
+		System.out.println(apikey);
 		
 		// Use the API key
 		synapse.logout();
@@ -224,7 +213,7 @@ public class IT990AuthenticationController {
 		synapse.getMyProfile();
 		
 		// This should make subsequent API key calls fail
-		synapse.login(username, password);
+		synapse.login(username, PASSWORD);
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
 		
 		synapse.logout();
@@ -236,7 +225,7 @@ public class IT990AuthenticationController {
 		} catch (SynapseForbiddenException e) { }
 
 		// Clean up
-		synapse.login(username, password);
+		synapse.login(username, PASSWORD);
 		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	

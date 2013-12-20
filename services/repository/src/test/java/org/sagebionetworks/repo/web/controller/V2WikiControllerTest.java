@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.net.URL;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import java.net.URL;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,7 +19,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -41,31 +41,36 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class V2WikiControllerTest {
+	
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
+	
 	@Autowired
 	private UserManager userManager;
+	
 	@Autowired
 	private NodeManager nodeManager;
+	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
 	private String userName;
 	private String ownerId;
 	
-	Project entity;
-	Evaluation evaluation;
-	List<WikiPageKey> toDelete;
-	S3FileHandle handleOne;
-	S3FileHandle markdown;
-	S3FileHandle markdownTwo;
-	PreviewFileHandle handleTwo;
+	private Project entity;
+	private Evaluation evaluation;
+	private List<WikiPageKey> toDelete;
+	private S3FileHandle handleOne;
+	private S3FileHandle markdown;
+	private S3FileHandle markdownTwo;
+	private PreviewFileHandle handleTwo;
 	
 	@Before
 	public void before() throws Exception{
 		// get user IDs
-		userName = AuthorizationConstants.TEST_USER_NAME;
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+		
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
 		handleOne = new S3FileHandle();
@@ -260,17 +265,24 @@ public class V2WikiControllerTest {
 		V2WikiPage versionOne = entityServletHelper.getV2WikiPage(key, userName, versionToRestore);
 		assertEquals(markdownTwo.getId(), versionOne.getMarkdownFileHandleId());
 		assertEquals(1, versionOne.getAttachmentFileHandleIds().size());
+		// Get its attachment's URL
+		URL versionOneAttachment = entityServletHelper.getV2WikiAttachmentFileURL(userName, key, handleOne.getFileName(), null, new Long(1));
+		assertNotNull(versionOneAttachment);
+		assertTrue(versionOneAttachment.toString().indexOf("mainFileKey") > 0);
+		
 		assertEquals("Version 1 title", versionOne.getTitle());
 		assertEquals(cloneUpdated.getModifiedOn(), versionOne.getModifiedOn());
 		
-		// Restore wiki to version 1 which had markdownTwo and one file attachment
+		// Restore wiki to version 1 which had markdownTwo and one file attachment, and a title of "Version 1 title"
 		String currentEtag3 = cloneUpdated2.getEtag();
 		V2WikiPage restored = entityServletHelper.restoreWikiPage(userName, ownerId, ownerType, cloneUpdated2, versionToRestore);
 		assertNotNull(restored);
 		assertFalse("The etag should have changed from the restore", currentEtag3.equals(restored.getEtag()));
-		
+		assertEquals(cloneUpdated2.getCreatedBy(), restored.getCreatedBy());
+		assertEquals(cloneUpdated2.getCreatedOn(), restored.getCreatedOn());
 		assertEquals(restored.getMarkdownFileHandleId(), markdownTwo.getId());
 		assertEquals(restored.getAttachmentFileHandleIds().size(), 1);
+		assertEquals(clone.getTitle(), restored.getTitle());
 
 		// Add a child wiki
 		V2WikiPage child = new V2WikiPage();
@@ -296,8 +308,8 @@ public class V2WikiControllerTest {
 		
 		// check the root header.
 		V2WikiHeader rootHeader = paginated.getResults().get(0);
-		assertEquals(cloneUpdated.getId(), rootHeader.getId());
-		assertEquals(cloneUpdated.getTitle(), rootHeader.getTitle());
+		assertEquals(clone.getId(), rootHeader.getId());
+		assertEquals(clone.getTitle(), rootHeader.getTitle());
 		assertEquals(null, rootHeader.getParentId());
 		
 		// Check the child header
@@ -316,24 +328,24 @@ public class V2WikiControllerTest {
 		assertEquals(handleTwo.getId(), handles.getList().get(1).getId());
 		
 		// Get the presigned URL for the first file
-		URL presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), null);
+		URL presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), null, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
 		System.out.println(presigned);
 		// Get the preview presigned URL.
-		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), null);
+		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), null, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);
 		
 		// Make sure we can get the URLs without a redirect
 		Boolean redirect = Boolean.FALSE;
-		presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), redirect);
+		presigned  = entityServletHelper.getV2WikiAttachmentFileURL(userName, childKey, handleOne.getFileName(), redirect, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
 		System.out.println(presigned);
 		// again without the redirct
-		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), redirect);
+		presigned  = entityServletHelper.getV2WikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName(), redirect, null);
 		assertNotNull(presigned);
 		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
 		System.out.println(presigned);

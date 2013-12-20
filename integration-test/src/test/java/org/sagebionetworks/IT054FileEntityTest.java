@@ -11,16 +11,16 @@ import java.net.URLEncoder;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.http.HttpException;
-import org.json.JSONException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
@@ -30,38 +30,29 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class IT054FileEntityTest {
-	
-	public static final long MAX_WAIT_MS = 1000*10; // 10 sec
-	
-	private static String FILE_NAME = "LittleImage.png";
 
-	private static SynapseClientImpl synapse = null;
-	File imageFile;
-	S3FileHandle fileHandle;
-	PreviewFileHandle previewFileHandle;
-	Project project;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
 	
-	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
-		
-		return synapse;
-	}
+	private static final long MAX_WAIT_MS = 1000*10; // 10 sec
+	private static final String FILE_NAME = "LittleImage.png";
+
+	private File imageFile;
+	private S3FileHandle fileHandle;
+	private PreviewFileHandle previewFileHandle;
+	private Project project;
 	
-	/**
-	 * @throws Exception
-	 * 
-	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		// Create a 
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
@@ -84,14 +75,6 @@ public class IT054FileEntityTest {
 		project = synapse.createEntity(project);
 	}
 
-	/**
-	 * @throws Exception 
-	 * @throws HttpException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
-	 */
 	@After
 	public void after() throws Exception {
 		if(project != null){
@@ -107,6 +90,11 @@ public class IT054FileEntityTest {
 				synapse.deleteFileHandle(previewFileHandle.getId());
 			} catch (Exception e) {}
 		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test

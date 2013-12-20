@@ -11,10 +11,14 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -31,13 +35,15 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
  */
 public class IT501SynapseJavaClientMessagingTest {
 
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapseOne;
+	private static SynapseClient synapseTwo;
+	private static Long user1ToDelete;
+	private static Long user2ToDelete;
+
 	private static final Long LIMIT = 100L;
 	private static final Long OFFSET = 0L;
 	private static final String MESSAGE_BODY = "Blah blah blah\n";
-
-	private static SynapseClient synapseOne;
-	private static SynapseClient synapseTwo;
-	private static SynapseClient synapseAdmin;
 
 	private static String oneId;
 	private static String twoId;
@@ -49,19 +55,21 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 	private List<String> cleanup;
 	private Project project;
-
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapseOne = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		synapseTwo = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-		synapseAdmin = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-
+		// Create 2 users
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapseOne = new SynapseClientImpl();
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		
+		synapseTwo = new SynapseClientImpl();
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+	
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
 	}
@@ -112,18 +120,24 @@ public class IT501SynapseJavaClientMessagingTest {
 	@After
 	public void after() throws Exception {
 		for (String id : cleanup) {
-			synapseAdmin.deleteMessage(id);
+			adminSynapse.deleteMessage(id);
 		}
 		
 		if (project != null) {
 			try {
-				synapseAdmin.deleteAndPurgeEntityById(project.getId());
+				adminSynapse.deleteAndPurgeEntityById(project.getId());
 			} catch (Exception e) { }
 		}
 		
 		try {
 			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
 		} catch (Exception e) { }
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(user1ToDelete);
+		adminSynapse.deleteUser(user2ToDelete);
 	}
 
 	@SuppressWarnings("serial")

@@ -17,15 +17,19 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -66,8 +70,12 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class IT520SynapseJavaClientEvaluationTest {
 
-	private static SynapseClientImpl synapseOne = null;
-	private static SynapseClientImpl synapseTwo = null;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapseOne;
+	private static SynapseClient synapseTwo;
+	private static Long user1ToDelete;
+	private static Long user2ToDelete;
+	
 	private static Project project = null;
 	private static Study dataset = null;
 	private static Project projectTwo = null;
@@ -84,30 +92,23 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static List<String> submissionsToDelete;
 	private static List<String> entitiesToDelete;
 	private static List<Long> accessRequirementsToDelete;
-	
 
-	public static final int RDS_WORKER_TIMEOUT = 2*1000*60; // Two min
-	public static final long MAX_WAIT_MS = 1000*10; // 10 sec	
+	private static final int RDS_WORKER_TIMEOUT = 2*1000*60; // Two min
 	private static final String FILE_NAME = "LittleImage.png";
-
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapseOne = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		synapseTwo = createSynapseClient(StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-	}
-	
-	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
+		// Create 2 users
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		return synapse;
+		synapseOne = new SynapseClientImpl();
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+
+		synapseTwo = new SynapseClientImpl();
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 	}
 	
 	@Before
@@ -156,40 +157,47 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@After
-	public void after() {
+	public void after() throws Exception {
 		// clean up submissions
 		for (String id : submissionsToDelete) {
 			try {
-				synapseOne.deleteSubmission(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteSubmission(id);
+			} catch (SynapseNotFoundException e) {}
 		};
 		
 		// clean up Access Requirements
 		for (Long id : accessRequirementsToDelete) {
 			try {
-				synapseOne.deleteAccessRequirement(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteAccessRequirement(id);
+			} catch (SynapseNotFoundException e) {}
 		}
 		
 		// clean up evaluations
 		for (String id : evaluationsToDelete) {
 			try {
-				synapseOne.deleteEvaluation(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteEvaluation(id);
+			} catch (SynapseNotFoundException e) {}
 		}
 		
 		// clean up nodes
 		for (String id : entitiesToDelete) {
 			try {
-				synapseOne.deleteAndPurgeEntityById(id);
-			} catch (Exception e) {}
+				adminSynapse.deleteAndPurgeEntityById(id);
+			} catch (SynapseNotFoundException e) {}
 		}
+		
 		// clean up FileHandle
 		if(fileHandle != null){
 			try {
-				synapseOne.deleteFileHandle(fileHandle.getId());
-			} catch (Exception e) {}
+				adminSynapse.deleteFileHandle(fileHandle.getId());
+			} catch (SynapseNotFoundException e) {}
 		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(user1ToDelete);
+		adminSynapse.deleteUser(user2ToDelete);
 	}
 	
 	@Test
@@ -286,7 +294,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
 		
-		Long initialCount = synapseOne.getParticipantCount(eval1.getId());
+		synapseOne.getParticipantCount(eval1.getId());
 		
 		// query for someone having SUBMIT privileges
 		PaginatedResults<Evaluation> evals = synapseOne.getAvailableEvaluationsPaginated(0, 100);
@@ -294,7 +302,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 				assertEquals(1, evals.getResults().size());
 		eval1=synapseOne.getEvaluation(eval1.getId());
 		assertEquals(eval1, evals.getResults().iterator().next());
-			}
+	}
 	
 	@Test
 	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException {

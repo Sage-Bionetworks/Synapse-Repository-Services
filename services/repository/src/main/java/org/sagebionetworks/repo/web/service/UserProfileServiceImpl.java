@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -156,7 +156,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			userInfo = userManager.getUserInfo(userId);
 		} else {
 			// request is anonymous			
-			userInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+			userInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		}
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
@@ -164,10 +164,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 			if (header == null) {
 				// Header not found in cache; attempt to fetch one from repo
 				header = fetchNewHeader(userInfo, id);
-				if (header == null)
-					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
 			}
-			ugHeaders.add(header);
+			if (header != null) {
+				ugHeaders.add(header);
+			}
 		}
 		
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
@@ -310,10 +310,16 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
 	 * check for a UserGroup with the specified ID.
 	 */
-	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserProfile profile = userProfileManager.getUserProfile(userInfo, id);
-		UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
-		return profile != null ? convertUserProfileToHeader(profile) : null;
+	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) {
+		UserProfile profile;
+		try {
+			profile = userProfileManager.getUserProfile(userInfo, id);
+			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
+		} catch (NotFoundException e) {
+			// Profile not found, so return null
+			return null;
+		}
+		return convertUserProfileToHeader(profile);
 	}
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {

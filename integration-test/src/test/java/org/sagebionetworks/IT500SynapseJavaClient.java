@@ -25,22 +25,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.http.HttpException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -94,83 +94,108 @@ import org.sagebionetworks.utils.HttpClientHelper;
  * @author deflaux
  */
 public class IT500SynapseJavaClient {
-	
-	public static final int PREVIEW_TIMOUT = 10*1000;
-	
-	public static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
-	
-	private List<String> toDelete = null;
 
-	private static List<Long> accessRequirementsToDelete;
-
-	private static SynapseClient synapse = null;
-	private static SynapseClient synapseTwo = null;
-	private static Project project = null;
-	private static Study dataset = null;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapseOne;
+	private static SynapseClient synapseTwo;
+	private static Long user1ToDelete;
+	private static Long user2ToDelete;
 	
-	/**
-	 * @throws Exception
-	 * 
-	 */
+	private static final int PREVIEW_TIMOUT = 10*1000;
+	private static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
+	
+	private List<String> toDelete;
+	private List<Long> accessRequirementsToDelete;
+	private List<String> handlesToDelete;
+	private List<String> teamsToDelete;
+	private Project project;
+	private Study dataset;
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapse = SynapseClientHelper.createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		// Create 2 users
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		synapseTwo = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-	
+		synapseOne = new SynapseClientImpl();
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		
+		synapseTwo = new SynapseClientImpl();
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+		
+		// Update this user's profile to contain a display name
+		UserProfile profile = synapseTwo.getMyProfile();
+		profile.setDisplayName(UUID.randomUUID().toString());
+		synapseTwo.updateMyProfile(profile);
 	}
 	
 	@Before
 	public void before() throws SynapseException {
 		toDelete = new ArrayList<String>();
+		accessRequirementsToDelete = new ArrayList<Long>();
+		handlesToDelete = new ArrayList<String>();
+		teamsToDelete = new ArrayList<String>();
 		
-		project = synapse.createEntity(new Project());
+		project = synapseOne.createEntity(new Project());
 		dataset = new Study();
 		dataset.setParentId(project.getId());
-		dataset = synapse.createEntity(dataset);
+		dataset = synapseOne.createEntity(dataset);
 		
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
 		
-		accessRequirementsToDelete = new ArrayList<Long>();
+		
+		// there shouldn't be any Teams floating around in the system
+		// the Team tests assume there are no Teams to start.  So before
+		// running the tests, we clean up all the teams
+		long numTeams = 0L;
+		do {
+			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
+			numTeams = teams.getTotalNumberOfResults();
+			for (Team team : teams.getResults()) {
+				synapseOne.deleteTeam(team.getId());
+			}
+		} while (numTeams>0);
 	}
-
-	/**
-	 * @throws Exception 
-	 * @throws HttpException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
-	 */
+	
 	@After
 	public void after() throws Exception {
-		if (toDelete != null) {
-			for (String id: toDelete) {
-				try {
-					synapse.deleteAndPurgeEntityById(id);
-				} catch (Exception e) {}
-			}
+		for (String id: toDelete) {
+			try {
+				adminSynapse.deleteAndPurgeEntityById(id);
+			} catch (SynapseNotFoundException e) {}
 		}
-		if (accessRequirementsToDelete!=null) {
-			// clean up Access Requirements
-			for (Long id : accessRequirementsToDelete) {
-				try {
-					synapse.deleteAccessRequirement(id);
-				} catch (Exception e) {}
-			}
+
+		for (Long id : accessRequirementsToDelete) {
+			try {
+				adminSynapse.deleteAccessRequirement(id);
+			} catch (SynapseNotFoundException e) {}
+		}
+
+		for (String id : handlesToDelete) {
+			try {
+				adminSynapse.deleteFileHandle(id);
+			} catch (SynapseNotFoundException e) {}
+		}
+		
+		for (String id : teamsToDelete) {
+			try {
+				adminSynapse.deleteTeam(id);
+			} catch (SynapseNotFoundException e) {}
 		}
 	}
-
-	/**
-	 * @throws Exception
-	 */
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(user1ToDelete);
+		adminSynapse.deleteUser(user2ToDelete);
+	}
+	
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
-		JSONObject results = synapse.query("select * from dataset limit 10");
+		JSONObject results = synapseOne.query("select * from dataset limit 10");
 
 		assertTrue(0 <= results.getInt("totalNumberOfResults"));
 
@@ -179,10 +204,10 @@ public class IT500SynapseJavaClient {
 		if (0 < datasets.length()) {
 			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
 
-			Data aStoredDataset = synapse.getEntity(datasetId, Data.class);
+			Data aStoredDataset = synapseOne.getEntity(datasetId, Data.class);
 			assertNotNull(aStoredDataset.getAnnotations());
 
-			Annotations annos = synapse.getAnnotations(datasetId);
+			Annotations annos = synapseOne.getAnnotations(datasetId);
 			assertNotNull(annos.getStringAnnotations());
 			assertNotNull(annos.getDateAnnotations());
 			assertNotNull(annos.getLongAnnotations());
@@ -191,30 +216,31 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
-	// for entities like our project, which have 'root' as parent
-	// it should not be possible to delete the ACL
 	@Test
 	public void testNoDeleteACLOnProject() throws Exception {
+		// for entities like our project, which have 'root' as parent
+		// it should not be possible to delete the ACL
+		
 		// Get the Users permission for this entity
-		UserEntityPermissions uep = synapse.getUsersEntityPermissions(project.getId());
+		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(project.getId());
 		// first, we CAN change permissions (i.e. edit the ACL)
 		assertTrue(uep.getCanChangePermissions());
 		// but we CAN'T just delete the ACL
 		assertFalse(uep.getCanEnableInheritance());
 		// and if we try, it won't work
 		try {
-			synapse.deleteACL(project.getId());
+			synapseOne.deleteACL(project.getId());
 			fail("exception expected");
 		} catch (SynapseForbiddenException e) {
 			// as expected
 		}
 	}
 	
-	// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
 	@Test(expected=SynapseBadRequestException.class)
 	public void testEmptyACLAccessTypeList() throws Exception {
-		AccessControlList acl = synapse.getACL(project.getId());
-		List<UserGroup> ugs = synapse.getGroups(0, 100).getResults();
+		// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
+		AccessControlList acl = synapseOne.getACL(project.getId());
+		List<UserGroup> ugs = synapseOne.getGroups(0, 100).getResults();
 		Long publicPrincipalId = null;
 		for (UserGroup ug: ugs) {
 			if (ug.getName().equals("PUBLIC")) {
@@ -238,87 +264,32 @@ public class IT500SynapseJavaClient {
 			acl.getResourceAccess().add(ra);
 		}
 		// now push it, should get a SynapseBadRequestException
-		synapse.updateACL(acl);
-	}
-	
-	@Ignore
-	@Test
-	public void testUpdateACLRecursive() throws Exception {
-		// Create resource access for me
-		UserProfile myProfile = synapse.getMyProfile();
-		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
-		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
-		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
-		ra.setAccessType(accessTypes);
-		
-		// retrieve parent acl
-		AccessControlList parentAcl = synapse.getACL(project.getId());
-
-		// retrieve child acl - should get parent's
-		AccessControlList childAcl;
-		try {
-			childAcl = synapse.getACL(dataset.getId());
-			fail("Child has ACL, but should inherit from parent");
-		} catch (SynapseException e) {}		
-		
-		// assign new ACL to child
-		childAcl = new AccessControlList();
-		childAcl.setId(dataset.getId());
-		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
-		resourceAccesses.add(ra);
-		childAcl.setResourceAccess(resourceAccesses);
-		childAcl = synapse.createACL(childAcl);
-		
-		// retrieve child acl - should get child's
-		AccessControlList returnedAcl = synapse.getACL(dataset.getId());
-		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
-		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
-		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
-				
-		// apply parent ACL non-recursively
-		parentAcl = synapse.updateACL(parentAcl, false);
-		// child ACL should still be intact
-		returnedAcl = synapse.getACL(dataset.getId());
-		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
-		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
-		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
-		
-		// apply parent ACL recursively
-		parentAcl = synapse.updateACL(parentAcl, true);
-		// child ACL should have been deleted
-		try {
-			childAcl = synapse.getACL(dataset.getId());
-			fail("Child has ACL, but should inherit from parent");
-		} catch (SynapseException e) {}		
+		synapseOne.updateACL(acl);
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testJavaClientCRUD() throws Exception {
 		Study aNewDataset = new Study();
 		aNewDataset.setParentId(project.getId());
 
-		aNewDataset = synapse.createEntity(aNewDataset);
+		aNewDataset = synapseOne.createEntity(aNewDataset);
 		
 		// Get the project using just using its ID. This is useful for cases where you
 		//  do not know what you are getting until it arrives.
-		Project clone = (Project) synapse.getEntityById(project.getId());
+		Project clone = (Project) synapseOne.getEntityById(project.getId());
 		assertNotNull(clone);
 		assertNotNull(clone.getEntityType());
 		assertEquals(project.getId(), clone.getId());
 		
 		// Get the entity annotations
-		Annotations annos = synapse.getAnnotations(aNewDataset.getId());
+		Annotations annos = synapseOne.getAnnotations(aNewDataset.getId());
 		assertNotNull(annos);
 		assertEquals(aNewDataset.getId(), annos.getId());
 		assertNotNull(annos.getEtag());
 		// Add some values
 		annos.addAnnotation("longKey", new Long(999999));
 		annos.addAnnotation("blob", "This will be converted to a blob!".getBytes("UTF-8"));
-		Annotations updatedAnnos = synapse.updateAnnotations(aNewDataset.getId(), annos);
+		Annotations updatedAnnos = synapseOne.updateAnnotations(aNewDataset.getId(), annos);
 		assertNotNull(updatedAnnos);
 		assertEquals(aNewDataset.getId(), annos.getId());
 		assertNotNull(updatedAnnos.getEtag());
@@ -326,26 +297,26 @@ public class IT500SynapseJavaClient {
 		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
 
 		// Get the "zero" e-tag for specific versions. See PLFM-1420.
-		Entity datasetEntity = synapse.getEntityByIdForVersion(aNewDataset.getId(), aNewDataset.getVersionNumber());
+		Entity datasetEntity = synapseOne.getEntityByIdForVersion(aNewDataset.getId(), aNewDataset.getVersionNumber());
 		assertTrue(NodeConstants.ZERO_E_TAG.equals(datasetEntity.getEtag()));
 
 		// Get the Users permission for this entity
-		UserEntityPermissions uep = synapse.getUsersEntityPermissions(aNewDataset.getId());
+		UserEntityPermissions uep = synapseOne.getUsersEntityPermissions(aNewDataset.getId());
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(true, synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.UPDATE));
-		assertEquals(true, synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.READ));
+		assertEquals(true, synapseOne.canAccess(aNewDataset.getId(), ACCESS_TYPE.UPDATE));
+		assertEquals(true, synapseOne.canAccess(aNewDataset.getId(), ACCESS_TYPE.READ));
 		assertTrue(uep.getCanChangePermissions());
 		assertTrue(uep.getCanEnableInheritance());
 		
-		UserProfile profile = synapse.getMyProfile();
+		UserProfile profile = synapseOne.getMyProfile();
 		assertNotNull(profile);
 		
 		assertEquals(profile.getOwnerId(), uep.getOwnerPrincipalId().toString());
 		
 		// should be able to download
-		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapseOne.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// now add a ToU restriction
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
@@ -358,9 +329,10 @@ public class IT500SynapseJavaClient {
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
-		ar = synapse.createAccessRequirement(ar);
+		ar = synapseOne.createAccessRequirement(ar);
+		accessRequirementsToDelete.add(ar.getId());
 		
-		UserProfile otherProfile = synapse.getMyProfile();
+		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
 
 		
@@ -388,7 +360,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// ACL should reflect the first User's permission
-		AccessControlList acl = synapse.getACL(project.getId());
+		AccessControlList acl = synapseOne.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
 		List<Long> foundPrincipals = new ArrayList<Long>();
@@ -405,7 +377,7 @@ public class IT500SynapseJavaClient {
 		assertTrue("didn't find "+profile.getDisplayName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
 		
 		// Get the path
-		EntityPath path = synapse.getEntityPath(aNewDataset.getId());
+		EntityPath path = synapseOne.getEntityPath(aNewDataset.getId());
 		assertNotNull(path);
 		assertNotNull(path.getPath());
 		assertEquals(3, path.getPath().size());
@@ -418,7 +390,7 @@ public class IT500SynapseJavaClient {
 		entityIds.add(project.getId());
 		entityIds.add(dataset.getId());
 		entityIds.add(aNewDataset.getId());
-		BatchResults<EntityHeader> entityHeaders = synapse.getEntityTypeBatch(entityIds);
+		BatchResults<EntityHeader> entityHeaders = synapseOne.getEntityTypeBatch(entityIds);
 		assertNotNull(entityHeaders);
 		assertEquals(3, entityHeaders.getTotalNumberOfResults());
 		List<String> outputIds = new ArrayList<String>();
@@ -430,38 +402,35 @@ public class IT500SynapseJavaClient {
 		
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testJavaClientCreateEntity() throws Exception {
 		Study study = new Study();
 		study.setParentId(project.getId());
-		Study createdStudy = synapse.createEntity(study);
+		Study createdStudy = synapseOne.createEntity(study);
 		assertNotNull(createdStudy);
 		assertNotNull(createdStudy.getId());
 		assertNotNull(createdStudy.getUri());
 
 		String createdProjectId = createdStudy.getId();
-		Study fromGet = synapse.getEntity(createdProjectId, Study.class);
+		Study fromGet = synapseOne.getEntity(createdProjectId, Study.class);
 		assertEquals(createdStudy, fromGet);
 
-		Study fromGetById = (Study) synapse.getEntityById(createdProjectId);
+		Study fromGetById = (Study) synapseOne.getEntityById(createdProjectId);
 		assertEquals(createdStudy, fromGetById);
 
 	}
-	
+
 	@Test
 	public void testJavaClientGetEntityBundle() throws SynapseException {		
-		Annotations annos = synapse.getAnnotations(project.getId());
+		Annotations annos = synapseOne.getAnnotations(project.getId());
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
-		annos = synapse.updateAnnotations(project.getId(), annos);
+		annos = synapseOne.updateAnnotations(project.getId(), annos);
 		
-		AccessControlList acl = synapse.getACL(project.getId());
+		AccessControlList acl = synapseOne.getACL(project.getId());
 		acl.setCreatedBy("John Doe");
 		acl.setId(project.getId());
-		synapse.updateACL(acl);
+		synapseOne.updateACL(acl);
 			
 		int allPartsMask = EntityBundle.ENTITY |
 				EntityBundle.ANNOTATIONS |
@@ -474,34 +443,34 @@ public class IT500SynapseJavaClient {
 				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
 		
 		long startTime = System.nanoTime();
-		EntityBundle entityBundle = synapse.getEntityBundle(project.getId(), allPartsMask);
+		EntityBundle entityBundle = synapseOne.getEntityBundle(project.getId(), allPartsMask);
 		long endTime = System.nanoTime();
 		long requestTime = (endTime - startTime) / 1000000;
 		System.out.println("Bundle request time was " + requestTime + " ms");
 		
 		
 		assertEquals("Invalid fetched Entity in the EntityBundle", 
-				synapse.getEntityById(project.getId()), entityBundle.getEntity());
+				synapseOne.getEntityById(project.getId()), entityBundle.getEntity());
 		assertEquals("Invalid fetched Annotations in the EntityBundle", 
-				synapse.getAnnotations(project.getId()), entityBundle.getAnnotations());
+				synapseOne.getAnnotations(project.getId()), entityBundle.getAnnotations());
 		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
-				synapse.getEntityPath(project.getId()), entityBundle.getPath());
+				synapseOne.getEntityPath(project.getId()), entityBundle.getPath());
 		assertEquals("Invalid fetched ReferencedBy in the EntityBundle", 
-				synapse.getEntityReferencedBy(project).getResults(), entityBundle.getReferencedBy());
+				synapseOne.getEntityReferencedBy(project).getResults(), entityBundle.getReferencedBy());
 		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
-				synapse.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
+				synapseOne.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
-				synapse.getACL(project.getId()), entityBundle.getAccessControlList());
+				synapseOne.getACL(project.getId()), entityBundle.getAccessControlList());
 		assertEquals("Unexpected ARs in the EntityBundle", 
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
 	}
-	
+
 	@Test
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create resource access for me
-		UserProfile myProfile = synapse.getMyProfile();
+		UserProfile myProfile = synapseOne.getMyProfile();
 		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
 		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
 		ResourceAccess ra = new ResourceAccess();
@@ -531,7 +500,7 @@ public class IT500SynapseJavaClient {
 		ebc.setAnnotations(a1);
 		ebc.setAccessControlList(acl1);
 				
-		EntityBundle response = synapse.createEntityBundle(ebc);
+		EntityBundle response = synapseOne.createEntityBundle(ebc);
 		
 		Study s2 = (Study) response.getEntity();
 		toDelete.add(s2.getId());
@@ -560,7 +529,7 @@ public class IT500SynapseJavaClient {
 		ebc2.setAnnotations(a2);
 		ebc2.setAccessControlList(acl2);
 				
-		EntityBundle response2 = synapse.updateEntityBundle(s2.getId(), ebc2);
+		EntityBundle response2 = synapseOne.updateEntityBundle(s2.getId(), ebc2);
 		
 		Study s3 = (Study) response2.getEntity();
 		assertNotNull(s3);
@@ -580,10 +549,6 @@ public class IT500SynapseJavaClient {
 
 	}
 
-
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
 		
@@ -596,9 +561,9 @@ public class IT500SynapseJavaClient {
 		Data layer = new Data();
 		layer.setType(LayerTypeNames.E);
 		layer.setParentId(dataset.getId());
-		layer = synapse.createEntity(layer);
+		layer = synapseOne.createEntity(layer);
 
-		layer = (Data) synapse.uploadLocationableToSynapse(layer,
+		layer = (Data) synapseOne.uploadLocationableToSynapse(layer,
 				dataSourceFile);
 		
 		// TODO!!!!!!!!!!!! test upload more than once, do we clutter LocationData?
@@ -624,79 +589,8 @@ public class IT500SynapseJavaClient {
 		// TODO test auto versioning
 		
 	}
-	
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore // This test is not stable.  It has caused two builds to fail with: java.net.SocketTimeoutException: Read timed out
-	public void testJavaDownloadExternalLayer() throws Exception {
-
-		// Use a url that we expect to be available and whose contents we don't
-		// expect to change
-		String externalUrl = "http://www.sagebase.org/favicon";
-		String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
-		int externalUrlFileSizeBytes = 1150;
-
-		LocationData externalLocation = new LocationData();
-		externalLocation.setPath(externalUrl);
-		externalLocation.setType(LocationTypeNames.external);
-		List<LocationData> locations = new ArrayList<LocationData>();
-		locations.add(externalLocation);
-
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.M);
-		layer.setMd5(externalUrlMD5);
-		layer.setParentId(dataset.getId());
-		layer.setLocations(locations);
-		layer = synapse.createEntity(layer);
-
-		File downloadedLayer = synapse.downloadLocationableFromSynapse(layer);
-		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
-
-	}
-	
 	/**
 	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore // This test has the same potential instability issue as testJavaDownloadExternalLayer(). Useful test to run locally
-	public void testJavaClientUpdateExternalLocation() throws Exception {
-			// Use a url that we expect to be available and whose contents we don't
-		// expect to change
-		String externalUrl = "http://www.sagebase.org/favicon";
-		int externalUrlFileSizeBytes = 1150;
-
-		List<LocationData> locations = new ArrayList<LocationData>();
-		
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.M);
-		layer.setLocations(locations);
-		layer.setParentId(dataset.getId());
-		layer = synapse.createEntity(layer);
-
-		//update the locations
-		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl);
-		locations = layer.getLocations();
-		
-		assertEquals(1, locations.size());
-		LocationData location = locations.get(0);
-		assertEquals(LocationTypeNames.external, location.getType());
-		assertNotNull(location.getPath());
-		//test location url
-		assertEquals(location.getPath(), externalUrl);
-		//md5 is not calculated, should not be set
-		//assertEquals(layer.getMd5(), externalUrlMD5);
-		assertTrue(layer.getMd5() == null || layer.getMd5().length() == 0);
-		
-		File downloadedLayer = synapse.downloadLocationableFromSynapse(layer);
-		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
-	}
-	
-	/**
-	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 * @throws Exception
 	 */
 	@Test
 	public void testJavaClientUpdateExternalLocationWithoutDownload() throws Exception {
@@ -712,10 +606,10 @@ public class IT500SynapseJavaClient {
 		layer.setType(LayerTypeNames.M);
 		layer.setLocations(locations);
 		layer.setParentId(dataset.getId());
-		layer = synapse.createEntity(layer);
+		layer = synapseOne.createEntity(layer);
 
 		//update the locations
-		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl, externalUrlMD5);
+		layer = (Data)synapseOne.updateExternalLocationableToSynapse(layer, externalUrl, externalUrlMD5);
 		locations = layer.getLocations();
 		
 		assertEquals(1, locations.size());
@@ -727,7 +621,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(layer.getMd5(), externalUrlMD5);
 
 		//also verify all is well when we don't set the md5 for external
-		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl);
+		layer = (Data)synapseOne.updateExternalLocationableToSynapse(layer, externalUrl);
 		locations = layer.getLocations();
 		
 		assertEquals(1, locations.size());
@@ -742,7 +636,6 @@ public class IT500SynapseJavaClient {
 	
 	/**
 	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
-	 * @throws Exception
 	 */
 	@Test(expected=SynapseBadRequestException.class)
 	public void testJavaClientUpdateMissingMd5() throws Exception {
@@ -759,18 +652,17 @@ public class IT500SynapseJavaClient {
 		layer.setParentId(dataset.getId());
 		layer.setLocations(locations);
 		//should fail (due to missing md5)
-		layer = synapse.createEntity(layer);
+		layer = synapseOne.createEntity(layer);
 	}
 
-	
 	@Test
 	public void testGetUsers() throws Exception {
-		UserProfile myProfile = synapse.getMyProfile();
+		UserProfile myProfile = synapseOne.getMyProfile();
 		assertNotNull(myProfile);
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 
-		PaginatedResults<UserProfile> users = synapse.getUsers(0,1000);
+		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,1000);
 		assertTrue(users.getResults().size()>0);
 		boolean foundSelf = false;
 		List<String> allDisplayNames = new ArrayList<String>();
@@ -782,27 +674,27 @@ public class IT500SynapseJavaClient {
 		}
 		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);
 	}
-	
+
 	@Test
 	public void testGetGroups() throws Exception {
-		PaginatedResults<UserGroup> groups = synapse.getGroups(0,100);
+		PaginatedResults<UserGroup> groups = synapseOne.getGroups(0,100);
 		assertTrue(groups.getResults().size()>0);
 		for (UserGroup ug : groups.getResults()) {
 			assertNotNull(ug.getId());
 			assertNotNull(ug.getName());
 		}
 	}
-	
+
 	@Test
 	public void testGetUserGroupHeadersById() throws Exception {
 		List<String> ids = new ArrayList<String>();		
-		PaginatedResults<UserProfile> users = synapse.getUsers(0,100);
+		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,100);
 		for (UserProfile up : users.getResults()) {	
 			if (up.getDisplayName() != null) {
 				ids.add(up.getOwnerId());
 			}
 		}
-		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = synapseOne.getUserGroupHeadersByIds(ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
@@ -815,32 +707,16 @@ public class IT500SynapseJavaClient {
 			if (!id.equals(dummyId))
 				assertTrue(headers.containsKey(id));
 	}
-	
-	/**
-	 * Backend cache (see UserProfileServiceImpl.getUserGroupHeadersByPrefix) may or may not have integration test user (Spring trigger populates periodically).
-	 * This prefix method is unit tested, so ignoring this integration test.
-	 * @throws Exception
-	 */
-	@Ignore
-	@Test
-	public void testGetUserGroupHeadersByPrefix() throws Exception {
-		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByPrefix(StackConfiguration.getIntegrationTestUserOneName());
-		assertTrue(response.getChildren().size() > 0);
-		
-		String dummyPrefix = "INVALIDPREFIX12345@INVALID.COM.WRONG";
-		response = synapse.getUserGroupHeadersByPrefix(dummyPrefix);
-		assertTrue(response.getChildren().size()==0);
-	}
-	
+
 	@Test
 	public void testAccessRequirement() throws Exception {
 		// create a node
 		Data layer = new Data();
 		layer.setType(LayerTypeNames.E);
 		layer.setParentId(dataset.getId());
-		layer = synapse.createEntity(layer);
+		layer = synapseOne.createEntity(layer);
 
-		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// add an access requirement
 		TermsOfUseAccessRequirement r = new TermsOfUseAccessRequirement();
@@ -853,27 +729,23 @@ public class IT500SynapseJavaClient {
 
 		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		r.setTermsOfUse("I promise to be good.");
-		synapse.createAccessRequirement(r);
+		r = synapseOne.createAccessRequirement(r);
+		accessRequirementsToDelete.add(r.getId());
 		
 		// check that owner can download
-		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
-		
-		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-		UserProfile otherProfile = synapse.getMyProfile();
+		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
 
 		// check that another can't download
-		assertFalse(otherUser.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
-		
+		assertFalse(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		// get unmet access requirements
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		subjectId.setId(layer.getId());
-		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetAccessRequirements(subjectId);
+		PaginatedResults<AccessRequirement> ars = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -885,70 +757,35 @@ public class IT500SynapseJavaClient {
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
 		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		otherUser.createAccessApproval(approval);
+		synapseTwo.createAccessApproval(approval);
 		
 		// get unmet requirements -- should be empty
-		ars = otherUser.getUnmetAccessRequirements(subjectId);
+		ars = synapseTwo.getUnmetAccessRequirements(subjectId);
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
 		// check that CAN download
-		assertTrue(otherUser.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
-}
-	
-	
-	/**
-	 * tests signing requests using an API key, as an alternative to logging in
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testAPIKey() throws Exception {
-		// get API key for integration test user
-		// must be logged in to do this, so use the global client 'synapse'
-		String apiKey = synapse.retrieveApiKey();
-		assertNotNull(apiKey);
-		// set user name and api key in a synapse client
-		// we don't want to log-in, so use a new Synapse client instance
-		SynapseClientImpl synapseNoLogin = new SynapseClientImpl();
-		synapseNoLogin.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapseNoLogin.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapseNoLogin.setUserName(StackConfiguration.getIntegrationTestUserOneName());
-		synapseNoLogin.setApiKey(apiKey);
-		// now try to do a query
-		JSONObject results = synapseNoLogin.query("select * from dataset limit 10");
-		// should get at least one result (since 'beforeClass' makes one dataset)
-		assertTrue(0 < results.getInt("totalNumberOfResults"));
+		assertTrue(synapseTwo.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 	}
-	
+
 	@Test
 	public void testUserSessionData() throws Exception {
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		
-		UserSessionData userSessionData = synapse.getUserSessionData();
+		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		assertNotNull("Failed to find session token", sessionToken);
 		UserProfile integrationTestUserProfile = userSessionData.getProfile();
 		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
 	}
-	
+
 	@Test
 	public void testRetrieveSynapseTOU() throws Exception {
-		String termsOfUse = synapse.getSynapseTermsOfUse();
+		String termsOfUse = synapseOne.getSynapseTermsOfUse();
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
 	}
 	
-	
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
-	 * 
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
 	 */
 	@Test
 	public void testAttachmentsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
@@ -964,13 +801,13 @@ public class IT500SynapseJavaClient {
 		try{
 			// We are now ready to add this file as an attachment on the project
 			String finalName = "iamgeFile.jpg";
-			AttachmentData data = synapse.uploadAttachmentToSynapse(project.getId(), originalFile, finalName);
+			AttachmentData data = synapseOne.uploadAttachmentToSynapse(project.getId(), originalFile, finalName);
 			assertEquals(finalName, data.getName());
 			// Save this this attachment on the entity.
 			project.setAttachments(new ArrayList<AttachmentData>());
 			project.getAttachments().add(data);
 			// Save this attachment to the project
-			project = synapse.putEntity(project);
+			project = synapseOne.putEntity(project);
 			assertNotNull(project.getAttachments());
 			assertEquals(1, project.getAttachments().size());
 			AttachmentData clone = project.getAttachments().get(0);
@@ -981,14 +818,14 @@ public class IT500SynapseJavaClient {
 			// the attachment should have preview
 			assertNotNull(clone.getPreviewId());
 			// Now make sure we can download our
-			synapse.downloadEntityAttachment(project.getId(), clone, attachmentDownload);
+			synapseOne.downloadEntityAttachment(project.getId(), clone, attachmentDownload);
 			assertTrue(attachmentDownload.exists());
 			System.out.println(attachmentDownload.getAbsolutePath());
 			assertEquals(originalFile.length(), attachmentDownload.length());
 			// Now make sure we can get the preview image
 			// Before we download the preview make sure it exists
-			synapse.waitForPreviewToBeCreated(project.getId(), clone.getPreviewId(), PREVIEW_TIMOUT);
-			synapse.downloadEntityAttachmentPreview(project.getId(), clone.getPreviewId(), previewDownload);
+			synapseOne.waitForPreviewToBeCreated(project.getId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapseOne.downloadEntityAttachmentPreview(project.getId(), clone.getPreviewId(), previewDownload);
 			assertTrue(previewDownload.exists());
 			System.out.println(previewDownload.getAbsolutePath());
 			assertTrue(previewDownload.length() > 0);
@@ -1007,10 +844,6 @@ public class IT500SynapseJavaClient {
 
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
-	 * 
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
 	 */
 	@Test
 	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
@@ -1027,14 +860,14 @@ public class IT500SynapseJavaClient {
 			// We are now ready to add this file as an attachment on the project
 			String finalName = "iamgeFile.jpg";
 			
-			UserProfile profile = synapse.getMyProfile();
-			AttachmentData data = synapse.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
+			UserProfile profile = synapseOne.getMyProfile();
+			AttachmentData data = synapseOne.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
 			//save this as part of the user
 			profile.setPic(data);
-			synapse.updateMyProfile(profile);
+			synapseOne.updateMyProfile(profile);
 			
 			//download, and check that it was updated
-			profile = synapse.getMyProfile();
+			profile = synapseOne.getMyProfile();
 			AttachmentData clone = profile.getPic();
 			assertEquals(finalName, data.getName());
 			assertEquals(data.getName(), clone.getName());
@@ -1045,14 +878,14 @@ public class IT500SynapseJavaClient {
 			assertNotNull(clone.getPreviewId());
 			// Now make sure we can download our
 			
-			synapse.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
+			synapseOne.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
 			assertTrue(attachmentDownload.exists());
 			System.out.println(attachmentDownload.getAbsolutePath());
 			assertEquals(originalFile.length(), attachmentDownload.length());
 			// Now make sure we can get the preview image
 			// Before we download the preview make sure it exists
-			synapse.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
-			synapse.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
+			synapseOne.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapseOne.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
 			assertTrue(previewDownload.exists());
 			System.out.println(previewDownload.getAbsolutePath());
 			assertTrue(previewDownload.length() > 0);
@@ -1070,7 +903,6 @@ public class IT500SynapseJavaClient {
 		}
 	}
 
-	
 	@Test	
 	public void testGetChildCount() throws SynapseException{
 		// Start with no children.
@@ -1079,42 +911,40 @@ public class IT500SynapseJavaClient {
 		Folder child = new Folder();
 		child.setName("childFolder");
 		child.setParentId(project.getId());
-		child = synapse.createEntity(child);
+		child = synapseOne.createEntity(child);
 		assertNotNull(child);
 		assertNotNull(child.getId());
 		assertEquals(project.getId(), child.getParentId());
 		
 		// This folder should have no children
-		Long count = synapse.getChildCount(child.getId());
+		Long count = synapseOne.getChildCount(child.getId());
 		assertEquals(new Long(0), count);
 		// Now add a child
 		Study grandChild = new Study();
 		grandChild.setName("childFolder");
 		grandChild.setParentId(child.getId());
-		grandChild = synapse.createEntity(grandChild);
+		grandChild = synapseOne.createEntity(grandChild);
 		assertNotNull(grandChild);
 		assertNotNull(grandChild.getId());
 		assertEquals(child.getId(), grandChild.getParentId());
 		// The count should now be one.
-		count = synapse.getChildCount(child.getId());
+		count = synapseOne.getChildCount(child.getId());
 		assertEquals(new Long(1), count);
 	}
 	
 	/**
 	 * PLFM-1166 annotations are not being returned from queries.
-	 * @throws SynapseException 
-	 * @throws JSONException 
 	 */
 	@Test 
 	public void testPLMF_1166() throws SynapseException, JSONException{
 		// Get the project annotations
-		Annotations annos = synapse.getAnnotations(project.getId());
+		Annotations annos = synapseOne.getAnnotations(project.getId());
 		String key = "PLFM_1166";
 		annos.addAnnotation(key, "one");
-		synapse.updateAnnotations(project.getId(), annos);
+		synapseOne.updateAnnotations(project.getId(), annos);
 		// Make sure we can query for 
 		String query = "select id, "+key+" from project where id == '"+project.getId()+"'";
-		JSONObject total = synapse.query(query);
+		JSONObject total = synapseOne.query(query);
 		System.out.println(total);
 		assertEquals(1l, total.getLong("totalNumberOfResults"));
 		assertNotNull(total);
@@ -1134,14 +964,11 @@ public class IT500SynapseJavaClient {
 
 	/**
 	 * PLFM-1212 Links need to return what they reference.
-	 * @throws SynapseException 
-	 * @throws JSONException 
-	 * @throws InterruptedException 
 	 */
 	@Test 
 	public void testPLFM_1212() throws SynapseException, JSONException, InterruptedException{
 		// The dataset should start with no references
-		PaginatedResults<EntityHeader> refs = synapse.getEntityReferencedBy(dataset);
+		PaginatedResults<EntityHeader> refs = synapseOne.getEntityReferencedBy(dataset);
 		assertNotNull(refs);
 		assertEquals(0l, refs.getTotalNumberOfResults());
 		// Add a link to the dataset in the project
@@ -1152,10 +979,10 @@ public class IT500SynapseJavaClient {
 		link.setLinksToClassName(Study.class.getName());
 		link.setParentId(project.getId());
 		// Create the link
-		link = synapse.createEntity(link);
+		link = synapseOne.createEntity(link);
 		// Get 
 		waitForReferencesBy(dataset);
-		refs = synapse.getEntityReferencedBy(dataset);
+		refs = synapseOne.getEntityReferencedBy(dataset);
 		assertNotNull(refs);
 		assertEquals(1l, refs.getTotalNumberOfResults());
 		assertNotNull(refs.getResults());
@@ -1164,33 +991,31 @@ public class IT500SynapseJavaClient {
 		assertEquals(project.getId(), refs.getResults().get(0).getId());
 		
 	}
+	
 	/**
 	 * Helper to wait for references to be update.
-	 * @param entity
-	 * @throws SynapseException
-	 * @throws InterruptedException
 	 */
 	private void waitForReferencesBy(Entity toWatch) throws SynapseException, InterruptedException{
 		// Wait for the references to appear
-		PaginatedResults<EntityHeader> refs = synapse.getEntityReferencedBy(toWatch);
+		PaginatedResults<EntityHeader> refs = synapseOne.getEntityReferencedBy(toWatch);
 		long start = System.currentTimeMillis();
 		while(refs.getTotalNumberOfResults() < 1){
 			System.out.println("Waiting for refrences to be published for entity: "+toWatch.getId());
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for refernces to be published for entity: "+toWatch.getId(), elapse < RDS_WORKER_TIMEOUT);
-			refs = synapse.getEntityReferencedBy(toWatch);
+			refs = synapseOne.getEntityReferencedBy(toWatch);
 		}
 	}
-	
+
 	@Test
 	public void testPLFM_1548() throws SynapseException, InterruptedException, JSONException{
 		// Add a unique annotation and query for it
 		String key = "keyPLFM_1548";
 		String value = UUID.randomUUID().toString();
-		Annotations annos = synapse.getAnnotations(dataset.getId());
+		Annotations annos = synapseOne.getAnnotations(dataset.getId());
 		annos.addAnnotation(key, value);
-		synapse.updateAnnotations(dataset.getId(), annos);
+		synapseOne.updateAnnotations(dataset.getId(), annos);
 		String queryString = "select id from entity where entity."+key+" == '"+value+"'";
 		// Wait for the query
 		waitForQuery(queryString);
@@ -1198,14 +1023,10 @@ public class IT500SynapseJavaClient {
 	
 	/**
 	 * Helper 
-	 * @param queryString
-	 * @throws SynapseException
-	 * @throws InterruptedException
-	 * @throws JSONException
 	 */
 	private void waitForQuery(String queryString) throws SynapseException, InterruptedException, JSONException{
 		// Wait for the references to appear
-		JSONObject results = synapse.query(queryString);
+		JSONObject results = synapseOne.query(queryString);
 		assertNotNull(results);
 		assertTrue(results.has("totalNumberOfResults"));
 		assertNotNull(results.getLong("totalNumberOfResults"));
@@ -1215,7 +1036,7 @@ public class IT500SynapseJavaClient {
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for annotations to be published for query: "+queryString, elapse < RDS_WORKER_TIMEOUT);
-			results = synapse.query(queryString);
+			results = synapseOne.query(queryString);
 			System.out.println(results);
 		}
 	}
@@ -1227,92 +1048,61 @@ public class IT500SynapseJavaClient {
 	public void testPLFM_1214() throws SynapseException, JSONException{
 		// The dataset should start with no references
 		dataset.setNumSamples(123l);
-		dataset = synapse.putEntity(dataset);
+		dataset = synapseOne.putEntity(dataset);
 		assertEquals(new Long(123), dataset.getNumSamples());
 		// Now clear out the value
 		dataset.setNumSamples(null);
-		dataset = synapse.putEntity(dataset);
+		dataset = synapseOne.putEntity(dataset);
 		assertEquals(null, dataset.getNumSamples());
 	}
-	
+
 	@Test
 	public void testPLFM_1272() throws Exception{
 		// Now add a data object 
 		Data data = new Data();
 		data.setParentId(project.getId());
-		data = synapse.createEntity(data);
+		data = synapseOne.createEntity(data);
 
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+project.getId()+"\"";
-		JSONObject results = synapse.query(queryString);
+		JSONObject results = synapseOne.query(queryString);
 		assertNotNull(results);
 		assertTrue(results.has("totalNumberOfResults"));
 		assertEquals(1l, results.getLong("totalNumberOfResults"));
 		
 		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+project.getId()+"\"";
-		results = synapse.query(queryString);
+		results = synapseOne.query(queryString);
 		assertNotNull(results);
 		assertTrue(results.has("totalNumberOfResults"));
 		assertEquals(1l, results.getLong("totalNumberOfResults"));
 	}
-	
+
 	@Test
 	public void testGetAllUserAndGroupIds() throws SynapseException{
 		HashSet<String> expected = new HashSet<String>();
 		// Get all the users
-		PaginatedResults<UserProfile> pr = synapse.getUsers(0, Integer.MAX_VALUE);
+		PaginatedResults<UserProfile> pr = synapseOne.getUsers(0, Integer.MAX_VALUE);
 		for(UserProfile up : pr.getResults()){
 			expected.add(up.getOwnerId());
 		}
-		PaginatedResults<UserGroup> groupPr = synapse.getGroups(0, Integer.MAX_VALUE);
+		PaginatedResults<UserGroup> groupPr = synapseOne.getGroups(0, Integer.MAX_VALUE);
 		for(UserGroup ug : groupPr.getResults()){
 			expected.add(ug.getId());
 		}
-		Set<String> results = synapse.getAllUserAndGroupIds();
+		Set<String> results = synapseOne.getAllUserAndGroupIds();
 		assertNotNull(results);
 		assertEquals(expected.size(), results.size());
 		assertEquals(expected,results);
 		
 	}
-	
 	@Test
 	public void testRetrieveApiKey() throws SynapseException {
-		String apiKey = synapse.retrieveApiKey();
+		String apiKey = synapseOne.retrieveApiKey();
 		assertNotNull(apiKey);		
 	}
 	
-	private Team teamToDelete = null;
-	private S3FileHandle fileHandleToDelete = null;
-	
-	// there shouldn't be any Teams floating around in the system
-	// the Team tests assume there are no Teams to start.  So before
-	// running the tests, we clean up all the teams
-	@Before
-	public void deleteAllTeams() throws SynapseException {
-		long numTeams = 0L;
-		do {
-			PaginatedResults<Team> teams = synapse.getTeams(null, 10, 0);
-			numTeams = teams.getTotalNumberOfResults();
-			for (Team team : teams.getResults()) {
-				synapse.deleteTeam(team.getId());
-			}
-		} while (numTeams>0);
-	}
-	
-	@After
-	public void cleanUpTeamTests() throws SynapseException {
-		if (teamToDelete!=null) {
-			synapse.deleteTeam(teamToDelete.getId());
-			teamToDelete = null;
-		}
-		if (fileHandleToDelete!=null) {
-			synapse.deleteFileHandle(fileHandleToDelete.getId());
-			fileHandleToDelete = null;
-		}
-	}
-	
 	private String getSomeGroup(String notThisOne) throws SynapseException {
-		PaginatedResults<UserGroup> groups = synapse.getGroups(0,100);
+		PaginatedResults<UserGroup> groups = synapseOne.getGroups(0,100);
 		String somePrincipalId = null;
 		for (UserGroup ug : groups.getResults()) {
 			if (ug.getId()!=notThisOne) { // don't want to use the team itself!
@@ -1323,7 +1113,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(somePrincipalId);
 		return somePrincipalId;
 	}
-	
+
 	@Test
 	public void testTeamAPI() throws SynapseException, IOException {
 		// create a Team
@@ -1332,10 +1122,10 @@ public class IT500SynapseJavaClient {
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapse.createTeam(team);
-		// schedule Team for deletion
-		this.teamToDelete = createdTeam;
-		UserProfile myProfile = synapse.getMyProfile();
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+
+		UserProfile myProfile = synapseOne.getMyProfile();
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 		assertNotNull(createdTeam.getId());
@@ -1348,12 +1138,12 @@ public class IT500SynapseJavaClient {
 		assertNotNull(createdTeam.getEtag());
 		assertNull(createdTeam.getIcon());
 		// get the Team
-		Team retrievedTeam = synapse.getTeam(createdTeam.getId());
+		Team retrievedTeam = synapseOne.getTeam(createdTeam.getId());
 		assertEquals(createdTeam, retrievedTeam);
 		// upload an icon and get the file handle
 		// before setting the icon
 		try {
-			synapse.getTeamIcon(createdTeam.getId(), false);
+			synapseOne.getTeamIcon(createdTeam.getId(), false);
 			fail("Expected: Not Found");
 		} catch (SynapseException e) {
 			// expected
@@ -1370,36 +1160,36 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		S3FileHandle fileHandle = synapse.createFileHandle(file, "text/plain");
+		S3FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
+		handlesToDelete.add(fileHandle.getId());
+		
 		// update the Team with the icon
 		createdTeam.setIcon(fileHandle.getId());
-		Team updatedTeam = synapse.updateTeam(createdTeam);
+		Team updatedTeam = synapseOne.updateTeam(createdTeam);
 		// get the icon url
-		URL url = synapse.getTeamIcon(updatedTeam.getId(), false);
+		URL url = synapseOne.getTeamIcon(updatedTeam.getId(), false);
 		assertNotNull(url);
 		// query for all teams
-		PaginatedResults<Team> teams = synapse.getTeams(null, 1, 0);
+		PaginatedResults<Team> teams = synapseOne.getTeams(null, 1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// make sure pagination works
-		teams = synapse.getTeams(null, 10, 1);
+		teams = synapseOne.getTeams(null, 10, 1);
 		assertEquals(0L, teams.getResults().size());
+		
 		// query for all teams, based on name fragment
 		// need to update cache.  the service to trigger an update
 		// requires admin privileges, so we log in as an admin:
-		SynapseClient adminClient = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-		adminClient.updateTeamSearchCache();
-		teams = synapse.getTeams(name.substring(0, 3),1, 0);
+		adminSynapse.updateTeamSearchCache();
+		teams = synapseOne.getTeams(name.substring(0, 3),1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// again, make sure pagination works
-		teams = synapse.getTeams(name.substring(0, 3), 10, 1);
+		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
 		
 		// query for team members.  should get just the creator
-		PaginatedResults<TeamMember> members = synapse.getTeamMembers(updatedTeam.getId(), null, 1, 0);
+		PaginatedResults<TeamMember> members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
@@ -1408,9 +1198,9 @@ public class IT500SynapseJavaClient {
 		assertTrue(tm.getIsAdmin());
 		
 		// while we're at it, check the 'getTeamMember' service
-		assertEquals(tm, synapse.getTeamMember(updatedTeam.getId(), myPrincipalId));
+		assertEquals(tm, synapseOne.getTeamMember(updatedTeam.getId(), myPrincipalId));
 		
-		TeamMembershipStatus tms = synapse.getTeamMembershipStatus(updatedTeam.getId(), myPrincipalId);
+		TeamMembershipStatus tms = synapseOne.getTeamMembershipStatus(updatedTeam.getId(), myPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
 		assertEquals(myPrincipalId, tms.getUserId());
 		assertTrue(tms.getIsMember());
@@ -1419,20 +1209,15 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getCanJoin());
 		
 		// add a member to the team
-		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-		UserProfile otherUp = otherUser.getMyProfile();
-		assertEquals(StackConfiguration.getIntegrationTestUserTwoName(), otherUp.getEmail());
-		assertEquals(StackConfiguration.getIntegrationTestUserTwoName(), otherUp.getDisplayName());
+		UserProfile otherUp = synapseTwo.getMyProfile();
 		String otherDName = otherUp.getDisplayName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId(createdTeam.getId());
-		otherUser.createMembershipRequest(mrs);
+		synapseTwo.createMembershipRequest(mrs);
 		// check membership status
-		tms = synapse.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
+		tms = synapseOne.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
 		assertEquals(otherPrincipalId, tms.getUserId());
 		assertFalse(tms.getIsMember());
@@ -1441,7 +1226,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(tms.getCanJoin());
 
 		// a subtle difference:  if the other user requests the status, 'canJoin' is false
-		tms = otherUser.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
+		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
 		assertEquals(otherPrincipalId, tms.getUserId());
 		assertFalse(tms.getIsMember());
@@ -1451,16 +1236,16 @@ public class IT500SynapseJavaClient {
 
 		// query for team members using name fragment.  should get team creator back
 		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getDisplayName();
-		members = synapse.getTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
+		members = synapseOne.getTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());
 		assertTrue(members.getResults().get(0).getIsAdmin());
 
-		synapse.addTeamMember(updatedTeam.getId(), otherPrincipalId);
+		synapseOne.addTeamMember(updatedTeam.getId(), otherPrincipalId);
 		// update the prefix cache
-		adminClient.updateTeamSearchCache();
+		adminSynapse.updateTeamSearchCache();
 		
-		tms = otherUser.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
+		tms = synapseTwo.getTeamMembershipStatus(updatedTeam.getId(), otherPrincipalId);
 		assertEquals(updatedTeam.getId(), tms.getTeamId());
 		assertEquals(otherPrincipalId, tms.getUserId());
 		assertTrue(tms.getIsMember());
@@ -1469,13 +1254,12 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getCanJoin());
 
 		// query for team members.  should get creator as well as new member back
-		members = synapse.getTeamMembers(updatedTeam.getId(), null, 2, 0);
+		members = synapseOne.getTeamMembers(updatedTeam.getId(), null, 2, 0);
 		assertEquals(2L, members.getTotalNumberOfResults());
 		assertEquals(2L, members.getResults().size());
-		List<String> teamMembersEmails = new ArrayList<String>();
 		
 		// query for team members using name fragment
-		members = synapse.getTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
+		members = synapseOne.getTeamMembers(updatedTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		
 		TeamMember otherMember = members.getResults().get(0);
@@ -1483,10 +1267,10 @@ public class IT500SynapseJavaClient {
 		assertFalse(otherMember.getIsAdmin());
 		
 		// make the other member an admin
-		synapse.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
-		adminClient.updateTeamSearchCache();
+		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, true);
+		adminSynapse.updateTeamSearchCache();
 		
-		members = synapse.getTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
+		members = synapseOne.getTeamMembers(createdTeam.getId(), otherDName.substring(0,otherDName.length()-4), 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		// now the other member is an admin
 		otherMember = members.getResults().get(0);
@@ -1494,32 +1278,32 @@ public class IT500SynapseJavaClient {
 		assertTrue(otherMember.getIsAdmin());
 
 		// remove admin privileges
-		synapse.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
-		adminClient.updateTeamSearchCache();
+		synapseOne.setTeamMemberPermissions(createdTeam.getId(), otherPrincipalId, false);
+		adminSynapse.updateTeamSearchCache();
 		
 		// query for teams based on member's id
-		teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
+		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// remove the member from the team
-		synapse.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
-		adminClient.updateTeamSearchCache();
+		synapseOne.removeTeamMember(updatedTeam.getId(), otherPrincipalId);
+		adminSynapse.updateTeamSearchCache();
 		// query for teams based on member's id (should get nothing)
-		teams = synapse.getTeamsForUser(otherPrincipalId, 1, 0);
+		teams = synapseOne.getTeamsForUser(otherPrincipalId, 1, 0);
 		assertEquals(0L, teams.getTotalNumberOfResults());
 		// delete Team
-		synapse.deleteTeam(updatedTeam.getId());
+		synapseOne.deleteTeam(updatedTeam.getId());
 		// delete the Team again (should be idempotent)
-		synapse.deleteTeam(updatedTeam.getId());
+		synapseOne.deleteTeam(updatedTeam.getId());
 		// retrieve the Team (should get a 404)
 		try {
-			synapse.getTeam(updatedTeam.getId());
+			synapseOne.getTeam(updatedTeam.getId());
 			fail("Failed to delete Team "+updatedTeam.getId());
 		} catch (SynapseException e) {
 			// as expected
 		}
 	}
-	
+
 	@Test
 	public void testTeamRestrictionRoundTrip() throws SynapseException, UnsupportedEncodingException {
 		// Create Evaluation
@@ -1529,9 +1313,9 @@ public class IT500SynapseJavaClient {
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapse.createTeam(team);
-		// schedule Team for deletion
-		this.teamToDelete = createdTeam;
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+
 		// Create AccessRestriction
 		TermsOfUseAccessRequirement tou = new TermsOfUseAccessRequirement();
 		tou.setAccessType(ACCESS_TYPE.PARTICIPATE);
@@ -1539,13 +1323,13 @@ public class IT500SynapseJavaClient {
 		subjectId.setType(RestrictableObjectType.TEAM);
 		subjectId.setId(createdTeam.getId());
 		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		tou = synapse.createAccessRequirement(tou);
+		tou = synapseOne.createAccessRequirement(tou);
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
 		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = synapse.getAccessRequirements(subjectId);
+		paginatedResults = synapseOne.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
@@ -1558,7 +1342,7 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = synapse.getAccessRequirements(subjectId);
+		paginatedResults = synapseOne.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
@@ -1566,20 +1350,20 @@ public class IT500SynapseJavaClient {
 		assertEquals(0L, paginatedResults.getTotalNumberOfResults());
 		assertTrue(paginatedResults.getResults().isEmpty());
 	}
-	
+
 	@Test
 	public void testMembershipInvitationAPI() throws SynapseException {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		String myPrincipalId = synapseOne.getMyProfile().getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapse.createTeam(team);
-		// schedule Team for deletion (which will cascade to any created invitations)
-		this.teamToDelete = createdTeam;
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+		
 		// create an invitation
 		MembershipInvtnSubmission dto = new MembershipInvtnSubmission();
 		String somePrincipalId = getSomeGroup(createdTeam.getId());
@@ -1589,7 +1373,7 @@ public class IT500SynapseJavaClient {
 		String message = "Please accept this invitation";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipInvtnSubmission created = synapse.createMembershipInvitation(dto);
+		MembershipInvtnSubmission created = synapseOne.createMembershipInvitation(dto);
 		assertEquals(myPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
@@ -1598,12 +1382,12 @@ public class IT500SynapseJavaClient {
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		// get the invitation
-		MembershipInvtnSubmission retrieved = synapse.getMembershipInvitation(created.getId());
+		MembershipInvtnSubmission retrieved = synapseOne.getMembershipInvitation(created.getId());
 		assertEquals(created, retrieved);
 		
 		{
 			// query for invitations based on user
-			PaginatedResults<MembershipInvitation> invitations = synapse.getOpenMembershipInvitations(somePrincipalId, null, 1, 0);
+			PaginatedResults<MembershipInvitation> invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, null, 1, 0);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			MembershipInvitation invitation = invitations.getResults().get(0);
 			assertEquals(expiresOn, invitation.getExpiresOn());
@@ -1611,15 +1395,15 @@ public class IT500SynapseJavaClient {
 			assertEquals(createdTeam.getId(), invitation.getTeamId());
 			assertEquals(somePrincipalId, invitation.getUserId());
 			// check pagination
-			invitations = synapse.getOpenMembershipInvitations(somePrincipalId, null, 2, 1);
+			invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, null, 2, 1);
 			assertEquals(0L, invitations.getResults().size());
 			// query for invitations based on user and team
-			invitations = synapse.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 1, 0);
+			invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 1, 0);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			MembershipInvitation invitation2 = invitations.getResults().get(0);
 			assertEquals(invitation, invitation2);
 			// again, check pagination
-			invitations = synapse.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 2, 1);
+			invitations = synapseOne.getOpenMembershipInvitations(somePrincipalId, createdTeam.getId(), 2, 1);
 			assertEquals(1L, invitations.getTotalNumberOfResults());
 			assertEquals(0L, invitations.getResults().size());
 		}
@@ -1627,58 +1411,55 @@ public class IT500SynapseJavaClient {
 		// query for invitation SUBMISSIONs based on team
 		{
 			PaginatedResults<MembershipInvtnSubmission> invitationSubmissions = 
-					synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 1, 0);
+					synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			MembershipInvtnSubmission submission = invitationSubmissions.getResults().get(0);
 			assertEquals(created, submission);
 			// check pagination
-			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
+			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), null, 2, 1);
 			assertEquals(0L, invitationSubmissions.getResults().size());
 			// query for SUBMISSIONs based on team and invitee
-			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 1, 0);
+			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 1, 0);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			assertEquals(created, invitationSubmissions.getResults().get(0));
 			// again, check pagination
-			invitationSubmissions = synapse.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 2, 1);
+			invitationSubmissions = synapseOne.getOpenMembershipInvitationSubmissions(createdTeam.getId(), somePrincipalId, 2, 1);
 			assertEquals(1L, invitationSubmissions.getTotalNumberOfResults());
 			assertEquals(0L, invitationSubmissions.getResults().size());
 		}
 		
 		// delete the invitation
-		synapse.deleteMembershipInvitation(created.getId());
+		synapseOne.deleteMembershipInvitation(created.getId());
 		try {
-			synapse.getMembershipInvitation(created.getId());
+			synapseOne.getMembershipInvitation(created.getId());
 			fail("Failed to delete membership invitation.");
 		} catch (SynapseException e) {
 			// as expected
 		}
 	}
-	
+
 	@Test
 	public void testMembershipRequestAPI() throws SynapseException {
 		// create a Team
 		String name = "Test-Team-Name";
 		String description = "Test-Team-Description";
-		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		String myPrincipalId = synapseOne.getMyProfile().getOwnerId();
 		assertNotNull(myPrincipalId);
 		Team team = new Team();
 		team.setName(name);
 		team.setDescription(description);
-		Team createdTeam = synapse.createTeam(team);
-		// schedule Team for deletion (which will cascade to any created requests)
-		this.teamToDelete = createdTeam;
+		Team createdTeam = synapseOne.createTeam(team);
+		teamsToDelete.add(createdTeam.getId());
+		
 		// create a request
-		SynapseClient otherUser = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-		String otherPrincipalId = otherUser.getMyProfile().getOwnerId();
+		String otherPrincipalId = synapseTwo.getMyProfile().getOwnerId();
 		MembershipRqstSubmission dto = new MembershipRqstSubmission();
 		Date expiresOn = new Date(System.currentTimeMillis()+100000L);
 		dto.setExpiresOn(expiresOn);
 		String message = "Please accept this request";
 		dto.setMessage(message);
 		dto.setTeamId(createdTeam.getId());
-		MembershipRqstSubmission created = otherUser.createMembershipRequest(dto);
+		MembershipRqstSubmission created = synapseTwo.createMembershipRequest(dto);
 		assertEquals(otherPrincipalId, created.getCreatedBy());
 		assertNotNull(created.getCreatedOn());
 		assertEquals(expiresOn, created.getExpiresOn());
@@ -1687,11 +1468,11 @@ public class IT500SynapseJavaClient {
 		assertEquals(message, created.getMessage());
 		assertEquals(createdTeam.getId(), created.getTeamId());
 		// get the request
-		MembershipRqstSubmission retrieved = otherUser.getMembershipRequest(created.getId());
+		MembershipRqstSubmission retrieved = synapseTwo.getMembershipRequest(created.getId());
 		assertEquals(created, retrieved);
 		// query for requests based on team
 		{
-			PaginatedResults<MembershipRequest> requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
+			PaginatedResults<MembershipRequest> requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 1, 0);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			MembershipRequest request = requests.getResults().get(0);
 			assertEquals(expiresOn, request.getExpiresOn());
@@ -1699,44 +1480,44 @@ public class IT500SynapseJavaClient {
 			assertEquals(createdTeam.getId(), request.getTeamId());
 			assertEquals(otherPrincipalId, request.getUserId());
 			// check pagination
-			requests = synapse.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
+			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), null, 2, 1);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			assertEquals(0L, requests.getResults().size());
 			// query for requests based on team and member
-			requests = synapse.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 1, 0);
+			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 1, 0);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			MembershipRequest request2 = requests.getResults().get(0);
 			assertEquals(request, request2);
 			// again, check pagination
-			requests = synapse.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 2, 1);
+			requests = synapseOne.getOpenMembershipRequests(createdTeam.getId(), otherPrincipalId, 2, 1);
 			assertEquals(1L, requests.getTotalNumberOfResults());
 			assertEquals(0L, requests.getResults().size());
 		}
 		
 		// query for request SUBMISSIONs based on team
 		{
-			PaginatedResults<MembershipRqstSubmission> requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 1, 0);
+			PaginatedResults<MembershipRqstSubmission> requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 1, 0);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
 			MembershipRqstSubmission requestSubmission = requestSubmissions.getResults().get(0);
 			assertEquals(created, requestSubmission);
 			// check pagination
-			requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 2, 1);
+			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, null, 2, 1);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
 			assertEquals(0L, requestSubmissions.getResults().size());
 			// query for requests based on team and member
-			requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 1, 0);
+			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 1, 0);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
 			assertEquals(created, requestSubmissions.getResults().get(0));
 			// again, check pagination
-			requestSubmissions = otherUser.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 2, 1);
+			requestSubmissions = synapseTwo.getOpenMembershipRequestSubmissions(otherPrincipalId, createdTeam.getId(), 2, 1);
 			assertEquals(1L, requestSubmissions.getTotalNumberOfResults());
 			assertEquals(0L, requestSubmissions.getResults().size());
 		}
 
 		// delete the request
-		otherUser.deleteMembershipRequest(created.getId());
+		synapseTwo.deleteMembershipRequest(created.getId());
 		try {
-			otherUser.getMembershipRequest(created.getId());
+			synapseTwo.getMembershipRequest(created.getId());
 			fail("Failed to delete membership request.");
 		} catch (SynapseException e) {
 			// as expected

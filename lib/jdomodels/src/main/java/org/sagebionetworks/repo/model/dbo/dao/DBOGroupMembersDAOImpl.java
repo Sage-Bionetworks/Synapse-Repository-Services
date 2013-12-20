@@ -5,8 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -170,24 +169,11 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void bootstrapGroups() throws Exception {
-		// Add the bootstrap admins to the appropriate admin group
-		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		// Add the migration admin to the admin group
 		List<String> adminUserIdList = new ArrayList<String>();
-		adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId());
+		adminUserIdList.add(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		
-		// For testing
-		if (!StackConfiguration.isProductionStack()) {
-			// These two are admins used in the tests
-			adminUserIdList.add(userGroupDAO.findGroup(StackConfiguration.getIntegrationTestUserAdminName(), true).getId());
-			adminUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.ADMIN_USER_NAME, true).getId());
-			
-			// Add the test user to the test group
-			String testGroupId = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false).getId();
-			List<String> testUserIdList = new ArrayList<String>();
-			testUserIdList.add(userGroupDAO.findGroup(AuthorizationConstants.TEST_USER_NAME, true).getId());
-			addMembers(testGroupId, testUserIdList);
-		}
-		
+		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
 		addMembers(adminGroupId, adminUserIdList);
 	}
 }

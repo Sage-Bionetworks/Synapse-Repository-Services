@@ -7,22 +7,21 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -52,13 +51,11 @@ public class MessageToUserWorkerIntegrationTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
 	private MessageReceiver messageToUserQueueMessageReceiver;
 	
 	private UserInfo userInfo;
-	private UserInfo otherUserInfo;
+	private UserInfo adminUserInfo;
+	
 	private String fileHandleId;
 	private MessageToUser message;
 	
@@ -68,8 +65,11 @@ public class MessageToUserWorkerIntegrationTest {
 		// Before we start, make sure the queue is empty
 		emptyQueue();
 		
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		final URL url = MessageToUserWorkerIntegrationTest.class.getClassLoader().getResource("Message.txt");
 		FileItemStream fis = new FileItemStream() {
@@ -107,11 +107,11 @@ public class MessageToUserWorkerIntegrationTest {
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(new HashSet<String>() {
 			{
-				add(otherUserInfo.getIndividualGroup().getId());
+				add(adminUserInfo.getIndividualGroup().getId());
 				
 				// Note: this causes the worker to send a delivery failure notification too
 				// Which can be visually confirmed by the tester (appears in STDOUT)
-				add(userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
+				add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString());
 			}
 		});
 		message = messageManager.createMessage(userInfo, message);
@@ -137,10 +137,11 @@ public class MessageToUserWorkerIntegrationTest {
 
 	@After
 	public void after() throws Exception {
-		UserInfo adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
 		messageManager.deleteMessage(adminUserInfo, message.getId());
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
 	}
 	
 	
@@ -152,7 +153,7 @@ public class MessageToUserWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while (messages == null || messages.getResults().size() < 1) {
 			// Check the inbox of the recipient
-			messages = messageManager.getInbox(otherUserInfo, new ArrayList<MessageStatusType>() {
+			messages = messageManager.getInbox(adminUserInfo, new ArrayList<MessageStatusType>() {
 				{
 					add(MessageStatusType.UNREAD);
 				}

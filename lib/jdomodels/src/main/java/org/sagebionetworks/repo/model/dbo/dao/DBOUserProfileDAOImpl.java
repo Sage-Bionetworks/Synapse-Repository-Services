@@ -158,7 +158,6 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		// For each one determine if it exists, if not create it
 		for (UserGroupInt ug: userGroupDAO.getBootstrapUsers()) {
 			if (ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
-			if (ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
 			if (ug.getIsIndividual()) {
 				Long.parseLong(ug.getId());
 				UserProfile userProfile = null;
@@ -167,9 +166,6 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 				} catch (NotFoundException nfe) {
 					userProfile = new UserProfile();
 					userProfile.setOwnerId(ug.getId());
-					userProfile.setFirstName("First-" + ug.getName());
-					userProfile.setLastName("Last-" + ug.getName());
-					userProfile.setDisplayName(ug.getName());
 					this.create(userProfile);
 				}
 			}

@@ -6,12 +6,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.http.HttpException;
-import org.json.JSONException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -20,77 +19,72 @@ import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.BridgeClient;
 import org.sagebionetworks.client.BridgeClientImpl;
 import org.sagebionetworks.client.BridgeProfileProxy;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-
-import com.google.common.collect.Lists;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Run this integration test as a sanity check to ensure our Synapse Java Client is working
  * 
- * @author deflaux
+ * @author alxdark, marcelblonk
  */
 public class IT600BridgeCommunities {
+	
+	private static SynapseAdminClient adminSynapse;
+	private static BridgeClient bridge = null;
+	private static BridgeClient bridgeTwo = null;
+	private static List<Long> usersToDelete;
 
 	public static final int PREVIEW_TIMOUT = 10 * 1000;
 
 	public static final int RDS_WORKER_TIMEOUT = 1000 * 60; // One min
 
-	private List<String> communitiesToDelete = Lists.newArrayList();
+	private List<String> communitiesToDelete;
+	private List<String> handlesToDelete;
 
-	private static BridgeClient bridge = null;
-	private static BridgeClient bridgeTwo = null;
+	private static BridgeClient createBridgeClient(SynapseAdminClient client) throws Exception {
+		SynapseClient synapse = new SynapseClientImpl();
+		usersToDelete.add(SynapseClientHelper.createUser(adminSynapse, synapse));
 
-	public static BridgeClient createBridgeClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = createSynapse();
-		synapse.login(user, pw);
-
-		BridgeClientImpl bridge = new BridgeClientImpl(synapse);
+		BridgeClient bridge = new BridgeClientImpl(synapse);
 		bridge.setBridgeEndpoint(StackConfiguration.getBridgeServiceEndpoint());
 
 		// Return a proxy
 		return BridgeProfileProxy.createProfileProxy(bridge);
 	}
-	
-	public static SynapseClientImpl createSynapse() {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		return synapse;
-	}
 
-	public static SynapseClient createSynapse(BridgeClient bridge) {
+	private static SynapseClient createSynapse(BridgeClient bridge) {
 		SynapseClient synapse = new SynapseClientImpl(bridge);
-		synapse.setAuthEndpoint(StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
+		SynapseClientHelper.setEndpoints(synapse);
 		return synapse;
 	}
 
-	/**
-	 * @throws Exception
-	 * 
-	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		bridge = createBridgeClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-
-		bridgeTwo = createBridgeClient(StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
+		usersToDelete = new ArrayList<Long>();
+		
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		bridge = createBridgeClient(adminSynapse);
+		bridgeTwo = createBridgeClient(adminSynapse);
 	}
 
 	@Before
 	public void before() throws SynapseException {
+		communitiesToDelete = new ArrayList<String>();
+		handlesToDelete = new ArrayList<String>();
+		
 		// Delete all communities that bridge and bridgeTwo are members of
 		for (Community community : bridge.getCommunities(1000, 0).getResults()) {
 			deleteCommunity(community.getId());
@@ -98,33 +92,40 @@ public class IT600BridgeCommunities {
 		for (Community community : bridgeTwo.getCommunities(1000, 0).getResults()) {
 			deleteCommunity(community.getId());
 		}
+		
+		for (String id : handlesToDelete) {
+			try {
+				adminSynapse.deleteFileHandle(id);
+			} catch (SynapseNotFoundException e) { }
+		}
 	}
 
-	/**
-	 * @throws Exception
-	 * @throws HttpException
-	 * @throws IOException
-	 * @throws JSONException
-	 * @throws SynapseUserException
-	 * @throws SynapseServiceException
-	 */
 	@After
 	public void after() throws Exception {
+		//TODO Cleanup properly after tests
 		for (String communityId : communitiesToDelete) {
 			deleteCommunity(communityId);
 		}
 	}
 
-	private void deleteCommunity(String communityId) {
+	private void deleteCommunity(String communityId) throws SynapseException {
 		try {
 			bridge.deleteCommunity(communityId);
 		} catch (Exception e) {
 			try {
 				bridgeTwo.deleteCommunity(communityId);
-			} catch (Exception e2) {
-				System.err.println(e.getMessage());
-				System.err.println(e2.getMessage());
-			}
+			} catch (SynapseNotFoundException e2) { }
+		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		for (Long id : usersToDelete) {
+			//TODO This delete should not need to be surrounded by a try-catch
+			// This means proper cleanup was not done by the test 
+			try {
+				adminSynapse.deleteUser(id);
+			} catch (Exception e) { }
 		}
 	}
 
@@ -134,9 +135,6 @@ public class IT600BridgeCommunities {
 		assertFalse(versionInfo.getVersion().isEmpty());
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testCommunityCRUD() throws Exception {
 		String communityName = "my-first-community-" + System.currentTimeMillis();
@@ -254,7 +252,7 @@ public class IT600BridgeCommunities {
 		bridge.leaveCommunity(community.getId());
 	}
 
-	private Community createCommunity() throws SynapseException {
+	private Community createCommunity() throws SynapseException, JSONObjectAdapterException {
 		String communityName = "my-first-community-" + System.currentTimeMillis() + "-" + communitiesToDelete.size();
 
 		Community communityToCreate = new Community();
@@ -267,6 +265,12 @@ public class IT600BridgeCommunities {
 		assertNull(newCommunity.getDescription());
 
 		communitiesToDelete.add(newCommunity.getId());
+		
+		//TODO This API does not exist
+		// handlesToDelete.add(adminSynapse.getV2WikiPage(
+		// 		new WikiPageKey(newCommunity.getId(), ObjectType.COMMUNITY,
+		// 				newCommunity.getWelcomePageWikiId()))
+		// 		.getMarkdownFileHandleId());
 
 		return newCommunity;
 	}

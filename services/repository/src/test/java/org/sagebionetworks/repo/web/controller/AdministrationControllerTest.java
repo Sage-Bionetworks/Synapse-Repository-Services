@@ -16,10 +16,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -28,11 +27,9 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.migration.WikiMigrationResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -55,36 +52,19 @@ public class AdministrationControllerTest {
 	@Autowired
 	public NodeManager nodeManager;
 	
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
-	
-	@Autowired
-	private V2WikiPageDao v2wikiPageDAO;
-	
-	@Autowired
-	private WikiPageDao wikiPageDao;
-	
-	@Autowired
-	private FileHandleDao fileMetadataDao;
-	
-	@Autowired
-	private AmazonS3Client s3Client;
-	
 	private static HttpServlet dispatchServlet;
 	
 	@Autowired
-	StackStatusDao stackStatusDao;
+	private StackStatusDao stackStatusDao;
 	
 	private List<String> toDelete;
-	private List<WikiPageKey> wikisToDelete;
 	private UserInfo adminUserInfo;
 	private Project entity;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
 		toDelete = new ArrayList<String>();
-		wikisToDelete = new ArrayList<WikiPageKey>();
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 	
 	@BeforeClass
@@ -98,22 +78,7 @@ public class AdministrationControllerTest {
 		StackStatus status = new StackStatus();
 		status.setStatus(StatusEnum.READ_WRITE);
 		stackStatusDao.updateStatus(status);
-		// Delete starting from children to avoid losing
-		// resources on cascade delete
-		for(int i = wikisToDelete.size() - 1; i >= 0; i--) {
-			try {
-				WikiPageKey key = wikisToDelete.get(i);
-				V2WikiPage wiki = v2wikiPageDAO.get(key, null);
-				String markdownHandleId = wiki.getMarkdownFileHandleId();
-				S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
-				s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-				fileMetadataDao.delete(markdownHandleId);
-				wikiPageDao.delete(key);
-				v2wikiPageDAO.delete(key);
-			} catch (Exception e) {
-				// nothing to do here
-			}
-		}
+
 		if(entity != null){
 			try {
 				nodeManager.delete(adminUserInfo, entity.getId());
@@ -174,62 +139,5 @@ public class AdministrationControllerTest {
 		setDown.setCurrentMessage(null);
 		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), setDown);
 		assertEquals(setDown, back);
-	}
-
-	@Test
-	public void testMigrateWikis() throws Exception {
-		// create an entity
-		entity = new Project();
-		entity.setEntityType(Project.class.getName());
-		entity = (Project) entityServletHelper.createEntity(entity, AuthorizationConstants.ADMIN_USER_NAME, null);
-		createWikiPages(entity.getId());
-		
-		Map<String, String> extraParams = new HashMap<String, String>();
-		extraParams.put("offset", "0");
-		extraParams.put("limit", "5");
-		
-		PaginatedResults<WikiMigrationResult> results = 
-			ServletTestHelper.migrateWikisToV2(dispatchServlet, adminUserInfo.getIndividualGroup().getName(), extraParams);
-		assertEquals(2, results.getResults().size());
-	}
-	
-	private void createWikiPages(String ownerId) throws NotFoundException {
-		ObjectType ownerType = ObjectType.ENTITY;
-		// Create wiki pages with the DAO to avoid the translation bridge 
-		// which will create V2 wiki pages.
-		WikiPage page = new WikiPage();
-		page.setId("1");
-		page.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
-		page.setModifiedBy(adminUserInfo.getIndividualGroup().getId());
-		page.setMarkdown("markdown1");
-		page.setTitle("title1");
-		page.setAttachmentFileHandleIds(new ArrayList<String>());
-		page.setParentWikiId(null);
-		WikiPage result = wikiPageDao.create(page, new HashMap<String, FileHandle>(), ownerId, ownerType);
-		WikiPageKey parentKey = new WikiPageKey(ownerId, ownerType, page.getId());
-		wikisToDelete.add(parentKey);
-		
-		// Child
-		WikiPage pageChild = new WikiPage();
-		pageChild.setId("2");
-		pageChild.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
-		pageChild.setModifiedBy(adminUserInfo.getIndividualGroup().getId());
-		pageChild.setMarkdown("markdown2");
-		pageChild.setTitle("title2");
-		pageChild.setAttachmentFileHandleIds(new ArrayList<String>());
-		pageChild.setParentWikiId(page.getId());
-		WikiPage result2 = wikiPageDao.create(pageChild, new HashMap<String, FileHandle>(), ownerId, ownerType);
-		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, pageChild.getId());
-		wikisToDelete.add(childKey);
-	}
-	
-	@Test (expected=UnauthorizedException.class)
-	public void testMigrateWikisAsNonAdmit() throws Exception {
-		Map<String, String> extraParams = new HashMap<String, String>();
-		extraParams.put("offset", "0");
-		extraParams.put("limit", "10");
-		
-		// Not an admin, so this should fail with a 403
-		ServletTestHelper.migrateWikisToV2(dispatchServlet, StackConfiguration.getIntegrationTestUserOneName(), extraParams);
 	}
 }

@@ -8,13 +8,11 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.wiki.V2WikiManager;
-import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -32,11 +30,7 @@ public class WikiServiceImpl implements WikiService {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	WikiManager wikiManager;
-	@Autowired
 	V2WikiManager v2WikiManager;
-	@Autowired
-	DBOWikiMigrationDAO wikiMigrationDao;
 	@Autowired
 	WikiModelTranslator wikiModelTranslationHelper;
 	@Autowired
@@ -113,7 +107,7 @@ public class WikiServiceImpl implements WikiService {
 	public URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey,	String fileName) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// First lookup the FileHandle from V2
-		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, null);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
@@ -122,7 +116,7 @@ public class WikiServiceImpl implements WikiService {
 	public URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName)	throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		// First lookup the FileHandle
-		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
+		String fileHandleId = v2WikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName, null);
 		// Get FileHandle from V2
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Get the URL of the preview.

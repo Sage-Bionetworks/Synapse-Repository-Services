@@ -6,9 +6,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -17,44 +21,30 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT070SynapseJavaClientTrashCanTest {
 
-	private static SynapseAdminClientImpl synapseAdmin;
-	private SynapseClientImpl synapse;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+	
 	private Entity parent;
 	private Entity child;
+	
+	@BeforeClass 
+	public static void beforeClass() throws Exception {
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	}
 
 	@Before
 	public void before() throws SynapseException {
-
-		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(
-				StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(
-				StackConfiguration.getRepositoryServiceEndpoint());
-
-		String user = StackConfiguration.getIntegrationTestUserOneName();
-		String pw = StackConfiguration.getIntegrationTestUserOnePassword();
-
-		Session session = synapse.login(user, pw);
-		assertNotNull(session);
-		assertNotNull(session.getSessionToken());
-
-		synapseAdmin = new SynapseAdminClientImpl();
-		synapseAdmin.setAuthEndpoint(
-				StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapseAdmin.setRepositoryEndpoint(
-				StackConfiguration.getRepositoryServiceEndpoint());
-
-		String adminUsr = StackConfiguration.getIntegrationTestUserAdminName();
-		String adminPwd = StackConfiguration.getIntegrationTestUserAdminPassword();
-
-		Session adminSession = synapseAdmin.login(adminUsr, adminPwd);
-		assertNotNull(adminSession);
-		assertNotNull(adminSession.getSessionToken());
-
 		parent = new Project();
 		parent.setName("IT070SynapseJavaClientTrashCanTest.parent");
 		parent = synapse.createEntity(parent);
@@ -75,6 +65,11 @@ public class IT070SynapseJavaClientTrashCanTest {
 		if (parent != null) {
 			synapse.deleteAndPurgeEntityById(parent.getId());
 		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
@@ -176,13 +171,13 @@ public class IT070SynapseJavaClientTrashCanTest {
 
 	@Test
 	public void testAdmin() throws SynapseException {
-		synapseAdmin.purgeTrash();
+		adminSynapse.purgeTrash();
 		synapse.moveToTrash(parent.getId());
-		PaginatedResults<TrashedEntity> results = synapseAdmin.viewTrash(0L, Long.MAX_VALUE);
+		PaginatedResults<TrashedEntity> results = adminSynapse.viewTrash(0L, Long.MAX_VALUE);
 		assertNotNull(results);
 		assertEquals(2, results.getResults().size());
 		assertEquals(2, results.getTotalNumberOfResults());
-		synapseAdmin.purgeTrash();
+		adminSynapse.purgeTrash();
 		try {
 			synapse.getEntityById(child.getId());
 			fail();
@@ -199,7 +194,7 @@ public class IT070SynapseJavaClientTrashCanTest {
 		} catch (Throwable e) {
 			fail();
 		}
-		results = synapseAdmin.viewTrashForUser(0L, Long.MAX_VALUE);
+		results = adminSynapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
 		// Already purged, no need to clean

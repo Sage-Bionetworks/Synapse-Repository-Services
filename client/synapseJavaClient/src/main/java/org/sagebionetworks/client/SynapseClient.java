@@ -452,7 +452,7 @@ public interface SynapseClient extends BaseClient {
 			SynapseException;
 	
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-			V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+			String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 			SynapseException;
 	
 	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
@@ -479,6 +479,12 @@ public interface SynapseClient extends BaseClient {
 
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
+	
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
+
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	

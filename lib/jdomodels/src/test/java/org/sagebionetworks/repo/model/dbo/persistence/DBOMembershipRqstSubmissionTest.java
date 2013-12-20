@@ -13,9 +13,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,13 +27,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOMembershipRqstSubmissionTest {
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
-		
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	
 	private List<Long> toDelete = null;
 	private List<Long> teamToDelete = null;
@@ -65,16 +61,15 @@ public class DBOMembershipRqstSubmissionTest {
 	
 	public static DBOMembershipRqstSubmission newMembershipRqstSubmission(
 			IdGenerator idGenerator, 
-			UserGroupDAO userGroupDAO,
 			DBOBasicDao dboBasicDao) {
 		DBOMembershipRqstSubmission request = new DBOMembershipRqstSubmission();
 		request.setId(idGenerator.generateNewId());
 		request.setCreatedOn(System.currentTimeMillis());
 		request.setExpiresOn(System.currentTimeMillis());
-		DBOTeam team = DBOTeamTest.newTeam(userGroupDAO);
+		DBOTeam team = DBOTeamTest.newTeam();
 		team = dboBasicDao.createNew(team);
 		request.setTeamId(team.getId());
-		Long userId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		request.setUserId(userId);
 		request.setProperties((new String("abcdefg")).getBytes());
 		return request;
@@ -82,7 +77,7 @@ public class DBOMembershipRqstSubmissionTest {
 	
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
-		DBOMembershipRqstSubmission request = newMembershipRqstSubmission(idGenerator, userGroupDAO, dboBasicDao);
+		DBOMembershipRqstSubmission request = newMembershipRqstSubmission(idGenerator, dboBasicDao);
 		// Make sure we can create it
 		DBOMembershipRqstSubmission clone = dboBasicDao.createNew(request);
 		toDelete.add(request.getId());

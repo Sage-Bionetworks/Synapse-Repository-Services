@@ -17,7 +17,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -53,7 +53,8 @@ public class PreviewManagerImplAutoWireTest {
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
-	private UserInfo userInfo;
+	// Only used to satisfy FKs
+	private UserInfo adminUserInfo;
 	private List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();
 	
 	private S3FileHandle originalfileMetadata;
@@ -61,7 +62,8 @@ public class PreviewManagerImplAutoWireTest {
 	
 	@Before
 	public void before() throws Exception {
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
@@ -71,7 +73,7 @@ public class PreviewManagerImplAutoWireTest {
 		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
 		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
 		// Now upload the file.
-		originalfileMetadata = fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
+		originalfileMetadata = fileUploadManager.uploadFile(adminUserInfo.getIndividualGroup().getId(), mockFiz);
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}

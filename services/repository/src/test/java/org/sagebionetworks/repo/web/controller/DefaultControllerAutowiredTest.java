@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -30,7 +31,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -45,6 +46,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,8 +75,10 @@ public class DefaultControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
-	private UserInfo testUser;
+	private String userName;
+	private String otherUsername;
+	private UserInfo adminUserInfo;
+	private UserInfo otherUserInfo;
 
 	private List<String> toDelete;
 
@@ -82,10 +86,18 @@ public class DefaultControllerAutowiredTest {
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(nodeManager);
 		toDelete = new ArrayList<String>();
+		
+		userName = userManager.getGroupName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		testUser = userManager.getUserInfo(userName);
-		UserInfo.validateUserInfo(testUser);
+		adminUserInfo = userManager.getUserInfo(userName);
+		UserInfo.validateUserInfo(adminUserInfo);
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@");
+		otherUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		otherUsername = otherUserInfo.getIndividualGroup().getName();
 	}
 
 	@After
@@ -102,6 +114,8 @@ public class DefaultControllerAutowiredTest {
 				}
 			}
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
 	}
 
 	@BeforeClass
@@ -214,8 +228,8 @@ public class DefaultControllerAutowiredTest {
 		String accessType = ACCESS_TYPE.READ.name();
 		assertEquals(new BooleanResult(true), ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
 
-		userId = AuthorizationConstants.TEST_USER_NAME; // arbitrary user shouldn't have access
-		assertEquals(new BooleanResult(false), ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
+		assertEquals(new BooleanResult(false), 
+				ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), otherUsername, accessType));
 	}
 
 	/**
@@ -229,15 +243,15 @@ public class DefaultControllerAutowiredTest {
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
 		project.setName(null);
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, otherUsername);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		assertEquals("The name should match the ID when the name is set to null", clone.getId(), clone.getName());
 		// Now make sure this user can update
 		String newName = "testProjectUpdatePLFM-473-updated";
 		clone.setName("testProjectUpdatePLFM-473-updated");
-		clone = ServletTestHelper.updateEntity(dispatchServlet, clone, AuthorizationConstants.TEST_USER_NAME);
-		clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(),  AuthorizationConstants.TEST_USER_NAME);
+		clone = ServletTestHelper.updateEntity(dispatchServlet, clone, otherUsername);
+		clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), otherUsername);
 		assertEquals(newName, clone.getName());
 
 	}
@@ -254,11 +268,11 @@ public class DefaultControllerAutowiredTest {
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
 		project.setName(null);
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, otherUsername);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		// Now try to get the project as a dataset
-		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(), AuthorizationConstants.TEST_USER_NAME);
+		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(), otherUsername);
 
 	}
 
@@ -266,11 +280,11 @@ public class DefaultControllerAutowiredTest {
 	public void testGetEntityType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, otherUsername);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
-		EntityHeader type = ServletTestHelper.getEntityType(dispatchServlet, clone.getId(), AuthorizationConstants.TEST_USER_NAME);
+		EntityHeader type = ServletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherUsername);
 		assertNotNull(type);
 		assertEquals(EntityType.project.getEntityType(), type.getType());
 		assertEquals(clone.getId(), type.getName());
@@ -281,7 +295,7 @@ public class DefaultControllerAutowiredTest {
 	public void testGetEntityBenefactor() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);;
+		project = ServletTestHelper.createEntity(dispatchServlet, project, otherUsername);;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study ds = new Study();
@@ -291,7 +305,7 @@ public class DefaultControllerAutowiredTest {
 		toDelete.add(ds.getId());
 
 		// Now get the permission information for the project
-		EntityHeader benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, AuthorizationConstants.TEST_USER_NAME);
+		EntityHeader benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, otherUsername);
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
@@ -299,7 +313,7 @@ public class DefaultControllerAutowiredTest {
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
-		benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Study.class, AuthorizationConstants.TEST_USER_NAME);
+		benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Study.class, otherUsername);
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
@@ -312,7 +326,7 @@ public class DefaultControllerAutowiredTest {
 	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);;
+		project = ServletTestHelper.createEntity(dispatchServlet, project, otherUsername);;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study ds = new Study();
@@ -322,10 +336,10 @@ public class DefaultControllerAutowiredTest {
 		toDelete.add(ds.getId());
 
 		// Get the ACL for the project
-		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, project.getId(), AuthorizationConstants.TEST_USER_NAME);
+		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherUsername);
 
 		// Now attempt to update the ACL as the dataset
-		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, AuthorizationConstants.TEST_USER_NAME);
+		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUsername);
 	}
 
 	@Test
@@ -434,7 +448,7 @@ public class DefaultControllerAutowiredTest {
 	public void testForPLFM_1096() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = ServletTestHelper.createEntity(dispatchServlet, project, AuthorizationConstants.TEST_USER_NAME);;
+		project = ServletTestHelper.createEntity(dispatchServlet, project, otherUsername);;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study ds = new Study();

@@ -16,7 +16,7 @@
 	<import resource="dbo-beans.spb.xml" />
 	<import resource="bootstrap-entites-spb.xml" />
 
-	<!-- Depends on ID-generator. -->
+	<!-- Import the ID-generator -->
 	<import resource="id-generator.spb.xml" />
 
 	<bean id="transactionSynchronizationManager"
@@ -50,14 +50,8 @@
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 		
-	<bean id="notificationEmail" class="org.sagebionetworks.StackConfiguration"
-		factory-method="getNotificationEmailAddress" />
+	<!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production -->
 	<util:list id="bootstrapUsers">
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
-			<property name="id" value="0" />
-			<property name="name" value="BOOTSTRAP_USER_GROUP" />
-			<property name="isIndividual" value="false" />
-		</bean>
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="1" />
 			<property name="name" value="migrationAdmin@sagebase.org" />
@@ -81,11 +75,6 @@
 		<bean class="org.sagebionetworks.repo.model.UserGroup">
 			<property name="id" value="273950" />
 			<property name="name" value="anonymous@sagebase.org" />
-			<property name="isIndividual" value="true" />
-		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
-			<property name="id" value="273951" />
-			<property name="name" ref="notificationEmail" />
 			<property name="isIndividual" value="true" />
 		</bean>
 	</util:list>
@@ -155,11 +144,6 @@
 
 	<bean id="trashCanDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
-		scope="singleton">
-	</bean>
-
-	<bean id="wikiPageDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
 		scope="singleton">
 	</bean>
 	
@@ -259,11 +243,5 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
-		
-	<bean id="wikiMigrationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
-		
-	<bean id="v2WikiPageMigrationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMigrationDAOImpl" />
 
 </beans>

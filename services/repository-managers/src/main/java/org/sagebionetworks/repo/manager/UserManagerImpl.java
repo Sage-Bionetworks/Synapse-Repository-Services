@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -8,8 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -22,8 +20,11 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,14 +43,31 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	private AuthenticationDAO authDAO;
 	
-
+	/**
+	 * Testing purposes only
+	 * Do NOT use in non-test code
+	 * i.e. {@link #createUser(UserInfo, String, UserProfile, DBOCredential)}
+	 */
+	@Autowired
+	private DBOBasicDao basicDAO;
+	
+	public UserManagerImpl() { }
+	
+	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO) {
+		this.userGroupDAO = userGroupDAO;
+		this.userProfileDAO = userProfileDAO;
+		this.groupMembersDAO = groupMembersDAO;
+		this.authDAO = authDAO;
+		this.basicDAO = basicDAO;
+	}
+	
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user) throws DatastoreException {
+	public long createUser(NewUser user) {
 		if (userGroupDAO.doesPrincipalExist(user.getEmail())) {
 			throw new NameConflictException("User '" + user.getEmail() + "' already exists");
 		}
@@ -62,12 +80,12 @@ public class UserManagerImpl implements UserManager {
 			String id = userGroupDAO.create(individualGroup);
 			individualGroup = userGroupDAO.get(id);
 		} catch (NotFoundException ime) {
-			// shouldn't happen!
-			throw new DatastoreException(ime);
-		} catch (InvalidModelException ime) {
-			// shouldn't happen!
 			throw new DatastoreException(ime);
 		}
+		
+		// Make some credentials for this user
+		Long principalId = Long.parseLong(individualGroup.getId());
+		authDAO.createNew(principalId);
 		
 		// Make a user profile for this individual
 		UserProfile userProfile = null;
@@ -88,6 +106,40 @@ public class UserManagerImpl implements UserManager {
 				throw new RuntimeException(e);
 			}
 		}
+		
+		return principalId;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserInfo createUser(UserInfo adminUserInfo, String username, UserProfile profile, DBOCredential credential) throws NotFoundException {
+		if (!adminUserInfo.isAdmin()) {
+			throw new UnauthorizedException("Must be an admin to use this service");
+		}
+		
+		// Setup the tables as done normally
+		NewUser user = new NewUser();
+		user.setEmail(username);
+		
+		Long principalId = createUser(user);
+		
+		// Update the profile
+		if (profile == null) {
+			profile = new UserProfile();
+		}
+		profile.setOwnerId(principalId.toString());
+		profile.setEtag(userProfileDAO.get(principalId.toString()).getEtag());
+		userProfileDAO.update(profile);
+		
+		// Update the credentials
+		if (credential == null) {
+			credential = new DBOCredential();
+		}
+		credential.setPrincipalId(principalId);
+		credential.setSecretKey(HMACUtils.newHMACSHA1Key());
+		basicDAO.update(credential);
+		
+		return getUserInfo(principalId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -112,14 +164,14 @@ public class UserManagerImpl implements UserManager {
 		
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<UserGroup> groups = new HashSet<UserGroup>();
-		if (!AuthorizationUtils.isUserAnonymous(individualGroup.getName())) {
+		if (!AuthorizationUtils.isUserAnonymous(individualGroup)) {
 			// All authenticated users belong to the authenticated user group
-			groups.add(getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS));
+			groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()));
 		}
 		
 		// Everyone belongs to their own group and to Public
 		groups.add(individualGroup);
-		groups.add(getDefaultUserGroup(DEFAULT_GROUPS.PUBLIC));
+		groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()));
 		
 		// Add all groups the user belongs to
 		groups.addAll(groupMembersDAO.getUsersGroups(individualGroup.getId()));
@@ -127,7 +179,7 @@ public class UserManagerImpl implements UserManager {
 		// Check to see if the user is an Admin
 		boolean isAdmin = false;
 		for (UserGroup group : groups) {
-			if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(group.getName())) {
+			if (BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString().equals(group.getId())) {
 				isAdmin = true;
 				break;
 			}
@@ -161,7 +213,7 @@ public class UserManagerImpl implements UserManager {
 
 		// The migrator may delete its own profile during migration
 		// But those details do not matter for this user
-		if (individualGroup.getName().equals(AuthorizationConstants.MIGRATION_USER_NAME)) {
+		if (BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString().equals(individualGroup.getId())) {
 			return user;
 		}
 
@@ -171,18 +223,6 @@ public class UserManagerImpl implements UserManager {
 		user.setDisplayName(up.getDisplayName());
 
 		return user;
-	}
-
-	/**
-	 * Lazy fetch of the default groups.
-	 */
-	@Override
-	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group)
-			throws DatastoreException {
-		UserGroup ug = userGroupDAO.findGroup(group.name(), false);
-		if (ug == null)
-			throw new DatastoreException(group + " should exist.");
-		return ug;
 	}
 
 	@Override
@@ -197,8 +237,12 @@ public class UserManagerImpl implements UserManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean deletePrincipal(String name) {
-		return userGroupDAO.deletePrincipal(name);
+	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException {
+		if (!adminUserInfo.isAdmin()) {
+			throw new UnauthorizedException("Must be an admin to use this service");
+		}
+		
+		userGroupDAO.delete(principalId.toString());
 	}
 	
 	@Override
@@ -238,16 +282,12 @@ public class UserManagerImpl implements UserManager {
 
 	@Override
 	public Collection<UserGroup> getGroups() throws DatastoreException {
-		List<String> groupsToOmit = new ArrayList<String>();
-		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
-		return userGroupDAO.getAllExcept(false, groupsToOmit);
+		return userGroupDAO.getAll(false);
 	}
 
 	@Override
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) 
 			throws DatastoreException, UnauthorizedException {
-		List<String> groupsToOmit = new ArrayList<String>();
-		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
-		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
+		return userGroupDAO.getInRange(startIncl, endExcl, false);
 	}
 }

@@ -90,6 +90,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -194,6 +195,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OFFSET_PARAMETER = "?offset=";
 	private static final String LIMIT_PARAMETER = "limit=";
 	private static final String VERSION_PARAMETER = "?wikiVersion=";
+	private static final String AND_VERSION_PARAMETER = "&wikiVersion=";
 	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
@@ -2246,7 +2248,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * 
 	 * @param ownerId
 	 * @param ownerType
-	 * @param toUpdate
+	 * @param wikiId
 	 * @param versionToRestore
 	 * @return
 	 * @throws JSONObjectAdapterException
@@ -2254,14 +2256,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-		V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+		String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 		SynapseException {
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
-		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		if(versionToRestore == null) throw new IllegalArgumentException("Version cannot be null");
-		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), String.valueOf(versionToRestore));
-		return updateJSONEntity(uri, toUpdate);
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, wikiId, String.valueOf(versionToRestore));
+		V2WikiPage mockWikiToUpdate = new V2WikiPage();
+		return updateJSONEntity(uri, mockWikiToUpdate);
 	}
 
 	/**
@@ -2337,6 +2340,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
 		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
 				+ AND_REDIRECT_PARAMETER + "false";
+		return getUrl(uri);
+	}
+	
+	@Override
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
+			+ AND_REDIRECT_PARAMETER + "false" + AND_VERSION_PARAMETER + version;
+		return getUrl(uri);
+	}
+
+	@Override
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+			+ "false" + AND_VERSION_PARAMETER + version;
 		return getUrl(uri);
 	}
 	
@@ -4359,15 +4384,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String retrieveApiKey() throws SynapseException {
 		try {
-			final String ATTRIBUTE_NAME = "secretKey";
 			String url = "/secretKey";
 			JSONObject jsonObj = getSharedClientConnection().getJson(authEndpoint, url, getUserAgent());
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			String apiKey = null;
-			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
-				apiKey = adapter.getString(ATTRIBUTE_NAME);
-			}
-			return apiKey;
+			SecretKey key = EntityFactory.createEntityFromJSONObject(jsonObj, SecretKey.class);
+			return key.getSecretKey();
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
