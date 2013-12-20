@@ -141,26 +141,14 @@ public class UserManagerImpl implements UserManager {
 		
 		return getUserInfo(principalId);
 	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException {
-		UserGroup individualGroup = userGroupDAO.findGroup(userName, true);
-		if (individualGroup==null) throw new NotFoundException("Cannot find user with name "+userName);
-		return getUserInfo(individualGroup);
-	}
 		
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserInfo getUserInfo(Long principalId) throws DatastoreException, NotFoundException {
+	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
 		UserGroup individualGroup = userGroupDAO.get(principalId.toString());
-		if (!individualGroup.getIsIndividual()) 
+		if (!individualGroup.getIsIndividual()) {
 			throw new IllegalArgumentException(individualGroup.getName()+" is not an individual group.");
-		return getUserInfo(individualGroup);
-	}
-		
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	private UserInfo getUserInfo(UserGroup individualGroup) throws DatastoreException, NotFoundException {
+		}
 		
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<UserGroup> groups = new HashSet<UserGroup>();
@@ -209,7 +197,7 @@ public class UserManagerImpl implements UserManager {
 		user.setCreationDate(individualGroup.getCreationDate());
 		
 		// Get the terms of use acceptance
-		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(individualGroup.getId()));
+		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(Long.parseLong(individualGroup.getId())));
 
 		// The migrator may delete its own profile during migration
 		// But those details do not matter for this user

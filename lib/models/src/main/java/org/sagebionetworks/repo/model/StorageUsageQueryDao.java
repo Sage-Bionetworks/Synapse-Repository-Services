@@ -19,7 +19,7 @@ public interface StorageUsageQueryDao {
 	/**
 	 * Gets the total usage in bytes for the specified user.
 	 */
-	Long getTotalSizeForUser(String userId) throws DatastoreException;
+	Long getTotalSizeForUser(Long userId) throws DatastoreException;
 
 	/**
 	 * Gets the count of storage items.
@@ -29,7 +29,7 @@ public interface StorageUsageQueryDao {
 	/**
 	 * Gets the count of storage items for the specified user.
 	 */
-	Long getTotalCountForUser(String userId) throws DatastoreException;
+	Long getTotalCountForUser(Long userId) throws DatastoreException;
 
 	/**
 	 * Gets the aggregated usage in bytes. Numbers are aggregated by the supplied
@@ -47,7 +47,7 @@ public interface StorageUsageQueryDao {
 	 *
 	 * @throws InvalidModelException Dimensions have invalid column names
 	 */
-	StorageUsageSummaryList getAggregatedUsageForUser(String userId,
+	StorageUsageSummaryList getAggregatedUsageForUser(Long userId,
 			List<StorageUsageDimension> dimensionList)
 			throws InvalidModelException, DatastoreException;
 
@@ -55,7 +55,7 @@ public interface StorageUsageQueryDao {
 	 * Gets detailed, itemized storage usage for the specified user. Results are paged as
 	 * specified by the begin (inclusive) and the end (exclusive) indices.
 	 */
-	List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
+	List<StorageUsage> getUsageInRangeForUser(Long userId, long beginIncl, long endExcl)
 			throws DatastoreException;
 
 	/**

@@ -4,6 +4,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.sagebionetworks.repo.model.dbo.DBOBuilder.ParamTypeMapper;
+import org.springframework.jdbc.core.SqlTypeValue;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 
 /**
  * Implementation of a table mapping that uses @{@link Table} and @{@link Field} annotations to generate all the boiler
@@ -17,6 +24,7 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 	private final String tableName;
 	private final FieldColumn[] fields;
 	private final DBOBuilder.RowMapper[] mappers;
+	private final Map<String, DBOBuilder.ParamTypeMapper> paramTypeMappers;
 
 	/**
 	 * Create a table mapping for this class (assumed to be annotated with @{@link Table} and @{@link Field}
@@ -32,9 +40,10 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 
 	public AutoTableMapping(Class<? extends T> clazz, String... customColumns) {
 		this.clazz = clazz;
-		this.fields = DBOBuilder.getFields(clazz);
+		this.fields = DBOBuilder.getFields(clazz, customColumns);
 		this.tableName = DBOBuilder.getTableName(clazz);
 		this.mappers = DBOBuilder.getFieldMappers(clazz, customColumns);
+		this.paramTypeMappers = DBOBuilder.getParamTypeMappers(clazz, customColumns);
 	}
 
 	@Override
@@ -79,5 +88,25 @@ public class AutoTableMapping<T> implements TableMapping<T> {
 
 	public String getDDL() {
 		return DBOBuilder.buildDLL(clazz, tableName);
+	}
+
+	public BeanPropertySqlParameterSource getSqlParameterSource(Object bean) {
+		BeanPropertySqlParameterSource parameterSource = new BeanPropertySqlParameterSource(bean) {
+			@Override
+			public Object getValue(String paramName) {
+				Object result = super.getValue(paramName);
+				if (result != null) {
+					ParamTypeMapper paramTypeMapper = paramTypeMappers.get(paramName);
+					if (paramTypeMapper != null) {
+						return paramTypeMapper.convert(result);
+					}
+				}
+				return result;
+			}
+		};
+		for (Entry<String, ParamTypeMapper> entry : paramTypeMappers.entrySet()) {
+			parameterSource.registerSqlType(entry.getKey(), entry.getValue().getSqlType());
+		}
+		return parameterSource;
 	}
 }

@@ -23,7 +23,7 @@ public interface CommunityService {
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
 	 */
-	public Community create(String userId, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
+	public Community create(Long userId, Community community) throws DatastoreException, InvalidModelException, UnauthorizedException,
 			NotFoundException, NameConflictException, ACLInheritanceException, ServiceUnavailableException, IOException;
 
 	/**
@@ -37,7 +37,7 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Community> getForMember(String userId, int limit, int offset) throws DatastoreException,
+	public PaginatedResults<Community> getForMember(Long userId, int limit, int offset) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -50,7 +50,7 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Community> getAll(String userId, int limit, int offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Community> getAll(Long userId, int limit, int offset) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a Community by its ID
@@ -60,7 +60,7 @@ public interface CommunityService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Community get(String userId, String id) throws DatastoreException, NotFoundException;
+	public Community get(Long userId, String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a Community
@@ -73,7 +73,7 @@ public interface CommunityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public Community update(String userId, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
+	public Community update(Long userId, Community community) throws InvalidModelException, DatastoreException, UnauthorizedException,
 			NotFoundException;
 
 	/**
@@ -85,7 +85,7 @@ public interface CommunityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void delete(String userId, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void delete(Long userId, String communityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all members of a community
@@ -99,7 +99,7 @@ public interface CommunityService {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<UserGroupHeader> getMembers(String userId, String id, Integer limit, Integer offset) throws DatastoreException,
+	public PaginatedResults<UserGroupHeader> getMembers(Long userId, String id, Integer limit, Integer offset) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
 	/**
@@ -110,7 +110,7 @@ public interface CommunityService {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public void joinCommunity(String userId, String communityId) throws DatastoreException, NotFoundException;
+	public void joinCommunity(Long userId, String communityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Leave a community
@@ -120,10 +120,10 @@ public interface CommunityService {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public void leaveCommunity(String userId, String communityId) throws DatastoreException, NotFoundException;
+	public void leaveCommunity(Long userId, String communityId) throws DatastoreException, NotFoundException;
 
-	public void addCommunityAdmin(String userId, String communityId, String principalId) throws DatastoreException,
+	public void addCommunityAdmin(Long userId, String communityId, String principalId) throws DatastoreException,
 			NotFoundException;
 
-	public void removeCommunityAdmin(String userId, String communityId, String principalId) throws DatastoreException, NotFoundException;
+	public void removeCommunityAdmin(Long userId, String communityId, String principalId) throws DatastoreException, NotFoundException;
 }

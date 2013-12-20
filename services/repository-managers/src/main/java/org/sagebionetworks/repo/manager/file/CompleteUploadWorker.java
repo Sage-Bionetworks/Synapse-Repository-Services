@@ -88,6 +88,7 @@ public class CompleteUploadWorker implements Callable<Boolean>{
 			CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();
 			ccfr.setChunkedFileToken(cacf.getChunkedFileToken());
 			ccfr.setChunkResults(done);
+			ccfr.setShouldPreviewBeGenerated(cacf.getShouldPreviewBeGenerated());
 			S3FileHandle handle = multipartManager.completeChunkFileUpload(ccfr, bucket, userId);
 			if(handle == null) throw new RuntimeException("multipartManager.completeChunkFileUpload() returned null"); 
 			if(handle.getId() == null) throw new RuntimeException("multipartManager.completeChunkFileUpload() returned FileHandle ID"); 

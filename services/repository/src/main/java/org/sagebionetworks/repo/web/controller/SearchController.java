@@ -59,7 +59,7 @@ public class SearchController extends BaseController {
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
 	SearchResults proxySearch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody SearchQuery searchQuery,
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException,
@@ -82,7 +82,7 @@ public class SearchController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { "/searchRaw" }, method = RequestMethod.GET)
 	public ModelAndView proxyRawSearch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = "q", required = false) String searchQuery,
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException, JSONException,

@@ -73,7 +73,7 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	@Override
 	public @ResponseBody
-	SearchResults proxySearch(String userId, SearchQuery searchQuery) 
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery) 
 			throws ClientProtocolException,	IOException, HttpClientHelperException,
 			DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -169,7 +169,7 @@ public class SearchServiceImpl implements SearchService {
 	 * @see org.sagebionetworks.repo.web.service.SearchService#proxyRawSearch(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public ModelAndView proxyRawSearch(String userId, String searchQuery,
+	public ModelAndView proxyRawSearch(Long userId, String searchQuery,
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException, JSONException,
 			DatastoreException, NotFoundException {

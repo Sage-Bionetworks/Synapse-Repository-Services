@@ -55,6 +55,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private Map<Class<? extends DatabaseObject>, String> countMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> updateMap = new HashMap<Class<? extends DatabaseObject>, String>();
+
 	
 	/**
 	 * We cache the mapping for each object type.
@@ -109,7 +110,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	private <T> T insert(T toCreate, String insertSQl) {
-		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toCreate);
+		@SuppressWarnings("unchecked")
+		TableMapping<T> mapping = classToMapping.get(toCreate.getClass());
+		if (mapping == null) {
+			throw new IllegalArgumentException("Cannot find the mapping for Class: " + toCreate.getClass()
+					+ " The class must be added to the 'databaseObjectRegister'");
+		}
+		SqlParameterSource namedParameters = getSqlParameterSource(toCreate,mapping);
 		try{
 			int updatedCount = simpleJdbcTemplate.update(insertSQl, namedParameters);
 			if(updatedCount != 1) throw new DatastoreException("Failed to insert without error");
@@ -125,7 +132,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 
-	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
@@ -148,10 +154,19 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return batchUpdate(batch, insertSQl, false);
 	}
 	
+	@SuppressWarnings("unchecked")
 	private <T> List<T> batchUpdate(List<T> batch, String sql, boolean enforceUpdate) {
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+		TableMapping<T> mapping = null;
 		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+			if (mapping == null) {
+				mapping = classToMapping.get(batch.get(i).getClass());
+				if (mapping == null) {
+					throw new IllegalArgumentException("Cannot find the mapping for Class: " + batch.get(i).getClass()
+							+ " The class must be added to the 'databaseObjectRegister'");
+				}
+			}
+			namedParameters[i] = getSqlParameterSource(batch.get(i), mapping);
 		}
 		try{
 			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(sql, namedParameters);
@@ -181,7 +196,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	@Override
 	public <T extends DatabaseObject<T>> boolean update(T toUpdate)	throws DatastoreException {
 		String sql = getUpdateSQL(toUpdate.getClass());
-		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toUpdate);
+		@SuppressWarnings("unchecked")
+		TableMapping<T> mapping = classToMapping.get(toUpdate.getClass());
+		if (mapping == null) {
+			throw new IllegalArgumentException("Cannot find the mapping for Class: " + toUpdate.getClass()
+					+ " The class must be added to the 'databaseObjectRegister'");
+		}
+		SqlParameterSource namedParameters = getSqlParameterSource(toUpdate, mapping);
 		try{
 			int updatedCount = simpleJdbcTemplate.update(sql, namedParameters);
 			return updatedCount > 0;
@@ -189,22 +210,40 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
+
 	@Override
 	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
-		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
-		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
+		return doGetObjectByPrimaryKey(clazz, namedParameters, false);
+	}
+	
+	@Override
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException, NotFoundException {
+		return doGetObjectByPrimaryKey(clazz, namedParameters, true);
+	}
+
+	private <T extends DatabaseObject<T>> T doGetObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters,
+			boolean updateLock) throws DatastoreException, NotFoundException {
+		if (clazz == null)
+			throw new IllegalArgumentException("Clazz cannot be null");
+		if (namedParameters == null)
+			throw new IllegalArgumentException("namedParameters cannot be null");
 		@SuppressWarnings("unchecked")
 		TableMapping<T> mapping = classToMapping.get(clazz);
-		if(mapping == null) throw new IllegalArgumentException("Cannot find the mapping for Class: "+clazz+" The class must be added to the 'databaseObjectRegister'");
+		if (mapping == null)
+			throw new IllegalArgumentException("Cannot find the mapping for Class: " + clazz
+					+ " The class must be added to the 'databaseObjectRegister'");
 		String fetchSql = getFetchSQL(clazz);
-		try{
+		if (updateLock) {
+			fetchSql += " FOR UPDATE";
+		}
+		try {
 			return simpleJdbcTemplate.queryForObject(fetchSql, mapping, namedParameters);
-		}catch(EmptyResultDataAccessException e){
+		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
 	}
-	
+
 	@Override
 	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException {
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
@@ -225,6 +264,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return count == 1;
 	}
 	
+	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
+		if (mapping instanceof AutoTableMapping) {
+			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
+		}
+		return new BeanPropertySqlParameterSource(toCreate);
+	}
+
 	/**
 	 * Get the insert sql for a given class.;
 	 * @param clazz
@@ -286,7 +332,8 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 	/**
-	 * The delete SQL for a given class
+	 * The update SQL for a given class
+	 * 
 	 * @param clazz
 	 * @return
 	 */

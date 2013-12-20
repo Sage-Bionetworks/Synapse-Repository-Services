@@ -1,0 +1,13 @@
+{
+    "description":"Paginated results of a RowSet",
+    "properties":{
+		"results": {
+		    "description":"The list of ColumnModels for this page",
+			"$ref": "org.sagebionetworks.repo.model.table.RowSet"
+		},
+		"totalNumberOfResults":{
+			"description":"The total number of results",
+			"type": "integer"
+		}
+    }
+}

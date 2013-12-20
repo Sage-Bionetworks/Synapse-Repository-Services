@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -35,19 +34,19 @@ public class TableServicesImpl implements TableServices {
 	TableRowManager tableRowManager;
 
 	@Override
-	public ColumnModel createColumnModel(String userId, ColumnModel columnModel) throws DatastoreException, NotFoundException {
+	public ColumnModel createColumnModel(Long userId, ColumnModel columnModel) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return columnModelManager.createColumnModel(user, columnModel);
 	}
 
 	@Override
-	public ColumnModel getColumnModel(String userId, String columnId) throws DatastoreException, NotFoundException {
+	public ColumnModel getColumnModel(Long userId, String columnId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return columnModelManager.getColumnModel(user, columnId);
 	}
 
 	@Override
-	public PaginatedColumnModels getColumnModelsForTableEntity(String userId, String entityId) throws DatastoreException, NotFoundException {
+	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, String entityId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		List<ColumnModel> models = getCurrentColumnsForTable(user, entityId);
 		PaginatedColumnModels pcm = new PaginatedColumnModels();
@@ -56,7 +55,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public PaginatedColumnModels listColumnModels(String userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException {
+	public PaginatedColumnModels listColumnModels(Long userId, String prefix, Long limit, Long offset) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		if(limit == null){
 			limit = new Long(10);
@@ -68,7 +67,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowReferenceSet appendRows(String userId, RowSet rows) throws DatastoreException, NotFoundException, IOException {
+	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);

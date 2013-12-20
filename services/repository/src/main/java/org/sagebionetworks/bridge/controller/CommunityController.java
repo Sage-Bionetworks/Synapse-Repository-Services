@@ -51,7 +51,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY, method = RequestMethod.POST)
 	public @ResponseBody
-	Community createCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	Community createCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Community community) throws NotFoundException, NameConflictException, DatastoreException, InvalidModelException,
 			UnauthorizedException, ACLInheritanceException, ServiceUnavailableException, IOException {
 		return serviceProvider.getCommunityService().create(userId, community);
@@ -67,7 +67,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	Community getCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	Community getCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id) throws NotFoundException {
 		return serviceProvider.getCommunityService().get(userId, id);
 	}
@@ -84,7 +84,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY_ID, method = RequestMethod.PUT)
 	public @ResponseBody
-	Community updateCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+	Community updateCommunity(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Community community) throws NotFoundException {
 		return serviceProvider.getCommunityService().update(userId, community);
 	}
@@ -99,7 +99,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = BridgeUrlHelpers.COMMUNITY_ID, method = RequestMethod.DELETE)
 	public void deleteCommunity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException {
 		serviceProvider.getCommunityService().delete(userId, id);
 	}
 
@@ -118,7 +118,7 @@ public class CommunityController extends BridgeBaseController {
 	PaginatedResults<Community> getCommunities(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getCommunityService().getAll(userId, limit, offset);
 	}
@@ -139,7 +139,7 @@ public class CommunityController extends BridgeBaseController {
 	PaginatedResults<Community> getCommunitiesByMember(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getCommunityService().getForMember(userId, limit, offset);
 	}
@@ -161,7 +161,7 @@ public class CommunityController extends BridgeBaseController {
 			@PathVariable String id,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getCommunityService().getMembers(userId, id, limit, offset);
 	}
@@ -177,7 +177,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.JOIN_COMMUNITY, method = RequestMethod.GET)
 	public void joinCommunity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		serviceProvider.getCommunityService().joinCommunity(userId, id);
 	}
@@ -193,7 +193,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.LEAVE_COMMUNITY, method = RequestMethod.GET)
 	public void leaveCommunity(@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		serviceProvider.getCommunityService().leaveCommunity(userId, id);
 	}
@@ -210,7 +210,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.ADD_COMMUNITY_ADMIN, method = RequestMethod.GET)
 	public void addCommunityAdmin(@PathVariable String id, @PathVariable String principalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		serviceProvider.getCommunityService().addCommunityAdmin(userId, id, principalId);
 	}
@@ -227,7 +227,7 @@ public class CommunityController extends BridgeBaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.REMOVE_COMMUNITY_ADMIN, method = RequestMethod.GET)
 	public void removeCommunityAdmin(@PathVariable String id, @PathVariable String principalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException,
 			NotFoundException {
 		serviceProvider.getCommunityService().removeCommunityAdmin(userId, id, principalId);
 	}

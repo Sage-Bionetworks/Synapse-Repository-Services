@@ -323,7 +323,6 @@ public class ITV2WikiPageTest {
 		// Getting first version file handles should return two.
 		FileHandleResults oldResults = synapse.getVersionOfV2WikiAttachmentHandles(key, new Long(0));
 		assertEquals(2, oldResults.getList().size());
-
 	}
 	
 	/**

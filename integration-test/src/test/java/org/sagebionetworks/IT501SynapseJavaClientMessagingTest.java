@@ -19,6 +19,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -48,7 +49,7 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static String oneId;
 	private static String twoId;
 
-	private S3FileHandle oneToRuleThemAll;
+	private static S3FileHandle oneToRuleThemAll;
 
 	private MessageToUser oneToTwo;
 	private MessageToUser twoToOne;
@@ -72,12 +73,6 @@ public class IT501SynapseJavaClientMessagingTest {
 	
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
-	}
-	
-	@SuppressWarnings("serial")
-	@Before
-	public void before() throws Exception {
-		cleanup = new ArrayList<String>();
 		
 		// Create a file handle to use with all the messages
 		PrintWriter pw = null;
@@ -93,7 +88,13 @@ public class IT501SynapseJavaClientMessagingTest {
 				pw.close();
 			}
 		}
-		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain");
+		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false);
+	}
+	
+	@SuppressWarnings("serial")
+	@Before
+	public void before() throws Exception {
+		cleanup = new ArrayList<String>();
 
 		oneToTwo = new MessageToUser();
 		oneToTwo.setFileHandleId(oneToRuleThemAll.getId());
@@ -126,16 +127,17 @@ public class IT501SynapseJavaClientMessagingTest {
 		if (project != null) {
 			try {
 				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (Exception e) { }
+			} catch (SynapseNotFoundException e) { }
 		}
-		
-		try {
-			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (Exception e) { }
 	}
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
+		// Delete the file handle
+		try {
+			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
+		} catch (SynapseNotFoundException e) { }
+		
 		adminSynapse.deleteUser(user1ToDelete);
 		adminSynapse.deleteUser(user2ToDelete);
 	}

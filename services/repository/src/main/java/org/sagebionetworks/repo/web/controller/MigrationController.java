@@ -52,7 +52,7 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MIGRATION_COUNTS, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeCounts getTypeCounts(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getTypeCounts(userId);
 	}
@@ -72,7 +72,7 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MIGRATION_ROWS, method = RequestMethod.GET)
 	public @ResponseBody
 	RowMetadataResult getRowMetadata(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestParam(required = true) Long limit,
 			@RequestParam(required = true) Long offset)
@@ -97,7 +97,7 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MIGRATION_DELTA, method = RequestMethod.GET)
 	public @ResponseBody
 	RowMetadataResult getRowMetadataDelta(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestBody IdList request) throws DatastoreException,
 			NotFoundException {
@@ -125,7 +125,7 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_BACKUP }, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startBackup(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestBody IdList request) throws DatastoreException, NotFoundException {
 		if (request == null)
@@ -153,7 +153,7 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_RESTORE }, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startRestore(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestBody RestoreSubmission request)
 			throws DatastoreException, InvalidModelException,
@@ -178,7 +178,7 @@ public class MigrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_DELETE	}, method = RequestMethod.PUT)
 	public @ResponseBody MigrationTypeCount deleteMigratableObject(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(required = true) String type,
 			@RequestBody IdList request) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
@@ -204,7 +204,7 @@ public class MigrationController extends BaseController {
 	public @ResponseBody
 	BackupRestoreStatus getStatus(
 			@RequestParam(required = true) String daemonId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		return serviceProvider.getMigrationService().getStatus(userId, daemonId);
@@ -226,7 +226,7 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY }, method = RequestMethod.GET)
 	public @ResponseBody
 	MigrationTypeList getPrimaryTypes(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException, NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getMigrationService().getPrimaryTypes(userId);
 	}
 	

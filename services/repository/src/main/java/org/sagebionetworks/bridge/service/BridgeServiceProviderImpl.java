@@ -1,7 +1,5 @@
 package org.sagebionetworks.bridge.service;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -14,8 +12,15 @@ public class BridgeServiceProviderImpl implements BridgeServiceProvider {
 	
 	@Autowired
 	private CommunityService communityService;
+	@Autowired
+	private ParticipantDataService participantDataService;
 
 	public CommunityService getCommunityService() {
 		return communityService;
+	}
+
+	@Override
+	public ParticipantDataService getParticipantDataService() {
+		return participantDataService;
 	}
 }

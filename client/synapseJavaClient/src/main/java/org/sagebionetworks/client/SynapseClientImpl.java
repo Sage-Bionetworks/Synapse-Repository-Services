@@ -1484,16 +1484,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return querySynapse(query);
 	}
 	
-	/**
-	 * Upload each file to Synapse creating a file handle for each.
-	 * 
-	 * @param files
-	 * @return
-	 * @throws InterruptedException 
-	 * @throws JSONObjectAdapterException 
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
 	@Override
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
@@ -1514,38 +1504,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}	
 	}
 	
-	/**
-	 * The high-level API for uploading a file to Synapse.
-	 * 
-	 * @param file
-	 * @param contentType
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException 
-	 * @throws IOException 
-	 * @throws InterruptedException 
-	 */
 	@Override
-	public S3FileHandle createFileHandle(File file, String contentType) throws SynapseException, IOException{
-		if(file == null) throw new IllegalArgumentException("File cannot be null");
-		if(contentType == null) throw new IllegalArgumentException("Content type cannot be null");
+	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException{
+		return createFileHandle(temp, contentType, null);
+	}
+
+	@Override
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+			throws SynapseException, IOException {
+		if (temp == null) {
+			throw new IllegalArgumentException("File cannot be null");
+		}
+		if (contentType == null) {
+			throw new IllegalArgumentException("Content type cannot be null");
+		}
+		
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setContentType(contentType);
-		ccftr.setFileName(file.getName());
+		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(file);
+		String md5 = MD5ChecksumHelper.getMD5Checksum(temp);
 		ccftr.setContentMD5(md5);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		// Now break the file into part as needed
-		List<File> fileChunks = FileUtils.chunkFile(file, MINIMUM_CHUNK_SIZE_BYTES);
+		List<File> fileChunks = FileUtils.chunkFile(temp, MINIMUM_CHUNK_SIZE_BYTES);
 		try{
 			// Upload all of the parts.
 			List<Long> partNumbers = uploadChunks(fileChunks, token);
+			
 			// We can now complete the upload
 			CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 			cacr.setChunkedFileToken(token);
 			cacr.setChunkNumbers(partNumbers);
+			cacr.setShouldPreviewBeGenerated(shouldPreviewBeCreated);
+			
 			// Start the daemon
 			UploadDaemonStatus status = startUploadDeamon(cacr);
 			// Wait for it to complete
@@ -1568,7 +1561,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new RuntimeException(e);
 		}finally{
 			// Delete any tmep files created by this method.  The original file will not be deleted.
-			FileUtils.deleteAllFilesExcludingException(file, fileChunks);
+			FileUtils.deleteAllFilesExcludingException(temp, fileChunks);
 		}
 	}
 	

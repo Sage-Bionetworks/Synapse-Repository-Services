@@ -19,11 +19,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -139,7 +139,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Change to a string
 		String foobarSessionToken = "foobar";
-		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), foobarSessionToken);
+		authDAO.changeSessionToken(secretRow.getPrincipalId(), foobarSessionToken);
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertEquals(foobarSessionToken, session.getSessionToken());
 		
@@ -149,7 +149,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Change to a UUID
-		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), null);
+		authDAO.changeSessionToken(secretRow.getPrincipalId(), null);
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
@@ -196,7 +196,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertNull(session);
 
 		// Session is valid again
-		authDAO.revalidateSessionToken(secretRow.getPrincipalId().toString());
+		authDAO.revalidateSessionToken(secretRow.getPrincipalId());
 		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 	}
@@ -208,7 +208,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Change the password and try to authenticate again
-		authDAO.changePassword(secretRow.getPrincipalId().toString(), "Bibbity Boppity BOO!");
+		authDAO.changePassword(secretRow.getPrincipalId(), "Bibbity Boppity BOO!");
 		
 		// This time it should fail
 		authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
@@ -216,7 +216,7 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testSecretKey() throws Exception {
-		String userId = secretRow.getPrincipalId().toString();
+		Long userId = secretRow.getPrincipalId();
 		
 		// Getter should work
 		assertEquals(secretRow.getSecretKey(), authDAO.getSecretKey(userId));
@@ -226,7 +226,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertFalse(secretRow.getSecretKey().equals(authDAO.getSecretKey(userId)));
 		
 		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		String changedEtag = userGroupDAO.getEtagForUpdate(userId.toString());
 		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
@@ -236,7 +236,7 @@ public class DBOAuthenticationDAOImplTest {
 		byte[] salt = PBKDF2Utils.extractSalt(passHash);
 		
 		// Change the password to a valid one
-		authDAO.changePassword(secretRow.getPrincipalId().toString(), passHash);
+		authDAO.changePassword(secretRow.getPrincipalId(), passHash);
 		
 		// Compare the salts
 		byte[] passedSalt = authDAO.getPasswordSalt(GROUP_NAME);
@@ -250,7 +250,7 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testSetToU() throws Exception {
-		String userId = secretRow.getPrincipalId().toString();
+		Long userId = secretRow.getPrincipalId();
 		
 		// Reject the terms
 		authDAO.setTermsOfUseAcceptance(userId, false);
@@ -258,7 +258,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertNotNull(authDAO.getSessionTokenIfValid(GROUP_NAME));
 		
 		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		String changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms
@@ -267,7 +267,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Pretend we haven't had a chance to see the terms yet
@@ -276,7 +276,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms again
@@ -285,7 +285,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
@@ -304,7 +304,7 @@ public class DBOAuthenticationDAOImplTest {
 		}
 		
 		// Migration admin should have a specific API key
-		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
+		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfiguration.getMigrationAdminAPIKey(), secretKey);
 	}
 }

@@ -28,7 +28,7 @@ public interface SearchService {
 	 * @throws NotFoundException
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(String userId, SearchQuery searchQuery) throws ClientProtocolException,
+	SearchResults proxySearch(Long userId, SearchQuery searchQuery) throws ClientProtocolException,
 			IOException, HttpClientHelperException, DatastoreException,
 			NotFoundException;
 
@@ -44,7 +44,7 @@ public interface SearchService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ModelAndView proxyRawSearch(String userId, String searchQuery,
+	public ModelAndView proxyRawSearch(Long userId, String searchQuery,
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException, JSONException,
 			DatastoreException, NotFoundException;

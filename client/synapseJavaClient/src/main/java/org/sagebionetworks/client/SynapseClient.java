@@ -220,9 +220,6 @@ public interface SynapseClient extends BaseClient {
 			Long versionNumber) throws ClientProtocolException,
 			MalformedURLException, IOException;
 
-	public S3FileHandle createFileHandle(File temp, String contentType)
-			throws SynapseException, IOException;
-
 	/**
 	 * Get a WikiPage using its key
 	 */
@@ -379,8 +376,24 @@ public interface SynapseClient extends BaseClient {
 
 	public JSONObject query(String query) throws SynapseException;
 
+	/**
+	 * Upload each file to Synapse creating a file handle for each.
+	 */
 	public FileHandleResults createFileHandles(List<File> files)
 			throws SynapseException;
+
+	/**
+	 * The high-level API for uploading a file to Synapse.
+	 */
+	public S3FileHandle createFileHandle(File temp, String contentType)
+			throws SynapseException, IOException;
+
+	/**
+	 * See {@link #createFileHandle(File, String)}
+	 * @param shouldPreviewBeCreated Default true
+	 */
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+			throws SynapseException, IOException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;

@@ -164,6 +164,7 @@ public class LocationableMetadataProvider implements
 
 		// If any of the locations are awss3 locations, provide presigned urls
 		String method = request.getParameter(ServiceConstants.METHOD_PARAM);
+		Long userId = Long.parseLong(request.getParameter(AuthorizationConstants.USER_ID_PARAM));
 
 		List<LocationData> locations = locationable.getLocations();
 		if (null != locations) {
@@ -172,17 +173,11 @@ public class LocationableMetadataProvider implements
 					String signedPath = null;
 					if ((null != method)
 							&& (method.equals(RequestMethod.HEAD.name()))) {
-						signedPath = locationHelper
-								.presignS3HEADUrl(
-										request
-												.getParameter(AuthorizationConstants.USER_ID_PARAM),
-										location.getPath());
+						signedPath = locationHelper.presignS3HEADUrl(userId,
+								location.getPath());
 					} else {
-						signedPath = locationHelper
-								.presignS3GETUrl(
-										request
-												.getParameter(AuthorizationConstants.USER_ID_PARAM),
-										location.getPath());
+						signedPath = locationHelper.presignS3GETUrl(userId,
+								location.getPath());
 					}
 
 					// Overwrite the path with a presigned S3 URL to use to

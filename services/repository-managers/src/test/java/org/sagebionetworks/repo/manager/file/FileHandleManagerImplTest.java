@@ -301,6 +301,15 @@ public class FileHandleManagerImplTest {
 		verify(mockfileMetadataDao, times(1)).delete(handleId);
 	}
 	
+	@Test
+	public void testDeleteFileHandleDisablePreview() throws Exception {
+		// Deleting a file handle that has previews disabled should not StackOverflow :)
+		validResults.setPreviewId(validResults.getId());
+		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		manager.deleteFileHandle(mockUser, validResults.getId());
+	}
+	
 	@Test (expected=UnauthorizedException.class)
 	public void testClearPreviewUnauthroized() throws DatastoreException, NotFoundException{
 		// Deleting a handle that no longer exists should not throw an exception.
