@@ -50,15 +50,34 @@ public class MessageController extends BaseController {
 	private static final String defaultSortDescending = "true";
 
 	/**
-	 * Sends a message.  
+	 * <p>
+	 * Sends a message.
+	 * </p>
+	 * <p>
+	 * The "fileHandleId" field should point to a plain text file containing the body of the message.  
+	 * The file should be uploaded prior to this call.
+	 * </p>
+	 * <p>
+	 * The "recipients" field should hold a set of IDs corresponding to the recipients of the message.  
+	 * </p>
+	 * <p>
+	 * All other fields are optional, including the "subject" field.  
 	 * To chain messages together into a conversation, specify the message you are replying to via the "inReplyTo" field.  
-	 * See the <a href="${org.sagebionetworks.repo.model.message.MessageToUser}">message schema</a>.
-	 * </br>
+	 * </p>
+	 * <p>
+	 * See the <a href="${org.sagebionetworks.repo.model.message.MessageToUser}">message schema</a>,  
+	 * <a href="${org.sagebionetworks.repo.model.message.MessageContent}">message content schema</a>, 
+	 * and <a href="${org.sagebionetworks.repo.model.message.MessageRecipientSet}">message recipient schema</a>
+	 * for more information.
+	 * </p>
+	 * <p>
 	 * In most cases, message delivery is asynchronous to message creation.  
 	 * i.e. It may take several seconds for a message to appear in a user's inbox.
-	 * </br>
+	 * </p>
+	 * <p>
 	 * Note: Unauthorized delivery, such as messaging a team you are not affiliated with, 
-	 * may result in a silent failure or a bounce message, depending on your notification settings.
+	 * will result in a bounce message being sent to your email.
+	 * </p>
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE, method = RequestMethod.POST)

@@ -22,12 +22,12 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
@@ -56,6 +56,7 @@ import com.amazonaws.services.simpleemail.model.Destination;
 import com.amazonaws.services.simpleemail.model.Message;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.amazonaws.services.simpleemail.model.SendEmailResult;
+import com.google.common.collect.Lists;
 
 
 public class MessageManagerImpl implements MessageManager {
@@ -212,6 +213,14 @@ public class MessageManagerImpl implements MessageManager {
 		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId())
 				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
 			throw new UnauthorizedException("Invalid file handle given");
+		}
+		
+		// Make sure the recipients all exist
+		if (dto.getRecipients() != null) {
+			List<UserGroup> ugs = userGroupDAO.get(Lists.newArrayList(dto.getRecipients()));
+			if (ugs.size() != dto.getRecipients().size()) {
+				throw new IllegalArgumentException("One or more of the following IDs are not recognized: " + dto.getRecipients());
+			}
 		}
 		
 		dto = messageDAO.createMessage(dto);
