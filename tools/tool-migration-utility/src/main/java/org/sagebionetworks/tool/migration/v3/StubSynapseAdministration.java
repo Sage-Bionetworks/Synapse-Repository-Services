@@ -1295,22 +1295,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public File downloadWikiAttachment(WikiPageKey key, String fileName)
-			throws ClientProtocolException, IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
-			throws ClientProtocolException, FileNotFoundException, IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException {
 		// TODO Auto-generated method stub
 		
@@ -1376,22 +1360,6 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 	@Override
 	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-			throws ClientProtocolException, IOException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-
-	@Override
-	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-			throws ClientProtocolException, FileNotFoundException, IOException {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -2545,7 +2513,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public File downloadV2WikiMarkdown(WikiPageKey key)
+	public String downloadV2WikiMarkdown(WikiPageKey key)
 			throws ClientProtocolException, FileNotFoundException, IOException {
 		// TODO Auto-generated method stub
 		return null;
@@ -2553,7 +2521,7 @@ public class StubSynapseAdministration implements SynapseAdminClient {
 
 
 	@Override
-	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version)
+	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version)
 			throws ClientProtocolException, FileNotFoundException, IOException {
 		// TODO Auto-generated method stub
 		return null;
