@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -21,8 +20,11 @@ public class DBOPrincipalHeader implements DatabaseObject<DBOPrincipalHeader> {
 		return tableMapping;
 	}
 
+	// Note: There is no FK (nor cascade delete) on UserGroup because the FK introduces a few locks that may deadlock user actions
+	//   For example, the PrincipalHeaderWorker updates a Principal, read-locking the UserGroup row
+	//   If a separate (to be implemented) method tries to query on the PrincipalHeader table in the same transaction as an update on 
+	//     the UserGroup (or a secondary) table, then there is the possibility that the worker will cause the user's action to fail.  
 	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_ID, primary = true, nullable = false)
-	@ForeignKey(table = SqlConstants.TABLE_USER_GROUP, field = SqlConstants.COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
 
 	@Field(name = SqlConstants.COL_PRINCIPAL_HEADER_FRAGMENT, primary = true, varchar = 256, nullable = false)

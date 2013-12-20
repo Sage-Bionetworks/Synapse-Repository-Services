@@ -57,8 +57,9 @@ public class PrincipalHeaderWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws Exception {
-		// Before we start, make sure the queue is empty
+		// Before we start, make sure the queue and table is empty
 		emptyQueue();
+		emptyPrefixTable();
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -79,7 +80,7 @@ public class PrincipalHeaderWorkerIntegrationTest {
 	/**
 	 * Empty the queue by processing all messages on the queue.
 	 */
-	public void emptyQueue() throws InterruptedException {
+	private void emptyQueue() throws InterruptedException {
 		long start = System.currentTimeMillis();
 		int count = 0;
 		do {
@@ -93,6 +94,19 @@ public class PrincipalHeaderWorkerIntegrationTest {
 						"Timed out waiting process all messages that were on the queue before the tests started.");
 		} while (count > 0);
 	}
+	
+	/**
+	 * Deletes all entries in the PrincipalHeader table
+	 */
+	private void emptyPrefixTable() throws Exception {
+		List<Long> results;
+		do {
+			results = prinHeadDAO.query(null, false, null, null, 10, 0);
+			for (Long id : results) {
+				prinHeadDAO.delete(id);
+			}
+		} while (results.size() > 0);
+	}
 
 	@After
 	public void after() throws Exception {
@@ -100,6 +114,8 @@ public class PrincipalHeaderWorkerIntegrationTest {
 		
 		userManager.deletePrincipal(adminUserInfo, userId);
 		userManager.deletePrincipal(adminUserInfo, teamId);
+		
+		emptyPrefixTable();
 	}
 	
 	@Test
