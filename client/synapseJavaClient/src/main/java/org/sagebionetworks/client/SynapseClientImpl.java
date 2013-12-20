@@ -1926,23 +1926,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 	
-
-//	/**
-//	 * 
-//	 * @param key - Identifies a wiki page.
-//	 * @param fileName - The name of the attachment file.
-//	 * @return
-//	 * @throws IOException 
-//	 * @throws ClientProtocolException 
-//	 */
-//	@Override
-//	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
-//		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-//		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-//		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-//		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
-//		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-//	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment. This is an alternative to downloading the attachment to a file.
@@ -1962,24 +1945,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
-
-//	/**
-//	 * Download the preview of a wiki attachment file.
-//	 * @param key - Identifies a wiki page.
-//	 * @param fileName - The name of the original attachment file that you want to downlaod a preview for.
-//	 * @return
-//	 * @throws IOException 
-//	 * @throws FileNotFoundException 
-//	 * @throws ClientProtocolException 
-//	 */
-//	@Override
-//	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException{
-//		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-//		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-//		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-//		String uri = createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
-//		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-//	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment preview. This is an alternative to downloading the attachment to a file.
