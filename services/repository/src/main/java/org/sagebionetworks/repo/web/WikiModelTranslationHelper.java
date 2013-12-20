@@ -72,11 +72,12 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		// Zip up the markdown into a file
 		// The upload file will hold the newly created markdown file.
 		String markdown = from.getMarkdown();
-		File markdownTemp;
+		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
+		try{
         if(markdown != null) {
-        	markdownTemp = FileUtils.writeStringToCompressedFile(markdown);
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, markdown);
         } else {
-        	markdownTemp = FileUtils.writeStringToCompressedFile("");
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, "");
         }
 		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
@@ -107,9 +108,11 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		
 		// Set the file handle id
 		wiki.setMarkdownFileHandleId(handle.getId());
-		
-		if(markdownTemp != null){
-			markdownTemp.delete();
+		}
+		finally{
+			if(markdownTemp != null){
+				markdownTemp.delete();
+			}
 		}
 		return wiki;
 	}
