@@ -50,6 +50,7 @@
 	<bean id="stackConfiguration.fileUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.annotationsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.unsentMessagesQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+    <bean id="stackConfiguration.principalHeaderQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.maxFileTransferMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.maxFilePreviewMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -78,6 +79,7 @@
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessageQueuer" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+    <bean id="stackConfiguration.semaphoreGatedMaxRunnersPrincipalHeaderFiller" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
 	
 	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.dynamoEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	

@@ -768,6 +768,15 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * @return The name of the AWS SQS where user identifier updates are pushed
+	 */
+	public String getPrincipalHeaderQueueName() {
+		return String.format(StackConstants.PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
@@ -1014,6 +1023,15 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
+	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will update the PrincipalHeader table from SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersPrincipalHeaderFiller() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
 	}
 	/**
 	 * The maximum number of workers in the cluster that will process

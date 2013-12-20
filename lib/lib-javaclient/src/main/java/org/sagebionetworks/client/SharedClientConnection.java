@@ -40,7 +40,7 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -49,6 +49,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -526,8 +528,10 @@ public class SharedClientConnection {
 
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders, String userAgent) throws SynapseException {
+		Map<String, String> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.SYNAPSE.toString());
 		return signAndDispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders, userAgent,
-				OriginatingClient.SYNAPSE.getParameterMap());
+				parameters);
 	}
 	
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,

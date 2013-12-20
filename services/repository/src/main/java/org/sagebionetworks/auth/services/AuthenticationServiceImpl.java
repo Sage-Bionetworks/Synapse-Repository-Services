@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -81,7 +81,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user, OriginatingClient originClient) {
+	public void createUser(NewUser user, DomainType originClient) {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Email must be specified");
 		}
@@ -96,7 +96,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordEmail(String username, OriginatingClient originClient) throws NotFoundException {
+	public void sendPasswordEmail(String username, DomainType originClient) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
@@ -198,7 +198,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		Boolean shouldCreateUser = createParam == null ? null : new Boolean(createParam);
 		
 		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
-		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(originClientParam);
+		DomainType originClient = DomainType.valueOf(originClientParam);
 		
 		return processOpenIDInfo(openIDInfo, shouldCreateUser, originClient);
 	}
@@ -207,7 +207,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 * Returns the session token of the user described by the OpenID information
 	 */
 	protected Session processOpenIDInfo(OpenIDInfo info, boolean createUserIffNecessary,
-			OriginatingClient originClient) throws NotFoundException {
+			DomainType originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
 		String fname = info.getFirstName();

@@ -19,11 +19,14 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +43,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -237,9 +243,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public boolean deletePrincipal(String name) {
+		
 		try {
 			DBOUserGroup ug = findGroup(name);
 			if (ug==null) return false;
+			
+			// Send a DELETE message
+			transactionalMessenger.sendMessageAfterCommit("" + ug.getId(), ObjectType.PRINCIPAL, ug.getEtag(), ChangeType.DELETE);
+			
 			delete(ug.getId().toString());
 			return true;
 		} catch (DatastoreException e) {
@@ -255,7 +266,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			InvalidModelException {
 		// The public version unconditionally clears the ID so a new one will be assigned
 		dto.setId(null);
-		return createPrivate(dto);
+		DBOUserGroup dbo = createPrivate(dto);
+		
+		// Send a CREATE message
+		// Note: This message cannot be sent in the createPrivate method because
+		// bootstrapping is not transactional when called by the Spring initializer 
+		transactionalMessenger.sendMessageAfterCommit("" + dbo.getId(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.CREATE);
+		
+		return dbo.getId().toString();
 	}
 
 	/**
@@ -264,7 +282,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	 * @param dto
 	 * @return
 	 */
-	private String createPrivate(UserGroup dto) {
+	private DBOUserGroup createPrivate(UserGroup dto) {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
 		// If the create is successful, it should have a new etag
@@ -274,13 +292,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			// We allow the ID generator to create all other IDs
 			dbo.setId(idGenerator.generateNewId(TYPE.PRINCIPAL_ID));
 		}
+		
 		try {
 			dbo = basicDao.createNew(dbo);
 		} catch (Exception e) {
 			throw new DatastoreException("id=" + dbo.getId() + " name="+dto.getName(), e);
 		}
 		
-		return dbo.getId().toString();
+		return dbo;
 	}
 
 	public boolean doesIdExist(Long id) {
@@ -346,6 +365,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		
 		// If the update is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
+		
+		// Send a UPDATE message
+		transactionalMessenger.sendMessageAfterCommit("" + dbo.getId(), ObjectType.PRINCIPAL, dbo.getEtag(), ChangeType.UPDATE);
 
 		basicDao.update(dbo);
 	}

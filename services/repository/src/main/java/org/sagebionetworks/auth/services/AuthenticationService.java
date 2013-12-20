@@ -1,7 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import org.openid4java.message.ParameterList;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -45,13 +45,13 @@ public interface AuthenticationService {
 	 * Initializes a new user into the system
 	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
-	public void createUser(NewUser user, OriginatingClient originClient);
+	public void createUser(NewUser user, DomainType originClient);
 	
 	/**
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(String username, OriginatingClient originClient)
+	public void sendPasswordEmail(String username, DomainType originClient)
 			 throws NotFoundException;
 	
 	/**

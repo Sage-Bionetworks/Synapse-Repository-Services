@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -19,6 +20,8 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +43,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -131,6 +137,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		// Update with a new e-tag
 		dbo.seteTag(UUID.randomUUID().toString());
+		
+		// Send a UPDATE message
+		transactionalMessenger.sendMessageAfterCommit("" + dbo.getOwnerId(), ObjectType.PRINCIPAL, dbo.geteTag(), ChangeType.UPDATE);
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
