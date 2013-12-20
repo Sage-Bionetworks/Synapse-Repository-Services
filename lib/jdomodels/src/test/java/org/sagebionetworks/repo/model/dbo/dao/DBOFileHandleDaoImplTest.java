@@ -122,13 +122,13 @@ public class DBOFileHandleDaoImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetCreatorNotFound() throws NotFoundException{
 		// Use an invalid file handle id.
-		String lookupCreator = fileHandleDao.getHandleCreator("99999");
+		fileHandleDao.getHandleCreator("99999");
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testGetPreviewFileHandleNotFound() throws NotFoundException{
 		// Use an invalid file handle id.
-		String prewviewId = fileHandleDao.getPreviewFileHandleId("9999");
+		fileHandleDao.getPreviewFileHandleId("9999");
 	}
 	
 	@Test
@@ -451,4 +451,11 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(handle.getId(), list.get(0));
 	}
 
+	@Test
+	public void testCreateFileHandleWithNoPreview() {
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle = fileHandleDao.createFile(handle, false);
+		toDelete.add(handle.getId());
+		assertEquals(handle.getId(), handle.getPreviewId());
+	}
 }

@@ -11,6 +11,10 @@
 		"chunkedFileToken": {
 			"description":"The ChunkedFileToken created in the first step.  This is a required parameter.",
 			"$ref": "org.sagebionetworks.repo.model.file.ChunkedFileToken"
-		}
+		}, 
+        "shouldPreviewBeGenerated": {
+            "type": "boolean", 
+            "description": "When the upload completes successfully, should a preview eventually be generated for the file?"
+        }
 	}
 }

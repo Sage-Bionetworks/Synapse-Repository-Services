@@ -9,6 +9,10 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.file.ChunkResult"
 			}
-		}
+		}, 
+        "shouldPreviewBeGenerated": {
+            "type": "boolean", 
+            "description": "When the upload completes successfully, should a preview eventually be generated for the file?"
+        }
 	}
 }
