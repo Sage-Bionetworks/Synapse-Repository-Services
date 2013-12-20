@@ -1,11 +1,8 @@
 package org.sagebionetworks.client;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -41,6 +38,7 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -338,57 +336,19 @@ public class SharedClientConnection {
 	 * @throws FileNotFoundException
 	 * @throws SynapseException 
 	 */
-	public File downloadFile(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
+	public String downloadZippedFileString(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
 			FileNotFoundException, SynapseException {
 		HttpGet get = new HttpGet(endpoint+uri);
 		setHeaders(get, defaultGETDELETEHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
 		HttpResponse response = clientProvider.execute(get);
 		HttpEntity entity = response.getEntity();
-		InputStream input = entity.getContent();
 		int statusCode = response.getStatusLine().getStatusCode();
 		if(statusCode != 200) {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			String fromZip;
-			try{
-				byte[] buffer = new byte[1024]; 
-				int read = -1;
-				while((read = input.read(buffer)) > 0){
-					baos.write(buffer, 0, read);
-				}
-				fromZip = new String(baos.toByteArray(), "UTF-8");
-			}finally{
-				if(baos != null){
-					baos.flush();
-					baos.close();
-				}
-				if(input != null){
-					input.close();
-				}
-			}
-			throw new SynapseException("Status code: " + statusCode + ", " + fromZip);
+			String message = EntityUtils.toString(entity);
+			throw new SynapseException("Status code: " + statusCode + ", " + message);
 		}
-		File temp = File.createTempFile("downloadWikiAttachment", ".tmp");
-		FileOutputStream fos = new FileOutputStream(temp);
-		try{
-			byte[] buffer = new byte[1024]; 
-			int read = -1;
-			while((read = input.read(buffer)) > 0){
-				fos.write(buffer, 0, read);
-			}
-			return temp;
-		}finally{
-			if(fos != null){
-				fos.flush();
-				fos.close();
-			}
-			if(input != null){
-				input.close();
-			}
-			if(temp != null){
-				temp.delete();
-			}
-		}
+		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
 
 	@Deprecated

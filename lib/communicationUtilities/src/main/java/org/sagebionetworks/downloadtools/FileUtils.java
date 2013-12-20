@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 import java.io.ByteArrayInputStream;
@@ -107,22 +110,33 @@ public class FileUtils {
 	/**
 	 * Zip up content into a compressed gz file
 	 */
-	public static File writeStringToCompressedFile(String content) throws IOException {
-		File temp = File.createTempFile("compressed", ".txt.gz");
+	public static File writeStringToCompressedFile(File temp, String content) throws IOException {
 		FileOutputStream fos = new FileOutputStream(temp);
+		writeCompressedString(content, fos);
+		return temp;
+	}
+
+	/**
+	 * Write a string compressed to an output stream.
+	 * @param content
+	 * @param out
+	 * @throws IOException
+	 * @throws UnsupportedEncodingException
+	 */
+	public static void writeCompressedString(String content, OutputStream out) throws IOException,
+			UnsupportedEncodingException {
 		GZIPOutputStream gzout = null;
-		OutputStreamWriter out = null;
+		OutputStreamWriter outw = null;
 		try {
-			gzout = new GZIPOutputStream(fos);
-			out = new OutputStreamWriter(gzout, "UTF-8");
-			out.append(content);
-			out.flush();
-			out.close();
+			gzout = new GZIPOutputStream(out);
+			outw = new OutputStreamWriter(gzout, "UTF-8");
+			outw.append(content);
+			outw.flush();
+			outw.close();
 		} finally {
 			gzout.close();
-			fos.close();
+			out.close();
 		}
-		return temp;
 	}
 	
 	/**
@@ -130,10 +144,16 @@ public class FileUtils {
 	 */
 	public static String readCompressedFileAsString(File file) throws IOException {
 		FileInputStream fis = new FileInputStream(file);
-		GZIPInputStream gzin = new GZIPInputStream(fis);
+		return readCompressedStreamAsString(fis);
+	}
+	
+	/**
+	 * Read compressed data from file as a string.
+	 */
+	public static String readCompressedStreamAsString(InputStream in) throws IOException {
+		GZIPInputStream gzin = new GZIPInputStream(in);
 		BufferedInputStream bis = new BufferedInputStream(gzin);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		
 		try {
 			byte[] buffer = new byte[1024];
 			int read = -1;
@@ -144,7 +164,7 @@ public class FileUtils {
 			baos.close();
 			bis.close();
 			gzin.close();
-			fis.close();
+			in.close();
 		}
 		String fromZip = new String(baos.toByteArray(), "UTF-8");
 		return fromZip;

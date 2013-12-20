@@ -111,7 +111,8 @@ public class SearchWorkerIntegrationTest {
 		
 		// Zip up the markdown into a file with UUID
 		String markdown = "markdown contents " + uuid;
-		File markdownTemp = FileUtils.writeStringToCompressedFile(markdown);
+		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
+		FileUtils.writeStringToCompressedFile(markdownTemp, markdown);
 		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setContentType(contentType);

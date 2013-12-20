@@ -138,11 +138,11 @@ public class SearchDocumentDriverImplAutowireTest {
 	private String uploadAndGetFileHandleId(String markdownContent) throws IOException {
 		// Zip up the markdown into a file
 		// The upload file will hold the newly created markdown file.
-		File markdownTemp;
+		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
         if(markdownContent != null) {
-        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownContent);
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, markdownContent);
         } else {
-        	markdownTemp = FileUtils.writeStringToCompressedFile("");
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, "");
         }
 		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
