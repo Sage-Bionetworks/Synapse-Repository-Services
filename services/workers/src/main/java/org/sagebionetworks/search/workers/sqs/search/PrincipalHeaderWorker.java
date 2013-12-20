@@ -73,14 +73,16 @@ public class PrincipalHeaderWorker implements Callable<List<Message>> {
 			
 			// We only care about PRINCIPAL or TEAM messages here
 			if (ObjectType.PRINCIPAL == change.getObjectType() || ObjectType.TEAM == change.getObjectType()) {
+				Long principalId = Long.parseLong(change.getObjectId());
 				try {
 					switch (change.getChangeType()) {
 					case CREATE:
 					case UPDATE:
-						processPrincipal(Long.parseLong(change.getObjectId()));
+						processPrincipal(principalId);
 						break;
 					case DELETE:
-						// The table cascade deletes, so there's nothing to do here
+						// Clear the associated entries
+						prinHeadDAO.delete(principalId);
 						break;
 					default:
 						throw new IllegalArgumentException("Unknown change type: " + change.getChangeType());

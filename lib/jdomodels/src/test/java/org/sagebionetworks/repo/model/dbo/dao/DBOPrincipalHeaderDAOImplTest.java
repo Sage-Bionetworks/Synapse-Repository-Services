@@ -62,6 +62,9 @@ public class DBOPrincipalHeaderDAOImplTest {
 	public void tearDown() throws Exception {
 		userGroupDAO.delete("" + principalOne);
 		userGroupDAO.delete("" + principalTwo);
+		
+		prinHeadDAO.delete(principalOne);
+		prinHeadDAO.delete(principalTwo);
 	}
 	
 	@Test

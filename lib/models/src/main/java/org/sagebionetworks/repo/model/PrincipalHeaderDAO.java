@@ -24,6 +24,9 @@ public interface PrincipalHeaderDAO {
 	/**
 	 * Performs a prefix search over the entries within the table
 	 * 
+	 * Note: There is no FK on UserGroup so not all results are guaranteed to have an associated UserGroup
+	 *   See comments in DBOPrincipalHeader for more info.  
+	 * 
 	 * @param nameFilter The string to match.  If null/empty and the exactMatch=false, then all results will be returned
 	 * @param exactMatch Should the result be an exact match?
 	 * @param principals The type(s) of principal to include.  If null or empty, all principals are included
