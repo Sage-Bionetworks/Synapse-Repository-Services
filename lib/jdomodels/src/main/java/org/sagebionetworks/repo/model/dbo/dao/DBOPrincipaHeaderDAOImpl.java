@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.PrincipalType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalHeader;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -25,15 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Sets;
 
-public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO, InitializingBean {
+public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	@Autowired
 	private DBOBasicDao basicDAO;
-	
-	private Soundex soundex;
 	
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String PRINCIPAL_NAME_PARAM_NAME = "principalName";
@@ -100,16 +97,6 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO, Initializin
 		}
 		
 	};
-
-	/**
-	 * Called by Spring after bean initialization
-	 * 
-	 * Creates an Apache Soundex encoder 
-	 */
-	@Override
-	public void afterPropertiesSet(){
-		soundex = new Soundex();
-	}
 			
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -125,7 +112,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO, Initializin
 			
 			//TODO Should preprocessing be done here or in the manager layer?
 			dbo.setFragment(fragment);
-			dbo.setSoundex(soundex.encode(fragment));
+			dbo.setSoundex(new Soundex().encode(fragment));
 			
 			dbo.setPrincipalType(pType);
 			dbo.setDomainType(dType);
@@ -165,7 +152,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO, Initializin
 			break;
 		case SOUNDEX:
 			sql = QUERY_FOR_SOUNDEX_MATCH;
-			nameFilter = soundex.encode(nameFilter);
+			nameFilter = new Soundex().encode(nameFilter);
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown match type: " + mType); 
@@ -193,7 +180,7 @@ public class DBOPrincipaHeaderDAOImpl implements PrincipalHeaderDAO, Initializin
 			break;
 		case SOUNDEX:
 			sql = COUNT_QUERY_FOR_SOUNDEX_MATCH;
-			nameFilter = soundex.encode(nameFilter);
+			nameFilter = new Soundex().encode(nameFilter);
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown match type: " + mType); 
