@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -478,7 +479,7 @@ public class MessageManagerImplTest {
 			createMessage(testUser, null, tooMany, null);
 			fail();
 		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("foreign key"));
+			assertTrue(e.getMessage().contains("not recognized"));
 		}
 		
 		for (long i = MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS; i < MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS * 2; i++) {
@@ -619,5 +620,19 @@ public class MessageManagerImplTest {
 		try {
 			message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
 		} catch (UnauthorizedException e) { }
+	}
+	
+	@Test
+	public void testCreateMessageToInvalidRecipient() throws Exception {
+		// No user has a negative ID (I hope)
+		userToOther.getRecipients().add("-1");
+		
+		try {
+			messageManager.createMessage(testUser, userToOther);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// We shouldn't get a nasty DB error
+			assertFalse(e.getMessage().contains("foreign key"));
+		}
 	}
 }
