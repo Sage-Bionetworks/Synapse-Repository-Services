@@ -94,7 +94,9 @@ public class IT054FileEntityTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (SynapseServiceException e) { }
 	}
 	
 	@Test
