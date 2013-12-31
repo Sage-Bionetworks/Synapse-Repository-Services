@@ -19,7 +19,6 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
-import com.google.common.collect.Lists;
 
 /**
  * The basic implementation of the RepositoryMessagePublisher.  This implementation will publish all messages to an AWS topic
@@ -87,7 +86,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	private String topicArn;
 	private String topicName;
 
-	private List<ChangeMessage> messageQueue = Lists.newLinkedList();
+	private AtomicReference<List<ChangeMessage>> messageQueue = 
+			new AtomicReference<List<ChangeMessage>>(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
 
 	public RepositoryMessagePublisherImpl(final String topicName) {
 		if (topicName == null) {
@@ -129,9 +129,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		if(message.getObjectType()  == null) throw new IllegalArgumentException("ChangeMessage.getObjectType() cannot be null");
 		if(message.getTimestamp()  == null) throw new IllegalArgumentException("ChangeMessage.getTimestamp() cannot be null");
 		// Add the message to a queue
-		synchronized (this) {
-			messageQueue.add(message);
-		}
+		messageQueue.get().add(message);
 	}
 
 	@Override
@@ -151,11 +149,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void timerFired(){
 		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
 		// processed the next time the timer fires.
-		List<ChangeMessage> currentQueue;
-		synchronized (this) {
-			currentQueue = messageQueue;
-			messageQueue = Lists.newLinkedList();
-		}
+		List<ChangeMessage> currentQueue = messageQueue.getAndSet(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
 		if(!shouldMessagesBePublishedToTopic){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){
