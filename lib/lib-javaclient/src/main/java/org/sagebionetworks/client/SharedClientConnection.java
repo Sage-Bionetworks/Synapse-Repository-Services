@@ -23,6 +23,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -266,6 +267,38 @@ public class SharedClientConnection {
 			if (code < 200 || code > 299) {
 				throw new SynapseException("Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
 						+ " for " + url + " File: " + file.getName());
+			}
+			return EntityUtils.toString(response.getEntity());
+		} catch (ClientProtocolException e) {
+			throw new SynapseException(e);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+
+	}
+	
+	/**
+	 * Put the contents of the passed byte array to the passed URL, associating the given content type
+	 * 
+	 * @param url
+	 * @param content the byte array to upload
+	 * @throws SynapseException
+	 */
+	public String putBytesToURL(URL url, byte[] content, String contentType) throws SynapseException {
+		try {
+			if (url == null)
+				throw new IllegalArgumentException("URL cannot be null");
+			if (content == null)
+				throw new IllegalArgumentException("content cannot be null");
+			HttpPut httppost = new HttpPut(url.toString());
+			ByteArrayEntity se = new ByteArrayEntity(content);
+			httppost.setHeader("content-type", contentType);
+			httppost.setEntity(se);
+			HttpResponse response = clientProvider.execute(httppost);
+			int code = response.getStatusLine().getStatusCode();
+			if (code < 200 || code > 299) {
+				throw new SynapseException("Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+						+ " for " + url);
 			}
 			return EntityUtils.toString(response.getEntity());
 		} catch (ClientProtocolException e) {

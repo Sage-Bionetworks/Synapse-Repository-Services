@@ -3297,6 +3297,108 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
+	 */
+	@Override
+    public String uploadToFileHandle(String contentString, String contentType) throws SynapseException {
+    	if (contentString==null || contentString.length()==0) throw new IllegalArgumentException("Missing content.");
+    	
+    	// Note, we make sure to convert from String to byte[] just once.
+		byte[] content = contentString.getBytes();
+		
+    	if (content.length>=MINIMUM_CHUNK_SIZE_BYTES) 
+    		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
+		if (contentType==null) contentType = "text/plain";
+		String contentMD5 = null;
+		try {
+			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+    	 
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setFileName("content");
+		ccftr.setContentType(contentType);
+		ccftr.setContentMD5(contentMD5);
+		// Start the upload
+		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
+		
+		// because of the restriction on string length there will be exactly one chunk
+ 	   	List<Long> chunkNumbers = new ArrayList<Long>();
+		long currentChunkNumber = 1;
+		chunkNumbers.add(currentChunkNumber);
+		ChunkRequest request = new ChunkRequest();
+		request.setChunkedFileToken(token);
+		request.setChunkNumber((long) currentChunkNumber);
+		URL presignedURL = createChunkedPresignedUrl(request);
+		getSharedClientConnection().putBytesToURL(presignedURL, content, contentType);
+
+		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
+		cacr.setChunkedFileToken(token);
+		cacr.setChunkNumbers(chunkNumbers);
+		UploadDaemonStatus status = startUploadDeamon(cacr);
+		State state = status.getState();
+		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+			
+		long backOffMillis = 100L; // initially just 1/10 sec, but will exponentially increase
+		while (state.equals(State.PROCESSING) && backOffMillis<=MAX_BACKOFF_MILLIS) {
+			try {
+				Thread.sleep(backOffMillis);
+			} catch (InterruptedException e) {
+				// continue
+			}
+			status = getCompleteUploadDaemonStatus(status.getDaemonId());
+			state = status.getState();
+			if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+			backOffMillis *= 2; // exponential backoff
+		}
+		
+		if (!state.equals(State.COMPLETED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+
+		return status.getFileHandleId();
+    }
+    
+    private static long MAX_BACKOFF_MILLIS = 5*60*1000L; // five minutes
+    
+	/**
+	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * @param message
+	 * @param messageBody
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
+			throws SynapseException {
+		if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
+		String fileHandleId = uploadToFileHandle(messageBody, contentType);
+		message.setFileHandleId(fileHandleId);
+    	return sendMessage(message);		
+	}
+	
+	/**
+	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId
+	 * @param message
+	 * @param entityId
+	 * @param messageBody
+	 * @param contentType
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
+			throws SynapseException {
+				if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
+				String fileHandleId = uploadToFileHandle(messageBody, contentType);
+				message.setFileHandleId(fileHandleId);
+		    	return sendMessage(message, entityId);		
+			}
+
+	
 	@Override
 	public MessageToUser sendMessage(MessageToUser message, String entityId) throws SynapseException {
 		String uri = ENTITY + "/" + entityId + "/" + MESSAGE;
