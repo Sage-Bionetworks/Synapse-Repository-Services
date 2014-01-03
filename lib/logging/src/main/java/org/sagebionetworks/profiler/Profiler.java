@@ -1,11 +1,10 @@
 package org.sagebionetworks.profiler;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,9 +13,6 @@ import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
 import com.google.common.collect.Maps;
 
 /**
@@ -30,9 +26,6 @@ public class Profiler {
 
 	private static final Logger log = LogManager.getLogger(Profiler.class);
 
-	private static final long CUTOFF_FOR_LOGGING_IN_NANOS = 1L * 1000L * 1000L;
-	private static final long GLOBAL_LOGGING_INTERVAL_IN_NANOS = 60L * 1000L * 1000L * 1000L;
-	
 	private static class Count {
 		long totalTime = 0;
 		int count = 0;
@@ -44,9 +37,13 @@ public class Profiler {
 	}
 
 	private static class GlobalEntry {
-		String methodName;
+		final String methodName;
 		long totalTime = 0;
 		int count = 0;
+
+		public GlobalEntry(String methodName) {
+			this.methodName = methodName;
+		}
 	}
 
 	// Each thread gets its own stack.
@@ -57,16 +54,8 @@ public class Profiler {
 		}
 	};
 
-	private static Cache<String, GlobalEntry> globalProfile = CacheBuilder.newBuilder().build(new CacheLoader<String, GlobalEntry>() {
-		@Override
-		public GlobalEntry load(String methodName) throws Exception {
-			GlobalEntry entry = new GlobalEntry();
-			entry.methodName = methodName;
-			return entry;
-		}
-	});
-
-	private static AtomicLong lastProfileTime = new AtomicLong(System.nanoTime());
+	private static ConcurrentMap<String, GlobalEntry> globalProfile = new ConcurrentHashMap<String, GlobalEntry>();
+	private boolean shouldLogPerformance = false;
 
 	private List<ProfileHandler> handlers = null;
 
@@ -81,6 +70,15 @@ public class Profiler {
 	 */
 	public void setHandlers(List<ProfileHandler> handlers) {
 		this.handlers = handlers;
+	}
+
+	/**
+	 * Injected via Spring.
+	 * 
+	 * @param handlers
+	 */
+	public void setShouldLogPerformance(boolean shouldLogPerformance) {
+		this.shouldLogPerformance = shouldLogPerformance;
 	}
 
 	/**
@@ -156,16 +154,10 @@ public class Profiler {
 			if (parentFrame == null) {
 				// This should get replace with a logger.
 				doFireProfile(currentFrame);
-				collectMethodCallCounts(profileData.methodCalls, methodCount.totalTime);
-				profileData.methodCalls.clear();
-
-				long lastTime = lastProfileTime.get();
-				if (endTime - lastTime > GLOBAL_LOGGING_INTERVAL_IN_NANOS) {
-					if (lastProfileTime.compareAndSet(lastTime, endTime)) {
-						// only one thread will succeed here (unless a call exceeds 1 minute?)
-						collectGlobalMethodCallCounts();
-					}
+				if (shouldLogPerformance) {
+					collectMethodCallCounts(profileData.methodCalls, methodCount.totalTime);
 				}
+				profileData.methodCalls.clear();
 			}
 		}
 	}
@@ -181,41 +173,29 @@ public class Profiler {
 	}
 
 	private void collectMethodCallCounts(Map<String, Count> methodCalls, long totalTime) {
-		StringBuilder sb = new StringBuilder(2000);
 		for (Entry<String, Count> entry : methodCalls.entrySet()) {
 			String methodName = entry.getKey();
 			int methodCount = entry.getValue().count;
 			long methodTotalTime = entry.getValue().totalTime;
 
-			if (totalTime > CUTOFF_FOR_LOGGING_IN_NANOS) {
-				if (sb.length() > 0) {
-					sb.append('#');
-				}
-				sb.append(methodName);
-				sb.append(',');
-				sb.append(methodCount);
-				sb.append(',');
-				sb.append(methodTotalTime);
+			// avoid always allocating new global entry by first trying get and only then putIfAbsent
+			// over time, all methods will have entries and putIfAbsent will not need to be called anymore.
+			GlobalEntry globalEntry = globalProfile.get(methodName);
+			if (globalEntry == null) {
+				globalProfile.putIfAbsent(methodName, new GlobalEntry(methodName));
+				globalEntry = globalProfile.get(methodName);
 			}
 
-			try {
-				GlobalEntry globalEntry = globalProfile.get(methodName);
-				synchronized (globalEntry) {
-					globalEntry.count += methodCount;
-					globalEntry.totalTime += methodTotalTime;
-				}
-			} catch (ExecutionException e) {
-				log.debug("Profile cache error", e);
+			synchronized (globalEntry) {
+				globalEntry.count += methodCount;
+				globalEntry.totalTime += methodTotalTime;
 			}
 		}
-		if (totalTime > CUTOFF_FOR_LOGGING_IN_NANOS) {
-			log.info("Profile: " + sb.toString());
-		}
 	}
-	
-	private void collectGlobalMethodCallCounts() {
+
+	public void collectGlobalMethodCallCounts() {
 		StringBuilder sb = new StringBuilder(2000);
-		for (GlobalEntry globalEntry : globalProfile.asMap().values()) {
+		for (GlobalEntry globalEntry : globalProfile.values()) {
 			int methodCount;
 			long methodTotalTime;
 			String methodName;
@@ -237,6 +217,8 @@ public class Profiler {
 				sb.append(methodTotalTime);
 			}
 		}
-		log.info("Global profile: " + sb.toString());
+		if (sb.length() > 0) {
+			log.info("Global profile: " + sb.toString());
+		}
 	}
 }

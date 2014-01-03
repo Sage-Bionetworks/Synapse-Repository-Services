@@ -491,6 +491,22 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * @return whether the call performance profiler should be on or off boolean. True means on, false means off.
+	 */
+	public boolean getCallPerformanceOnOff() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.call.performance.report.enabled"));
+	}
+
+	/**
+	 * @return the time in milliseconds for the call performance profiler's trigger. It will trigger and log average
+	 *         call performance ever xxx milliseconds.
+	 */
+	public long getCallPerformanceTriggerTime() {
+		return Long.valueOf(configuration
+				.getProperty("org.sagebionetworks.call.performance.trigger"));
+	}
+
+	/**
 	 * The maximum number of threads to be used for backup/restore
 	 * 
 	 * @return
