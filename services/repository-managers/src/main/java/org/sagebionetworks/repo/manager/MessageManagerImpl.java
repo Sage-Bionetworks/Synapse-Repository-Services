@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.WordUtils;
+import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -37,6 +39,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -62,6 +66,17 @@ import com.google.common.collect.Lists;
 public class MessageManagerImpl implements MessageManager {
 	
 	static private Logger log = LogManager.getLogger(MessageManagerImpl.class);
+	
+	/**
+	 * The default character encoding for the file containing the body of the email message to be sent
+	 */
+	private static final Charset DEFAULT_MESSAGE_FILE_CHARSET = Charset.forName("UTF-8");	
+	
+	/**
+	 * The specified encoding for the generated email message sent to the end user
+	 */
+	private static final String EMAIL_CHARSET = "UTF-16";
+	
 	
 	/**
 	 * The maximum number of messages a user can create within a given interval
@@ -111,6 +126,9 @@ public class MessageManagerImpl implements MessageManager {
 	private FileHandleManager fileHandleManager;
 	
 	@Autowired
+	FileHandleDao fileHandleDao;
+	
+	@Autowired
 	private NodeDAO nodeDAO;
 	
 	@Autowired
@@ -127,7 +145,8 @@ public class MessageManagerImpl implements MessageManager {
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
-			EntityPermissionsManager entityPermissionsManager) {
+			EntityPermissionsManager entityPermissionsManager,
+			FileHandleDao fileHandleDao) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -138,6 +157,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.fileHandleManager = fileHandleManager;
 		this.nodeDAO = nodeDAO;
 		this.entityPermissionsManager = entityPermissionsManager;
+		this.fileHandleDao = fileHandleDao;
 	}
 	
 	@Override
@@ -364,8 +384,15 @@ public class MessageManagerImpl implements MessageManager {
 	 */
 	private List<String> processMessage(String messageId, boolean singleTransaction) throws NotFoundException {
 		MessageToUser dto = messageDAO.getMessage(messageId);
-		String messageBody = downloadEmailContent(dto.getFileHandleId());
-		return processMessage(dto, singleTransaction, messageBody);
+		FileHandle fileHandle = fileHandleDao.get(dto.getFileHandleId());
+		ContentType contentType = ContentType.parse(fileHandle.getContentType());
+		Charset charset = contentType.getCharset();
+		if (charset==null) charset=DEFAULT_MESSAGE_FILE_CHARSET;
+		String mimeType = contentType.getMimeType().trim().toLowerCase();
+		boolean isHtml="text/html".equals(mimeType);
+
+		String messageBody = downloadEmailContentToString(dto.getFileHandleId(), charset);
+		return processMessage(dto, singleTransaction, messageBody, isHtml);
 	}
 	
 	/**
@@ -375,7 +402,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * @param messageBody The body of any email(s) that get sent as a result of processing this message
 	 *    Note: This parameter is provided so that templated messages do not need to be uploaded then downloaded before sending
 	 */
-	private List<String> processMessage(MessageToUser dto, boolean singleTransaction, String messageBody) throws NotFoundException {
+	private List<String> processMessage(MessageToUser dto, boolean singleTransaction, String messageBody, boolean isHtml) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
@@ -414,6 +441,7 @@ public class MessageManagerImpl implements MessageManager {
 					sendEmail(userGroupDAO.get(user).getName(), 
 							dto.getSubject(),
 							messageBody, 
+							isHtml,
 							//TODO change this to an alias
 							//TODO bootstrap a better name for the notification user
 							userInfo.getUser().getDisplayName());
@@ -493,8 +521,9 @@ public class MessageManagerImpl implements MessageManager {
 	 * Helper for {@link #processMessage(String, boolean, String)}
 	 * 
 	 * Returns a string containing the body of a message
+	 * Note:  The file given by the fileHandleId must be stored with UTF-8 encoding
 	 */
-	private String downloadEmailContent(String fileHandleId) throws NotFoundException {
+	private String downloadEmailContentToString(String fileHandleId, Charset charset) throws NotFoundException {
 		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 		
 		// Read the file
@@ -508,7 +537,7 @@ public class MessageManagerImpl implements MessageManager {
 				while ((length = in.read(buffer)) > 0) {
 					out.write(buffer, 0, length);
 				}
-				return new String(out.toByteArray());
+				return new String(out.toByteArray(), charset);
 			} finally {
 				if (in != null) {
 					in.close();
@@ -525,7 +554,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * 
 	 * @param sender The username of the sender (null tolerant)
 	 */
-	private SendEmailResult sendEmail(String recipient, String subject, String body, String sender) {
+	private SendEmailResult sendEmail(String recipient, String subject, String body, boolean isHtml, String sender) {
 		// Construct whom the email is from 
 		String source = StackConfiguration.getNotificationEmailAddress();
 		if (sender != null) {
@@ -540,7 +569,15 @@ public class MessageManagerImpl implements MessageManager {
         	subject = "";
         }
         Content textSubject = new Content().withData(subject);
-        Body messageBody = new Body().withText(new Content().withData(body));
+        
+        // we specify the text encoding to use when sending the email
+        Content bodyContent = new Content().withData(body).withCharset(EMAIL_CHARSET);
+        Body messageBody = new Body();
+        if (isHtml) {
+        	messageBody.setHtml(bodyContent);
+        } else {
+        	messageBody.setText(bodyContent);
+        }
         
         // Create a message with the specified subject and body
         Message message = new Message().withSubject(textSubject).withBody(messageBody);
@@ -609,7 +646,7 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
 		
-		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -631,7 +668,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
 		
-		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -653,7 +690,7 @@ public class MessageManagerImpl implements MessageManager {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		
-		sendEmail(sender.getIndividualGroup().getName(), subject, messageBody, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(sender.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	/**

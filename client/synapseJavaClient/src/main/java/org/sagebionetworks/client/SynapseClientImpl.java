@@ -11,6 +11,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -276,6 +278,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
 
+    private static final long MAX_BACKOFF_MILLIS = 5*60*1000L; // five minutes
+    
+    /**
+     * The character encoding to use with strings which are the body of email messages
+     */
+    private static final Charset MESSAGE_CHARSET = Charset.forName("UTF-8");
+    
 	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
@@ -3300,18 +3309,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	/**
 	 * uploads a String to S3 using the chunked file upload service
-	 * Note:  Strings in memory should not be large, so we limit to the size of one 'chunk'
+	 * 
+	 * @param content the content to upload. Strings in memory should not be large, so we limit to the size of one 'chunk'
+	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
 	 */
 	@Override
-    public String uploadToFileHandle(String contentString, String contentType) throws SynapseException {
-    	if (contentString==null || contentString.length()==0) throw new IllegalArgumentException("Missing content.");
-    	
-    	// Note, we make sure to convert from String to byte[] just once.
-		byte[] content = contentString.getBytes();
+    public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException {
+    	if (content==null || content.length==0) throw new IllegalArgumentException("Missing content.");
 		
     	if (content.length>=MINIMUM_CHUNK_SIZE_BYTES) 
     		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
-		if (contentType==null) contentType = "text/plain";
 		String contentMD5 = null;
 		try {
 			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
@@ -3321,7 +3328,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
     	 
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setFileName("content");
-		ccftr.setContentType(contentType);
+		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
@@ -3334,7 +3341,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		request.setChunkedFileToken(token);
 		request.setChunkNumber((long) currentChunkNumber);
 		URL presignedURL = createChunkedPresignedUrl(request);
-		getSharedClientConnection().putBytesToURL(presignedURL, content, contentType);
+		getSharedClientConnection().putBytesToURL(presignedURL, content, contentType.toString());
 
 		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 		cacr.setChunkedFileToken(token);
@@ -3361,43 +3368,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return status.getFileHandleId();
     }
     
-    private static long MAX_BACKOFF_MILLIS = 5*60*1000L; // five minutes
-    
+	private static final ContentType STRING_MESSAGE_CONTENT_TYPE = ContentType.create("text/plain", MESSAGE_CHARSET);
+	
 	/**
-	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * Convenience function to upload a simple string message body, then send message using resultant fileHandleId
 	 * @param message
 	 * @param messageBody
-	 * @param contentType
-	 * @return
+	 * @return the created message
 	 * @throws SynapseException
 	 */
 	@Override
-	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
+	public MessageToUser sendStringMessage(MessageToUser message, String messageBody)
 			throws SynapseException {
 		if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
-		String fileHandleId = uploadToFileHandle(messageBody, contentType);
+		String fileHandleId = uploadToFileHandle(messageBody.getBytes(MESSAGE_CHARSET), STRING_MESSAGE_CONTENT_TYPE);
 		message.setFileHandleId(fileHandleId);
     	return sendMessage(message);		
 	}
 	
 	/**
-	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId
+	 * Convenience function to upload a simple string message body, then send message to entity owner using resultant fileHandleId
 	 * @param message
 	 * @param entityId
 	 * @param messageBody
-	 * @param contentType
-	 * @return
+	 * @return the created message
 	 * @throws SynapseException
 	 */
 	@Override
-	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
+	public MessageToUser sendStringMessage(MessageToUser message, String entityId, String messageBody)
 			throws SynapseException {
 				if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
-				String fileHandleId = uploadToFileHandle(messageBody, contentType);
+				String fileHandleId = uploadToFileHandle(messageBody.getBytes(MESSAGE_CHARSET), STRING_MESSAGE_CONTENT_TYPE);
 				message.setFileHandleId(fileHandleId);
 		    	return sendMessage(message, entityId);		
-			}
-
+	}
+	
 	
 	@Override
 	public MessageToUser sendMessage(MessageToUser message, String entityId) throws SynapseException {

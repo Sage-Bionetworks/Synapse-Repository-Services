@@ -6,10 +6,12 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -40,7 +43,6 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -664,13 +666,13 @@ public interface SynapseClient extends BaseClient {
 	 * Note:  Strings in memory should not be large, so we limit the length
 	 * of the byte array for the passed in string to be the size of one 'chunk'
 	 * 
-	 * @param content the string to upload.  The String is serialized "using the platform's default charset"
+	 * @param content the byte array to upload.
 	 * 
 	 * @param contentType This will become the contentType field of the resulting S3FileHandle
 	 * if not specified, this method uses "text/plain"
 	 * 
 	 */ 
-	public String uploadToFileHandle(String content, String contentType) throws SynapseException;
+	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -682,12 +684,11 @@ public interface SynapseClient extends BaseClient {
 	 * Convenience function to upload message body, then send message using resultant fileHandleId
 	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
 	 * @param message
-	 * @param messageBody  Serialized using the "platform's default character set"
-	 * @param contentType  if null, this will be set to "text/plain"
+	 * @param messageBody
 	 * @return
 	 * @throws SynapseException
 	 */
-	public MessageToUser sendMessage(MessageToUser message, String messageBody, String contentType)
+	public MessageToUser sendStringMessage(MessageToUser message, String messageBody)
 			throws SynapseException;
 	
 	/**
@@ -701,12 +702,11 @@ public interface SynapseClient extends BaseClient {
 	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
 	 * @param message
 	 * @param entityId
-	 * @param messageBody Serialized using the "platform's default character set"
-	 * @param contentType if null, this will be set to "text/plain"
+	 * @param messageBody
 	 * @return
 	 * @throws SynapseException
 	 */
-	public MessageToUser sendMessage(MessageToUser message, String entityId, String messageBody, String contentType)
+	public MessageToUser sendStringMessage(MessageToUser message, String entityId, String messageBody)
 			throws SynapseException;
 	
 	/**
