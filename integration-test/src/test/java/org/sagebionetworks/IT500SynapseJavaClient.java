@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -1533,7 +1535,8 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testStringUploadToS3() throws Exception {
 		String content = "This is my test string.";
-		String fileHandleId = synapseOne.uploadToFileHandle(content, null);
+		String fileHandleId = synapseOne.uploadToFileHandle(content.getBytes("UTF-8"), 
+			ContentType.create("text/plain", Charset.forName("UTF-8")));
 		assertNotNull(fileHandleId);
 		handlesToDelete.add(fileHandleId);
 	}
