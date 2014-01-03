@@ -36,7 +36,8 @@
 				"DOUBLE",
 				"LONG",
 				"BOOLEAN",
-				"FILEHANDLEID"
+				"FILEHANDLEID",
+				"DATETIME"
 			]
 		}
     }
