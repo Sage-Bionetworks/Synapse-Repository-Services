@@ -273,7 +273,7 @@ public class IT501SynapseJavaClientMessagingTest {
 		mtu.setRecipients(new HashSet<String>(Arrays.asList(new String[]{twoId})));
 		mtu = synapseOne.sendStringMessage(mtu, MESSAGE_BODY_WITH_EXTENDED_CHARS);
 		cleanup.add(mtu.getId());
-		fileHandleIdWithExtendedChars = mtu.getFileHandleId();
+		this.fileHandleIdWithExtendedChars = mtu.getFileHandleId();
 
 		// this inspects the content-type to determine the character encoding
 		String message = synapseTwo.downloadMessage(mtu.getId());
