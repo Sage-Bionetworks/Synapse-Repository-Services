@@ -25,6 +25,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,8 @@ public class MessageManagerImplSESTest {
 	private static final String OOTO_EMAIL = "ooto@simulator.amazonses.com";
 	private static final String COMPLAINT_EMAIL = "complaint@simulator.amazonses.com";
 	private static final String SUPPRESSION_EMAIL = "suppressionlist@simulator.amazonses.com";
+	
+	private static final String FILE_HANDLE_ID = "10101";
 
 	private MessageManager messageManager;
 
@@ -62,6 +66,7 @@ public class MessageManagerImplSESTest {
 	private FileHandleManager mockFileHandleManager;
 	private NodeDAO mockNodeDAO;
 	private EntityPermissionsManager mockEntityPermissionsManager;
+	private FileHandleDao mockFileHandleDao;
 
 	@Autowired
 	private AWSCredentials awsCredentials;
@@ -97,6 +102,7 @@ public class MessageManagerImplSESTest {
 		mockFileHandleManager = mock(FileHandleManager.class);
 		mockNodeDAO = mock(NodeDAO.class);
 		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
+		mockFileHandleDao = mock(FileHandleDao.class);
 		
 		// Use a working client
 		amazonSESClient = new AmazonSimpleEmailServiceClient(awsCredentials);
@@ -104,7 +110,8 @@ public class MessageManagerImplSESTest {
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileDAO, mockAuthorizationManager, amazonSESClient,
-				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager);
+				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
+				mockFileHandleDao);
 		
 		// The end goal of this mocking is to pass a single recipient through the authorization 
 		// and individual-ization checks within the MessageManager's sendMessage method.
@@ -114,6 +121,7 @@ public class MessageManagerImplSESTest {
 		mockMessageToUser = new MessageToUser();
 		mockMessageToUser.setCreatedBy(mockUserIdString);
 		mockMessageToUser.setRecipients(mockRecipients);
+		mockMessageToUser.setFileHandleId(FILE_HANDLE_ID);
 		when(mockMessageDAO.getMessage(anyString())).thenReturn(mockMessageToUser);
 		
 		// Mocks downloadEmailContent(...)
@@ -141,6 +149,12 @@ public class MessageManagerImplSESTest {
 		mockUserInfo.setUser(new User());
 		mockUserInfo.getUser().setDisplayName("Foo Bar");
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
+		
+		
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setId(FILE_HANDLE_ID);
+		fileHandle.setContentType("text/plain; charset=utf-8");
+		when(mockFileHandleDao.get(FILE_HANDLE_ID)).thenReturn(fileHandle);
 	}
 	
 	/**
@@ -149,7 +163,7 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testToDeveloper() throws Exception {
-		mockUserGroup.setName("joseph.wu@sagebase.org");
+		mockUserGroup.setName("intergration-test@sagebase.org");
 		List<String> errors = messageManager.processMessage("Hehe?");
 		assertEquals(errors.toString(), 0, errors.size());
 	}

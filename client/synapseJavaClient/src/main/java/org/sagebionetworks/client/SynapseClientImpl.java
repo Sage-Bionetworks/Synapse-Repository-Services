@@ -280,6 +280,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
     private static final long MAX_BACKOFF_MILLIS = 5*60*1000L; // five minutes
     
+    /**
+     * The character encoding to use with strings which are the body of email messages
+     */
     private static final Charset MESSAGE_CHARSET = Charset.forName("UTF-8");
     
 	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
@@ -3371,8 +3374,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * Convenience function to upload a simple string message body, then send message using resultant fileHandleId
 	 * @param message
 	 * @param messageBody
-	 * @param contentType
-	 * @return
+	 * @return the created message
 	 * @throws SynapseException
 	 */
 	@Override
@@ -3389,8 +3391,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param message
 	 * @param entityId
 	 * @param messageBody
-	 * @param isHtml
-	 * @return
+	 * @return the created message
 	 * @throws SynapseException
 	 */
 	@Override

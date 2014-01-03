@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
@@ -46,11 +47,15 @@ public class IT501SynapseJavaClientMessagingTest {
 	private static final Long LIMIT = 100L;
 	private static final Long OFFSET = 0L;
 	private static final String MESSAGE_BODY = "Blah blah blah\n";
+	private static final String MESSAGE_BODY_WITH_EXTENDED_CHARS = "G\u00E9rard Depardieum, Camille Saint-Sa\u00EBns and Myl\u00E8ne Demongeot";
+
 
 	private static String oneId;
 	private static String twoId;
 
 	private static S3FileHandle oneToRuleThemAll;
+	
+	private String fileHandleIdWithExtendedChars;
 
 	private MessageToUser oneToTwo;
 	private MessageToUser twoToOne;
@@ -117,6 +122,8 @@ public class IT501SynapseJavaClientMessagingTest {
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
 		cleanup.add(twoToOne.getId());
+
+		fileHandleIdWithExtendedChars = null;
 	}
 
 	@After
@@ -124,6 +131,14 @@ public class IT501SynapseJavaClientMessagingTest {
 		for (String id : cleanup) {
 			adminSynapse.deleteMessage(id);
 		}
+		
+		try {
+			if (fileHandleIdWithExtendedChars!=null) {
+				adminSynapse.deleteFileHandle(fileHandleIdWithExtendedChars);
+			}
+			fileHandleIdWithExtendedChars = null;
+		} catch (SynapseNotFoundException e) {
+		} catch (SynapseServiceException e) { }
 		
 		if (project != null) {
 			try {
@@ -249,6 +264,21 @@ public class IT501SynapseJavaClientMessagingTest {
 		String message = synapseTwo.downloadMessage(oneToTwo.getId());
 		
 		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+	}
+	
+	@Test
+	public void testDownloadExtendedCharacterMessage() throws Exception {
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject("a test");
+		mtu.setRecipients(new HashSet<String>(Arrays.asList(new String[]{twoId})));
+		mtu = synapseOne.sendStringMessage(mtu, MESSAGE_BODY_WITH_EXTENDED_CHARS);
+		cleanup.add(mtu.getId());
+		fileHandleIdWithExtendedChars = mtu.getFileHandleId();
+
+		// this inspects the content-type to determine the character encoding
+		String message = synapseTwo.downloadMessage(mtu.getId());
+		
+		assertTrue("Downloaded: " + message, MESSAGE_BODY_WITH_EXTENDED_CHARS.equals(message));
 	}
 	
 	@Test

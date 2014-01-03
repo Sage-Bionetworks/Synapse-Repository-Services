@@ -145,7 +145,8 @@ public class MessageManagerImpl implements MessageManager {
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
-			EntityPermissionsManager entityPermissionsManager) {
+			EntityPermissionsManager entityPermissionsManager,
+			FileHandleDao fileHandleDao) {
 		this.messageDAO = messageDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.groupMembersDAO = groupMembersDAO;
@@ -156,6 +157,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.fileHandleManager = fileHandleManager;
 		this.nodeDAO = nodeDAO;
 		this.entityPermissionsManager = entityPermissionsManager;
+		this.fileHandleDao = fileHandleDao;
 	}
 	
 	@Override
