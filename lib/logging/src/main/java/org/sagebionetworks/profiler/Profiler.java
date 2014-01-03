@@ -1,5 +1,7 @@
 package org.sagebionetworks.profiler;
 
+import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -12,6 +14,10 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.sagebionetworks.repo.model.performance.PerformanceRecord;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 import com.google.common.collect.Maps;
 
@@ -25,6 +31,7 @@ import com.google.common.collect.Maps;
 public class Profiler {
 
 	private static final Logger log = LogManager.getLogger(Profiler.class);
+	private static final Logger callPerformanceLogger = LogManager.getLogger("org.sagebionetworks.profiler.call.performance");
 
 	private static class Count {
 		long totalTime = 0;
@@ -33,7 +40,8 @@ public class Profiler {
 
 	private static class ProfileData {
 		Frame currentFrame;
-		Map<String, Count> methodCalls = Maps.newHashMap();
+		Map<String, Count> methodCalls = Maps.newHashMap(); // only used from data structure that is accessed via
+															// ThreadLocal, so no need to be synchronized
 	}
 
 	private static class GlobalEntry {
@@ -194,7 +202,6 @@ public class Profiler {
 	}
 
 	public void collectGlobalMethodCallCounts() {
-		StringBuilder sb = new StringBuilder(2000);
 		for (GlobalEntry globalEntry : globalProfile.values()) {
 			int methodCount;
 			long methodTotalTime;
@@ -207,18 +214,17 @@ public class Profiler {
 				globalEntry.totalTime = 0;
 			}
 			if (methodCount > 0) {
-				if (sb.length() > 0) {
-					sb.append('#');
+				PerformanceRecord performanceRecord = new PerformanceRecord();
+				performanceRecord.setMethod(methodName);
+				performanceRecord.setTotalCount((long) methodCount);
+				performanceRecord.setTotalTime(methodTotalTime);
+				try {
+					JSONObjectAdapter adapter = performanceRecord.writeToJSONObject(new JSONObjectAdapterImpl());
+					callPerformanceLogger.info(adapter.toJSONString());
+				} catch (JSONObjectAdapterException e) {
+					log.debug("Cannot convert PerformanceRecord object to json: " + e.getMessage(), e);
 				}
-				sb.append(methodName);
-				sb.append(',');
-				sb.append(methodCount);
-				sb.append(',');
-				sb.append(methodTotalTime);
 			}
-		}
-		if (sb.length() > 0) {
-			log.info("Global profile: " + sb.toString());
 		}
 	}
 }

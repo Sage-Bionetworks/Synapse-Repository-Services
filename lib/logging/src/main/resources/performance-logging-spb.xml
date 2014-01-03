@@ -23,21 +23,9 @@
 	</bean>
 
 	<!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
-	<bean id="simplePerfLogTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	<bean id="performanceLogTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
     	<property name="jobDetail" ref="methodInvoking" />
     	<property name="startDelay" value="0" />
     	<property name="repeatInterval" ref="stackConfiguration.callPerformanceTriggerTime" />
 	</bean>
-
-	<!-- Trigger needs a scheduler to start it -->
-	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
-		<property name="autoStartup">
-    		<ref bean="stackConfiguration.callPerformanceOnOff"/>
-  		</property>
-  		<property name="triggers">
-    		<list>
-      			<ref bean="simplePerfLogTrigger"/>
-    		</list>
-  		</property>
-	</bean>	
 </beans>
