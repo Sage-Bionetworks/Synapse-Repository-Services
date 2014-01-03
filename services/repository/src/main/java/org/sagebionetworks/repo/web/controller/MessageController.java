@@ -235,7 +235,7 @@ public class MessageController extends BaseController {
 	public @ResponseBody
 	void fileRedirectForMessage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String messageId,
+			@PathVariable("messageId") String messageId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws NotFoundException, IOException {
 		URL redirectUrl = serviceProvider.getMessageService()
