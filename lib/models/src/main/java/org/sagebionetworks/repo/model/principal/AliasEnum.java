@@ -46,7 +46,7 @@ public enum AliasEnum {
 		String lower = toValidate.toLowerCase();
 		Matcher m = pattern.matcher(lower);
 		if (!m.matches()) {
-			throw new IllegalArgumentException(this.description);
+			throw new IllegalArgumentException(this.description+" Value="+toValidate);
 		}
 	}
 }

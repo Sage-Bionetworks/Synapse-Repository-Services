@@ -62,10 +62,12 @@ public class DBOTeamDAOImplTest {
 	
 	@After
 	public void tearDown() throws Exception {
-		aclDAO.delete(aclToDelete);
-		teamDAO.delete(teamToDelete);
-		userGroupDAO.delete(teamToDelete);
-		userGroupDAO.delete(userToDelete);
+		try {
+			aclDAO.delete(aclToDelete);
+			teamDAO.delete(teamToDelete);
+			userGroupDAO.delete(teamToDelete);
+			userGroupDAO.delete(userToDelete);
+		} catch (Exception e) {}
 	}
 	
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
@@ -129,7 +131,7 @@ public class DBOTeamDAOImplTest {
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
-		user.setName(UUID.randomUUID().toString());
+		user.setName(UUID.randomUUID().toString()+"@test.com");
 		user.setIsIndividual(true);
 		user.setId(userGroupDAO.create(user));
 		userToDelete = user.getId();

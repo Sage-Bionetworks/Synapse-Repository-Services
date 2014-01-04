@@ -59,8 +59,8 @@ public class DBOAccessApprovalDAOImplTest {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String TEST_USER_NAME = "test-user";
-	private static final String TEST_USER_NAME_2 = "test-user-2";
+	private static final String TEST_USER_NAME = "test-user@test.com";
+	private static final String TEST_USER_NAME_2 = "test-user-2@test.com";
 	
 	private UserGroup individualGroup = null;
 	private UserGroup individualGroup2 = null;

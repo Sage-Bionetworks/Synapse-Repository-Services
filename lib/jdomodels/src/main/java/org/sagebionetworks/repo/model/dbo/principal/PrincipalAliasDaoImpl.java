@@ -49,7 +49,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		// Convert to the DBO
 		DBOPrincipalAlias dbo = AliasUtils.createDBOFromDTO(dto);
 		// Validate the alias
-		dbo.getAliasType().validateAlias(dbo.getAliasUnique());
+		dbo.getAliasType().validateAlias(dbo.getAliasDisplay());
 		// Does this alias already exist?
 		PrincipalAlias current = findPrincipalWithAlias(dto.getAlias());
 		if(current != null){

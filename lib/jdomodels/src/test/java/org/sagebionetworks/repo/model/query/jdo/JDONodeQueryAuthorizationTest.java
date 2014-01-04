@@ -317,7 +317,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		User user = new User();
 		user.setUserId(name);
 		// Create a group for this user
-		String userGroupName = name+"group";
+		String userGroupName = name.replaceAll("@", "")+"@test.com";
 		UserGroup group = userGroupDAO.findGroup(userGroupName, true); //new UserGroup();
 		String id = null;
 		if (group==null) {
@@ -352,7 +352,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		String id = null;
 		if (group==null) { 
 			group = new UserGroup();
-			group.setName(name);
+			group.setName(name.replaceAll("@", ""));
 			group.setIsIndividual(false);
 			id = userGroupDAO.create(group);
 		} else {
@@ -432,7 +432,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		usersInBothGroups = new HashMap<String, UserInfo>();
 		for(int i=0; i<7; i++){
 			// Create all of the users
-			String userId = "userInBothA&B"+i+"@JDONodeQueryAuthorizationTest.org";
+			String userId = "userInBothA-B"+i+"@JDONodeQueryAuthorizationTest.org";
 			UserInfo info = createUser(userId, false);
 			info.getGroups().add(groupB);
 			info.getGroups().add(groupA);

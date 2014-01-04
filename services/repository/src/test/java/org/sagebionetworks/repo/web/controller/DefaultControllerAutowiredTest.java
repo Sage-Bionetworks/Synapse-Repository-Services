@@ -95,7 +95,7 @@ public class DefaultControllerAutowiredTest {
 		UserInfo.validateUserInfo(adminUserInfo);
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		otherUserId = userManager.createUser(user);
 		otherUserInfo = userManager.getUserInfo(otherUserId);
 	}

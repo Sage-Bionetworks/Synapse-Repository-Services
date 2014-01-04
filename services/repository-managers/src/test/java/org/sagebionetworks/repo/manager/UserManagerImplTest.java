@@ -69,7 +69,7 @@ public class UserManagerImplTest {
 	@Test
 	public void testStandardUser() throws Exception {
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		Long principalId = userManager.createUser(user);
 		groupsToDelete.add(principalId.toString());
 		

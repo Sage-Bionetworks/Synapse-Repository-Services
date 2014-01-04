@@ -47,7 +47,7 @@ public class DBOCommentDAOImplTest {
 		cleanup = new ArrayList<String>();
 		
 		maliciousUser = new UserGroup();
-		maliciousUser.setName("CommentDAOUser");
+		maliciousUser.setName("CommentDAOUser@test.com");
 		maliciousUser.setIsIndividual(true);
 		maliciousUser.setId(userGroupDAO.create(maliciousUser));
 		

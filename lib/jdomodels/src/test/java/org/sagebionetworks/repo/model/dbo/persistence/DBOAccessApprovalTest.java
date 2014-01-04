@@ -38,7 +38,7 @@ public class DBOAccessApprovalTest {
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	private static final String TEST_USER_NAME = "test-user";
+	private static final String TEST_USER_NAME = "test-user@test.com";
 	
 	private Node node = null;
 	private UserGroup individualGroup = null;

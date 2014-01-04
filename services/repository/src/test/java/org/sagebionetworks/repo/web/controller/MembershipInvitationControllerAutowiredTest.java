@@ -62,7 +62,7 @@ public class MembershipInvitationControllerAutowiredTest {
 		teamToDelete = ServletTestHelper.createTeam(dispatchServlet, adminUserId, team);
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		testInvitee = userManager.getUserInfo(userManager.createUser(user));
 		assertNotNull(testInvitee.getIndividualGroup().getId());
 	}

@@ -52,6 +52,7 @@ public class DBOCommunityTeamTest {
 		// To satisfy the Team's FK
 		group = new UserGroup();
 		group.setName(UUID.randomUUID().toString());
+		group.setIsIndividual(false);
 		String newGroupId = userGroupDAO.create(group);
 		group.setId(newGroupId);
 

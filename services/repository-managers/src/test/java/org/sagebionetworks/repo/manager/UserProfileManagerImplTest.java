@@ -39,7 +39,7 @@ public class UserProfileManagerImplTest {
 	private UserProfileManager userProfileManager;
 
 	private IdGenerator mockIdGenerator;
-	private static final String TEST_USER_NAME = "test-user";
+	private static final String TEST_USER_NAME = "test-user@test.com";
 	
 	private UserGroup individualGroup = null;
 	

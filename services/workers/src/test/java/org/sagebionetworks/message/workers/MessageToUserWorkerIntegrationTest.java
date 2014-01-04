@@ -66,7 +66,7 @@ public class MessageToUserWorkerIntegrationTest {
 		emptyQueue();
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());

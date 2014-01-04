@@ -68,7 +68,7 @@ public class PrincipalHeaderWorkerIntegrationTest {
 		teamName = "team name " + PREFIX + UUID.randomUUID().toString();
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setDisplayName(username);
 		userId = userManager.createUser(user);
 		

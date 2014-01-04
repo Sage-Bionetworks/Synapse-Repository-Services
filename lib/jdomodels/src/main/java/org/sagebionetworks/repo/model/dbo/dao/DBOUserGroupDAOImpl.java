@@ -27,6 +27,9 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +52,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	private List<UserGroupInt> bootstrapUsers;
 	
@@ -267,7 +273,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		// The public version unconditionally clears the ID so a new one will be assigned
 		dto.setId(null);
 		DBOUserGroup dbo = createPrivate(dto);
-		
 		// Send a CREATE message
 		// Note: This message cannot be sent in the createPrivate method because
 		// bootstrapping is not transactional when called by the Spring initializer 
@@ -297,6 +302,23 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			dbo = basicDao.createNew(dbo);
 		} catch (Exception e) {
 			throw new DatastoreException("id=" + dbo.getId() + " name="+dto.getName(), e);
+		}
+		
+		// Bind the alias for this user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setPrincipalId(dbo.getId());
+		alias.setAlias(dto.getName());
+		alias.setIsValidated(false);
+		if(dbo.getIsIndividual()){
+			alias.setType(AliasType.USER_EMAIL);
+		}else{
+			alias.setType(AliasType.TEAM_NAME);
+		}
+		// Save the alias
+		try {
+			this.principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e) {
+			throw new DatastoreException(e);
 		}
 		
 		return dbo;

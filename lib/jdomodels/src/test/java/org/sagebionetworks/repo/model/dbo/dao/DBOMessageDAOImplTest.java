@@ -80,7 +80,7 @@ public class DBOMessageDAOImplTest {
 		
 		// These two principals will act as mutual spammers
 		maliciousUser = new UserGroup();
-		maliciousUser.setName("MaliciousUser");
+		maliciousUser.setName("MaliciousUser@test.com");
 		maliciousUser.setIsIndividual(true);
 		maliciousUser.setId(userGroupDAO.create(maliciousUser));
 

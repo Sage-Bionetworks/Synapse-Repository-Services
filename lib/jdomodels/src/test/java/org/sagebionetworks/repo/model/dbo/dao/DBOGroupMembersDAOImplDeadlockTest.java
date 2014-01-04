@@ -41,7 +41,7 @@ public class DBOGroupMembersDAOImplDeadlockTest {
 
     // For the monkeys (read only)
     private static final Integer ATTENTION_DEFICIT = 100; // Milliseconds
-    private static final String MONKEY_NAME_SUFFIX = "OhWhatFun@Barrel.O.Monkeys";
+    private static final String MONKEY_NAME_SUFFIX = "OhWhatFun@Barrel.O.Monkeys.com";
     private static final String MONKEY_GROUP_PREFIX = "Barrel of Simians ";
     private List<String> barrelIds;
     private volatile boolean keepPlaying = true;

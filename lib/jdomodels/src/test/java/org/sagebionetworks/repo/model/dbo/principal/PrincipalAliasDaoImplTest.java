@@ -36,7 +36,7 @@ public class PrincipalAliasDaoImplTest {
 		principal = new UserGroup();
 		principal.setCreationDate(new Date());
 		principal.setIsIndividual(true);
-		principal.setName(UUID.randomUUID().toString());
+		principal.setName(UUID.randomUUID().toString()+"@test.com");
 		principal.setId(userGroupDao.create(principal));
 	}
 	
@@ -55,12 +55,12 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		// Use to upper as the alias
 		alias.setAlias(principal.getName().toUpperCase());
-		alias.setType(AliasType.USER_NAME);
+		alias.setType(AliasType.USER_EMAIL);
 		alias.setIsValidated(true);
 		alias.setPrincipalId(Long.parseLong(principal.getId()));
 		
 		// Before we start the alias should be available
-		assertTrue("Alias should be available before bound", principalAliasDao.isAliasAvailable(alias.getAlias()));
+//		assertTrue("Alias should be available before bound", principalAliasDao.isAliasAvailable(alias.getAlias()));
 		// Save the alias and fetch is back.
 		PrincipalAlias result = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(result);
@@ -75,6 +75,46 @@ public class PrincipalAliasDaoImplTest {
 		// The ID should not have changed
 		assertEquals("Binding the same alias to the same principal twice should not change the original alias id.",firstId, result.getAliasId());
 		assertFalse("Binding the same alias to the same principal twice should have changed the etag.", firstEtag.equals(result.getEtag()));
+	}
+	
+	@Test
+	public void testBindEmail() throws NotFoundException{
+		// Test binding an alias to a principal
+		PrincipalAlias alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("james.bond@Spy.org");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal.getId()));
+		
+		// Before we start the alias should be available
+		assertTrue("Alias should be available before bound", principalAliasDao.isAliasAvailable(alias.getAlias()));
+		// Save the alias and fetch is back.
+		PrincipalAlias result = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(result);
+		assertNotNull(result.getAliasId());
+		assertNotNull(result.getEtag());
+		assertEquals(alias.getAlias(), result.getAlias());
+	}
+	
+	@Test
+	public void testBindTeam() throws NotFoundException{
+		// Test binding an alias to a principal
+		PrincipalAlias alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("Best team Ever");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal.getId()));
+		
+		// Before we start the alias should be available
+		assertTrue("Alias should be available before bound", principalAliasDao.isAliasAvailable(alias.getAlias()));
+		// Save the alias and fetch is back.
+		PrincipalAlias result = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(result);
+		assertNotNull(result.getAliasId());
+		assertNotNull(result.getEtag());
+		assertEquals(alias.getAlias(), result.getAlias());
 	}
 	
 	

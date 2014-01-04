@@ -42,6 +42,9 @@ public class UserGroupCacheImplTest {
 			ug.setCreationDate(new Date(System.currentTimeMillis()));
 			ug.setName(name);
 			ug.setIsIndividual(i % 2 == 0);
+			if(ug.getIsIndividual()){
+				ug.setName(ug.getName()+"@test.com");
+			}
 			String id  = userGroupDAO.create(ug);
 			ug.setId(id);
 			userGroups.add(ug);

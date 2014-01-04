@@ -67,7 +67,7 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		
 		// Create another user
 		individUser = new UserGroup();
-		individUser.setName("DBOMembershipInvtnSubmissionDAOImplTest");
+		individUser.setName("DBOMembershipInvtnSubmissionDAOImplTest@test.com");
 		individUser.setIsIndividual(true);
 		individUser.setId(userGroupDAO.create(individUser));
 		

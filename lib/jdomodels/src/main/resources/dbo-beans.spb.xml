@@ -104,6 +104,7 @@
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
+				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
