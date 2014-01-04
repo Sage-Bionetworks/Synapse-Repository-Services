@@ -65,7 +65,7 @@ public class StepControllerTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		testHelper.setUp();

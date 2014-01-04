@@ -55,7 +55,7 @@ public class TrashControllerAutowiredTest {
 		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
