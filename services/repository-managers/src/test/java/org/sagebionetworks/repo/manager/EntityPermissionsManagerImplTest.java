@@ -96,8 +96,8 @@ public class EntityPermissionsManagerImplTest {
 		cred.setSecretKey("");
 		
 		// Need two users for this test
-		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
-		otherUserInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
+		otherUserInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
 		
 		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		

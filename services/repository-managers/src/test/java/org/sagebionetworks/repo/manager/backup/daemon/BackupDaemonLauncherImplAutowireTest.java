@@ -32,7 +32,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 	@Before
 	public void before() throws Exception {
 		NewUser user = new NewUser();
-		user.setEmail(UUID.randomUUID().toString() + "@");
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 	}
 	

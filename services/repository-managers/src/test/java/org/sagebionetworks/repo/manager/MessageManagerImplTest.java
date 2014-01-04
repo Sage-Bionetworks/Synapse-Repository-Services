@@ -136,8 +136,8 @@ public class MessageManagerImplTest {
 		cred.setSecretKey("");
 		
 		// Need two users for this test
-		testUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
-		otherTestUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		testUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
+		otherTestUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
 
 		final String testUserId = testUser.getIndividualGroup().getId();
 		final String otherTestUserId = otherTestUser.getIndividualGroup().getId();

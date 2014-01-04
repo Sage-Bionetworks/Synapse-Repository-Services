@@ -98,7 +98,7 @@ public class NodeManagerImplAutoWiredTest {
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
-		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
 	}
 	
 	@After

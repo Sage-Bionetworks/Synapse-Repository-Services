@@ -116,7 +116,7 @@ public class AuthorizationManagerImplTest {
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
-		userInfo = userManager.createUser(adminUser, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		userInfo = userManager.createUser(adminUser, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
 		
 		// Create a new group
 		testGroup = new UserGroup();

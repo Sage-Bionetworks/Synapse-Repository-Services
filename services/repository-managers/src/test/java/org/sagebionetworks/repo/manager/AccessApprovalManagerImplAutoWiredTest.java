@@ -82,7 +82,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
-		testUserInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@", new UserProfile(), cred);
+		testUserInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
 		
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
