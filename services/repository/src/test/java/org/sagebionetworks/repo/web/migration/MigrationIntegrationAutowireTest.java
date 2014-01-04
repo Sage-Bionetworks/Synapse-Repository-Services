@@ -39,8 +39,33 @@ import org.sagebionetworks.repo.manager.StorageQuotaManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.CommentDAO;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.MessageDAO;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -70,7 +95,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
 import org.sagebionetworks.repo.web.controller.EntityServletTestHelper;
@@ -176,7 +200,7 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
-
+	
 	private Long adminUserId;
 	private String adminUserIdString;
 	private UserInfo adminUserInfo;
@@ -492,12 +516,12 @@ public class MigrationIntegrationAutowireTest {
 		// Make two users
 		UserGroup parentUser = new UserGroup();
 		parentUser.setIsIndividual(true);
-		parentUser.setName(userNamePrefix+"1");
+		parentUser.setName(userNamePrefix+"gov.org");
 		parentUser.setId(userGroupDAO.create(parentUser));
 		
 		UserGroup siblingUser = new UserGroup();
 		siblingUser.setIsIndividual(true);
-		siblingUser.setName(userNamePrefix+"2");
+		siblingUser.setName(userNamePrefix+"2"+"gov.org");
 		siblingUser.setId(userGroupDAO.create(siblingUser));
 		
 		// Nest one group and two users within the parent group
@@ -682,7 +706,11 @@ public class MigrationIntegrationAutowireTest {
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+			if(afterRestore.getType() == MigrationType.PRINCIPAL_ALIAS){
+				assertTrue("There should be more alias than we started because the PrincipalMigrationListenerImpl should add alias for cleared bootstrap users.", afterRestore.getCount() > startCount.getCount());
+			}else{
+				assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
+			}
 		}
 	}
 	

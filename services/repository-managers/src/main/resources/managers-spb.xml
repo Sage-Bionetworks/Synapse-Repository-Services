@@ -167,6 +167,11 @@
 	<bean id="migrationManager" class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl" scope="singleton">
 		<property name="backupBatchMax"
 			ref="stackConfiguration.migrationBackupBatchMax" />
+		<property name="migrationListeners">
+		    <list>
+		        <bean class="org.sagebionetworks.repo.manager.migration.PrincipalMigrationListenerImpl"/>
+		    </list>
+		</property>
 	</bean>
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
