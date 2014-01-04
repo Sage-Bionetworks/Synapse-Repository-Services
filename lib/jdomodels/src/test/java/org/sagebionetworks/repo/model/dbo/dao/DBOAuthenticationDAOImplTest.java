@@ -51,7 +51,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 	private List<String> groupsToDelete;
 	
-	private static final String GROUP_NAME = "auth-test-group";
+	private static final String GROUP_NAME = "auth-test-group@test.com";
 	private DBOCredential secretRow;
 	private static String userEtag;
 

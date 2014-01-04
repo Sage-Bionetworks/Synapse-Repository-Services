@@ -87,6 +87,7 @@ public class DBOUserGroupDAOImplTest {
 	public void testDoesPrincipalExist() throws Exception {
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
+		group.setIsIndividual(false);
 		String groupId = userGroupDAO.create(group);
 		assertNotNull(groupId);
 		groupsToDelete.add(groupId);
@@ -117,6 +118,7 @@ public class DBOUserGroupDAOImplTest {
 			
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
+		group.setIsIndividual(false);
 		String groupId = userGroupDAO.create(group);
 		assertNotNull(groupId);
 		groupsToDelete.add(groupId);

@@ -56,9 +56,9 @@ public class DBOGroupMembersDAOImplTest {
 		groupsToDelete = new ArrayList<String>();
 		
 		testGroup = createTestGroup("" + UUID.randomUUID(), false);
-		testUserOne = createTestGroup("" + UUID.randomUUID(), true);
-		testUserTwo = createTestGroup("" + UUID.randomUUID(), true);
-		testUserThree = createTestGroup("" + UUID.randomUUID(), true);
+		testUserOne = createTestGroup("" + UUID.randomUUID()+"@test.com", true);
+		testUserTwo = createTestGroup("" + UUID.randomUUID()+"@test.com", true);
+		testUserThree = createTestGroup("" + UUID.randomUUID()+"@test.com", true);
 	}
 
 	@After

@@ -2,14 +2,10 @@ package org.sagebionetworks.bridge.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
@@ -52,6 +48,7 @@ public class DBOCommunityTeamDAOImplTest extends TestBase {
 	private Team createTeam(String... memberIds) throws Exception {
 		UserGroup newGroup = new UserGroup();
 		newGroup.setName(UUID.randomUUID().toString());
+		newGroup.setIsIndividual(false);
 		String newGroupId = userGroupDAO.create(newGroup);
 		addToDelete(UserGroup.class, newGroupId);
 
