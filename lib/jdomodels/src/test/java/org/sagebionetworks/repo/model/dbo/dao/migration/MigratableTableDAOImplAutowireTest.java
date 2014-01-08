@@ -249,6 +249,7 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_DESCRIPTOR);
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_COLUMN_DESCRIPTOR);
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA);
+		expectedPrimaryTypes.add(MigrationType.PARTICIPANT_DATA_STATUS);
 		expectedPrimaryTypes.add(MigrationType.COLUMN_MODEL);
 		expectedPrimaryTypes.add(MigrationType.TABLE_SEQUENCE);
 		expectedPrimaryTypes.add(MigrationType.STORAGE_QUOTA);
