@@ -9,16 +9,16 @@
         "lastStarted": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The last time the user started entering data for this tracker",
+			"description": "The last time the user started entering data for this tracker"
 		},
         "lastPrompted": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The last time the user was prompted for this tracker",
+			"description": "The last time the user was prompted for this tracker"
 		},
         "lastEntryComplete": {
 			"type": "boolean",
-			"description": "Is the last entry for this tracker complete?",
+			"description": "Is the last entry for this tracker complete?"
 		}
     }
 }

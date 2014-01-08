@@ -30,7 +30,7 @@
         "repeatFrequency": {
 			"type": "string",
 			"description": "The repeat frequency if repeat type is REPEATED (cron format)",
-			"name": "ParticipantDataRepeatFreequency",
+			"name": "ParticipantDataRepeatFreequency"
 		},
 		"status": {
 		    "description":"The status of this tracker.",
