@@ -1,9 +1,11 @@
 package org.sagebionetworks.bridge.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.table.PaginatedRowSet;
@@ -21,6 +23,8 @@ public interface ParticipantDataService {
 			IOException;
 
 	public RowSet update(Long userId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException;
+
+	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException;
 
 	public ParticipantDataDescriptor createParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor) throws DatastoreException,
 			NotFoundException;

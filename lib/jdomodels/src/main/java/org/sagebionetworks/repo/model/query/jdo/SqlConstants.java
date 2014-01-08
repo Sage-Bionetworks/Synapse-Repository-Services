@@ -559,6 +559,8 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
 
 	// Participant data sets column descriptor
 	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
@@ -572,6 +574,11 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_ID = "PARTICIPANT_ID";
 	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
 	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
+
+	// Participant data set statuses
+	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
+	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
+	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

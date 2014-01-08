@@ -37,6 +37,7 @@ public class BridgeUrlHelpers extends UrlHelpers {
 	public static final String PARTICIPANT_DATA = BridgePrefixConst.PARTICIPANT_DATA;
 	public static final String PARTICIPANT_DATA_ID = BridgePrefixConst.PARTICIPANT_DATA + PARTICIPANT_DATA_ID_NAME;
 	public static final String APPEND_FOR_PARTICIPANT_DATA = PARTICIPANT_DATA_ID + BridgePrefixConst.PARTICIPANT + PARTICIPANT_ID_NAME;
+	public static final String SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES = BridgePrefixConst.PARTICIPANT_DATA_DESCRIPTOR + "/sendupdates";
 
 	public static final String PARTICIPANT_DATA_DESCRIPTOR = BridgePrefixConst.PARTICIPANT_DATA_DESCRIPTOR;
 	public static final String PARTICIPANT_DATA_DESCRIPTOR_ID = BridgePrefixConst.PARTICIPANT_DATA_DESCRIPTOR + PARTICIPANT_DATA_ID_NAME;

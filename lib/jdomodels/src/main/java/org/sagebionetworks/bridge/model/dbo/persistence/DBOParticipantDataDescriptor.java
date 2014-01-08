@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.model.dbo.persistence;
 
 import java.util.List;
 
+import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -14,9 +15,8 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 /**
  * descriptor of what's in a participant data record
  */
-@Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR, constraints={
-	"unique key UNIQUE_DSM_NAME (" + SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_NAME + ")"
-})
+@Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR, constraints = { "unique key UNIQUE_DSM_NAME ("
+		+ SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_NAME + ")" })
 public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DBOParticipantDataDescriptor, DBOParticipantDataDescriptor> {
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID, backupId = true, primary = true)
@@ -27,6 +27,12 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION, type = "text")
 	private String description;
+
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE, nullable = false)
+	private ParticipantDataRepeatType repeatType;
+
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY, varchar = 64, nullable = true)
+	private String repeatFrequency;
 
 	private static TableMapping<DBOParticipantDataDescriptor> tableMapping = AutoTableMapping.create(DBOParticipantDataDescriptor.class);
 
@@ -64,6 +70,22 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		this.description = description;
 	}
 
+	public ParticipantDataRepeatType getRepeatType() {
+		return repeatType;
+	}
+
+	public void setRepeatType(ParticipantDataRepeatType repeatType) {
+		this.repeatType = repeatType;
+	}
+
+	public String getRepeatFrequency() {
+		return repeatFrequency;
+	}
+
+	public void setRepeatFrequency(String repeatFrequency) {
+		this.repeatFrequency = repeatFrequency;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -71,6 +93,8 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((repeatFrequency == null) ? 0 : repeatFrequency.hashCode());
+		result = prime * result + ((repeatType == null) ? 0 : repeatType.hashCode());
 		return result;
 	}
 
@@ -98,12 +122,20 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 				return false;
 		} else if (!name.equals(other.name))
 			return false;
+		if (repeatFrequency == null) {
+			if (other.repeatFrequency != null)
+				return false;
+		} else if (!repeatFrequency.equals(other.repeatFrequency))
+			return false;
+		if (repeatType != other.repeatType)
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOParticipantDataDescriptor [id=" + id + ", name=" + name + ", description=" + description + "]";
+		return "DBOParticipantDataDescriptor [id=" + id + ", name=" + name + ", description=" + description + ", repeatType=" + repeatType
+				+ ", repeatFrequency=" + repeatFrequency + "]";
 	}
 
 	@Override
